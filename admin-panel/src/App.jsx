@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const API_URL = import.meta.env.PROD 
-  ? "https://randevugo-api.onrender.com/api"  // Production URL
-  : "http://localhost:3000/api";               // Development URL
+const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://randevugo-api.onrender.com/api');
 
 const api = {
   token: localStorage.getItem("randevugo_token"),
