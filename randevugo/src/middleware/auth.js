@@ -5,7 +5,7 @@ const authMiddleware = (req, res, next) => {
   if (!token) return res.status(401).json({ hata: 'Token bulunamadı' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'randevugo-default-secret-key-2024');
     req.kullanici = decoded;
     next();
   } catch (err) {

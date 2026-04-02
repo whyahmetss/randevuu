@@ -12,14 +12,16 @@ class AuthController {
         return res.status(401).json({ hata: 'Email veya şifre hatalı' });
       }
 
+      const jwtSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
       const token = jwt.sign(
         { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id },
-        process.env.JWT_SECRET,
+        jwtSecret,
         { expiresIn: '7d' }
       );
 
       res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id } });
     } catch (error) {
+      console.error('❌ Giriş hatası:', error.message, error.stack);
       res.status(500).json({ hata: error.message });
     }
   }
