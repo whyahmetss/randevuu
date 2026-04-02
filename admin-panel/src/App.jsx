@@ -81,9 +81,6 @@ function Login({ onLogin }) {
             {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
-        <p style={{ color: "#475569", fontSize: 12, textAlign: "center", marginTop: 20 }}>
-          Demo: admin@randevugo.com / admin123456
-        </p>
       </div>
     </div>
   );
