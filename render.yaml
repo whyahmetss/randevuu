@@ -50,7 +50,7 @@ services:
     name: randevugo-admin
     env: static
     plan: starter
-    buildCommand: cd admin-panel && npm install && npm run build
+    buildCommand: cd admin-panel && npm ci && npm run build
     publishPath: admin-panel/dist
     healthCheckPath: /
 
