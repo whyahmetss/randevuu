@@ -607,7 +607,7 @@ class WhatsAppWebService extends EventEmitter {
         }
         if (secilenHizmet) {
           // Çalışan kontrolü
-          const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId])).rows;
+          const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
           if (calisanlar.length > 1) {
             // Birden fazla çalışan → seçtir
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
@@ -636,7 +636,7 @@ class WhatsAppWebService extends EventEmitter {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'hizmet_secimi');
           return this.hizmetListesi(isletme, hizmetler);
         }
-        const calisanlarQ = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId])).rows;
+        const calisanlarQ = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
         let secilenCalisan = null;
         const cIdx = parseInt(metin) - 1;
         if (cIdx >= 0 && cIdx < calisanlarQ.length) {
@@ -709,7 +709,7 @@ class WhatsAppWebService extends EventEmitter {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
           const hz = guncelDurum.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [guncelDurum.secilen_hizmet_id])).rows[0] : null;
           const cl = guncelDurum.secilen_calisan_id ? (await pool.query('SELECT * FROM calisanlar WHERE id=$1', [guncelDurum.secilen_calisan_id])).rows[0] : null;
-          return { metin: `📋 *Randevu Özeti*\n\n🏥  ${isletme.isim}\n${hz ? `${hz.emoji ? hz.emoji + '  ' : ''}${hz.isim}\n` : ''}${cl ? `�  ${cl.isim}\n` : ''}�📅  ${this.tarihFormat(guncelDurum.secilen_tarih)}\n🕐  ${secilenSaat}\n${hz ? `💰  ₺${hz.fiyat}\n` : ''}\nHer şey doğru mu?\n\n💬 Not eklemek için yazın veya:`, butonlar: ['✅ Onayla', '❌ İptal'] };
+          return { metin: `📋 *Randevu Özeti*\n\n🏥  ${isletme.isim}\n${hz ? `${hz.emoji ? hz.emoji + '  ' : ''}${hz.isim}\n` : ''}${cl ? `�  ${cl.isim}\n` : ''}��  ${this.tarihFormat(guncelDurum.secilen_tarih)}\n🕐  ${secilenSaat}\n${hz ? `💰  ₺${hz.fiyat}\n` : ''}\nHer şey doğru mu?\n\n💬 Not eklemek için yazın veya:`, butonlar: ['✅ Onayla', '❌ İptal'] };
         }
         let txt = `Lütfen bir saat seçin:\n\n`;
         saatler.forEach((s, i) => { txt += `${i+1}️⃣ ${s}\n`; });

@@ -332,7 +332,8 @@ class TelegramService {
 
         if (secilenHizmet) {
           // Çalışan kontrolü
-          const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId])).rows;
+          const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
+          console.log(`👤 Çalışan sorgusu: isletme=${isletmeId}, bulunan=${calisanlar.length}, isimler=${calisanlar.map(c=>c.isim).join(',')}`);
           if (calisanlar.length > 1) {
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
             const cBtnlar = calisanlar.map((c, i) => [{ text: `👤 ${c.isim}`, callback_data: `cl_${i}` }]);
@@ -379,7 +380,7 @@ class TelegramService {
           await this.anaMenuGonder(bot, chatId, isletmeId, musteriTelefon, isletme, hizmetler);
           break;
         }
-        const calisanlarTg = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId])).rows;
+        const calisanlarTg = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
         let secilenCalisan = null;
         if (mk.startsWith('cl_')) {
           const cIdx = parseInt(mk.replace('cl_', ''));
