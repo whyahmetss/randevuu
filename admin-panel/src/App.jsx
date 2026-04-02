@@ -682,7 +682,15 @@ function Dashboard() {
             {paketDurum.paket !== "premium" && (
               <div style={{ marginTop: 12, padding: "8px", background: "linear-gradient(135deg,#f59e0b15,#f59e0b08)", borderRadius: 8, border: "1px solid #f59e0b30", textAlign: "center", cursor: "pointer" }}>
                 <div style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>⬆ Paketi Yükselt</div>
-                <div style={{ color: "#78716c", fontSize: 10, marginTop: 2 }}>{paketDurum.paket === "baslangic" ? "Profesyonel → 599₺/ay" : "Premium → 999₺/ay"}</div>
+                {paketDurum.paket === "baslangic" && (
+                  <>
+                    <div style={{ color: "#78716c", fontSize: 10, marginTop: 2 }}>Profesyonel → 599₺/ay</div>
+                    <div style={{ color: "#78716c", fontSize: 10, marginTop: 2 }}>Premium → 999₺/ay</div>
+                  </>
+                )}
+                {paketDurum.paket === "profesyonel" && (
+                  <div style={{ color: "#78716c", fontSize: 10, marginTop: 2 }}>Premium → 999₺/ay</div>
+                )}
               </div>
             )}
           </div>
