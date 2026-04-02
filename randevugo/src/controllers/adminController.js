@@ -448,9 +448,19 @@ class AdminController {
   }
 
   async isletmeSil(req, res) {
+    const id = req.params.id;
     try {
-      await pool.query('DELETE FROM isletmeler WHERE id = $1', [req.params.id]);
-      res.json({ mesaj: 'İşletme silindi' });
+      // Bağımlı tabloları sırayla temizle
+      await pool.query('DELETE FROM sohbet_gecmisi WHERE isletme_id = $1', [id]);
+      await pool.query('DELETE FROM bot_durum WHERE isletme_id = $1', [id]);
+      await pool.query('DELETE FROM bekleme_listesi WHERE isletme_id = $1', [id]);
+      await pool.query('DELETE FROM randevular WHERE isletme_id = $1', [id]);
+      await pool.query('DELETE FROM hizmetler WHERE isletme_id = $1', [id]);
+      await pool.query('DELETE FROM calisanlar WHERE isletme_id = $1', [id]);
+      await pool.query('DELETE FROM admin_kullanicilar WHERE isletme_id = $1', [id]);
+      await pool.query('DELETE FROM odemeler WHERE isletme_id = $1', [id]).catch(() => {});
+      await pool.query('DELETE FROM isletmeler WHERE id = $1', [id]);
+      res.json({ mesaj: 'İşletme ve tüm verileri silindi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
