@@ -425,7 +425,7 @@ class WhatsAppWebService extends EventEmitter {
 
     const randevuService = require('./randevu');
     const bugun = bugunTarih();
-    const musaitSaatler = await randevuService.musaitSaatleriGetir(isletmeId, botDurum.secilen_tarih || bugun);
+    const musaitSaatler = await randevuService.musaitSaatleriGetir(isletmeId, botDurum.secilen_tarih || bugun, botDurum.secilen_calisan_id);
 
     // DeepSeek'e sor, hata/key yoksa state machine'e düş
     const deepseekService = require('./deepseek');
@@ -478,7 +478,7 @@ class WhatsAppWebService extends EventEmitter {
           if (m) tarih = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
         }
         if (tarih) {
-          const saatler = await randevuService.musaitSaatleriGetir(isletmeId, tarih);
+          const saatler = await randevuService.musaitSaatleriGetir(isletmeId, tarih, botDurum.secilen_calisan_id);
           if (!saatler.length) return `😔 ${this.tarihFormat(tarih)} tarihinde müsait saat yok.\n\n1️⃣ Bugün\n2️⃣ Yarın\n0️⃣ Ana Menü`;
           await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: tarih });
           let r = `📅 *${this.tarihFormat(tarih)}* müsait saatler:\n\n`;
@@ -490,7 +490,7 @@ class WhatsAppWebService extends EventEmitter {
 
       case 'saat_secildi': {
         const gd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-        const saatler = await randevuService.musaitSaatleriGetir(isletmeId, gd.secilen_tarih);
+        const saatler = await randevuService.musaitSaatleriGetir(isletmeId, gd.secilen_tarih, gd.secilen_calisan_id);
         let saat = aiCevap.secilen_saat;
         const si = parseInt(metin) - 1;
         if (si >= 0 && si < saatler.length) saat = saatler[si];
@@ -674,10 +674,11 @@ class WhatsAppWebService extends EventEmitter {
 
         if (secilenTarih) {
           const randevuService = require('./randevu');
-          const saatler = await randevuService.musaitSaatleriGetir(isletmeId, secilenTarih);
+          const gdTarih = (await pool.query('SELECT secilen_calisan_id, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+          const saatler = await randevuService.musaitSaatleriGetir(isletmeId, secilenTarih, gdTarih?.secilen_calisan_id);
           if (saatler.length === 0) {
             // Bekleme listesi önerisi
-            const gd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+            const gd = gdTarih;
             await pool.query('INSERT INTO bekleme_listesi (musteri_telefon, isletme_id, hizmet_id, istenen_tarih) VALUES ($1,$2,$3,$4)',
               [musteriTelefon, isletmeId, gd?.secilen_hizmet_id || null, secilenTarih]);
             return { metin: `😔 ${this.tarihFormat(secilenTarih)} tarihinde müsait saat yok.\n\n📋 Sizi bekleme listesine ekledik! Yer açılırsa bildirim alacaksınız. 🔔`, butonlar: ['📅 Bugün', '📅 Yarın', '📆 Başka Gün'] };
@@ -700,7 +701,7 @@ class WhatsAppWebService extends EventEmitter {
         }
         const randevuService = require('./randevu');
         const guncelDurum = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-        const saatler = await randevuService.musaitSaatleriGetir(isletmeId, guncelDurum.secilen_tarih);
+        const saatler = await randevuService.musaitSaatleriGetir(isletmeId, guncelDurum.secilen_tarih, guncelDurum.secilen_calisan_id);
         let secilenSaat = null;
         if (saatler.includes(metin)) secilenSaat = metin;
         else { const si = parseInt(metin) - 1; if (si >= 0 && si < saatler.length) secilenSaat = saatler[si]; }
