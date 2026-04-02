@@ -478,9 +478,11 @@ class TelegramService {
         if (secilenSaat && saatler.includes(secilenSaat)) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
+          const clOzet = gd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gd.secilen_calisan_id])).rows[0] : null;
           const ozet = `📋 *Randevu Özeti*\n\n` +
             `🏥  ${isletme.isim}\n` +
             `${hz ? `${hz.emoji ? hz.emoji + '  ' : ''}${hz.isim}\n` : ''}` +
+            `${clOzet ? `👤  ${clOzet.isim}\n` : ''}` +
             `📅  ${this.tarihFormat(gd.secilen_tarih)}\n` +
             `🕐  ${secilenSaat}\n` +
             `${hz ? `💰  ₺${hz.fiyat}\n` : ''}` +
@@ -576,7 +578,8 @@ class TelegramService {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay');
           const gdn = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           const hzn = gdn.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gdn.secilen_hizmet_id])).rows[0] : null;
-          const ozet = `📋 *Randevu Özeti*\n\n🏥  ${isletme.isim}\n${hzn ? `${hzn.emoji ? hzn.emoji + '  ' : ''}${hzn.isim}\n` : ''}📅  ${this.tarihFormat(gdn.secilen_tarih)}\n🕐  ${gdn.secilen_saat}\n${hzn ? `💰  ₺${hzn.fiyat}\n` : ''}\nHer şey doğru mu?`;
+          const clOzet2 = gdn.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gdn.secilen_calisan_id])).rows[0] : null;
+          const ozet = `📋 *Randevu Özeti*\n\n🏥  ${isletme.isim}\n${hzn ? `${hzn.emoji ? hzn.emoji + '  ' : ''}${hzn.isim}\n` : ''}${clOzet2 ? `👤  ${clOzet2.isim}\n` : ''}📅  ${this.tarihFormat(gdn.secilen_tarih)}\n🕐  ${gdn.secilen_saat}\n${hzn ? `💰  ₺${hzn.fiyat}\n` : ''}\nHer şey doğru mu?`;
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, ozet,
             [[{ text: '✅ Onayla', callback_data: 'evet' }],
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],
