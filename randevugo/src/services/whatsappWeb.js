@@ -135,6 +135,62 @@ class WhatsAppWebService extends EventEmitter {
         }
       });
 
+      // Poll yanıtlarını dinle
+      sock.ev.on('messages.update', async (updates) => {
+        for (const { key, update } of updates) {
+          const pollUpdate = update?.pollUpdates;
+          if (!pollUpdate || pollUpdate.length === 0) continue;
+          try {
+            // Poll'dan seçilen cevabı al
+            const lastVote = pollUpdate[pollUpdate.length - 1];
+            const selectedOptions = lastVote?.vote?.selectedOptions || [];
+            if (selectedOptions.length === 0) continue;
+
+            // Seçilen opsiyonu bul - decryptPollVote ile veya direkt metin
+            const voterJid = lastVote?.vote?.voter;
+            if (!voterJid || voterJid === sock.user?.id) continue;
+
+            // Poll mesajını bul ve seçenekleri eşleştir
+            const pollMsg = await sock.store?.loadMessage?.(key.remoteJid, key.id);
+            const pollValues = pollMsg?.message?.pollCreationMessage?.options?.map(o => o.optionName) 
+              || pollMsg?.message?.pollCreationMessageV3?.options?.map(o => o.optionName) || [];
+
+            let secilen = '';
+            if (pollValues.length > 0 && selectedOptions.length > 0) {
+              // SHA256 hash eşleştirmesi - Baileys poll vote'lar hash olarak gelir
+              const crypto = require('crypto');
+              for (const opt of pollValues) {
+                const hash = crypto.createHash('sha256').update(opt).digest();
+                for (const sel of selectedOptions) {
+                  if (Buffer.compare(hash, Buffer.from(sel)) === 0) {
+                    secilen = opt;
+                    break;
+                  }
+                }
+                if (secilen) break;
+              }
+            }
+
+            if (!secilen && selectedOptions.length > 0) {
+              // Fallback: ilk seçeneği metin olarak kullan
+              secilen = selectedOptions[0].toString();
+            }
+
+            if (secilen) {
+              console.log(`📊 Poll yanıtı: ${secilen} (${voterJid})`);
+              // Poll yanıtını normal mesaj gibi işle
+              const fakeMsg = {
+                key: { remoteJid: voterJid, fromMe: false, id: `poll_${Date.now()}` },
+                message: { conversation: secilen }
+              };
+              await this.mesajIsle(fakeMsg, isletmeId);
+            }
+          } catch (err) {
+            console.error(`❌ Poll yanıt hatası [${isletmeIsim}]:`, err.message);
+          }
+        }
+      });
+
     } catch (err) {
       console.error(`❌ WP başlatma hatası [${isletmeIsim}]:`, err.message);
       this.isletmeler[isletmeId].durum = 'hata';
@@ -246,7 +302,9 @@ class WhatsAppWebService extends EventEmitter {
   async _butonluMesajGonder(sock, jid, mesaj, butonlar, editKey = null) {
     const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
 
-    // Yöntem 1: Buttons message (max 3 buton)
+    // ═══ Business hesaplar için buton denemeleri ═══
+
+    // Business Yöntem 1: Buttons message (max 3 buton)
     if (btnLabels.length <= 3) {
       try {
         const buttonMsg = {
@@ -259,14 +317,15 @@ class WhatsAppWebService extends EventEmitter {
           })),
           headerType: 1
         };
-        if (editKey) buttonMsg.edit = editKey;
-        return await sock.sendMessage(jid, buttonMsg);
+        const sent = await sock.sendMessage(jid, buttonMsg);
+        console.log('✅ Buttons message gönderildi');
+        return sent;
       } catch (e) {
         console.log('⚠️ Buttons message başarısız:', e.message);
       }
     }
 
-    // Yöntem 2: List message (4+ buton için)
+    // Business Yöntem 2: List message
     try {
       const sections = [{
         title: 'Seçenekler',
@@ -276,62 +335,48 @@ class WhatsAppWebService extends EventEmitter {
           description: ''
         }))
       }];
-      const listMsg = {
+      const sent = await sock.sendMessage(jid, {
         text: mesaj,
         footer: '👇 Menüden seçim yapın',
         title: 'Seçenekler',
         buttonText: 'Seçim Yap',
         sections
-      };
-      return await sock.sendMessage(jid, listMsg);
+      });
+      console.log('✅ List message gönderildi');
+      return sent;
     } catch (e) {
       console.log('⚠️ List message başarısız:', e.message);
     }
 
-    // Yöntem 3: Interactive message (viewOnceMessage wrapper)
-    try {
-      const buttons = btnLabels.map((label, i) => ({
-        name: 'quick_reply',
-        buttonParamsJson: JSON.stringify({ display_text: label, id: `qr_${i}_${label}` })
-      }));
-      return await sock.sendMessage(jid, {
-        viewOnceMessage: {
-          message: {
-            interactiveMessage: {
-              body: { text: mesaj },
-              footer: { text: '👇 Bir seçenek seçin' },
-              nativeFlowMessage: { buttons, messageParamsJson: '' }
-            }
-          }
+    // ═══ Normal WhatsApp için: Poll (anket) — tıklanabilir! ═══
+    if (btnLabels.length <= 12) {
+      try {
+        // Önce mesaj metnini gönder (edit veya yeni)
+        let textSent;
+        if (editKey) {
+          await sock.sendMessage(jid, { text: mesaj, edit: editKey });
+          textSent = { key: editKey };
+        } else {
+          textSent = await sock.sendMessage(jid, { text: mesaj });
         }
-      });
-    } catch (e) {
-      console.log('⚠️ Interactive message başarısız:', e.message);
+
+        // Sonra poll gönder
+        const pollSent = await sock.sendMessage(jid, {
+          poll: {
+            name: '👇 Seçim yapın:',
+            values: btnLabels,
+            selectableCount: 1
+          }
+        });
+        console.log('✅ Poll mesajı gönderildi');
+        return pollSent;
+      } catch (e) {
+        console.log('⚠️ Poll başarısız:', e.message);
+      }
     }
 
-    // Yöntem 4: Template buttons
-    try {
-      const templateButtons = btnLabels.map((label, i) => ({
-        index: i + 1,
-        quickReplyButton: { displayText: label, id: `tmpl_${i}_${label}` }
-      }));
-      return await sock.sendMessage(jid, {
-        templateMessage: {
-          hydratedTemplate: {
-            hydratedContentText: mesaj,
-            hydratedFooterText: '👇 Bir seçenek seçin',
-            hydratedButtons: templateButtons.map(tb => ({
-              quickReplyButton: tb.quickReplyButton
-            }))
-          }
-        }
-      });
-    } catch (e) {
-      console.log('⚠️ Template message başarısız:', e.message);
-    }
-
-    // Hiçbiri çalışmazsa metin olarak gönder (fallback)
-    console.log('⚠️ Tüm buton yöntemleri başarısız, metin olarak gönderiliyor');
+    // ═══ Son çare: Numaralı metin (her yerde çalışır) ═══
+    console.log('📝 Numaralı metin olarak gönderiliyor');
     let butonMetin = mesaj + '\n';
     btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });
     if (editKey) {
