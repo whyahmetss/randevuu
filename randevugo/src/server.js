@@ -11,8 +11,21 @@ const odemeService = require('./services/odemeService');
 const telegramService = require('./services/telegram');
 const whatsappWebService = require('./services/whatsappWeb');
 
+const pool = require('./config/db');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Otomatik migration - eksik kolonları ekle
+(async () => {
+  try {
+    await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_calisan_id INTEGER`);
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS not_text TEXT`);
+    console.log('✅ DB migration kontrolü tamamlandı');
+  } catch (e) {
+    console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
+  }
+})();
 
 // Middleware
 app.use(cors());
