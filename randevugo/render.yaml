@@ -1,0 +1,50 @@
+services:
+  # Backend API Service
+  - type: web
+    name: randevugo-api
+    env: node
+    plan: starter
+    buildCommand: cd randevugo && npm install
+    startCommand: cd randevugo && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BASE_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: ENABLE_CRON
+        value: true
+      - key: CRON_TIMEZONE
+        value: Europe/Istanbul
+
+  # PostgreSQL Database
+  - type: pserv
+    name: randevugo-db
+    plan: starter
+    databaseName: randevugo
+    user: randevugo_user
+    envVars:
+      - key: POSTGRES_USER
+        value: randevugo_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: POSTGRES_DB
+        value: randevugo
+
+# Auto-deploy from main branch
+autoDeploy: true
+branch: main

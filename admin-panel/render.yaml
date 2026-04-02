@@ -1,0 +1,18 @@
+services:
+  # Frontend Admin Panel
+  - type: web
+    name: randevugo-admin
+    env: static
+    plan: starter
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    healthCheckPath: /
+    
+    # Environment variables for frontend
+    envVars:
+      - key: VITE_API_URL
+        value: https://randevugo-api.onrender.com/api
+
+# Auto-deploy from main branch
+autoDeploy: true
+branch: main
