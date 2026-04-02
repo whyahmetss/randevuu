@@ -331,12 +331,29 @@ class TelegramService {
         }
 
         if (secilenHizmet) {
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id });
-          const hizmetMsg = `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ₺${secilenHizmet.fiyat}\n\n📅 Hangi gün istersiniz?`;
-          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, hizmetMsg,
-            [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
-             [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
-             [{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+          // Çalışan kontrolü
+          const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId])).rows;
+          if (calisanlar.length > 1) {
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
+            const cBtnlar = calisanlar.map((c, i) => [{ text: `👤 ${c.isim}`, callback_data: `cl_${i}` }]);
+            cBtnlar.push([{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
+            await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+              `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ₺${secilenHizmet.fiyat}\n\n👤 Çalışan seçin:`, cBtnlar);
+          } else if (calisanlar.length === 1) {
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: calisanlar[0].id });
+            await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+              `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ₺${secilenHizmet.fiyat}\n👤 Çalışan: ${calisanlar[0].isim}\n\n📅 Hangi gün istersiniz?`,
+              [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
+               [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
+               [{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+          } else {
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id });
+            await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+              `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ₺${secilenHizmet.fiyat}\n\n📅 Hangi gün istersiniz?`,
+              [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
+               [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
+               [{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+          }
         } else {
           const deepseek = require('./deepseek');
           const aiCevap = await deepseek.serbetCevap(metin, isletme, hizmetler, 'telegram');
@@ -347,6 +364,42 @@ class TelegramService {
           } else {
             await this.hizmetListesiGonder(bot, chatId, isletmeId, musteriTelefon, isletme, hizmetler);
           }
+        }
+        break;
+      }
+
+      case 'calisan_secimi': {
+        if (mk === 'geri_hizmet' || mk === 'geri') {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'hizmet_secimi');
+          await this.hizmetListesiGonder(bot, chatId, isletmeId, musteriTelefon, isletme, hizmetler);
+          break;
+        }
+        if (mk === 'ana_menu') {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+          await this.anaMenuGonder(bot, chatId, isletmeId, musteriTelefon, isletme, hizmetler);
+          break;
+        }
+        const calisanlarTg = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId])).rows;
+        let secilenCalisan = null;
+        if (mk.startsWith('cl_')) {
+          const cIdx = parseInt(mk.replace('cl_', ''));
+          secilenCalisan = calisanlarTg[cIdx];
+        } else {
+          const cIdx = parseInt(metin) - 1;
+          if (cIdx >= 0 && cIdx < calisanlarTg.length) secilenCalisan = calisanlarTg[cIdx];
+          else secilenCalisan = calisanlarTg.find(c => mk.includes(c.isim.toLowerCase()));
+        }
+        if (secilenCalisan) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_calisan_id: secilenCalisan.id });
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+            `👤 *${secilenCalisan.isim}* seçildi\n\n📅 Hangi gün istersiniz?`,
+            [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
+             [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
+             [{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+        } else {
+          const cBtnlar2 = calisanlarTg.map((c, i) => [{ text: `👤 ${c.isim}`, callback_data: `cl_${i}` }]);
+          cBtnlar2.push([{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, `👤 Çalışan seçin:`, cBtnlar2);
         }
         break;
       }
@@ -458,12 +511,14 @@ class TelegramService {
                  [{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
               break;
             }
-            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
-            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
+            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+            const clTg = sd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [sd.secilen_calisan_id])).rows[0] : null;
 
             let tebrik = `✅ *Randevunuz Oluşturuldu!*\n\n` +
               `🏥  ${isletme.isim}\n` +
               `${sonuc.hizmet ? `${sonuc.hizmet.emoji ? sonuc.hizmet.emoji + '  ' : ''}${sonuc.hizmet.isim}\n` : ''}` +
+              `${clTg ? `👤  ${clTg.isim}\n` : ''}` +
               `📅  ${this.tarihFormat(sd.secilen_tarih)}\n` +
               `🕐  ${String(sd.secilen_saat).substring(0,5)}\n\n` +
               `⏰ Randevunuzdan 1 gün ve 1 saat önce hatırlatma alacaksınız.`;
@@ -496,7 +551,7 @@ class TelegramService {
             await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, tebrik, butonlar);
           } catch (err) {
             console.error('❌ Randevu onay hatası:', err.message);
-            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
             await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
               `⚠️ Randevu oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.`,
               [[{ text: '📅 Randevu Al', callback_data: '1' }],
@@ -533,8 +588,8 @@ class TelegramService {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay');
           // Aşağıdaki onay akışını tetikle
           const sd2 = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const sonuc2 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd2.secilen_hizmet_id, tarih: sd2.secilen_tarih, saat: sd2.secilen_saat });
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
+          const sonuc2 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd2.secilen_hizmet_id, calisanId: sd2.secilen_calisan_id, tarih: sd2.secilen_tarih, saat: sd2.secilen_saat });
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
             `✅ *Randevunuz oluşturuldu!*\n\nGörüşmek üzere! 😊`,
             [[{ text: '📝 Randevularım', callback_data: '2' }],
@@ -542,12 +597,12 @@ class TelegramService {
         } else {
           // Müşteri not yazdı
           const sd3 = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const sonuc3 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd3.secilen_hizmet_id, tarih: sd3.secilen_tarih, saat: sd3.secilen_saat });
+          const sonuc3 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd3.secilen_hizmet_id, calisanId: sd3.secilen_calisan_id, tarih: sd3.secilen_tarih, saat: sd3.secilen_saat });
           // Notu kaydet
           if (sonuc3 && sonuc3.randevu) {
             await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc3.randevu.id]);
           }
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
             `✅ *Randevunuz oluşturuldu!*\n\n💬 Notunuz: _"${metin}"_\n\nGörüşmek üzere! 😊`,
             [[{ text: '📝 Randevularım', callback_data: '2' }],
