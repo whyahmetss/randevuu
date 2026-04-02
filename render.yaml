@@ -26,6 +26,8 @@ services:
         sync: false
       - key: LOG_LEVEL
         value: info
+      - key: TZ
+        value: Europe/Istanbul
       - key: ENABLE_CRON
         value: true
       - key: CRON_TIMEZONE

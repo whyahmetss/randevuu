@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
 const PAKETLER = require('../config/paketler');
@@ -158,20 +159,22 @@ class AdminController {
   async istatistikler(req, res) {
     try {
       const isletmeId = req.kullanici.isletme_id;
-      const bugun = new Date().toISOString().split('T')[0];
+      const bugun = bugunTarih();
       
       // Bugünün randevuları
       const bugunStats = await randevuService.istatistikler(isletmeId, bugun, bugun);
-      
+
       // Bu hafta
       const haftaBasi = new Date();
       haftaBasi.setDate(haftaBasi.getDate() - haftaBasi.getDay() + 1);
-      const haftaStats = await randevuService.istatistikler(isletmeId, haftaBasi.toISOString().split('T')[0], bugun);
+      const haftaBasiStr = haftaBasi.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+      const haftaStats = await randevuService.istatistikler(isletmeId, haftaBasiStr, bugun);
 
       // Bu ay
       const ayBasi = new Date();
       ayBasi.setDate(1);
-      const ayStats = await randevuService.istatistikler(isletmeId, ayBasi.toISOString().split('T')[0], bugun);
+      const ayBasiStr = ayBasi.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+      const ayStats = await randevuService.istatistikler(isletmeId, ayBasiStr, bugun);
 
       // Toplam müşteri
       const musteriSayisi = (await pool.query(`
@@ -193,7 +196,7 @@ class AdminController {
         JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id=$1 AND r.tarih >= $2
         GROUP BY h.isim ORDER BY sayi DESC LIMIT 3
-      `, [isletmeId, ayBasi.toISOString().split('T')[0]])).rows;
+      `, [isletmeId, ayBasiStr])).rows;
 
       // Bekleme listesi
       const bekleyenSayisi = (await pool.query(
@@ -205,7 +208,7 @@ class AdminController {
         SELECT COALESCE(SUM(h.fiyat), 0) as toplam FROM randevular r
         JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id=$1 AND r.tarih >= $2 AND r.durum IN ('onaylandi','tamamlandi')
-      `, [isletmeId, ayBasi.toISOString().split('T')[0]])).rows[0];
+      `, [isletmeId, ayBasiStr])).rows[0];
 
       res.json({
         bugun: bugunStats,
@@ -347,7 +350,8 @@ class AdminController {
       const calisanSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       const hizmetSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       const buAyBasi = new Date(); buAyBasi.setDate(1);
-      const randevuSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM randevular WHERE isletme_id=$1 AND tarih >= $2', [req.kullanici.isletme_id, buAyBasi.toISOString().split('T')[0]])).rows[0];
+      const buAyBasiStr = buAyBasi.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+      const randevuSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM randevular WHERE isletme_id=$1 AND tarih >= $2', [req.kullanici.isletme_id, buAyBasiStr])).rows[0];
       res.json({
         paket: paketAdi,
         paket_bilgi: paket,
@@ -630,7 +634,7 @@ class AdminController {
       const { isletme_id, tutar, donem, durum } = req.body;
       const result = await pool.query(
         `INSERT INTO odemeler (isletme_id, tutar, donem, durum) VALUES ($1, $2, $3, $4) RETURNING *`,
-        [isletme_id, tutar, donem || new Date().toISOString().slice(0, 7), durum || 'bekliyor']
+        [isletme_id, tutar, donem || bugunTarih().slice(0, 7), durum || 'bekliyor']
       );
       res.json({ odeme: result.rows[0] });
     } catch (error) {

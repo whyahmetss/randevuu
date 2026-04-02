@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const pool = require('../config/db');
+const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
 
 class TelegramService {
   constructor() {
@@ -357,8 +358,8 @@ class TelegramService {
           break;
         }
         let secilenTarih = null;
-        if (mk === 'bugun' || mk.includes('bugün') || metin === '1') secilenTarih = new Date().toISOString().split('T')[0];
-        else if (mk === 'yarin' || mk.includes('yarın') || metin === '2') { const y = new Date(); y.setDate(y.getDate()+1); secilenTarih = y.toISOString().split('T')[0]; }
+        if (mk === 'bugun' || mk.includes('bugün') || metin === '1') secilenTarih = bugunTarih();
+        else if (mk === 'yarin' || mk.includes('yarın') || metin === '2') secilenTarih = yarinTarih();
         else if (mk === 'hafta') {
           const gunler = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
           const butonlar = [];
@@ -369,8 +370,7 @@ class TelegramService {
           break;
         } else if (mk.startsWith('gun_')) {
           const gunIdx = parseInt(mk.replace('gun_',''));
-          const t = new Date(); t.setDate(t.getDate()+gunIdx);
-          secilenTarih = t.toISOString().split('T')[0];
+          secilenTarih = gunSonraTarih(gunIdx);
         } else {
           const p = metin.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
           if (p) secilenTarih = `${p[3]}-${p[2].padStart(2,'0')}-${p[1].padStart(2,'0')}`;

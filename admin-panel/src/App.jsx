@@ -552,7 +552,7 @@ function Dashboard() {
   const [testCevaplar, setTestCevaplar] = useState([]);
   const [testTelefon] = useState("05531112233");
   const [testYukleniyor, setTestYukleniyor] = useState(false);
-  const [randevuTarih, setRandevuTarih] = useState(new Date().toISOString().split("T")[0]);
+  const [randevuTarih, setRandevuTarih] = useState(() => { const d = new Date(); return d.toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" }); });
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false);
   const [paketModal, setPaketModal] = useState(false);
   const chatRef = useRef(null);

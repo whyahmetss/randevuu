@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { bugunTarih, simdiSaat } = require('../utils/tarih');
 
 class RandevuService {
 
@@ -37,9 +38,8 @@ class RandevuService {
     const bitisDk = bitH * 60 + bitM;
 
     // Şu anki saatten önceki saatleri atla (bugün ise)
-    const simdi = new Date();
-    const bugun = simdi.toISOString().split('T')[0];
-    const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
+    const bugun = bugunTarih();
+    const simdiDk = simdiSaat().toplam;
 
     while (mevcutDk + sureDk <= bitisDk) {
       const saat = `${String(Math.floor(mevcutDk / 60)).padStart(2, '0')}:${String(mevcutDk % 60).padStart(2, '0')}`;

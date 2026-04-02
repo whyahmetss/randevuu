@@ -5,6 +5,7 @@ const EventEmitter = require('events');
 const fs = require('fs');
 const path = require('path');
 const pino = require('pino');
+const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
 
 const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth');
 
@@ -12,6 +13,7 @@ class WhatsAppWebService extends EventEmitter {
   constructor() {
     super();
     this.isletmeler = {}; // isletme_id -> { sock, durum, qr, qrBase64 }
+    this.lastMsgKeys = {}; // `${isletmeId}_${jid}` -> message key (for edit)
   }
 
   async tumIsletmeleriBaslat() {
@@ -161,19 +163,83 @@ class WhatsAppWebService extends EventEmitter {
     return msg.message?.conversation
       || msg.message?.extendedTextMessage?.text
       || msg.message?.buttonsResponseMessage?.selectedButtonId
+      || msg.message?.templateButtonReplyMessage?.selectedId
       || msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId
+      || msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson
       || '';
   }
 
-  async mesajGonder(isletmeId, hedef, mesaj, butonlar = null) {
+  _lastMsgKey(isletmeId, jid) {
+    return this.lastMsgKeys[`${isletmeId}_${jid}`] || null;
+  }
+
+  _setLastMsgKey(isletmeId, jid, key) {
+    this.lastMsgKeys[`${isletmeId}_${jid}`] = key;
+  }
+
+  async mesajGonder(isletmeId, hedef, mesaj, butonlar = null, edit = false) {
     const state = this.isletmeler[isletmeId];
     if (!state || state.durum !== 'bagli') return { success: false, hata: 'Bağlı değil' };
     try {
       const jid = hedef.includes('@') ? hedef : `${hedef.replace(/^\+/, '')}@s.whatsapp.net`;
-      await state.sock.sendMessage(jid, { text: mesaj });
+      const lastKey = this._lastMsgKey(isletmeId, jid);
+
+      // Mesaj düzenleme (edit) - Telegram'daki editMessageText gibi
+      if (edit && lastKey) {
+        try {
+          await state.sock.sendMessage(jid, { text: mesaj, edit: lastKey });
+          // Edit sonrası butonlu yeni mesaj gönder (edit butonları desteklemez)
+          if (butonlar && butonlar.length > 0) {
+            const btnMsg = await this._butonluMesajGonder(state.sock, jid, butonlar);
+            if (btnMsg) this._setLastMsgKey(isletmeId, jid, btnMsg.key);
+          }
+          return { success: true };
+        } catch (e) {
+          // Edit başarısızsa normal gönder
+          console.log('⚠️ Edit başarısız, normal gönderim:', e.message);
+        }
+      }
+
+      // Butonlu mesaj gönderimi
+      if (butonlar && butonlar.length > 0) {
+        // Butonları metin içine yerleştir (WhatsApp interaktif buton formatı)
+        let butonMetin = mesaj + '\n';
+        butonlar.forEach((b, i) => {
+          const label = typeof b === 'string' ? b : (b.text || b.body || '');
+          butonMetin += `\n${i + 1}️⃣ ${label}`;
+        });
+
+        const sent = await state.sock.sendMessage(jid, { text: butonMetin });
+        this._setLastMsgKey(isletmeId, jid, sent.key);
+        return { success: true };
+      }
+
+      // Normal metin mesajı
+      const sent = await state.sock.sendMessage(jid, { text: mesaj });
+      this._setLastMsgKey(isletmeId, jid, sent.key);
       return { success: true };
     } catch (err) {
       return { success: false, hata: err.message };
+    }
+  }
+
+  async _butonluMesajGonder(sock, jid, butonlar) {
+    // WhatsApp buton formatları deneme sırası
+    try {
+      // Yöntem 1: Interactive native flow buttons
+      const buttons = butonlar.map((b, i) => {
+        const label = typeof b === 'string' ? b : (b.text || b.body || '');
+        return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: label, id: `btn_${i}` }) };
+      });
+      return await sock.sendMessage(jid, {
+        interactiveMessage: {
+          nativeFlowMessage: { buttons, messageParamsJson: '' },
+          body: { text: '👇 Seçim yapın:' },
+        }
+      });
+    } catch (e) {
+      // Buton gönderilemezse null dön (metin zaten gönderildi)
+      return null;
     }
   }
 
@@ -216,7 +282,7 @@ class WhatsAppWebService extends EventEmitter {
     )).rows;
 
     const randevuService = require('./randevu');
-    const bugun = new Date().toISOString().split('T')[0];
+    const bugun = bugunTarih();
     const musaitSaatler = await randevuService.musaitSaatleriGetir(isletmeId, botDurum.secilen_tarih || bugun);
 
     // DeepSeek'e sor, hata/key yoksa state machine'e düş
@@ -231,12 +297,13 @@ class WhatsAppWebService extends EventEmitter {
     }
 
     if (cevap) {
-      const metin = typeof cevap === 'object' ? cevap.metin : cevap;
+      const cevapMetin = typeof cevap === 'object' ? cevap.metin : cevap;
       const butonlar = typeof cevap === 'object' ? cevap.butonlar : null;
-      await this.mesajGonder(isletmeId, remoteJid, metin, butonlar);
+      // Mevcut mesajı düzenle (Telegram editMessageText gibi), başarısızsa yeni mesaj gönder
+      await this.mesajGonder(isletmeId, remoteJid, cevapMetin, butonlar, true);
       await pool.query(
         'INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)',
-        [musteriTelefon, isletmeId, 'giden', metin]
+        [musteriTelefon, isletmeId, 'giden', cevapMetin]
       );
     }
   }
@@ -262,8 +329,8 @@ class WhatsAppWebService extends EventEmitter {
 
       case 'tarih_secildi': {
         let tarih = aiCevap.secilen_tarih;
-        if (metin === '1') tarih = new Date().toISOString().split('T')[0];
-        else if (metin === '2') { const y = new Date(); y.setDate(y.getDate()+1); tarih = y.toISOString().split('T')[0]; }
+        if (metin === '1') tarih = bugunTarih();
+        else if (metin === '2') tarih = yarinTarih();
         else if (!tarih) {
           const m = metin.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
           if (m) tarih = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
@@ -408,10 +475,9 @@ class WhatsAppWebService extends EventEmitter {
 
       case 'tarih_secimi': {
         let secilenTarih = null;
-        if (metin === '1' || metinKucuk.includes('bugün')) secilenTarih = new Date().toISOString().split('T')[0];
+        if (metin === '1' || metinKucuk.includes('bugün')) secilenTarih = bugunTarih();
         else if (metin === '2' || metinKucuk.includes('yarın')) {
-          const yarin = new Date(); yarin.setDate(yarin.getDate() + 1);
-          secilenTarih = yarin.toISOString().split('T')[0];
+          secilenTarih = yarinTarih();
         } else if (metin === '3' || metinKucuk.includes('başka')) {
           return this.haftaSecenekleri();
         } else if (metinKucuk === '0' || metinKucuk.includes('ana menü')) {
@@ -420,8 +486,7 @@ class WhatsAppWebService extends EventEmitter {
         } else {
           const gunIdx = parseInt(metin) - 1;
           if (gunIdx >= 0 && gunIdx < 7) {
-            const tarih = new Date(); tarih.setDate(tarih.getDate() + gunIdx);
-            secilenTarih = tarih.toISOString().split('T')[0];
+            secilenTarih = gunSonraTarih(gunIdx);
           }
           const parca = metin.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
           if (parca) secilenTarih = `${parca[3]}-${parca[2].padStart(2,'0')}-${parca[1].padStart(2,'0')}`;
