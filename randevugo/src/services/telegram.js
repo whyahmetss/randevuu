@@ -150,12 +150,24 @@ class TelegramService {
       const idx = parseInt(mk.replace('hz_', ''));
       const hz = hizmetler[idx];
       if (hz) {
-        await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: hz.id });
-        const hizmetMsg = `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}\n\n📅 Hangi gün istersiniz?`;
-        await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, hizmetMsg,
-          [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
-           [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
-           [{ text: '🔙 Geri', callback_data: 'geri_ana' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+        // Çalışan kontrolü
+        const calisanlarHz = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
+        if (calisanlarHz.length > 1) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: hz.id });
+          const cBtnHz = calisanlarHz.map((c, i) => [{ text: `👤 ${c.isim}`, callback_data: `cl_${i}` }]);
+          cBtnHz.push([{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}\n\n� Çalışan seçin:`, cBtnHz);
+        } else {
+          const cId = calisanlarHz.length === 1 ? calisanlarHz[0].id : null;
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: hz.id, secilen_calisan_id: cId });
+          const clText = calisanlarHz.length === 1 ? `\n👤 Çalışan: ${calisanlarHz[0].isim}` : '';
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}${clText}\n\n📅 Hangi gün istersiniz?`,
+            [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
+             [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
+             [{ text: '🔙 Geri', callback_data: 'geri_ana' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+        }
         return;
       }
     }
@@ -165,12 +177,24 @@ class TelegramService {
       const hizmetId = parseInt(mk.replace('tekrar_', ''));
       const hz = hizmetler.find(h => h.id === hizmetId);
       if (hz) {
-        await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: hz.id });
-        const hizmetMsg = `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}\n\n📅 Hangi gün istersiniz?`;
-        await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, hizmetMsg,
-          [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
-           [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
-           [{ text: '🔙 Geri', callback_data: 'geri_ana' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+        // Çalışan kontrolü
+        const calisanlarTk = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
+        if (calisanlarTk.length > 1) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: hz.id });
+          const cBtnTk = calisanlarTk.map((c, i) => [{ text: `👤 ${c.isim}`, callback_data: `cl_${i}` }]);
+          cBtnTk.push([{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}\n\n� Çalışan seçin:`, cBtnTk);
+        } else {
+          const cId2 = calisanlarTk.length === 1 ? calisanlarTk[0].id : null;
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: hz.id, secilen_calisan_id: cId2 });
+          const clText2 = calisanlarTk.length === 1 ? `\n👤 Çalışan: ${calisanlarTk[0].isim}` : '';
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}${clText2}\n\n📅 Hangi gün istersiniz?`,
+            [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
+             [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
+             [{ text: '🔙 Geri', callback_data: 'geri_ana' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+        }
         return;
       }
     }
