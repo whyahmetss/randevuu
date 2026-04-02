@@ -554,6 +554,7 @@ function Dashboard() {
   const [testYukleniyor, setTestYukleniyor] = useState(false);
   const [randevuTarih, setRandevuTarih] = useState(new Date().toISOString().split("T")[0]);
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false);
+  const [paketModal, setPaketModal] = useState(false);
   const chatRef = useRef(null);
 
   const verileriYukle = useCallback(async (tarih) => {
@@ -680,17 +681,8 @@ function Dashboard() {
               );
             })}
             {paketDurum.paket !== "premium" && (
-              <div style={{ marginTop: 12, padding: "8px", background: "linear-gradient(135deg,#f59e0b15,#f59e0b08)", borderRadius: 8, border: "1px solid #f59e0b30", textAlign: "center", cursor: "pointer" }}>
+              <div onClick={() => setPaketModal(true)} style={{ marginTop: 12, padding: "10px", background: "linear-gradient(135deg,#f59e0b15,#f59e0b08)", borderRadius: 8, border: "1px solid #f59e0b30", textAlign: "center", cursor: "pointer" }}>
                 <div style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>⬆ Paketi Yükselt</div>
-                {paketDurum.paket === "baslangic" && (
-                  <>
-                    <div style={{ color: "#78716c", fontSize: 10, marginTop: 2 }}>Profesyonel → 599₺/ay</div>
-                    <div style={{ color: "#78716c", fontSize: 10, marginTop: 2 }}>Premium → 999₺/ay</div>
-                  </>
-                )}
-                {paketDurum.paket === "profesyonel" && (
-                  <div style={{ color: "#78716c", fontSize: 10, marginTop: 2 }}>Premium → 999₺/ay</div>
-                )}
               </div>
             )}
           </div>
@@ -994,6 +986,48 @@ function Dashboard() {
 
         </div>
       </div>
+
+      {/* Paket Karşılaştırma Modal */}
+      {paketModal && (
+        <div onClick={() => setPaketModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#1e293b", borderRadius: 20, padding: "32px", maxWidth: 800, width: "90%", maxHeight: "85vh", overflowY: "auto", border: "1px solid #334155" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+              <h2 style={{ margin: 0, fontSize: 22, color: "#f1f5f9" }}>Paketler</h2>
+              <button onClick={() => setPaketModal(false)} style={{ background: "none", border: "none", color: "#64748b", fontSize: 22, cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+              {[
+                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["1 çalışan", "5 hizmete kadar", "Aylık 100 randevu", "WhatsApp / Telegram bot", "Temel destek"] },
+                { key: "profesyonel", isim: "Profesyonel", fiyat: 599, renk: "#3b82f6", ozellikler: ["5 çalışana kadar", "20 hizmete kadar", "Aylık 500 randevu", "WhatsApp / Telegram bot", "Randevu hatırlatmaları", "Öncelikli destek"] },
+                { key: "premium", isim: "Premium", fiyat: 999, renk: "#f59e0b", ozellikler: ["Sınırsız çalışan", "Sınırsız hizmet", "Sınırsız randevu", "WhatsApp / Telegram bot", "Randevu hatırlatmaları", "Gelişmiş istatistikler", "7/24 VIP destek"] },
+              ].map(p => {
+                const aktif = paketDurum?.paket === p.key;
+                return (
+                  <div key={p.key} style={{ background: aktif ? `${p.renk}10` : "#0f172a", border: `2px solid ${aktif ? p.renk : "#334155"}`, borderRadius: 16, padding: "24px 20px", textAlign: "center", position: "relative" }}>
+                    {aktif && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.renk, color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>MEVCUT</div>}
+                    {p.key === "profesyonel" && !aktif && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "#3b82f6", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>POPÜLER</div>}
+                    <div style={{ fontSize: 18, fontWeight: 700, color: p.renk, marginBottom: 4, marginTop: 8 }}>{p.isim}</div>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: "#f1f5f9", marginBottom: 4 }}>{p.fiyat}₺<span style={{ fontSize: 14, color: "#64748b", fontWeight: 400 }}>/ay</span></div>
+                    <div style={{ borderTop: "1px solid #334155", margin: "16px 0", paddingTop: 16, textAlign: "left" }}>
+                      {p.ozellikler.map((o, i) => (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 13, color: "#cbd5e1" }}>
+                          <span style={{ color: p.renk }}>✓</span> {o}
+                        </div>
+                      ))}
+                    </div>
+                    {!aktif && (
+                      <button style={{ width: "100%", padding: 12, borderRadius: 10, border: "none", background: p.renk, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+                        {p.key === "baslangic" ? "Geç" : "Yükselt"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
