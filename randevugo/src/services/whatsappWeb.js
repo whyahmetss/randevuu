@@ -1,12 +1,17 @@
-const { Client, LocalAuth, MessageMedia, Buttons } = require('whatsapp-web.js');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
+const fs = require('fs');
+const path = require('path');
+const pino = require('pino');
+
+const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth');
 
 class WhatsAppWebService extends EventEmitter {
   constructor() {
     super();
-    this.isletmeler = {}; // isletme_id -> { client, durum, qr }
+    this.isletmeler = {}; // isletme_id -> { sock, durum, qr, qrBase64 }
   }
 
   async tumIsletmeleriBaslat() {
@@ -19,7 +24,7 @@ class WhatsAppWebService extends EventEmitter {
           this.isletmeBaslat(isletme.id, isletme.isim, false);
         }
       }
-      console.log(`📱 ${result.rows.length} işletme için WP servisi başlatıldı`);
+      console.log(`📱 ${result.rows.length} işletme için WP servisi başlatıldı (Baileys)`);
     } catch (err) {
       console.error('❌ WP servisleri başlatılamadı:', err.message);
     }
@@ -30,65 +35,104 @@ class WhatsAppWebService extends EventEmitter {
     if (this.isletmeler[isletmeId]?.durum === 'bagli') return;
     // Yeniden başlatma değilse ve zaten başlatılıyorsa atla
     if (!yeniBaslat && this.isletmeler[isletmeId]) return;
-    // Varsa durdur
-    if (this.isletmeler[isletmeId]) {
-      try { await this.isletmeler[isletmeId].client.destroy(); } catch (e) {}
+    // Varsa kapat
+    if (this.isletmeler[isletmeId]?.sock) {
+      try { this.isletmeler[isletmeId].sock.end(); } catch (e) {}
     }
 
-    const client = new Client({
-      authStrategy: new LocalAuth({ clientId: `isletme_${isletmeId}` }),
-      puppeteer: {
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      },
-    });
+    const authFolder = path.join(AUTH_DIR, `isletme_${isletmeId}`);
+    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true });
 
-    this.isletmeler[isletmeId] = { client, durum: 'baslatiyor', qr: null, qrBase64: null };
-
-    client.on('qr', async (qr) => {
-      const qrBase64 = await qrcode.toDataURL(qr);
-      this.isletmeler[isletmeId].qr = qr;
-      this.isletmeler[isletmeId].qrBase64 = qrBase64;
-      this.isletmeler[isletmeId].durum = 'qr_bekleniyor';
-      console.log(`📱 QR hazır: ${isletmeIsim}`);
-      this.emit(`qr_${isletmeId}`, qrBase64);
-    });
-
-    client.on('ready', async () => {
-      this.isletmeler[isletmeId].durum = 'bagli';
-      this.isletmeler[isletmeId].qr = null;
-      this.isletmeler[isletmeId].qrBase64 = null;
-      const numara = client.info?.wid?.user || null;
-      if (numara) {
-        await pool.query('UPDATE isletmeler SET whatsapp_no=$1 WHERE id=$2', [`+${numara}`, isletmeId]);
-      }
-      console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara})`);
-      this.emit(`bagli_${isletmeId}`, numara);
-    });
-
-    client.on('disconnected', async (reason) => {
-      this.isletmeler[isletmeId].durum = 'bagli_degil';
-      console.log(`❌ WhatsApp ayrıldı: ${isletmeIsim} - ${reason}`);
-      this.emit(`ayrildi_${isletmeId}`, reason);
-    });
-
-    client.on('auth_failure', () => {
-      this.isletmeler[isletmeId].durum = 'hata';
-      this.emit(`hata_${isletmeId}`, 'Kimlik doğrulama hatası');
-    });
-
-    client.removeAllListeners('message');
-    client.on('message', async (msg) => {
-      if (msg.fromMe) return;
-      try {
-        await this.mesajIsle(msg, isletmeId);
-      } catch (err) {
-        console.error(`❌ Mesaj işleme hatası [${isletmeIsim}]:`, err.message);
-      }
-    });
+    this.isletmeler[isletmeId] = { sock: null, durum: 'baslatiyor', qr: null, qrBase64: null };
 
     try {
-      await client.initialize();
+      const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+      const { version } = await fetchLatestBaileysVersion();
+
+      const sock = makeWASocket({
+        version,
+        auth: {
+          creds: state.creds,
+          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+        },
+        printQRInTerminal: false,
+        logger: pino({ level: 'silent' }),
+        browser: ['RandevuGO', 'Chrome', '4.0.0'],
+        generateHighQualityLinkPreview: false,
+      });
+
+      this.isletmeler[isletmeId].sock = sock;
+
+      // Credentials güncellendiğinde kaydet
+      sock.ev.on('creds.update', saveCreds);
+
+      // Bağlantı durumu
+      sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+
+        if (qr) {
+          try {
+            const qrBase64 = await qrcode.toDataURL(qr);
+            this.isletmeler[isletmeId].qr = qr;
+            this.isletmeler[isletmeId].qrBase64 = qrBase64;
+            this.isletmeler[isletmeId].durum = 'qr_bekleniyor';
+            console.log(`📱 QR hazır: ${isletmeIsim}`);
+            this.emit(`qr_${isletmeId}`, qrBase64);
+          } catch (e) {
+            console.error(`❌ QR oluşturma hatası:`, e.message);
+          }
+        }
+
+        if (connection === 'open') {
+          this.isletmeler[isletmeId].durum = 'bagli';
+          this.isletmeler[isletmeId].qr = null;
+          this.isletmeler[isletmeId].qrBase64 = null;
+          const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
+          if (numara) {
+            await pool.query('UPDATE isletmeler SET whatsapp_no=$1 WHERE id=$2', [`+${numara}`, isletmeId]);
+          }
+          console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara})`);
+          this.emit(`bagli_${isletmeId}`, numara);
+        }
+
+        if (connection === 'close') {
+          const statusCode = lastDisconnect?.error?.output?.statusCode;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          console.log(`❌ WhatsApp ayrıldı: ${isletmeIsim} - kod: ${statusCode}`);
+
+          if (statusCode === DisconnectReason.loggedOut) {
+            // Oturum silindi, auth dosyalarını temizle
+            this.isletmeler[isletmeId].durum = 'bagli_degil';
+            try { fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) {}
+            this.emit(`ayrildi_${isletmeId}`, 'logged_out');
+          } else if (shouldReconnect) {
+            // Yeniden bağlan
+            console.log(`🔄 Yeniden bağlanılıyor: ${isletmeIsim}`);
+            setTimeout(() => {
+              this.isletmeler[isletmeId] = null;
+              this.isletmeBaslat(isletmeId, isletmeIsim, true);
+            }, 3000);
+          } else {
+            this.isletmeler[isletmeId].durum = 'bagli_degil';
+            this.emit(`ayrildi_${isletmeId}`, 'disconnected');
+          }
+        }
+      });
+
+      // Mesaj dinle
+      sock.ev.on('messages.upsert', async ({ messages, type }) => {
+        if (type !== 'notify') return;
+        for (const msg of messages) {
+          if (msg.key.fromMe) continue;
+          if (!msg.message) continue;
+          try {
+            await this.mesajIsle(msg, isletmeId);
+          } catch (err) {
+            console.error(`❌ Mesaj işleme hatası [${isletmeIsim}]:`, err.message);
+          }
+        }
+      });
+
     } catch (err) {
       console.error(`❌ WP başlatma hatası [${isletmeIsim}]:`, err.message);
       this.isletmeler[isletmeId].durum = 'hata';
@@ -97,10 +141,12 @@ class WhatsAppWebService extends EventEmitter {
 
   async isletmeDurdur(isletmeId) {
     if (this.isletmeler[isletmeId]) {
-      try { await this.isletmeler[isletmeId].client.logout(); } catch (e) {}
-      try { await this.isletmeler[isletmeId].client.destroy(); } catch (e) {}
+      try { await this.isletmeler[isletmeId].sock?.logout(); } catch (e) {}
+      try { this.isletmeler[isletmeId].sock?.end(); } catch (e) {}
       delete this.isletmeler[isletmeId];
     }
+    const authFolder = path.join(AUTH_DIR, `isletme_${isletmeId}`);
+    try { fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) {}
     await pool.query('UPDATE isletmeler SET whatsapp_no=NULL WHERE id=$1', [isletmeId]);
   }
 
@@ -110,22 +156,21 @@ class WhatsAppWebService extends EventEmitter {
     return { durum: state.durum, qrBase64: state.qrBase64 };
   }
 
+  // Baileys mesajdan metin çıkart
+  _getMsgText(msg) {
+    return msg.message?.conversation
+      || msg.message?.extendedTextMessage?.text
+      || msg.message?.buttonsResponseMessage?.selectedButtonId
+      || msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId
+      || '';
+  }
+
   async mesajGonder(isletmeId, hedef, mesaj, butonlar = null) {
     const state = this.isletmeler[isletmeId];
     if (!state || state.durum !== 'bagli') return { success: false, hata: 'Bağlı değil' };
     try {
-      const chatId = hedef.includes('@') ? hedef : `${hedef.replace(/^\+/, '')}@c.us`;
-      if (butonlar && butonlar.length > 0) {
-        try {
-          const btn = new Buttons(mesaj, butonlar.slice(0, 3).map(b => ({ body: b })));
-          await state.client.sendMessage(chatId, btn);
-          return { success: true };
-        } catch (_) {
-          await state.client.sendMessage(chatId, mesaj);
-          return { success: true };
-        }
-      }
-      await state.client.sendMessage(chatId, mesaj);
+      const jid = hedef.includes('@') ? hedef : `${hedef.replace(/^\+/, '')}@s.whatsapp.net`;
+      await state.sock.sendMessage(jid, { text: mesaj });
       return { success: true };
     } catch (err) {
       return { success: false, hata: err.message };
@@ -133,8 +178,10 @@ class WhatsAppWebService extends EventEmitter {
   }
 
   async mesajIsle(msg, isletmeId) {
-    const metin = (msg.body || '').trim();
-    const musteriTelefon = msg.from.replace('@c.us', '');
+    const metin = (this._getMsgText(msg) || '').trim();
+    if (!metin) return;
+    const remoteJid = msg.key.remoteJid;
+    const musteriTelefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
 
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
@@ -186,7 +233,7 @@ class WhatsAppWebService extends EventEmitter {
     if (cevap) {
       const metin = typeof cevap === 'object' ? cevap.metin : cevap;
       const butonlar = typeof cevap === 'object' ? cevap.butonlar : null;
-      await this.mesajGonder(isletmeId, msg.from, metin, butonlar);
+      await this.mesajGonder(isletmeId, remoteJid, metin, butonlar);
       await pool.query(
         'INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)',
         [musteriTelefon, isletmeId, 'giden', metin]
