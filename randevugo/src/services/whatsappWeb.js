@@ -160,13 +160,35 @@ class WhatsAppWebService extends EventEmitter {
 
   // Baileys mesajdan metin çıkart
   _getMsgText(msg) {
-    return msg.message?.conversation
-      || msg.message?.extendedTextMessage?.text
-      || msg.message?.buttonsResponseMessage?.selectedButtonId
+    // Normal metin
+    if (msg.message?.conversation) return msg.message.conversation;
+    if (msg.message?.extendedTextMessage?.text) return msg.message.extendedTextMessage.text;
+
+    // Buton yanıtları - ID'den label'ı çıkar (btn_0_Bugün → Bugün, row_1_Yarın → Yarın)
+    const btnId = msg.message?.buttonsResponseMessage?.selectedButtonId
       || msg.message?.templateButtonReplyMessage?.selectedId
-      || msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId
-      || msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson
-      || '';
+      || msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId;
+    if (btnId) {
+      // btn_0_label veya row_0_label formatından label'ı çıkar
+      const parts = btnId.split('_');
+      if (parts.length >= 3) return parts.slice(2).join('_');
+      return btnId;
+    }
+
+    // Buton display text (alternatif)
+    if (msg.message?.buttonsResponseMessage?.selectedDisplayText) return msg.message.buttonsResponseMessage.selectedDisplayText;
+    if (msg.message?.templateButtonReplyMessage?.selectedDisplayText) return msg.message.templateButtonReplyMessage.selectedDisplayText;
+    if (msg.message?.listResponseMessage?.title) return msg.message.listResponseMessage.title;
+
+    // Interactive response
+    if (msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
+      try {
+        const params = JSON.parse(msg.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
+        return params.id?.split('_').slice(2).join('_') || params.id || '';
+      } catch (e) { return ''; }
+    }
+
+    return '';
   }
 
   _lastMsgKey(isletmeId, jid) {
@@ -187,31 +209,29 @@ class WhatsAppWebService extends EventEmitter {
       // Mesaj düzenleme (edit) - Telegram'daki editMessageText gibi
       if (edit && lastKey) {
         try {
-          await state.sock.sendMessage(jid, { text: mesaj, edit: lastKey });
-          // Edit sonrası butonlu yeni mesaj gönder (edit butonları desteklemez)
+          // Butonlu mesajı tek seferde edit olarak gönder
           if (butonlar && butonlar.length > 0) {
-            const btnMsg = await this._butonluMesajGonder(state.sock, jid, butonlar);
-            if (btnMsg) this._setLastMsgKey(isletmeId, jid, btnMsg.key);
+            const btnSent = await this._butonluMesajGonder(state.sock, jid, mesaj, butonlar, lastKey);
+            if (btnSent) {
+              this._setLastMsgKey(isletmeId, jid, btnSent.key);
+              return { success: true };
+            }
           }
+          // Butonsuz edit
+          await state.sock.sendMessage(jid, { text: mesaj, edit: lastKey });
           return { success: true };
         } catch (e) {
-          // Edit başarısızsa normal gönder
           console.log('⚠️ Edit başarısız, normal gönderim:', e.message);
         }
       }
 
-      // Butonlu mesaj gönderimi
+      // Butonlu mesaj gönderimi (yeni mesaj)
       if (butonlar && butonlar.length > 0) {
-        // Butonları metin içine yerleştir (WhatsApp interaktif buton formatı)
-        let butonMetin = mesaj + '\n';
-        butonlar.forEach((b, i) => {
-          const label = typeof b === 'string' ? b : (b.text || b.body || '');
-          butonMetin += `\n${i + 1}️⃣ ${label}`;
-        });
-
-        const sent = await state.sock.sendMessage(jid, { text: butonMetin });
-        this._setLastMsgKey(isletmeId, jid, sent.key);
-        return { success: true };
+        const btnSent = await this._butonluMesajGonder(state.sock, jid, mesaj, butonlar);
+        if (btnSent) {
+          this._setLastMsgKey(isletmeId, jid, btnSent.key);
+          return { success: true };
+        }
       }
 
       // Normal metin mesajı
@@ -223,24 +243,101 @@ class WhatsAppWebService extends EventEmitter {
     }
   }
 
-  async _butonluMesajGonder(sock, jid, butonlar) {
-    // WhatsApp buton formatları deneme sırası
+  async _butonluMesajGonder(sock, jid, mesaj, butonlar, editKey = null) {
+    const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
+
+    // Yöntem 1: Buttons message (max 3 buton)
+    if (btnLabels.length <= 3) {
+      try {
+        const buttonMsg = {
+          text: mesaj,
+          footer: '👇 Bir seçenek seçin',
+          buttons: btnLabels.map((label, i) => ({
+            buttonId: `btn_${i}_${label}`,
+            buttonText: { displayText: label },
+            type: 1
+          })),
+          headerType: 1
+        };
+        if (editKey) buttonMsg.edit = editKey;
+        return await sock.sendMessage(jid, buttonMsg);
+      } catch (e) {
+        console.log('⚠️ Buttons message başarısız:', e.message);
+      }
+    }
+
+    // Yöntem 2: List message (4+ buton için)
     try {
-      // Yöntem 1: Interactive native flow buttons
-      const buttons = butonlar.map((b, i) => {
-        const label = typeof b === 'string' ? b : (b.text || b.body || '');
-        return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: label, id: `btn_${i}` }) };
-      });
+      const sections = [{
+        title: 'Seçenekler',
+        rows: btnLabels.map((label, i) => ({
+          title: label,
+          rowId: `row_${i}_${label}`,
+          description: ''
+        }))
+      }];
+      const listMsg = {
+        text: mesaj,
+        footer: '👇 Menüden seçim yapın',
+        title: 'Seçenekler',
+        buttonText: 'Seçim Yap',
+        sections
+      };
+      return await sock.sendMessage(jid, listMsg);
+    } catch (e) {
+      console.log('⚠️ List message başarısız:', e.message);
+    }
+
+    // Yöntem 3: Interactive message (viewOnceMessage wrapper)
+    try {
+      const buttons = btnLabels.map((label, i) => ({
+        name: 'quick_reply',
+        buttonParamsJson: JSON.stringify({ display_text: label, id: `qr_${i}_${label}` })
+      }));
       return await sock.sendMessage(jid, {
-        interactiveMessage: {
-          nativeFlowMessage: { buttons, messageParamsJson: '' },
-          body: { text: '👇 Seçim yapın:' },
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: {
+              body: { text: mesaj },
+              footer: { text: '👇 Bir seçenek seçin' },
+              nativeFlowMessage: { buttons, messageParamsJson: '' }
+            }
+          }
         }
       });
     } catch (e) {
-      // Buton gönderilemezse null dön (metin zaten gönderildi)
-      return null;
+      console.log('⚠️ Interactive message başarısız:', e.message);
     }
+
+    // Yöntem 4: Template buttons
+    try {
+      const templateButtons = btnLabels.map((label, i) => ({
+        index: i + 1,
+        quickReplyButton: { displayText: label, id: `tmpl_${i}_${label}` }
+      }));
+      return await sock.sendMessage(jid, {
+        templateMessage: {
+          hydratedTemplate: {
+            hydratedContentText: mesaj,
+            hydratedFooterText: '👇 Bir seçenek seçin',
+            hydratedButtons: templateButtons.map(tb => ({
+              quickReplyButton: tb.quickReplyButton
+            }))
+          }
+        }
+      });
+    } catch (e) {
+      console.log('⚠️ Template message başarısız:', e.message);
+    }
+
+    // Hiçbiri çalışmazsa metin olarak gönder (fallback)
+    console.log('⚠️ Tüm buton yöntemleri başarısız, metin olarak gönderiliyor');
+    let butonMetin = mesaj + '\n';
+    btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });
+    if (editKey) {
+      return await sock.sendMessage(jid, { text: butonMetin, edit: editKey });
+    }
+    return await sock.sendMessage(jid, { text: butonMetin });
   }
 
   async mesajIsle(msg, isletmeId) {
