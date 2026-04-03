@@ -53,24 +53,38 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-page">
-      <div className="login-card">
-        <div className="login-logo">
-          <img src={logoFull} alt="SıraGO" style={{ width: 180, height: "auto" }} />
+      {/* Sol - Marka paneli */}
+      <div className="login-brand">
+        <img src={logoFull} alt="SıraGO" />
+        <div className="login-brand-tagline">
+          <h2>Randevunu Kolaylaştır</h2>
+          <p>İşletmeni dijitalleştir, müşterilerine<br />7/24 randevu imkânı sun.</p>
         </div>
-        <form onSubmit={giris}>
-          <div className="form-group">
-            <label className="form-label">E-posta</label>
-            <input type="email" placeholder="ornek@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Şifre</label>
-            <input type="password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
-          </div>
-          {hata && <div className="alert alert-error">{hata}</div>}
-          <button type="submit" disabled={yukleniyor} className="btn btn-primary btn-block btn-lg" style={{ marginTop: 8 }}>
-            {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
-          </button>
-        </form>
+        <div className="login-brand-dots">
+          <span /><span /><span />
+        </div>
+      </div>
+
+      {/* Sağ - Form paneli */}
+      <div className="login-card">
+        <div className="login-form-inner">
+          <h3>Hoş geldiniz</h3>
+          <p>Hesabınıza giriş yapın</p>
+          <form onSubmit={giris}>
+            <div className="form-group">
+              <label className="form-label">E-posta</label>
+              <input type="email" placeholder="ornek@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Şifre</label>
+              <input type="password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
+            </div>
+            {hata && <div className="alert alert-error">{hata}</div>}
+            <button type="submit" disabled={yukleniyor} className="btn btn-primary btn-block btn-lg" style={{ marginTop: 8 }}>
+              {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
