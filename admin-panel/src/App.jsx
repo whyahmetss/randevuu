@@ -1140,6 +1140,9 @@ function SuperAdminPanel({ kullanici }) {
   const [sosyalTarama, setSosyalTarama] = useState({ sehir: "İstanbul", ilce: "", kategori: "berber", platform: "instagram" });
   const [sosyalSonuc, setSosyalSonuc] = useState(null);
   const [sosyalYukleniyor, setSosyalYukleniyor] = useState(false);
+  // İletişim mesajları state
+  const [iletisimMesajlar, setIletisimMesajlar] = useState([]);
+  const [iletisimFiltre, setIletisimFiltre] = useState("hepsi");
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
@@ -1173,10 +1176,16 @@ function SuperAdminPanel({ kullanici }) {
     setAvciGunluk(d.gunluk_liste || []);
   };
 
+  const iletisimYukle = async () => {
+    const d = await api.get("/admin/iletisim");
+    setIletisimMesajlar(d.mesajlar || []);
+  };
+
   useEffect(() => {
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
+    if (sayfa === "iletisim") iletisimYukle();
   }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre]);
 
   const isletmeEkle = async (e) => {
@@ -1226,20 +1235,24 @@ function SuperAdminPanel({ kullanici }) {
     isletmeler: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
     odemeler: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
     avci: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+    iletisim: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
   };
+
+  const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
 
   const menuItems = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
     { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
     { id: "odemeler", icon: SVGA.odemeler, label: "Ödemeler" },
+    { id: "iletisim", icon: SVGA.iletisim, label: "İletişim" },
     { id: "avci", icon: SVGA.avci, label: "Avcı Bot" },
   ];
 
   const kategoriRenk = { berber: "#3b82f6", kuafor: "#8b5cf6", disci: "#10b981", guzellik: "#f59e0b", veteriner: "#ef4444", diyetisyen: "#06b6d4" };
   const paketRenk = { baslangic: "#64748b", profesyonel: "#3b82f6", premium: "#f59e0b" };
   const paketFiyat = { baslangic: 299, profesyonel: 599, premium: 999 };
-  const odemeRenk = { odendi: "#10b981", bekliyor: "#f59e0b", gecikti: "#ef4444" };
-  const odemeLabel = { odendi: "Ödendi ✓", bekliyor: "Bekliyor", gecikti: "Gecikti!" };
+  const odemeRenk = { odendi: "#10b981", bekliyor: "#f59e0b", gecikti: "#ef4444", havale_bekliyor: "#818cf8", basarisiz: "#ef4444", odeme_bekliyor: "#f59e0b" };
+  const odemeLabel = { odendi: "Ödendi ✓", bekliyor: "Bekliyor", gecikti: "Gecikti!", havale_bekliyor: "Havale Onay Bekliyor", basarisiz: "Başarısız", odeme_bekliyor: "Ödeme Bekliyor" };
 
   const buAy = new Date().toISOString().slice(0, 7);
   const buAyOdeyenler = odemeler.filter(o => o.donem === buAy && o.durum === "odendi");
@@ -1255,7 +1268,7 @@ function SuperAdminPanel({ kullanici }) {
 
   const filtreliOdemeler = odemeler.filter(o => {
     if (odemeFiltre === "odendi") return o.durum === "odendi";
-    if (odemeFiltre === "bekliyor") return o.durum === "bekliyor";
+    if (odemeFiltre === "bekliyor") return o.durum === "bekliyor" || o.durum === "havale_bekliyor";
     if (odemeFiltre === "gecikti") return o.durum === "gecikti";
     if (odemeFiltre === "buay") return o.donem === buAy;
     return true;
@@ -1295,6 +1308,8 @@ function SuperAdminPanel({ kullanici }) {
               <span>{m.label}</span>
               {m.id === 'odemeler' && buAyOdemeyenler.length > 0
                 ? <span className="nav-badge">{buAyOdemeyenler.length}</span>
+                : m.id === 'iletisim' && okunmamisSayi > 0
+                ? <span className="nav-badge" style={{ background: "#818cf8" }}>{okunmamisSayi}</span>
                 : sayfa === m.id && <div className="active-dot" />}
             </div>
           ))}
@@ -1519,25 +1534,43 @@ function SuperAdminPanel({ kullanici }) {
               filtreliOdemeler.length === 0 ? (
                 <div className="list-empty"><p>Kayıt bulunamadı.</p></div>
               ) : filtreliOdemeler.map(o => (
-                <div key={o.id} className="list-item row-wrap gap-8">
-                  <div>
-                    <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{o.isletme_isim}</span>
-                    <span style={{ color: "var(--dim)", marginLeft: 12, fontSize: 13 }}>📅 {o.donem}</span>
-                    <span style={{ color: "var(--green)", marginLeft: 12, fontWeight: 700, fontSize: 15 }}>{o.tutar} ₺</span>
-                    {o.odeme_tarihi && <span style={{ color: "var(--dim)", marginLeft: 12, fontSize: 12 }}>· {new Date(o.odeme_tarihi).toLocaleDateString("tr-TR")}</span>}
-                  </div>
-                  <div className="row gap-6">
+                <div key={o.id} className="list-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+                  <div className="row row-between row-wrap gap-8">
+                    <div className="row row-wrap gap-8">
+                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{o.isletme_isim}</span>
+                      <span style={{ color: "var(--dim)", fontSize: 13 }}>📅 {o.donem}</span>
+                      <span style={{ color: "var(--green)", fontWeight: 700, fontSize: 15 }}>{o.tutar} ₺</span>
+                      {o.odeme_tarihi && <span style={{ color: "var(--dim)", fontSize: 12 }}>· {new Date(o.odeme_tarihi).toLocaleDateString("tr-TR")}</span>}
+                    </div>
                     <span className="tag" style={{ background: (odemeRenk[o.durum] || "#64748b") + "22", color: odemeRenk[o.durum] || "#64748b", fontWeight: 700 }}>
                       {odemeLabel[o.durum] || o.durum}
                     </span>
+                  </div>
+                  {/* Havale detayları */}
+                  {(o.durum === "havale_bekliyor" || o.odeme_yontemi === "havale") && (
+                    <div style={{ background: "rgba(129,140,248,.06)", border: "1px solid rgba(129,140,248,.15)", borderRadius: 10, padding: "12px 16px" }}>
+                      <div className="row row-wrap gap-12" style={{ fontSize: 13 }}>
+                        <span style={{ color: "var(--muted)" }}>Yöntem: <strong style={{ color: "#818cf8" }}>Havale/EFT</strong></span>
+                        {o.havale_dekont && <span style={{ color: "var(--muted)" }}>Dekont Notu: <strong style={{ color: "var(--text)" }}>{o.havale_dekont}</strong></span>}
+                      </div>
+                    </div>
+                  )}
+                  {/* Aksiyon butonları */}
+                  <div className="row gap-6">
+                    {o.durum === "havale_bekliyor" && (
+                      <>
+                        <button onClick={() => odemeGuncelle(o.id, "odendi")} className="btn btn-sm" style={{ background: "rgba(16,185,129,.15)", color: "var(--green)", border: "none", fontWeight: 700 }}>✓ Onayla</button>
+                        <button onClick={() => odemeGuncelle(o.id, "bekliyor")} className="btn btn-sm" style={{ background: "rgba(239,68,68,.12)", color: "var(--red)", border: "none", fontWeight: 600 }}>✗ Reddet</button>
+                      </>
+                    )}
                     {o.durum === "bekliyor" && (
                       <>
-                        <button onClick={() => odemeGuncelle(o.id, "odendi")} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>✓ Havale Geldi</button>
+                        <button onClick={() => odemeGuncelle(o.id, "odendi")} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>✓ Ödendi</button>
                         <button onClick={() => odemeGuncelle(o.id, "gecikti")} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Gecikti</button>
                       </>
                     )}
                     {o.durum === "gecikti" && (
-                      <button onClick={() => odemeGuncelle(o.id, "odendi")} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>✓ Havale Geldi</button>
+                      <button onClick={() => odemeGuncelle(o.id, "odendi")} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>✓ Ödendi</button>
                     )}
                     {o.durum === "odendi" && (
                       <button onClick={() => odemeGuncelle(o.id, "bekliyor")} className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>Geri Al</button>
@@ -1546,6 +1579,56 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               ))
             }
+          </>
+        )}
+
+        {/* İLETİŞİM MESAJLARI */}
+        {sayfa === "iletisim" && (
+          <>
+            <div className="ph-row">
+              <div>
+                <h1>İletişim Mesajları</h1>
+                <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 4 }}>{iletisimMesajlar.length} mesaj · {okunmamisSayi} okunmamış</p>
+              </div>
+              <button onClick={iletisimYukle} className="btn btn-ghost btn-sm">Yenile</button>
+            </div>
+
+            <div className="filter-bar">
+              {[["hepsi", "Tümü"], ["okunmamis", "Okunmamış"], ["okunmus", "Okunmuş"]].map(([v, l]) => (
+                <button key={v} onClick={() => setIletisimFiltre(v)} className={`pill pill-sm${iletisimFiltre === v ? " active" : ""}`}>{l}</button>
+              ))}
+            </div>
+
+            {iletisimMesajlar
+              .filter(m => iletisimFiltre === "okunmamis" ? !m.okundu : iletisimFiltre === "okunmus" ? m.okundu : true)
+              .length === 0 ? (
+              <div className="list-empty"><p>Mesaj bulunamadı.</p></div>
+            ) : iletisimMesajlar
+              .filter(m => iletisimFiltre === "okunmamis" ? !m.okundu : iletisimFiltre === "okunmus" ? m.okundu : true)
+              .map(m => (
+              <div key={m.id} className="list-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 10, borderLeft: m.okundu ? "3px solid var(--border)" : "3px solid #818cf8" }}>
+                <div className="row row-between row-wrap gap-8">
+                  <div className="row row-wrap gap-8">
+                    <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{m.isim}</span>
+                    <a href={"mailto:" + m.email} style={{ color: "#818cf8", fontSize: 13 }}>{m.email}</a>
+                  </div>
+                  <div className="row gap-8">
+                    <span style={{ color: "var(--dim)", fontSize: 12 }}>{new Date(m.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                    <span className="tag" style={{ background: m.okundu ? "rgba(16,185,129,.12)" : "rgba(129,140,248,.12)", color: m.okundu ? "var(--green)" : "#818cf8", fontWeight: 600 }}>
+                      {m.okundu ? "Okundu" : "Yeni"}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ color: "var(--muted)", fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{m.mesaj}</div>
+                <div className="row gap-6">
+                  <button onClick={async () => { await api.put("/admin/iletisim/" + m.id, { okundu: !m.okundu }); iletisimYukle(); }} className="btn btn-sm" style={{ background: m.okundu ? "rgba(245,158,11,.12)" : "rgba(16,185,129,.12)", color: m.okundu ? "var(--amber)" : "var(--green)", border: "none", fontWeight: 600 }}>
+                    {m.okundu ? "Okunmadı İşaretle" : "Okundu İşaretle"}
+                  </button>
+                  <button onClick={async () => { if (confirm("Bu mesajı silmek istediğinize emin misiniz?")) { await api.del("/admin/iletisim/" + m.id); iletisimYukle(); } }} className="btn btn-sm" style={{ background: "rgba(239,68,68,.1)", color: "var(--red)", border: "none" }}>Sil</button>
+                  <a href={"mailto:" + m.email} className="btn btn-sm" style={{ background: "rgba(129,140,248,.12)", color: "#818cf8", border: "none", textDecoration: "none" }}>Yanıtla</a>
+                </div>
+              </div>
+            ))}
           </>
         )}
 

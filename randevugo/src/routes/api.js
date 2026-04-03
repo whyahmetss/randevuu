@@ -68,6 +68,11 @@ router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) =
 router.post('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeEkle(req, res));
 router.put('/admin/odemeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeGuncelle(req, res));
 
+// ==================== İLETİŞİM MESAJLARI (SuperAdmin) ====================
+router.get('/admin/iletisim', authMiddleware, superAdminMiddleware, (req, res) => adminController.iletisimListele(req, res));
+router.put('/admin/iletisim/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.iletisimOkundu(req, res));
+router.delete('/admin/iletisim/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.iletisimSil(req, res));
+
 // ==================== ÖDEME (iyzico + havale) ====================
 router.post('/odeme/iyzico/baslat', authMiddleware, (req, res) => adminController.iyzicoBaslat(req, res));
 router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallback(req, res));

@@ -849,6 +849,38 @@ class AdminController {
     }
   }
 
+  // ==================== İLETİŞİM YÖNETİM (SuperAdmin) ====================
+
+  async iletisimListele(req, res) {
+    try {
+      const result = await pool.query('SELECT * FROM iletisim_mesajlari ORDER BY olusturma_tarihi DESC LIMIT 100');
+      res.json({ mesajlar: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async iletisimOkundu(req, res) {
+    try {
+      const { id } = req.params;
+      const { okundu } = req.body;
+      await pool.query('UPDATE iletisim_mesajlari SET okundu = $1 WHERE id = $2', [okundu !== false, id]);
+      res.json({ mesaj: 'Güncellendi.' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async iletisimSil(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.query('DELETE FROM iletisim_mesajlari WHERE id = $1', [id]);
+      res.json({ mesaj: 'Silindi.' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   // ==================== İLETİŞİM FORMU (public) ====================
 
   async iletisimGonder(req, res) {
