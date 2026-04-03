@@ -118,7 +118,7 @@ app.use(cors({
 }));
 
 // Rate limiting
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } });
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } });
 
 app.use(express.json({ limit: '10mb' }));

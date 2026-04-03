@@ -1195,11 +1195,11 @@ function SuperAdminPanel({ kullanici }) {
     } catch (e) { console.log("satis bot yükleme hatası:", e); }
   };
 
-  // Satış Bot QR polling — sayfa açıkken her 3sn durum kontrol et (QR + bağlantı)
+  // Satış Bot polling — sayfa açıkken her 10sn durum kontrol et
   useEffect(() => {
     if (sayfa !== "satisBot") return;
     satisBotYukle();
-    const interval = setInterval(satisBotYukle, 3000);
+    const interval = setInterval(satisBotYukle, 10000);
     return () => clearInterval(interval);
   }, [sayfa]);
 
