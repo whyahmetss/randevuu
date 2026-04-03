@@ -282,34 +282,41 @@ class BotController {
 
   // Test endpoint - webhook olmadan bot'u test et
   async testMesaj(req, res) {
-    const { telefon, mesaj, isletme_id } = req.body;
-    
-    // Fake webhook body oluştur
-    req.body = {
-      From: `whatsapp:+90${telefon.replace(/^0/, '')}`,
-      Body: mesaj,
-      To: ''
-    };
-
-    if (isletme_id) {
-      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletme_id])).rows[0];
-      if (isletme) req.body.To = isletme.whatsapp_no || '';
-    }
-
-    // Cevabı yakalamak için res'i override et
     const cevaplar = [];
     const originalMesajGonder = whatsappService.mesajGonder.bind(whatsappService);
-    whatsappService.mesajGonder = async (hedef, msj) => {
-      cevaplar.push(msj);
-      return { success: true, test: true };
-    };
+    try {
+      const { telefon, mesaj, isletme_id } = req.body;
+      
+      // Fake webhook body oluştur
+      req.body = {
+        From: `whatsapp:+90${telefon.replace(/^0/, '')}`,
+        Body: mesaj,
+        To: ''
+      };
 
-    await this.gelenMesaj(req, { status: () => ({ send: () => {} }) });
+      if (isletme_id) {
+        const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletme_id])).rows[0];
+        if (isletme) req.body.To = isletme.whatsapp_no || '';
+      }
 
-    // Original'e geri dön
-    whatsappService.mesajGonder = originalMesajGonder;
+      // Cevabı yakalamak için res'i override et
+      whatsappService.mesajGonder = async (hedef, msj) => {
+        cevaplar.push(msj);
+        return { success: true, test: true };
+      };
 
-    res.json({ cevaplar, durum: 'ok' });
+      await this.gelenMesaj(req, { status: () => ({ send: () => {} }) });
+
+      // Original'e geri dön
+      whatsappService.mesajGonder = originalMesajGonder;
+
+      res.json({ cevaplar, durum: 'ok' });
+    } catch (error) {
+      // Her zaman original'e geri dön
+      whatsappService.mesajGonder = originalMesajGonder;
+      console.error('❌ Bot test hatası:', error);
+      res.json({ cevaplar, durum: 'hata', hata: error.message });
+    }
   }
 }
 

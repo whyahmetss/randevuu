@@ -71,7 +71,7 @@ function Login({ onLogin }) {
             <input type="password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
           </div>
           {hata && <div className="alert alert-error">{hata}</div>}
-          <button type="submit" disabled={yukleniyor} className="btn btn-primary btn-block btn-lg" style={{ marginTop: 8 }}>
+          <button type="submit" disabled={yukleniyor} className="btn btn-primary btn-block btn-lg mt-8">
             {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
@@ -107,74 +107,62 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1 style={{ color: "#fff", fontSize: 24, margin: 0 }}>Hizmetler ({hizmetler.length})</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="ph-row">
+        <h1>Hizmetler ({hizmetler.length})</h1>
+        <div className="ph-meta">
           {paketDurum && (
-            <span style={{ color: kullanimYuzde >= 90 ? "#ef4444" : "#64748b", fontSize: 13 }}>
+            <span className="ph-count" style={{ color: kullanimYuzde >= 90 ? "var(--red)" : "var(--dim)" }}>
               {hizmetler.length}/{limit >= 999 ? "∞" : limit} kullanıldı
             </span>
           )}
-          <button onClick={() => setFormAcik(!formAcik)}
-            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>
-            + Yeni Hizmet
-          </button>
+          <button onClick={() => setFormAcik(!formAcik)} className="btn btn-primary">+ Yeni Hizmet</button>
         </div>
       </div>
 
       {formAcik && (
-        <form onSubmit={ekle} style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #10b98144" }}>
-          <h3 style={{ color: "#10b981", marginBottom: 16, fontSize: 15 }}>Yeni Hizmet Ekle</h3>
-          {hata && <div style={{ background: "#ef444422", border: "1px solid #ef444433", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{hata}</div>}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ gridColumn: "1/-1", display: "flex", gap: 12 }}>
+        <form onSubmit={ekle} className="form-card card-accent-green">
+          <h3 className="green">Yeni Hizmet Ekle</h3>
+          {hata && <div className="alert alert-error">{hata}</div>}
+          <div className="form-grid">
+            <div className="full row gap-12">
               <div style={{ width: 70, flexShrink: 0 }}>
-                <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Emoji</label>
-                <input placeholder="🦷" maxLength={4} value={form.emoji} onChange={e => setForm({...form, emoji: e.target.value})}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 20, boxSizing: "border-box", outline: "none", textAlign: "center" }} />
+                <label className="form-label">Emoji</label>
+                <input placeholder="🦷" maxLength={4} value={form.emoji} onChange={e => setForm({...form, emoji: e.target.value})} className="input" style={{ textAlign: "center", fontSize: 20 }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Hizmet Adı *</label>
-                <input placeholder="Saç Kesimi" required value={form.isim} onChange={e => setForm({...form, isim: e.target.value})}
-                  style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, boxSizing: "border-box", outline: "none" }} />
+              <div className="flex-1">
+                <label className="form-label">Hizmet Adı *</label>
+                <input placeholder="Saç Kesimi" required value={form.isim} onChange={e => setForm({...form, isim: e.target.value})} className="input" />
               </div>
             </div>
             <div>
-              <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Süre (dakika)</label>
-              <input type="number" placeholder="30" value={form.sure_dk} onChange={e => setForm({...form, sure_dk: e.target.value})}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, boxSizing: "border-box", outline: "none" }} />
+              <label className="form-label">Süre (dakika)</label>
+              <input type="number" placeholder="30" value={form.sure_dk} onChange={e => setForm({...form, sure_dk: e.target.value})} className="input" />
             </div>
             <div>
-              <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Fiyat (₺) *</label>
-              <input type="number" placeholder="150" required value={form.fiyat} onChange={e => setForm({...form, fiyat: e.target.value})}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, boxSizing: "border-box", outline: "none" }} />
+              <label className="form-label">Fiyat (₺) *</label>
+              <input type="number" placeholder="150" required value={form.fiyat} onChange={e => setForm({...form, fiyat: e.target.value})} className="input" />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700 }}>Kaydet</button>
-            <button type="button" onClick={() => { setFormAcik(false); setHata(""); }} style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer" }}>İptal</button>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">Kaydet</button>
+            <button type="button" onClick={() => { setFormAcik(false); setHata(""); }} className="btn btn-ghost">İptal</button>
           </div>
         </form>
       )}
 
       {hizmetler.length === 0 ? (
-        <div style={{ background: "#1e293b", borderRadius: 12, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#64748b", margin: 0 }}>Henüz hizmet eklenmemiş.</p>
-        </div>
+        <div className="list-empty"><p>Henüz hizmet eklenmemiş.</p></div>
       ) : hizmetler.map(h => (
-        <div key={h.id} style={{ background: "#1e293b", borderRadius: 12, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div key={h.id} className="list-item">
+          <div className="row gap-12">
             <div>
-              <span style={{ color: "#fff", fontWeight: 600, fontSize: 15 }}>{h.emoji ? `${h.emoji} ` : ''}{h.isim}</span>
-              {!h.aktif && <span style={{ color: "#ef4444", marginLeft: 8, fontSize: 12 }}>(Pasif)</span>}
+              <span className="list-item-name">{h.emoji ? `${h.emoji} ` : ''}{h.isim}</span>
+              {!h.aktif && <span style={{ color: "var(--red)", marginLeft: 8, fontSize: 12 }}>(Pasif)</span>}
             </div>
-            <span style={{ background: "#0f172a", color: "#94a3b8", padding: "3px 10px", borderRadius: 20, fontSize: 12 }}>⏱ {h.sure_dk} dk</span>
-            <span style={{ background: "#10b98122", color: "#10b981", padding: "3px 10px", borderRadius: 20, fontSize: 13, fontWeight: 700 }}>{h.fiyat} ₺</span>
+            <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>
+            <span className="tag-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", fontWeight: 700 }}>{h.fiyat} ₺</span>
           </div>
-          <button onClick={() => sil(h.id)}
-            style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#ef444422", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-            Sil
-          </button>
+          <button onClick={() => sil(h.id)} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
         </div>
       ))}
     </>
@@ -209,67 +197,59 @@ function CalisanlarSayfasi({ paketDurum }) {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1 style={{ color: "#fff", fontSize: 24, margin: 0 }}>Çalışanlar ({calisanlar.length})</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div className="ph-row">
+        <h1>Çalışanlar ({calisanlar.length})</h1>
+        <div className="ph-meta">
           {paketDurum && (
-            <span style={{ color: calisanlar.length >= limit ? "#ef4444" : "#64748b", fontSize: 13 }}>
+            <span className="ph-count" style={{ color: calisanlar.length >= limit ? "var(--red)" : "var(--dim)" }}>
               {calisanlar.length}/{limit >= 999 ? "∞" : limit} kullanıldı
             </span>
           )}
-          <button onClick={() => setFormAcik(!formAcik)}
-            style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>
-            + Yeni Çalışan
-          </button>
+          <button onClick={() => setFormAcik(!formAcik)} className="btn btn-primary">+ Yeni Çalışan</button>
         </div>
       </div>
 
       {formAcik && (
-        <form onSubmit={ekle} style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #10b98144" }}>
-          <h3 style={{ color: "#10b981", marginBottom: 16, fontSize: 15 }}>Yeni Çalışan Ekle</h3>
-          {hata && <div style={{ background: "#ef444422", border: "1px solid #ef444433", borderRadius: 8, padding: "10px 14px", color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{hata}</div>}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <form onSubmit={ekle} className="form-card card-accent-green">
+          <h3 className="green">Yeni Çalışan Ekle</h3>
+          {hata && <div className="alert alert-error">{hata}</div>}
+          <div className="form-grid">
             <div>
-              <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Ad Soyad *</label>
-              <input placeholder="Ali Usta" required value={form.isim} onChange={e => setForm({...form, isim: e.target.value})}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, boxSizing: "border-box", outline: "none" }} />
+              <label className="form-label">Ad Soyad *</label>
+              <input placeholder="Ali Usta" required value={form.isim} onChange={e => setForm({...form, isim: e.target.value})} className="input" />
             </div>
             <div>
-              <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Telefon</label>
-              <input placeholder="05551234567" value={form.telefon} onChange={e => setForm({...form, telefon: e.target.value})}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, boxSizing: "border-box", outline: "none" }} />
+              <label className="form-label">Telefon</label>
+              <input placeholder="05551234567" value={form.telefon} onChange={e => setForm({...form, telefon: e.target.value})} className="input" />
             </div>
-            <div style={{ gridColumn: "1/-1" }}>
-              <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Uzmanlık (virgülle ayır)</label>
-              <input placeholder="sac_kesimi, sakal, cilt_bakimi" value={form.uzmanlik} onChange={e => setForm({...form, uzmanlik: e.target.value})}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, boxSizing: "border-box", outline: "none" }} />
+            <div className="full">
+              <label className="form-label">Uzmanlık (virgülle ayır)</label>
+              <input placeholder="sac_kesimi, sakal, cilt_bakimi" value={form.uzmanlik} onChange={e => setForm({...form, uzmanlik: e.target.value})} className="input" />
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button type="submit" style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700 }}>Kaydet</button>
-            <button type="button" onClick={() => { setFormAcik(false); setHata(""); }} style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer" }}>İptal</button>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">Kaydet</button>
+            <button type="button" onClick={() => { setFormAcik(false); setHata(""); }} className="btn btn-ghost">İptal</button>
           </div>
         </form>
       )}
 
       {calisanlar.length === 0 ? (
-        <div style={{ background: "#1e293b", borderRadius: 12, padding: 40, textAlign: "center" }}>
-          <p style={{ color: "#64748b", margin: 0 }}>Henüz çalışan eklenmemiş.</p>
-        </div>
+        <div className="list-empty"><p>Henüz çalışan eklenmemiş.</p></div>
       ) : calisanlar.map(c => (
-        <div key={c.id} style={{ background: "#1e293b", borderRadius: 12, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div key={c.id} className="list-item">
           <div>
-            <span style={{ color: "#fff", fontWeight: 600, fontSize: 15 }}>{c.isim}</span>
-            {c.telefon && <span style={{ color: "#64748b", marginLeft: 12, fontSize: 13 }}>📞 {c.telefon}</span>}
+            <span className="list-item-name">{c.isim}</span>
+            {c.telefon && <span className="list-item-sub" style={{ marginLeft: 12, display: "inline" }}>📞 {c.telefon}</span>}
             {c.uzmanlik && (
-              <div style={{ marginTop: 4 }}>
+              <div className="mt-4">
                 {c.uzmanlik.split(",").map(u => (
-                  <span key={u} style={{ background: "#0f172a", color: "#94a3b8", padding: "2px 8px", borderRadius: 12, fontSize: 11, marginRight: 4 }}>{u.trim()}</span>
+                  <span key={u} className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)", marginRight: 4 }}>{u.trim()}</span>
                 ))}
               </div>
             )}
           </div>
-          <span style={{ background: c.aktif ? "#10b98122" : "#ef444422", color: c.aktif ? "#10b981" : "#ef4444", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+          <span className="tag" style={{ background: c.aktif ? "rgba(16,185,129,.12)" : "var(--red-s)", color: c.aktif ? "var(--green)" : "var(--red)" }}>
             {c.aktif ? "Aktif" : "Pasif"}
           </span>
         </div>
@@ -294,8 +274,7 @@ function BotBaglantiSayfasi() {
   const [tgSonuc, setTgSonuc] = useState(null);
   const [tgBagli, setTgBagli] = useState(false);
 
-  const inp = { padding: "10px 14px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 14, boxSizing: "border-box", outline: "none", width: "100%" };
-  const btn = (renk, disabled) => ({ padding: "10px 22px", borderRadius: 10, border: "none", background: disabled ? "#1e293b" : renk, color: disabled ? "#475569" : "#fff", cursor: disabled ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 14 });
+  const btnCls = (renk, disabled) => ({ padding: "10px 22px", borderRadius: 10, border: "none", background: disabled ? "var(--surface3)" : renk, color: disabled ? "var(--dim)" : "#fff", cursor: disabled ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 14 });
 
   // WhatsApp: polling ile QR durumu
   useEffect(() => {
@@ -351,171 +330,135 @@ function BotBaglantiSayfasi() {
   };
 
   return (
-    <div style={{ maxWidth: 680 }}>
-      {/* Durum Kartları */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
+    <div className="chat-wrap">
+      <div className="conn-grid">
         {[
           { ikon: "💬", baslik: "WhatsApp", bagli: wpDurum === "bagli", detay: wpDurum === "bagli" ? (wpNo ? `+${wpNo}` : "Bağlı") : wpDurum === "qr_bekleniyor" ? "QR bekleniyor..." : "Bağlı değil" },
           { ikon: "✈️", baslik: "Telegram", bagli: tgBagli, detay: tgBagli ? "Bot aktif" : "Bağlı değil" },
         ].map(k => (
-          <div key={k.baslik} style={{ background: "#111827", border: `1px solid ${k.bagli ? "#10b98140" : "#1e293b"}`, borderRadius: 16, padding: 18, display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 12, background: k.bagli ? "#10b98120" : "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{k.ikon}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{k.baslik}</div>
-              <div style={{ color: "#64748b", fontSize: 12 }}>{k.detay}</div>
+          <div key={k.baslik} className={`conn-card${k.bagli ? ' connected' : ''}`}>
+            <div className={`conn-icon ${k.bagli ? 'on' : 'off'}`}>{k.ikon}</div>
+            <div className="flex-1">
+              <div className="conn-label">{k.baslik}</div>
+              <div className="conn-sub">{k.detay}</div>
             </div>
-            <span style={{ background: k.bagli ? "#10b98120" : "#ef444420", color: k.bagli ? "#10b981" : "#ef4444", padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+            <span className={`conn-status ${k.bagli ? 'on' : 'off'}`}>
               {k.bagli ? "● AKTİF" : "● PASİF"}
             </span>
           </div>
         ))}
       </div>
 
-      {/* Tab */}
-      <div style={{ display: "flex", gap: 4, background: "#0f172a", borderRadius: 12, padding: 4, marginBottom: 24, width: "fit-content" }}>
+      <div className="tab-bar">
         {[{ id: "whatsapp", label: "💬 WhatsApp" }, { id: "telegram", label: "✈️ Telegram" }].map(t => (
-          <button key={t.id} onClick={() => setAktifTab(t.id)}
-            style={{ padding: "8px 20px", borderRadius: 9, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-              background: aktifTab === t.id ? "#1e293b" : "transparent",
-              color: aktifTab === t.id ? "#fff" : "#64748b" }}>
+          <button key={t.id} onClick={() => setAktifTab(t.id)} className={`tab-btn${aktifTab === t.id ? ' active' : ''}`}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* WHATSAPP QR PANEL */}
       {aktifTab === "whatsapp" && (
-        <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 28 }}>
-          {/* Bağlı değil veya başlatılmamış */}
+        <div className="card">
           {(!wpDurum || wpDurum === "baslatilmadi" || wpDurum === "bagli_degil") && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>💬</div>
-              <h3 style={{ margin: "0 0 10px", fontSize: 18, fontWeight: 700 }}>WhatsApp'ı Bağla</h3>
-              <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 24px", lineHeight: 1.6 }}>
+            <div className="text-center">
+              <div style={{ fontSize: 56 }} className="mb-16">💬</div>
+              <h3 className="mb-10" style={{ fontSize: 18, fontWeight: 700 }}>WhatsApp'ı Bağla</h3>
+              <p className="mb-24" style={{ color: "var(--dim)", fontSize: 14, lineHeight: 1.6 }}>
                 Kendi WhatsApp numaranı bota bağla. Müşterilerin sana WhatsApp'tan yazınca bot otomatik cevap verir.
               </p>
-              <div style={{ background: "#0f172a", borderRadius: 12, padding: 16, marginBottom: 24, textAlign: "left" }}>
-                {[
-                  "Aşağıdaki butona tıkla",
-                  "QR kod çıkacak, WhatsApp'ı aç",
-                  "WhatsApp → Bağlantılı Cihazlar → Cihaz Ekle",
-                  "QR kodu tara, bağlandı!",
-                ].map((s, i) => (
-                  <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                    <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#25D36620", color: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{i+1}</div>
-                    <span style={{ color: "#94a3b8", fontSize: 13 }}>{s}</span>
+              <div className="step-list">
+                {["Aşağıdaki butona tıkla","QR kod çıkacak, WhatsApp'ı aç","WhatsApp → Bağlantılı Cihazlar → Cihaz Ekle","QR kodu tara, bağlandı!"].map((s, i) => (
+                  <div key={i} className="step-item">
+                    <div className="step-num green">{i+1}</div>
+                    <span className="step-text">{s}</span>
                   </div>
                 ))}
               </div>
-              <button onClick={wpBaslat} disabled={wpYukleniyor}
-                style={{ ...btn("#25D366", wpYukleniyor), fontSize: 15, padding: "12px 32px" }}>
+              <button onClick={wpBaslat} disabled={wpYukleniyor} style={btnCls("#25D366", wpYukleniyor)}>
                 {wpYukleniyor ? "Başlatılıyor..." : "📱 QR Kodu Göster"}
               </button>
             </div>
           )}
 
-          {/* QR Bekleniyor */}
           {(wpDurum === "baslatiyor" || wpDurum === "qr_bekleniyor") && (
-            <div style={{ textAlign: "center" }}>
-              <h3 style={{ margin: "0 0 6px", fontSize: 17, fontWeight: 700 }}>📱 WhatsApp ile Tara</h3>
-              <p style={{ color: "#64748b", fontSize: 13, margin: "0 0 20px" }}>
+            <div className="text-center">
+              <h3 className="mb-6" style={{ fontSize: 17, fontWeight: 700 }}>📱 WhatsApp ile Tara</h3>
+              <p className="mb-20" style={{ color: "var(--dim)", fontSize: 13 }}>
                 WhatsApp → Bağlantılı Cihazlar → Cihaz Ekle → QR kodu tara
               </p>
               {wpQr ? (
-                <div style={{ display: "inline-block", background: "#fff", padding: 16, borderRadius: 16 }}>
-                  <img src={wpQr} alt="QR" style={{ width: 220, height: 220, display: "block" }} />
-                </div>
+                <div className="qr-box"><img src={wpQr} alt="QR" /></div>
               ) : (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 220, height: 220, background: "#0f172a", borderRadius: 16, margin: "0 auto", border: "2px dashed #1e293b" }}>
-                  <div style={{ color: "#475569", fontSize: 13 }}>QR yükleniyor...</div>
-                </div>
+                <div className="qr-placeholder"><div style={{ color: "var(--dim)", fontSize: 13 }}>QR yükleniyor...</div></div>
               )}
-              <p style={{ color: "#475569", fontSize: 12, marginTop: 16 }}>QR kod 60 saniyede geçersiz olur. Taramak için acele edin.</p>
-              <button onClick={wpAyir} style={{ marginTop: 12, padding: "8px 18px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#64748b", cursor: "pointer", fontSize: 13 }}>
-                İptal
-              </button>
+              <p className="mt-16" style={{ color: "var(--dim)", fontSize: 12 }}>QR kod 60 saniyede geçersiz olur.</p>
+              <button onClick={wpAyir} className="btn btn-ghost mt-12">İptal</button>
             </div>
           )}
 
-          {/* Bağlandı */}
           {wpDurum === "bagli" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
-              <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#10b981" }}>WhatsApp Bağlı!</h3>
-              {wpNo && <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 8px" }}>Numara: <strong style={{ color: "#fff" }}>+{wpNo}</strong></p>}
-              <p style={{ color: "#64748b", fontSize: 13, margin: "0 0 24px" }}>
+            <div className="text-center">
+              <div style={{ fontSize: 56 }} className="mb-12">✅</div>
+              <h3 className="mb-8" style={{ fontSize: 18, fontWeight: 700, color: "var(--green)" }}>WhatsApp Bağlı!</h3>
+              {wpNo && <p className="mb-8" style={{ color: "var(--dim)", fontSize: 14 }}>Numara: <strong style={{ color: "var(--text)" }}>+{wpNo}</strong></p>}
+              <p className="mb-24" style={{ color: "var(--dim)", fontSize: 13 }}>
                 Müşterileriniz bu numaraya WhatsApp'tan yazdığında bot otomatik olarak yanıt verecek.
               </p>
-              <button onClick={wpAyir} disabled={wpYukleniyor}
-                style={{ ...btn("#ef4444", wpYukleniyor) }}>
+              <button onClick={wpAyir} disabled={wpYukleniyor} style={btnCls("var(--red)", wpYukleniyor)}>
                 {wpYukleniyor ? "Ayrılıyor..." : "🔌 Bağlantıyı Kes"}
               </button>
             </div>
           )}
 
-          {/* Hata */}
           {wpDurum === "hata" && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>❌</div>
-              <p style={{ color: "#ef4444", marginBottom: 16 }}>Bağlantı hatası oluştu.</p>
-              <button onClick={wpBaslat} style={{ ...btn("#25D366", false) }}>Tekrar Dene</button>
+            <div className="text-center">
+              <div style={{ fontSize: 48 }} className="mb-12">❌</div>
+              <p style={{ color: "var(--red)" }} className="mb-16">Bağlantı hatası oluştu.</p>
+              <button onClick={wpBaslat} style={btnCls("#25D366", false)}>Tekrar Dene</button>
             </div>
           )}
         </div>
       )}
 
-      {/* TELEGRAM PANEL */}
       {aktifTab === "telegram" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 22 }}>
-            <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 700 }}>📖 Telegram Botu Nasıl Oluşturulur?</h3>
-            {[
-              "Telegram'da @BotFather'ı aç ve /newbot yaz",
-              'Bot ismi gir (örn: "Berber Ali Randevu")',
-              'Kullanıcı adı gir, sonu "bot" bitmeli (örn: berberalirndvbot)',
-              "BotFather bir Token verecek → kopyala",
-              "Token'ı aşağıya yapıştır → Bağla",
-            ].map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#3b82f620", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 11, flexShrink: 0 }}>{i+1}</div>
-                <span style={{ color: "#94a3b8", fontSize: 13 }}>{s}</span>
+          <div className="card">
+            <h3 className="mb-16" style={{ fontSize: 15, fontWeight: 700 }}>📖 Telegram Botu Nasıl Oluşturulur?</h3>
+            {["Telegram'da @BotFather'ı aç ve /newbot yaz",'Bot ismi gir (örn: "Berber Ali Randevu")','Kullanıcı adı gir, sonu "bot" bitmeli (örn: berberalirndvbot)',"BotFather bir Token verecek → kopyala","Token'ı aşağıya yapıştır → Bağla"].map((s, i) => (
+              <div key={i} className="step-item">
+                <div className="step-num blue">{i+1}</div>
+                <span className="step-text">{s}</span>
               </div>
             ))}
-            <a href="https://t.me/BotFather" target="_blank" rel="noreferrer"
-              style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 8, padding: "8px 18px", borderRadius: 10, background: "#229ED9", color: "#fff", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+            <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="btn btn-sm mt-8" style={{ background: "#229ED9", color: "#fff", textDecoration: "none", display: "inline-flex" }}>
               ✈️ BotFather'ı Aç
             </a>
           </div>
 
-          <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 22 }}>
+          <div className="card">
             {tgBagli ? (
               <div>
-                <div style={{ background: "#10b98110", border: "1px solid #10b98130", borderRadius: 10, padding: 12, marginBottom: 16, color: "#10b981", fontSize: 13 }}>
-                  ✅ Telegram botunuz aktif. Müşterileriniz Telegram'dan randevu alabilir.
-                </div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <input value={tgToken} onChange={e => setTgToken(e.target.value)} placeholder="Yeni token ile değiştir..." style={{ ...inp, flex: 1 }} />
-                  <button onClick={telegramBagla} disabled={tgYukleniyor || !tgToken.trim()} style={btn("#3b82f6", !tgToken.trim())}>Değiştir</button>
-                  <button onClick={telegramAyir} disabled={tgYukleniyor} style={btn("#ef4444", false)}>Ayır</button>
+                <div className="alert alert-success mb-16">✅ Telegram botunuz aktif. Müşterileriniz Telegram'dan randevu alabilir.</div>
+                <div className="row gap-10">
+                  <input value={tgToken} onChange={e => setTgToken(e.target.value)} placeholder="Yeni token ile değiştir..." className="input flex-1" />
+                  <button onClick={telegramBagla} disabled={tgYukleniyor || !tgToken.trim()} style={btnCls("var(--blue)", !tgToken.trim())}>Değiştir</button>
+                  <button onClick={telegramAyir} disabled={tgYukleniyor} style={btnCls("var(--red)", false)}>Ayır</button>
                 </div>
               </div>
             ) : (
               <div>
-                <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700 }}>🔗 Telegram Botunu Bağla</h3>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ color: "#64748b", fontSize: 12, display: "block", marginBottom: 6 }}>BotFather Token</label>
-                  <input value={tgToken} onChange={e => setTgToken(e.target.value)}
-                    placeholder="7123456789:AAFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" style={inp} />
+                <h3 className="mb-12" style={{ fontSize: 15, fontWeight: 700 }}>🔗 Telegram Botunu Bağla</h3>
+                <div className="mb-12">
+                  <label className="form-label">BotFather Token</label>
+                  <input value={tgToken} onChange={e => setTgToken(e.target.value)} placeholder="7123456789:AAFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" className="input" />
                 </div>
-                <button onClick={telegramBagla} disabled={tgYukleniyor || !tgToken.trim()} style={btn("#229ED9", !tgToken.trim())}>
+                <button onClick={telegramBagla} disabled={tgYukleniyor || !tgToken.trim()} style={btnCls("#229ED9", !tgToken.trim())}>
                   {tgYukleniyor ? "Bağlanıyor..." : "✈️ Bağla"}
                 </button>
               </div>
             )}
             {tgSonuc && (
-              <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: tgSonuc.hata ? "#ef444420" : "#10b98120", color: tgSonuc.hata ? "#ef4444" : "#10b981", fontSize: 13 }}>
-                {tgSonuc.mesaj}
-              </div>
+              <div className={`result-toast ${tgSonuc.hata ? 'error' : 'success'}`}>{tgSonuc.mesaj}</div>
             )}
           </div>
         </div>
@@ -526,10 +469,10 @@ function BotBaglantiSayfasi() {
 
 function StatCard({ icon, baslik, deger, renk }) {
   return (
-    <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, flex: 1, minWidth: 150 }}>
-      <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
-      <div style={{ color: "#94a3b8", fontSize: 13, marginBottom: 4 }}>{baslik}</div>
-      <div style={{ color: renk || "#fff", fontSize: 28, fontWeight: 700 }}>{deger}</div>
+    <div className="card-dark" style={{ flex: 1, minWidth: 150 }}>
+      <div style={{ fontSize: 28 }} className="mb-8">{icon}</div>
+      <div style={{ color: "var(--muted)", fontSize: 13 }} className="mb-4">{baslik}</div>
+      <div style={{ color: renk || "var(--text)", fontSize: 28, fontWeight: 700 }}>{deger}</div>
     </div>
   );
 }
@@ -589,8 +532,17 @@ function Dashboard() {
     if (!testMesaj.trim()) return;
     setTestYukleniyor(true);
     setTestCevaplar(prev => [...prev, { yon: "giden", mesaj: testMesaj }]);
-    const d = await api.post("/bot/test", { telefon: testTelefon, mesaj: testMesaj });
-    if (d.cevaplar) d.cevaplar.forEach(c => setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: c }]));
+    try {
+      const d = await api.post("/bot/test", { telefon: testTelefon, mesaj: testMesaj });
+      if (d && d.cevaplar && d.cevaplar.length > 0) {
+        d.cevaplar.forEach(c => setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: c }]));
+      } else {
+        setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: d?.hata || "Bot yanıt veremedi. Loglara bakın." }]);
+      }
+    } catch (err) {
+      console.error("Bot test hatası:", err);
+      setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: "Hata: " + (err.message || "Sunucu yanıt veremedi") }]);
+    }
     setTestMesaj("");
     setTestYukleniyor(false);
   };
@@ -620,8 +572,6 @@ function Dashboard() {
     { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
     { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
   ];
-
-  const S = { input: { padding: "10px 14px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 14, boxSizing: "border-box", outline: "none", width: "100%" } };
 
   return (
     <div className="app-shell">
@@ -702,18 +652,14 @@ function Dashboard() {
       </aside>
 
       {/* ── Main ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-
-        {/* Top bar */}
-        <div style={{ padding: "16px 32px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)" }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: "-.2px" }}>{sayfaBaslik[sayfa]}</h1>
-          <div style={{ color: "var(--dim)", fontSize: 13 }}>
+      <div className="main-wrap">
+        <div className="top-bar">
+          <h1>{sayfaBaslik[sayfa]}</h1>
+          <div className="date">
             {new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </div>
         </div>
-
-        {/* Page content */}
-        <div style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }}>
+        <div className="page-body">
 
           {/* ── DASHBOARD ── */}
           {sayfa === "anasayfa" && (
@@ -735,31 +681,26 @@ function Dashboard() {
               </div>
 
               {/* Bugünün randevuları */}
-              <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 24 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#cbd5e1" }}>Bugünün Randevuları</h3>
-                  <button onClick={() => setSayfa("randevular")}
-                    style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #1e293b", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 12 }}>
-                    Tümünü Gör →
-                  </button>
+              <div className="card">
+                <div className="card-header">
+                  <h3>Bugünün Randevuları</h3>
+                  <button onClick={() => setSayfa("randevular")} className="btn btn-ghost btn-sm">Tümünü Gör →</button>
                 </div>
                 {!stats ? (
-                  <div style={{ color: "#475569", textAlign: "center", padding: 30 }}>Yükleniyor...</div>
+                  <div className="text-center" style={{ color: "var(--dim)", padding: 30 }}>Yükleniyor...</div>
                 ) : randevular.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "30px 0" }}>
-                    <div style={{ fontSize: 36, marginBottom: 8 }}>📭</div>
-                    <div style={{ color: "#475569", fontSize: 14 }}>Bugün için randevu yok</div>
+                  <div className="text-center" style={{ padding: "30px 0" }}>
+                    <div style={{ fontSize: 36 }} className="mb-8">📭</div>
+                    <div style={{ color: "var(--dim)", fontSize: 14 }}>Bugün için randevu yok</div>
                   </div>
                 ) : randevular.map(r => (
-                  <div key={r.id} style={{ display: "flex", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #1e293b" }}>
-                    <div style={{ width: 52, height: 52, borderRadius: 12, background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", marginRight: 14, flexShrink: 0 }}>
-                      <span style={{ color: "#10b981", fontWeight: 800, fontSize: 15 }}>{r.saat?.slice(0, 5)}</span>
+                  <div key={r.id} className="row" style={{ padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+                    <div className="time-avatar"><span>{r.saat?.slice(0, 5)}</span></div>
+                    <div className="flex-1">
+                      <div style={{ fontWeight: 600, fontSize: 14 }} className="mb-2">{r.musteri_isim}</div>
+                      <div style={{ color: "var(--dim)", fontSize: 12 }}>{r.hizmet_isim}{r.calisan_isim ? ` · ${r.calisan_isim}` : ""}</div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{r.musteri_isim}</div>
-                      <div style={{ color: "#64748b", fontSize: 12 }}>{r.hizmet_isim}{r.calisan_isim ? ` · ${r.calisan_isim}` : ""}</div>
-                    </div>
-                    <span style={{ background: (DR[r.durum] || "#64748b") + "20", color: DR[r.durum] || "#64748b", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                    <span className="tag" style={{ background: (DR[r.durum] || "#64748b") + "20", color: DR[r.durum] || "#64748b" }}>
                       {DL[r.durum] || r.durum}
                     </span>
                   </div>
@@ -771,42 +712,36 @@ function Dashboard() {
           {/* ── RANDEVULAR ── */}
           {sayfa === "randevular" && (
             <>
-              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20 }}>
+              <div className="row gap-10 mb-20">
                 <input type="date" value={randevuTarih}
-                  onChange={e => { setRandevuTarih(e.target.value); verileriYukle(e.target.value); }}
-                  style={{ padding: "9px 14px", borderRadius: 10, border: "1px solid #1e293b", background: "#111827", color: "#fff", fontSize: 14, outline: "none" }} />
-                <button onClick={() => verileriYukle()}
-                  style={{ padding: "9px 18px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-                  Yenile
-                </button>
-                <span style={{ color: "#475569", fontSize: 13, marginLeft: 4 }}>{randevular.length} randevu</span>
+                  onChange={e => { setRandevuTarih(e.target.value); verileriYukle(e.target.value); }} className="input" style={{ width: "auto" }} />
+                <button onClick={() => verileriYukle()} className="btn btn-primary btn-sm">Yenile</button>
+                <span style={{ color: "var(--dim)", fontSize: 13 }}>{randevular.length} randevu</span>
               </div>
 
               {randevular.length === 0 ? (
-                <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: "50px 0", textAlign: "center" }}>
-                  <div style={{ fontSize: 40, marginBottom: 10 }}>📭</div>
-                  <div style={{ color: "#475569", fontSize: 14 }}>Bu tarih için randevu yok</div>
+                <div className="card text-center" style={{ padding: "50px 0" }}>
+                  <div style={{ fontSize: 40 }} className="mb-10">📭</div>
+                  <div style={{ color: "var(--dim)", fontSize: 14 }}>Bu tarih için randevu yok</div>
                 </div>
               ) : randevular.map(r => (
-                <div key={r.id} style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 14, padding: 16, marginBottom: 8, display: "flex", alignItems: "center", gap: 16 }}>
-                  <div style={{ width: 56, height: 56, borderRadius: 12, background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <span style={{ color: "#10b981", fontWeight: 800, fontSize: 16 }}>{r.saat?.slice(0, 5)}</span>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3 }}>{r.musteri_isim}</div>
-                    <div style={{ color: "#64748b", fontSize: 13 }}>
+                <div key={r.id} className="list-item list-item-lg">
+                  <div className="time-avatar time-avatar-lg"><span>{r.saat?.slice(0, 5)}</span></div>
+                  <div className="flex-1">
+                    <div style={{ fontWeight: 700, fontSize: 15 }} className="mb-3">{r.musteri_isim}</div>
+                    <div className="list-item-meta">
                       📞 {r.musteri_telefon}
                       {r.hizmet_isim && <span style={{ marginLeft: 10 }}>✂️ {r.hizmet_isim}{r.fiyat ? ` · ${r.fiyat}₺` : ""}</span>}
                       {r.calisan_isim && <span style={{ marginLeft: 10 }}>👤 {r.calisan_isim}</span>}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <div className="list-item-actions">
                     {[["onaylandi","✓ Onaylı"], ["tamamlandi","Tamam"], ["gelmedi","Gelmedi"], ["iptal","İptal"]].map(([d, l]) => (
                       <button key={d}
                         onClick={async () => { await api.put(`/randevular/${r.id}/durum`, { durum: d }); verileriYukle(); }}
-                        style={{ padding: "6px 10px", borderRadius: 8, border: r.durum === d ? "none" : "1px solid #1e293b",
-                          background: r.durum === d ? (DR[d] + "25") : "transparent",
-                          color: r.durum === d ? DR[d] : "#475569", fontSize: 11, cursor: "pointer", fontWeight: r.durum === d ? 700 : 400 }}>
+                        className="btn btn-sm" style={{ background: r.durum === d ? (DR[d] + "25") : "transparent",
+                          color: r.durum === d ? DR[d] : "var(--dim)", border: r.durum === d ? "none" : "1px solid var(--border)",
+                          fontWeight: r.durum === d ? 700 : 400 }}>
                         {l}
                       </button>
                     ))}
@@ -834,24 +769,24 @@ function Dashboard() {
           {/* ── MÜŞTERİLER ── */}
           {sayfa === "musteriler" && (
             <>
-              <div style={{ color: "#64748b", fontSize: 13, marginBottom: 20 }}>{musteriler.length} müşteri kayıtlı</div>
+              <div className="mb-20" style={{ color: "var(--dim)", fontSize: 13 }}>{musteriler.length} müşteri kayıtlı</div>
               {musteriler.length === 0 ? (
-                <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: "50px 0", textAlign: "center" }}>
-                  <div style={{ fontSize: 40, marginBottom: 10 }}>👥</div>
-                  <div style={{ color: "#475569" }}>Henüz müşteri yok</div>
-                  <div style={{ color: "#334155", fontSize: 13, marginTop: 6 }}>WhatsApp botu üzerinden gelen müşteriler burada görünecek</div>
+                <div className="card text-center" style={{ padding: "50px 0" }}>
+                  <div style={{ fontSize: 40 }} className="mb-10">👥</div>
+                  <div style={{ color: "var(--dim)" }}>Henüz müşteri yok</div>
+                  <div style={{ color: "var(--dim)", fontSize: 13 }} className="mt-6">WhatsApp botu üzerinden gelen müşteriler burada görünecek</div>
                 </div>
               ) : musteriler.map(m => (
-                <div key={m.id} style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 14, padding: "14px 18px", marginBottom: 8, display: "flex", alignItems: "center", gap: 14 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "#10b98118", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>👤</div>
-                  <div style={{ flex: 1 }}>
+                <div key={m.id} className="list-item list-item-lg">
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(16,185,129,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }} className="shrink-0">👤</div>
+                  <div className="flex-1">
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{m.isim || "İsimsiz"}</div>
-                    <div style={{ color: "#64748b", fontSize: 12, marginTop: 2 }}>📞 {m.telefon}</div>
+                    <div className="list-item-sub">📞 {m.telefon}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ color: "#10b981", fontWeight: 700, fontSize: 15 }}>{m.randevu_sayisi}</div>
-                    <div style={{ color: "#475569", fontSize: 11 }}>randevu</div>
-                    {m.son_randevu && <div style={{ color: "#334155", fontSize: 11, marginTop: 2 }}>{new Date(m.son_randevu).toLocaleDateString("tr-TR")}</div>}
+                    <div style={{ color: "var(--green)", fontWeight: 700, fontSize: 15 }}>{m.randevu_sayisi}</div>
+                    <div style={{ color: "var(--dim)", fontSize: 11 }}>randevu</div>
+                    {m.son_randevu && <div style={{ color: "var(--dim)", fontSize: 11 }} className="mt-2">{new Date(m.son_randevu).toLocaleDateString("tr-TR")}</div>}
                   </div>
                 </div>
               ))}
@@ -860,51 +795,32 @@ function Dashboard() {
 
           {/* ── BOT TEST ── */}
           {sayfa === "bottest" && (
-            <div style={{ maxWidth: 680 }}>
-              <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, overflow: "hidden" }}>
-                <div style={{ padding: "14px 20px", borderBottom: "1px solid #1e293b", display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#10b98120", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🤖</div>
+            <div className="chat-wrap">
+              <div className="chat-box">
+                <div className="chat-header">
+                  <div className="chat-avatar">🤖</div>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>WhatsApp Bot</div>
-                    <div style={{ color: "#10b981", fontSize: 12 }}>● Çevrimiçi</div>
+                    <div style={{ color: "var(--green)", fontSize: 12 }}>● Çevrimiçi</div>
                   </div>
-                  <button onClick={() => setTestCevaplar([])}
-                    style={{ marginLeft: "auto", padding: "5px 12px", borderRadius: 8, border: "1px solid #1e293b", background: "transparent", color: "#64748b", cursor: "pointer", fontSize: 12 }}>
-                    Temizle
-                  </button>
+                  <button onClick={() => setTestCevaplar([])} className="btn btn-ghost btn-sm ml-auto">Temizle</button>
                 </div>
-                <div ref={chatRef} style={{ height: 400, padding: "16px 20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+                <div ref={chatRef} className="chat-messages">
                   {testCevaplar.length === 0 && (
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#334155", fontSize: 14 }}>
-                      Müşteri gibi mesaj yazarak botu test edin...
-                    </div>
+                    <div className="chat-empty">Müşteri gibi mesaj yazarak botu test edin...</div>
                   )}
                   {testCevaplar.map((c, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: c.yon === "giden" ? "flex-end" : "flex-start" }}>
-                      <div style={{
-                        background: c.yon === "giden" ? "#10b981" : "#1e293b",
-                        color: "#fff", padding: "10px 14px", borderRadius: c.yon === "giden" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                        maxWidth: "72%", fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.5
-                      }}>{c.mesaj}</div>
-                    </div>
+                    <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>{c.mesaj}</div>
                   ))}
                   {testYukleniyor && (
-                    <div style={{ display: "flex" }}>
-                      <div style={{ background: "#1e293b", color: "#64748b", padding: "10px 14px", borderRadius: "16px 16px 16px 4px", fontSize: 14 }}>
-                        <span>●</span><span style={{ margin: "0 3px" }}>●</span><span>●</span>
-                      </div>
-                    </div>
+                    <div className="chat-typing"><span>●</span><span style={{ margin: "0 3px" }}>●</span><span>●</span></div>
                   )}
                 </div>
-                <div style={{ padding: "12px 16px", borderTop: "1px solid #1e293b", display: "flex", gap: 8 }}>
+                <div className="chat-input">
                   <input value={testMesaj} onChange={e => setTestMesaj(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && !testYukleniyor && botTest()}
-                    placeholder="Mesaj yazın..."
-                    style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid #1e293b", background: "#0f172a", color: "#fff", fontSize: 14, outline: "none" }} />
-                  <button onClick={botTest} disabled={testYukleniyor}
-                    style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 14, opacity: testYukleniyor ? 0.6 : 1 }}>
-                    Gönder
-                  </button>
+                    placeholder="Mesaj yazın..." className="input flex-1" />
+                  <button onClick={botTest} disabled={testYukleniyor} className="btn btn-primary" style={{ opacity: testYukleniyor ? 0.6 : 1 }}>Gönder</button>
                 </div>
               </div>
             </div>
@@ -913,79 +829,74 @@ function Dashboard() {
           {/* ── AYARLAR ── */}
           {sayfa === "ayarlar" && (
             ayarlar ? (
-              <div style={{ maxWidth: 600 }}>
+              <div className="settings-wrap">
                 {ayarKaydedildi && (
-                  <div style={{ background: "#10b98120", border: "1px solid #10b98140", borderRadius: 10, padding: "10px 16px", marginBottom: 20, color: "#10b981", fontSize: 13, fontWeight: 600 }}>
-                    ✓ Ayarlar kaydedildi
-                  </div>
+                  <div className="alert alert-success mb-20">✓ Ayarlar kaydedildi</div>
                 )}
-                <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 28, marginBottom: 20 }}>
-                  <h3 style={{ margin: "0 0 20px", fontSize: 15, color: "#94a3b8", fontWeight: 600 }}>İşletme Bilgileri</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="settings-card">
+                  <h3>İşletme Bilgileri</h3>
+                  <div className="form-grid" style={{ gap: 16 }}>
                     {[
                       { label: "İşletme Adı", key: "isim" },
                       { label: "Adres", key: "adres" },
                     ].map(f => (
                       <div key={f.key}>
-                        <label style={{ color: "#64748b", fontSize: 12, display: "block", marginBottom: 6 }}>{f.label}</label>
-                        <input value={ayarlar[f.key] || ""} onChange={e => setAyarlar({...ayarlar, [f.key]: e.target.value})}
-                          style={S.input} />
+                        <label className="form-label">{f.label}</label>
+                        <input value={ayarlar[f.key] || ""} onChange={e => setAyarlar({...ayarlar, [f.key]: e.target.value})} className="input" />
                       </div>
                     ))}
                   </div>
                 </div>
-                <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 28, marginBottom: 20 }}>
-                  <h3 style={{ margin: "0 0 20px", fontSize: 15, color: "#94a3b8", fontWeight: 600 }}>Çalışma Saatleri</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="settings-card">
+                  <h3>Çalışma Saatleri</h3>
+                  <div className="form-grid" style={{ gap: 16 }}>
                     <div>
-                      <label style={{ color: "#64748b", fontSize: 12, display: "block", marginBottom: 6 }}>Açılış Saati</label>
-                      <input type="time" value={ayarlar.calisma_baslangic || "09:00"} onChange={e => setAyarlar({...ayarlar, calisma_baslangic: e.target.value})}
-                        style={S.input} />
+                      <label className="form-label">Açılış Saati</label>
+                      <input type="time" value={ayarlar.calisma_baslangic || "09:00"} onChange={e => setAyarlar({...ayarlar, calisma_baslangic: e.target.value})} className="input" />
                     </div>
                     <div>
-                      <label style={{ color: "#64748b", fontSize: 12, display: "block", marginBottom: 6 }}>Kapanış Saati</label>
-                      <input type="time" value={ayarlar.calisma_bitis || "19:00"} onChange={e => setAyarlar({...ayarlar, calisma_bitis: e.target.value})}
-                        style={S.input} />
+                      <label className="form-label">Kapanış Saati</label>
+                      <input type="time" value={ayarlar.calisma_bitis || "19:00"} onChange={e => setAyarlar({...ayarlar, calisma_bitis: e.target.value})} className="input" />
                     </div>
                   </div>
                 </div>
-                <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 28, marginBottom: 20 }}>
-                  <h3 style={{ margin: "0 0 16px", fontSize: 15, color: "#94a3b8", fontWeight: 600 }}>🍽️ Mola / Kapalı Saatler</h3>
-                  <div style={{ color: "#334155", fontSize: 12, marginBottom: 16 }}>Bu saatlerde randevu alınamaz (yemek arası, özel işler, vs.)</div>
+                <div className="settings-card">
+                  <h3>Mola / Kapalı Saatler</h3>
+                  <div style={{ color: "var(--dim)", fontSize: 12 }} className="mb-16">Bu saatlerde randevu alınamaz (yemek arası, özel işler, vs.)</div>
                   {(ayarlar.mola_saatleri || []).map((mola, idx) => (
-                    <div key={idx} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+                    <div key={idx} className="mola-row">
                       <input value={mola.isim || ""} placeholder="Açıklama (ör: Yemek Arası)" onChange={e => {
                         const yeni = [...(ayarlar.mola_saatleri || [])];
                         yeni[idx] = { ...yeni[idx], isim: e.target.value };
                         setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} style={{ ...S.input, flex: 1 }} />
+                      }} className="input flex-1" />
                       <input type="time" value={mola.baslangic || ""} onChange={e => {
                         const yeni = [...(ayarlar.mola_saatleri || [])];
                         yeni[idx] = { ...yeni[idx], baslangic: e.target.value };
                         setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} style={{ ...S.input, width: 120 }} />
-                      <span style={{ color: "#475569", fontSize: 13 }}>—</span>
+                      }} className="input" style={{ width: 120 }} />
+                      <span className="mola-sep">—</span>
                       <input type="time" value={mola.bitis || ""} onChange={e => {
                         const yeni = [...(ayarlar.mola_saatleri || [])];
                         yeni[idx] = { ...yeni[idx], bitis: e.target.value };
                         setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} style={{ ...S.input, width: 120 }} />
+                      }} className="input" style={{ width: 120 }} />
                       <button onClick={() => {
                         const yeni = (ayarlar.mola_saatleri || []).filter((_, i) => i !== idx);
                         setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} style={{ background: "#ef444422", border: "1px solid #ef444440", borderRadius: 8, color: "#ef4444", cursor: "pointer", padding: "8px 12px", fontSize: 13, fontWeight: 600 }}>✕</button>
+                      }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "1px solid rgba(239,68,68,.25)" }}>✕</button>
                     </div>
                   ))}
                   <button onClick={() => {
                     const yeni = [...(ayarlar.mola_saatleri || []), { isim: "", baslangic: "12:00", bitis: "13:00" }];
                     setAyarlar({...ayarlar, mola_saatleri: yeni});
-                  }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px dashed #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%" }}>
+                  }} className="btn btn-ghost btn-block" style={{ border: "1px dashed var(--border2)" }}>
                     + Mola Ekle
                   </button>
                 </div>
-                <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 28, marginBottom: 24 }}>
-                  <h3 style={{ margin: "0 0 16px", fontSize: 15, color: "#94a3b8", fontWeight: 600 }}>Kapalı Günler</h3>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div className="settings-card mb-24">
+                  <h3 style={{ margin: "0 0 16px" }}>Kapalı Günler</h3>
+                  <div className="row row-wrap gap-8">
                     {[["0","Pazar"],["1","Pazartesi"],["2","Salı"],["3","Çarşamba"],["4","Perşembe"],["5","Cuma"],["6","Cumartesi"]].map(([v, l]) => {
                       const kapalilar = String(ayarlar.kapali_gunler || "").split(",").map(s => s.trim()).filter(Boolean);
                       const kapali = kapalilar.includes(v);
@@ -993,26 +904,24 @@ function Dashboard() {
                         <button key={v} onClick={() => {
                           const yeni = kapali ? kapalilar.filter(k => k !== v) : [...kapalilar, v];
                           setAyarlar({...ayarlar, kapali_gunler: yeni.join(",")});
-                        }} style={{ padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                          background: kapali ? "#ef444422" : "#0f172a", color: kapali ? "#ef4444" : "#64748b",
-                          outline: kapali ? "2px solid #ef444440" : "1px solid #1e293b" }}>
+                        }} className={`day-btn ${kapali ? 'on' : 'off'}`}>
                           {l}
                         </button>
                       );
                     })}
                   </div>
-                  <div style={{ color: "#334155", fontSize: 12, marginTop: 10 }}>Seçilen günlerde randevu alınamaz</div>
+                  <div style={{ color: "var(--dim)", fontSize: 12 }} className="mt-10">Seçilen günlerde randevu alınamaz</div>
                 </div>
                 <button onClick={async () => {
                   await api.put("/ayarlar", ayarlar);
                   setAyarKaydedildi(true);
                   setTimeout(() => setAyarKaydedildi(false), 3000);
-                }} style={{ padding: "13px 32px", borderRadius: 12, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 15 }}>
+                }} className="btn btn-primary btn-lg">
                   Kaydet
                 </button>
               </div>
             ) : (
-              <div style={{ color: "#475569", display: "flex", alignItems: "center", gap: 10, padding: 40 }}>
+              <div className="row gap-10" style={{ color: "var(--dim)", padding: 40 }}>
                 <span>⏳</span> Yükleniyor...
               </div>
             )
@@ -1023,13 +932,13 @@ function Dashboard() {
 
       {/* Paket Karşılaştırma Modal */}
       {paketModal && (
-        <div onClick={() => setPaketModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#1e293b", borderRadius: 20, padding: "32px", maxWidth: 800, width: "90%", maxHeight: "85vh", overflowY: "auto", border: "1px solid #334155" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
-              <h2 style={{ margin: 0, fontSize: 22, color: "#f1f5f9" }}>Paketler</h2>
-              <button onClick={() => setPaketModal(false)} style={{ background: "none", border: "none", color: "#64748b", fontSize: 22, cursor: "pointer" }}>✕</button>
+        <div onClick={() => setPaketModal(false)} className="modal-overlay">
+          <div onClick={e => e.stopPropagation()} className="modal-content">
+            <div className="modal-header">
+              <h2>Paketler</h2>
+              <button onClick={() => setPaketModal(false)} className="modal-close">✕</button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+            <div className="price-grid-modal">
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["1 çalışan", "5 hizmete kadar", "Aylık 100 randevu", "WhatsApp / Telegram bot", "Temel destek"] },
                 { key: "profesyonel", isim: "Profesyonel", fiyat: 599, renk: "#3b82f6", ozellikler: ["5 çalışana kadar", "20 hizmete kadar", "Aylık 500 randevu", "WhatsApp / Telegram bot", "Randevu hatırlatmaları", "Öncelikli destek"] },
@@ -1037,20 +946,18 @@ function Dashboard() {
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
-                  <div key={p.key} style={{ background: aktif ? `${p.renk}10` : "#0f172a", border: `2px solid ${aktif ? p.renk : "#334155"}`, borderRadius: 16, padding: "24px 20px", textAlign: "center", position: "relative" }}>
-                    {aktif && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: p.renk, color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>MEVCUT</div>}
-                    {p.key === "profesyonel" && !aktif && <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "#3b82f6", color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>POPÜLER</div>}
-                    <div style={{ fontSize: 18, fontWeight: 700, color: p.renk, marginBottom: 4, marginTop: 8 }}>{p.isim}</div>
-                    <div style={{ fontSize: 32, fontWeight: 800, color: "#f1f5f9", marginBottom: 4 }}>{p.fiyat}₺<span style={{ fontSize: 14, color: "#64748b", fontWeight: 400 }}>/ay</span></div>
-                    <div style={{ borderTop: "1px solid #334155", margin: "16px 0", paddingTop: 16, textAlign: "left" }}>
+                  <div key={p.key} className={`price-item${aktif ? ' active' : ''}`} style={{ background: aktif ? `${p.renk}10` : "var(--bg)", borderColor: aktif ? p.renk : undefined, color: p.renk }}>
+                    {aktif && <div className="price-tag" style={{ background: p.renk }}>MEVCUT</div>}
+                    {p.key === "profesyonel" && !aktif && <div className="price-tag" style={{ background: "var(--blue)" }}>POPÜLER</div>}
+                    <div className="p-name" style={{ color: p.renk }}>{p.isim}</div>
+                    <div className="p-price">{p.fiyat}₺<span>/ay</span></div>
+                    <div className="p-divider">
                       {p.ozellikler.map((o, i) => (
-                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, fontSize: 13, color: "#cbd5e1" }}>
-                          <span style={{ color: p.renk }}>✓</span> {o}
-                        </div>
+                        <div key={i} className="price-feature"><span style={{ color: p.renk }}>✓</span> {o}</div>
                       ))}
                     </div>
                     {!aktif && (
-                      <button style={{ width: "100%", padding: 12, borderRadius: 10, border: "none", background: p.renk, color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
+                      <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }}>
                         {p.key === "baslangic" ? "Geç" : "Yükselt"}
                       </button>
                     )}
@@ -1265,7 +1172,7 @@ function SuperAdminPanel({ kullanici }) {
       </aside>
 
       {/* Main */}
-      <div style={{ flex: 1, padding: "32px 36px", overflowY: "auto", background: "var(--bg)" }}>
+      <div className="main-panel">
 
         {/* DASHBOARD */}
         {sayfa === "dashboard" && (
@@ -1282,44 +1189,44 @@ function SuperAdminPanel({ kullanici }) {
             </div>
 
             {/* Bu ay ödeme durumu */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
-              <div style={{ background: "#1e293b", borderRadius: 16, padding: 20 }}>
-                <h3 style={{ color: "var(--green)", fontSize: 15, marginBottom: 12, fontWeight: 700 }}>Bu Ay Ödeyen ({buAyOdeyenler.length})</h3>
+            <div className="grid-2">
+              <div className="card-dark">
+                <h3 style={{ color: "var(--green)", fontSize: 15, fontWeight: 700 }} className="mb-12">Bu Ay Ödeyen ({buAyOdeyenler.length})</h3>
                 {buAyOdeyenler.length === 0
-                  ? <p style={{ color: "#475569", fontSize: 13 }}>Henüz ödeme yok.</p>
+                  ? <p style={{ color: "var(--dim)", fontSize: 13 }}>Henüz ödeme yok.</p>
                   : buAyOdeyenler.map(o => (
-                    <div key={o.id} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #0f172a" }}>
-                      <span style={{ color: "#fff", fontSize: 13 }}>{o.isletme_isim}</span>
-                      <span style={{ color: "#10b981", fontWeight: 700, fontSize: 13 }}>{o.tutar} ₺</span>
+                    <div key={o.id} className="row row-between" style={{ padding: "8px 0", borderBottom: "1px solid var(--bg)" }}>
+                      <span style={{ color: "var(--text)", fontSize: 13 }}>{o.isletme_isim}</span>
+                      <span style={{ color: "var(--green)", fontWeight: 700, fontSize: 13 }}>{o.tutar} ₺</span>
                     </div>
                   ))}
               </div>
-              <div style={{ background: "#1e293b", borderRadius: 16, padding: 20 }}>
-                <h3 style={{ color: "var(--red)", fontSize: 15, marginBottom: 12, fontWeight: 700 }}>Bu Ay Ödemeyenler ({buAyOdemeyenler.length})</h3>
+              <div className="card-dark">
+                <h3 style={{ color: "var(--red)", fontSize: 15, fontWeight: 700 }} className="mb-12">Bu Ay Ödemeyenler ({buAyOdemeyenler.length})</h3>
                 {buAyOdemeyenler.length === 0
                   ? <p style={{ color: "var(--dim)", fontSize: 13 }}>Herkes ödedi.</p>
                   : buAyOdemeyenler.map(i => (
-                    <div key={i.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #0f172a" }}>
-                      <span style={{ color: "#fff", fontSize: 13 }}>{i.isim}</span>
-                      <span style={{ color: "#64748b", fontSize: 12 }}>{paketFiyat[i.paket] || "?"} ₺</span>
+                    <div key={i.id} className="row row-between" style={{ padding: "8px 0", borderBottom: "1px solid var(--bg)" }}>
+                      <span style={{ color: "var(--text)", fontSize: 13 }}>{i.isim}</span>
+                      <span style={{ color: "var(--dim)", fontSize: 12 }}>{paketFiyat[i.paket] || "?"} ₺</span>
                     </div>
                   ))}
               </div>
             </div>
 
             {/* Son işletmeler */}
-            <div style={{ background: "#1e293b", borderRadius: 16, padding: 20 }}>
-              <h3 style={{ color: "#cbd5e1", fontSize: 15, marginBottom: 12 }}>Son Kayıt İşletmeler</h3>
+            <div className="card-dark">
+              <h3 style={{ color: "var(--muted)", fontSize: 15 }} className="mb-12">Son Kayıt İşletmeler</h3>
               {isletmeler.slice(-5).reverse().map(i => (
-                <div key={i.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #0f172a" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: i.aktif ? "#10b981" : "#ef4444" }} />
-                    <span style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>{i.isim}</span>
-                    <span style={{ background: (kategoriRenk[i.kategori] || "#64748b") + "22", color: kategoriRenk[i.kategori] || "#64748b", padding: "1px 8px", borderRadius: 20, fontSize: 11 }}>{i.kategori}</span>
+                <div key={i.id} className="row row-between" style={{ padding: "10px 0", borderBottom: "1px solid var(--bg)" }}>
+                  <div className="row gap-10">
+                    <div className={`dot-sm ${i.aktif ? 'dot-green' : 'dot-red'}`} />
+                    <span style={{ color: "var(--text)", fontSize: 14, fontWeight: 600 }}>{i.isim}</span>
+                    <span className="tag-xs" style={{ background: (kategoriRenk[i.kategori] || "#64748b") + "22", color: kategoriRenk[i.kategori] || "#64748b" }}>{i.kategori}</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ color: "#94a3b8", fontSize: 12 }}>📅 {i.toplam_randevu || 0}</span>
-                    <span style={{ background: (paketRenk[i.paket] || "#64748b") + "22", color: paketRenk[i.paket] || "#64748b", padding: "1px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{i.paket}</span>
+                  <div className="row gap-8">
+                    <span style={{ color: "var(--muted)", fontSize: 12 }}>📅 {i.toplam_randevu || 0}</span>
+                    <span className="tag-xs" style={{ background: (paketRenk[i.paket] || "#64748b") + "22", color: paketRenk[i.paket] || "#64748b", fontWeight: 600 }}>{i.paket}</span>
                   </div>
                 </div>
               ))}
@@ -1330,30 +1237,23 @@ function SuperAdminPanel({ kullanici }) {
         {/* İŞLETMELER */}
         {sayfa === "isletmeler" && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h1 style={{ color: "#fff", fontSize: 24, margin: 0 }}>İşletmeler ({isletmeler.length})</h1>
-              <button onClick={() => setFormAcik(!formAcik)}
-                style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#f59e0b", color: "#000", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>
-                + Yeni İşletme Ekle
-              </button>
+            <div className="ph-row">
+              <h1>İşletmeler ({isletmeler.length})</h1>
+              <button onClick={() => setFormAcik(!formAcik)} className="btn" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>+ Yeni İşletme Ekle</button>
             </div>
 
-            {/* Filtre */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+            <div className="filter-bar">
               {[["hepsi","Hepsi"], ["aktif","Aktif"], ["pasif","Pasif"]].map(([v, l]) => (
-                <button key={v} onClick={() => setIsletmeFiltre(v)}
-                  style={{ padding: "6px 16px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                    background: isletmeFiltre === v ? "#f59e0b" : "#1e293b", color: isletmeFiltre === v ? "#000" : "#94a3b8" }}>
+                <button key={v} onClick={() => setIsletmeFiltre(v)} className={`pill${isletmeFiltre === v ? ' active' : ''}`}>
                   {l} {v === "hepsi" ? isletmeler.length : v === "aktif" ? isletmeler.filter(i=>i.aktif).length : isletmeler.filter(i=>!i.aktif).length}
                 </button>
               ))}
             </div>
 
-            {/* Yeni İşletme Formu */}
             {formAcik && (
-              <form onSubmit={isletmeEkle} style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #f59e0b44" }}>
-                <h3 style={{ color: "#f59e0b", marginBottom: 16, fontSize: 16 }}>Yeni İşletme Kaydı</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <form onSubmit={isletmeEkle} className="form-card card-accent-amber">
+                <h3 className="amber">Yeni İşletme Kaydı</h3>
+                <div className="form-grid">
                   {[
                     { key: "isim", label: "İşletme Adı *", ph: "Berber Ali" },
                     { key: "telefon", label: "Telefon *", ph: "05551234567" },
@@ -1363,64 +1263,51 @@ function SuperAdminPanel({ kullanici }) {
                     { key: "sifre", label: "Şifre *", ph: "En az 6 karakter" },
                   ].map(f => (
                     <div key={f.key}>
-                      <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>{f.label}</label>
+                      <label className="form-label">{f.label}</label>
                       <input type={f.key === "sifre" ? "password" : "text"} placeholder={f.ph} required={["isim","telefon","email","sifre"].includes(f.key)}
-                        value={yeniIsletme[f.key]} onChange={e => setYeniIsletme({ ...yeniIsletme, [f.key]: e.target.value })}
-                        style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, boxSizing: "border-box", outline: "none" }} />
+                        value={yeniIsletme[f.key]} onChange={e => setYeniIsletme({ ...yeniIsletme, [f.key]: e.target.value })} className="input" />
                     </div>
                   ))}
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Kategori</label>
-                    <select value={yeniIsletme.kategori} onChange={e => setYeniIsletme({ ...yeniIsletme, kategori: e.target.value })}
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }}>
+                    <label className="form-label">Kategori</label>
+                    <select value={yeniIsletme.kategori} onChange={e => setYeniIsletme({ ...yeniIsletme, kategori: e.target.value })} className="input">
                       {["berber","kuafor","disci","guzellik","veteriner","diyetisyen","masaj","spa"].map(k => <option key={k} value={k}>{k}</option>)}
                     </select>
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                  <button type="submit" style={{ padding: "10px 28px", borderRadius: 8, border: "none", background: "#f59e0b", color: "#000", cursor: "pointer", fontWeight: 700 }}>Kaydet ve Oluştur</button>
-                  <button type="button" onClick={() => setFormAcik(false)} style={{ padding: "10px 20px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer" }}>İptal</button>
+                <div className="form-actions mt-16">
+                  <button type="submit" className="btn" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>Kaydet ve Oluştur</button>
+                  <button type="button" onClick={() => setFormAcik(false)} className="btn btn-ghost">İptal</button>
                 </div>
               </form>
             )}
 
-            {yukleniyor ? <div style={{ color: "#64748b" }}>Yükleniyor...</div> : filtreliIsletmeler.map(i => (
-              <div key={i.id} style={{ background: "#1e293b", borderRadius: 12, padding: 20, marginBottom: 10, border: i.aktif ? "1px solid #1e293b" : "1px solid #ef444433" }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: i.aktif ? "#10b981" : "#ef4444", flexShrink: 0 }} />
-                      <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{i.isim}</span>
-                      <span style={{ background: (kategoriRenk[i.kategori] || "#64748b") + "22", color: kategoriRenk[i.kategori] || "#64748b", padding: "2px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>{i.kategori}</span>
-                      <span style={{ color: "#94a3b8", fontSize: 12 }}>📅 {i.toplam_randevu || 0} randevu</span>
+            {yukleniyor ? <div style={{ color: "var(--dim)" }}>Yükleniyor...</div> : filtreliIsletmeler.map(i => (
+              <div key={i.id} className={`list-item list-item-lg${!i.aktif ? ' list-item-pasif' : ''}`} style={{ alignItems: "flex-start", flexDirection: "column", gap: 0 }}>
+                <div className="row row-between row-wrap" style={{ width: "100%" }}>
+                  <div className="flex-1">
+                    <div className="row row-wrap gap-10 mb-8">
+                      <div className={i.aktif ? 'dot-green' : 'dot-red'} />
+                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 16 }}>{i.isim}</span>
+                      <span className="tag" style={{ background: (kategoriRenk[i.kategori] || "#64748b") + "22", color: kategoriRenk[i.kategori] || "#64748b" }}>{i.kategori}</span>
+                      <span style={{ color: "var(--muted)", fontSize: 12 }}>📅 {i.toplam_randevu || 0} randevu</span>
                     </div>
-                    <div style={{ color: "#64748b", fontSize: 13, marginBottom: 12 }}>
-                      📍 {i.adres || "—"}{i.ilce ? ` · ${i.ilce}` : ""}  ·  📞 {i.telefon}
-                    </div>
-                    {/* Paket seçimi */}
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="list-item-meta mb-12">📍 {i.adres || "—"}{i.ilce ? ` · ${i.ilce}` : ""}  ·  📞 {i.telefon}</div>
+                    <div className="row gap-6">
                       {["baslangic","profesyonel","premium"].map(p => (
-                        <button key={p} onClick={() => paketDegistir(i.id, p)}
-                          style={{ padding: "4px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, transition: "all 0.2s",
-                            background: i.paket === p ? paketRenk[p] : "#0f172a",
-                            color: i.paket === p ? "#fff" : "#64748b",
-                            outline: i.paket === p ? `2px solid ${paketRenk[p]}` : "none" }}>
+                        <button key={p} onClick={() => paketDegistir(i.id, p)} className="pill-xs"
+                          style={{ background: i.paket === p ? paketRenk[p] : "var(--bg)", color: i.paket === p ? "#fff" : "var(--dim)", outline: i.paket === p ? `2px solid ${paketRenk[p]}` : "none" }}>
                           {p} {p === "baslangic" ? "299₺" : p === "profesyonel" ? "599₺" : "999₺"}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: 12 }}>
-                    <button onClick={() => aktifToggle(i)}
-                      style={{ padding: "7px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                        background: i.aktif ? "#10b98122" : "#f59e0b22",
-                        color: i.aktif ? "#10b981" : "#f59e0b" }}>
+                  <div className="list-item-actions shrink-0" style={{ marginLeft: 12 }}>
+                    <button onClick={() => aktifToggle(i)} className="btn btn-sm"
+                      style={{ background: i.aktif ? "rgba(16,185,129,.12)" : "rgba(245,158,11,.12)", color: i.aktif ? "var(--green)" : "var(--amber)", border: "none", fontWeight: 700 }}>
                       {i.aktif ? "✓ Aktif" : "⏸ Pasif"}
                     </button>
-                    <button onClick={() => isletmeSil(i.id, i.isim)}
-                      style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#ef444422", color: "#ef4444", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                      Sil
-                    </button>
+                    <button onClick={() => isletmeSil(i.id, i.isim)} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
                   </div>
                 </div>
               </div>
@@ -1431,78 +1318,62 @@ function SuperAdminPanel({ kullanici }) {
         {/* ÖDEMELER */}
         {sayfa === "odemeler" && (
           <>
-            {/* Özet kartları */}
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+            <div className="row row-wrap gap-16 mb-24">
               <StatCard icon="💰" baslik="Toplam Gelir" deger={toplamGelir.toFixed(0) + " ₺"} renk="#10b981" />
               <StatCard icon="📅" baslik="Bu Ay Gelir" deger={buAyGelir.toFixed(0) + " ₺"} renk="#3b82f6" />
               <StatCard icon="✅" baslik="Bu Ay Ödeyen" deger={buAyOdeyenler.length} renk="#8b5cf6" />
               <StatCard icon="⏳" baslik="Bu Ay Ödemeyenler" deger={buAyOdemeyenler.length} renk="#ef4444" />
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ display: "flex", gap: 8 }}>
+            <div className="row row-between row-wrap mb-16">
+              <div className="filter-bar" style={{ marginBottom: 0 }}>
                 {[["hepsi","Tümü"],["buay","Bu Ay"],["bekliyor","Bekliyor"],["odendi","Ödendi"],["gecikti","Gecikti"]].map(([v,l]) => (
-                  <button key={v} onClick={() => setOdemeFiltre(v)}
-                    style={{ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
-                      background: odemeFiltre === v ? "#f59e0b" : "#1e293b", color: odemeFiltre === v ? "#000" : "#94a3b8" }}>
-                    {l}
-                  </button>
+                  <button key={v} onClick={() => setOdemeFiltre(v)} className={`pill pill-sm${odemeFiltre === v ? ' active' : ''}`}>{l}</button>
                 ))}
               </div>
-              <button onClick={() => setOdemeFormAcik(!odemeFormAcik)}
-                style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-                + Ödeme Kaydı Ekle
-              </button>
+              <button onClick={() => setOdemeFormAcik(!odemeFormAcik)} className="btn btn-primary btn-sm">+ Ödeme Kaydı Ekle</button>
             </div>
 
-            {/* Ödeme ekleme formu */}
             {odemeFormAcik && (
-              <form onSubmit={odemeEkle} style={{ background: "#1e293b", borderRadius: 12, padding: 20, marginBottom: 16, border: "1px solid #10b98144", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <form onSubmit={odemeEkle} className="form-card card-accent-green row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
                 <div>
-                  <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>İşletme</label>
-                  <select value={yeniOdeme.isletme_id} onChange={e => setYeniOdeme({...yeniOdeme, isletme_id: e.target.value})} required
-                    style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }}>
+                  <label className="form-label">İşletme</label>
+                  <select value={yeniOdeme.isletme_id} onChange={e => setYeniOdeme({...yeniOdeme, isletme_id: e.target.value})} required className="input">
                     <option value="">Seç...</option>
                     {isletmeler.map(i => <option key={i.id} value={i.id}>{i.isim}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Tutar (₺)</label>
-                  <input type="number" placeholder="299" value={yeniOdeme.tutar} onChange={e => setYeniOdeme({...yeniOdeme, tutar: e.target.value})} required
-                    style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 100 }} />
+                  <label className="form-label">Tutar (₺)</label>
+                  <input type="number" placeholder="299" value={yeniOdeme.tutar} onChange={e => setYeniOdeme({...yeniOdeme, tutar: e.target.value})} required className="input" style={{ width: 100 }} />
                 </div>
                 <div>
-                  <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Dönem</label>
-                  <input type="month" value={yeniOdeme.donem} onChange={e => setYeniOdeme({...yeniOdeme, donem: e.target.value})}
-                    style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }} />
+                  <label className="form-label">Dönem</label>
+                  <input type="month" value={yeniOdeme.donem} onChange={e => setYeniOdeme({...yeniOdeme, donem: e.target.value})} className="input" />
                 </div>
-                <button type="submit" style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700 }}>Kaydet</button>
-                <button type="button" onClick={() => setOdemeFormAcik(false)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer" }}>İptal</button>
+                <button type="submit" className="btn btn-primary btn-sm">Kaydet</button>
+                <button type="button" onClick={() => setOdemeFormAcik(false)} className="btn btn-ghost btn-sm">İptal</button>
               </form>
             )}
 
-            {/* Bu ay ödemeyenler uyarı bölümü */}
             {buAyOdemeyenler.length > 0 && odemeFiltre === "hepsi" && (
-              <div style={{ background: "#ef444411", border: "1px solid #ef444433", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                  <span style={{ color: "#ef4444", fontSize: 16 }}>⚠️</span>
-                  <span style={{ color: "#ef4444", fontWeight: 700, fontSize: 14 }}>Bu ay henüz ödeme yapmayan {buAyOdemeyenler.length} işletme var</span>
+              <div className="warn-banner">
+                <div className="wb-head">
+                  <span>⚠️</span>
+                  <span>Bu ay henüz ödeme yapmayan {buAyOdemeyenler.length} işletme var</span>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {buAyOdemeyenler.map(i => (
-                    <div key={i.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#0f172a", borderRadius: 8, padding: "10px 14px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{i.isim}</span>
-                        <span style={{ background: (paketRenk[i.paket] || "#64748b") + "22", color: paketRenk[i.paket] || "#64748b", padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{i.paket}</span>
-                        <span style={{ color: "#64748b", fontSize: 12 }}>{paketFiyat[i.paket] || "?"} ₺</span>
+                    <div key={i.id} className="row row-between" style={{ background: "var(--bg)", borderRadius: 8, padding: "10px 14px" }}>
+                      <div className="row gap-10">
+                        <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{i.isim}</span>
+                        <span className="tag-sm" style={{ background: (paketRenk[i.paket] || "#64748b") + "22", color: paketRenk[i.paket] || "#64748b" }}>{i.paket}</span>
+                        <span style={{ color: "var(--dim)", fontSize: 12 }}>{paketFiyat[i.paket] || "?"} ₺</span>
                       </div>
-                      <button
-                        onClick={async () => {
+                      <button onClick={async () => {
                           await api.post("/admin/odemeler", { isletme_id: i.id, tutar: paketFiyat[i.paket] || 299, donem: buAy, durum: "bekliyor" });
-                          odemeleriYukle();
-                          isletmeleriYukle();
-                        }}
-                        style={{ padding: "5px 14px", borderRadius: 8, border: "none", background: "#f59e0b22", color: "#f59e0b", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>
+                          odemeleriYukle(); isletmeleriYukle();
+                        }} className="btn btn-sm" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", border: "none", fontWeight: 700 }}>
                         + Bekliyor Oluştur
                       </button>
                     </div>
@@ -1511,47 +1382,32 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
-            {/* Ödeme listesi */}
-            {yukleniyor ? <div style={{ color: "#64748b" }}>Yükleniyor...</div> :
+            {yukleniyor ? <div style={{ color: "var(--dim)" }}>Yükleniyor...</div> :
               filtreliOdemeler.length === 0 ? (
-                <div style={{ background: "#1e293b", borderRadius: 12, padding: 40, textAlign: "center" }}>
-                  <p style={{ color: "#64748b", margin: 0 }}>Kayıt bulunamadı.</p>
-                </div>
+                <div className="list-empty"><p>Kayıt bulunamadı.</p></div>
               ) : filtreliOdemeler.map(o => (
-                <div key={o.id} style={{ background: "#1e293b", borderRadius: 12, padding: 16, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <div key={o.id} className="list-item row-wrap gap-8">
                   <div>
-                    <span style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{o.isletme_isim}</span>
-                    <span style={{ color: "#64748b", marginLeft: 12, fontSize: 13 }}>📅 {o.donem}</span>
-                    <span style={{ color: "#10b981", marginLeft: 12, fontWeight: 700, fontSize: 15 }}>{o.tutar} ₺</span>
-                    {o.odeme_tarihi && <span style={{ color: "#475569", marginLeft: 12, fontSize: 12 }}>· {new Date(o.odeme_tarihi).toLocaleDateString("tr-TR")}</span>}
+                    <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{o.isletme_isim}</span>
+                    <span style={{ color: "var(--dim)", marginLeft: 12, fontSize: 13 }}>📅 {o.donem}</span>
+                    <span style={{ color: "var(--green)", marginLeft: 12, fontWeight: 700, fontSize: 15 }}>{o.tutar} ₺</span>
+                    {o.odeme_tarihi && <span style={{ color: "var(--dim)", marginLeft: 12, fontSize: 12 }}>· {new Date(o.odeme_tarihi).toLocaleDateString("tr-TR")}</span>}
                   </div>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <span style={{ background: (odemeRenk[o.durum] || "#64748b") + "22", color: odemeRenk[o.durum] || "#64748b", padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                  <div className="row gap-6">
+                    <span className="tag" style={{ background: (odemeRenk[o.durum] || "#64748b") + "22", color: odemeRenk[o.durum] || "#64748b", fontWeight: 700 }}>
                       {odemeLabel[o.durum] || o.durum}
                     </span>
                     {o.durum === "bekliyor" && (
                       <>
-                        <button onClick={() => odemeGuncelle(o.id, "odendi")}
-                          style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: "#10b98122", color: "#10b981", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                          ✓ Havale Geldi
-                        </button>
-                        <button onClick={() => odemeGuncelle(o.id, "gecikti")}
-                          style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: "#ef444422", color: "#ef4444", cursor: "pointer", fontSize: 12 }}>
-                          Gecikti
-                        </button>
+                        <button onClick={() => odemeGuncelle(o.id, "odendi")} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>✓ Havale Geldi</button>
+                        <button onClick={() => odemeGuncelle(o.id, "gecikti")} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Gecikti</button>
                       </>
                     )}
                     {o.durum === "gecikti" && (
-                      <button onClick={() => odemeGuncelle(o.id, "odendi")}
-                        style={{ padding: "5px 12px", borderRadius: 8, border: "none", background: "#10b98122", color: "#10b981", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                        ✓ Havale Geldi
-                      </button>
+                      <button onClick={() => odemeGuncelle(o.id, "odendi")} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>✓ Havale Geldi</button>
                     )}
                     {o.durum === "odendi" && (
-                      <button onClick={() => odemeGuncelle(o.id, "bekliyor")}
-                        style={{ padding: "5px 12px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#64748b", cursor: "pointer", fontSize: 11 }}>
-                        Geri Al
-                      </button>
+                      <button onClick={() => odemeGuncelle(o.id, "bekliyor")} className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>Geri Al</button>
                     )}
                   </div>
                 </div>
@@ -1563,12 +1419,11 @@ function SuperAdminPanel({ kullanici }) {
         {/* AVCI BOT */}
         {sayfa === "avci" && (
           <>
-            <h1 style={{ color: "#fff", fontSize: 24, marginBottom: 8 }}>🎯 Avcı Bot — Potansiyel Müşteriler</h1>
-            <p style={{ color: "#475569", fontSize: 13, marginBottom: 24 }}>Google Maps'ten işletmeleri bul, skorla, ara ve müşteri yap.</p>
+            <h1 style={{ fontSize: 24 }} className="mb-8">🎯 Avcı Bot — Potansiyel Müşteriler</h1>
+            <p style={{ color: "var(--dim)", fontSize: 13 }} className="mb-24">Google Maps'ten işletmeleri bul, skorla, ara ve müşteri yap.</p>
 
-            {/* Stats */}
             {avciStats && (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+              <div className="row row-wrap gap-12 mb-24">
                 <StatCard icon="📍" baslik="Toplam Lead" deger={avciStats.toplam} renk="#f59e0b" />
                 <StatCard icon="🆕" baslik="Yeni" deger={avciStats.yeni} renk="#3b82f6" />
                 <StatCard icon="📞" baslik="Arandı" deger={avciStats.arandi} renk="#8b5cf6" />
@@ -1577,55 +1432,34 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
-            {/* Tarama + Tab butonları */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setAvciTab("gunluk")}
-                  style={{ padding: "8px 18px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                    background: avciTab === "gunluk" ? "#f59e0b" : "#1e293b", color: avciTab === "gunluk" ? "#000" : "#94a3b8" }}>
-                  📞 Bugün Ara ({avciGunluk.length})
-                </button>
-                <button onClick={() => setAvciTab("liste")}
-                  style={{ padding: "8px 18px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                    background: avciTab === "liste" ? "#f59e0b" : "#1e293b", color: avciTab === "liste" ? "#000" : "#94a3b8" }}>
-                  📋 Tüm Liste ({avciListe.length})
-                </button>
+            <div className="row row-between row-wrap gap-10 mb-16">
+              <div className="row gap-8">
+                <button onClick={() => setAvciTab("gunluk")} className={`pill${avciTab === "gunluk" ? ' active' : ''}`}>📞 Bugün Ara ({avciGunluk.length})</button>
+                <button onClick={() => setAvciTab("liste")} className={`pill${avciTab === "liste" ? ' active' : ''}`}>📋 Tüm Liste ({avciListe.length})</button>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }}
-                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-                  🔍 Maps
-                </button>
-                <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }}
-                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#8b5cf6", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-                  🚀 Toplu Maps
-                </button>
-                <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }}
-                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#e11d48", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-                  📱 Sosyal Medya
-                </button>
+              <div className="row gap-8">
+                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "var(--green)", color: "#fff", fontWeight: 700 }}>🔍 Maps</button>
+                <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "var(--purple)", color: "#fff", fontWeight: 700 }}>🚀 Toplu Maps</button>
+                <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }} className="btn btn-sm" style={{ background: "#e11d48", color: "#fff", fontWeight: 700 }}>📱 Sosyal Medya</button>
               </div>
             </div>
 
             {/* Tekli tarama formu */}
             {avciTaramaAcik && (
-              <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #10b98144" }}>
-                <h3 style={{ color: "#10b981", fontSize: 15, marginBottom: 16 }}>🔍 Tekli Tarama</h3>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div className="form-card card-accent-green">
+                <h3 className="green">🔍 Tekli Tarama</h3>
+                <div className="row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Şehir *</label>
-                    <input value={avciTarama.sehir} onChange={e => setAvciTarama({...avciTarama, sehir: e.target.value})}
-                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 140 }} />
+                    <label className="form-label">Şehir *</label>
+                    <input value={avciTarama.sehir} onChange={e => setAvciTarama({...avciTarama, sehir: e.target.value})} placeholder="İstanbul" className="input" />
                   </div>
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>İlçe (opsiyonel)</label>
-                    <input value={avciTarama.ilce} onChange={e => setAvciTarama({...avciTarama, ilce: e.target.value})} placeholder="ör: Kadıköy"
-                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 140 }} />
+                    <label className="form-label">İlçe</label>
+                    <input value={avciTarama.ilce} onChange={e => setAvciTarama({...avciTarama, ilce: e.target.value})} placeholder="Kadıköy" className="input" />
                   </div>
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Kategori *</label>
-                    <select value={avciTarama.kategori} onChange={e => setAvciTarama({...avciTarama, kategori: e.target.value})}
-                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }}>
+                    <label className="form-label">Kategori *</label>
+                    <select value={avciTarama.kategori} onChange={e => setAvciTarama({...avciTarama, kategori: e.target.value})} className="input">
                       {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
                         <option key={k} value={k}>{k}</option>
                       )}
@@ -1640,45 +1474,38 @@ function SuperAdminPanel({ kullanici }) {
                       avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
                     } catch(e) { setAvciTaramaSonuc({ hata: e.message }); }
                     setAvciTaramaYukleniyor(false);
-                  }} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: avciTaramaYukleniyor ? "#334155" : "#10b981", color: "#fff", cursor: avciTaramaYukleniyor ? "wait" : "pointer", fontWeight: 700 }}>
-                    {avciTaramaYukleniyor ? "⏳ Taranıyor..." : "🚀 Tara"}
+                  }} className="btn btn-primary" style={{ opacity: avciTaramaYukleniyor ? 0.5 : 1 }}>
+                    {avciTaramaYukleniyor ? "Taranıyor..." : "🔍 Tara"}
                   </button>
                 </div>
                 {avciTaramaSonuc && (
-                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: avciTaramaSonuc.hata ? "#ef444420" : "#10b98120", color: avciTaramaSonuc.hata ? "#ef4444" : "#10b981", fontSize: 13 }}>
-                    {avciTaramaSonuc.hata
+                  <div className={`result-toast ${avciTaramaSonuc.hata ? 'error' : 'success'}`}>{avciTaramaSonuc.hata
                       ? `❌ ${avciTaramaSonuc.hata}`
                       : `✅ "${avciTaramaSonuc.arama_metni}" — ${avciTaramaSonuc.toplam_bulunan} bulundu, ${avciTaramaSonuc.yeni_eklenen} yeni eklendi, ${avciTaramaSonuc.zaten_var} zaten vardı`
-                    }
-                  </div>
+                    }</div>
                 )}
               </div>
             )}
 
             {/* Toplu tarama formu */}
             {topluTaramaAcik && (
-              <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #8b5cf644" }}>
-                <h3 style={{ color: "#8b5cf6", fontSize: 15, marginBottom: 6 }}>🚀 Toplu Tarama — Tüm İlçeler</h3>
-                <p style={{ color: "#64748b", fontSize: 12, marginBottom: 16 }}>İstanbul'un 39 ilçesinde seçtiğin kategorileri otomatik tarar. Bu işlem birkaç dakika sürebilir.</p>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Şehir</label>
-                  <input value={topluSehir} onChange={e => setTopluSehir(e.target.value)}
-                    style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 160 }} />
+              <div className="form-card card-accent-purple">
+                <h3 className="purple">🚀 Toplu Tarama — Tüm İlçeler</h3>
+                <p style={{ color: "var(--dim)", fontSize: 12 }} className="mb-16">İstanbul'un 39 ilçesinde seçtiğin kategorileri otomatik tarar. Bu işlem birkaç dakika sürebilir.</p>
+                <div className="mb-16">
+                  <label className="form-label">Şehir</label>
+                  <input value={topluSehir} onChange={e => setTopluSehir(e.target.value)} className="input" style={{ width: 160 }} />
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 8 }}>Kategoriler (tıkla seç/kaldır)</label>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <div className="mb-16">
+                  <label className="form-label mb-8">Kategoriler (tıkla seç/kaldır)</label>
+                  <div className="row row-wrap gap-6">
                     {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => (
                       <button key={k} onClick={() => {
                         setTopluKategoriler(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
-                      }} style={{
-                        padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
-                        background: topluKategoriler.includes(k) ? "#8b5cf6" : "#0f172a",
-                        color: topluKategoriler.includes(k) ? "#fff" : "#64748b"
-                      }}>{k}</button>
+                      }} className={`pill pill-sm${topluKategoriler.includes(k) ? ' active-purple' : ''}`}>{k}</button>
                     ))}
                   </div>
-                  <span style={{ color: "#64748b", fontSize: 11, marginTop: 6, display: "block" }}>{topluKategoriler.length} kategori seçili · ~{topluKategoriler.length * 39} tarama yapılacak</span>
+                  <span style={{ display: "block", marginTop: 6, color: "var(--dim)", fontSize: 11 }}>{topluKategoriler.length} kategori seçili · ~{topluKategoriler.length * 39} tarama yapılacak</span>
                 </div>
                 <button disabled={topluYukleniyor || !topluKategoriler.length} onClick={async () => {
                   setTopluYukleniyor(true);
@@ -1689,11 +1516,11 @@ function SuperAdminPanel({ kullanici }) {
                     avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
                   } catch(e) { setTopluSonuc({ hata: e.message }); }
                   setTopluYukleniyor(false);
-                }} style={{ padding: "10px 28px", borderRadius: 8, border: "none", background: topluYukleniyor ? "#334155" : "#8b5cf6", color: "#fff", cursor: topluYukleniyor ? "wait" : "pointer", fontWeight: 700 }}>
+                }} className="btn" style={{ background: topluYukleniyor ? "var(--surface3)" : "var(--purple)", color: "#fff", fontWeight: 700, opacity: topluYukleniyor ? 0.6 : 1 }}>
                   {topluYukleniyor ? "⏳ Toplu tarama devam ediyor... (birkaç dk sürer)" : `🚀 ${topluKategoriler.length} Kategori × 39 İlçe Tara`}
                 </button>
                 {topluSonuc && (
-                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: topluSonuc.hata ? "#ef444420" : "#8b5cf622", color: topluSonuc.hata ? "#ef4444" : "#8b5cf6", fontSize: 13 }}>
+                  <div className={`result-toast ${topluSonuc.hata ? 'error' : 'purple'}`}>
                     {topluSonuc.hata
                       ? `❌ ${topluSonuc.hata}`
                       : `✅ ${topluSonuc.tarama_sayisi} tarama yapıldı — ${topluSonuc.toplam_bulunan} bulundu, ${topluSonuc.yeni_eklenen} yeni eklendi, ${topluSonuc.zaten_var} zaten vardı`
@@ -1705,37 +1532,30 @@ function SuperAdminPanel({ kullanici }) {
 
             {/* Sosyal medya tarama formu */}
             {sosyalAcik && (
-              <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #e11d4844" }}>
-                <h3 style={{ color: "#e11d48", fontSize: 15, marginBottom: 6 }}>📱 Sosyal Medya Tarama</h3>
-                <p style={{ color: "#64748b", fontSize: 12, marginBottom: 16 }}>Instagram, Facebook, TikTok'ta işletme profilleri bul. Google Custom Search API kullanır (günlük 100 ücretsiz sorgu).</p>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div className="form-card card-accent-rose">
+                <h3 className="rose">📱 Sosyal Medya Tarama</h3>
+                <p style={{ color: "var(--dim)", fontSize: 12 }} className="mb-16">Instagram, Facebook, TikTok'ta işletme profilleri bul. Google Custom Search API kullanır (günlük 100 ücretsiz sorgu).</p>
+                <div className="row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Platform *</label>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <label className="form-label">Platform *</label>
+                    <div className="row gap-6">
                       {[["instagram","📸 Instagram"],["facebook","📘 Facebook"],["tiktok","🎵 TikTok"],["hepsi","🌐 Hepsi"]].map(([v,l]) => (
                         <button key={v} onClick={() => setSosyalTarama({...sosyalTarama, platform: v})}
-                          style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
-                            background: sosyalTarama.platform === v ? "#e11d48" : "#0f172a",
-                            color: sosyalTarama.platform === v ? "#fff" : "#64748b" }}>
-                          {l}
-                        </button>
+                          className={`pill pill-sm${sosyalTarama.platform === v ? ' active-rose' : ''}`}>{l}</button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Şehir *</label>
-                    <input value={sosyalTarama.sehir} onChange={e => setSosyalTarama({...sosyalTarama, sehir: e.target.value})}
-                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 120 }} />
+                    <label className="form-label">Şehir *</label>
+                    <input value={sosyalTarama.sehir} onChange={e => setSosyalTarama({...sosyalTarama, sehir: e.target.value})} className="input" style={{ width: 120 }} />
                   </div>
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>İlçe</label>
-                    <input value={sosyalTarama.ilce} onChange={e => setSosyalTarama({...sosyalTarama, ilce: e.target.value})} placeholder="opsiyonel"
-                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 120 }} />
+                    <label className="form-label">İlçe</label>
+                    <input value={sosyalTarama.ilce} onChange={e => setSosyalTarama({...sosyalTarama, ilce: e.target.value})} placeholder="opsiyonel" className="input" style={{ width: 120 }} />
                   </div>
                   <div>
-                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Kategori *</label>
-                    <select value={sosyalTarama.kategori} onChange={e => setSosyalTarama({...sosyalTarama, kategori: e.target.value})}
-                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }}>
+                    <label className="form-label">Kategori *</label>
+                    <select value={sosyalTarama.kategori} onChange={e => setSosyalTarama({...sosyalTarama, kategori: e.target.value})} className="input">
                       {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
                         <option key={k} value={k}>{k}</option>
                       )}
@@ -1750,12 +1570,12 @@ function SuperAdminPanel({ kullanici }) {
                       avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
                     } catch(e) { setSosyalSonuc({ hata: e.message }); }
                     setSosyalYukleniyor(false);
-                  }} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: sosyalYukleniyor ? "#334155" : "#e11d48", color: "#fff", cursor: sosyalYukleniyor ? "wait" : "pointer", fontWeight: 700 }}>
+                  }} className="btn" style={{ background: sosyalYukleniyor ? "var(--surface3)" : "#e11d48", color: "#fff", fontWeight: 700, opacity: sosyalYukleniyor ? 0.6 : 1 }}>
                     {sosyalYukleniyor ? "⏳ Aranıyor..." : "🔍 Tara"}
                   </button>
                 </div>
                 {sosyalSonuc && (
-                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: sosyalSonuc.hata ? "#ef444420" : "#e11d4822", color: sosyalSonuc.hata ? "#ef4444" : "#e11d48", fontSize: 13 }}>
+                  <div className={`result-toast ${sosyalSonuc.hata ? 'error' : 'rose'}`}>
                     {sosyalSonuc.hata
                       ? `❌ ${sosyalSonuc.hata}`
                       : `✅ "${sosyalSonuc.arama_metni}" — ${sosyalSonuc.toplam_bulunan} sonuç, ${sosyalSonuc.yeni_eklenen} yeni profil eklendi, ${sosyalSonuc.zaten_var} zaten vardı`
@@ -1768,68 +1588,52 @@ function SuperAdminPanel({ kullanici }) {
             {/* GÜNLÜK ARAMA LİSTESİ */}
             {avciTab === "gunluk" && (
               <>
-                <div style={{ background: "#f59e0b11", border: "1px solid #f59e0b33", borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <span style={{ fontSize: 20 }}>📞</span>
-                    <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 16 }}>Bugün Aranacak {avciGunluk.length} İşletme</span>
+                <div className="info-banner">
+                  <div className="ib-head">
+                    <span>📞</span>
+                    <span>Bugün Aranacak {avciGunluk.length} İşletme</span>
                   </div>
-                  <p style={{ color: "#94a3b8", fontSize: 12, margin: 0 }}>En yüksek skorlu, telefonu olan, henüz aranmamış veya tekrar aranacak işletmeler</p>
+                  <p style={{ color: "var(--muted)", fontSize: 12, margin: 0 }}>En yüksek skorlu, telefonu olan, henüz aranmamış veya tekrar aranacak işletmeler</p>
                 </div>
                 {avciGunluk.length === 0 ? (
-                  <div style={{ background: "#1e293b", borderRadius: 12, padding: 40, textAlign: "center" }}>
-                    <p style={{ color: "#64748b", margin: 0 }}>Bugün aranacak kimse yok. Yeni tarama yap! 🔍</p>
-                  </div>
+                  <div className="list-empty"><p>Bugün aranacak kimse yok. Yeni tarama yap! 🔍</p></div>
                 ) : avciGunluk.map((m, idx) => (
-                  <div key={m.id} style={{ background: "#1e293b", borderRadius: 12, padding: 18, marginBottom: 10, border: "1px solid #1e293b" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-                          <span style={{ background: "#f59e0b", color: "#000", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</span>
-                          <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{m.isletme_adi}</span>
-                          <span style={{ background: "#3b82f622", color: "#3b82f6", padding: "2px 10px", borderRadius: 20, fontSize: 11 }}>{m.kategori}</span>
-                          <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 10px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Skor: {m.skor}</span>
+                  <div key={m.id} className="list-item" style={{ flexDirection: "column", alignItems: "stretch", padding: 18, marginBottom: 10 }}>
+                    <div className="row row-between" style={{ alignItems: "flex-start", gap: 12 }}>
+                      <div className="flex-1">
+                        <div className="row row-wrap gap-10 mb-6">
+                          <span className="rank-circle">{idx + 1}</span>
+                          <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 16 }}>{m.isletme_adi}</span>
+                          <span className="tag-xs" style={{ background: "rgba(59,130,246,.12)", color: "var(--blue)" }}>{m.kategori}</span>
+                          <span className="tag-xs" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", fontWeight: 700 }}>Skor: {m.skor}</span>
                         </div>
-                        <div style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>
-                          {m.telefon && <span>📞 <strong style={{ color: "#fff" }}>{m.telefon}</strong></span>}
+                        <div className="list-item-meta mb-6">
+                          {m.telefon && <span>📞 <strong style={{ color: "var(--text)" }}>{m.telefon}</strong></span>}
                           {m.adres && <span style={{ marginLeft: 12 }}>📍 {m.adres}</span>}
                         </div>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 11 }}>
-                          {!m.web_sitesi && <span style={{ background: "#10b98122", color: "#10b981", padding: "2px 8px", borderRadius: 10 }}>🌐 Web sitesi yok</span>}
-                          {m.puan && <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 8px", borderRadius: 10 }}>⭐ {m.puan}</span>}
-                          <span style={{ background: "#8b5cf622", color: "#8b5cf6", padding: "2px 8px", borderRadius: 10 }}>💬 {m.yorum_sayisi} yorum</span>
-                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ background: "#3b82f622", color: "#3b82f6", padding: "2px 8px", borderRadius: 10, textDecoration: "none" }}>🗺️ Maps</a>}
+                        <div className="row row-wrap gap-6" style={{ fontSize: 11 }}>
+                          {!m.web_sitesi && <span className="tag-xs" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)" }}>🌐 Web sitesi yok</span>}
+                          {m.puan && <span className="tag-xs" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)" }}>⭐ {m.puan}</span>}
+                          <span className="tag-xs" style={{ background: "rgba(139,92,246,.12)", color: "var(--purple)" }}>💬 {m.yorum_sayisi} yorum</span>
+                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" className="tag-xs" style={{ background: "rgba(59,130,246,.12)", color: "var(--blue)", textDecoration: "none" }}>🗺️ Maps</a>}
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                        <button onClick={async () => {
-                          await api.put(`/admin/avci/${m.id}`, { durum: "arandi" });
-                          avciGunlukYukle(); avciStatsYukle(); avciListeYukle();
-                        }} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#8b5cf622", color: "#8b5cf6", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                          📞 Arandı
-                        </button>
-                        <button onClick={async () => {
-                          await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" });
-                          avciGunlukYukle(); avciStatsYukle(); avciListeYukle();
-                        }} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#10b98122", color: "#10b981", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                          🤝 İlgileniyor
-                        </button>
-                        <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)}
-                          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 12 }}>
-                          📝 Not
-                        </button>
+                      <div className="list-item-actions shrink-0">
+                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }}
+                          className="btn btn-sm" style={{ background: "rgba(139,92,246,.12)", color: "var(--purple)", border: "none", fontWeight: 600 }}>📞 Arandı</button>
+                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }}
+                          className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>🤝 İlgileniyor</button>
+                        <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} className="btn btn-ghost btn-sm">📝 Not</button>
                       </div>
                     </div>
-                    {/* Not alanı */}
                     {avciSecili === m.id && (
-                      <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
-                        <input id={`not_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..."
-                          style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }} />
+                      <div className="row gap-8 mt-12">
+                        <input id={`not_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input flex-1" />
                         <button onClick={async () => {
                           const notInput = document.getElementById(`not_${m.id}`);
                           await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value });
-                          setAvciSecili(null);
-                          avciListeYukle(); avciGunlukYukle();
-                        }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Kaydet</button>
+                          setAvciSecili(null); avciListeYukle(); avciGunlukYukle();
+                        }} className="btn btn-primary btn-sm">Kaydet</button>
                       </div>
                     )}
                   </div>
@@ -1840,90 +1644,73 @@ function SuperAdminPanel({ kullanici }) {
             {/* TÜM LİSTE */}
             {avciTab === "liste" && (
               <>
-                {/* Durum Filtresi */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                <div className="filter-bar mb-8">
                   {[["hepsi","Tümü"],["yeni","Yeni"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["demo_yapildi","Demo"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
-                    <button key={v} onClick={() => setAvciFiltre(v)}
-                      style={{ padding: "5px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
-                        background: avciFiltre === v ? "#f59e0b" : "#1e293b", color: avciFiltre === v ? "#000" : "#94a3b8" }}>
-                      {l}
-                    </button>
+                    <button key={v} onClick={() => setAvciFiltre(v)} className={`pill pill-sm${avciFiltre === v ? ' active' : ''}`}>{l}</button>
                   ))}
-                  <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)}
-                    style={{ marginLeft: "auto", padding: "5px 10px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#94a3b8", fontSize: 12, outline: "none" }}>
+                  <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)} className="input ml-auto" style={{ width: "auto", padding: "5px 10px", fontSize: 12 }}>
                     <option value="skor_desc">Skor ↓</option>
                     <option value="puan_desc">Puan ↓</option>
                     <option value="yorum_desc">Yorum ↓</option>
                     <option value="yeni">En Yeni</option>
                   </select>
                 </div>
-                {/* Kategori Filtresi */}
-                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ color: "#64748b", fontSize: 11, marginRight: 4 }}>Kategori:</span>
+                <div className="row row-wrap gap-6 mb-12" style={{ alignItems: "center" }}>
+                  <span style={{ color: "var(--dim)", fontSize: 11, marginRight: 4 }}>Kategori:</span>
                   {[["hepsi","Tümü"],["berber","✂️ Berber"],["kuaför","💇 Kuaför"],["güzellik salonu","💅 Güzellik"],["dövme","🎨 Dövme"],["diş kliniği","🦷 Dişçi"],["veteriner","🐾 Veteriner"],["spa","🧖 Spa"],["diyetisyen","🥗 Diyetisyen"],["tırnak salonu","💅 Tırnak"],["cilt bakım","✨ Cilt Bakım"]].map(([v,l]) => (
-                    <button key={v} onClick={() => setAvciKategoriFiltre(v)}
-                      style={{ padding: "4px 12px", borderRadius: 16, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
-                        background: avciKategoriFiltre === v ? "#8b5cf6" : "#0f172a",
-                        color: avciKategoriFiltre === v ? "#fff" : "#64748b" }}>
-                      {l}
-                    </button>
+                    <button key={v} onClick={() => setAvciKategoriFiltre(v)} className={`pill-xs${avciKategoriFiltre === v ? ' active-purple' : ''}`}
+                      style={{ background: avciKategoriFiltre === v ? "var(--purple)" : "var(--bg)", color: avciKategoriFiltre === v ? "#fff" : "var(--dim)" }}>{l}</button>
                   ))}
                 </div>
 
                 {avciListe.length === 0 ? (
-                  <div style={{ background: "#1e293b", borderRadius: 12, padding: 40, textAlign: "center" }}>
-                    <p style={{ color: "#64748b", margin: 0 }}>Henüz potansiyel müşteri yok. Tarama yap! 🔍</p>
-                  </div>
+                  <div className="list-empty"><p>Henüz potansiyel müşteri yok. Tarama yap! 🔍</p></div>
                 ) : avciListe.map(m => {
                   const durumRenk = { yeni: "#3b82f6", arandi: "#8b5cf6", ilgileniyor: "#10b981", ilgilenmiyor: "#ef4444", demo_yapildi: "#f59e0b", musteri_oldu: "#10b981" };
                   const durumLabel = { yeni: "Yeni", arandi: "Arandı", ilgileniyor: "İlgileniyor", ilgilenmiyor: "İlgilenmiyor", demo_yapildi: "Demo Yapıldı", musteri_oldu: "Müşteri ✓" };
                   return (
-                    <div key={m.id} style={{ background: "#1e293b", borderRadius: 12, padding: 16, marginBottom: 8, borderLeft: `3px solid ${durumRenk[m.durum] || "#334155"}` }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                            <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{m.isletme_adi}</span>
-                            <span style={{ background: (durumRenk[m.durum] || "#64748b") + "22", color: durumRenk[m.durum] || "#64748b", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{durumLabel[m.durum] || m.durum}</span>
-                            <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Skor: {m.skor}</span>
-                            {m.puan && <span style={{ color: "#f59e0b", fontSize: 12 }}>⭐ {m.puan}</span>}
-                            <span style={{ color: "#64748b", fontSize: 11 }}>💬 {m.yorum_sayisi}</span>
+                    <div key={m.id} className="list-item list-item-left" style={{ borderLeftColor: durumRenk[m.durum] || "var(--border2)", flexDirection: "column", alignItems: "stretch" }}>
+                      <div className="row row-between" style={{ alignItems: "flex-start", gap: 10 }}>
+                        <div className="flex-1">
+                          <div className="row row-wrap gap-8 mb-4">
+                            <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 14 }}>{m.isletme_adi}</span>
+                            <span className="tag-xs" style={{ background: (durumRenk[m.durum] || "#64748b") + "22", color: durumRenk[m.durum] || "#64748b", fontWeight: 600 }}>{durumLabel[m.durum] || m.durum}</span>
+                            <span className="tag-xs" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", fontWeight: 700 }}>Skor: {m.skor}</span>
+                            {m.puan && <span style={{ color: "var(--amber)", fontSize: 12 }}>⭐ {m.puan}</span>}
+                            <span style={{ color: "var(--dim)", fontSize: 11 }}>💬 {m.yorum_sayisi}</span>
                           </div>
-                          <div style={{ color: "#64748b", fontSize: 12, marginBottom: 4 }}>
+                          <div style={{ color: "var(--dim)", fontSize: 12 }} className="mb-4">
                             {m.telefon && <span>📞 {m.telefon}</span>}
                             {m.kategori && <span style={{ marginLeft: 10 }}>🏷️ {m.kategori}</span>}
                             {m.ilce && <span style={{ marginLeft: 10 }}>📍 {m.ilce}</span>}
-                            {!m.web_sitesi && <span style={{ marginLeft: 10, color: "#10b981" }}>🌐 Web yok</span>}
-                            {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ marginLeft: 10, color: "#3b82f6", textDecoration: "none", fontSize: 11 }}>🗺️ Maps</a>}
+                            {!m.web_sitesi && <span style={{ marginLeft: 10, color: "var(--green)" }}>🌐 Web yok</span>}
+                            {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ marginLeft: 10, color: "var(--blue)", textDecoration: "none", fontSize: 11 }}>🗺️ Maps</a>}
                           </div>
-                          {m.notlar && <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 4, fontStyle: "italic" }}>📝 {m.notlar}</div>}
+                          {m.notlar && <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4, fontStyle: "italic" }}>📝 {m.notlar}</div>}
                         </div>
-                        <div style={{ display: "flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
+                        <div className="list-item-actions list-item-actions-wrap shrink-0">
                           {["yeni","arandi","ilgileniyor","ilgilenmiyor","demo_yapildi","musteri_oldu"].filter(d => d !== m.durum).slice(0,3).map(d => (
-                            <button key={d} onClick={async () => {
-                              await api.put(`/admin/avci/${m.id}`, { durum: d });
-                              avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
-                            }} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: (durumRenk[d] || "#64748b") + "22", color: durumRenk[d] || "#64748b", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+                            <button key={d} onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: d }); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); }}
+                              className="btn btn-sm" style={{ background: (durumRenk[d] || "#64748b") + "22", color: durumRenk[d] || "#64748b", border: "none", fontWeight: 600, fontSize: 11 }}>
                               {durumLabel[d]}
                             </button>
                           ))}
-                          <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)}
-                            style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 11 }}>📝</button>
+                          <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>📝</button>
                           <button onClick={async () => {
                             if (!confirm(`"${m.isletme_adi}" silinsin mi?`)) return;
                             await api.del(`/admin/avci/${m.id}`);
                             avciListeYukle(); avciStatsYukle();
-                          }} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#ef444422", color: "#ef4444", cursor: "pointer", fontSize: 11 }}>✕</button>
+                          }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none", fontSize: 11 }}>✕</button>
                         </div>
                       </div>
                       {avciSecili === m.id && (
-                        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-                          <input id={`not2_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..."
-                            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }} />
+                        <div className="row gap-8 mt-12">
+                          <input id={`not2_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input flex-1" />
                           <button onClick={async () => {
                             const notInput = document.getElementById(`not2_${m.id}`);
                             await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value });
                             setAvciSecili(null); avciListeYukle();
-                          }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Kaydet</button>
+                          }} className="btn btn-primary btn-sm">Kaydet</button>
                         </div>
                       )}
                     </div>

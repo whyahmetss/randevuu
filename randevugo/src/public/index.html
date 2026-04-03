@@ -33,7 +33,13 @@
     .nav-links a:hover{color:var(--text)}
     .nav-cta{font-size:13px;font-weight:600;padding:10px 28px;border-radius:10px;background:var(--primary);color:#fff;transition:all .3s}
     .nav-cta:hover{background:#5558e6;box-shadow:0 0 24px var(--primary-glow)}
-    .hamburger{display:none;background:none;border:none;color:var(--text);font-size:24px;cursor:pointer}
+    .hamburger{display:none;background:none;border:none;color:var(--text);font-size:24px;cursor:pointer;z-index:1002}
+    .mobile-menu{position:fixed;inset:0;z-index:1001;background:rgba(5,8,22,.96);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;opacity:0;pointer-events:none;transition:opacity .3s}
+    .mobile-menu.open{opacity:1;pointer-events:auto}
+    .mobile-menu a{font-size:20px;font-weight:600;color:var(--muted);transition:color .2s}
+    .mobile-menu a:hover{color:var(--text)}
+    .mobile-menu .nav-cta{font-size:16px;padding:14px 36px;border-radius:12px;background:var(--primary);color:#fff}
+    .mobile-close{position:absolute;top:22px;right:24px;background:none;border:none;color:var(--text);font-size:28px;cursor:pointer}
 
     /* ---------- HERO ---------- */
     .hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding:120px 0 80px}
@@ -233,10 +239,20 @@
           <a href="#sss">SSS</a>
           <a href="https://admin.xn--srago-n4a.com" class="nav-cta">Giriş Yap</a>
         </div>
-        <button class="hamburger" aria-label="Menu">&#9776;</button>
+        <button class="hamburger" id="hamburgerBtn" aria-label="Menu">&#9776;</button>
       </nav>
     </div>
   </header>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobileMenu">
+    <button class="mobile-close" id="mobileClose">&times;</button>
+    <a href="#ozellikler" class="mm-link">Özellikler</a>
+    <a href="#nasil" class="mm-link">Nasıl Çalışır</a>
+    <a href="#fiyat" class="mm-link">Fiyatlandırma</a>
+    <a href="#sss" class="mm-link">SSS</a>
+    <a href="https://admin.xn--srago-n4a.com" class="nav-cta">Giriş Yap</a>
+  </div>
 
   <!-- HERO -->
   <section class="hero">
@@ -584,6 +600,11 @@
         if(!open)item.classList.add('open');
       });
     });
+    // Mobile menu
+    const mm=document.getElementById('mobileMenu');
+    document.getElementById('hamburgerBtn').addEventListener('click',()=>mm.classList.add('open'));
+    document.getElementById('mobileClose').addEventListener('click',()=>mm.classList.remove('open'));
+    mm.querySelectorAll('.mm-link').forEach(a=>a.addEventListener('click',()=>mm.classList.remove('open')));
   </script>
 </body>
 </html>
