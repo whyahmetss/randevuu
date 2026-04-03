@@ -97,7 +97,7 @@ class SatisBot extends EventEmitter {
   // WhatsApp Bağlantısı (Baileys)
   // ═══════════════════════════════════════════════════
   async baslat() {
-    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor') return;
+    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor' || this.durum === 'baslatiyor') return;
 
     // Eski socket varsa kapat
     if (this.sock) {
@@ -122,7 +122,7 @@ class SatisBot extends EventEmitter {
       const { version } = await fetchLatestBaileysVersion();
       console.log('📱 Baileys version:', version);
 
-      const baileysLogger = pino({ level: 'warn' });
+      const baileysLogger = pino({ level: 'silent' });
       this.sock = makeWASocket({
         version,
         auth: {
@@ -131,18 +131,14 @@ class SatisBot extends EventEmitter {
         },
         printQRInTerminal: false,
         logger: baileysLogger,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'],
+        browser: ['RandevuGO SatisBot', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
-        syncFullHistory: false,
-        connectTimeoutMs: 60000,
-        qrTimeout: 60000,
-        defaultQueryTimeoutMs: 0,
-        markOnlineOnConnect: false,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
 
       this.sock.ev.on('connection.update', async (update) => {
+        try {
         console.log('📡 SatışBot connection.update:', JSON.stringify(update, null, 0).slice(0, 300));
         const { connection, lastDisconnect, qr } = update;
 
@@ -203,6 +199,9 @@ class SatisBot extends EventEmitter {
             }
             console.log('⏹️ Satış Bot durdu. Panel\'den "Botu Başlat" ile yeniden başlatıp QR tarayın.');
           }
+        }
+        } catch (connErr) {
+          console.error('❌ SatışBot connection.update HATA:', connErr.message, connErr.stack);
         }
       });
 

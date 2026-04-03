@@ -1041,6 +1041,11 @@ class AdminController {
     try {
       const satisBot = require('../services/satisBot');
       console.log('🔄 Satış Bot başlatma isteği geldi, mevcut durum:', satisBot.getDurum().durum);
+      // Takılı kalmışsa zorla resetle
+      if (satisBot.durum === 'baslatiyor') {
+        satisBot.durum = 'kapali';
+        if (satisBot.sock) { try { satisBot.sock.end(); } catch(e) {} satisBot.sock = null; }
+      }
       satisBot.baslat(); // await yok — arka planda çalışsın
       // 1sn bekle ki QR event'i gelsin
       await new Promise(r => setTimeout(r, 1500));
