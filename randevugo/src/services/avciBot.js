@@ -167,15 +167,7 @@ class AvciBot {
   async sosyalMedyaTarama({ sehir, ilce, kategori, platform, apiKey, searchEngineId }) {
     if (!apiKey || !searchEngineId) throw new Error('Google Custom Search API key ve Search Engine ID gerekli');
 
-    const siteMap = {
-      instagram: 'site:instagram.com',
-      facebook: 'site:facebook.com',
-      tiktok: 'site:tiktok.com/@',
-      hepsi: ''
-    };
-
-    const siteFilter = siteMap[platform] || '';
-    const aramaMetni = `${kategori} ${ilce ? ilce + ' ' : ''}${sehir} ${siteFilter}`.trim();
+    const aramaMetni = `${kategori} ${ilce ? ilce + ' ' : ''}${sehir}`.trim();
     console.log(`🔍 Sosyal medya tarama: "${aramaMetni}"`);
 
     let tumSonuclar = [];
