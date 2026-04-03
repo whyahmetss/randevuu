@@ -9,6 +9,11 @@ const axios = require('axios');
 
 const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth', 'satis_bot');
 
+// Türkiye saati (UTC+3)
+function turkiyeSaati() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+}
+
 // ═══════════════════════════════════════════════════
 // Mesaj Varyasyonları — Her seferinde farklı mesaj
 // ═══════════════════════════════════════════════════
@@ -141,18 +146,20 @@ class SatisBot extends EventEmitter {
         if (connection === 'close') {
           const statusCode = lastDisconnect?.error?.output?.statusCode;
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}`);
+          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, reconnect: ${shouldReconnect}`);
           
           if (statusCode === DisconnectReason.loggedOut) {
             this.durum = 'kapali';
             this.qrBase64 = null;
+            this.aktif = false;
             try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
-            console.log('❌ Satış Bot oturumu kapatıldı');
+            console.log('❌ Satış Bot oturumu kapatıldı (logout)');
           } else if (shouldReconnect) {
-            this.durum = 'baslatiyor';
+            // durum'u kapali yap ki baslat() guard clause engellemesin
+            this.durum = 'kapali';
             this.sock = null;
-            console.log('🔄 Satış Bot 3sn sonra yeniden bağlanıyor...');
-            setTimeout(() => this.baslat(), 3000);
+            console.log('🔄 Satış Bot 5sn sonra yeniden bağlanıyor...');
+            setTimeout(() => this.baslat(), 5000);
           }
         }
       });
@@ -184,14 +191,19 @@ class SatisBot extends EventEmitter {
       this.gonderimTimer = null;
     }
     if (this.sock) {
-      try { await this.sock.logout(); } catch (e) {}
       try { this.sock.end(); } catch (e) {}
     }
     this.sock = null;
     this.durum = 'kapali';
     this.qrBase64 = null;
+    // Auth dosyalarını silme — yeniden bağlanabilsin
+    console.log('🛑 Satış Bot durduruldu (oturum korunuyor)');
+  }
+
+  async tamamenKapat() {
+    await this.durdur();
     try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
-    console.log('🛑 Satış Bot durduruldu');
+    console.log('�️ Satış Bot oturumu tamamen silindi');
   }
 
   getDurum() {
@@ -231,8 +243,9 @@ class SatisBot extends EventEmitter {
   async sonrakiGonderim() {
     if (!this.aktif || this.durum !== 'bagli') return;
 
-    // Günlük sayacı sıfırla
-    const bugun = new Date().toISOString().slice(0, 10);
+    // Günlük sayacı sıfırla (Türkiye saati)
+    const simdi = turkiyeSaati();
+    const bugun = simdi.toISOString().slice(0, 10);
     if (this.sonGonderimTarihi !== bugun) {
       this.gunlukGonderim = 0;
       this.sonGonderimTarihi = bugun;
@@ -248,23 +261,16 @@ class SatisBot extends EventEmitter {
     // Günlük limit
     if (this.gunlukGonderim >= this.ayarlar.gunlukLimit) {
       console.log(`📊 Günlük limit doldu (${this.ayarlar.gunlukLimit}), yarın devam edilecek`);
-      const yarin = new Date();
-      yarin.setDate(yarin.getDate() + 1);
-      yarin.setHours(this.ayarlar.mesaiBaslangic, 0, 0, 0);
-      const bekleme = yarin.getTime() - Date.now();
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), bekleme);
+      // 1 saat sonra tekrar kontrol (yeni gün olmuş olabilir)
+      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 60 * 60 * 1000);
       return;
     }
 
-    // Mesai saatleri kontrolü (SuperAdmin'den ayarlanır)
-    const saat = new Date().getHours();
+    // Mesai saatleri kontrolü (Türkiye saati)
+    const saat = simdi.getHours();
     if (saat < this.ayarlar.mesaiBaslangic || saat >= this.ayarlar.mesaiBitis) {
-      console.log(`🕐 Mesai dışı (${this.ayarlar.mesaiBaslangic}:00-${this.ayarlar.mesaiBitis}:00), mesai başında devam edilecek`);
-      const sonraki = new Date();
-      if (saat >= this.ayarlar.mesaiBitis) sonraki.setDate(sonraki.getDate() + 1);
-      sonraki.setHours(this.ayarlar.mesaiBaslangic, 0, 0, 0);
-      const bekleme = sonraki.getTime() - Date.now();
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), bekleme);
+      console.log(`🕐 Mesai dışı — TR saat: ${saat}:00 (mesai: ${this.ayarlar.mesaiBaslangic}:00-${this.ayarlar.mesaiBitis}:00). 30dk sonra tekrar kontrol.`);
+      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
       return;
     }
 
@@ -358,7 +364,7 @@ class SatisBot extends EventEmitter {
 
       // DB güncelle
       await pool.query(
-        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = NOW() WHERE id = $1",
+        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
         [lead.id]
       );
 
@@ -412,8 +418,8 @@ class SatisBot extends EventEmitter {
 
     // Gelen mesajı kaydet
     await pool.query(
-      "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, son_mesaj_tarihi = NOW() WHERE id = $2",
-      [`\n[${new Date().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, konusma.id]
+      "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, son_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $2",
+      [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, konusma.id]
     );
 
     // DeepSeek AI ile satış cevabı oluştur

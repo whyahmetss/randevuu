@@ -90,7 +90,7 @@ const PORT = process.env.PORT || 3000;
       gelen_mesajlar TEXT,
       durum VARCHAR(30) DEFAULT 'bekliyor',
       son_mesaj_tarihi TIMESTAMP,
-      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+      olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
     )`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_durumu VARCHAR(30)`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_tarihi TIMESTAMP`);
