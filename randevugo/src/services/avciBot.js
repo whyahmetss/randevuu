@@ -163,42 +163,49 @@ class AvciBot {
     return toplamSonuc;
   }
 
-  // Sosyal medya araması - Google Custom Search ile Instagram/Facebook/TikTok profilleri bul
-  async sosyalMedyaTarama({ sehir, ilce, kategori, platform, apiKey, searchEngineId }) {
-    if (!apiKey || !searchEngineId) throw new Error('Google Custom Search API key ve Search Engine ID gerekli');
+  // Sosyal medya araması - SerpAPI ile Instagram/Facebook/TikTok profilleri bul
+  async sosyalMedyaTarama({ sehir, ilce, kategori, platform }) {
+    const serpApiKey = process.env.SERP_API_KEY;
+    if (!serpApiKey) throw new Error('SERP_API_KEY .env dosyasında tanımlı olmalı');
 
     const aramaMetni = `${kategori} ${ilce ? ilce + ' ' : ''}${sehir}`.trim();
-    console.log(`🔍 Sosyal medya tarama: "${aramaMetni}"`);
+    console.log(`🔍 Sosyal medya tarama (SerpAPI): "${aramaMetni}" - platform: ${platform}`);
+
+    // Platform bazlı site filtresi
+    const platformSite = {
+      instagram: 'site:instagram.com',
+      facebook: 'site:facebook.com',
+      tiktok: 'site:tiktok.com',
+      hepsi: 'site:instagram.com OR site:facebook.com OR site:tiktok.com'
+    };
+    const siteFilter = platformSite[platform] || platformSite['hepsi'];
+    const sorgu = `${aramaMetni} ${siteFilter}`;
 
     let tumSonuclar = [];
 
-    // Google Custom Search - max 100 sonuç (10 sayfa x 10)
-    for (let start = 1; start <= 91; start += 10) {
+    // SerpAPI - max 100 sonuç (10 sayfa x 10)
+    for (let start = 0; start <= 90; start += 10) {
       try {
-        const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(aramaMetni)}&start=${start}&num=10`;
-        console.log(`🔎 Custom Search sorgu: ${aramaMetni} (start=${start})`);
+        const url = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(sorgu)}&api_key=${serpApiKey}&num=10&start=${start}&hl=tr&gl=tr`;
+        console.log(`🔎 SerpAPI sorgu (start=${start}): ${sorgu}`);
         const response = await fetch(url);
         const data = await response.json();
-        console.log(`📊 Custom Search yanıt:`, JSON.stringify(data).substring(0, 500));
 
         if (data.error) {
-          if (data.error.code === 429) {
-            console.log('⚠️ Günlük limit doldu');
-            break;
-          }
-          throw new Error(`Google Search hatası: ${data.error.code} - ${data.error.message}`);
+          console.log(`⚠️ SerpAPI hatası: ${data.error}`);
+          break;
         }
 
-        if (data.items) {
-          tumSonuclar = tumSonuclar.concat(data.items);
-        }
+        const results = data.organic_results || [];
+        if (results.length === 0) break;
 
-        // Sonuç kalmadıysa dur
-        if (!data.queries?.nextPage) break;
+        tumSonuclar = tumSonuclar.concat(results);
 
-        await new Promise(r => setTimeout(r, 500));
+        if (!data.serpapi_pagination?.next) break;
+
+        await new Promise(r => setTimeout(r, 300));
       } catch (e) {
-        console.log(`⚠️ Arama hatası (start=${start}):`, e.message);
+        console.log(`⚠️ SerpAPI istek hatası (start=${start}):`, e.message);
         break;
       }
     }
