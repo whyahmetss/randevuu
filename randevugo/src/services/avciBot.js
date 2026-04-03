@@ -184,15 +184,17 @@ class AvciBot {
     for (let start = 1; start <= 91; start += 10) {
       try {
         const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(aramaMetni)}&start=${start}&num=10`;
+        console.log(`🔎 Custom Search sorgu: ${aramaMetni} (start=${start})`);
         const response = await fetch(url);
         const data = await response.json();
+        console.log(`📊 Custom Search yanıt:`, JSON.stringify(data).substring(0, 500));
 
         if (data.error) {
           if (data.error.code === 429) {
             console.log('⚠️ Günlük limit doldu');
             break;
           }
-          throw new Error(`Google Search hatası: ${data.error.message}`);
+          throw new Error(`Google Search hatası: ${data.error.code} - ${data.error.message}`);
         }
 
         if (data.items) {
