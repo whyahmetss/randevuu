@@ -74,7 +74,7 @@ class SatisBot extends EventEmitter {
   // WhatsApp Bağlantısı (Baileys)
   // ═══════════════════════════════════════════════════
   async baslat() {
-    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor') return;
+    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor' || this.durum === 'baslatiyor') return;
 
     if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
     this.durum = 'baslatiyor';
@@ -93,6 +93,9 @@ class SatisBot extends EventEmitter {
         logger: pino({ level: 'silent' }),
         browser: ['SıraGO Sales', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
+        qrTimeout: 60000,
+        connectTimeoutMs: 60000,
+        retryRequestDelayMs: 2000,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
@@ -116,13 +119,19 @@ class SatisBot extends EventEmitter {
 
         if (connection === 'close') {
           const statusCode = lastDisconnect?.error?.output?.statusCode;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}`);
+          
           if (statusCode === DisconnectReason.loggedOut) {
             this.durum = 'kapali';
+            this.qrBase64 = null;
             try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
             console.log('❌ Satış Bot oturumu kapatıldı');
-          } else {
-            console.log('🔄 Satış Bot yeniden bağlanıyor...');
-            setTimeout(() => this.baslat(), 5000);
+          } else if (shouldReconnect) {
+            this.durum = 'baslatiyor';
+            this.sock = null;
+            console.log('🔄 Satış Bot 3sn sonra yeniden bağlanıyor...');
+            setTimeout(() => this.baslat(), 3000);
           }
         }
       });
