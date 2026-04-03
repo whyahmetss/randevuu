@@ -97,14 +97,10 @@ class SatisBot extends EventEmitter {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
-        printQRInTerminal: true,
+        printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ['SıraGO', 'Chrome', '120.0.0'],
+        browser: ['RandevuGO', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 25000,
-        connectTimeoutMs: 120000,
-        emitOwnEvents: false,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
