@@ -942,12 +942,41 @@ function Dashboard() {
                       <input type="time" value={ayarlar.calisma_bitis || "19:00"} onChange={e => setAyarlar({...ayarlar, calisma_bitis: e.target.value})}
                         style={S.input} />
                     </div>
-                    <div>
-                      <label style={{ color: "#64748b", fontSize: 12, display: "block", marginBottom: 6 }}>Randevu Süresi (dakika)</label>
-                      <input type="number" value={ayarlar.randevu_suresi_dk || 30} onChange={e => setAyarlar({...ayarlar, randevu_suresi_dk: e.target.value})}
-                        style={S.input} />
-                    </div>
                   </div>
+                </div>
+                <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 28, marginBottom: 20 }}>
+                  <h3 style={{ margin: "0 0 16px", fontSize: 15, color: "#94a3b8", fontWeight: 600 }}>🍽️ Mola / Kapalı Saatler</h3>
+                  <div style={{ color: "#334155", fontSize: 12, marginBottom: 16 }}>Bu saatlerde randevu alınamaz (yemek arası, özel işler, vs.)</div>
+                  {(ayarlar.mola_saatleri || []).map((mola, idx) => (
+                    <div key={idx} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+                      <input value={mola.isim || ""} placeholder="Açıklama (ör: Yemek Arası)" onChange={e => {
+                        const yeni = [...(ayarlar.mola_saatleri || [])];
+                        yeni[idx] = { ...yeni[idx], isim: e.target.value };
+                        setAyarlar({...ayarlar, mola_saatleri: yeni});
+                      }} style={{ ...S.input, flex: 1 }} />
+                      <input type="time" value={mola.baslangic || ""} onChange={e => {
+                        const yeni = [...(ayarlar.mola_saatleri || [])];
+                        yeni[idx] = { ...yeni[idx], baslangic: e.target.value };
+                        setAyarlar({...ayarlar, mola_saatleri: yeni});
+                      }} style={{ ...S.input, width: 120 }} />
+                      <span style={{ color: "#475569", fontSize: 13 }}>—</span>
+                      <input type="time" value={mola.bitis || ""} onChange={e => {
+                        const yeni = [...(ayarlar.mola_saatleri || [])];
+                        yeni[idx] = { ...yeni[idx], bitis: e.target.value };
+                        setAyarlar({...ayarlar, mola_saatleri: yeni});
+                      }} style={{ ...S.input, width: 120 }} />
+                      <button onClick={() => {
+                        const yeni = (ayarlar.mola_saatleri || []).filter((_, i) => i !== idx);
+                        setAyarlar({...ayarlar, mola_saatleri: yeni});
+                      }} style={{ background: "#ef444422", border: "1px solid #ef444440", borderRadius: 8, color: "#ef4444", cursor: "pointer", padding: "8px 12px", fontSize: 13, fontWeight: 600 }}>✕</button>
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    const yeni = [...(ayarlar.mola_saatleri || []), { isim: "", baslangic: "12:00", bitis: "13:00" }];
+                    setAyarlar({...ayarlar, mola_saatleri: yeni});
+                  }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px dashed #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%" }}>
+                    + Mola Ekle
+                  </button>
                 </div>
                 <div style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: 28, marginBottom: 24 }}>
                   <h3 style={{ margin: "0 0 16px", fontSize: 15, color: "#94a3b8", fontWeight: 600 }}>Kapalı Günler</h3>

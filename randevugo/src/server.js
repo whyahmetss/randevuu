@@ -22,6 +22,7 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_calisan_id INTEGER`);
     await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS not_text TEXT`);
     await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT true`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS mola_saatleri JSONB DEFAULT '[]'`);
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);

@@ -47,6 +47,16 @@ class RandevuService {
       return { bas: rH * 60 + rM, bit: rbH * 60 + rbM + TAMPON_DK };
     });
 
+    // Mola saatlerini de dolu aralık olarak ekle (yemek arası, okul, vs.)
+    const molalar = isletme.mola_saatleri || [];
+    molalar.forEach(m => {
+      if (m.baslangic && m.bitis) {
+        const [mBH, mBM] = m.baslangic.split(':').map(Number);
+        const [mBtH, mBtM] = m.bitis.split(':').map(Number);
+        doluAraliklar.push({ bas: mBH * 60 + mBM, bit: mBtH * 60 + mBtM });
+      }
+    });
+
     // Çakışma kontrol fonksiyonu
     const cakismaVar = (dk) => {
       return doluAraliklar.some(r => (dk < r.bit && dk + hizmetSureDk > r.bas));

@@ -377,11 +377,11 @@ class AdminController {
 
   async isletmeGuncelle(req, res) {
     try {
-      const { isim, adres, calisma_baslangic, calisma_bitis, randevu_suresi_dk, kapali_gunler } = req.body;
+      const { isim, adres, calisma_baslangic, calisma_bitis, randevu_suresi_dk, kapali_gunler, mola_saatleri } = req.body;
       const result = await pool.query(
         `UPDATE isletmeler SET isim=$1, adres=$2, calisma_baslangic=$3, calisma_bitis=$4, 
-         randevu_suresi_dk=$5, kapali_gunler=$6 WHERE id=$7 RETURNING *`,
-        [isim, adres, calisma_baslangic, calisma_bitis, randevu_suresi_dk, kapali_gunler, req.kullanici.isletme_id]
+         randevu_suresi_dk=$5, kapali_gunler=$6, mola_saatleri=$7 WHERE id=$8 RETURNING *`,
+        [isim, adres, calisma_baslangic, calisma_bitis, randevu_suresi_dk, kapali_gunler, JSON.stringify(mola_saatleri || []), req.kullanici.isletme_id]
       );
       res.json({ isletme: result.rows[0] });
     } catch (error) {
