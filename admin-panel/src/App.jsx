@@ -421,7 +421,7 @@ function BotBaglantiSayfasi() {
       )}
 
       {aktifTab === "telegram" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="flex-col gap-16">
           <div className="card">
             <h3 className="mb-16" style={{ fontSize: 15, fontWeight: 700 }}>📖 Telegram Botu Nasıl Oluşturulur?</h3>
             {["Telegram'da @BotFather'ı aç ve /newbot yaz",'Bot ismi gir (örn: "Berber Ali Randevu")','Kullanıcı adı gir, sonu "bot" bitmeli (örn: berberalirndvbot)',"BotFather bir Token verecek → kopyala","Token'ı aşağıya yapıştır → Bağla"].map((s, i) => (
@@ -439,10 +439,12 @@ function BotBaglantiSayfasi() {
             {tgBagli ? (
               <div>
                 <div className="alert alert-success mb-16">✅ Telegram botunuz aktif. Müşterileriniz Telegram'dan randevu alabilir.</div>
-                <div className="row gap-10">
-                  <input value={tgToken} onChange={e => setTgToken(e.target.value)} placeholder="Yeni token ile değiştir..." className="input flex-1" />
-                  <button onClick={telegramBagla} disabled={tgYukleniyor || !tgToken.trim()} style={btnCls("var(--blue)", !tgToken.trim())}>Değiştir</button>
-                  <button onClick={telegramAyir} disabled={tgYukleniyor} style={btnCls("var(--red)", false)}>Ayır</button>
+                <div className="row row-wrap gap-10">
+                  <input value={tgToken} onChange={e => setTgToken(e.target.value)} placeholder="Yeni token ile değiştir..." className="input flex-1" style={{ minWidth: 0 }} />
+                  <div className="row gap-8">
+                    <button onClick={telegramBagla} disabled={tgYukleniyor || !tgToken.trim()} style={btnCls("var(--blue)", !tgToken.trim())}>Değiştir</button>
+                    <button onClick={telegramAyir} disabled={tgYukleniyor} style={btnCls("var(--red)", false)}>Ayır</button>
+                  </div>
                 </div>
               </div>
             ) : (
