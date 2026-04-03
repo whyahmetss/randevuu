@@ -14,26 +14,33 @@ class AvciBot {
     let tumSonuclar = [];
     let nextPageToken = null;
 
-    // Google Places Text Search - sayfalama ile max 60 sonuç
+    // Places API (New) - Text Search kullanıyoruz
     do {
-      const url = nextPageToken
-        ? `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${nextPageToken}&key=${apiKey}`
-        : `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(aramaMetni)}&language=tr&key=${apiKey}`;
+      const body = { textQuery: aramaMetni, languageCode: 'tr', maxResultCount: 20 };
+      if (nextPageToken) body.pageToken = nextPageToken;
 
-      const response = await fetch(url);
+      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.rating,places.userRatingCount,nextPageToken'
+        },
+        body: JSON.stringify(body)
+      });
+
       const data = await response.json();
 
-      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        throw new Error(`Google API hatası: ${data.status} - ${data.error_message || ''}`);
+      if (data.error) {
+        throw new Error(`Google API hatası: ${data.error.code} - ${data.error.message}`);
       }
 
-      if (data.results) {
-        tumSonuclar = tumSonuclar.concat(data.results);
+      if (data.places) {
+        tumSonuclar = tumSonuclar.concat(data.places);
       }
 
-      nextPageToken = data.next_page_token || null;
+      nextPageToken = data.nextPageToken || null;
 
-      // Google sayfalama için 2sn bekle
       if (nextPageToken) {
         await new Promise(r => setTimeout(r, 2000));
       }
@@ -41,16 +48,16 @@ class AvciBot {
 
     console.log(`📍 ${tumSonuclar.length} işletme bulundu`);
 
-    // Her işletme için detay al ve DB'ye kaydet
     let yeniEklenen = 0;
     let zatenVar = 0;
 
     for (const yer of tumSonuclar) {
       try {
-        // Zaten var mı kontrol et
+        const placeId = yer.id;
+
         const mevcut = await pool.query(
           'SELECT id FROM potansiyel_musteriler WHERE google_maps_id = $1',
-          [yer.place_id]
+          [placeId]
         );
 
         if (mevcut.rows.length > 0) {
@@ -58,72 +65,56 @@ class AvciBot {
           continue;
         }
 
-        // Detay bilgisi al (telefon, web sitesi için)
-        let telefon = null;
-        let webSitesi = null;
-        let mapsUrl = null;
+        const telefon = yer.nationalPhoneNumber || yer.internationalPhoneNumber || null;
+        const webSitesi = yer.websiteUri || null;
+        const mapsUrl = yer.googleMapsUri || null;
+        const isletmeAdi = yer.displayName?.text || yer.displayName || 'Bilinmiyor';
+        const adres = yer.formattedAddress || null;
 
-        try {
-          const detayUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${yer.place_id}&fields=formatted_phone_number,website,url&language=tr&key=${apiKey}`;
-          const detayRes = await fetch(detayUrl);
-          const detayData = await detayRes.json();
-
-          if (detayData.result) {
-            telefon = detayData.result.formatted_phone_number || null;
-            webSitesi = detayData.result.website || null;
-            mapsUrl = detayData.result.url || null;
-          }
-        } catch (e) {
-          console.log(`⚠️ Detay alınamadı: ${yer.name}`);
-        }
-
-        // İlçe tespiti (formatted_address'ten)
+        // İlçe tespiti
         let tespit_ilce = ilce || null;
-        if (yer.formatted_address) {
-          const adresParcalari = yer.formatted_address.split(',').map(s => s.trim());
-          if (adresParcalari.length >= 2) {
+        if (adres) {
+          const adresParcalari = adres.split(',').map(s => s.trim());
+          if (adresParcalari.length >= 3) {
             tespit_ilce = adresParcalari[adresParcalari.length - 3] || tespit_ilce;
           }
         }
 
-        // Skorlama
         const skor = this.skorHesapla({
           puan: yer.rating,
-          yorum_sayisi: yer.user_ratings_total,
+          yorum_sayisi: yer.userRatingCount,
           web_sitesi: webSitesi,
           telefon: telefon
         });
 
-        // DB'ye kaydet
         await pool.query(`
           INSERT INTO potansiyel_musteriler 
           (isletme_adi, telefon, adres, sehir, ilce, kategori, puan, yorum_sayisi, web_sitesi, google_maps_id, google_maps_url, skor)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           ON CONFLICT (google_maps_id) DO NOTHING
         `, [
-          yer.name,
+          isletmeAdi,
           telefon,
-          yer.formatted_address,
+          adres,
           sehir,
           tespit_ilce,
           kategori,
           yer.rating || null,
-          yer.user_ratings_total || 0,
+          yer.userRatingCount || 0,
           webSitesi,
-          yer.place_id,
+          placeId,
           mapsUrl,
           skor
         ]);
 
         yeniEklenen++;
 
-        // Rate limit koruması - her 10 istekte 1sn bekle
         if (yeniEklenen % 10 === 0) {
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 500));
         }
 
       } catch (e) {
-        console.log(`⚠️ Kayıt hatası (${yer.name}):`, e.message);
+        console.log(`⚠️ Kayıt hatası:`, e.message);
       }
     }
 
