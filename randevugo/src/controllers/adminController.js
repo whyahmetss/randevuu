@@ -862,11 +862,12 @@ class AdminController {
       const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
-      const paket = isletme.paket || 'baslangic';
-      const paketBilgi = PAKETLER[paket] || PAKETLER.baslangic;
+      // Seçilen paket (query param veya mevcut paket)
+      const secilenPaket = req.query.paket || isletme.paket || 'baslangic';
+      const paketBilgi = PAKETLER[secilenPaket] || PAKETLER.baslangic;
       const buAy = new Date().toISOString().slice(0, 7);
       const refKod = `SRGO-${isletmeId}`;
-      const paketLabel = paket.charAt(0).toUpperCase() + paket.slice(1);
+      const paketLabel = paketBilgi.isim || secilenPaket;
 
       // Shopier'da dinamik dijital ürün oluştur
       const urun = await shopierService.urunOlustur({

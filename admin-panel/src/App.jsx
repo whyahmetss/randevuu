@@ -1094,7 +1094,12 @@ function Dashboard() {
                       ))}
                     </div>
                     {!aktif && (
-                      <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }}>
+                      <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
+                        const token = localStorage.getItem("randevugo_token");
+                        const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
+                        window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}&paket=${p.key}`, "_blank");
+                        setPaketModal(false);
+                      }}>
                         {p.key === "baslangic" ? "Geç" : "Yükselt"}
                       </button>
                     )}
