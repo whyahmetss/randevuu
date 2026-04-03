@@ -48,6 +48,11 @@ const PORT = process.env.PORT || 3000;
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS instagram VARCHAR(255)`);
+    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS kaynak VARCHAR(30) DEFAULT 'maps'`);
+    // Mevcut sosyal medya kayıtlarını otomatik işaretle
+    await pool.query(`UPDATE potansiyel_musteriler SET kaynak = 'instagram' WHERE kaynak = 'maps' AND google_maps_id LIKE 'instagram_%'`);
+    await pool.query(`UPDATE potansiyel_musteriler SET kaynak = 'facebook' WHERE kaynak = 'maps' AND google_maps_id LIKE 'facebook_%'`);
+    await pool.query(`UPDATE potansiyel_musteriler SET kaynak = 'tiktok' WHERE kaynak = 'maps' AND google_maps_id LIKE 'tiktok_%'`);
     // Ödemeler tablosu - yeni kolonlar
     await pool.query(`CREATE TABLE IF NOT EXISTS odemeler (
       id SERIAL PRIMARY KEY,
@@ -64,6 +69,7 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS odeme_yontemi VARCHAR(30)`);
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS iyzico_token VARCHAR(255)`);
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS havale_dekont TEXT`);
+    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(30)`);
     // İletişim mesajları
     await pool.query(`CREATE TABLE IF NOT EXISTS iletisim_mesajlari (
       id SERIAL PRIMARY KEY,

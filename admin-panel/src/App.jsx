@@ -1130,6 +1130,7 @@ function SuperAdminPanel({ kullanici }) {
   const [avciTaramaYukleniyor, setAvciTaramaYukleniyor] = useState(false);
   const [avciSecili, setAvciSecili] = useState(null);
   const [avciTab, setAvciTab] = useState("liste");
+  const [avciKaynak, setAvciKaynak] = useState("hepsi");
   const [avciKategoriFiltre, setAvciKategoriFiltre] = useState("hepsi");
   const [topluTaramaAcik, setTopluTaramaAcik] = useState(false);
   const [topluKategoriler, setTopluKategoriler] = useState(["berber","kuaför","güzellik salonu","dövme","diş kliniği"]);
@@ -1164,7 +1165,7 @@ function SuperAdminPanel({ kullanici }) {
   }, []);
 
   const avciListeYukle = async () => {
-    const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&kategori=${avciKategoriFiltre}&siralama=${avciSiralama}&limit=100`);
+    const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&kategori=${avciKategoriFiltre}&siralama=${avciSiralama}&kaynak=${avciKaynak}&limit=100`);
     setAvciListe(d.potansiyel_musteriler || []);
   };
   const avciStatsYukle = async () => {
@@ -1186,7 +1187,7 @@ function SuperAdminPanel({ kullanici }) {
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
     if (sayfa === "iletisim") iletisimYukle();
-  }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre]);
+  }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak]);
 
   const isletmeEkle = async (e) => {
     e.preventDefault();
@@ -1551,6 +1552,7 @@ function SuperAdminPanel({ kullanici }) {
                     <div style={{ background: "rgba(129,140,248,.06)", border: "1px solid rgba(129,140,248,.15)", borderRadius: 10, padding: "12px 16px" }}>
                       <div className="row row-wrap gap-12" style={{ fontSize: 13 }}>
                         <span style={{ color: "var(--muted)" }}>Yöntem: <strong style={{ color: "#818cf8" }}>Havale/EFT</strong></span>
+                        {o.referans_kodu && <span style={{ color: "var(--muted)" }}>Referans: <strong className="ref-kod">{o.referans_kodu}</strong></span>}
                         {o.havale_dekont && <span style={{ color: "var(--muted)" }}>Dekont Notu: <strong style={{ color: "var(--text)" }}>{o.havale_dekont}</strong></span>}
                       </div>
                     </div>
@@ -1651,12 +1653,14 @@ function SuperAdminPanel({ kullanici }) {
             <div className="row row-between row-wrap gap-10 mb-16">
               <div className="row gap-8">
                 <button onClick={() => setAvciTab("gunluk")} className={`pill${avciTab === "gunluk" ? ' active' : ''}`}>📞 Bugün Ara ({avciGunluk.length})</button>
-                <button onClick={() => setAvciTab("liste")} className={`pill${avciTab === "liste" ? ' active' : ''}`}>📋 Tüm Liste ({avciListe.length})</button>
+                <button onClick={() => { setAvciTab("liste"); setAvciKaynak("hepsi"); }} className={`pill${avciTab === "liste" && avciKaynak === "hepsi" ? ' active' : ''}`}>📋 Tümü ({avciListe.length})</button>
+                <button onClick={() => { setAvciTab("liste"); setAvciKaynak("maps"); }} className={`pill${avciTab === "liste" && avciKaynak === "maps" ? ' active' : ''}`} style={avciTab === "liste" && avciKaynak === "maps" ? { background: "var(--green)", color: "#fff" } : {}}>🗺️ Maps</button>
+                <button onClick={() => { setAvciTab("liste"); setAvciKaynak("sosyal"); }} className={`pill${avciTab === "liste" && avciKaynak === "sosyal" ? ' active' : ''}`} style={avciTab === "liste" && avciKaynak === "sosyal" ? { background: "#e11d48", color: "#fff" } : {}}>📱 Sosyal Medya</button>
               </div>
               <div className="row gap-8">
-                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "var(--green)", color: "#fff", fontWeight: 700 }}>🔍 Maps</button>
+                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "var(--green)", color: "#fff", fontWeight: 700 }}>🔍 Maps Tara</button>
                 <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "var(--purple)", color: "#fff", fontWeight: 700 }}>🚀 Toplu Maps</button>
-                <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }} className="btn btn-sm" style={{ background: "#e11d48", color: "#fff", fontWeight: 700 }}>📱 Sosyal Medya</button>
+                <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }} className="btn btn-sm" style={{ background: "#e11d48", color: "#fff", fontWeight: 700 }}>📱 Sosyal Tara</button>
               </div>
             </div>
 
@@ -1858,7 +1862,13 @@ function SuperAdminPanel({ kullanici }) {
             )}
 
             {/* TÜM LİSTE */}
-            {avciTab === "liste" && (
+            {avciTab === "liste" && (() => {
+              const durumRenk = { yeni: "#3b82f6", arandi: "#8b5cf6", ilgileniyor: "#10b981", ilgilenmiyor: "#ef4444", demo_yapildi: "#f59e0b", musteri_oldu: "#10b981" };
+              const durumLabel = { yeni: "Yeni", arandi: "Arandı", ilgileniyor: "İlgileniyor", ilgilenmiyor: "İlgilenmiyor", demo_yapildi: "Demo Yapıldı", musteri_oldu: "Müşteri ✓" };
+              const kaynakIcon = { maps: "🗺️", instagram: "📸", facebook: "📘", tiktok: "🎵" };
+              const kaynakRenk = { maps: "#3b82f6", instagram: "#e11d48", facebook: "#1877f2", tiktok: "#000" };
+              const isSosyal = (k) => ["instagram", "facebook", "tiktok"].includes(k);
+              return (
               <>
                 <div className="filter-bar mb-8">
                   {[["hepsi","Tümü"],["yeni","Yeni"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["demo_yapildi","Demo"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
@@ -1882,29 +1892,49 @@ function SuperAdminPanel({ kullanici }) {
                 {avciListe.length === 0 ? (
                   <div className="list-empty"><p>Henüz potansiyel müşteri yok. Tarama yap! 🔍</p></div>
                 ) : avciListe.map(m => {
-                  const durumRenk = { yeni: "#3b82f6", arandi: "#8b5cf6", ilgileniyor: "#10b981", ilgilenmiyor: "#ef4444", demo_yapildi: "#f59e0b", musteri_oldu: "#10b981" };
-                  const durumLabel = { yeni: "Yeni", arandi: "Arandı", ilgileniyor: "İlgileniyor", ilgilenmiyor: "İlgilenmiyor", demo_yapildi: "Demo Yapıldı", musteri_oldu: "Müşteri ✓" };
+                  const sosyal = isSosyal(m.kaynak);
+                  const platform = m.kaynak || "maps";
                   return (
-                    <div key={m.id} className="list-item list-item-left" style={{ borderLeftColor: durumRenk[m.durum] || "var(--border2)", flexDirection: "column", alignItems: "stretch" }}>
+                    <div key={m.id} className="list-item list-item-left" style={{ borderLeftColor: sosyal ? (kaynakRenk[platform] || "#e11d48") : (durumRenk[m.durum] || "var(--border2)"), flexDirection: "column", alignItems: "stretch" }}>
                       <div className="row row-between" style={{ alignItems: "flex-start", gap: 10 }}>
                         <div className="flex-1">
                           <div className="row row-wrap gap-8 mb-4">
                             <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 14 }}>{m.isletme_adi}</span>
                             <span className="tag-xs" style={{ background: (durumRenk[m.durum] || "#64748b") + "22", color: durumRenk[m.durum] || "#64748b", fontWeight: 600 }}>{durumLabel[m.durum] || m.durum}</span>
                             <span className="tag-xs" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", fontWeight: 700 }}>Skor: {m.skor}</span>
-                            {m.puan && <span style={{ color: "var(--amber)", fontSize: 12 }}>⭐ {m.puan}</span>}
-                            <span style={{ color: "var(--dim)", fontSize: 11 }}>💬 {m.yorum_sayisi}</span>
+                            {/* Kaynak badge */}
+                            <span className="tag-xs" style={{ background: (kaynakRenk[platform] || "#64748b") + "18", color: kaynakRenk[platform] || "#64748b", fontWeight: 600 }}>
+                              {kaynakIcon[platform] || "🔗"} {platform === "maps" ? "Maps" : platform.charAt(0).toUpperCase() + platform.slice(1)}
+                            </span>
+                            {!sosyal && m.puan && <span style={{ color: "var(--amber)", fontSize: 12 }}>⭐ {m.puan}</span>}
+                            {!sosyal && <span style={{ color: "var(--dim)", fontSize: 11 }}>💬 {m.yorum_sayisi}</span>}
                           </div>
                           <div style={{ color: "var(--dim)", fontSize: 12 }} className="mb-4">
                             {m.telefon && <span>📞 {m.telefon}</span>}
                             {m.kategori && <span style={{ marginLeft: 10 }}>🏷️ {m.kategori}</span>}
                             {m.ilce && <span style={{ marginLeft: 10 }}>📍 {m.ilce}</span>}
-                            {!m.web_sitesi && <span style={{ marginLeft: 10, color: "var(--green)" }}>🌐 Web yok</span>}
-                            {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ marginLeft: 10, color: "var(--blue)", textDecoration: "none", fontSize: 11 }}>🗺️ Maps</a>}
+                            {/* Maps: web yok + maps linki */}
+                            {!sosyal && !m.web_sitesi && <span style={{ marginLeft: 10, color: "var(--green)" }}>🌐 Web yok</span>}
+                            {!sosyal && m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ marginLeft: 10, color: "var(--blue)", textDecoration: "none", fontSize: 11 }}>🗺️ Maps</a>}
+                            {/* Sosyal Medya: profil linki */}
+                            {sosyal && m.google_maps_url && (
+                              <a href={m.google_maps_url} target="_blank" rel="noreferrer"
+                                style={{ marginLeft: 10, background: (kaynakRenk[platform] || "#e11d48") + "22", color: kaynakRenk[platform] || "#e11d48", padding: "2px 10px", borderRadius: 6, textDecoration: "none", fontWeight: 600, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                {kaynakIcon[platform]} Profili Aç ↗
+                              </a>
+                            )}
+                            {sosyal && m.instagram && <span style={{ marginLeft: 10, color: "#e11d48", fontSize: 12 }}>@{m.instagram}</span>}
                           </div>
                           {m.notlar && <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4, fontStyle: "italic" }}>📝 {m.notlar}</div>}
                         </div>
                         <div className="list-item-actions list-item-actions-wrap shrink-0">
+                          {/* Sosyal medya profil butonu (büyük) */}
+                          {sosyal && m.google_maps_url && (
+                            <a href={m.google_maps_url} target="_blank" rel="noreferrer"
+                              className="btn btn-sm" style={{ background: (kaynakRenk[platform] || "#e11d48"), color: "#fff", border: "none", fontWeight: 700, fontSize: 12, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              {kaynakIcon[platform]} Profil
+                            </a>
+                          )}
                           {["yeni","arandi","ilgileniyor","ilgilenmiyor","demo_yapildi","musteri_oldu"].filter(d => d !== m.durum).slice(0,3).map(d => (
                             <button key={d} onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: d }); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); }}
                               className="btn btn-sm" style={{ background: (durumRenk[d] || "#64748b") + "22", color: durumRenk[d] || "#64748b", border: "none", fontWeight: 600, fontSize: 11 }}>
@@ -1933,7 +1963,8 @@ function SuperAdminPanel({ kullanici }) {
                   );
                 })}
               </>
-            )}
+              );
+            })()}
           </>
         )}
 

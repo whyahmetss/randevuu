@@ -702,9 +702,9 @@ class AdminController {
 
   async avciListe(req, res) {
     try {
-      const { durum, kategori, sehir, ilce, siralama, limit, offset } = req.query;
+      const { durum, kategori, sehir, ilce, siralama, limit, offset, kaynak } = req.query;
       const liste = await avciBot.listele({
-        durum, kategori, sehir, ilce, siralama,
+        durum, kategori, sehir, ilce, siralama, kaynak,
         limit: limit ? parseInt(limit) : 50,
         offset: offset ? parseInt(offset) : 0
       });
@@ -790,6 +790,10 @@ class AdminController {
       const paketBilgi = PAKETLER[isletme.paket] || PAKETLER.baslangic;
       const buAy = new Date().toISOString().slice(0, 7);
 
+      // Referans kodu üret (isletme_id + dönem bazlı, sabit)
+      const hash = Buffer.from(`${isletmeId}-${buAy}`).toString('base64').replace(/[^A-Z0-9]/gi, '').slice(0, 3).toUpperCase();
+      const refKod = `SRGO-${isletmeId}${hash}`;
+
       // Mevcut bekleyen ödeme var mı?
       const mevcut = (await pool.query(
         "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum IN ('bekliyor','havale_bekliyor')",
@@ -798,13 +802,13 @@ class AdminController {
 
       if (mevcut) {
         await pool.query(
-          "UPDATE odemeler SET durum = 'havale_bekliyor', odeme_yontemi = 'havale', havale_dekont = $1 WHERE id = $2",
-          [dekont_notu || '', mevcut.id]
+          "UPDATE odemeler SET durum = 'havale_bekliyor', odeme_yontemi = 'havale', havale_dekont = $1, referans_kodu = $2 WHERE id = $3",
+          [dekont_notu || '', refKod, mevcut.id]
         );
       } else {
         await pool.query(
-          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, havale_dekont) VALUES ($1, $2, $3, 'havale_bekliyor', 'havale', $4)",
-          [isletmeId, paketBilgi.fiyat, buAy, dekont_notu || '']
+          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, havale_dekont, referans_kodu) VALUES ($1, $2, $3, 'havale_bekliyor', 'havale', $4, $5)",
+          [isletmeId, paketBilgi.fiyat, buAy, dekont_notu || '', refKod]
         );
       }
 

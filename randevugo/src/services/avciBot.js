@@ -287,8 +287,8 @@ class AvciBot {
 
         await pool.query(`
           INSERT INTO potansiyel_musteriler 
-          (isletme_adi, telefon, adres, sehir, ilce, kategori, puan, yorum_sayisi, web_sitesi, instagram, google_maps_id, google_maps_url, skor)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          (isletme_adi, telefon, adres, sehir, ilce, kategori, puan, yorum_sayisi, web_sitesi, instagram, google_maps_id, google_maps_url, skor, kaynak)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
           ON CONFLICT (google_maps_id) DO NOTHING
         `, [
           isletmeAdi,
@@ -303,7 +303,8 @@ class AvciBot {
           tespit_platform === 'instagram' ? kullaniciAdi : null,
           uniqueId,
           link,
-          skor
+          skor,
+          tespit_platform
         ]);
 
         yeniEklenen++;
@@ -348,11 +349,21 @@ class AvciBot {
   }
 
   // Potansiyel müşterileri listele (filtreli)
-  async listele({ durum, kategori, sehir, ilce, siralama, limit, offset }) {
+  async listele({ durum, kategori, sehir, ilce, siralama, limit, offset, kaynak }) {
     let query = 'SELECT * FROM potansiyel_musteriler WHERE 1=1';
     const params = [];
     let idx = 1;
 
+    if (kaynak && kaynak !== 'hepsi') {
+      if (kaynak === 'maps') {
+        query += ` AND (kaynak = 'maps' OR kaynak IS NULL)`;
+      } else if (kaynak === 'sosyal') {
+        query += ` AND kaynak IN ('instagram', 'facebook', 'tiktok')`;
+      } else {
+        query += ` AND kaynak = $${idx++}`;
+        params.push(kaynak);
+      }
+    }
     if (durum && durum !== 'hepsi') {
       query += ` AND durum = $${idx++}`;
       params.push(durum);
