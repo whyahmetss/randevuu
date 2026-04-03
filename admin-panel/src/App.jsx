@@ -823,6 +823,7 @@ function Dashboard() {
 
                         <div className="odeme-yontem">
                           <h4 className="mb-10">💳 Kredi Kartı ile Öde</h4>
+                          <div className="ref-uyari" style={{ marginBottom: 8 }}>⚠️ Ödeme sırasında "Satıcıya not" alanına <strong>{odemeBilgi.referans_kodu}</strong> yazmayı unutmayın!</div>
                           <button onClick={() => {
                             const token = localStorage.getItem("token");
                             const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";

@@ -94,7 +94,12 @@ const PORT = process.env.PORT || 3000;
     )`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_durumu VARCHAR(30)`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_tarihi TIMESTAMP`);
+    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_siparis_id VARCHAR(100)`);
     console.log('✅ DB migration kontrolü tamamlandı');
+
+    // Shopier sipariş polling başlat
+    const shopierService = require('./services/shopierService');
+    shopierService.pollingBaslat();
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
   }

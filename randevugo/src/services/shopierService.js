@@ -1,123 +1,156 @@
-const crypto = require('crypto');
+const axios = require('axios');
+const pool = require('../config/db');
 
-const SHOPIER_PAYMENT_URL = 'https://www.shopier.com/ShowProduct/api_pay4.php';
+// ═══════════════════════════════════════════════════
+// Shopier Ödeme Linki + PAT Sipariş Takibi
+// ═══════════════════════════════════════════════════
+// Shopier'da 3 ürün oluşturulur (manuel), linkleri env'e konur.
+// PAT token ile GET /v1/orders polling yapılarak yeni ödemeler tespit edilir.
 
 class ShopierService {
   constructor() {
-    this.apiKey = process.env.SHOPIER_API_KEY || '';
-    this.apiSecret = process.env.SHOPIER_API_SECRET || '';
+    this.patToken = process.env.SHOPIER_PAT_TOKEN || '';
+    this.apiBase = 'https://api.shopier.com/v1';
+    this.sonKontrolId = null; // Son kontrol edilen sipariş ID
+    this.pollingInterval = null;
   }
 
-  // Ödeme formu HTML'i oluştur (auto-submit)
-  odemeSayfasiOlustur({ isletmeId, isletmeAdi, email, telefon, adres, sehir, paketAdi, tutar, siparisId, callbackUrl }) {
-    const randomNr = Math.floor(100000 + Math.random() * 900000);
-    const currency = 0; // TRY
-
-    const args = {
-      API_key: this.apiKey,
-      website_index: 1,
-      platform_order_id: siparisId,
-      product_name: paketAdi,
-      product_type: 1, // downloadable/virtual
-      buyer_name: isletmeAdi.split(' ')[0] || isletmeAdi,
-      buyer_surname: isletmeAdi.split(' ').slice(1).join(' ') || 'İşletme',
-      buyer_email: email,
-      buyer_account_age: 0,
-      buyer_id_nr: isletmeId,
-      buyer_phone: telefon || '5000000000',
-      billing_address: adres || 'Türkiye',
-      billing_city: sehir || 'İstanbul',
-      billing_country: 'TR',
-      billing_postcode: '34000',
-      shipping_address: adres || 'Türkiye',
-      shipping_city: sehir || 'İstanbul',
-      shipping_country: 'TR',
-      shipping_postcode: '34000',
-      total_order_value: tutar.toFixed(2),
-      currency: currency,
-      platform: 0,
-      is_in_frame: 0,
-      current_language: 0, // TR
-      modul_version: '1.0.4',
-      random_nr: randomNr,
+  // Paket bazlı Shopier ödeme linkleri (env'den okunur)
+  getOdemeLinki(paket) {
+    const linkler = {
+      baslangic: process.env.SHOPIER_LINK_BASLANGIC || '',
+      pro: process.env.SHOPIER_LINK_PRO || '',
+      premium: process.env.SHOPIER_LINK_PREMIUM || '',
     };
-
-    // Signature oluştur: hash_hmac('sha256', random_nr + order_id + total + currency, secret)
-    const data = `${args.random_nr}${args.platform_order_id}${args.total_order_value}${args.currency}`;
-    const signature = crypto.createHmac('sha256', this.apiSecret).update(data).digest('base64');
-
-    args.signature = signature;
-    args.callback = callbackUrl;
-
-    // Auto-submit HTML formu oluştur
-    const inputFields = Object.entries(args).map(([key, value]) =>
-      `<input type="hidden" name="${key}" value="${value}" />`
-    ).join('\n');
-
-    const html = `<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SıraGO - Ödeme Yönlendirme</title>
-  <style>
-    body { display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0f172a; font-family: -apple-system, system-ui, sans-serif; color: #e2e8f0; }
-    .loader { text-align: center; }
-    .spinner { width: 40px; height: 40px; border: 4px solid rgba(99,102,241,.3); border-top-color: #6366f1; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    p { font-size: 16px; opacity: .8; }
-  </style>
-</head>
-<body>
-  <div class="loader">
-    <div class="spinner"></div>
-    <p>Shopier güvenli ödeme sayfasına yönlendiriliyorsunuz...</p>
-  </div>
-  <form id="shopier_form" method="POST" action="${SHOPIER_PAYMENT_URL}">
-    ${inputFields}
-  </form>
-  <script>document.getElementById('shopier_form').submit();</script>
-</body>
-</html>`;
-
-    return { html, siparisId, randomNr };
+    return linkler[paket] || linkler.baslangic;
   }
 
-  // Shopier callback doğrulama
-  callbackDogrula(postData) {
+  // Shopier API'den siparişleri çek (PAT token ile)
+  async siparisleriGetir(limit = 10) {
+    if (!this.patToken) {
+      console.log('⚠️ Shopier PAT token ayarlanmamış');
+      return [];
+    }
     try {
-      const { platform_order_id, random_nr, signature } = postData;
-
-      if (!platform_order_id || !random_nr || !signature) {
-        console.log('⚠️ Shopier callback: eksik parametreler');
-        return { gecerli: false };
-      }
-
-      // Signature doğrula: hash_hmac('sha256', random_nr + order_id, secret)
-      const data = `${random_nr}${platform_order_id}`;
-      const expectedSignature = crypto.createHmac('sha256', this.apiSecret).update(data).digest('base64');
-
-      const decodedReceived = Buffer.from(signature, 'base64');
-      const decodedExpected = Buffer.from(expectedSignature, 'base64');
-
-      const gecerli = crypto.timingSafeEqual(decodedReceived, decodedExpected);
-
-      if (gecerli) {
-        console.log(`✅ Shopier ödeme doğrulandı — sipariş: ${platform_order_id}`);
-      } else {
-        console.log(`❌ Shopier signature geçersiz — sipariş: ${platform_order_id}`);
-      }
-
-      return {
-        gecerli,
-        siparisId: platform_order_id,
-        randomNr: random_nr,
-        paymentId: postData.payment_id || null,
-        installment: postData.installment || null,
-      };
+      const res = await axios.get(`${this.apiBase}/orders`, {
+        params: { limit },
+        headers: { Authorization: `Bearer ${this.patToken}` },
+        timeout: 10000,
+      });
+      return res.data || [];
     } catch (err) {
-      console.error('❌ Shopier callback doğrulama hatası:', err.message);
-      return { gecerli: false };
+      console.log('⚠️ Shopier sipariş çekme hatası:', err.message);
+      return [];
+    }
+  }
+
+  // Yeni siparişleri kontrol et ve DB'de eşleştir
+  async yeniSiparisleriKontrolEt() {
+    try {
+      const siparisler = await this.siparisleriGetir(20);
+      if (!siparisler.length) return;
+
+      for (const siparis of siparisler) {
+        // Zaten işlenmiş mi kontrol et
+        const mevcutRef = (await pool.query(
+          "SELECT id FROM odemeler WHERE shopier_siparis_id = $1",
+          [siparis.id]
+        )).rows[0];
+        if (mevcutRef) continue;
+
+        // Sipariş bilgilerinden işletmeyi eşleştir
+        // Shopier siparişindeki "notToSeller" alanında referans kodu olabilir
+        // veya alıcı email/telefon ile eşleştir
+        const aliciEmail = siparis.buyer?.email || '';
+        const aliciTelefon = siparis.buyer?.phone || '';
+        const siparisNotu = siparis.noteToSeller || '';
+        const tutar = parseFloat(siparis.priceData?.totalPrice || siparis.priceData?.price || '0');
+        const urunAdi = siparis.items?.[0]?.title || siparis.productTitle || '';
+
+        console.log(`📦 Shopier yeni sipariş: #${siparis.id} - ${urunAdi} - ${tutar}₺ - ${aliciEmail}`);
+
+        // Referans kodu varsa (SRGO-XX formatı)
+        let isletmeId = null;
+        const refMatch = siparisNotu.match(/SRGO-(\d+)/);
+        if (refMatch) {
+          isletmeId = parseInt(refMatch[1]);
+        }
+
+        // Email ile eşleştir
+        if (!isletmeId && aliciEmail) {
+          const isletme = (await pool.query(
+            'SELECT id FROM isletmeler WHERE email = $1', [aliciEmail]
+          )).rows[0];
+          if (isletme) isletmeId = isletme.id;
+        }
+
+        // Telefon ile eşleştir
+        if (!isletmeId && aliciTelefon) {
+          const tel = aliciTelefon.replace(/\D/g, '').slice(-10);
+          const isletme = (await pool.query(
+            "SELECT id FROM isletmeler WHERE telefon LIKE $1", [`%${tel}`]
+          )).rows[0];
+          if (isletme) isletmeId = isletme.id;
+        }
+
+        // Paketi belirle (tutar bazlı)
+        let paket = 'baslangic';
+        if (tutar >= 700) paket = 'premium';
+        else if (tutar >= 400) paket = 'pro';
+
+        const buAy = new Date().toISOString().slice(0, 7);
+
+        if (isletmeId) {
+          // Mevcut bekleyen ödeme var mı?
+          const mevcut = (await pool.query(
+            "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum != 'odendi'",
+            [isletmeId, buAy]
+          )).rows[0];
+
+          if (mevcut) {
+            await pool.query(
+              "UPDATE odemeler SET durum = 'odendi', odeme_yontemi = 'shopier', odeme_tarihi = NOW(), shopier_siparis_id = $1 WHERE id = $2",
+              [siparis.id, mevcut.id]
+            );
+          } else {
+            await pool.query(
+              "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id) VALUES ($1, $2, $3, 'odendi', 'shopier', NOW(), $4)",
+              [isletmeId, tutar, buAy, siparis.id]
+            );
+          }
+          console.log(`✅ Shopier ödeme eşleştirildi: işletme=${isletmeId}, sipariş=${siparis.id}, tutar=${tutar}₺`);
+        } else {
+          // Eşleştirilemeyen sipariş — SuperAdmin'e bildir, log'a yaz
+          await pool.query(
+            "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id, referans_kodu) VALUES (NULL, $1, $2, 'eslestirilmedi', 'shopier', NOW(), $3, $4)",
+            [tutar, buAy, siparis.id, `${aliciEmail || aliciTelefon || 'bilinmiyor'}`]
+          );
+          console.log(`⚠️ Shopier sipariş eşleştirilemedi: #${siparis.id} - ${aliciEmail} - ${tutar}₺`);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Shopier sipariş kontrol hatası:', err.message);
+    }
+  }
+
+  // Sipariş polling başlat (her 5 dakikada bir kontrol)
+  pollingBaslat() {
+    if (!this.patToken) {
+      console.log('⚠️ Shopier PAT token yok, sipariş polling başlatılmadı');
+      return;
+    }
+    console.log('🔄 Shopier sipariş polling başlatıldı (5dk aralık)');
+    // İlk kontrol
+    setTimeout(() => this.yeniSiparisleriKontrolEt(), 10000);
+    // Her 5 dakikada bir
+    this.pollingInterval = setInterval(() => this.yeniSiparisleriKontrolEt(), 5 * 60 * 1000);
+  }
+
+  pollingDurdur() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+      console.log('⏹️ Shopier sipariş polling durduruldu');
     }
   }
 }
