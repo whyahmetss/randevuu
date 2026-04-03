@@ -122,14 +122,15 @@ class SatisBot extends EventEmitter {
       const { version } = await fetchLatestBaileysVersion();
       console.log('📱 Baileys version:', version);
 
+      const baileysLogger = pino({ level: 'warn' });
       this.sock = makeWASocket({
         version,
         auth: {
           creds: state.creds,
-          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+          keys: makeCacheableSignalKeyStore(state.keys, baileysLogger),
         },
         printQRInTerminal: false,
-        logger: pino({ level: 'silent' }),
+        logger: baileysLogger,
         browser: ['Ubuntu', 'Chrome', '20.0.04'],
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
@@ -142,6 +143,7 @@ class SatisBot extends EventEmitter {
       this.sock.ev.on('creds.update', saveCreds);
 
       this.sock.ev.on('connection.update', async (update) => {
+        console.log('📡 SatışBot connection.update:', JSON.stringify(update, null, 0).slice(0, 300));
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
