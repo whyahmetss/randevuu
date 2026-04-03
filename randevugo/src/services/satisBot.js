@@ -165,18 +165,24 @@ class SatisBot extends EventEmitter {
       });
 
       // Gelen mesajları dinle (cevaplar)
-      this.sock.ev.on('messages.upsert', async ({ messages, type }) => {
-        console.log(`📨 messages.upsert event: type=${type}, count=${messages.length}`);
-        if (type !== 'notify') return;
-        for (const msg of messages) {
+      this.sock.ev.on('messages.upsert', async (upsert) => {
+        const messages = upsert.messages || upsert;
+        const type = upsert.type || 'unknown';
+        console.log(`📨 messages.upsert event: type=${type}, count=${Array.isArray(messages) ? messages.length : '?'}`);
+        
+        const msgArray = Array.isArray(messages) ? messages : [messages];
+        for (const msg of msgArray) {
+          if (!msg?.key) continue;
           const jid = msg.key.remoteJid || '';
           const fromMe = msg.key.fromMe;
           const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-          console.log(`📨 Mesaj: from=${jid}, fromMe=${fromMe}, text="${text.slice(0, 50)}"`);
-          if (fromMe) continue;
-          if (!msg.message) continue;
-          // Grup mesajlarını atla
-          if (jid.endsWith('@g.us')) continue;
+          console.log(`📨 Mesaj detay: jid=${jid}, fromMe=${fromMe}, type=${type}, text="${text.slice(0, 80)}"`);
+          
+          if (fromMe) { console.log('📨 → fromMe, atlanıyor'); continue; }
+          if (!msg.message) { console.log('📨 → message yok, atlanıyor'); continue; }
+          if (jid.endsWith('@g.us')) { console.log('📨 → grup mesajı, atlanıyor'); continue; }
+          if (jid === 'status@broadcast') { console.log('📨 → status broadcast, atlanıyor'); continue; }
+          
           try {
             await this.gelenMesajIsle(msg);
           } catch (err) {
