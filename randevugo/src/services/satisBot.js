@@ -453,68 +453,145 @@ class SatisBot extends EventEmitter {
     }
   }
 
+  // ─── Fallback cevap şablonları (AI çalışmazsa) ───
+  fallbackCevapUret(musteriMesaj, konusma) {
+    const mesajLower = musteriMesaj.toLowerCase().replace(/[?!.,]/g, '');
+    const ad = konusma.isletme_adi || 'işletmeniz';
+
+    // Olumsuz / red cevapları
+    const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz', 'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın'];
+    if (redKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Anlıyorum, rahatsız ettiysem özür dilerim 🙏\n\nAma şunu bilmenizi isterim: Rakipleriniz online randevu sistemine geçiyor ve müşterileri artık telefonla aramıyor.\n\nFikrinizi değiştirirseniz bize ulaşabilirsiniz: admin.sirago.com\n\nİyi çalışmalar dilerim! 🙂`,
+        durum: 'olumsuz'
+      };
+    }
+
+    // Fiyat soruları
+    const fiyatKelimeler = ['fiyat', 'ücret', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'pahalı', 'pahali', 'para', 'maliyet', 'aylık', 'aylik'];
+    if (fiyatKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Harika soru! 💰\n\nİlk ay tamamen ÜCRETSİZ — hiçbir ödeme yok, kart bilgisi istemiyoruz.\n\nSonra:\n• Başlangıç: 299₺/ay (1 çalışan)\n• Profesyonel: 599₺/ay (5 çalışana kadar)\n• Premium: 999₺/ay (sınırsız)\n\nGünde bir kahve parası ile müşteri kaybını %80 azaltırsınız ☕\n\nÜcretsiz denemeyi hemen başlatayım mı? 👉 admin.sirago.com`,
+        durum: 'olumlu'
+      };
+    }
+
+    // Ne olduğunu sorma / merak
+    const merakKelimeler = ['nedir', 'ne', 'nasıl', 'nasil', 'anlamadım', 'anlamadim', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'ne yapıyor', 'ne yapiyor', 'özellik'];
+    if (merakKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Tabii, kısaca anlatayım 😊\n\nSıraGO, ${ad} için online randevu sistemi:\n\n✅ Müşterileriniz 7/24 telefondan randevu alır\n✅ WhatsApp ile otomatik hatırlatma gider\n✅ Randevu kaçırma oranı %80 düşer\n✅ Tüm yönetimi tek panelden yaparsınız\n\nSektörünüzdeki işletmeler bunu kullanarak müşteri memnuniyetini ciddi artırdı.\n\nÜcretsiz deneyin: admin.sirago.com 🚀`,
+        durum: 'olumlu'
+      };
+    }
+
+    // Olumlu / ilgi gösteren
+    const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'bakalım', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'güzel', 'iyi', 'süper', 'harika'];
+    if (olumluKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Harika! 🎉\n\nHemen başlayalım! Şu adrese girin:\n👉 admin.sirago.com\n\n30 saniyede kayıt olun, sistemi hemen kullanmaya başlayın. İlk ay tamamen ücretsiz!\n\nKurulumda yardıma ihtiyacınız olursa ben buradayım 💪`,
+        durum: 'olumlu'
+      };
+    }
+
+    // Selam / merhaba
+    const selamKelimeler = ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'gunaydin', 'günaydın'];
+    if (selamKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Merhabalar! 🙂\n\n${ad} için online randevu sistemi hakkında yazmıştım. Müşterileriniz telefonla aramak yerine 7/24 online randevu alabilir.\n\nİlk ay tamamen ücretsiz — denemek ister misiniz?\n\n👉 admin.sirago.com`,
+        durum: 'bekliyor'
+      };
+    }
+
+    // Genel / bilinmeyen mesajlar — ısrarcı ama kibar
+    return {
+      mesaj: `Teşekkürler yanıtınız için! 🙏\n\n${ad} için online randevu sistemi gerçekten fark yaratır. Müşterileriniz telefonla aramak yerine anında randevu alır, siz de WhatsApp ile otomatik hatırlatma gönderirsiniz.\n\nÜstelik ilk ay tamamen ücretsiz — risk yok!\n\n2 dakikada deneyin: admin.sirago.com 🚀`,
+      durum: 'bekliyor'
+    };
+  }
+
   async deepseekSatisCevabi(musteriMesaj, konusma) {
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
-      console.log('⚠️ DEEPSEEK_API_KEY yok, AI satış devre dışı');
-      return null;
+      console.log('⚠️ DEEPSEEK_API_KEY yok, fallback şablon kullanılıyor');
+      return this.fallbackCevapUret(musteriMesaj, konusma);
     }
 
-    const prompt = `Sen SıraGO'nun satış temsilcisisin. İşletmelere online randevu sistemi satıyorsun.
+    const konusmaGecmisi = konusma.gelen_mesajlar || '';
+    const mesajSayisi = (konusmaGecmisi.match(/Müşteri:/g) || []).length;
+
+    const prompt = `Sen Türkiye'nin en iyi satış uzmanısın. Profesyonel, ısrarcı ama saygılı bir pazarlamacısın. ASLA pes etmezsin. Müşteriyi ikna etmek senin işin.
+
+SEN KİMSİN: SıraGO satış temsilcisi
+NE SATIYORSUN: İşletmelere online randevu sistemi
 
 ÜRÜNLERİN:
-- Online randevu sistemi (7/24 müşteriler randevu alabilir)
-- WhatsApp ile otomatik hatırlatma
-- Kolay yönetim paneli
-- Fiyat: Aylık 299₺ (Başlangıç), 599₺ (Profesyonel)
-- İlk ay tamamen ücretsiz deneme
+- 7/24 online randevu sistemi (müşteriler telefondan randevu alır)
+- WhatsApp ile otomatik randevu hatırlatma
+- Tek panelden tüm yönetim
+- Müşteri kaybını %80 azaltır
+- Fiyatlar: Başlangıç 299₺/ay, Profesyonel 599₺/ay, Premium 999₺/ay
+- İLK AY TAMAMEN ÜCRETSİZ (kart bilgisi istemiyorsun)
+- Demo/Kayıt linki: admin.sirago.com
 
-KONUŞMA GEÇMİŞİ:
-İşletme: ${konusma.isletme_adi} (${konusma.kategori})
-İlk gönderilen mesaj: ${konusma.gonderilen_mesaj?.slice(0, 200)}
-${konusma.gelen_mesajlar || ''}
+KONUŞMA:
+İşletme: ${konusma.isletme_adi} (Kategori: ${konusma.kategori})
+İlk mesajımız: ${konusma.gonderilen_mesaj?.slice(0, 300)}
+Konuşma geçmişi: ${konusmaGecmisi.slice(-800)}
 
-MÜŞTERİ SON MESAJI: "${musteriMesaj}"
+MÜŞTERİNİN SON MESAJI: "${musteriMesaj}"
+Bu konuşmada müşteri ${mesajSayisi}. kez cevap veriyor.
+
+SATIŞ STRATEJİN:
+1. Müşteri "merhaba/selam" derse → ürünü kısaca tanıt, ücretsiz denemeyi vurgula
+2. Müşteri soru sorarsa → net ve ikna edici cevap ver, somut faydalar söyle
+3. Müşteri fiyat sorarsa → "İlk ay ücretsiz" vurgula, günlük maliyet hesabı yap (günde 10₺)
+4. Müşteri ilgileniyorsa → hemen admin.sirago.com'a yönlendir, aciliyet yarat
+5. Müşteri tereddüt ediyorsa → sektöründen örnek ver, kaybettiği müşteriyi hatırlat
+6. Müşteri reddederse → son bir koz kullan: "Rakipleriniz bunu kullanıyor", sonra kibar bir şekilde kapanış yap
+7. ${mesajSayisi} > 3 ve hala karar vermemişse → son teklif yap: "Sizin için özel 2 ay ücretsiz yapabilirim"
 
 KURALLAR:
-- Türkçe, samimi ve profesyonel ol
-- Kısa ve öz cevaplar ver (max 3-4 cümle)
-- Müşteriyi demo denemeye yönlendir
-- Demo linki: admin.sirago.com
-- Fiyat sorarlarsa "İlk ay ücretsiz, sonra aylık 299₺'den başlıyor" de
-- İlgisizlerse nazikçe teşekkür et
-- Emoji kullan ama abartma
+- Türkçe yaz, doğal ve samimi ol
+- Max 4-5 cümle (uzun yazma)
+- Her mesajda admin.sirago.com linkini ver
+- Emoji kullan ama abartma (max 2-3)
+- Müşterinin adını/işletme adını kullan
+- ASLA "yapay zeka" veya "bot" olduğunu söyleme
+- Rakip ismi verme
 
-CEVABINI ŞU JSON FORMATINDA VER (sadece JSON, başka bir şey yazma):
-{
-  "mesaj": "müşteriye gönderilecek mesaj",
-  "durum": "olumlu" veya "olumsuz" veya "bekliyor"
-}`;
+CEVABINI SADECE ŞU JSON FORMATINDA VER:
+{"mesaj": "müşteriye gönderilecek mesaj", "durum": "olumlu" veya "olumsuz" veya "bekliyor"}`;
 
     try {
       const response = await axios.post('https://api.deepseek.com/chat/completions', {
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: 'Sen bir satış asistanısın. Sadece JSON formatında yanıt ver.' },
+          { role: 'system', content: 'Sen agresif ama kibar bir satış uzmanısın. Hedefin müşteriyi ikna etmek. Sadece JSON formatında yanıt ver, başka hiçbir şey yazma.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
+        temperature: 0.8,
         max_tokens: 500
       }, {
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        timeout: 15000
+        timeout: 20000
       });
 
       const content = response.data.choices[0]?.message?.content || '';
-      // JSON parse et
+      console.log(`🤖 DeepSeek raw response: ${content.slice(0, 200)}`);
+      
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.mesaj) return parsed;
       }
-      return { mesaj: content.replace(/```json|```/g, '').trim(), durum: 'bekliyor' };
+      // JSON parse başarısız — fallback
+      console.log('⚠️ DeepSeek JSON parse hatası, fallback kullanılıyor');
+      return this.fallbackCevapUret(musteriMesaj, konusma);
     } catch (err) {
       console.error('❌ DeepSeek satış hatası:', err.message);
-      return null;
+      // AI hata verirse fallback şablonlarla cevap ver
+      return this.fallbackCevapUret(musteriMesaj, konusma);
     }
   }
 
