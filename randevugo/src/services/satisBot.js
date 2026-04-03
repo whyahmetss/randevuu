@@ -130,8 +130,13 @@ class SatisBot extends EventEmitter {
         },
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ['RandevuGO', 'Chrome', '4.0.0'],
+        browser: ['Ubuntu', 'Chrome', '20.0.04'],
         generateHighQualityLinkPreview: false,
+        syncFullHistory: false,
+        connectTimeoutMs: 60000,
+        qrTimeout: 60000,
+        defaultQueryTimeoutMs: 0,
+        markOnlineOnConnect: false,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
@@ -177,8 +182,15 @@ class SatisBot extends EventEmitter {
             const bekleme = Math.min(5000 * this.reconnectAttempts, 30000);
             console.log(`🔄 Satış Bot ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
             setTimeout(() => this.baslat(), bekleme);
+          } else if (!statusCode && !this.basariliOturumVardi && this.reconnectAttempts < 3) {
+            // QR timeout (kod undefined) — yeni QR üret
+            this.reconnectAttempts++;
+            this.durum = 'kapali';
+            this.sock = null;
+            console.log(`🔄 QR süresi doldu, yeni QR üretiliyor (deneme ${this.reconnectAttempts}/3)...`);
+            setTimeout(() => this.baslat(), 3000);
           } else {
-            // QR taranmadan kapandı veya max deneme aşıldı — dur
+            // Max deneme aşıldı — dur
             this.durum = 'kapali';
             this.qrBase64 = null;
             this.sock = null;
