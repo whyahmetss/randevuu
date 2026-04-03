@@ -3,6 +3,7 @@ const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
 const PAKETLER = require('../config/paketler');
+const avciBot = require('../services/avciBot');
 
 class AdminController {
 
@@ -651,6 +652,75 @@ class AdminController {
         [durum, req.params.id]
       );
       res.json({ odeme: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== AVCI BOT ====================
+
+  async avciTarama(req, res) {
+    try {
+      const { sehir, ilce, kategori } = req.body;
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) return res.status(400).json({ hata: 'GOOGLE_MAPS_API_KEY .env dosyasında tanımlı değil' });
+      if (!sehir || !kategori) return res.status(400).json({ hata: 'Şehir ve kategori zorunlu' });
+
+      const sonuc = await avciBot.taramaYap({ sehir, ilce, kategori, apiKey });
+      res.json(sonuc);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async avciListe(req, res) {
+    try {
+      const { durum, kategori, sehir, ilce, siralama, limit, offset } = req.query;
+      const liste = await avciBot.listele({
+        durum, kategori, sehir, ilce, siralama,
+        limit: limit ? parseInt(limit) : 50,
+        offset: offset ? parseInt(offset) : 0
+      });
+      res.json({ potansiyel_musteriler: liste });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async avciIstatistik(req, res) {
+    try {
+      const stats = await avciBot.istatistikler();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async avciGunlukListe(req, res) {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit) : 10;
+      const liste = await avciBot.gunlukListe(limit);
+      res.json({ gunluk_liste: liste });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async avciDurumGuncelle(req, res) {
+    try {
+      const { durum, notlar, sonraki_arama } = req.body;
+      const musteri = await avciBot.durumGuncelle(req.params.id, { durum, notlar, sonraki_arama });
+      if (!musteri) return res.status(404).json({ hata: 'Kayıt bulunamadı' });
+      res.json({ musteri });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async avciSil(req, res) {
+    try {
+      await avciBot.sil(req.params.id);
+      res.json({ mesaj: 'Silindi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

@@ -1073,6 +1073,18 @@ function SuperAdminPanel({ kullanici }) {
   const [odemeFiltre, setOdemeFiltre] = useState("hepsi");
   const [yeniOdeme, setYeniOdeme] = useState({ isletme_id: "", tutar: "", donem: new Date().toISOString().slice(0, 7) });
   const [odemeFormAcik, setOdemeFormAcik] = useState(false);
+  // Avcı Bot state
+  const [avciListe, setAvciListe] = useState([]);
+  const [avciStats, setAvciStats] = useState(null);
+  const [avciGunluk, setAvciGunluk] = useState([]);
+  const [avciFiltre, setAvciFiltre] = useState("hepsi");
+  const [avciSiralama, setAvciSiralama] = useState("skor_desc");
+  const [avciTaramaAcik, setAvciTaramaAcik] = useState(false);
+  const [avciTarama, setAvciTarama] = useState({ sehir: "İstanbul", ilce: "", kategori: "berber" });
+  const [avciTaramaSonuc, setAvciTaramaSonuc] = useState(null);
+  const [avciTaramaYukleniyor, setAvciTaramaYukleniyor] = useState(false);
+  const [avciSecili, setAvciSecili] = useState(null);
+  const [avciTab, setAvciTab] = useState("liste");
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
@@ -1093,10 +1105,24 @@ function SuperAdminPanel({ kullanici }) {
     odemeleriYukle();
   }, []);
 
+  const avciListeYukle = async () => {
+    const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&siralama=${avciSiralama}&limit=100`);
+    setAvciListe(d.potansiyel_musteriler || []);
+  };
+  const avciStatsYukle = async () => {
+    const d = await api.get("/admin/avci/istatistik");
+    setAvciStats(d);
+  };
+  const avciGunlukYukle = async () => {
+    const d = await api.get("/admin/avci/gunluk?limit=10");
+    setAvciGunluk(d.gunluk_liste || []);
+  };
+
   useEffect(() => {
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
-  }, [sayfa]);
+    if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
+  }, [sayfa, avciFiltre, avciSiralama]);
 
   const isletmeEkle = async (e) => {
     e.preventDefault();
@@ -1142,6 +1168,7 @@ function SuperAdminPanel({ kullanici }) {
     { id: "dashboard", icon: "📊", label: "Dashboard" },
     { id: "isletmeler", icon: "🏪", label: "İşletmeler" },
     { id: "odemeler", icon: "💰", label: "Ödemeler" },
+    { id: "avci", icon: "🎯", label: "Avcı Bot" },
   ];
 
   const kategoriRenk = { berber: "#3b82f6", kuafor: "#8b5cf6", disci: "#10b981", guzellik: "#f59e0b", veteriner: "#ef4444", diyetisyen: "#06b6d4" };
@@ -1490,6 +1517,248 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               ))
             }
+          </>
+        )}
+
+        {/* AVCI BOT */}
+        {sayfa === "avci" && (
+          <>
+            <h1 style={{ color: "#fff", fontSize: 24, marginBottom: 8 }}>🎯 Avcı Bot — Potansiyel Müşteriler</h1>
+            <p style={{ color: "#475569", fontSize: 13, marginBottom: 24 }}>Google Maps'ten işletmeleri bul, skorla, ara ve müşteri yap.</p>
+
+            {/* Stats */}
+            {avciStats && (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+                <StatCard icon="📍" baslik="Toplam Lead" deger={avciStats.toplam} renk="#f59e0b" />
+                <StatCard icon="🆕" baslik="Yeni" deger={avciStats.yeni} renk="#3b82f6" />
+                <StatCard icon="📞" baslik="Arandı" deger={avciStats.arandi} renk="#8b5cf6" />
+                <StatCard icon="🤝" baslik="İlgileniyor" deger={avciStats.ilgileniyor} renk="#10b981" />
+                <StatCard icon="✅" baslik="Müşteri Oldu" deger={avciStats.musteri_oldu} renk="#10b981" />
+              </div>
+            )}
+
+            {/* Tarama + Tab butonları */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setAvciTab("gunluk")}
+                  style={{ padding: "8px 18px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                    background: avciTab === "gunluk" ? "#f59e0b" : "#1e293b", color: avciTab === "gunluk" ? "#000" : "#94a3b8" }}>
+                  📞 Bugün Ara ({avciGunluk.length})
+                </button>
+                <button onClick={() => setAvciTab("liste")}
+                  style={{ padding: "8px 18px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                    background: avciTab === "liste" ? "#f59e0b" : "#1e293b", color: avciTab === "liste" ? "#000" : "#94a3b8" }}>
+                  📋 Tüm Liste ({avciListe.length})
+                </button>
+              </div>
+              <button onClick={() => setAvciTaramaAcik(!avciTaramaAcik)}
+                style={{ padding: "8px 20px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                🔍 Yeni Tarama Yap
+              </button>
+            </div>
+
+            {/* Tarama formu */}
+            {avciTaramaAcik && (
+              <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #10b98144" }}>
+                <h3 style={{ color: "#10b981", fontSize: 15, marginBottom: 16 }}>🔍 Google Maps Tarama</h3>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <div>
+                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Şehir *</label>
+                    <input value={avciTarama.sehir} onChange={e => setAvciTarama({...avciTarama, sehir: e.target.value})}
+                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 140 }} />
+                  </div>
+                  <div>
+                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>İlçe (opsiyonel)</label>
+                    <input value={avciTarama.ilce} onChange={e => setAvciTarama({...avciTarama, ilce: e.target.value})} placeholder="ör: Kadıköy"
+                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 140 }} />
+                  </div>
+                  <div>
+                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Kategori *</label>
+                    <select value={avciTarama.kategori} onChange={e => setAvciTarama({...avciTarama, kategori: e.target.value})}
+                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }}>
+                      {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
+                        <option key={k} value={k}>{k}</option>
+                      )}
+                    </select>
+                  </div>
+                  <button disabled={avciTaramaYukleniyor} onClick={async () => {
+                    setAvciTaramaYukleniyor(true);
+                    setAvciTaramaSonuc(null);
+                    try {
+                      const res = await api.post("/admin/avci/tarama", avciTarama);
+                      setAvciTaramaSonuc(res);
+                      avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
+                    } catch(e) { setAvciTaramaSonuc({ hata: e.message }); }
+                    setAvciTaramaYukleniyor(false);
+                  }} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: avciTaramaYukleniyor ? "#334155" : "#10b981", color: "#fff", cursor: avciTaramaYukleniyor ? "wait" : "pointer", fontWeight: 700 }}>
+                    {avciTaramaYukleniyor ? "⏳ Taranıyor..." : "🚀 Tara"}
+                  </button>
+                </div>
+                {avciTaramaSonuc && (
+                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: avciTaramaSonuc.hata ? "#ef444420" : "#10b98120", color: avciTaramaSonuc.hata ? "#ef4444" : "#10b981", fontSize: 13 }}>
+                    {avciTaramaSonuc.hata
+                      ? `❌ ${avciTaramaSonuc.hata}`
+                      : `✅ "${avciTaramaSonuc.arama_metni}" — ${avciTaramaSonuc.toplam_bulunan} bulundu, ${avciTaramaSonuc.yeni_eklenen} yeni eklendi, ${avciTaramaSonuc.zaten_var} zaten vardı`
+                    }
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* GÜNLÜK ARAMA LİSTESİ */}
+            {avciTab === "gunluk" && (
+              <>
+                <div style={{ background: "#f59e0b11", border: "1px solid #f59e0b33", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 20 }}>📞</span>
+                    <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 16 }}>Bugün Aranacak {avciGunluk.length} İşletme</span>
+                  </div>
+                  <p style={{ color: "#94a3b8", fontSize: 12, margin: 0 }}>En yüksek skorlu, telefonu olan, henüz aranmamış veya tekrar aranacak işletmeler</p>
+                </div>
+                {avciGunluk.length === 0 ? (
+                  <div style={{ background: "#1e293b", borderRadius: 12, padding: 40, textAlign: "center" }}>
+                    <p style={{ color: "#64748b", margin: 0 }}>Bugün aranacak kimse yok. Yeni tarama yap! 🔍</p>
+                  </div>
+                ) : avciGunluk.map((m, idx) => (
+                  <div key={m.id} style={{ background: "#1e293b", borderRadius: 12, padding: 18, marginBottom: 10, border: "1px solid #1e293b" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
+                          <span style={{ background: "#f59e0b", color: "#000", width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</span>
+                          <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{m.isletme_adi}</span>
+                          <span style={{ background: "#3b82f622", color: "#3b82f6", padding: "2px 10px", borderRadius: 20, fontSize: 11 }}>{m.kategori}</span>
+                          <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 10px", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Skor: {m.skor}</span>
+                        </div>
+                        <div style={{ color: "#94a3b8", fontSize: 13, marginBottom: 6 }}>
+                          {m.telefon && <span>📞 <strong style={{ color: "#fff" }}>{m.telefon}</strong></span>}
+                          {m.adres && <span style={{ marginLeft: 12 }}>📍 {m.adres}</span>}
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", fontSize: 11 }}>
+                          {!m.web_sitesi && <span style={{ background: "#10b98122", color: "#10b981", padding: "2px 8px", borderRadius: 10 }}>🌐 Web sitesi yok</span>}
+                          {m.puan && <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 8px", borderRadius: 10 }}>⭐ {m.puan}</span>}
+                          <span style={{ background: "#8b5cf622", color: "#8b5cf6", padding: "2px 8px", borderRadius: 10 }}>💬 {m.yorum_sayisi} yorum</span>
+                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ background: "#3b82f622", color: "#3b82f6", padding: "2px 8px", borderRadius: 10, textDecoration: "none" }}>🗺️ Maps</a>}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                        <button onClick={async () => {
+                          await api.put(`/admin/avci/${m.id}`, { durum: "arandi" });
+                          avciGunlukYukle(); avciStatsYukle(); avciListeYukle();
+                        }} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#8b5cf622", color: "#8b5cf6", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                          📞 Arandı
+                        </button>
+                        <button onClick={async () => {
+                          await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" });
+                          avciGunlukYukle(); avciStatsYukle(); avciListeYukle();
+                        }} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "#10b98122", color: "#10b981", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                          🤝 İlgileniyor
+                        </button>
+                        <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)}
+                          style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 12 }}>
+                          📝 Not
+                        </button>
+                      </div>
+                    </div>
+                    {/* Not alanı */}
+                    {avciSecili === m.id && (
+                      <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
+                        <input id={`not_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..."
+                          style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }} />
+                        <button onClick={async () => {
+                          const notInput = document.getElementById(`not_${m.id}`);
+                          await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value });
+                          setAvciSecili(null);
+                          avciListeYukle(); avciGunlukYukle();
+                        }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Kaydet</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* TÜM LİSTE */}
+            {avciTab === "liste" && (
+              <>
+                {/* Filtreler */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                  {[["hepsi","Tümü"],["yeni","Yeni"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["demo_yapildi","Demo"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
+                    <button key={v} onClick={() => setAvciFiltre(v)}
+                      style={{ padding: "5px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                        background: avciFiltre === v ? "#f59e0b" : "#1e293b", color: avciFiltre === v ? "#000" : "#94a3b8" }}>
+                      {l}
+                    </button>
+                  ))}
+                  <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)}
+                    style={{ marginLeft: "auto", padding: "5px 10px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#94a3b8", fontSize: 12, outline: "none" }}>
+                    <option value="skor_desc">Skor ↓</option>
+                    <option value="puan_desc">Puan ↓</option>
+                    <option value="yorum_desc">Yorum ↓</option>
+                    <option value="yeni">En Yeni</option>
+                  </select>
+                </div>
+
+                {avciListe.length === 0 ? (
+                  <div style={{ background: "#1e293b", borderRadius: 12, padding: 40, textAlign: "center" }}>
+                    <p style={{ color: "#64748b", margin: 0 }}>Henüz potansiyel müşteri yok. Tarama yap! 🔍</p>
+                  </div>
+                ) : avciListe.map(m => {
+                  const durumRenk = { yeni: "#3b82f6", arandi: "#8b5cf6", ilgileniyor: "#10b981", ilgilenmiyor: "#ef4444", demo_yapildi: "#f59e0b", musteri_oldu: "#10b981" };
+                  const durumLabel = { yeni: "Yeni", arandi: "Arandı", ilgileniyor: "İlgileniyor", ilgilenmiyor: "İlgilenmiyor", demo_yapildi: "Demo Yapıldı", musteri_oldu: "Müşteri ✓" };
+                  return (
+                    <div key={m.id} style={{ background: "#1e293b", borderRadius: 12, padding: 16, marginBottom: 8, borderLeft: `3px solid ${durumRenk[m.durum] || "#334155"}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                            <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{m.isletme_adi}</span>
+                            <span style={{ background: (durumRenk[m.durum] || "#64748b") + "22", color: durumRenk[m.durum] || "#64748b", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{durumLabel[m.durum] || m.durum}</span>
+                            <span style={{ background: "#f59e0b22", color: "#f59e0b", padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Skor: {m.skor}</span>
+                            {m.puan && <span style={{ color: "#f59e0b", fontSize: 12 }}>⭐ {m.puan}</span>}
+                            <span style={{ color: "#64748b", fontSize: 11 }}>💬 {m.yorum_sayisi}</span>
+                          </div>
+                          <div style={{ color: "#64748b", fontSize: 12, marginBottom: 4 }}>
+                            {m.telefon && <span>📞 {m.telefon}</span>}
+                            {m.kategori && <span style={{ marginLeft: 10 }}>🏷️ {m.kategori}</span>}
+                            {m.ilce && <span style={{ marginLeft: 10 }}>📍 {m.ilce}</span>}
+                            {!m.web_sitesi && <span style={{ marginLeft: 10, color: "#10b981" }}>🌐 Web yok</span>}
+                            {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ marginLeft: 10, color: "#3b82f6", textDecoration: "none", fontSize: 11 }}>🗺️ Maps</a>}
+                          </div>
+                          {m.notlar && <div style={{ color: "#94a3b8", fontSize: 12, marginTop: 4, fontStyle: "italic" }}>📝 {m.notlar}</div>}
+                        </div>
+                        <div style={{ display: "flex", gap: 4, flexShrink: 0, flexWrap: "wrap" }}>
+                          {["yeni","arandi","ilgileniyor","ilgilenmiyor","demo_yapildi","musteri_oldu"].filter(d => d !== m.durum).slice(0,3).map(d => (
+                            <button key={d} onClick={async () => {
+                              await api.put(`/admin/avci/${m.id}`, { durum: d });
+                              avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
+                            }} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: (durumRenk[d] || "#64748b") + "22", color: durumRenk[d] || "#64748b", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+                              {durumLabel[d]}
+                            </button>
+                          ))}
+                          <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)}
+                            style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #334155", background: "transparent", color: "#94a3b8", cursor: "pointer", fontSize: 11 }}>📝</button>
+                          <button onClick={async () => {
+                            if (!confirm(`"${m.isletme_adi}" silinsin mi?`)) return;
+                            await api.del(`/admin/avci/${m.id}`);
+                            avciListeYukle(); avciStatsYukle();
+                          }} style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "#ef444422", color: "#ef4444", cursor: "pointer", fontSize: 11 }}>✕</button>
+                        </div>
+                      </div>
+                      {avciSecili === m.id && (
+                        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                          <input id={`not2_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..."
+                            style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }} />
+                          <button onClick={async () => {
+                            const notInput = document.getElementById(`not2_${m.id}`);
+                            await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value });
+                            setAvciSecili(null); avciListeYukle();
+                          }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Kaydet</button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </>
         )}
 

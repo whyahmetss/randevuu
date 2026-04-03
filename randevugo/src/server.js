@@ -23,6 +23,28 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS not_text TEXT`);
     await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT true`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS mola_saatleri JSONB DEFAULT '[]'`);
+    // Avcı Bot - Potansiyel müşteri tablosu
+    await pool.query(`CREATE TABLE IF NOT EXISTS potansiyel_musteriler (
+      id SERIAL PRIMARY KEY,
+      isletme_adi VARCHAR(255) NOT NULL,
+      telefon VARCHAR(50),
+      adres TEXT,
+      sehir VARCHAR(100),
+      ilce VARCHAR(100),
+      kategori VARCHAR(100),
+      puan DECIMAL(2,1),
+      yorum_sayisi INTEGER DEFAULT 0,
+      web_sitesi VARCHAR(500),
+      instagram VARCHAR(255),
+      google_maps_id VARCHAR(255) UNIQUE,
+      google_maps_url TEXT,
+      skor INTEGER DEFAULT 0,
+      durum VARCHAR(50) DEFAULT 'yeni',
+      notlar TEXT,
+      arama_tarihi TIMESTAMP,
+      sonraki_arama TIMESTAMP,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
