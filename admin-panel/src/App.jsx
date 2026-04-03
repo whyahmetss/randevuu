@@ -2052,6 +2052,65 @@ function SuperAdminPanel({ kullanici }) {
               )}
             </div>
 
+            {/* Ayarlar */}
+            {satisBotDurum?.ayarlar && (
+              <div className="card mb-24" style={{ padding: 20 }}>
+                <h3 className="mb-12" style={{ fontSize: 15 }}>⚙️ Bot Ayarları</h3>
+                <div className="row row-wrap gap-16">
+                  <div style={{ flex: "1 1 140px" }}>
+                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Mesai Başlangıç</label>
+                    <select value={satisBotDurum.ayarlar.mesaiBaslangic} onChange={async (e) => {
+                      await api.put("/admin/satis-bot/ayarlar", { mesaiBaslangic: parseInt(e.target.value) }); satisBotYukle();
+                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
+                      {[7,8,9,10,11,12].map(s => <option key={s} value={s}>{s}:00</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: "1 1 140px" }}>
+                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Mesai Bitiş</label>
+                    <select value={satisBotDurum.ayarlar.mesaiBitis} onChange={async (e) => {
+                      await api.put("/admin/satis-bot/ayarlar", { mesaiBitis: parseInt(e.target.value) }); satisBotYukle();
+                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
+                      {[17,18,19,20,21,22].map(s => <option key={s} value={s}>{s}:00</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: "1 1 140px" }}>
+                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Günlük Limit</label>
+                    <select value={satisBotDurum.ayarlar.gunlukLimit} onChange={async (e) => {
+                      await api.put("/admin/satis-bot/ayarlar", { gunlukLimit: parseInt(e.target.value) }); satisBotYukle();
+                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
+                      {[10,20,30,40,50,75,100].map(s => <option key={s} value={s}>{s} mesaj</option>)}
+                    </select>
+                  </div>
+                  <div style={{ flex: "1 1 140px" }}>
+                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Mesaj Aralığı (dk)</label>
+                    <div className="row gap-6">
+                      <select value={satisBotDurum.ayarlar.minBekleme} onChange={async (e) => {
+                        await api.put("/admin/satis-bot/ayarlar", { minBekleme: parseInt(e.target.value) }); satisBotYukle();
+                      }} className="input" style={{ padding: "6px 10px", fontSize: 13, flex: 1 }}>
+                        {[1,2,3,5,8,10,15].map(s => <option key={s} value={s}>min {s}</option>)}
+                      </select>
+                      <select value={satisBotDurum.ayarlar.maxBekleme} onChange={async (e) => {
+                        await api.put("/admin/satis-bot/ayarlar", { maxBekleme: parseInt(e.target.value) }); satisBotYukle();
+                      }} className="input" style={{ padding: "6px 10px", fontSize: 13, flex: 1 }}>
+                        {[5,8,10,15,20,25,30].map(s => <option key={s} value={s}>max {s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ flex: "1 1 140px", display: "flex", alignItems: "flex-end" }}>
+                    <button onClick={async () => {
+                      await api.put("/admin/satis-bot/ayarlar", { tatil: !satisBotDurum.ayarlar.tatil }); satisBotYukle();
+                    }} className="btn btn-sm" style={{
+                      background: satisBotDurum.ayarlar.tatil ? "rgba(239,68,68,.15)" : "rgba(16,185,129,.15)",
+                      color: satisBotDurum.ayarlar.tatil ? "#ef4444" : "#10b981",
+                      fontWeight: 700, width: "100%"
+                    }}>
+                      {satisBotDurum.ayarlar.tatil ? "🏖️ TATİL — Gönderim Durduruldu" : "✅ Mesai Aktif"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* İstatistikler */}
             {satisBotDurum?.istatistikler && (
               <div className="row row-wrap gap-12 mb-24">

@@ -1031,6 +1031,16 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+
+  async satisBotAyarGuncelle(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      const ayarlar = satisBot.ayarGuncelle(req.body);
+      res.json({ mesaj: 'Ayarlar güncellendi', ayarlar });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
 }
 
 module.exports = new AdminController();

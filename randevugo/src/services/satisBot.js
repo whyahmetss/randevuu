@@ -67,7 +67,22 @@ class SatisBot extends EventEmitter {
     this.gonderimTimer = null;
     this.gunlukGonderim = 0;
     this.sonGonderimTarihi = null;
-    this.konusmalar = {}; // telefon -> { mesajlar: [], durum: 'bekliyor'|'olumlu'|'olumsuz' }
+    this.konusmalar = {};
+    // SuperAdmin'den kontrol edilebilir ayarlar
+    this.ayarlar = {
+      mesaiBaslangic: 9,   // saat
+      mesaiBitis: 19,       // saat
+      gunlukLimit: 50,
+      minBekleme: 8,        // dakika
+      maxBekleme: 15,       // dakika
+      tatil: false,         // bugün tatil mi
+    };
+  }
+
+  ayarGuncelle(yeniAyarlar) {
+    this.ayarlar = { ...this.ayarlar, ...yeniAyarlar };
+    console.log('⚙️ Satış Bot ayarları güncellendi:', this.ayarlar);
+    return this.ayarlar;
   }
 
   // ═══════════════════════════════════════════════════
@@ -185,7 +200,8 @@ class SatisBot extends EventEmitter {
       qrBase64: this.qrBase64,
       aktif: this.aktif,
       gunlukGonderim: this.gunlukGonderim,
-      sonGonderimTarihi: this.sonGonderimTarihi
+      sonGonderimTarihi: this.sonGonderimTarihi,
+      ayarlar: this.ayarlar
     };
   }
 
@@ -222,26 +238,32 @@ class SatisBot extends EventEmitter {
       this.sonGonderimTarihi = bugun;
     }
 
-    // Günlük limit: max 50 mesaj
-    if (this.gunlukGonderim >= 50) {
-      console.log('📊 Günlük limit doldu (50), yarın devam edilecek');
-      // Yarın sabah 9'da tekrar başla
+    // Tatil kontrolü
+    if (this.ayarlar.tatil) {
+      console.log('🏖️ Bugün tatil — gönderim yapılmıyor. 1 saat sonra tekrar kontrol.');
+      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 60 * 60 * 1000);
+      return;
+    }
+
+    // Günlük limit
+    if (this.gunlukGonderim >= this.ayarlar.gunlukLimit) {
+      console.log(`📊 Günlük limit doldu (${this.ayarlar.gunlukLimit}), yarın devam edilecek`);
       const yarin = new Date();
       yarin.setDate(yarin.getDate() + 1);
-      yarin.setHours(9, 0, 0, 0);
+      yarin.setHours(this.ayarlar.mesaiBaslangic, 0, 0, 0);
       const bekleme = yarin.getTime() - Date.now();
       this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), bekleme);
       return;
     }
 
-    // Mesai saatleri kontrolü (09:00 - 19:00)
+    // Mesai saatleri kontrolü (SuperAdmin'den ayarlanır)
     const saat = new Date().getHours();
-    if (saat < 9 || saat >= 19) {
-      console.log('🕐 Mesai dışı, 09:00\'da devam edilecek');
-      const yarin = new Date();
-      if (saat >= 19) yarin.setDate(yarin.getDate() + 1);
-      yarin.setHours(9, 0, 0, 0);
-      const bekleme = yarin.getTime() - Date.now();
+    if (saat < this.ayarlar.mesaiBaslangic || saat >= this.ayarlar.mesaiBitis) {
+      console.log(`🕐 Mesai dışı (${this.ayarlar.mesaiBaslangic}:00-${this.ayarlar.mesaiBitis}:00), mesai başında devam edilecek`);
+      const sonraki = new Date();
+      if (saat >= this.ayarlar.mesaiBitis) sonraki.setDate(sonraki.getDate() + 1);
+      sonraki.setHours(this.ayarlar.mesaiBaslangic, 0, 0, 0);
+      const bekleme = sonraki.getTime() - Date.now();
       this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), bekleme);
       return;
     }
@@ -260,13 +282,13 @@ class SatisBot extends EventEmitter {
       await this.leadeMesajGonder(lead);
       this.gunlukGonderim++;
 
-      // Anti-ban: Rastgele 8-15 dakika bekle (2 saatte ~10 mesaj)
-      const minBekleme = 8 * 60 * 1000;  // 8 dk
-      const maxBekleme = 15 * 60 * 1000; // 15 dk
+      // Anti-ban: Rastgele bekleme (ayarlardan)
+      const minBekleme = this.ayarlar.minBekleme * 60 * 1000;
+      const maxBekleme = this.ayarlar.maxBekleme * 60 * 1000;
       const bekleme = minBekleme + Math.random() * (maxBekleme - minBekleme);
       const dakika = Math.round(bekleme / 60000);
 
-      console.log(`⏳ Sonraki mesaj ${dakika} dakika sonra (bugün: ${this.gunlukGonderim}/50)`);
+      console.log(`⏳ Sonraki mesaj ${dakika} dakika sonra (bugün: ${this.gunlukGonderim}/${this.ayarlar.gunlukLimit})`);
       this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), bekleme);
 
     } catch (err) {
