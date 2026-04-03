@@ -824,7 +824,7 @@ function Dashboard() {
                         <div className="odeme-yontem">
                           <h4 className="mb-10">💳 Kredi Kartı ile Öde</h4>
                           <button onClick={() => {
-                            const token = localStorage.getItem("token");
+                            const token = localStorage.getItem("randevugo_token");
                             const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
                             window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
                           }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#51cbb0", color: "#fff", fontWeight: 700 }}>
