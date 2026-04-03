@@ -67,6 +67,7 @@ router.put('/admin/odemeler/:id', authMiddleware, superAdminMiddleware, (req, re
 // ==================== AVCI BOT ====================
 router.post('/admin/avci/tarama', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciTarama(req, res));
 router.post('/admin/avci/toplu-tarama', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciTopluTarama(req, res));
+router.post('/admin/avci/sosyal-tarama', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciSosyalTarama(req, res));
 router.get('/admin/avci/liste', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciListe(req, res));
 router.get('/admin/avci/istatistik', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIstatistik(req, res));
 router.get('/admin/avci/gunluk', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciGunlukListe(req, res));

@@ -45,6 +45,7 @@ const PORT = process.env.PORT || 3000;
       sonraki_arama TIMESTAMP,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
+    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS instagram VARCHAR(255)`);
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);

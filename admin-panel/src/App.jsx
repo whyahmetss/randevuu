@@ -1091,6 +1091,10 @@ function SuperAdminPanel({ kullanici }) {
   const [topluSehir, setTopluSehir] = useState("İstanbul");
   const [topluSonuc, setTopluSonuc] = useState(null);
   const [topluYukleniyor, setTopluYukleniyor] = useState(false);
+  const [sosyalAcik, setSosyalAcik] = useState(false);
+  const [sosyalTarama, setSosyalTarama] = useState({ sehir: "İstanbul", ilce: "", kategori: "berber", platform: "instagram" });
+  const [sosyalSonuc, setSosyalSonuc] = useState(null);
+  const [sosyalYukleniyor, setSosyalYukleniyor] = useState(false);
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
@@ -1558,13 +1562,17 @@ function SuperAdminPanel({ kullanici }) {
                 </button>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); }}
+                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }}
                   style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-                  🔍 Tekli Tarama
+                  🔍 Maps
                 </button>
-                <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); }}
+                <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }}
                   style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#8b5cf6", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-                  🚀 Toplu Tarama
+                  🚀 Toplu Maps
+                </button>
+                <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }}
+                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#e11d48", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                  📱 Sosyal Medya
                 </button>
               </div>
             </div>
@@ -1659,6 +1667,68 @@ function SuperAdminPanel({ kullanici }) {
                     {topluSonuc.hata
                       ? `❌ ${topluSonuc.hata}`
                       : `✅ ${topluSonuc.tarama_sayisi} tarama yapıldı — ${topluSonuc.toplam_bulunan} bulundu, ${topluSonuc.yeni_eklenen} yeni eklendi, ${topluSonuc.zaten_var} zaten vardı`
+                    }
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sosyal medya tarama formu */}
+            {sosyalAcik && (
+              <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #e11d4844" }}>
+                <h3 style={{ color: "#e11d48", fontSize: 15, marginBottom: 6 }}>📱 Sosyal Medya Tarama</h3>
+                <p style={{ color: "#64748b", fontSize: 12, marginBottom: 16 }}>Instagram, Facebook, TikTok'ta işletme profilleri bul. Google Custom Search API kullanır (günlük 100 ücretsiz sorgu).</p>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+                  <div>
+                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Platform *</label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[["instagram","📸 Instagram"],["facebook","📘 Facebook"],["tiktok","🎵 TikTok"],["hepsi","🌐 Hepsi"]].map(([v,l]) => (
+                        <button key={v} onClick={() => setSosyalTarama({...sosyalTarama, platform: v})}
+                          style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                            background: sosyalTarama.platform === v ? "#e11d48" : "#0f172a",
+                            color: sosyalTarama.platform === v ? "#fff" : "#64748b" }}>
+                          {l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Şehir *</label>
+                    <input value={sosyalTarama.sehir} onChange={e => setSosyalTarama({...sosyalTarama, sehir: e.target.value})}
+                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 120 }} />
+                  </div>
+                  <div>
+                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>İlçe</label>
+                    <input value={sosyalTarama.ilce} onChange={e => setSosyalTarama({...sosyalTarama, ilce: e.target.value})} placeholder="opsiyonel"
+                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 120 }} />
+                  </div>
+                  <div>
+                    <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Kategori *</label>
+                    <select value={sosyalTarama.kategori} onChange={e => setSosyalTarama({...sosyalTarama, kategori: e.target.value})}
+                      style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none" }}>
+                      {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
+                        <option key={k} value={k}>{k}</option>
+                      )}
+                    </select>
+                  </div>
+                  <button disabled={sosyalYukleniyor} onClick={async () => {
+                    setSosyalYukleniyor(true);
+                    setSosyalSonuc(null);
+                    try {
+                      const res = await api.post("/admin/avci/sosyal-tarama", sosyalTarama);
+                      setSosyalSonuc(res);
+                      avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
+                    } catch(e) { setSosyalSonuc({ hata: e.message }); }
+                    setSosyalYukleniyor(false);
+                  }} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: sosyalYukleniyor ? "#334155" : "#e11d48", color: "#fff", cursor: sosyalYukleniyor ? "wait" : "pointer", fontWeight: 700 }}>
+                    {sosyalYukleniyor ? "⏳ Aranıyor..." : "🔍 Tara"}
+                  </button>
+                </div>
+                {sosyalSonuc && (
+                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: sosyalSonuc.hata ? "#ef444420" : "#e11d4822", color: sosyalSonuc.hata ? "#ef4444" : "#e11d48", fontSize: 13 }}>
+                    {sosyalSonuc.hata
+                      ? `❌ ${sosyalSonuc.hata}`
+                      : `✅ "${sosyalSonuc.arama_metni}" — ${sosyalSonuc.toplam_bulunan} sonuç, ${sosyalSonuc.yeni_eklenen} yeni profil eklendi, ${sosyalSonuc.zaten_var} zaten vardı`
                     }
                   </div>
                 )}

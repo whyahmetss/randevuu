@@ -163,6 +163,164 @@ class AvciBot {
     return toplamSonuc;
   }
 
+  // Sosyal medya araması - Google Custom Search ile Instagram/Facebook/TikTok profilleri bul
+  async sosyalMedyaTarama({ sehir, ilce, kategori, platform, apiKey, searchEngineId }) {
+    if (!apiKey || !searchEngineId) throw new Error('Google Custom Search API key ve Search Engine ID gerekli');
+
+    const siteMap = {
+      instagram: 'site:instagram.com',
+      facebook: 'site:facebook.com',
+      tiktok: 'site:tiktok.com/@',
+      hepsi: ''
+    };
+
+    const siteFilter = siteMap[platform] || '';
+    const aramaMetni = `${kategori} ${ilce ? ilce + ' ' : ''}${sehir} ${siteFilter}`.trim();
+    console.log(`🔍 Sosyal medya tarama: "${aramaMetni}"`);
+
+    let tumSonuclar = [];
+
+    // Google Custom Search - max 100 sonuç (10 sayfa x 10)
+    for (let start = 1; start <= 91; start += 10) {
+      try {
+        const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(aramaMetni)}&start=${start}&num=10`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.error) {
+          if (data.error.code === 429) {
+            console.log('⚠️ Günlük limit doldu');
+            break;
+          }
+          throw new Error(`Google Search hatası: ${data.error.message}`);
+        }
+
+        if (data.items) {
+          tumSonuclar = tumSonuclar.concat(data.items);
+        }
+
+        // Sonuç kalmadıysa dur
+        if (!data.queries?.nextPage) break;
+
+        await new Promise(r => setTimeout(r, 500));
+      } catch (e) {
+        console.log(`⚠️ Arama hatası (start=${start}):`, e.message);
+        break;
+      }
+    }
+
+    console.log(`📱 ${tumSonuclar.length} sosyal medya profili bulundu`);
+
+    let yeniEklenen = 0;
+    let zatenVar = 0;
+
+    for (const item of tumSonuclar) {
+      try {
+        const link = item.link || '';
+        const baslik = item.title || '';
+        const aciklama = item.snippet || '';
+
+        // Platform tespit
+        let tespit_platform = 'diger';
+        if (link.includes('instagram.com')) tespit_platform = 'instagram';
+        else if (link.includes('facebook.com')) tespit_platform = 'facebook';
+        else if (link.includes('tiktok.com')) tespit_platform = 'tiktok';
+
+        // Profil linki mi kontrol (post/reel değil, profil)
+        const instaProfil = tespit_platform === 'instagram' && !link.includes('/p/') && !link.includes('/reel/') && !link.includes('/stories/');
+        const fbProfil = tespit_platform === 'facebook' && !link.includes('/posts/') && !link.includes('/photos/');
+        const tiktokProfil = tespit_platform === 'tiktok' && link.includes('/@');
+
+        if (!instaProfil && !fbProfil && !tiktokProfil) continue;
+
+        // Kullanıcı adı çıkar
+        let kullaniciAdi = '';
+        if (tespit_platform === 'instagram') {
+          const match = link.match(/instagram\.com\/([^\/\?]+)/);
+          kullaniciAdi = match ? match[1] : '';
+        } else if (tespit_platform === 'facebook') {
+          const match = link.match(/facebook\.com\/([^\/\?]+)/);
+          kullaniciAdi = match ? match[1] : '';
+        } else if (tespit_platform === 'tiktok') {
+          const match = link.match(/tiktok\.com\/@([^\/\?]+)/);
+          kullaniciAdi = match ? match[1] : '';
+        }
+
+        if (!kullaniciAdi || ['explore', 'p', 'reel', 'stories', 'login', 'accounts', 'watch', 'marketplace', 'groups', 'events'].includes(kullaniciAdi)) continue;
+
+        // Unique ID: platform + kullanıcı adı
+        const uniqueId = `${tespit_platform}_${kullaniciAdi}`;
+
+        const mevcut = await pool.query(
+          'SELECT id FROM potansiyel_musteriler WHERE google_maps_id = $1',
+          [uniqueId]
+        );
+
+        if (mevcut.rows.length > 0) {
+          zatenVar++;
+          continue;
+        }
+
+        // İsletme adını başlıktan çıkar
+        let isletmeAdi = baslik
+          .replace(/\(@[^)]+\)/g, '')
+          .replace(/\| Instagram/gi, '')
+          .replace(/\| Facebook/gi, '')
+          .replace(/\| TikTok/gi, '')
+          .replace(/- Home/gi, '')
+          .trim();
+        if (!isletmeAdi) isletmeAdi = kullaniciAdi;
+
+        // Bio'dan telefon çıkarmaya çalış
+        let telefon = null;
+        const telMatch = aciklama.match(/(?:0|\+90)\s*\d{3}\s*\d{3}\s*\d{2}\s*\d{2}/);
+        if (telMatch) telefon = telMatch[0].replace(/\s/g, '');
+
+        const skor = this.skorHesapla({
+          puan: null,
+          yorum_sayisi: 0,
+          web_sitesi: null,
+          telefon: telefon,
+          instagram: tespit_platform === 'instagram' ? kullaniciAdi : null
+        });
+
+        await pool.query(`
+          INSERT INTO potansiyel_musteriler 
+          (isletme_adi, telefon, adres, sehir, ilce, kategori, puan, yorum_sayisi, web_sitesi, instagram, google_maps_id, google_maps_url, skor)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          ON CONFLICT (google_maps_id) DO NOTHING
+        `, [
+          isletmeAdi,
+          telefon,
+          null,
+          sehir,
+          ilce || null,
+          kategori,
+          null,
+          0,
+          null,
+          tespit_platform === 'instagram' ? kullaniciAdi : null,
+          uniqueId,
+          link,
+          skor
+        ]);
+
+        yeniEklenen++;
+      } catch (e) {
+        console.log(`⚠️ Sosyal medya kayıt hatası:`, e.message);
+      }
+    }
+
+    console.log(`✅ Sosyal medya tarama bitti: ${yeniEklenen} yeni, ${zatenVar} zaten vardı`);
+    return {
+      toplam_bulunan: tumSonuclar.length,
+      yeni_eklenen: yeniEklenen,
+      zaten_var: zatenVar,
+      arama_metni: aramaMetni,
+      platform
+    };
+  }
+
   // Skorlama algoritması
   skorHesapla({ puan, yorum_sayisi, web_sitesi, telefon, instagram }) {
     let skor = 0;
