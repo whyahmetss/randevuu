@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import logoIcon from "./assets/logo1.png";
+import logoFull from "./assets/logo2.png";
 
 const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://randevugo-api.onrender.com/api');
 
@@ -53,11 +55,7 @@ function Login({ onLogin }) {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">S</div>
-          <div style={{ textAlign: "center" }}>
-            <h1>SıraGO</h1>
-            <p>İşletme Yönetim Paneli</p>
-          </div>
+          <img src={logoFull} alt="SıraGO" style={{ width: 180, height: "auto" }} />
         </div>
         <form onSubmit={giris}>
           <div className="form-group">
@@ -638,7 +636,7 @@ function Dashboard() {
       {/* ── Sidebar ── */}
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">S</div>
+          <img src={logoIcon} alt="SıraGO" style={{ width: 36, height: 36, objectFit: "contain" }} />
           <div className="sidebar-logo-text">
             <div className="brand-name">SıraGO</div>
             <div className="brand-sub">İşletme Paneli</div>
@@ -1236,7 +1234,7 @@ function SuperAdminPanel({ kullanici }) {
       {/* Sidebar */}
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">S</div>
+          <img src={logoIcon} alt="SıraGO" style={{ width: 36, height: 36, objectFit: "contain" }} />
           <div className="sidebar-logo-text">
             <div className="brand-name">SıraGO</div>
             <div className="brand-sub">Süper Admin</div>
