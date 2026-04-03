@@ -77,6 +77,7 @@ router.delete('/admin/iletisim/:id', authMiddleware, superAdminMiddleware, (req,
 router.post('/odeme/iyzico/baslat', authMiddleware, (req, res) => adminController.iyzicoBaslat(req, res));
 router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallback(req, res));
 router.get('/odeme/shopier/baslat', authMiddleware, (req, res) => adminController.shopierOdemeBaslat(req, res));
+router.post('/odeme/shopier/webhook', (req, res) => adminController.shopierWebhook(req, res));
 router.post('/odeme/havale', authMiddleware, (req, res) => adminController.havaleGonder(req, res));
 router.get('/odeme/durum', authMiddleware, (req, res) => adminController.odemeDurum(req, res));
 

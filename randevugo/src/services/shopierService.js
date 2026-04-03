@@ -1,157 +1,181 @@
+const crypto = require('crypto');
 const axios = require('axios');
 const pool = require('../config/db');
 
-// ═══════════════════════════════════════════════════
-// Shopier Ödeme Linki + PAT Sipariş Takibi
-// ═══════════════════════════════════════════════════
-// Shopier'da 3 ürün oluşturulur (manuel), linkleri env'e konur.
-// PAT token ile GET /v1/orders polling yapılarak yeni ödemeler tespit edilir.
+// ═══════════════════════════════════════════════════════════
+// Shopier Tam Otomatik Ödeme Sistemi (PAT + Webhook)
+// ═══════════════════════════════════════════════════════════
+// AKIŞ:
+// 1. Kullanıcı "Güvenli Öde" → Backend Shopier'da dijital ürün oluşturur (PAT)
+// 2. Kullanıcı shopier.com ürün URL'sine yönlendirilir → kart ile öder
+// 3. Shopier order.created webhook'u backend'e gönderir (paymentStatus: paid)
+// 4. Backend PENDING ödemeyi bulur → paket yükseltir / ödenir → ürünü Shopier'dan siler
+
+const API_BASE = 'https://api.shopier.com/v1';
+const PLACEHOLDER_IMAGE = 'https://dmih5ui1qqea9.cloudfront.net/pictures_large/Camiseta6855_cobalt-blue-t-shirt.jpg';
 
 class ShopierService {
   constructor() {
     this.patToken = process.env.SHOPIER_PAT_TOKEN || '';
-    this.apiBase = 'https://api.shopier.com/v1';
-    this.sonKontrolId = null; // Son kontrol edilen sipariş ID
-    this.pollingInterval = null;
+    this.webhookToken = process.env.SHOPIER_WEBHOOK_TOKEN || '';
   }
 
-  // Paket bazlı Shopier ödeme linkleri (env'den okunur)
-  getOdemeLinki(paket) {
-    const linkler = {
-      baslangic: process.env.SHOPIER_LINK_BASLANGIC || '',
-      pro: process.env.SHOPIER_LINK_PRO || '',
-      premium: process.env.SHOPIER_LINK_PREMIUM || '',
-    };
-    return linkler[paket] || linkler.baslangic;
+  // ─── Shopier API'de dijital ürün oluştur ───
+  async urunOlustur({ baslik, aciklama, fiyat }) {
+    const res = await axios.post(`${API_BASE}/products`, {
+      title: baslik,
+      description: aciklama,
+      type: 'digital',
+      media: [{ url: PLACEHOLDER_IMAGE, type: 'image', placement: 1 }],
+      priceData: {
+        currency: 'TRY',
+        price: fiyat.toFixed(2),
+        shippingPrice: '0.00',
+      },
+      stockStatus: 'inStock',
+      stockQuantity: 1,
+      shippingPayer: 'sellerPays',
+      customListing: true,
+      customNote: 'İşletme referans kodunuzu yazın (ör: SRGO-12)',
+    }, {
+      headers: {
+        Authorization: `Bearer ${this.patToken}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 15000,
+    });
+
+    const urun = res.data;
+    console.log(`🛒 Shopier ürün oluşturuldu: ${urun.id} → ${urun.url}`);
+    return { id: urun.id, url: urun.url };
   }
 
-  // Shopier API'den siparişleri çek (PAT token ile)
-  async siparisleriGetir(limit = 10) {
-    if (!this.patToken) {
-      console.log('⚠️ Shopier PAT token ayarlanmamış');
-      return [];
-    }
+  // ─── Shopier API'den ürün sil ───
+  async urunSil(urunId) {
     try {
-      const res = await axios.get(`${this.apiBase}/orders`, {
-        params: { limit },
+      await axios.delete(`${API_BASE}/products/${urunId}`, {
         headers: { Authorization: `Bearer ${this.patToken}` },
         timeout: 10000,
       });
-      return res.data || [];
+      console.log(`🗑️ Shopier ürün silindi: ${urunId}`);
     } catch (err) {
-      console.log('⚠️ Shopier sipariş çekme hatası:', err.message);
-      return [];
+      console.log(`⚠️ Shopier ürün silme hatası (${urunId}):`, err.message);
     }
   }
 
-  // Yeni siparişleri kontrol et ve DB'de eşleştir
-  async yeniSiparisleriKontrolEt() {
-    try {
-      const siparisler = await this.siparisleriGetir(20);
-      if (!siparisler.length) return;
+  // ─── Webhook signature doğrulama ───
+  // Shopier HS256 HMAC ile imzalar, header: Shopier-Signature
+  webhookDogrula(rawBody, signatureHeader) {
+    if (!this.webhookToken || !signatureHeader) return false;
+    const computed = crypto
+      .createHmac('sha256', this.webhookToken)
+      .update(rawBody)
+      .digest('hex');
+    return crypto.timingSafeEqual(
+      Buffer.from(computed, 'hex'),
+      Buffer.from(signatureHeader, 'hex')
+    );
+  }
 
-      for (const siparis of siparisler) {
-        // Zaten işlenmiş mi kontrol et
-        const mevcutRef = (await pool.query(
-          "SELECT id FROM odemeler WHERE shopier_siparis_id = $1",
-          [siparis.id]
-        )).rows[0];
-        if (mevcutRef) continue;
+  // ─── Webhook: order.created işle ───
+  async siparisGeldi(order) {
+    const siparisId = order.id;
+    const paymentStatus = order.paymentStatus; // 'paid' | 'unpaid'
 
-        // Sipariş bilgilerinden işletmeyi eşleştir
-        // Shopier siparişindeki "notToSeller" alanında referans kodu olabilir
-        // veya alıcı email/telefon ile eşleştir
-        const aliciEmail = siparis.buyer?.email || '';
-        const aliciTelefon = siparis.buyer?.phone || '';
-        const siparisNotu = siparis.noteToSeller || '';
-        const tutar = parseFloat(siparis.priceData?.totalPrice || siparis.priceData?.price || '0');
-        const urunAdi = siparis.items?.[0]?.title || siparis.productTitle || '';
+    if (paymentStatus !== 'paid') {
+      console.log(`⏳ Shopier sipariş #${siparisId} henüz ödenmemiş, atlanıyor`);
+      return { islem: 'atlandı', sebep: 'unpaid' };
+    }
 
-        console.log(`📦 Shopier yeni sipariş: #${siparis.id} - ${urunAdi} - ${tutar}₺ - ${aliciEmail}`);
+    // Zaten işlenmiş mi?
+    const zatenVar = (await pool.query(
+      "SELECT id FROM odemeler WHERE shopier_siparis_id = $1 AND durum = 'odendi'",
+      [siparisId]
+    )).rows[0];
+    if (zatenVar) {
+      console.log(`ℹ️ Shopier sipariş #${siparisId} zaten işlenmiş`);
+      return { islem: 'zaten_islenmis' };
+    }
 
-        // Referans kodu varsa (SRGO-XX formatı)
-        let isletmeId = null;
-        const refMatch = siparisNotu.match(/SRGO-(\d+)/);
-        if (refMatch) {
-          isletmeId = parseInt(refMatch[1]);
-        }
+    // Ürün bilgilerinden referans kodunu bul (ürün başlığında SRGO-XX var)
+    const urunBaslik = order.lineItems?.[0]?.title || '';
+    const urunId = order.lineItems?.[0]?.id || null;
+    const tutar = parseFloat(order.totals?.grandTotal || '0');
+    const aliciEmail = order.shippingAddress?.email || '';
+    const aliciTelefon = order.shippingAddress?.phone || '';
+    const siparisNotu = order.note || '';
 
-        // Email ile eşleştir
-        if (!isletmeId && aliciEmail) {
-          const isletme = (await pool.query(
-            'SELECT id FROM isletmeler WHERE email = $1', [aliciEmail]
-          )).rows[0];
-          if (isletme) isletmeId = isletme.id;
-        }
+    console.log(`📦 Shopier sipariş geldi: #${siparisId} - ${urunBaslik} - ${tutar}₺ - ${aliciEmail}`);
 
-        // Telefon ile eşleştir
-        if (!isletmeId && aliciTelefon) {
-          const tel = aliciTelefon.replace(/\D/g, '').slice(-10);
-          const isletme = (await pool.query(
-            "SELECT id FROM isletmeler WHERE telefon LIKE $1", [`%${tel}`]
-          )).rows[0];
-          if (isletme) isletmeId = isletme.id;
-        }
+    // İşletme ID'yi bul: ürün başlığından veya sipariş notundan
+    let isletmeId = null;
+    const refMatch = (urunBaslik + ' ' + siparisNotu).match(/SRGO-(\d+)/);
+    if (refMatch) {
+      isletmeId = parseInt(refMatch[1]);
+    }
 
-        // Paketi belirle (tutar bazlı)
-        let paket = 'baslangic';
-        if (tutar >= 700) paket = 'premium';
-        else if (tutar >= 400) paket = 'pro';
+    // Email ile eşleştir
+    if (!isletmeId && aliciEmail) {
+      const isletme = (await pool.query(
+        'SELECT id FROM isletmeler WHERE email = $1', [aliciEmail]
+      )).rows[0];
+      if (isletme) isletmeId = isletme.id;
+    }
 
-        const buAy = new Date().toISOString().slice(0, 7);
+    // Telefon ile eşleştir
+    if (!isletmeId && aliciTelefon) {
+      const tel = aliciTelefon.replace(/\D/g, '').slice(-10);
+      const isletme = (await pool.query(
+        "SELECT id FROM isletmeler WHERE telefon LIKE $1", [`%${tel}`]
+      )).rows[0];
+      if (isletme) isletmeId = isletme.id;
+    }
 
-        if (isletmeId) {
-          // Mevcut bekleyen ödeme var mı?
-          const mevcut = (await pool.query(
-            "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum != 'odendi'",
-            [isletmeId, buAy]
-          )).rows[0];
+    // PENDING ödemeyi bul (shopier_urun_id ile eşleştir — en güvenilir yol)
+    if (!isletmeId && urunId) {
+      const pendingOdeme = (await pool.query(
+        "SELECT isletme_id FROM odemeler WHERE shopier_urun_id = $1 AND durum = 'odeme_bekliyor'",
+        [urunId]
+      )).rows[0];
+      if (pendingOdeme) isletmeId = pendingOdeme.isletme_id;
+    }
 
-          if (mevcut) {
-            await pool.query(
-              "UPDATE odemeler SET durum = 'odendi', odeme_yontemi = 'shopier', odeme_tarihi = NOW(), shopier_siparis_id = $1 WHERE id = $2",
-              [siparis.id, mevcut.id]
-            );
-          } else {
-            await pool.query(
-              "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id) VALUES ($1, $2, $3, 'odendi', 'shopier', NOW(), $4)",
-              [isletmeId, tutar, buAy, siparis.id]
-            );
-          }
-          console.log(`✅ Shopier ödeme eşleştirildi: işletme=${isletmeId}, sipariş=${siparis.id}, tutar=${tutar}₺`);
-        } else {
-          // Eşleştirilemeyen sipariş — SuperAdmin'e bildir, log'a yaz
-          await pool.query(
-            "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id, referans_kodu) VALUES (NULL, $1, $2, 'eslestirilmedi', 'shopier', NOW(), $3, $4)",
-            [tutar, buAy, siparis.id, `${aliciEmail || aliciTelefon || 'bilinmiyor'}`]
-          );
-          console.log(`⚠️ Shopier sipariş eşleştirilemedi: #${siparis.id} - ${aliciEmail} - ${tutar}₺`);
-        }
+    const buAy = new Date().toISOString().slice(0, 7);
+
+    if (isletmeId) {
+      // Mevcut bekleyen ödemeyi güncelle
+      const mevcut = (await pool.query(
+        "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum != 'odendi'",
+        [isletmeId, buAy]
+      )).rows[0];
+
+      if (mevcut) {
+        await pool.query(
+          "UPDATE odemeler SET durum = 'odendi', odeme_yontemi = 'shopier', odeme_tarihi = NOW(), shopier_siparis_id = $1 WHERE id = $2",
+          [siparisId, mevcut.id]
+        );
+      } else {
+        await pool.query(
+          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id) VALUES ($1, $2, $3, 'odendi', 'shopier', NOW(), $4)",
+          [isletmeId, tutar, buAy, siparisId]
+        );
       }
-    } catch (err) {
-      console.error('❌ Shopier sipariş kontrol hatası:', err.message);
+      console.log(`✅ Shopier ödeme onaylandı: işletme=${isletmeId}, sipariş=#${siparisId}, tutar=${tutar}₺`);
+    } else {
+      // Eşleştirilemeyen sipariş
+      await pool.query(
+        "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id, referans_kodu) VALUES (NULL, $1, $2, 'eslestirilmedi', 'shopier', NOW(), $3, $4)",
+        [tutar, buAy, siparisId, `${aliciEmail || aliciTelefon || urunBaslik}`]
+      );
+      console.log(`⚠️ Shopier sipariş eşleştirilemedi: #${siparisId} - ${aliciEmail} - ${tutar}₺`);
     }
-  }
 
-  // Sipariş polling başlat (her 5 dakikada bir kontrol)
-  pollingBaslat() {
-    if (!this.patToken) {
-      console.log('⚠️ Shopier PAT token yok, sipariş polling başlatılmadı');
-      return;
+    // Ürünü Shopier'dan sil (tek kullanımlık)
+    if (urunId) {
+      await this.urunSil(urunId);
     }
-    console.log('🔄 Shopier sipariş polling başlatıldı (5dk aralık)');
-    // İlk kontrol
-    setTimeout(() => this.yeniSiparisleriKontrolEt(), 10000);
-    // Her 5 dakikada bir
-    this.pollingInterval = setInterval(() => this.yeniSiparisleriKontrolEt(), 5 * 60 * 1000);
-  }
 
-  pollingDurdur() {
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
-      console.log('⏹️ Shopier sipariş polling durduruldu');
-    }
+    return { islem: 'basarili', isletmeId, siparisId, tutar };
   }
 }
 

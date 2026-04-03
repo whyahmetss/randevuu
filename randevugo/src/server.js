@@ -95,11 +95,8 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_durumu VARCHAR(30)`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_tarihi TIMESTAMP`);
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_siparis_id VARCHAR(100)`);
+    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_urun_id VARCHAR(100)`);
     console.log('✅ DB migration kontrolü tamamlandı');
-
-    // Shopier sipariş polling başlat
-    const shopierService = require('./services/shopierService');
-    shopierService.pollingBaslat();
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
   }
@@ -126,7 +123,10 @@ app.use(cors({
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } });
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, res, buf) => { req.rawBody = buf.toString(); }
+}));
 app.use(express.urlencoded({ extended: true })); // Twilio webhook için
 app.use(express.static(require('path').join(__dirname, 'public')));
 

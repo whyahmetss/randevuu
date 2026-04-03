@@ -863,17 +863,19 @@ class AdminController {
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
       const paket = isletme.paket || 'baslangic';
-      const link = shopierService.getOdemeLinki(paket);
-
-      if (!link) {
-        return res.status(400).json({ hata: 'Shopier ödeme linki henüz ayarlanmamış. Lütfen yönetici ile iletişime geçin.' });
-      }
-
       const paketBilgi = PAKETLER[paket] || PAKETLER.baslangic;
       const buAy = new Date().toISOString().slice(0, 7);
       const refKod = `SRGO-${isletmeId}`;
+      const paketLabel = paket.charAt(0).toUpperCase() + paket.slice(1);
 
-      // Bekleyen ödeme kaydı oluştur
+      // Shopier'da dinamik dijital ürün oluştur
+      const urun = await shopierService.urunOlustur({
+        baslik: `SıraGO ${paketLabel} Paket [${refKod}]`,
+        aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket Aylık Abonelik (${buAy})\nİşletme: ${isletme.isim}\nRef: ${refKod}`,
+        fiyat: paketBilgi.fiyat,
+      });
+
+      // Bekleyen ödeme kaydı oluştur (shopier_urun_id ile eşleştirme için)
       const mevcut = (await pool.query(
         "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum IN ('bekliyor','odeme_bekliyor')",
         [isletmeId, buAy]
@@ -881,24 +883,50 @@ class AdminController {
 
       if (mevcut) {
         await pool.query(
-          "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1 WHERE id = $2",
-          [refKod, mevcut.id]
+          "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1, shopier_urun_id = $2 WHERE id = $3",
+          [refKod, urun.id, mevcut.id]
         );
       } else {
         await pool.query(
-          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4)",
-          [isletmeId, paketBilgi.fiyat, buAy, refKod]
+          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu, shopier_urun_id) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4, $5)",
+          [isletmeId, paketBilgi.fiyat, buAy, refKod, urun.id]
         );
       }
 
-      console.log(`💳 Shopier'a yönlendiriliyor: ${isletme.isim} - ${paket} - ${paketBilgi.fiyat}₺`);
+      console.log(`💳 Shopier ödeme başlatıldı: ${isletme.isim} - ${paket} - ${paketBilgi.fiyat}₺ → ${urun.url}`);
 
-      // Shopier ürün linkine yönlendir
-      // Not: Müşteriye "Satıcıya not" alanına SRGO-XX yazması söylenir
-      res.redirect(link);
+      // Shopier ürün sayfasına yönlendir
+      res.redirect(urun.url);
     } catch (error) {
       console.error('❌ Shopier ödeme başlatma hatası:', error);
-      res.status(500).json({ hata: error.message });
+      res.status(500).json({ hata: 'Ödeme sayfası oluşturulamadı: ' + error.message });
+    }
+  }
+
+  async shopierWebhook(req, res) {
+    try {
+      // Signature doğrula
+      const signature = req.headers['shopier-signature'] || '';
+      const rawBody = req.rawBody || JSON.stringify(req.body);
+
+      if (shopierService.webhookToken) {
+        const gecerli = shopierService.webhookDogrula(rawBody, signature);
+        if (!gecerli) {
+          console.log('❌ Shopier webhook signature geçersiz');
+          return res.status(401).send('Invalid signature');
+        }
+      }
+
+      const order = req.body;
+      console.log(`📩 Shopier webhook geldi: event=${req.headers['shopier-event']}, order=#${order.id}`);
+
+      const sonuc = await shopierService.siparisGeldi(order);
+      console.log('📋 Shopier webhook sonuç:', JSON.stringify(sonuc));
+
+      res.status(200).json({ ok: true });
+    } catch (error) {
+      console.error('❌ Shopier webhook hatası:', error);
+      res.status(200).json({ ok: true }); // Shopier retry yapmaması için 200 dön
     }
   }
 
