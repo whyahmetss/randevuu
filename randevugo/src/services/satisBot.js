@@ -74,14 +74,22 @@ class SatisBot extends EventEmitter {
   // WhatsApp Bağlantısı (Baileys)
   // ═══════════════════════════════════════════════════
   async baslat() {
-    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor' || this.durum === 'baslatiyor') return;
+    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor') return;
+
+    // Eski socket varsa kapat
+    if (this.sock) {
+      try { this.sock.end(); } catch (e) {}
+      this.sock = null;
+    }
 
     if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
     this.durum = 'baslatiyor';
+    console.log('🔄 Satış Bot başlatılıyor...');
 
     try {
       const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
       const { version } = await fetchLatestBaileysVersion();
+      console.log('📱 Baileys version:', version);
 
       this.sock = makeWASocket({
         version,
@@ -91,11 +99,12 @@ class SatisBot extends EventEmitter {
         },
         printQRInTerminal: true,
         logger: pino({ level: 'silent' }),
-        browser: ['SıraGO Sales', 'Chrome', '4.0.0'],
+        browser: ['SıraGO', 'Chrome', '120.0.0'],
         generateHighQualityLinkPreview: false,
-        qrTimeout: 60000,
-        connectTimeoutMs: 60000,
-        retryRequestDelayMs: 2000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 25000,
+        connectTimeoutMs: 120000,
+        emitOwnEvents: false,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
@@ -113,7 +122,8 @@ class SatisBot extends EventEmitter {
         if (connection === 'open') {
           this.durum = 'bagli';
           this.qrBase64 = null;
-          console.log('✅ Satış Bot WhatsApp bağlandı');
+          const numara = this.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
+          console.log(`✅ Satış Bot WhatsApp bağlandı — numara: ${numara}`);
           this.emit('bagli');
         }
 
