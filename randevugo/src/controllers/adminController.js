@@ -1040,15 +1040,18 @@ class AdminController {
   async satisBotBaslat(req, res) {
     try {
       const satisBot = require('../services/satisBot');
-      console.log('🔄 Satış Bot başlatma isteği geldi, mevcut durum:', satisBot.getDurum().durum);
-      // Takılı kalmışsa zorla resetle
-      if (satisBot.durum === 'baslatiyor') {
-        satisBot.durum = 'kapali';
-        if (satisBot.sock) { try { satisBot.sock.end(); } catch(e) {} satisBot.sock = null; }
-      }
+      console.log('🔄 Satış Bot başlatma isteği geldi, mevcut durum:', satisBot.durum);
+      // Her zaman önce tamamen durdur, sonra yeniden başlat
+      satisBot.aktif = false;
+      if (satisBot.gonderimTimer) { clearTimeout(satisBot.gonderimTimer); satisBot.gonderimTimer = null; }
+      if (satisBot.sock) { try { satisBot.sock.end(); } catch(e) {} satisBot.sock = null; }
+      satisBot.durum = 'kapali';
+      satisBot.qrBase64 = null;
+      satisBot.reconnectAttempts = 0;
+      console.log('🔄 Satış Bot zorla sıfırlandı, yeniden başlatılıyor...');
       satisBot.baslat(); // await yok — arka planda çalışsın
-      // 1sn bekle ki QR event'i gelsin
-      await new Promise(r => setTimeout(r, 1500));
+      // 2sn bekle ki QR event'i gelsin
+      await new Promise(r => setTimeout(r, 2000));
       const durum = satisBot.getDurum();
       console.log('📱 Satış Bot başlatma sonrası durum:', durum.durum, 'QR var mı:', !!durum.qrBase64);
       res.json({ mesaj: 'Satış botu başlatıldı', ...durum });

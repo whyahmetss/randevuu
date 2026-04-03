@@ -261,6 +261,13 @@ class SatisBot extends EventEmitter {
   }
 
   getDurum() {
+    // Gerçek socket durumunu kontrol et
+    if (this.durum === 'bagli' && (!this.sock || !this.sock.user)) {
+      console.log('⚠️ getDurum: durum bagli ama socket yok/user yok, kapali yapılıyor');
+      this.durum = 'kapali';
+      this.aktif = false;
+      this.sock = null;
+    }
     return {
       durum: this.durum,
       qrBase64: this.qrBase64,

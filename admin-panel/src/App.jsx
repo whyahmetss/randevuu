@@ -2011,7 +2011,7 @@ function SuperAdminPanel({ kullanici }) {
                   {satisBotDurum?.gunlukGonderim > 0 && <span style={{ color: "var(--dim)", fontSize: 12 }}>Bugün: {satisBotDurum.gunlukGonderim}/50</span>}
                 </div>
                 <div className="row gap-8">
-                  {(!satisBotDurum || satisBotDurum.durum === 'kapali' || satisBotDurum.durum === 'hata') && (
+                  {(!satisBotDurum || satisBotDurum.durum === 'kapali' || satisBotDurum.durum === 'hata' || satisBotDurum.durum === 'baslatiyor') && (
                     <button onClick={async () => { setSatisBotYukleniyor(true); await api.post("/admin/satis-bot/baslat"); setTimeout(satisBotYukle, 3000); setSatisBotYukleniyor(false); }}
                       className="btn btn-sm" style={{ background: "var(--green)", color: "#fff", fontWeight: 700 }} disabled={satisBotYukleniyor}>
                       {satisBotYukleniyor ? '⏳...' : '▶️ Botu Başlat'}
