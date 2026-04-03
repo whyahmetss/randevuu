@@ -795,8 +795,9 @@ function Dashboard() {
                             <div><strong>Banka:</strong> {odemeBilgi.banka?.banka_adi}</div>
                             <div><strong>IBAN:</strong> {odemeBilgi.banka?.iban}</div>
                             <div><strong>Hesap Sahibi:</strong> {odemeBilgi.banka?.hesap_sahibi}</div>
-                            <div><strong>Açıklama:</strong> {odemeBilgi.banka?.aciklama}</div>
+                            <div><strong>Açıklama:</strong> <span className="ref-kod">{odemeBilgi.banka?.aciklama}</span></div>
                           </div>
+                          <div className="ref-uyari">⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutmayın!</div>
                           <div className="row row-wrap gap-8 mt-12">
                             <input value={havaleNotu} onChange={e => setHavaleNotu(e.target.value)} placeholder="Dekont notu (isteğe bağlı)" className="input flex-1" style={{ minWidth: 0 }} />
                             <button onClick={async () => {

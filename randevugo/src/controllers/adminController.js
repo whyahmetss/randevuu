@@ -824,19 +824,24 @@ class AdminController {
         [isletmeId, buAy]
       )).rows[0];
 
-      const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      const isletme = (await pool.query('SELECT paket, isim FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
       const paketBilgi = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
+
+      // Rastgele ödeme referans kodu üret (her istek için sabit kalması için isletme_id + dönem bazlı)
+      const hash = Buffer.from(`${isletmeId}-${buAy}`).toString('base64').replace(/[^A-Z0-9]/gi, '').slice(0, 3).toUpperCase();
+      const kod = `SRGO-${isletmeId}${hash}`;
 
       res.json({
         odeme: odeme || null,
         paket: isletme?.paket || 'baslangic',
         tutar: paketBilgi.fiyat,
         donem: buAy,
+        referans_kodu: kod,
         banka: {
-          banka_adi: 'Ziraat Bankası',
-          iban: 'TR00 0000 0000 0000 0000 0000 00',
-          hesap_sahibi: 'SıraGO Yazılım',
-          aciklama: `SıraGO ${buAy} ödeme`
+          banka_adi: 'Garanti BBVA',
+          iban: 'TR54 0006 2000 7440 0006 8578 09',
+          hesap_sahibi: 'Ahmet Çavdar',
+          aciklama: kod
         }
       });
     } catch (error) {
