@@ -50,34 +50,26 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" }}>
-      <div style={{ background: "#1e293b", borderRadius: 20, padding: 40, width: 380, boxShadow: "0 25px 60px rgba(0,0,0,0.4)" }}>
-        <div style={{ textAlign: "center", marginBottom: 30 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>📅</div>
-          <h1 style={{ color: "#fff", fontSize: 28, margin: 0 }}>RandevuGO</h1>
-          <p style={{ color: "#64748b", fontSize: 14, marginTop: 4 }}>İşletme Yönetim Paneli</p>
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="login-logo-icon">S</div>
+          <div style={{ textAlign: "center" }}>
+            <h1>SıraGO</h1>
+            <p>İşletme Yönetim Paneli</p>
+          </div>
         </div>
         <form onSubmit={giris}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ width: "100%", padding: "14px 16px", marginBottom: 12, borderRadius: 10, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 15, boxSizing: "border-box", outline: "none" }}
-          />
-          <input
-            type="password"
-            placeholder="Şifre"
-            value={sifre}
-            onChange={(e) => setSifre(e.target.value)}
-            style={{ width: "100%", padding: "14px 16px", marginBottom: 16, borderRadius: 10, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 15, boxSizing: "border-box", outline: "none" }}
-          />
-          {hata && <p style={{ color: "#ef4444", fontSize: 13, marginBottom: 12 }}>{hata}</p>}
-          <button
-            type="submit"
-            disabled={yukleniyor}
-            style={{ width: "100%", padding: 14, borderRadius: 10, border: "none", background: "#10b981", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer", opacity: yukleniyor ? 0.7 : 1 }}
-          >
+          <div className="form-group">
+            <label className="form-label">E-posta</label>
+            <input type="email" placeholder="ornek@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Şifre</label>
+            <input type="password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
+          </div>
+          {hata && <div className="alert alert-error">{hata}</div>}
+          <button type="submit" disabled={yukleniyor} className="btn btn-primary btn-block btn-lg" style={{ marginTop: 8 }}>
             {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
           </button>
         </form>
@@ -618,113 +610,101 @@ function Dashboard() {
   const S = { input: { padding: "10px 14px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 14, boxSizing: "border-box", outline: "none", width: "100%" } };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0f172a", fontFamily: "'Segoe UI', sans-serif", color: "#fff" }}>
+    <div className="app-shell">
 
       {/* ── Sidebar ── */}
-      <div style={{ width: 240, background: "#111827", flexShrink: 0, display: "flex", flexDirection: "column", borderRight: "1px solid #1e293b" }}>
-        {/* Logo */}
-        <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid #1e293b" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <div style={{ width: 36, height: 36, background: "linear-gradient(135deg,#10b981,#059669)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📅</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>RandevuGO</div>
-              <div style={{ color: "#10b981", fontSize: 11, fontWeight: 600 }}>İşletme Paneli</div>
-            </div>
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon">S</div>
+          <div className="sidebar-logo-text">
+            <div className="brand-name">SıraGO</div>
+            <div className="brand-sub">İşletme Paneli</div>
           </div>
-          {ayarlar && <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>🏪 {ayarlar.isim}</div>}
         </div>
 
-        {/* Menu */}
-        <nav style={{ flex: 1, padding: "12px 10px" }}>
+        {ayarlar && (
+          <div className="sidebar-user">
+            <div className="u-name">{ayarlar.isim}</div>
+          </div>
+        )}
+
+        <nav className="sidebar-nav">
           {menuItems.map(m => (
-            <div key={m.id} onClick={() => setSayfa(m.id)}
-              style={{ padding: "10px 14px", borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, marginBottom: 2,
-                background: sayfa === m.id ? "#10b98120" : "transparent",
-                color: sayfa === m.id ? "#10b981" : "#94a3b8", fontSize: 14, fontWeight: sayfa === m.id ? 600 : 400 }}>
-              <span style={{ fontSize: 16 }}>{m.icon}</span>
+            <div key={m.id} onClick={() => setSayfa(m.id)} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
+              <span className="nav-icon">{m.icon}</span>
               <span>{m.label}</span>
-              {sayfa === m.id && <div style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />}
+              {sayfa === m.id && <div className="active-dot" />}
             </div>
           ))}
         </nav>
 
-        {/* Paket Widget */}
         {paketDurum && (
-          <div style={{ margin: "0 10px 12px", background: "#0f172a", borderRadius: 12, padding: 14, border: "1px solid #1e293b" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={{ color: "#94a3b8", fontSize: 12, fontWeight: 600 }}>Paketiniz</span>
-              <span style={{
-                background: paketDurum.paket === "premium" ? "#f59e0b22" : paketDurum.paket === "profesyonel" ? "#3b82f622" : "#64748b22",
-                color: paketDurum.paket === "premium" ? "#f59e0b" : paketDurum.paket === "profesyonel" ? "#3b82f6" : "#94a3b8",
-                fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1
-              }}>{paketDurum.paket}</span>
+          <div className="paket-widget">
+            <div className="pw-header">
+              <span className="pw-label">Paketiniz</span>
+              <span className={`badge ${paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket}</span>
             </div>
             {[
-              { label: "Çalışan", used: paketDurum.kullanim.calisan, limit: paketDurum.paket_bilgi.calisan_limit, renk: "#10b981" },
-              { label: "Hizmet", used: paketDurum.kullanim.hizmet, limit: paketDurum.paket_bilgi.hizmet_limit, renk: "#3b82f6" },
-              { label: "Bu ay randevu", used: paketDurum.kullanim.randevu, limit: paketDurum.paket_bilgi.aylik_randevu_limit, renk: "#8b5cf6" },
+              { label: 'Çalışan', used: paketDurum.kullanim.calisan, limit: paketDurum.paket_bilgi.calisan_limit, renk: 'var(--green)' },
+              { label: 'Hizmet', used: paketDurum.kullanim.hizmet, limit: paketDurum.paket_bilgi.hizmet_limit, renk: 'var(--blue)' },
+              { label: 'Bu ay randevu', used: paketDurum.kullanim.randevu, limit: paketDurum.paket_bilgi.aylik_randevu_limit, renk: 'var(--purple)' },
             ].map(item => {
               const pct = item.limit >= 9999 ? 4 : Math.min(100, Math.round(item.used / item.limit * 100));
               const dolu = pct >= 90;
               return (
-                <div key={item.label} style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ color: "#64748b", fontSize: 11 }}>{item.label}</span>
-                    <span style={{ color: dolu ? "#ef4444" : "#475569", fontSize: 11, fontWeight: dolu ? 700 : 400 }}>
-                      {item.limit >= 9999 ? `${item.used} / ∞` : `${item.used}/${item.limit}`}
-                    </span>
+                <div key={item.label}>
+                  <div className="pw-bar-label">
+                    <span>{item.label}</span>
+                    <span style={{ color: dolu ? 'var(--red)' : 'var(--dim)' }}>{item.limit >= 9999 ? `${item.used} / ∞` : `${item.used}/${item.limit}`}</span>
                   </div>
-                  <div style={{ background: "#1e293b", borderRadius: 99, height: 4, overflow: "hidden" }}>
-                    <div style={{ width: `${pct}%`, background: dolu ? "#ef4444" : item.renk, height: "100%", borderRadius: 99, transition: "width 0.4s" }} />
+                  <div className="pw-bar-track">
+                    <div className="pw-bar-fill" style={{ width: `${pct}%`, background: dolu ? 'var(--red)' : item.renk }} />
                   </div>
                 </div>
               );
             })}
-            {paketDurum.paket !== "premium" && (
-              <div onClick={() => setPaketModal(true)} style={{ marginTop: 12, padding: "10px", background: "linear-gradient(135deg,#f59e0b15,#f59e0b08)", borderRadius: 8, border: "1px solid #f59e0b30", textAlign: "center", cursor: "pointer" }}>
-                <div style={{ color: "#f59e0b", fontSize: 12, fontWeight: 700 }}>⬆ Paketi Yükselt</div>
+            {paketDurum.paket !== 'premium' && (
+              <div className="pw-upgrade" onClick={() => setPaketModal(true)}>
+                <span>Paketi Yükselt</span>
               </div>
             )}
           </div>
         )}
 
-        <div style={{ padding: "0 10px 16px" }}>
-          <button onClick={cikisYap}
-            style={{ width: "100%", padding: "10px", borderRadius: 10, border: "1px solid #1e293b", background: "transparent", color: "#64748b", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <span>🚪</span> Çıkış Yap
-          </button>
+        <div className="sidebar-footer">
+          <button onClick={cikisYap} className="btn btn-ghost btn-block btn-sm">Çıkış Yap</button>
         </div>
-      </div>
+      </aside>
 
       {/* ── Main ── */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
 
         {/* Top bar */}
-        <div style={{ padding: "18px 30px", borderBottom: "1px solid #1e293b", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#111827" }}>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{sayfaBaslik[sayfa]}</h1>
-          <div style={{ color: "#475569", fontSize: 13 }}>
+        <div style={{ padding: "16px 32px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)" }}>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: "-.2px" }}>{sayfaBaslik[sayfa]}</h1>
+          <div style={{ color: "var(--dim)", fontSize: 13 }}>
             {new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </div>
         </div>
 
         {/* Page content */}
-        <div style={{ flex: 1, padding: "28px 30px", overflowY: "auto" }}>
+        <div style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }}>
 
           {/* ── DASHBOARD ── */}
           {sayfa === "anasayfa" && (
             <>
               {/* Stat Cards */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 28 }}>
+              <div className="stats-grid">
                 {[
-                  { icon: "📅", label: "Bugün Randevu", val: stats?.bugun?.toplam_randevu || 0, renk: "#10b981", bg: "#10b98110" },
-                  { icon: "📊", label: "Bu Hafta", val: stats?.hafta?.toplam_randevu || 0, renk: "#3b82f6", bg: "#3b82f610" },
-                  { icon: "👥", label: "Toplam Müşteri", val: stats?.toplam_musteri || 0, renk: "#f59e0b", bg: "#f59e0b10" },
-                  { icon: "🕐", label: "Bugün Müsait Saat", val: stats?.bugun_musait_saat || 0, renk: "#8b5cf6", bg: "#8b5cf610" },
+                  { icon: "📅", label: "Bugün Randevu", val: stats?.bugun?.toplam_randevu || 0, cls: "green" },
+                  { icon: "📊", label: "Bu Hafta", val: stats?.hafta?.toplam_randevu || 0, cls: "blue" },
+                  { icon: "👥", label: "Toplam Müşteri", val: stats?.toplam_musteri || 0, cls: "amber" },
+                  { icon: "🕐", label: "Bugün Müsait Saat", val: stats?.bugun_musait_saat || 0, cls: "purple" },
                 ].map(c => (
-                  <div key={c.label} style={{ background: "#111827", border: "1px solid #1e293b", borderRadius: 16, padding: "20px 22px" }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 12, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, marginBottom: 14 }}>{c.icon}</div>
-                    <div style={{ color: "#64748b", fontSize: 12, marginBottom: 4 }}>{c.label}</div>
-                    <div style={{ color: c.renk, fontSize: 30, fontWeight: 800 }}>{c.val}</div>
+                  <div key={c.label} className={`stat-card ${c.cls}`}>
+                    <div className="sc-icon">{c.icon}</div>
+                    <div className="sc-label">{c.label}</div>
+                    <div className="sc-val">{c.val}</div>
                   </div>
                 ))}
               </div>
@@ -1208,47 +1188,51 @@ function SuperAdminPanel({ kullanici }) {
   });
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0f172a", fontFamily: "'Segoe UI', sans-serif" }}>
+    <div className="app-shell">
       {/* Sidebar */}
-      <div style={{ width: 220, background: "#1e293b", padding: "24px 0", flexShrink: 0, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "0 20px", marginBottom: 4 }}>
-          <h2 style={{ color: "#fff", margin: 0, fontSize: 20 }}>📅 RandevuGO</h2>
-          <span style={{ background: "#f59e0b22", color: "#f59e0b", fontSize: 11, padding: "2px 8px", borderRadius: 6, fontWeight: 700, marginTop: 4, display: "inline-block" }}>SÜPER ADMİN</span>
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon">S</div>
+          <div className="sidebar-logo-text">
+            <div className="brand-name">SıraGO</div>
+            <div className="brand-sub">Süper Admin</div>
+          </div>
         </div>
-        <p style={{ color: "#475569", fontSize: 11, padding: "4px 20px 20px", wordBreak: "break-all" }}>{kullanici.email}</p>
-        <div style={{ flex: 1 }}>
+        <div className="sidebar-user">
+          <div className="u-email">{kullanici.email}</div>
+          <span className="sidebar-badge gold">SÜPER ADMİN</span>
+        </div>
+        <nav className="sidebar-nav">
           {menuItems.map(m => (
-            <div key={m.id} onClick={() => setSayfa(m.id)}
-              style={{ padding: "12px 20px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
-                background: sayfa === m.id ? "rgba(245,158,11,0.12)" : "transparent",
-                borderLeft: sayfa === m.id ? "3px solid #f59e0b" : "3px solid transparent",
-                color: sayfa === m.id ? "#f59e0b" : "#94a3b8", fontSize: 14 }}>
-              <span>{m.icon}</span> {m.label}
-              {m.id === "odemeler" && buAyOdemeyenler.length > 0 && (
-                <span style={{ marginLeft: "auto", background: "#ef4444", color: "#fff", borderRadius: 10, fontSize: 10, padding: "1px 7px", fontWeight: 700 }}>{buAyOdemeyenler.length}</span>
-              )}
+            <div key={m.id} onClick={() => setSayfa(m.id)} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
+              <span className="nav-icon">{m.icon}</span>
+              <span>{m.label}</span>
+              {m.id === 'odemeler' && buAyOdemeyenler.length > 0
+                ? <span className="nav-badge">{buAyOdemeyenler.length}</span>
+                : sayfa === m.id && <div className="active-dot" />}
             </div>
           ))}
+        </nav>
+        <div className="sidebar-footer">
+          <button onClick={cikisYap} className="btn btn-ghost btn-block btn-sm">Çıkış Yap</button>
         </div>
-        <div style={{ padding: "0 12px" }}>
-          <button onClick={cikisYap} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #334155", background: "transparent", color: "#64748b", cursor: "pointer", fontSize: 13 }}>
-            🚪 Çıkış Yap
-          </button>
-        </div>
-      </div>
+      </aside>
 
       {/* Main */}
-      <div style={{ flex: 1, padding: 30, overflowY: "auto" }}>
+      <div style={{ flex: 1, padding: "32px 36px", overflowY: "auto", background: "var(--bg)" }}>
 
         {/* DASHBOARD */}
         {sayfa === "dashboard" && (
           <>
-            <h1 style={{ color: "#fff", fontSize: 24, marginBottom: 24 }}>Dashboard</h1>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 30 }}>
-              <StatCard icon="🏪" baslik="Toplam İşletme" deger={isletmeler.length} renk="#f59e0b" />
-              <StatCard icon="✅" baslik="Aktif İşletme" deger={isletmeler.filter(i => i.aktif).length} renk="#10b981" />
-              <StatCard icon="💰" baslik="Toplam Gelir" deger={toplamGelir.toFixed(0) + " ₺"} renk="#8b5cf6" />
-              <StatCard icon="📅" baslik="Bu Ay Gelir" deger={buAyGelir.toFixed(0) + " ₺"} renk="#3b82f6" />
+            <div className="page-header">
+              <h1>Dashboard</h1>
+              <p>Genel bakış ve işletme özeti</p>
+            </div>
+            <div className="stats-grid">
+              <div className="stat-card amber"><div className="sc-icon">🏾</div><div className="sc-label">Toplam İşletme</div><div className="sc-val">{isletmeler.length}</div></div>
+              <div className="stat-card green"><div className="sc-icon">✅</div><div className="sc-label">Aktif İşletme</div><div className="sc-val">{isletmeler.filter(i => i.aktif).length}</div></div>
+              <div className="stat-card purple"><div className="sc-icon">💰</div><div className="sc-label">Toplam Gelir</div><div className="sc-val">{toplamGelir.toFixed(0)} ₺</div></div>
+              <div className="stat-card blue"><div className="sc-icon">📅</div><div className="sc-label">Bu Ay Gelir</div><div className="sc-val">{buAyGelir.toFixed(0)} ₺</div></div>
             </div>
 
             {/* Bu ay ödeme durumu */}
