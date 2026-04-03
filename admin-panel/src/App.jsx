@@ -1144,6 +1144,10 @@ function SuperAdminPanel({ kullanici }) {
   // İletişim mesajları state
   const [iletisimMesajlar, setIletisimMesajlar] = useState([]);
   const [iletisimFiltre, setIletisimFiltre] = useState("hepsi");
+  // Satış Bot state
+  const [satisBotDurum, setSatisBotDurum] = useState(null);
+  const [satisBotKonusmalar, setSatisBotKonusmalar] = useState([]);
+  const [satisBotYukleniyor, setSatisBotYukleniyor] = useState(false);
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
@@ -1182,11 +1186,19 @@ function SuperAdminPanel({ kullanici }) {
     setIletisimMesajlar(d.mesajlar || []);
   };
 
+  const satisBotYukle = async () => {
+    const d = await api.get("/admin/satis-bot/durum");
+    setSatisBotDurum(d);
+    const k = await api.get("/admin/satis-bot/konusmalar");
+    setSatisBotKonusmalar(k.konusmalar || []);
+  };
+
   useEffect(() => {
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
     if (sayfa === "iletisim") iletisimYukle();
+    if (sayfa === "satisBot") satisBotYukle();
   }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak]);
 
   const isletmeEkle = async (e) => {
@@ -1237,6 +1249,7 @@ function SuperAdminPanel({ kullanici }) {
     odemeler: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
     avci: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
     iletisim: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+    satisBot: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   };
 
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
@@ -1247,6 +1260,7 @@ function SuperAdminPanel({ kullanici }) {
     { id: "odemeler", icon: SVGA.odemeler, label: "Ödemeler" },
     { id: "iletisim", icon: SVGA.iletisim, label: "İletişim" },
     { id: "avci", icon: SVGA.avci, label: "Avcı Bot" },
+    { id: "satisBot", icon: SVGA.satisBot, label: "Satış Bot" },
   ];
 
   const kategoriRenk = { berber: "#3b82f6", kuafor: "#8b5cf6", disci: "#10b981", guzellik: "#f59e0b", veteriner: "#ef4444", diyetisyen: "#06b6d4" };
@@ -1965,6 +1979,134 @@ function SuperAdminPanel({ kullanici }) {
               </>
               );
             })()}
+          </>
+        )}
+
+        {/* ═══════ SATIŞ BOT ═══════ */}
+        {sayfa === "satisBot" && (
+          <>
+            <h1 style={{ fontSize: 24 }} className="mb-8">💬 Satış Bot — WhatsApp Otomatik Pazarlama</h1>
+            <p style={{ color: "var(--dim)", fontSize: 13 }} className="mb-24">Avcı Bot'tan gelen lead'lere otomatik WhatsApp mesajı gönder, cevaplara AI ile satış yap.</p>
+
+            {/* Durum + Kontroller */}
+            <div className="row row-wrap gap-12 mb-24">
+              <div className="card" style={{ flex: "1 1 300px", padding: 20 }}>
+                <h3 className="mb-12" style={{ fontSize: 15 }}>🔌 Bot Durumu</h3>
+                <div className="row row-wrap gap-8 mb-12">
+                  <span className="tag" style={{
+                    background: satisBotDurum?.durum === 'bagli' ? 'rgba(16,185,129,.15)' : satisBotDurum?.durum === 'qr_bekleniyor' ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)',
+                    color: satisBotDurum?.durum === 'bagli' ? '#10b981' : satisBotDurum?.durum === 'qr_bekleniyor' ? '#f59e0b' : '#ef4444',
+                    fontWeight: 700, fontSize: 13
+                  }}>
+                    {satisBotDurum?.durum === 'bagli' ? '✅ Bağlı' : satisBotDurum?.durum === 'qr_bekleniyor' ? '📱 QR Bekliyor' : satisBotDurum?.durum === 'baslatiyor' ? '⏳ Başlatılıyor...' : '❌ Kapalı'}
+                  </span>
+                  {satisBotDurum?.aktif && <span className="tag" style={{ background: 'rgba(16,185,129,.15)', color: '#10b981', fontWeight: 700 }}>🚀 Gönderim Aktif</span>}
+                  {satisBotDurum?.gunlukGonderim > 0 && <span style={{ color: "var(--dim)", fontSize: 12 }}>Bugün: {satisBotDurum.gunlukGonderim}/50</span>}
+                </div>
+                <div className="row gap-8">
+                  {(!satisBotDurum || satisBotDurum.durum === 'kapali' || satisBotDurum.durum === 'hata') && (
+                    <button onClick={async () => { setSatisBotYukleniyor(true); await api.post("/admin/satis-bot/baslat"); setTimeout(satisBotYukle, 3000); setSatisBotYukleniyor(false); }}
+                      className="btn btn-sm" style={{ background: "var(--green)", color: "#fff", fontWeight: 700 }} disabled={satisBotYukleniyor}>
+                      {satisBotYukleniyor ? '⏳...' : '▶️ Botu Başlat'}
+                    </button>
+                  )}
+                  {satisBotDurum?.durum === 'bagli' && !satisBotDurum?.aktif && (
+                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }}
+                      className="btn btn-sm" style={{ background: "#10b981", color: "#fff", fontWeight: 700 }}>
+                      🚀 Gönderimi Başlat
+                    </button>
+                  )}
+                  {satisBotDurum?.aktif && (
+                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }}
+                      className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", fontWeight: 700 }}>
+                      ⏸️ Gönderimi Durdur
+                    </button>
+                  )}
+                  {satisBotDurum?.durum !== 'kapali' && satisBotDurum && (
+                    <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }}
+                      className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>
+                      ⏹️ Botu Kapat
+                    </button>
+                  )}
+                  <button onClick={satisBotYukle} className="btn btn-ghost btn-sm">🔄 Yenile</button>
+                </div>
+              </div>
+
+              {/* QR Kod */}
+              {satisBotDurum?.durum === 'qr_bekleniyor' && satisBotDurum?.qrBase64 && (
+                <div className="card" style={{ flex: "0 0 auto", padding: 20, textAlign: "center" }}>
+                  <h3 className="mb-8" style={{ fontSize: 14 }}>📱 QR Kodu Tara</h3>
+                  <img src={satisBotDurum.qrBase64} alt="QR" style={{ width: 200, height: 200, borderRadius: 10 }} />
+                  <p style={{ color: "var(--dim)", fontSize: 11, marginTop: 8 }}>SıraGO satış numarasıyla WhatsApp'ı açıp bu QR'ı tara</p>
+                  <button onClick={satisBotYukle} className="btn btn-ghost btn-sm mt-8">🔄 QR Yenile</button>
+                </div>
+              )}
+            </div>
+
+            {/* İstatistikler */}
+            {satisBotDurum?.istatistikler && (
+              <div className="row row-wrap gap-12 mb-24">
+                <StatCard icon="📤" baslik="Gönderilen" deger={satisBotDurum.istatistikler.gonderilen} renk="#3b82f6" />
+                <StatCard icon="⏳" baslik="Cevap Bekliyor" deger={satisBotDurum.istatistikler.bekleyen} renk="#f59e0b" />
+                <StatCard icon="✅" baslik="Olumlu" deger={satisBotDurum.istatistikler.olumlu} renk="#10b981" />
+                <StatCard icon="❌" baslik="Olumsuz" deger={satisBotDurum.istatistikler.olumsuz} renk="#ef4444" />
+                <StatCard icon="📵" baslik="WP Yok" deger={satisBotDurum.istatistikler.wp_yok} renk="#64748b" />
+              </div>
+            )}
+
+            {/* Konuşmalar */}
+            <h3 className="mb-12" style={{ fontSize: 16 }}>💬 Son Konuşmalar</h3>
+            {satisBotKonusmalar.length === 0 ? (
+              <div className="list-empty"><p>Henüz konuşma yok. Botu başlat ve gönderimi aktif et! 🚀</p></div>
+            ) : satisBotKonusmalar.map(k => {
+              const durumRenk = { bekliyor: "#f59e0b", olumlu: "#10b981", olumsuz: "#ef4444" };
+              const durumLabel = { bekliyor: "⏳ Cevap Bekliyor", olumlu: "✅ Olumlu", olumsuz: "❌ Olumsuz" };
+              return (
+                <div key={k.id} className="list-item list-item-left" style={{ borderLeftColor: durumRenk[k.durum] || "#64748b", flexDirection: "column", alignItems: "stretch" }}>
+                  <div className="row row-between row-wrap gap-8 mb-4">
+                    <div className="row row-wrap gap-8">
+                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 14 }}>{k.isletme_adi}</span>
+                      <span className="tag-xs" style={{ background: (durumRenk[k.durum] || "#64748b") + "22", color: durumRenk[k.durum] || "#64748b", fontWeight: 600 }}>
+                        {durumLabel[k.durum] || k.durum}
+                      </span>
+                      {k.kategori && <span style={{ color: "var(--dim)", fontSize: 11 }}>🏷️ {k.kategori}</span>}
+                    </div>
+                    <span style={{ color: "var(--dim)", fontSize: 11 }}>
+                      {k.olusturma_tarihi ? new Date(k.olusturma_tarihi).toLocaleString('tr-TR') : ''}
+                    </span>
+                  </div>
+                  <div style={{ background: "rgba(59,130,246,.06)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
+                    <strong style={{ color: "var(--blue)" }}>📤 Gönderilen:</strong> {k.gonderilen_mesaj?.slice(0, 150)}...
+                  </div>
+                  {k.gelen_mesajlar && (
+                    <div style={{ background: "rgba(16,185,129,.06)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--text)", whiteSpace: "pre-wrap" }}>
+                      <strong style={{ color: "var(--green)" }}>💬 Konuşma:</strong>
+                      {k.gelen_mesajlar}
+                    </div>
+                  )}
+                  <div className="row gap-6 mt-4">
+                    <span style={{ color: "var(--dim)", fontSize: 11 }}>📞 +{k.telefon}</span>
+                    <a href={`https://wa.me/${k.telefon}`} target="_blank" rel="noreferrer" className="btn btn-sm"
+                      style={{ background: "rgba(37,211,102,.15)", color: "#25d366", border: "none", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>
+                      💬 WA'da Aç
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Anti-ban bilgi kutusu */}
+            <div className="card mt-24" style={{ padding: 16, background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.15)" }}>
+              <h4 style={{ color: "#f59e0b", fontSize: 13, marginBottom: 8 }}>⚠️ Anti-Ban Koruması Aktif</h4>
+              <ul style={{ color: "var(--dim)", fontSize: 12, margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
+                <li>Her mesaj arasında <strong>8-15 dakika</strong> rastgele bekleme</li>
+                <li>Günlük maksimum <strong>50 mesaj</strong> limiti</li>
+                <li>Mesai saatleri: <strong>09:00 - 19:00</strong></li>
+                <li>Her kategoriye <strong>3 farklı mesaj varyasyonu</strong></li>
+                <li>Gönderim öncesi <strong>"yazıyor..."</strong> simülasyonu</li>
+                <li>Numara WhatsApp'ta yoksa <strong>atlanır</strong></li>
+              </ul>
+            </div>
           </>
         )}
 

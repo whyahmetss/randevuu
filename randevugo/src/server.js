@@ -79,6 +79,21 @@ const PORT = process.env.PORT || 3000;
       okundu BOOLEAN DEFAULT false,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
+    // Satış Bot tablosu
+    await pool.query(`CREATE TABLE IF NOT EXISTS satis_konusmalar (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER,
+      telefon VARCHAR(50),
+      isletme_adi VARCHAR(255),
+      kategori VARCHAR(100),
+      gonderilen_mesaj TEXT,
+      gelen_mesajlar TEXT,
+      durum VARCHAR(30) DEFAULT 'bekliyor',
+      son_mesaj_tarihi TIMESTAMP,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_durumu VARCHAR(30)`);
+    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_tarihi TIMESTAMP`);
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);

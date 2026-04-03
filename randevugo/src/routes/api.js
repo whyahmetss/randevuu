@@ -89,4 +89,12 @@ router.get('/admin/avci/gunluk', authMiddleware, superAdminMiddleware, (req, res
 router.put('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciDurumGuncelle(req, res));
 router.delete('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciSil(req, res));
 
+// ==================== SATIŞ BOTU ====================
+router.post('/admin/satis-bot/baslat', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotBaslat(req, res));
+router.post('/admin/satis-bot/durdur', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotDurdur(req, res));
+router.get('/admin/satis-bot/durum', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotDurum(req, res));
+router.post('/admin/satis-bot/gonderim-baslat', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotGonderimBaslat(req, res));
+router.post('/admin/satis-bot/gonderim-durdur', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotGonderimDurdur(req, res));
+router.get('/admin/satis-bot/konusmalar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotKonusmalar(req, res));
+
 module.exports = router;

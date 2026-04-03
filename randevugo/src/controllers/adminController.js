@@ -957,6 +957,68 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+  // ==================== SATIŞ BOTU ====================
+
+  async satisBotBaslat(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      await satisBot.baslat();
+      res.json({ mesaj: 'Satış botu başlatıldı', durum: satisBot.getDurum() });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisBotDurdur(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      await satisBot.durdur();
+      res.json({ mesaj: 'Satış botu durduruldu' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisBotDurum(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      const durum = satisBot.getDurum();
+      const istatistikler = await satisBot.istatistikler();
+      res.json({ ...durum, istatistikler });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisBotGonderimBaslat(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      const sonuc = await satisBot.gonderimBaslat();
+      res.json(sonuc);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisBotGonderimDurdur(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      const sonuc = satisBot.gonderimDurdur();
+      res.json(sonuc);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisBotKonusmalar(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      const konusmalar = await satisBot.konusmalarGetir(50);
+      res.json({ konusmalar });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
 }
 
 module.exports = new AdminController();
