@@ -5,6 +5,7 @@ const randevuService = require('../services/randevu');
 const PAKETLER = require('../config/paketler');
 const avciBot = require('../services/avciBot');
 const iyzicoService = require('../services/iyzicoService');
+const shopierService = require('../services/shopierService');
 
 class AdminController {
 
@@ -850,6 +851,98 @@ class AdminController {
       });
     } catch (error) {
       res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== SHOPIER ÖDEME ====================
+
+  async shopierOdemeBaslat(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      const paketBilgi = PAKETLER[isletme.paket] || PAKETLER.baslangic;
+      const buAy = new Date().toISOString().slice(0, 7);
+      const siparisId = `SRGO-${isletmeId}-${buAy}-${Date.now()}`;
+
+      const baseUrl = process.env.BASE_URL || 'https://randevugo-api.onrender.com';
+      const callbackUrl = `${baseUrl}/api/odeme/shopier/callback`;
+
+      const { html } = shopierService.odemeSayfasiOlustur({
+        isletmeId,
+        isletmeAdi: isletme.isim,
+        email: isletme.email || `isletme${isletmeId}@sirago.com`,
+        telefon: isletme.telefon || '5000000000',
+        adres: isletme.adres || 'Türkiye',
+        sehir: isletme.ilce || 'İstanbul',
+        paketAdi: `SıraGO ${(isletme.paket || 'baslangic').charAt(0).toUpperCase() + (isletme.paket || 'baslangic').slice(1)} Paket - ${buAy}`,
+        tutar: paketBilgi.fiyat,
+        siparisId,
+        callbackUrl,
+      });
+
+      // Bekleyen ödeme kaydı oluştur
+      const mevcut = (await pool.query(
+        "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum IN ('bekliyor','odeme_bekliyor')",
+        [isletmeId, buAy]
+      )).rows[0];
+
+      if (mevcut) {
+        await pool.query(
+          "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1 WHERE id = $2",
+          [siparisId, mevcut.id]
+        );
+      } else {
+        await pool.query(
+          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4)",
+          [isletmeId, paketBilgi.fiyat, buAy, siparisId]
+        );
+      }
+
+      console.log(`💳 Shopier ödeme başlatıldı: ${isletme.isim} - ${paketBilgi.fiyat}₺ - ${siparisId}`);
+      res.send(html);
+    } catch (error) {
+      console.error('❌ Shopier ödeme başlatma hatası:', error);
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async shopierCallback(req, res) {
+    try {
+      const postData = req.body;
+      console.log('📩 Shopier callback geldi:', JSON.stringify(postData));
+
+      const sonuc = shopierService.callbackDogrula(postData);
+
+      if (sonuc.gecerli) {
+        // Ödemeyi onayla
+        const odeme = (await pool.query(
+          "SELECT * FROM odemeler WHERE referans_kodu = $1",
+          [sonuc.siparisId]
+        )).rows[0];
+
+        if (odeme) {
+          await pool.query(
+            "UPDATE odemeler SET durum = 'odendi', odeme_yontemi = 'shopier', odeme_tarihi = NOW() WHERE id = $1",
+            [odeme.id]
+          );
+          console.log(`✅ Shopier ödeme onaylandı: sipariş=${sonuc.siparisId}, işletme=${odeme.isletme_id}`);
+        } else {
+          console.log(`⚠️ Shopier ödeme kaydı bulunamadı: ${sonuc.siparisId}`);
+        }
+
+        // Başarılı sayfaya yönlendir
+        const adminUrl = process.env.ADMIN_URL || 'https://admin.sirago.com';
+        res.redirect(`${adminUrl}?odeme=basarili`);
+      } else {
+        console.log('❌ Shopier signature doğrulanamadı');
+        const adminUrl = process.env.ADMIN_URL || 'https://admin.sirago.com';
+        res.redirect(`${adminUrl}?odeme=basarisiz`);
+      }
+    } catch (error) {
+      console.error('❌ Shopier callback hatası:', error);
+      res.status(500).send('Ödeme işleme hatası');
     }
   }
 

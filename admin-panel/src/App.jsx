@@ -520,6 +520,16 @@ function Dashboard() {
     api.get("/paket").then(d => { if (d.paket) setPaketDurum(d); });
     api.get("/grafik-verileri").then(d => { if (!d.hata) setGrafikVeri(d); }).catch(() => {});
     api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); }).catch(() => {});
+    // Shopier callback sonrası bildirim
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('odeme') === 'basarili') {
+      alert('✅ Ödemeniz başarıyla alındı! Teşekkürler.');
+      window.history.replaceState({}, '', window.location.pathname);
+      api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); });
+    } else if (params.get('odeme') === 'basarisiz') {
+      alert('❌ Ödeme işlemi başarısız oldu. Lütfen tekrar deneyin.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, [verileriYukle]);
 
   const hizmetleriYukle = async () => { const d = await api.get("/hizmetler"); setHizmetler(d.hizmetler || []); };
@@ -812,21 +822,15 @@ function Dashboard() {
                         </div>
 
                         <div className="odeme-yontem">
-                          <h4 className="mb-10">Kredi Kartı ile Öde (iyzico)</h4>
-                          <button onClick={async () => {
-                            setOdemeYukleniyor(true);
-                            const d = await api.post("/odeme/iyzico/baslat", { paket: odemeBilgi.paket });
-                            if (d.checkoutFormContent) {
-                              const w = window.open("", "_blank");
-                              w.document.write(d.checkoutFormContent);
-                            } else if (d.hata) {
-                              alert(d.hata);
-                            }
-                            setOdemeYukleniyor(false);
-                          }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#6366f1", color: "#fff" }}>
-                            {odemeYukleniyor ? "Yükleniyor..." : "Kredi Kartı ile Öde"}
+                          <h4 className="mb-10">💳 Kredi Kartı ile Öde</h4>
+                          <button onClick={() => {
+                            const token = localStorage.getItem("token");
+                            const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
+                            window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
+                          }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#51cbb0", color: "#fff", fontWeight: 700 }}>
+                            🔒 Shopier ile Güvenli Öde
                           </button>
-                          <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>iyzico güvenli ödeme altyapısı</div>
+                          <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>Shopier güvenli ödeme altyapısı • Kredi kartı / Banka kartı</div>
                         </div>
                       </div>
                     </div>

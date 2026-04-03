@@ -73,9 +73,11 @@ router.get('/admin/iletisim', authMiddleware, superAdminMiddleware, (req, res) =
 router.put('/admin/iletisim/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.iletisimOkundu(req, res));
 router.delete('/admin/iletisim/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.iletisimSil(req, res));
 
-// ==================== ÖDEME (iyzico + havale) ====================
+// ==================== ÖDEME (Shopier + havale) ====================
 router.post('/odeme/iyzico/baslat', authMiddleware, (req, res) => adminController.iyzicoBaslat(req, res));
 router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallback(req, res));
+router.get('/odeme/shopier/baslat', authMiddleware, (req, res) => adminController.shopierOdemeBaslat(req, res));
+router.post('/odeme/shopier/callback', (req, res) => adminController.shopierCallback(req, res));
 router.post('/odeme/havale', authMiddleware, (req, res) => adminController.havaleGonder(req, res));
 router.get('/odeme/durum', authMiddleware, (req, res) => adminController.odemeDurum(req, res));
 
