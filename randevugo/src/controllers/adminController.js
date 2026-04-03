@@ -894,7 +894,7 @@ class AdminController {
         );
       }
 
-      console.log(`💳 Shopier ödeme başlatıldı: ${isletme.isim} - ${paket} - ${paketBilgi.fiyat}₺ → ${urun.url}`);
+      console.log(`💳 Shopier ödeme başlatıldı: ${isletme.isim} - ${secilenPaket} - ${paketBilgi.fiyat}₺ → ${urun.url}`);
 
       // Shopier ürün sayfasına yönlendir
       res.redirect(urun.url);
