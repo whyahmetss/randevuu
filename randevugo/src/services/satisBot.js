@@ -166,14 +166,21 @@ class SatisBot extends EventEmitter {
 
       // Gelen mesajları dinle (cevaplar)
       this.sock.ev.on('messages.upsert', async ({ messages, type }) => {
+        console.log(`📨 messages.upsert event: type=${type}, count=${messages.length}`);
         if (type !== 'notify') return;
         for (const msg of messages) {
-          if (msg.key.fromMe) continue;
+          const jid = msg.key.remoteJid || '';
+          const fromMe = msg.key.fromMe;
+          const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+          console.log(`📨 Mesaj: from=${jid}, fromMe=${fromMe}, text="${text.slice(0, 50)}"`);
+          if (fromMe) continue;
           if (!msg.message) continue;
+          // Grup mesajlarını atla
+          if (jid.endsWith('@g.us')) continue;
           try {
             await this.gelenMesajIsle(msg);
           } catch (err) {
-            console.error('❌ Satış bot gelen mesaj hatası:', err.message);
+            console.error('❌ Satış bot gelen mesaj hatası:', err.message, err.stack);
           }
         }
       });
@@ -423,7 +430,9 @@ class SatisBot extends EventEmitter {
     );
 
     // DeepSeek AI ile satış cevabı oluştur
+    console.log(`🤖 AI cevap üretiliyor: konusma_id=${konusma.id}, isletme=${konusma.isletme_adi}`);
     const aiCevap = await this.deepseekSatisCevabi(metin, konusma);
+    console.log(`🤖 AI cevap sonuç:`, aiCevap ? `mesaj="${aiCevap.mesaj?.slice(0, 50)}..." durum=${aiCevap.durum}` : 'NULL');
 
     if (aiCevap) {
       // Anti-ban: Typing indicator

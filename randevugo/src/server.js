@@ -103,6 +103,7 @@ const PORT = process.env.PORT || 3000;
 })();
 
 // Middleware - Güvenlik
+app.set('trust proxy', 1); // Render reverse proxy
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
 const allowedOrigins = [
