@@ -29,8 +29,8 @@ class RandevuService {
     const baslangic = isletme.calisma_baslangic;
     const bitis = isletme.calisma_bitis;
 
-    // Slot aralığı: 30dk (temiz görünüm, çakışma hizmet süresine göre hesaplanır)
-    const SLOT_ARALIK = 30;
+    // Slot aralığı: 10dk (hassas zamanlama - hizmet süresine göre çakışma kontrolü)
+    const SLOT_ARALIK = 10;
 
     // Mevcut randevuları al (bitiş saati + tampon ile)
     let randevuQuery = 'SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum != $3';

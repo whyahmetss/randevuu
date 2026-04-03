@@ -467,9 +467,20 @@ class TelegramService {
                [{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
           } else {
             await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: secilenTarih });
-            const saatButonlar = saatler.map(s => ({ text: s, callback_data: `saat_${s}` }));
+            // Sabah/Öğle/Akşam grupla, 4'lü satırlar
+            const sabah = saatler.filter(s => parseInt(s.split(':')[0]) < 12);
+            const ogle = saatler.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; });
+            const aksam = saatler.filter(s => parseInt(s.split(':')[0]) >= 17);
             const satirlar = [];
-            for (let i=0; i<saatButonlar.length; i+=3) satirlar.push(saatButonlar.slice(i,i+3));
+            const grupEkle = (baslik, list) => {
+              if (!list.length) return;
+              satirlar.push([{ text: baslik, callback_data: 'ignore' }]);
+              const btnlar = list.map(s => ({ text: s, callback_data: `saat_${s}` }));
+              for (let i = 0; i < btnlar.length; i += 4) satirlar.push(btnlar.slice(i, i + 4));
+            };
+            grupEkle('🌅 Sabah', sabah);
+            grupEkle('☀️ Öğle', ogle);
+            grupEkle('🌙 Akşam', aksam);
             satirlar.push([{ text: '🔙 Geri', callback_data: 'geri_tarih' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
             await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, `🕐 *${this.tarihFormat(secilenTarih)}*\n\nBir saat seçin:`, satirlar);
           }
