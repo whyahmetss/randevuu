@@ -798,37 +798,29 @@ function Dashboard() {
                     <div className="odeme-panel">
                       <div className="odeme-tutar">{odemeBilgi.tutar}₺ <span className="odeme-paket">{odemeBilgi.paket} paket</span></div>
 
-                      <div className="odeme-yontemler">
-                        <div className="odeme-yontem">
-                          <h4 className="mb-10">Havale / EFT ile Öde</h4>
-                          <div className="banka-bilgi">
-                            <div><strong>Banka:</strong> {odemeBilgi.banka?.banka_adi}</div>
-                            <div><strong>IBAN:</strong> {odemeBilgi.banka?.iban}</div>
-                            <div><strong>Hesap Sahibi:</strong> {odemeBilgi.banka?.hesap_sahibi}</div>
-                            <div><strong>Açıklama:</strong> <span className="ref-kod">{odemeBilgi.banka?.aciklama}</span></div>
-                          </div>
-                          <div className="ref-uyari">⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutmayın!</div>
-                          <button onClick={async () => {
-                            setOdemeYukleniyor(true);
-                            const d = await api.post("/odeme/havale", { dekont_notu: "" });
-                            if (!d.hata) { api.get("/odeme/durum").then(d2 => { if (!d2.hata) setOdemeBilgi(d2); }); }
-                            setOdemeYukleniyor(false);
-                          }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm mt-12">
-                            {odemeYukleniyor ? "Gönderiliyor..." : "Havale Bildirimi Gönder"}
-                          </button>
-                        </div>
-
-                        <div className="odeme-yontem">
-                          <h4 className="mb-10">💳 Kredi Kartı ile Öde</h4>
-                          <button onClick={() => {
-                            const token = localStorage.getItem("randevugo_token");
-                            const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
-                            window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
-                          }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#51cbb0", color: "#fff", fontWeight: 700 }}>
-                            🔒 Shopier ile Güvenli Öde
-                          </button>
-                          <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>Shopier güvenli ödeme altyapısı • Kredi kartı / Banka kartı</div>
-                        </div>
+                      <div className="banka-bilgi">
+                        <div><strong>Banka:</strong> {odemeBilgi.banka?.banka_adi}</div>
+                        <div><strong>IBAN:</strong> {odemeBilgi.banka?.iban}</div>
+                        <div><strong>Hesap Sahibi:</strong> {odemeBilgi.banka?.hesap_sahibi}</div>
+                        <div><strong>Açıklama:</strong> <span className="ref-kod">{odemeBilgi.banka?.aciklama}</span></div>
+                      </div>
+                      <div className="ref-uyari">⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutmayın!</div>
+                      <div className="row row-wrap gap-8 mt-12">
+                        <button onClick={async () => {
+                          setOdemeYukleniyor(true);
+                          const d = await api.post("/odeme/havale", { dekont_notu: "" });
+                          if (!d.hata) { api.get("/odeme/durum").then(d2 => { if (!d2.hata) setOdemeBilgi(d2); }); }
+                          setOdemeYukleniyor(false);
+                        }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm">
+                          {odemeYukleniyor ? "Gönderiliyor..." : "Havale Bildirimi Gönder"}
+                        </button>
+                        <button onClick={() => {
+                          const token = localStorage.getItem("randevugo_token");
+                          const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
+                          window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
+                        }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#51cbb0", color: "#fff", fontWeight: 700 }}>
+                          🔒 Kredi Kartı ile Öde
+                        </button>
                       </div>
                     </div>
                   )}
