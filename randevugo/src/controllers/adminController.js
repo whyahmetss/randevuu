@@ -962,9 +962,15 @@ class AdminController {
   async satisBotBaslat(req, res) {
     try {
       const satisBot = require('../services/satisBot');
-      await satisBot.baslat();
-      res.json({ mesaj: 'Satış botu başlatıldı', durum: satisBot.getDurum() });
+      console.log('🔄 Satış Bot başlatma isteği geldi, mevcut durum:', satisBot.getDurum().durum);
+      satisBot.baslat(); // await yok — arka planda çalışsın
+      // 1sn bekle ki QR event'i gelsin
+      await new Promise(r => setTimeout(r, 1500));
+      const durum = satisBot.getDurum();
+      console.log('📱 Satış Bot başlatma sonrası durum:', durum.durum, 'QR var mı:', !!durum.qrBase64);
+      res.json({ mesaj: 'Satış botu başlatıldı', ...durum });
     } catch (error) {
+      console.error('❌ satisBotBaslat hatası:', error);
       res.status(500).json({ hata: error.message });
     }
   }
@@ -983,10 +989,16 @@ class AdminController {
     try {
       const satisBot = require('../services/satisBot');
       const durum = satisBot.getDurum();
-      const istatistikler = await satisBot.istatistikler();
+      let istatistikler = { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, gunluk_gonderim: 0, gunluk_limit: 50 };
+      try {
+        istatistikler = await satisBot.istatistikler();
+      } catch (e) {
+        console.log('⚠️ İstatistik hatası (önemsiz):', e.message);
+      }
       res.json({ ...durum, istatistikler });
     } catch (error) {
-      res.status(500).json({ hata: error.message });
+      console.error('❌ satisBotDurum hatası:', error);
+      res.json({ durum: 'kapali', qrBase64: null, aktif: false, istatistikler: { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, gunluk_gonderim: 0, gunluk_limit: 50 } });
     }
   }
 
