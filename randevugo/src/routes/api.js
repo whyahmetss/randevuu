@@ -28,6 +28,7 @@ router.post('/calisanlar', authMiddleware, (req, res) => adminController.calisan
 router.get('/musteriler', authMiddleware, (req, res) => adminController.musterileriGetir(req, res));
 
 router.get('/istatistikler', authMiddleware, (req, res) => adminController.istatistikler(req, res));
+router.get('/grafik-verileri', authMiddleware, (req, res) => adminController.grafikVerileri(req, res));
 
 router.get('/ayarlar', authMiddleware, (req, res) => adminController.isletmeAyarlari(req, res));
 router.put('/ayarlar', authMiddleware, (req, res) => adminController.isletmeGuncelle(req, res));
@@ -63,6 +64,12 @@ router.delete('/admin/isletmeler/:id', authMiddleware, superAdminMiddleware, (re
 router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeleriGetir(req, res));
 router.post('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeEkle(req, res));
 router.put('/admin/odemeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeGuncelle(req, res));
+
+// ==================== ÖDEME (iyzico + havale) ====================
+router.post('/odeme/iyzico/baslat', authMiddleware, (req, res) => adminController.iyzicoBaslat(req, res));
+router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallback(req, res));
+router.post('/odeme/havale', authMiddleware, (req, res) => adminController.havaleGonder(req, res));
+router.get('/odeme/durum', authMiddleware, (req, res) => adminController.odemeDurum(req, res));
 
 // ==================== AVCI BOT ====================
 router.post('/admin/avci/tarama', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciTarama(req, res));

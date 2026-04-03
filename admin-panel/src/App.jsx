@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler } from "chart.js";
+import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoIcon from "./assets/logo1.png";
 import logoFull from "./assets/logo2.png";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
 const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://randevugo-api.onrender.com/api');
 
@@ -495,6 +499,10 @@ function Dashboard() {
   const [randevuTarih, setRandevuTarih] = useState(() => { const d = new Date(); return d.toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" }); });
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false);
   const [paketModal, setPaketModal] = useState(false);
+  const [grafikVeri, setGrafikVeri] = useState(null);
+  const [odemeBilgi, setOdemeBilgi] = useState(null);
+  const [havaleNotu, setHavaleNotu] = useState("");
+  const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
   const chatRef = useRef(null);
 
   const verileriYukle = useCallback(async (tarih) => {
@@ -510,6 +518,8 @@ function Dashboard() {
   useEffect(() => {
     verileriYukle();
     api.get("/paket").then(d => { if (d.paket) setPaketDurum(d); });
+    api.get("/grafik-verileri").then(d => { if (!d.hata) setGrafikVeri(d); }).catch(() => {});
+    api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); }).catch(() => {});
   }, [verileriYukle]);
 
   const hizmetleriYukle = async () => { const d = await api.get("/hizmetler"); setHizmetler(d.hizmetler || []); };
@@ -708,6 +718,126 @@ function Dashboard() {
                   </div>
                 ))}
               </div>
+
+              {/* Grafikler */}
+              {grafikVeri && (
+                <div className="chart-grid">
+                  <div className="card">
+                    <h3 className="card-title mb-16">Son 7 Gün - Randevular</h3>
+                    <div className="chart-container">
+                      <Bar data={{
+                        labels: (grafikVeri.haftalik || []).map(h => { const d = new Date(h.tarih); return d.toLocaleDateString("tr-TR", { weekday: "short", day: "numeric" }); }),
+                        datasets: [
+                          { label: "Toplam", data: (grafikVeri.haftalik || []).map(h => parseInt(h.sayi)), backgroundColor: "rgba(99,102,241,.6)", borderRadius: 6 },
+                          { label: "Onaylanan", data: (grafikVeri.haftalik || []).map(h => parseInt(h.onaylanan)), backgroundColor: "rgba(16,185,129,.6)", borderRadius: 6 },
+                        ]
+                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8892b0", font: { size: 11 } } } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <h3 className="card-title mb-16">Aylık Gelir (₺)</h3>
+                    <div className="chart-container">
+                      <Line data={{
+                        labels: (grafikVeri.aylikGelir || []).map(g => { const d = new Date(g.tarih); return `${d.getDate()}/${d.getMonth()+1}`; }),
+                        datasets: [{
+                          label: "Gelir (₺)", data: (grafikVeri.aylikGelir || []).map(g => parseFloat(g.gelir)),
+                          borderColor: "#a78bfa", backgroundColor: "rgba(167,139,250,.1)", fill: true, tension: .4, pointRadius: 2,
+                        }]
+                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8892b0", font: { size: 11 } } } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 }, callback: v => v + "₺" }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <h3 className="card-title mb-16">Hizmet Dağılımı</h3>
+                    <div className="chart-container-sm">
+                      <Doughnut data={{
+                        labels: (grafikVeri.hizmetDagilimi || []).map(h => h.isim),
+                        datasets: [{ data: (grafikVeri.hizmetDagilimi || []).map(h => parseInt(h.sayi)),
+                          backgroundColor: ["#6366f1","#10b981","#f59e0b","#ec4899","#3b82f6","#ef4444","#8b5cf6","#14b8a6"],
+                          borderWidth: 0,
+                        }]
+                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { color: "#8892b0", font: { size: 11 }, padding: 12 } } } }} />
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <h3 className="card-title mb-16">Saat Dağılımı</h3>
+                    <div className="chart-container">
+                      <Bar data={{
+                        labels: (grafikVeri.saatDagilimi || []).map(s => s.saat?.slice(0,5)),
+                        datasets: [{ label: "Randevu", data: (grafikVeri.saatDagilimi || []).map(s => parseInt(s.sayi)),
+                          backgroundColor: "rgba(245,158,11,.5)", borderRadius: 4,
+                        }]
+                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Ödeme Durumu */}
+              {odemeBilgi && (
+                <div className="card">
+                  <div className="card-header">
+                    <h3>Ödeme Durumu - {odemeBilgi.donem}</h3>
+                    <span className={`tag ${odemeBilgi.odeme?.durum === 'odendi' ? 'tag-green' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'tag-amber' : 'tag-red'}`}>
+                      {odemeBilgi.odeme?.durum === 'odendi' ? 'Ödendi' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'Havale Onay Bekliyor' : 'Ödenmedi'}
+                    </span>
+                  </div>
+                  {(!odemeBilgi.odeme || odemeBilgi.odeme.durum === 'bekliyor') && (
+                    <div className="odeme-panel">
+                      <div className="odeme-tutar">{odemeBilgi.tutar}₺ <span className="odeme-paket">{odemeBilgi.paket} paket</span></div>
+
+                      <div className="odeme-yontemler">
+                        <div className="odeme-yontem">
+                          <h4 className="mb-10">Havale / EFT ile Öde</h4>
+                          <div className="banka-bilgi">
+                            <div><strong>Banka:</strong> {odemeBilgi.banka?.banka_adi}</div>
+                            <div><strong>IBAN:</strong> {odemeBilgi.banka?.iban}</div>
+                            <div><strong>Hesap Sahibi:</strong> {odemeBilgi.banka?.hesap_sahibi}</div>
+                            <div><strong>Açıklama:</strong> {odemeBilgi.banka?.aciklama}</div>
+                          </div>
+                          <div className="row row-wrap gap-8 mt-12">
+                            <input value={havaleNotu} onChange={e => setHavaleNotu(e.target.value)} placeholder="Dekont notu (isteğe bağlı)" className="input flex-1" style={{ minWidth: 0 }} />
+                            <button onClick={async () => {
+                              setOdemeYukleniyor(true);
+                              const d = await api.post("/odeme/havale", { dekont_notu: havaleNotu });
+                              if (!d.hata) { setHavaleNotu(""); api.get("/odeme/durum").then(d2 => { if (!d2.hata) setOdemeBilgi(d2); }); }
+                              setOdemeYukleniyor(false);
+                            }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm">
+                              {odemeYukleniyor ? "Gönderiliyor..." : "Havale Bildirimi Gönder"}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="odeme-yontem">
+                          <h4 className="mb-10">Kredi Kartı ile Öde (iyzico)</h4>
+                          <button onClick={async () => {
+                            setOdemeYukleniyor(true);
+                            const d = await api.post("/odeme/iyzico/baslat", { paket: odemeBilgi.paket });
+                            if (d.checkoutFormContent) {
+                              const w = window.open("", "_blank");
+                              w.document.write(d.checkoutFormContent);
+                            } else if (d.hata) {
+                              alert(d.hata);
+                            }
+                            setOdemeYukleniyor(false);
+                          }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#6366f1", color: "#fff" }}>
+                            {odemeYukleniyor ? "Yükleniyor..." : "Kredi Kartı ile Öde"}
+                          </button>
+                          <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>iyzico güvenli ödeme altyapısı</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {odemeBilgi.odeme?.durum === 'havale_bekliyor' && (
+                    <div className="alert alert-amber mt-12">Havale bildiriminiz alındı. SuperAdmin onayı bekleniyor.</div>
+                  )}
+                  {odemeBilgi.odeme?.durum === 'odendi' && (
+                    <div className="alert alert-success mt-12">Bu dönem ödemesi tamamlandı. Teşekkürler!</div>
+                  )}
+                </div>
+              )}
             </>
           )}
 

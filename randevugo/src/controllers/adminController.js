@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
 const PAKETLER = require('../config/paketler');
 const avciBot = require('../services/avciBot');
+const iyzicoService = require('../services/iyzicoService');
 
 class AdminController {
 
@@ -747,6 +748,150 @@ class AdminController {
     try {
       await avciBot.sil(req.params.id);
       res.json({ mesaj: 'Silindi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== ÖDEME (iyzico + havale) ====================
+
+  async iyzicoBaslat(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { paket } = req.body;
+      const result = await iyzicoService.checkoutBaslat(isletmeId, paket || 'baslangic');
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ hata: error.message });
+    }
+  }
+
+  async iyzicoCallback(req, res) {
+    try {
+      const { token } = req.body;
+      if (!token) return res.redirect((process.env.ADMIN_PANEL_URL || 'https://randevugo-admin.onrender.com') + '?odeme=hata');
+      const sonuc = await iyzicoService.callbackDogrula(token);
+      const baseUrl = process.env.ADMIN_PANEL_URL || 'https://randevugo-admin.onrender.com';
+      res.redirect(baseUrl + (sonuc.basarili ? '?odeme=basarili' : '?odeme=basarisiz'));
+    } catch (error) {
+      console.error('iyzico callback hatası:', error);
+      res.redirect((process.env.ADMIN_PANEL_URL || 'https://randevugo-admin.onrender.com') + '?odeme=hata');
+    }
+  }
+
+  async havaleGonder(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { dekont_notu } = req.body;
+
+      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      const paketBilgi = PAKETLER[isletme.paket] || PAKETLER.baslangic;
+      const buAy = new Date().toISOString().slice(0, 7);
+
+      // Mevcut bekleyen ödeme var mı?
+      const mevcut = (await pool.query(
+        "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum IN ('bekliyor','havale_bekliyor')",
+        [isletmeId, buAy]
+      )).rows[0];
+
+      if (mevcut) {
+        await pool.query(
+          "UPDATE odemeler SET durum = 'havale_bekliyor', odeme_yontemi = 'havale', havale_dekont = $1 WHERE id = $2",
+          [dekont_notu || '', mevcut.id]
+        );
+      } else {
+        await pool.query(
+          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, havale_dekont) VALUES ($1, $2, $3, 'havale_bekliyor', 'havale', $4)",
+          [isletmeId, paketBilgi.fiyat, buAy, dekont_notu || '']
+        );
+      }
+
+      res.json({ mesaj: 'Havale bildiriminiz alındı. SuperAdmin onayı bekleniyor.' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async odemeDurum(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const buAy = new Date().toISOString().slice(0, 7);
+
+      const odeme = (await pool.query(
+        'SELECT * FROM odemeler WHERE isletme_id = $1 AND donem = $2 ORDER BY olusturma_tarihi DESC LIMIT 1',
+        [isletmeId, buAy]
+      )).rows[0];
+
+      const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      const paketBilgi = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
+
+      res.json({
+        odeme: odeme || null,
+        paket: isletme?.paket || 'baslangic',
+        tutar: paketBilgi.fiyat,
+        donem: buAy,
+        banka: {
+          banka_adi: 'Ziraat Bankası',
+          iban: 'TR00 0000 0000 0000 0000 0000 00',
+          hesap_sahibi: 'SıraGO Yazılım',
+          aciklama: `SıraGO ${buAy} ödeme`
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== GRAFİK İSTATİSTİK ====================
+
+  async grafikVerileri(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+
+      // Son 7 günlük randevu sayıları
+      const haftalik = (await pool.query(`
+        SELECT tarih, COUNT(*) as sayi,
+          COUNT(*) FILTER(WHERE durum='onaylandi' OR durum='tamamlandi') as onaylanan
+        FROM randevular WHERE isletme_id=$1 AND tarih >= CURRENT_DATE - INTERVAL '6 days'
+        GROUP BY tarih ORDER BY tarih
+      `, [isletmeId])).rows;
+
+      // Son 30 günlük gelir (günlük)
+      const aylikGelir = (await pool.query(`
+        SELECT r.tarih, COALESCE(SUM(h.fiyat),0) as gelir
+        FROM randevular r
+        JOIN hizmetler h ON r.hizmet_id = h.id
+        WHERE r.isletme_id=$1 AND r.tarih >= CURRENT_DATE - INTERVAL '29 days'
+          AND r.durum IN ('onaylandi','tamamlandi')
+        GROUP BY r.tarih ORDER BY r.tarih
+      `, [isletmeId])).rows;
+
+      // Hizmet dağılımı (bu ay)
+      const hizmetDagilimi = (await pool.query(`
+        SELECT h.isim, COUNT(r.id) as sayi
+        FROM randevular r
+        JOIN hizmetler h ON r.hizmet_id = h.id
+        WHERE r.isletme_id=$1 AND r.tarih >= date_trunc('month', CURRENT_DATE)
+        GROUP BY h.isim ORDER BY sayi DESC LIMIT 8
+      `, [isletmeId])).rows;
+
+      // Saat dağılımı (bu ay)
+      const saatDagilimi = (await pool.query(`
+        SELECT saat, COUNT(*) as sayi
+        FROM randevular WHERE isletme_id=$1 AND tarih >= date_trunc('month', CURRENT_DATE)
+        GROUP BY saat ORDER BY saat
+      `, [isletmeId])).rows;
+
+      // Durum dağılımı (bu ay)
+      const durumDagilimi = (await pool.query(`
+        SELECT durum, COUNT(*) as sayi
+        FROM randevular WHERE isletme_id=$1 AND tarih >= date_trunc('month', CURRENT_DATE)
+        GROUP BY durum
+      `, [isletmeId])).rows;
+
+      res.json({ haftalik, aylikGelir, hizmetDagilimi, saatDagilimi, durumDagilimi });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

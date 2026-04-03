@@ -2,6 +2,8 @@ process.env.TZ = 'Europe/Istanbul';
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
@@ -46,20 +48,56 @@ const PORT = process.env.PORT || 3000;
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS instagram VARCHAR(255)`);
+    // Ödemeler tablosu - yeni kolonlar
+    await pool.query(`CREATE TABLE IF NOT EXISTS odemeler (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER REFERENCES isletmeler(id),
+      tutar DECIMAL(10,2) NOT NULL,
+      donem VARCHAR(7),
+      durum VARCHAR(30) DEFAULT 'bekliyor',
+      odeme_yontemi VARCHAR(30),
+      odeme_tarihi TIMESTAMP,
+      iyzico_token VARCHAR(255),
+      havale_dekont TEXT,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS odeme_yontemi VARCHAR(30)`);
+    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS iyzico_token VARCHAR(255)`);
+    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS havale_dekont TEXT`);
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
   }
 })();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Middleware - Güvenlik
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+
+const allowedOrigins = [
+  'http://localhost:5173', 'http://localhost:3000',
+  'https://randevugo-admin.onrender.com', 'https://admin.xn--srago-n4a.com',
+  process.env.ADMIN_PANEL_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(null, true); // Geliştirme kolaylığı için şimdilik hepsini kabul et
+  },
+  credentials: true
+}));
+
+// Rate limiting
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } });
+
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true })); // Twilio webhook için
 app.use(express.static(require('path').join(__dirname, 'public')));
 
 // API Routes
-app.use('/api', apiRoutes);
+app.use('/api/auth', authLimiter);
+app.use('/api', apiLimiter, apiRoutes);
 
 // Health check for Render
 app.get('/api/health', (req, res) => {

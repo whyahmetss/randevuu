@@ -653,5 +653,31 @@ select.input { appearance: none; }
 .info-banner .ib-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .info-banner .ib-head span { color: var(--amber); font-weight: 700; font-size: 16px; }
 
+/* ── CHART GRID ── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; }
+.chart-container { position: relative; height: 240px; }
+.chart-container-sm { position: relative; height: 220px; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--muted); }
+@media(max-width:768px) { .chart-grid { grid-template-columns: 1fr; } .chart-container, .chart-container-sm { height: 200px; } }
+
+/* ── ÖDEME PANELİ ── */
+.odeme-panel { padding: 16px 0 0; }
+.odeme-tutar { font-size: 32px; font-weight: 800; color: var(--text); margin-bottom: 20px; }
+.odeme-paket { font-size: 14px; font-weight: 500; color: var(--dim); margin-left: 8px; }
+.odeme-yontemler { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.odeme-yontem { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.odeme-yontem h4 { font-size: 14px; font-weight: 700; color: var(--text); }
+.banka-bilgi { background: var(--surface2); border-radius: 10px; padding: 14px; font-size: 13px; color: var(--muted); line-height: 1.8; margin-bottom: 8px; }
+.banka-bilgi strong { color: var(--text); }
+@media(max-width:768px) { .odeme-yontemler { grid-template-columns: 1fr; } }
+
+/* ── TAG RENKLERI ── */
+.tag-green { background: rgba(16,185,129,.12); color: var(--green); }
+.tag-amber { background: rgba(245,158,11,.12); color: var(--amber); }
+.tag-red { background: rgba(239,68,68,.12); color: var(--red); }
+
+/* ── ALERT ── */
+.alert-amber { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); color: var(--amber); padding: 12px 16px; border-radius: 10px; font-size: 13px; }
+
 /* ── AVCI RANK ── */
 .rank-circle { background: var(--amber); color: #000; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
