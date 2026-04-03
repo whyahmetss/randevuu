@@ -1187,18 +1187,27 @@ function SuperAdminPanel({ kullanici }) {
   };
 
   const satisBotYukle = async () => {
-    const d = await api.get("/admin/satis-bot/durum");
-    setSatisBotDurum(d);
-    const k = await api.get("/admin/satis-bot/konusmalar");
-    setSatisBotKonusmalar(k.konusmalar || []);
+    try {
+      const d = await api.get("/admin/satis-bot/durum");
+      if (d && !d.hata) setSatisBotDurum(d);
+      const k = await api.get("/admin/satis-bot/konusmalar");
+      setSatisBotKonusmalar(k?.konusmalar || []);
+    } catch (e) { console.log("satis bot yükleme hatası:", e); }
   };
+
+  // Satış Bot QR polling — sayfa açıkken her 3sn durum kontrol et (QR + bağlantı)
+  useEffect(() => {
+    if (sayfa !== "satisBot") return;
+    satisBotYukle();
+    const interval = setInterval(satisBotYukle, 3000);
+    return () => clearInterval(interval);
+  }, [sayfa]);
 
   useEffect(() => {
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
     if (sayfa === "iletisim") iletisimYukle();
-    if (sayfa === "satisBot") satisBotYukle();
   }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak]);
 
   const isletmeEkle = async (e) => {

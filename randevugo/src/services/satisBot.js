@@ -485,6 +485,7 @@ CEVABINI ŞU JSON FORMATINDA VER (sadece JSON, başka bir şey yazma):
   // İstatistikler
   // ═══════════════════════════════════════════════════
   async istatistikler() {
+    try {
     const [gonderilen, bekleyen, olumlu, olumsuz, wpYok] = await Promise.all([
       pool.query("SELECT COUNT(*) as c FROM potansiyel_musteriler WHERE wp_mesaj_durumu = 'gonderildi'"),
       pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'bekliyor'"),
@@ -502,14 +503,23 @@ CEVABINI ŞU JSON FORMATINDA VER (sadece JSON, başka bir şey yazma):
       gunluk_gonderim: this.gunlukGonderim,
       gunluk_limit: 50
     };
+    } catch (err) {
+      console.log('⚠️ İstatistik sorgu hatası (tablo henüz yok olabilir):', err.message);
+      return { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, gunluk_gonderim: this.gunlukGonderim, gunluk_limit: 50 };
+    }
   }
 
   async konusmalarGetir(limit = 20) {
-    const result = await pool.query(
-      "SELECT * FROM satis_konusmalar ORDER BY son_mesaj_tarihi DESC NULLS LAST, olusturma_tarihi DESC LIMIT $1",
-      [limit]
-    );
-    return result.rows;
+    try {
+      const result = await pool.query(
+        "SELECT * FROM satis_konusmalar ORDER BY son_mesaj_tarihi DESC NULLS LAST, olusturma_tarihi DESC LIMIT $1",
+        [limit]
+      );
+      return result.rows;
+    } catch (err) {
+      console.log('⚠️ Konuşma sorgu hatası:', err.message);
+      return [];
+    }
   }
 }
 
