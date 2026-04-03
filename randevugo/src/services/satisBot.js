@@ -73,6 +73,9 @@ class SatisBot extends EventEmitter {
     this.gunlukGonderim = 0;
     this.sonGonderimTarihi = null;
     this.konusmalar = {};
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.basariliOturumVardi = false; // QR tarandı mı daha önce
     // SuperAdmin'den kontrol edilebilir ayarlar
     this.ayarlar = {
       mesaiBaslangic: 9,   // saat
@@ -102,6 +105,14 @@ class SatisBot extends EventEmitter {
       this.sock = null;
     }
 
+    // Auth dizinini kontrol et — bozuk/boş ise temizle
+    if (fs.existsSync(AUTH_DIR)) {
+      const credsFile = path.join(AUTH_DIR, 'creds.json');
+      if (!fs.existsSync(credsFile)) {
+        console.log('🗑️ Satış Bot auth dizini boş/bozuk, temizleniyor...');
+        try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
+      }
+    }
     if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
     this.durum = 'baslatiyor';
     console.log('🔄 Satış Bot başlatılıyor...');
@@ -138,6 +149,8 @@ class SatisBot extends EventEmitter {
         if (connection === 'open') {
           this.durum = 'bagli';
           this.qrBase64 = null;
+          this.reconnectAttempts = 0;
+          this.basariliOturumVardi = true;
           const numara = this.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
           console.log(`✅ Satış Bot WhatsApp bağlandı — numara: ${numara}`);
           this.emit('bagli');
@@ -146,20 +159,30 @@ class SatisBot extends EventEmitter {
         if (connection === 'close') {
           const statusCode = lastDisconnect?.error?.output?.statusCode;
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, reconnect: ${shouldReconnect}`);
+          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, reconnect: ${shouldReconnect}, oturum: ${this.basariliOturumVardi}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
           
-          if (statusCode === DisconnectReason.loggedOut) {
+          if (statusCode === DisconnectReason.loggedOut || statusCode === 515) {
+            // 515 = stream error (bozuk auth) veya logout → auth temizle
             this.durum = 'kapali';
             this.qrBase64 = null;
             this.aktif = false;
+            this.sock = null;
             try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
-            console.log('❌ Satış Bot oturumu kapatıldı (logout)');
-          } else if (shouldReconnect) {
-            // durum'u kapali yap ki baslat() guard clause engellemesin
+            console.log('🗑️ Satış Bot auth temizlendi (kod: ' + statusCode + '). Panel\'den yeniden başlatın ve QR tarayın.');
+          } else if (shouldReconnect && this.basariliOturumVardi && this.reconnectAttempts < this.maxReconnectAttempts) {
+            // Sadece daha önce başarılı bağlantı olduysa reconnect yap
+            this.reconnectAttempts++;
             this.durum = 'kapali';
             this.sock = null;
-            console.log('🔄 Satış Bot 5sn sonra yeniden bağlanıyor...');
-            setTimeout(() => this.baslat(), 5000);
+            const bekleme = Math.min(5000 * this.reconnectAttempts, 30000);
+            console.log(`🔄 Satış Bot ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+            setTimeout(() => this.baslat(), bekleme);
+          } else {
+            // QR taranmadan kapandı veya max deneme aşıldı — dur
+            this.durum = 'kapali';
+            this.qrBase64 = null;
+            this.sock = null;
+            console.log('⏹️ Satış Bot durdu. Panel\'den "Botu Başlat" ile yeniden başlatıp QR tarayın.');
           }
         }
       });
