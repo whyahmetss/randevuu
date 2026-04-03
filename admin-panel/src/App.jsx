@@ -808,17 +808,14 @@ function Dashboard() {
                             <div><strong>Açıklama:</strong> <span className="ref-kod">{odemeBilgi.banka?.aciklama}</span></div>
                           </div>
                           <div className="ref-uyari">⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutmayın!</div>
-                          <div className="row row-wrap gap-8 mt-12">
-                            <input value={havaleNotu} onChange={e => setHavaleNotu(e.target.value)} placeholder="Dekont notu (isteğe bağlı)" className="input flex-1" style={{ minWidth: 0 }} />
-                            <button onClick={async () => {
-                              setOdemeYukleniyor(true);
-                              const d = await api.post("/odeme/havale", { dekont_notu: havaleNotu });
-                              if (!d.hata) { setHavaleNotu(""); api.get("/odeme/durum").then(d2 => { if (!d2.hata) setOdemeBilgi(d2); }); }
-                              setOdemeYukleniyor(false);
-                            }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm">
-                              {odemeYukleniyor ? "Gönderiliyor..." : "Havale Bildirimi Gönder"}
-                            </button>
-                          </div>
+                          <button onClick={async () => {
+                            setOdemeYukleniyor(true);
+                            const d = await api.post("/odeme/havale", { dekont_notu: "" });
+                            if (!d.hata) { api.get("/odeme/durum").then(d2 => { if (!d2.hata) setOdemeBilgi(d2); }); }
+                            setOdemeYukleniyor(false);
+                          }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm mt-12">
+                            {odemeYukleniyor ? "Gönderiliyor..." : "Havale Bildirimi Gönder"}
+                          </button>
                         </div>
 
                         <div className="odeme-yontem">
@@ -830,7 +827,7 @@ function Dashboard() {
                           }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#51cbb0", color: "#fff", fontWeight: 700 }}>
                             🔒 Shopier ile Güvenli Öde
                           </button>
-                          <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>Shopier güvenli ödeme altyapısı • Kredi kartı / Banka kartı / Havale</div>
+                          <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>Shopier güvenli ödeme altyapısı • Kredi kartı / Banka kartı</div>
                         </div>
                       </div>
                     </div>
