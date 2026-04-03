@@ -844,6 +844,26 @@ class AdminController {
     }
   }
 
+  // ==================== İLETİŞİM FORMU (public) ====================
+
+  async iletisimGonder(req, res) {
+    try {
+      const { isim, email, mesaj } = req.body;
+      if (!isim || !email || !mesaj) return res.status(400).json({ hata: 'Tüm alanları doldurun.' });
+      if (mesaj.length > 2000) return res.status(400).json({ hata: 'Mesaj çok uzun (max 2000 karakter).' });
+
+      await pool.query(
+        'INSERT INTO iletisim_mesajlari (isim, email, mesaj) VALUES ($1, $2, $3)',
+        [isim.slice(0, 255), email.slice(0, 255), mesaj.slice(0, 2000)]
+      );
+
+      console.log(`📩 Yeni iletişim mesajı: ${isim} (${email})`);
+      res.json({ mesaj: 'Mesajınız başarıyla gönderildi.' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   // ==================== GRAFİK İSTATİSTİK ====================
 
   async grafikVerileri(req, res) {

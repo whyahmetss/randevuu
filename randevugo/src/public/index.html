@@ -224,6 +224,33 @@
     .cta-block h2{font-size:clamp(28px,4vw,40px);font-weight:800;margin-bottom:16px}
     .cta-block p{color:var(--muted);font-size:17px;max-width:480px;margin:0 auto 32px;line-height:1.7}
 
+    /* ---------- CONTACT ---------- */
+    .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+    .contact-info h3{font-size:28px;font-weight:800;margin-bottom:16px}
+    .contact-info p{color:var(--muted);font-size:15px;line-height:1.7;margin-bottom:32px}
+    .contact-channels{display:flex;flex-direction:column;gap:16px}
+    .contact-ch{display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:14px;background:var(--surface);border:1px solid var(--border);transition:all .3s}
+    .contact-ch:hover{border-color:rgba(99,102,241,.25);transform:translateX(4px)}
+    .contact-ch-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+    .contact-ch-icon.ig{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff}
+    .contact-ch-icon.mail{background:rgba(99,102,241,.12);color:#818cf8}
+    .contact-ch-icon svg{width:22px;height:22px}
+    .contact-ch-text{font-size:14px;font-weight:600}
+    .contact-ch-sub{font-size:12px;color:var(--dim);margin-top:2px}
+    .contact-form{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px}
+    .contact-form h3{font-size:20px;font-weight:700;margin-bottom:20px}
+    .cf-group{margin-bottom:16px}
+    .cf-group label{display:block;font-size:12px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .cf-input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;font-size:14px;transition:border-color .2s}
+    .cf-input:focus{outline:none;border-color:var(--primary)}
+    textarea.cf-input{resize:vertical;min-height:100px}
+    .cf-btn{width:100%;padding:14px;border-radius:12px;border:none;background:var(--gradient);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all .3s}
+    .cf-btn:hover{box-shadow:0 8px 24px rgba(99,102,241,.3);transform:translateY(-1px)}
+    .cf-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .cf-success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#34d399;padding:12px;border-radius:10px;font-size:13px;text-align:center;margin-top:12px}
+    .cf-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#f87171;padding:12px;border-radius:10px;font-size:13px;text-align:center;margin-top:12px}
+    @media(max-width:768px){.contact-grid{grid-template-columns:1fr;gap:32px}.contact-form{padding:24px}}
+
     /* ---------- FOOTER ---------- */
     footer{border-top:1px solid var(--border);padding:64px 0 32px;margin-top:120px}
     .foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
@@ -283,6 +310,7 @@
           <a href="#nasil">Nasıl Çalışır</a>
           <a href="#fiyat">Fiyatlandırma</a>
           <a href="#sss">SSS</a>
+          <a href="#iletisim">İletişim</a>
           <a href="https://admin.xn--srago-n4a.com" class="nav-cta">Giriş Yap</a>
         </div>
         <button class="hamburger" id="hamburgerBtn" aria-label="Menu">&#9776;</button>
@@ -297,6 +325,7 @@
     <a href="#nasil" class="mm-link">Nasıl Çalışır</a>
     <a href="#fiyat" class="mm-link">Fiyatlandırma</a>
     <a href="#sss" class="mm-link">SSS</a>
+    <a href="#iletisim" class="mm-link">İletişim</a>
     <a href="https://admin.xn--srago-n4a.com" class="nav-cta">Giriş Yap</a>
   </div>
 
@@ -594,6 +623,62 @@
     </div>
   </section>
 
+  <!-- İLETİŞİM -->
+  <section class="sec" id="iletisim">
+    <div class="container">
+      <div class="sec-head" data-anim>
+        <span class="sec-label">İletişim</span>
+        <h2 class="sec-title">Bizimle İletişime Geçin</h2>
+        <p class="sec-desc">Sorularınız mı var? Bize ulaşın, en kısa sürede dönüş yapalım.</p>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-info" data-anim>
+          <h3>Size nasıl yardımcı olabiliriz?</h3>
+          <p>Demo talep edin, fiyatlandırma hakkında bilgi alın veya teknik sorularınızı iletin. İster formu doldurun, ister sosyal medyadan yazın.</p>
+          <div class="contact-channels">
+            <a href="https://instagram.com/sirago" target="_blank" rel="noreferrer" class="contact-ch">
+              <div class="contact-ch-icon ig">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              </div>
+              <div>
+                <div class="contact-ch-text">Instagram</div>
+                <div class="contact-ch-sub">DM ile bize yazın</div>
+              </div>
+            </a>
+            <a href="mailto:info@sirago.com" class="contact-ch">
+              <div class="contact-ch-icon mail">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              </div>
+              <div>
+                <div class="contact-ch-text">E-posta</div>
+                <div class="contact-ch-sub">info@sirago.com</div>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div class="contact-form" data-anim>
+          <h3>Mesaj Gönderin</h3>
+          <form id="contactForm">
+            <div class="cf-group">
+              <label>İsim</label>
+              <input type="text" class="cf-input" id="cfIsim" placeholder="Adınız" required>
+            </div>
+            <div class="cf-group">
+              <label>E-posta</label>
+              <input type="email" class="cf-input" id="cfEmail" placeholder="email@adresiniz.com" required>
+            </div>
+            <div class="cf-group">
+              <label>Mesaj</label>
+              <textarea class="cf-input" id="cfMesaj" placeholder="Mesajınızı yazın..." required></textarea>
+            </div>
+            <button type="submit" class="cf-btn" id="cfBtn">Gönder</button>
+            <div id="cfSonuc"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- FOOTER -->
   <footer>
     <div class="container">
@@ -645,6 +730,24 @@
         document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
         if(!open)item.classList.add('open');
       });
+    });
+    // Contact form
+    document.getElementById('contactForm').addEventListener('submit',async function(e){
+      e.preventDefault();
+      const btn=document.getElementById('cfBtn');
+      const sonuc=document.getElementById('cfSonuc');
+      btn.disabled=true; btn.textContent='Gönderiliyor...';
+      try{
+        const res=await fetch('/api/iletisim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+          isim:document.getElementById('cfIsim').value,
+          email:document.getElementById('cfEmail').value,
+          mesaj:document.getElementById('cfMesaj').value
+        })});
+        const d=await res.json();
+        if(d.mesaj){sonuc.className='cf-success';sonuc.textContent='Mesajınız alındı! En kısa sürede dönüş yapacağız.';e.target.reset();}
+        else{sonuc.className='cf-error';sonuc.textContent=d.hata||'Bir hata oluştu.';}
+      }catch(err){sonuc.className='cf-error';sonuc.textContent='Bağlantı hatası.';}
+      btn.disabled=false; btn.textContent='Gönder';
     });
     // Mobile menu
     const mm=document.getElementById('mobileMenu');

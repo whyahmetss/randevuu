@@ -64,6 +64,15 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS odeme_yontemi VARCHAR(30)`);
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS iyzico_token VARCHAR(255)`);
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS havale_dekont TEXT`);
+    // İletişim mesajları
+    await pool.query(`CREATE TABLE IF NOT EXISTS iletisim_mesajlari (
+      id SERIAL PRIMARY KEY,
+      isim VARCHAR(255),
+      email VARCHAR(255),
+      mesaj TEXT,
+      okundu BOOLEAN DEFAULT false,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);

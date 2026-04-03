@@ -9,6 +9,9 @@ const botController = require('../controllers/botController');
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
 router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim(req, res));
 
+// ==================== İLETİŞİM (public) ====================
+router.post('/iletisim', (req, res) => adminController.iletisimGonder(req, res));
+
 // ==================== WHATSAPP WEBHOOK ====================
 router.post('/webhook/whatsapp', (req, res) => botController.gelenMesaj(req, res));
 router.post('/bot/test', (req, res) => botController.testMesaj(req, res));
