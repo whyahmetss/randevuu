@@ -4,21 +4,35 @@ const { bugunTarih, simdiSaat } = require('../utils/tarih');
 class RandevuService {
 
   // Müsait saatleri hesapla
-  async musaitSaatleriGetir(isletmeId, tarih, calisanId = null) {
+  // hizmetId: seçilen hizmetin süresi kadar blok tutar
+  // calisanId: sadece o çalışanın randevularına bakar
+  async musaitSaatleriGetir(isletmeId, tarih, calisanId = null, hizmetId = null) {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (!isletme) return [];
 
     // Gün kontrolü (0=Pazar, 6=Cumartesi)
     const gun = new Date(tarih).getDay();
-    const kapaliGunler = isletme.kapali_gunler.split(',').map(Number);
+    const kapaliGunler = (isletme.kapali_gunler || '').split(',').map(Number);
     if (kapaliGunler.includes(gun)) return [];
+
+    // Hizmet süresi: seçilen hizmetin süresi veya işletme varsayılanı
+    let hizmetSureDk = isletme.randevu_suresi_dk || 30;
+    if (hizmetId) {
+      const hizmet = (await pool.query('SELECT sure_dk FROM hizmetler WHERE id=$1', [hizmetId])).rows[0];
+      if (hizmet) hizmetSureDk = hizmet.sure_dk;
+    }
+
+    // 5dk tampon (arası hazırlık/temizlik)
+    const TAMPON_DK = 5;
 
     // Çalışma saatleri
     const baslangic = isletme.calisma_baslangic;
     const bitis = isletme.calisma_bitis;
-    const sureDk = isletme.randevu_suresi_dk;
 
-    // Mevcut randevuları al
+    // Slot aralığı: 10dk (hassas gösterim)
+    const SLOT_ARALIK = 10;
+
+    // Mevcut randevuları al (bitiş saati + tampon ile)
     let randevuQuery = 'SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum != $3';
     const params = [isletmeId, tarih, 'iptal'];
     
@@ -41,30 +55,32 @@ class RandevuService {
     const bugun = bugunTarih();
     const simdiDk = simdiSaat().toplam;
 
-    while (mevcutDk + sureDk <= bitisDk) {
+    while (mevcutDk + hizmetSureDk <= bitisDk) {
       const saat = `${String(Math.floor(mevcutDk / 60)).padStart(2, '0')}:${String(mevcutDk % 60).padStart(2, '0')}`;
-      const bitisSaat = `${String(Math.floor((mevcutDk + sureDk) / 60)).padStart(2, '0')}:${String((mevcutDk + sureDk) % 60).padStart(2, '0')}`;
 
-      // Bugünse ve saat geçmişse atla
+      // Bugünse ve saat geçmişse atla (30dk marj)
       if (tarih === bugun && mevcutDk <= simdiDk + 30) {
-        mevcutDk += sureDk;
+        mevcutDk += SLOT_ARALIK;
         continue;
       }
 
-      // Çakışma kontrolü
+      // Çakışma kontrolü: yeni randevunun [başlangıç, bitiş+tampon] aralığı mevcut randevuların [başlangıç, bitiş+tampon] ile çakışıyor mu?
+      const yeniBasDk = mevcutDk;
+      const yeniBitDk = mevcutDk + hizmetSureDk;
+
       const cakisma = mevcutRandevular.some(r => {
         const [rH, rM] = r.saat.split(':').map(Number);
         const [rbH, rbM] = r.bitis_saati.split(':').map(Number);
         const rBasDk = rH * 60 + rM;
-        const rBitDk = rbH * 60 + rbM;
-        return (mevcutDk < rBitDk && mevcutDk + sureDk > rBasDk);
+        const rBitDk = rbH * 60 + rbM + TAMPON_DK; // mevcut randevu bitişine 5dk tampon ekle
+        return (yeniBasDk < rBitDk && yeniBitDk > rBasDk);
       });
 
       if (!cakisma) {
         musaitSaatler.push(saat);
       }
 
-      mevcutDk += sureDk;
+      mevcutDk += SLOT_ARALIK;
     }
 
     return musaitSaatler;

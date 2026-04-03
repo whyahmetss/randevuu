@@ -456,8 +456,8 @@ class TelegramService {
 
         if (secilenTarih) {
           const randevuService = require('./randevu');
-          const gdTarih = (await pool.query('SELECT secilen_calisan_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const saatler = await randevuService.musaitSaatleriGetir(isletmeId, secilenTarih, gdTarih?.secilen_calisan_id);
+          const gdTarih = (await pool.query('SELECT secilen_calisan_id, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+          const saatler = await randevuService.musaitSaatleriGetir(isletmeId, secilenTarih, gdTarih?.secilen_calisan_id, gdTarih?.secilen_hizmet_id);
           if (!saatler.length) {
             await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
               `😔 *${this.tarihFormat(secilenTarih)}* tarihinde müsait saat bulunmuyor.\n\nBaşka gün seçebilir veya bekleme listesine eklenebilirsiniz:`,
@@ -495,7 +495,7 @@ class TelegramService {
         }
         const randevuService = require('./randevu');
         const gd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-        const saatler = await randevuService.musaitSaatleriGetir(isletmeId, gd.secilen_tarih, gd.secilen_calisan_id);
+        const saatler = await randevuService.musaitSaatleriGetir(isletmeId, gd.secilen_tarih, gd.secilen_calisan_id, gd.secilen_hizmet_id);
         let secilenSaat = null;
         if (mk.startsWith('saat_')) secilenSaat = metin.replace('saat_', '');
         else if (saatler.includes(metin)) secilenSaat = metin;
