@@ -56,6 +56,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Twilio webhook için
+app.use(express.static(require('path').join(__dirname, 'public')));
 
 // API Routes
 app.use('/api', apiRoutes);
@@ -65,24 +66,9 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Ana sayfa
+// Ana sayfa - Landing page
 app.get('/', (req, res) => {
-  const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
-  res.json({
-    uygulama: 'RandevuGO API',
-    versiyon: '1.0.0',
-    durum: 'çalışıyor ✅',
-    base_url: baseUrl,
-    endpoints: {
-      webhook: `POST ${baseUrl}/api/webhook/whatsapp`,
-      test: `POST ${baseUrl}/api/bot/test`,
-      giris: `POST ${baseUrl}/api/auth/giris`,
-      randevular: `GET ${baseUrl}/api/randevular`,
-      hizmetler: `GET ${baseUrl}/api/hizmetler`,
-      istatistikler: `GET ${baseUrl}/api/istatistikler`,
-      health: `GET ${baseUrl}/api/health`
-    }
-  });
+  res.sendFile(require('path').join(__dirname, 'public', 'index.html'));
 });
 
 // Sunucuyu başlat
