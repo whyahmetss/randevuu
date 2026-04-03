@@ -168,6 +168,15 @@ app.listen(PORT, () => {
 
   // WhatsApp Web servisini başlat
   whatsappWebService.tumIsletmeleriBaslat();
+
+  // Satış botunu otomatik başlat (auth varsa bağlanır, yoksa QR bekler)
+  try {
+    const satisBot = require('./services/satisBot');
+    console.log('🤖 Satış Bot otomatik başlatılıyor...');
+    satisBot.baslat();
+  } catch (e) {
+    console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
+  }
 });
 
 module.exports = app;
