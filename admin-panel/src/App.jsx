@@ -533,6 +533,7 @@ function StatCard({ icon, baslik, deger, renk }) {
 }
 
 function Dashboard() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [randevular, setRandevular] = useState([]);
   const [sayfa, setSayfa] = useState("anasayfa");
@@ -623,8 +624,19 @@ function Dashboard() {
   return (
     <div className="app-shell">
 
+      {/* Mobile top bar */}
+      <div className="mobile-topbar">
+        <span className="brand-name">SıraGO</span>
+        <button className="hamburger-btn" onClick={() => setMobileOpen(true)}>
+          <span/><span/><span/>
+        </button>
+      </div>
+
+      {/* Overlay */}
+      <div className={`sidebar-overlay${mobileOpen ? ' open' : ''}`} onClick={() => setMobileOpen(false)} />
+
       {/* ── Sidebar ── */}
-      <aside className="sidebar">
+      <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">S</div>
           <div className="sidebar-logo-text">
@@ -641,7 +653,7 @@ function Dashboard() {
 
         <nav className="sidebar-nav">
           {menuItems.map(m => (
-            <div key={m.id} onClick={() => setSayfa(m.id)} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
+            <div key={m.id} onClick={() => { setSayfa(m.id); setMobileOpen(false); }} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
               <span className="nav-icon">{m.icon}</span>
               <span>{m.label}</span>
               {sayfa === m.id && <div className="active-dot" />}
@@ -1163,6 +1175,8 @@ function SuperAdminPanel({ kullanici }) {
     odemeleriYukle();
   };
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   const cikisYap = () => { localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
 
   const SVGA = {
@@ -1207,8 +1221,20 @@ function SuperAdminPanel({ kullanici }) {
 
   return (
     <div className="app-shell">
+
+      {/* Mobile top bar */}
+      <div className="mobile-topbar">
+        <span className="brand-name">SıraGO</span>
+        <button className="hamburger-btn" onClick={() => setMobileOpen(true)}>
+          <span/><span/><span/>
+        </button>
+      </div>
+
+      {/* Overlay */}
+      <div className={`sidebar-overlay${mobileOpen ? ' open' : ''}`} onClick={() => setMobileOpen(false)} />
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">S</div>
           <div className="sidebar-logo-text">
@@ -1222,7 +1248,7 @@ function SuperAdminPanel({ kullanici }) {
         </div>
         <nav className="sidebar-nav">
           {menuItems.map(m => (
-            <div key={m.id} onClick={() => setSayfa(m.id)} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
+            <div key={m.id} onClick={() => { setSayfa(m.id); setMobileOpen(false); }} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
               <span className="nav-icon">{m.icon}</span>
               <span>{m.label}</span>
               {m.id === 'odemeler' && buAyOdemeyenler.length > 0
