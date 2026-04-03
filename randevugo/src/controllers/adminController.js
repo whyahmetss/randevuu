@@ -676,9 +676,9 @@ class AdminController {
   async avciSosyalTarama(req, res) {
     try {
       const { sehir, ilce, kategori, platform } = req.body;
-      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      const apiKey = process.env.GOOGLE_CUSTOM_SEARCH_KEY || process.env.GOOGLE_MAPS_API_KEY;
       const searchEngineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
-      if (!apiKey || !searchEngineId) return res.status(400).json({ hata: 'GOOGLE_MAPS_API_KEY ve GOOGLE_SEARCH_ENGINE_ID .env dosyasında tanımlı olmalı' });
+      if (!apiKey || !searchEngineId) return res.status(400).json({ hata: 'GOOGLE_CUSTOM_SEARCH_KEY (veya GOOGLE_MAPS_API_KEY) ve GOOGLE_SEARCH_ENGINE_ID .env dosyasında tanımlı olmalı' });
       if (!sehir || !kategori || !platform) return res.status(400).json({ hata: 'Şehir, kategori ve platform zorunlu' });
 
       const sonuc = await avciBot.sosyalMedyaTarama({ sehir, ilce, kategori, platform, apiKey, searchEngineId });
