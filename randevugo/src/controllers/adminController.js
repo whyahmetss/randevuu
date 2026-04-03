@@ -673,6 +673,20 @@ class AdminController {
     }
   }
 
+  async avciTopluTarama(req, res) {
+    try {
+      const { sehir, kategoriler } = req.body;
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) return res.status(400).json({ hata: 'GOOGLE_MAPS_API_KEY .env dosyasında tanımlı değil' });
+      if (!sehir || !kategoriler?.length) return res.status(400).json({ hata: 'Şehir ve en az 1 kategori zorunlu' });
+
+      const sonuc = await avciBot.topluTarama({ sehir, kategoriler, apiKey });
+      res.json(sonuc);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   async avciListe(req, res) {
     try {
       const { durum, kategori, sehir, ilce, siralama, limit, offset } = req.query;

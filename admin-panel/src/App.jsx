@@ -1085,6 +1085,12 @@ function SuperAdminPanel({ kullanici }) {
   const [avciTaramaYukleniyor, setAvciTaramaYukleniyor] = useState(false);
   const [avciSecili, setAvciSecili] = useState(null);
   const [avciTab, setAvciTab] = useState("liste");
+  const [avciKategoriFiltre, setAvciKategoriFiltre] = useState("hepsi");
+  const [topluTaramaAcik, setTopluTaramaAcik] = useState(false);
+  const [topluKategoriler, setTopluKategoriler] = useState(["berber","kuaför","güzellik salonu","dövme","diş kliniği"]);
+  const [topluSehir, setTopluSehir] = useState("İstanbul");
+  const [topluSonuc, setTopluSonuc] = useState(null);
+  const [topluYukleniyor, setTopluYukleniyor] = useState(false);
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
@@ -1106,7 +1112,7 @@ function SuperAdminPanel({ kullanici }) {
   }, []);
 
   const avciListeYukle = async () => {
-    const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&siralama=${avciSiralama}&limit=100`);
+    const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&kategori=${avciKategoriFiltre}&siralama=${avciSiralama}&limit=100`);
     setAvciListe(d.potansiyel_musteriler || []);
   };
   const avciStatsYukle = async () => {
@@ -1122,7 +1128,7 @@ function SuperAdminPanel({ kullanici }) {
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
-  }, [sayfa, avciFiltre, avciSiralama]);
+  }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre]);
 
   const isletmeEkle = async (e) => {
     e.preventDefault();
@@ -1551,16 +1557,22 @@ function SuperAdminPanel({ kullanici }) {
                   📋 Tüm Liste ({avciListe.length})
                 </button>
               </div>
-              <button onClick={() => setAvciTaramaAcik(!avciTaramaAcik)}
-                style={{ padding: "8px 20px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-                🔍 Yeni Tarama Yap
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); }}
+                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                  🔍 Tekli Tarama
+                </button>
+                <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); }}
+                  style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#8b5cf6", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+                  🚀 Toplu Tarama
+                </button>
+              </div>
             </div>
 
-            {/* Tarama formu */}
+            {/* Tekli tarama formu */}
             {avciTaramaAcik && (
               <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #10b98144" }}>
-                <h3 style={{ color: "#10b981", fontSize: 15, marginBottom: 16 }}>🔍 Google Maps Tarama</h3>
+                <h3 style={{ color: "#10b981", fontSize: 15, marginBottom: 16 }}>🔍 Tekli Tarama</h3>
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
                   <div>
                     <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Şehir *</label>
@@ -1599,6 +1611,54 @@ function SuperAdminPanel({ kullanici }) {
                     {avciTaramaSonuc.hata
                       ? `❌ ${avciTaramaSonuc.hata}`
                       : `✅ "${avciTaramaSonuc.arama_metni}" — ${avciTaramaSonuc.toplam_bulunan} bulundu, ${avciTaramaSonuc.yeni_eklenen} yeni eklendi, ${avciTaramaSonuc.zaten_var} zaten vardı`
+                    }
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Toplu tarama formu */}
+            {topluTaramaAcik && (
+              <div style={{ background: "#1e293b", borderRadius: 16, padding: 24, marginBottom: 20, border: "1px solid #8b5cf644" }}>
+                <h3 style={{ color: "#8b5cf6", fontSize: 15, marginBottom: 6 }}>🚀 Toplu Tarama — Tüm İlçeler</h3>
+                <p style={{ color: "#64748b", fontSize: 12, marginBottom: 16 }}>İstanbul'un 39 ilçesinde seçtiğin kategorileri otomatik tarar. Bu işlem birkaç dakika sürebilir.</p>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 4 }}>Şehir</label>
+                  <input value={topluSehir} onChange={e => setTopluSehir(e.target.value)}
+                    style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #334155", background: "#0f172a", color: "#fff", fontSize: 13, outline: "none", width: 160 }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ color: "#94a3b8", fontSize: 12, display: "block", marginBottom: 8 }}>Kategoriler (tıkla seç/kaldır)</label>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => (
+                      <button key={k} onClick={() => {
+                        setTopluKategoriler(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
+                      }} style={{
+                        padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                        background: topluKategoriler.includes(k) ? "#8b5cf6" : "#0f172a",
+                        color: topluKategoriler.includes(k) ? "#fff" : "#64748b"
+                      }}>{k}</button>
+                    ))}
+                  </div>
+                  <span style={{ color: "#64748b", fontSize: 11, marginTop: 6, display: "block" }}>{topluKategoriler.length} kategori seçili · ~{topluKategoriler.length * 39} tarama yapılacak</span>
+                </div>
+                <button disabled={topluYukleniyor || !topluKategoriler.length} onClick={async () => {
+                  setTopluYukleniyor(true);
+                  setTopluSonuc(null);
+                  try {
+                    const res = await api.post("/admin/avci/toplu-tarama", { sehir: topluSehir, kategoriler: topluKategoriler });
+                    setTopluSonuc(res);
+                    avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
+                  } catch(e) { setTopluSonuc({ hata: e.message }); }
+                  setTopluYukleniyor(false);
+                }} style={{ padding: "10px 28px", borderRadius: 8, border: "none", background: topluYukleniyor ? "#334155" : "#8b5cf6", color: "#fff", cursor: topluYukleniyor ? "wait" : "pointer", fontWeight: 700 }}>
+                  {topluYukleniyor ? "⏳ Toplu tarama devam ediyor... (birkaç dk sürer)" : `🚀 ${topluKategoriler.length} Kategori × 39 İlçe Tara`}
+                </button>
+                {topluSonuc && (
+                  <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: topluSonuc.hata ? "#ef444420" : "#8b5cf622", color: topluSonuc.hata ? "#ef4444" : "#8b5cf6", fontSize: 13 }}>
+                    {topluSonuc.hata
+                      ? `❌ ${topluSonuc.hata}`
+                      : `✅ ${topluSonuc.tarama_sayisi} tarama yapıldı — ${topluSonuc.toplam_bulunan} bulundu, ${topluSonuc.yeni_eklenen} yeni eklendi, ${topluSonuc.zaten_var} zaten vardı`
                     }
                   </div>
                 )}
@@ -1680,8 +1740,8 @@ function SuperAdminPanel({ kullanici }) {
             {/* TÜM LİSTE */}
             {avciTab === "liste" && (
               <>
-                {/* Filtreler */}
-                <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                {/* Durum Filtresi */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
                   {[["hepsi","Tümü"],["yeni","Yeni"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["demo_yapildi","Demo"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
                     <button key={v} onClick={() => setAvciFiltre(v)}
                       style={{ padding: "5px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
@@ -1696,6 +1756,18 @@ function SuperAdminPanel({ kullanici }) {
                     <option value="yorum_desc">Yorum ↓</option>
                     <option value="yeni">En Yeni</option>
                   </select>
+                </div>
+                {/* Kategori Filtresi */}
+                <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ color: "#64748b", fontSize: 11, marginRight: 4 }}>Kategori:</span>
+                  {[["hepsi","Tümü"],["berber","✂️ Berber"],["kuaför","💇 Kuaför"],["güzellik salonu","💅 Güzellik"],["dövme","🎨 Dövme"],["diş kliniği","🦷 Dişçi"],["veteriner","🐾 Veteriner"],["spa","🧖 Spa"],["diyetisyen","🥗 Diyetisyen"],["tırnak salonu","💅 Tırnak"],["cilt bakım","✨ Cilt Bakım"]].map(([v,l]) => (
+                    <button key={v} onClick={() => setAvciKategoriFiltre(v)}
+                      style={{ padding: "4px 12px", borderRadius: 16, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600,
+                        background: avciKategoriFiltre === v ? "#8b5cf6" : "#0f172a",
+                        color: avciKategoriFiltre === v ? "#fff" : "#64748b" }}>
+                      {l}
+                    </button>
+                  ))}
                 </div>
 
                 {avciListe.length === 0 ? (

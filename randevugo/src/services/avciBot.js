@@ -129,6 +129,40 @@ class AvciBot {
     return sonuc;
   }
 
+  // Toplu tarama - tüm ilçeleri ve kategorileri tara
+  async topluTarama({ sehir, kategoriler, apiKey }) {
+    const istanbulIlceler = [
+      'Kadıköy','Beşiktaş','Şişli','Bakırköy','Ataşehir','Üsküdar','Maltepe','Kartal',
+      'Pendik','Tuzla','Ümraniye','Sancaktepe','Sultanbeyli','Çekmeköy','Beykoz',
+      'Sarıyer','Eyüpsultan','Kağıthane','Beyoğlu','Fatih','Zeytinburnu','Bayrampaşa',
+      'Güngören','Bahçelievler','Bağcılar','Esenler','Sultangazi','Gaziosmanpaşa',
+      'Başakşehir','Küçükçekmece','Avcılar','Esenyurt','Beylikdüzü','Büyükçekmece',
+      'Arnavutköy','Çatalca','Silivri','Şile','Adalar'
+    ];
+
+    const ilceler = sehir === 'İstanbul' ? istanbulIlceler : [''];
+    const toplamSonuc = { toplam_bulunan: 0, yeni_eklenen: 0, zaten_var: 0, tarama_sayisi: 0 };
+
+    for (const kategori of kategoriler) {
+      for (const ilce of ilceler) {
+        try {
+          const sonuc = await this.taramaYap({ sehir, ilce, kategori, apiKey });
+          toplamSonuc.toplam_bulunan += sonuc.toplam_bulunan;
+          toplamSonuc.yeni_eklenen += sonuc.yeni_eklenen;
+          toplamSonuc.zaten_var += sonuc.zaten_var;
+          toplamSonuc.tarama_sayisi++;
+          // Rate limit - her tarama arası 1sn bekle
+          await new Promise(r => setTimeout(r, 1000));
+        } catch (e) {
+          console.log(`⚠️ Toplu tarama hatası (${kategori} ${ilce}):`, e.message);
+        }
+      }
+    }
+
+    console.log(`✅ Toplu tarama bitti: ${toplamSonuc.tarama_sayisi} tarama, ${toplamSonuc.yeni_eklenen} yeni lead`);
+    return toplamSonuc;
+  }
+
   // Skorlama algoritması
   skorHesapla({ puan, yorum_sayisi, web_sitesi, telefon, instagram }) {
     let skor = 0;
