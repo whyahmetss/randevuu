@@ -129,24 +129,28 @@ class SatisBot extends EventEmitter {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, baileysLogger),
         },
-        printQRInTerminal: false,
+        printQRInTerminal: true,
         logger: baileysLogger,
         browser: ['RandevuGO SatisBot', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
+        qrTimeout: 90000,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
 
-      this.sock.ev.on('connection.update', async (update) => {
+      this.sock.ev.on('connection.update', (update) => {
         try {
         console.log('📡 SatışBot connection.update:', JSON.stringify(update, null, 0).slice(0, 300));
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-          this.qrBase64 = await qrcode.toDataURL(qr);
           this.durum = 'qr_bekleniyor';
+          // QR dönüşümü non-blocking yap
+          qrcode.toDataURL(qr).then(url => {
+            this.qrBase64 = url;
+            this.emit('qr', url);
+          }).catch(e => console.error('QR dönüşüm hatası:', e));
           console.log('📱 Satış Bot QR hazır — SuperAdmin panelden tarayın');
-          this.emit('qr', this.qrBase64);
         }
 
         if (connection === 'open') {
@@ -163,10 +167,9 @@ class SatisBot extends EventEmitter {
           const statusCode = lastDisconnect?.error?.output?.statusCode;
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
           const credsExist = fs.existsSync(path.join(AUTH_DIR, 'creds.json'));
-          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, reconnect: ${shouldReconnect}, oturum: ${this.basariliOturumVardi}, creds: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, reconnect: ${shouldReconnect}, creds: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
           
           if (statusCode === DisconnectReason.loggedOut) {
-            // Logout → auth temizle, dur
             this.durum = 'kapali';
             this.qrBase64 = null;
             this.aktif = false;
@@ -174,7 +177,6 @@ class SatisBot extends EventEmitter {
             try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
             console.log('🗑️ Satış Bot oturumu kapatıldı. Panel\'den yeniden başlatıp QR tarayın.');
           } else if (credsExist && this.reconnectAttempts < this.maxReconnectAttempts) {
-            // Auth var (QR taranmış) — her zaman reconnect yap
             this.reconnectAttempts++;
             this.durum = 'kapali';
             this.sock = null;
@@ -182,14 +184,12 @@ class SatisBot extends EventEmitter {
             console.log(`🔄 Satış Bot ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
             setTimeout(() => this.baslat(), bekleme);
           } else if (!credsExist && this.reconnectAttempts < 3) {
-            // Auth yok — yeni QR üret
             this.reconnectAttempts++;
             this.durum = 'kapali';
             this.sock = null;
             console.log(`🔄 QR süresi doldu, yeni QR üretiliyor (deneme ${this.reconnectAttempts}/3)...`);
             setTimeout(() => this.baslat(), 3000);
           } else {
-            // Max deneme aşıldı — dur
             this.durum = 'kapali';
             this.qrBase64 = null;
             this.sock = null;
