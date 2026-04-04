@@ -1,4 +1,4 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, proto, generateWAMessageFromContent } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
@@ -251,75 +251,12 @@ class WhatsAppWebService extends EventEmitter {
   async _butonluMesajGonder(sock, jid, mesaj, butonlar) {
     const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
 
-    // ═══ Yöntem 1: Interactive Native Flow — Quick Reply (≤3) ═══
-    if (btnLabels.length <= 3) {
-      try {
-        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
-              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
-                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
-                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', hasMediaAttachment: false }),
-                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-                  buttons: btnLabels.map((label, i) => ({
-                    name: 'quick_reply',
-                    buttonParamsJson: JSON.stringify({ display_text: label, id: `btn_${i}_${label}` })
-                  }))
-                })
-              })
-            }
-          }
-        }), {});
-        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
-        console.log('✅ Interactive buton gönderildi:', btnLabels.join(', '));
-        return msg;
-      } catch (e) {
-        console.log('⚠️ Interactive quick_reply başarısız:', e.message);
-      }
-    }
-
-    // ═══ Yöntem 2: Interactive Native Flow — List (4-10) ═══
-    if (btnLabels.length >= 4 && btnLabels.length <= 10) {
-      try {
-        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
-              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
-                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
-                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', hasMediaAttachment: false }),
-                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-                  buttons: [{
-                    name: 'single_select',
-                    buttonParamsJson: JSON.stringify({
-                      title: '📋 Seçenekler',
-                      sections: [{
-                        title: 'Seçim yapın',
-                        rows: btnLabels.map((label, i) => ({ title: label, id: `row_${i}_${label}` }))
-                      }]
-                    })
-                  }]
-                })
-              })
-            }
-          }
-        }), {});
-        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
-        console.log('✅ Interactive list gönderildi:', btnLabels.join(', '));
-        return msg;
-      } catch (e) {
-        console.log('⚠️ Interactive list başarısız:', e.message);
-      }
-    }
-
-    // ═══ Fallback: Numaralı metin ═══
-    console.log('📝 Numaralı metin fallback');
+    // Numaralı metin — en stabil yöntem, tüm WhatsApp sürümlerinde çalışır
     let butonMetin = mesaj + '\n';
     btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });
-    return await sock.sendMessage(jid, { text: butonMetin });
+    const sent = await sock.sendMessage(jid, { text: butonMetin });
+    console.log('✅ Butonlu mesaj gönderildi:', btnLabels.join(', '));
+    return sent;
   }
 
   async mesajIsle(msg, isletmeId) {
@@ -342,10 +279,11 @@ class WhatsAppWebService extends EventEmitter {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
 
-    // Müşteriyi kaydet / bul
+    // Müşteriyi kaydet / bul (pushName varsa gerçek isim kullan)
+    const musteriIsim = msg.pushName || musteriTelefon;
     await pool.query(
-      'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) ON CONFLICT (telefon) DO NOTHING',
-      [musteriTelefon, musteriTelefon]
+      'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) ON CONFLICT (telefon) DO UPDATE SET isim = EXCLUDED.isim WHERE musteriler.isim = musteriler.telefon',
+      [musteriTelefon, musteriIsim]
     );
 
     // Sohbeti kaydet
@@ -371,20 +309,8 @@ class WhatsAppWebService extends EventEmitter {
       'SELECT * FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId]
     )).rows;
 
-    const randevuService = require('./randevu');
-    const bugun = bugunTarih();
-    const musaitSaatler = await randevuService.musaitSaatleriGetir(isletmeId, botDurum.secilen_tarih || bugun, botDurum.secilen_calisan_id, botDurum.secilen_hizmet_id);
-
-    // DeepSeek'e sor, hata/key yoksa state machine'e düş
-    const deepseekService = require('./deepseek');
-    const aiCevap = await deepseekService.mesajAnla(metin, isletme, botDurum, musaitSaatler, hizmetler);
-
-    let cevap;
-    if (aiCevap) {
-      cevap = await this.aiAksiyon(aiCevap, metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId);
-    } else {
-      cevap = await this.akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId);
-    }
+    // Önce state machine (akışIsle) çalışsın — DeepSeek sadece bilinmeyen mesajlarda
+    let cevap = await this.akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId);
 
     if (cevap) {
       const cevapMetin = typeof cevap === 'object' ? cevap.metin : cevap;
