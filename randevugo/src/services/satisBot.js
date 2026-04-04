@@ -129,13 +129,21 @@ class SatisBot extends EventEmitter {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
-        printQRInTerminal: true,
         logger: pino({ level: 'silent' }),
         browser: ['RandevuGO', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
+
+      // Debug: tüm event isimlerini logla
+      const origEmit = this.sock.ev.emit.bind(this.sock.ev);
+      this.sock.ev.emit = (event, ...args) => {
+        if (event !== 'creds.update') {
+          console.log(`🔔 SatışBot EVENT: ${event}`);
+        }
+        return origEmit(event, ...args);
+      };
 
       this.sock.ev.on('connection.update', (update) => {
         try {
