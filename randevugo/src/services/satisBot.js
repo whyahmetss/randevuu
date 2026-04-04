@@ -62,6 +62,24 @@ const MESAJ_SABLONLARI = {
   ]
 };
 
+// ═══════════════════════════════════════════════════
+// Takip Mesajları — 12 saat cevap vermeyenlere
+// ═══════════════════════════════════════════════════
+const TAKIP_SABLONLARI = {
+  // İlk takip (12 saat sonra)
+  1: [
+    (ad) => `Tekrar merhaba 🙂\n\n${ad} için yazmıştım — hızla dönemediyseniz sorun değil!\n\nSadece şunu bilmenizi isterim: Sektörünüzdeki işletmeler online randevuya geçiyor ve müşteri kaybını ciddi azaltıyor.\n\nÜcretsiz deneme hakkınız hâlâ aktif 👉 sırago.com`,
+    (ad) => `Merhaba tekrar 🙂\n\nDaha önce ${ad} için online randevu sisteminden bahsetmiştim.\n\nBugün 3 yeni işletme daha sisteme katıldı! İlk ay ücretsiz deneme hakkınız devam ediyor.\n\nMerak ettikleriniz varsa yazabilirsiniz 👉 sırago.com`,
+    (ad) => `İyi günler 🙂\n\n${ad} hakkında geçen yazmıştım. Müşterilerinizin 7/24 randevu alabildiği bir sistem — telefonla arama derdi biter.\n\nÜcretsiz deneme hâlâ geçerli, 2 dakikada kurulum 👉 sırago.com`,
+  ],
+  // İkinci takip (24 saat sonra)
+  2: [
+    (ad) => `Son bir mesaj bırakayım 🙏\n\n${ad} için online randevu sistemi gerçekten fark yaratır. Rakipleriniz zaten kullanmaya başladı.\n\nSize özel: İlk 2 ay tamamen ücretsiz! Bu teklif sınırlı süre.\n\n👉 sırago.com`,
+    (ad) => `${ad} için son hatırlatma 🙂\n\nOnline randevu sistemiyle müşteri kaybınız %80 azalır, WhatsApp hatırlatmayla randevu kaçırma biter.\n\nSon teklif: 2 ay ücretsiz deneme! Karar sizin.\n\n👉 sırago.com`,
+    (ad) => `Merhaba, sizi rahatsız etmek istemem 🙏\n\nAma ${ad} gibi işletmeler için bu sistem gerçekten dönüm noktası. Müşterileriniz 7/24 randevu alır, siz rahat edersiniz.\n\nSon teklifim: 2 ay ücretsiz. Fırsatı kaçırmayın 👉 sırago.com`,
+  ]
+};
+
 class SatisBot extends EventEmitter {
   constructor() {
     super();
@@ -70,6 +88,7 @@ class SatisBot extends EventEmitter {
     this.qrBase64 = null;
     this.aktif = false; // mesaj gönderme döngüsü aktif mi
     this.gonderimTimer = null;
+    this.takipTimer = null;
     this.gunlukGonderim = 0;
     this.sonGonderimTarihi = null;
     this.konusmalar = {};
@@ -194,6 +213,8 @@ class SatisBot extends EventEmitter {
         const numara = this.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
         console.log(`✅ Satış Bot WhatsApp bağlandı — numara: ${numara}`);
         this.emit('bagli');
+        // Takip kontrol timer'ı başlat (her 30dk)
+        this.takipTimerBaslat();
       }
 
       if (connection === 'close') {
@@ -249,6 +270,10 @@ class SatisBot extends EventEmitter {
       clearTimeout(this.gonderimTimer);
       this.gonderimTimer = null;
     }
+    if (this.takipTimer) {
+      clearInterval(this.takipTimer);
+      this.takipTimer = null;
+    }
     if (this.sock) {
       try { this.sock.end(); } catch (e) {}
     }
@@ -263,6 +288,109 @@ class SatisBot extends EventEmitter {
     await this.durdur();
     try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
     console.log('�️ Satış Bot oturumu tamamen silindi');
+  }
+
+  // ═══════════════════════════════════════════════════
+  // Takip Mesajı Sistemi — 12 saat cevap vermeyenlere
+  // ═══════════════════════════════════════════════════
+  takipTimerBaslat() {
+    if (this.takipTimer) clearInterval(this.takipTimer);
+    // Her 30 dakikada kontrol et
+    this.takipTimer = setInterval(() => this.takipKontrol(), 30 * 60 * 1000);
+    // İlk kontrolü 5dk sonra yap (sunucu açılınca hemen değil)
+    setTimeout(() => this.takipKontrol(), 5 * 60 * 1000);
+    console.log('🔔 Takip mesaj timer başlatıldı (30dk aralıklarla kontrol)');
+  }
+
+  async takipKontrol() {
+    if (this.durum !== 'bagli' || !this.sock) return;
+
+    // Mesai saatleri dışında takip gönderme
+    const saat = turkiyeSaati().getHours();
+    if (saat < this.ayarlar.mesaiBaslangic || saat >= this.ayarlar.mesaiBitis) return;
+
+    try {
+      // 12 saat+ cevap vermeyen, takip_sayisi < 2, durum = 'bekliyor'
+      const bekleyenler = (await pool.query(`
+        SELECT * FROM satis_konusmalar 
+        WHERE durum = 'bekliyor'
+          AND (gelen_mesajlar IS NULL OR gelen_mesajlar = '')
+          AND COALESCE(takip_sayisi, 0) < 2
+          AND (
+            (COALESCE(takip_sayisi, 0) = 0 AND olusturma_tarihi < (NOW() AT TIME ZONE 'Europe/Istanbul') - INTERVAL '12 hours')
+            OR
+            (COALESCE(takip_sayisi, 0) = 1 AND son_takip_tarihi < (NOW() AT TIME ZONE 'Europe/Istanbul') - INTERVAL '12 hours')
+          )
+        ORDER BY olusturma_tarihi ASC
+        LIMIT 5
+      `)).rows;
+
+      if (bekleyenler.length === 0) return;
+
+      console.log(`🔔 ${bekleyenler.length} kişiye takip mesajı gönderilecek`);
+
+      for (const konusma of bekleyenler) {
+        // Anti-ban: Mesajlar arası rastgele bekleme
+        const bekleme = 30000 + Math.random() * 60000; // 30-90sn
+        await new Promise(r => setTimeout(r, bekleme));
+        await this.takipMesajGonder(konusma);
+      }
+    } catch (err) {
+      console.error('❌ Takip kontrol hatası:', err.message);
+    }
+  }
+
+  async takipMesajGonder(konusma) {
+    if (this.durum !== 'bagli' || !this.sock) return;
+
+    const takipNo = (konusma.takip_sayisi || 0) + 1;
+    const sablonlar = TAKIP_SABLONLARI[takipNo] || TAKIP_SABLONLARI[2];
+    const sablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
+    const mesaj = sablon(konusma.isletme_adi || 'işletmeniz');
+
+    const telefon = konusma.telefon;
+    const jid = `${telefon}@s.whatsapp.net`;
+
+    try {
+      // Anti-ban: Typing indicator
+      try {
+        await this.sock.presenceSubscribe(jid);
+        await this.sock.sendPresenceUpdate('composing', jid);
+        const typingMs = 2000 + Math.random() * 4000;
+        await new Promise(r => setTimeout(r, typingMs));
+        await this.sock.sendPresenceUpdate('paused', jid);
+      } catch (e) {}
+
+      await this.sock.sendMessage(jid, { text: mesaj });
+      console.log(`🔔 Takip #${takipNo} gönderildi: ${konusma.isletme_adi} (${telefon})`);
+
+      // DB güncelle
+      await pool.query(
+        `UPDATE satis_konusmalar 
+         SET takip_sayisi = $1, 
+             son_takip_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul'),
+             gonderilen_mesaj = gonderilen_mesaj || $2
+         WHERE id = $3`,
+        [takipNo, `\n[Takip #${takipNo}] ${mesaj}`, konusma.id]
+      );
+
+      // 2. takip sonrası hâlâ cevap yoksa durumu 'takip_tamamlandi' yap
+      if (takipNo >= 2) {
+        await pool.query(
+          "UPDATE satis_konusmalar SET durum = 'takip_tamamlandi' WHERE id = $1",
+          [konusma.id]
+        );
+        if (konusma.lead_id) {
+          await pool.query(
+            "UPDATE potansiyel_musteriler SET durum = 'cevapsiz' WHERE id = $1",
+            [konusma.lead_id]
+          );
+        }
+        console.log(`📭 ${konusma.isletme_adi} — 2 takip sonrası cevap yok, tamamlandı`);
+      }
+    } catch (err) {
+      console.error(`❌ Takip mesaj hatası (${konusma.isletme_adi}):`, err.message);
+    }
   }
 
   getDurum() {

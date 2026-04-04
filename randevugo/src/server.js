@@ -92,6 +92,8 @@ const PORT = process.env.PORT || 3000;
       son_mesaj_tarihi TIMESTAMP,
       olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
     )`);
+    await pool.query(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS takip_sayisi INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS son_takip_tarihi TIMESTAMP`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_durumu VARCHAR(30)`);
     await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_tarihi TIMESTAMP`);
     await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_siparis_id VARCHAR(100)`);
