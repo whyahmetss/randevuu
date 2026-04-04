@@ -136,36 +136,33 @@ class SatisBot extends EventEmitter {
 
       this.sock.ev.on('creds.update', saveCreds);
 
-      // Baileys v7: ev.process() ile buffered event'leri işle (varsa)
-      const hasProcess = typeof this.sock.ev.process === 'function';
-      console.log(`🔧 SatışBot: ev.process() ${hasProcess ? 'MEVCUT' : 'YOK'}`);
-
-      if (hasProcess) {
-        this.sock.ev.process(async (events) => {
-          const eventNames = Object.keys(events);
-          console.log(`🔔 SatışBot BATCH EVENTS: ${eventNames.join(', ')}`);
-          
-          if (events['creds.update']) {
-            await saveCreds();
-          }
-          if (events['connection.update']) {
-            this._handleConnectionUpdate(events['connection.update']);
-          }
-          if (events['messages.upsert']) {
-            await this._handleMessagesUpsert(events['messages.upsert']);
-          }
-        });
-      }
-
-      // Klasik event listener'lar (ev.process yoksa veya yedek olarak)
+      // Bağlantı durumu — whatsappWeb.js ile birebir aynı pattern
       this.sock.ev.on('connection.update', (update) => {
-        if (hasProcess) return; // ev.process varsa orada işleniyor
         this._handleConnectionUpdate(update);
       });
 
-      this.sock.ev.on('messages.upsert', async (upsert) => {
-        if (hasProcess) return; // ev.process varsa orada işleniyor
-        await this._handleMessagesUpsert(upsert);
+      // Gelen mesajları dinle — whatsappWeb.js ile birebir aynı pattern
+      this.sock.ev.on('messages.upsert', async ({ messages, type }) => {
+        console.log(`� SatışBot messages.upsert: type=${type}, count=${messages?.length}`);
+        if (type !== 'notify') { console.log('📨 → type notify değil, atlanıyor'); return; }
+        for (const msg of messages) {
+          if (!msg?.key) continue;
+          const jid = msg.key.remoteJid || '';
+          const fromMe = msg.key.fromMe;
+          const text = this._getMsgText(msg);
+          console.log(`📨 Mesaj: jid=${jid}, fromMe=${fromMe}, text="${(text || '').slice(0, 80)}"`);
+          
+          if (fromMe) continue;
+          if (!msg.message) continue;
+          if (jid.endsWith('@g.us')) continue;
+          if (jid === 'status@broadcast') continue;
+          
+          try {
+            await this.gelenMesajIsle(msg);
+          } catch (err) {
+            console.error('❌ Satış bot gelen mesaj hatası:', err.message, err.stack);
+          }
+        }
       });
 
     } catch (err) {
@@ -242,36 +239,6 @@ class SatisBot extends EventEmitter {
       }
     } catch (connErr) {
       console.error('❌ SatışBot connection.update HATA:', connErr.message, connErr.stack);
-    }
-  }
-
-  async _handleMessagesUpsert(upsert) {
-    try {
-      const messages = upsert.messages || upsert;
-      const type = upsert.type || 'unknown';
-      console.log(`📨 messages.upsert event: type=${type}, count=${Array.isArray(messages) ? messages.length : '?'}`);
-      
-      const msgArray = Array.isArray(messages) ? messages : [messages];
-      for (const msg of msgArray) {
-        if (!msg?.key) continue;
-        const jid = msg.key.remoteJid || '';
-        const fromMe = msg.key.fromMe;
-        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-        console.log(`📨 Mesaj detay: jid=${jid}, fromMe=${fromMe}, type=${type}, text="${text.slice(0, 80)}"`);
-        
-        if (fromMe) { console.log('📨 → fromMe, atlanıyor'); continue; }
-        if (!msg.message) { console.log('📨 → message yok, atlanıyor'); continue; }
-        if (jid.endsWith('@g.us')) { console.log('📨 → grup mesajı, atlanıyor'); continue; }
-        if (jid === 'status@broadcast') { console.log('📨 → status broadcast, atlanıyor'); continue; }
-        
-        try {
-          await this.gelenMesajIsle(msg);
-        } catch (err) {
-          console.error('❌ Satış bot gelen mesaj hatası:', err.message, err.stack);
-        }
-      }
-    } catch (err) {
-      console.error('❌ _handleMessagesUpsert HATA:', err.message, err.stack);
     }
   }
 
