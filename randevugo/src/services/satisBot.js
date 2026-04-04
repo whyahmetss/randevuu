@@ -707,7 +707,7 @@ class SatisBot extends EventEmitter {
               `🏪 İşletme: *${k.isletmeAdi}*\n` +
               `📧 E-posta: *${k.email}*\n\n` +
               `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
-              `🔗 *admin.sirago.com*\n\n` +
+              `🔗 *admin.sırago.com*\n\n` +
               `E-posta ve şifrenizle giriş yapın. İlk ay tamamen ücretsiz! 🚀\n\n` +
               `Yardıma ihtiyacınız olursa bize yazın 💪`
             );
