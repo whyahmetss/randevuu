@@ -129,15 +129,17 @@ class WhatsAppWebService extends EventEmitter {
       });
 
       // Mesaj dinle
-      sock.ev.on('messages.upsert', async ({ messages, type }) => {
-        if (type !== 'notify') return;
-        for (const msg of messages) {
+      sock.ev.on('messages.upsert', async (upsert) => {
+        console.log(`📩 [${isletmeIsim}] messages.upsert tetiklendi: type=${upsert.type}, mesaj_sayisi=${upsert.messages?.length}`);
+        if (upsert.type !== 'notify') return;
+        for (const msg of upsert.messages) {
+          console.log(`📩 [${isletmeIsim}] Mesaj: fromMe=${msg.key.fromMe}, jid=${msg.key.remoteJid}, metin=${this._getMsgText(msg)?.slice(0, 50)}`);
           if (msg.key.fromMe) continue;
           if (!msg.message) continue;
           try {
             await this.mesajIsle(msg, isletmeId);
           } catch (err) {
-            console.error(`❌ Mesaj işleme hatası [${isletmeIsim}]:`, err.message);
+            console.error(`❌ Mesaj işleme hatası [${isletmeIsim}]:`, err.message, err.stack);
           }
         }
       });
@@ -244,72 +246,7 @@ class WhatsAppWebService extends EventEmitter {
   async _butonluMesajGonder(sock, jid, mesaj, butonlar) {
     const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
 
-    // ═══ Yöntem 1: Interactive Native Flow — Quick Reply Buttons (≤3) ═══
-    if (btnLabels.length <= 3) {
-      try {
-        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
-              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
-                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
-                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', subtitle: '', hasMediaAttachment: false }),
-                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-                  buttons: btnLabels.map((label, i) => ({
-                    name: 'quick_reply',
-                    buttonParamsJson: JSON.stringify({ display_text: label, id: `btn_${i}_${label}` })
-                  }))
-                })
-              })
-            }
-          }
-        }), {});
-        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
-        console.log('✅ Interactive buton gönderildi:', btnLabels.join(', '));
-        return msg;
-      } catch (e) {
-        console.log('⚠️ Interactive quick_reply başarısız:', e.message);
-      }
-    }
-
-    // ═══ Yöntem 2: Interactive Native Flow — List (4-10 seçenek) ═══
-    if (btnLabels.length >= 4 && btnLabels.length <= 10) {
-      try {
-        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
-          viewOnceMessage: {
-            message: {
-              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
-              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
-                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
-                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
-                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', subtitle: '', hasMediaAttachment: false }),
-                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
-                  buttons: [{
-                    name: 'single_select',
-                    buttonParamsJson: JSON.stringify({
-                      title: '📋 Seçenekler',
-                      sections: [{
-                        title: 'Seçim yapın',
-                        rows: btnLabels.map((label, i) => ({ title: label, id: `row_${i}_${label}` }))
-                      }]
-                    })
-                  }]
-                })
-              })
-            }
-          }
-        }), {});
-        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
-        console.log('✅ Interactive list gönderildi:', btnLabels.join(', '));
-        return msg;
-      } catch (e) {
-        console.log('⚠️ Interactive list başarısız:', e.message);
-      }
-    }
-
-    // ═══ Son çare: Numaralı metin ═══
-    console.log('📝 Numaralı metin olarak gönderiliyor (fallback)');
+    // Şimdilik numaralı metin — stabil çalışıyor, mesaj cevabını önce düzeltiyoruz
     let butonMetin = mesaj + '\n';
     btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });
     return await sock.sendMessage(jid, { text: butonMetin });
@@ -317,7 +254,8 @@ class WhatsAppWebService extends EventEmitter {
 
   async mesajIsle(msg, isletmeId) {
     const metin = (this._getMsgText(msg) || '').trim();
-    if (!metin) return;
+    console.log(`🔄 mesajIsle başladı: isletme=${isletmeId}, metin="${metin}", jid=${msg.key.remoteJid}`);
+    if (!metin) { console.log('⚠️ Boş metin, çıkılıyor'); return; }
     const remoteJid = msg.key.remoteJid;
     const musteriTelefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
 
