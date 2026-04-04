@@ -12,6 +12,7 @@ const hatirlatmaService = require('./services/hatirlatma');
 const odemeService = require('./services/odemeService');
 const telegramService = require('./services/telegram');
 const whatsappWebService = require('./services/whatsappWeb');
+const telegramSatisBot = require('./services/telegramSatisBot');
 
 const pool = require('./config/db');
 
@@ -183,6 +184,14 @@ app.listen(PORT, () => {
     satisBot.baslat();
   } catch (e) {
     console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
+  }
+
+  // Telegram Kayıt Botu (siragoapp_bot)
+  try {
+    console.log('🤖 TG Kayıt Botu başlatılıyor...');
+    telegramSatisBot.baslat();
+  } catch (e) {
+    console.log('⚠️ TG Kayıt Bot başlatma hatası:', e.message);
   }
 
   // Render keep-alive: 14 dakikada bir self-ping (uyku modunu engelle)
