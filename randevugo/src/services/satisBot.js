@@ -596,6 +596,131 @@ class SatisBot extends EventEmitter {
   }
 
   // ═══════════════════════════════════════════════════
+  // Kayıt Akışı — Bot üzerinden hesap açma
+  // ═══════════════════════════════════════════════════
+  async kayitAkisi(remoteJid, telefon, metin) {
+    const kayitDurum = this.konusmalar[telefon]?.kayit;
+    
+    if (!kayitDurum) return false; // Kayıt akışında değil
+
+    const mesajGonder = async (txt) => {
+      try {
+        await this.sock.sendPresenceUpdate('composing', remoteJid);
+        await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
+        await this.sock.sendPresenceUpdate('paused', remoteJid);
+      } catch(e) {}
+      await this.sock.sendMessage(remoteJid, { text: txt });
+    };
+
+    const metinKucuk = metin.toLowerCase().trim();
+
+    // Vazgeç kontrolü
+    if (metinKucuk === '0' || metinKucuk === 'iptal' || metinKucuk === 'vazgeç' || metinKucuk === 'vazgec') {
+      delete this.konusmalar[telefon].kayit;
+      await mesajGonder(`❌ Kayıt işlemi iptal edildi.\n\nTekrar denemek için *kayıt* yazın.`);
+      return true;
+    }
+
+    switch (kayitDurum.adim) {
+      case 'isletme_adi': {
+        if (metin.length < 2) {
+          await mesajGonder(`⚠️ İşletme adı çok kısa. Lütfen geçerli bir isim yazın:`);
+          return true;
+        }
+        this.konusmalar[telefon].kayit.isletmeAdi = metin.trim();
+        this.konusmalar[telefon].kayit.adim = 'email';
+        await mesajGonder(`✅ İşletme adı: *${metin.trim()}*\n\n📧 Şimdi giriş için kullanacağınız *e-posta adresinizi* yazın:`);
+        return true;
+      }
+
+      case 'email': {
+        // Basit email kontrolü
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(metin.trim())) {
+          await mesajGonder(`⚠️ Geçerli bir e-posta adresi yazın.\n\nÖrnek: isim@email.com`);
+          return true;
+        }
+        // Email zaten kayıtlı mı?
+        const mevcut = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [metin.trim().toLowerCase()])).rows[0];
+        if (mevcut) {
+          await mesajGonder(`⚠️ Bu e-posta zaten kayıtlı!\n\nFarklı bir e-posta yazın veya *admin.sirago.com* adresinden giriş yapın.`);
+          return true;
+        }
+        this.konusmalar[telefon].kayit.email = metin.trim().toLowerCase();
+        this.konusmalar[telefon].kayit.adim = 'sifre';
+        await mesajGonder(`✅ E-posta: *${metin.trim()}*\n\n🔒 Şimdi bir *şifre* belirleyin (en az 6 karakter):`);
+        return true;
+      }
+
+      case 'sifre': {
+        if (metin.trim().length < 6) {
+          await mesajGonder(`⚠️ Şifre en az 6 karakter olmalı. Tekrar deneyin:`);
+          return true;
+        }
+        this.konusmalar[telefon].kayit.sifre = metin.trim();
+        this.konusmalar[telefon].kayit.adim = 'onay';
+        const k = this.konusmalar[telefon].kayit;
+        await mesajGonder(
+          `📋 *Kayıt Özeti*\n\n` +
+          `🏪 İşletme: *${k.isletmeAdi}*\n` +
+          `📧 E-posta: *${k.email}*\n` +
+          `🔒 Şifre: *${'•'.repeat(k.sifre.length)}*\n\n` +
+          `Her şey doğru mu?\n\n` +
+          `*1.* ✅ Onayla ve hesabı oluştur\n` +
+          `*2.* ❌ İptal et`
+        );
+        return true;
+      }
+
+      case 'onay': {
+        if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla')) {
+          const k = this.konusmalar[telefon].kayit;
+          try {
+            const bcrypt = require('bcryptjs');
+            // İşletme oluştur
+            const isletme = (await pool.query(
+              `INSERT INTO isletmeler (isim, telefon, aktif, paket, olusturma_tarihi) 
+               VALUES ($1, $2, true, 'baslangic', NOW()) RETURNING *`,
+              [k.isletmeAdi, telefon]
+            )).rows[0];
+
+            // Admin kullanıcı oluştur
+            const hashSifre = await bcrypt.hash(k.sifre, 10);
+            await pool.query(
+              `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) 
+               VALUES ($1, $2, $3, 'admin', $4, true)`,
+              [k.isletmeAdi, k.email, hashSifre, isletme.id]
+            );
+
+            console.log(`🎉 Bot kayıt tamamlandı: ${k.isletmeAdi} (${k.email}) - isletme_id: ${isletme.id} - kanal: WhatsApp`);
+
+            delete this.konusmalar[telefon].kayit;
+            await mesajGonder(
+              `🎉 *Tebrikler! Hesabınız oluşturuldu!*\n\n` +
+              `🏪 İşletme: *${k.isletmeAdi}*\n` +
+              `📧 E-posta: *${k.email}*\n\n` +
+              `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
+              `🔗 *admin.sirago.com*\n\n` +
+              `E-posta ve şifrenizle giriş yapın. İlk ay tamamen ücretsiz! 🚀\n\n` +
+              `Yardıma ihtiyacınız olursa bize yazın 💪`
+            );
+          } catch (err) {
+            console.error('❌ Bot kayıt hatası:', err.message);
+            await mesajGonder(`❌ Kayıt sırasında bir hata oluştu: ${err.message}\n\nTekrar denemek için *kayıt* yazın.`);
+            delete this.konusmalar[telefon].kayit;
+          }
+          return true;
+        }
+        // İptal
+        delete this.konusmalar[telefon].kayit;
+        await mesajGonder(`❌ Kayıt işlemi iptal edildi.\n\nTekrar denemek için *kayıt* yazın.`);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════
   // Gelen Mesaj İşleme + DeepSeek AI Satış
   // ═══════════════════════════════════════════════════
   async gelenMesajIsle(msg) {
@@ -615,6 +740,36 @@ class SatisBot extends EventEmitter {
 
     console.log(`📩 Satış Bot cevap aldı: ${telefon} → "${metin}"`);
 
+    // ─── Kayıt akışı kontrolü ───
+    if (!this.konusmalar[telefon]) this.konusmalar[telefon] = {};
+    
+    // Kayıt akışı devam ediyorsa ona yönlendir
+    if (this.konusmalar[telefon].kayit) {
+      const handled = await this.kayitAkisi(remoteJid, telefon, metin);
+      if (handled) return;
+    }
+
+    // Kayıt komutu — akışı başlat
+    const metinKucuk = metin.toLowerCase().trim();
+    const kayitKomutlari = ['kayıt', 'kayit', '/kayit', '/kayıt', 'hesap aç', 'hesap ac', 'kaydol', 'üye ol', 'uye ol', 'register'];
+    if (kayitKomutlari.some(k => metinKucuk.includes(k))) {
+      this.konusmalar[telefon].kayit = { adim: 'isletme_adi' };
+      try {
+        await this.sock.sendPresenceUpdate('composing', remoteJid);
+        await new Promise(r => setTimeout(r, 1500));
+        await this.sock.sendPresenceUpdate('paused', remoteJid);
+      } catch(e) {}
+      await this.sock.sendMessage(remoteJid, { text: 
+        `🎉 *SıraGO'ya Hoş Geldiniz!*\n\n` +
+        `Hemen ücretsiz hesabınızı oluşturalım 🚀\n\n` +
+        `Adım 1/3\n` +
+        `🏪 *İşletmenizin adını* yazın:\n\n` +
+        `_(İptal etmek için 0 yazın)_`
+      });
+      return;
+    }
+
+    // ─── Normal satış akışı ───
     // Bu lead'in konuşma kaydını bul — birden fazla format dene
     const son10 = telefon.slice(-10);
     let konusma = (await pool.query(

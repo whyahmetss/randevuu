@@ -26,6 +26,49 @@ class AuthController {
     }
   }
 
+  // Bot üzerinden kayıt (WP/TG bot çağırır)
+  async botKayit(req, res) {
+    try {
+      const { isletmeAdi, email, sifre, telefon, kayitKanal } = req.body;
+      if (!isletmeAdi || !email || !sifre) {
+        return res.status(400).json({ hata: 'İşletme adı, email ve şifre zorunlu' });
+      }
+
+      // Email kontrolü
+      const mevcutKullanici = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [email])).rows[0];
+      if (mevcutKullanici) {
+        return res.status(400).json({ hata: 'Bu email zaten kayıtlı. Giriş yapmayı deneyin.' });
+      }
+
+      // İşletme oluştur
+      const isletme = (await pool.query(
+        `INSERT INTO isletmeler (isim, telefon, aktif, paket, olusturma_tarihi) 
+         VALUES ($1, $2, true, 'baslangic', NOW()) RETURNING *`,
+        [isletmeAdi, telefon || null]
+      )).rows[0];
+
+      // Admin kullanıcı oluştur
+      const hashSifre = await bcrypt.hash(sifre, 10);
+      const kullanici = (await pool.query(
+        `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) 
+         VALUES ($1, $2, $3, 'admin', $4, true) RETURNING *`,
+        [isletmeAdi, email, hashSifre, isletme.id]
+      )).rows[0];
+
+      console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}`);
+
+      res.json({ 
+        basarili: true, 
+        isletme_id: isletme.id, 
+        kullanici_id: kullanici.id,
+        mesaj: `${isletmeAdi} başarıyla oluşturuldu!` 
+      });
+    } catch (error) {
+      console.error('❌ Bot kayıt hatası:', error.message);
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   async profilim(req, res) {
     try {
       const kullanici = (await pool.query(

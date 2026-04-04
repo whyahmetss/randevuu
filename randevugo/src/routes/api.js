@@ -7,6 +7,7 @@ const botController = require('../controllers/botController');
 
 // ==================== AUTH ====================
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
+router.post('/auth/kayit', (req, res) => authController.botKayit(req, res));
 router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim(req, res));
 
 // ==================== İLETİŞİM (public) ====================
