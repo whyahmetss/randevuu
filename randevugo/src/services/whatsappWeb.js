@@ -1,4 +1,4 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, proto, generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
@@ -142,62 +142,6 @@ class WhatsAppWebService extends EventEmitter {
         }
       });
 
-      // Poll yanıtlarını dinle
-      sock.ev.on('messages.update', async (updates) => {
-        for (const { key, update } of updates) {
-          const pollUpdate = update?.pollUpdates;
-          if (!pollUpdate || pollUpdate.length === 0) continue;
-          try {
-            // Poll'dan seçilen cevabı al
-            const lastVote = pollUpdate[pollUpdate.length - 1];
-            const selectedOptions = lastVote?.vote?.selectedOptions || [];
-            if (selectedOptions.length === 0) continue;
-
-            // Seçilen opsiyonu bul - decryptPollVote ile veya direkt metin
-            const voterJid = lastVote?.vote?.voter;
-            if (!voterJid || voterJid === sock.user?.id) continue;
-
-            // Poll mesajını bul ve seçenekleri eşleştir
-            const pollMsg = await sock.store?.loadMessage?.(key.remoteJid, key.id);
-            const pollValues = pollMsg?.message?.pollCreationMessage?.options?.map(o => o.optionName) 
-              || pollMsg?.message?.pollCreationMessageV3?.options?.map(o => o.optionName) || [];
-
-            let secilen = '';
-            if (pollValues.length > 0 && selectedOptions.length > 0) {
-              // SHA256 hash eşleştirmesi - Baileys poll vote'lar hash olarak gelir
-              const crypto = require('crypto');
-              for (const opt of pollValues) {
-                const hash = crypto.createHash('sha256').update(opt).digest();
-                for (const sel of selectedOptions) {
-                  if (Buffer.compare(hash, Buffer.from(sel)) === 0) {
-                    secilen = opt;
-                    break;
-                  }
-                }
-                if (secilen) break;
-              }
-            }
-
-            if (!secilen && selectedOptions.length > 0) {
-              // Fallback: ilk seçeneği metin olarak kullan
-              secilen = selectedOptions[0].toString();
-            }
-
-            if (secilen) {
-              console.log(`📊 Poll yanıtı: ${secilen} (${voterJid})`);
-              // Poll yanıtını normal mesaj gibi işle
-              const fakeMsg = {
-                key: { remoteJid: voterJid, fromMe: false, id: `poll_${Date.now()}` },
-                message: { conversation: secilen }
-              };
-              await this.mesajIsle(fakeMsg, isletmeId);
-            }
-          } catch (err) {
-            console.error(`❌ Poll yanıt hatası [${isletmeIsim}]:`, err.message);
-          }
-        }
-      });
-
     } catch (err) {
       console.error(`❌ WP başlatma hatası [${isletmeIsim}]:`, err.message);
       this.isletmeler[isletmeId].durum = 'hata';
@@ -300,91 +244,72 @@ class WhatsAppWebService extends EventEmitter {
   async _butonluMesajGonder(sock, jid, mesaj, butonlar) {
     const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
 
-    // ═══ Yöntem 1: Interactive Native Flow Buttons (Yunus Akar tarzı) ═══
-    // Gerçek tıklanabilir butonlar — WhatsApp'ın native buton sistemi
+    // ═══ Yöntem 1: Interactive Native Flow — Quick Reply Buttons (≤3) ═══
     if (btnLabels.length <= 3) {
       try {
-        const interactiveMsg = {
+        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
           viewOnceMessage: {
             message: {
-              interactiveMessage: {
-                body: { text: mesaj },
-                nativeFlowMessage: {
+              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
+                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
+                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', subtitle: '', hasMediaAttachment: false }),
+                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
                   buttons: btnLabels.map((label, i) => ({
                     name: 'quick_reply',
-                    buttonParamsJson: JSON.stringify({
-                      display_text: label,
-                      id: `btn_${i}_${label}`
-                    })
+                    buttonParamsJson: JSON.stringify({ display_text: label, id: `btn_${i}_${label}` })
                   }))
-                }
-              }
+                })
+              })
             }
           }
-        };
-        const sent = await sock.sendMessage(jid, interactiveMsg);
+        }), {});
+        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
         console.log('✅ Interactive buton gönderildi:', btnLabels.join(', '));
-        return sent;
+        return msg;
       } catch (e) {
-        console.log('⚠️ Interactive buton başarısız:', e.message);
+        console.log('⚠️ Interactive quick_reply başarısız:', e.message);
       }
     }
 
-    // ═══ Yöntem 2: Interactive List (4+ seçenek için) ═══
+    // ═══ Yöntem 2: Interactive Native Flow — List (4-10 seçenek) ═══
     if (btnLabels.length >= 4 && btnLabels.length <= 10) {
       try {
-        const listMsg = {
+        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
           viewOnceMessage: {
             message: {
-              interactiveMessage: {
-                body: { text: mesaj },
-                nativeFlowMessage: {
+              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
+                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
+                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', subtitle: '', hasMediaAttachment: false }),
+                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
                   buttons: [{
                     name: 'single_select',
                     buttonParamsJson: JSON.stringify({
                       title: '📋 Seçenekler',
                       sections: [{
                         title: 'Seçim yapın',
-                        rows: btnLabels.map((label, i) => ({
-                          title: label,
-                          id: `row_${i}_${label}`
-                        }))
+                        rows: btnLabels.map((label, i) => ({ title: label, id: `row_${i}_${label}` }))
                       }]
                     })
                   }]
-                }
-              }
+                })
+              })
             }
           }
-        };
-        const sent = await sock.sendMessage(jid, listMsg);
+        }), {});
+        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
         console.log('✅ Interactive list gönderildi:', btnLabels.join(', '));
-        return sent;
+        return msg;
       } catch (e) {
         console.log('⚠️ Interactive list başarısız:', e.message);
       }
     }
 
-    // ═══ Yöntem 3: Poll (fallback) ═══
-    if (btnLabels.length <= 12) {
-      try {
-        await sock.sendMessage(jid, { text: mesaj });
-        const pollSent = await sock.sendMessage(jid, {
-          poll: {
-            name: '👇 Seçim yapın:',
-            values: btnLabels,
-            selectableCount: 1
-          }
-        });
-        console.log('✅ Poll buton gönderildi (fallback):', btnLabels.join(', '));
-        return pollSent;
-      } catch (e) {
-        console.log('⚠️ Poll başarısız:', e.message);
-      }
-    }
-
     // ═══ Son çare: Numaralı metin ═══
-    console.log('📝 Numaralı metin olarak gönderiliyor');
+    console.log('📝 Numaralı metin olarak gönderiliyor (fallback)');
     let butonMetin = mesaj + '\n';
     btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });
     return await sock.sendMessage(jid, { text: butonMetin });
