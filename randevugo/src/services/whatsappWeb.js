@@ -309,56 +309,11 @@ class WhatsAppWebService extends EventEmitter {
   async _butonluMesajGonder(sock, jid, mesaj, butonlar, editKey = null) {
     const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
 
-    // ═══ Business hesaplar için buton denemeleri ═══
-
-    // Business Yöntem 1: Buttons message (max 3 buton)
-    if (btnLabels.length <= 3) {
-      try {
-        const buttonMsg = {
-          text: mesaj,
-          footer: '👇 Bir seçenek seçin',
-          buttons: btnLabels.map((label, i) => ({
-            buttonId: `btn_${i}_${label}`,
-            buttonText: { displayText: label },
-            type: 1
-          })),
-          headerType: 1
-        };
-        const sent = await sock.sendMessage(jid, buttonMsg);
-        console.log('✅ Buttons message gönderildi');
-        return sent;
-      } catch (e) {
-        console.log('⚠️ Buttons message başarısız:', e.message);
-      }
-    }
-
-    // Business Yöntem 2: List message
-    try {
-      const sections = [{
-        title: 'Seçenekler',
-        rows: btnLabels.map((label, i) => ({
-          title: label,
-          rowId: `row_${i}_${label}`,
-          description: ''
-        }))
-      }];
-      const sent = await sock.sendMessage(jid, {
-        text: mesaj,
-        footer: '👇 Menüden seçim yapın',
-        title: 'Seçenekler',
-        buttonText: 'Seçim Yap',
-        sections
-      });
-      console.log('✅ List message gönderildi');
-      return sent;
-    } catch (e) {
-      console.log('⚠️ List message başarısız:', e.message);
-    }
-
-    // ═══ Normal WhatsApp için: Poll (anket) — tıklanabilir! ═══
+    // ═══ Yöntem 1: Poll (anket) — HER YERDE ÇALIŞIR, tıklanabilir! ═══
+    // Meta, buttons ve list message'ı 2024'te kaldırdı. Poll en güvenilir yöntem.
     if (btnLabels.length <= 12) {
       try {
-        // Önce mesaj metnini gönder (edit veya yeni)
+        // Önce mesaj metnini gönder
         let textSent;
         if (editKey) {
           await sock.sendMessage(jid, { text: mesaj, edit: editKey });
@@ -367,7 +322,7 @@ class WhatsAppWebService extends EventEmitter {
           textSent = await sock.sendMessage(jid, { text: mesaj });
         }
 
-        // Sonra poll gönder
+        // Sonra poll gönder (tıklanabilir butonlar)
         const pollSent = await sock.sendMessage(jid, {
           poll: {
             name: '👇 Seçim yapın:',
@@ -375,14 +330,14 @@ class WhatsAppWebService extends EventEmitter {
             selectableCount: 1
           }
         });
-        console.log('✅ Poll mesajı gönderildi');
+        console.log('✅ Poll buton gönderildi:', btnLabels.join(', '));
         return pollSent;
       } catch (e) {
         console.log('⚠️ Poll başarısız:', e.message);
       }
     }
 
-    // ═══ Son çare: Numaralı metin (her yerde çalışır) ═══
+    // ═══ Son çare: Numaralı metin (12+ seçenek veya poll başarısızsa) ═══
     console.log('📝 Numaralı metin olarak gönderiliyor');
     let butonMetin = mesaj + '\n';
     btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });

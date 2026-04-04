@@ -136,119 +136,142 @@ class SatisBot extends EventEmitter {
 
       this.sock.ev.on('creds.update', saveCreds);
 
-      // Debug: tüm event isimlerini logla
-      const origEmit = this.sock.ev.emit.bind(this.sock.ev);
-      this.sock.ev.emit = (event, ...args) => {
-        if (event !== 'creds.update') {
-          console.log(`🔔 SatışBot EVENT: ${event}`);
-        }
-        return origEmit(event, ...args);
-      };
+      // Baileys v7: ev.process() ile buffered event'leri işle (varsa)
+      const hasProcess = typeof this.sock.ev.process === 'function';
+      console.log(`🔧 SatışBot: ev.process() ${hasProcess ? 'MEVCUT' : 'YOK'}`);
 
-      this.sock.ev.on('connection.update', (update) => {
-        try {
-        console.log('📡 SatışBot connection.update:', JSON.stringify(update, null, 0).slice(0, 300));
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr) {
-          this.durum = 'qr_bekleniyor';
-          // QR dönüşümü non-blocking yap
-          qrcode.toDataURL(qr).then(url => {
-            this.qrBase64 = url;
-            this.emit('qr', url);
-          }).catch(e => console.error('QR dönüşüm hatası:', e));
-          console.log('📱 Satış Bot QR hazır — SuperAdmin panelden tarayın');
-        }
-
-        if (connection === 'open') {
-          this.durum = 'bagli';
-          this.qrBase64 = null;
-          this.reconnectAttempts = 0;
-          this.basariliOturumVardi = true;
-          const numara = this.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
-          console.log(`✅ Satış Bot WhatsApp bağlandı — numara: ${numara}`);
-          this.emit('bagli');
-        }
-
-        if (connection === 'close') {
-          const statusCode = lastDisconnect?.error?.output?.statusCode;
-          const errorMsg = lastDisconnect?.error?.message || '';
-          const credsExist = fs.existsSync(path.join(AUTH_DIR, 'creds.json'));
-          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, creds: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+      if (hasProcess) {
+        this.sock.ev.process(async (events) => {
+          const eventNames = Object.keys(events);
+          console.log(`🔔 SatışBot BATCH EVENTS: ${eventNames.join(', ')}`);
           
-          // restartRequired (515) = QR tarandıktan sonra WhatsApp bilerek koparıyor
-          // Bu NORMAL! Auth dosyalarını SİLME, hemen yeni socket oluştur
-          if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
-            console.log('🔄 restartRequired — QR tarandı, yeni socket oluşturuluyor (auth korunuyor)...');
-            this.durum = 'kapali';
-            this.sock = null;
-            setTimeout(() => this.baslat(), 1000);
-          } else if (statusCode === DisconnectReason.loggedOut) {
-            this.durum = 'kapali';
-            this.qrBase64 = null;
-            this.aktif = false;
-            this.sock = null;
-            try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
-            console.log('🗑️ Satış Bot oturumu kapatıldı. Panel\'den yeniden başlatıp QR tarayın.');
-          } else if (credsExist && this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            this.durum = 'kapali';
-            this.sock = null;
-            const bekleme = Math.min(3000 * this.reconnectAttempts, 30000);
-            console.log(`🔄 Satış Bot ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-            setTimeout(() => this.baslat(), bekleme);
-          } else if (!credsExist && this.reconnectAttempts < 3) {
-            this.reconnectAttempts++;
-            this.durum = 'kapali';
-            this.sock = null;
-            console.log(`🔄 QR süresi doldu, yeni QR üretiliyor (deneme ${this.reconnectAttempts}/3)...`);
-            setTimeout(() => this.baslat(), 3000);
-          } else {
-            this.durum = 'kapali';
-            this.qrBase64 = null;
-            this.sock = null;
-            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-              try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
-              console.log('🗑️ Max deneme aşıldı, auth temizlendi.');
-            }
-            console.log('⏹️ Satış Bot durdu. Panel\'den "Botu Başlat" ile yeniden başlatıp QR tarayın.');
+          if (events['creds.update']) {
+            await saveCreds();
           }
-        }
-        } catch (connErr) {
-          console.error('❌ SatışBot connection.update HATA:', connErr.message, connErr.stack);
-        }
+          if (events['connection.update']) {
+            this._handleConnectionUpdate(events['connection.update']);
+          }
+          if (events['messages.upsert']) {
+            await this._handleMessagesUpsert(events['messages.upsert']);
+          }
+        });
+      }
+
+      // Klasik event listener'lar (ev.process yoksa veya yedek olarak)
+      this.sock.ev.on('connection.update', (update) => {
+        if (hasProcess) return; // ev.process varsa orada işleniyor
+        this._handleConnectionUpdate(update);
       });
 
-      // Gelen mesajları dinle (cevaplar)
       this.sock.ev.on('messages.upsert', async (upsert) => {
-        const messages = upsert.messages || upsert;
-        const type = upsert.type || 'unknown';
-        console.log(`📨 messages.upsert event: type=${type}, count=${Array.isArray(messages) ? messages.length : '?'}`);
-        
-        const msgArray = Array.isArray(messages) ? messages : [messages];
-        for (const msg of msgArray) {
-          if (!msg?.key) continue;
-          const jid = msg.key.remoteJid || '';
-          const fromMe = msg.key.fromMe;
-          const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-          console.log(`📨 Mesaj detay: jid=${jid}, fromMe=${fromMe}, type=${type}, text="${text.slice(0, 80)}"`);
-          
-          if (fromMe) { console.log('📨 → fromMe, atlanıyor'); continue; }
-          if (!msg.message) { console.log('📨 → message yok, atlanıyor'); continue; }
-          if (jid.endsWith('@g.us')) { console.log('📨 → grup mesajı, atlanıyor'); continue; }
-          if (jid === 'status@broadcast') { console.log('📨 → status broadcast, atlanıyor'); continue; }
-          
-          try {
-            await this.gelenMesajIsle(msg);
-          } catch (err) {
-            console.error('❌ Satış bot gelen mesaj hatası:', err.message, err.stack);
-          }
-        }
+        if (hasProcess) return; // ev.process varsa orada işleniyor
+        await this._handleMessagesUpsert(upsert);
       });
 
     } catch (err) {
       console.error('❌ Satış bot başlatma hatası:', err.message);
       this.durum = 'hata';
+    }
+  }
+
+  _handleConnectionUpdate(update) {
+    try {
+      console.log('📡 SatışBot connection.update:', JSON.stringify(update, null, 0).slice(0, 300));
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        this.durum = 'qr_bekleniyor';
+        qrcode.toDataURL(qr).then(url => {
+          this.qrBase64 = url;
+          this.emit('qr', url);
+        }).catch(e => console.error('QR dönüşüm hatası:', e));
+        console.log('📱 Satış Bot QR hazır — SuperAdmin panelden tarayın');
+      }
+
+      if (connection === 'open') {
+        this.durum = 'bagli';
+        this.qrBase64 = null;
+        this.reconnectAttempts = 0;
+        this.basariliOturumVardi = true;
+        const numara = this.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
+        console.log(`✅ Satış Bot WhatsApp bağlandı — numara: ${numara}`);
+        this.emit('bagli');
+      }
+
+      if (connection === 'close') {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const errorMsg = lastDisconnect?.error?.message || '';
+        const credsExist = fs.existsSync(path.join(AUTH_DIR, 'creds.json'));
+        console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, creds: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+        
+        if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
+          console.log('🔄 restartRequired — QR tarandı, yeni socket oluşturuluyor (auth korunuyor)...');
+          this.durum = 'kapali';
+          this.sock = null;
+          setTimeout(() => this.baslat(), 1000);
+        } else if (statusCode === DisconnectReason.loggedOut) {
+          this.durum = 'kapali';
+          this.qrBase64 = null;
+          this.aktif = false;
+          this.sock = null;
+          try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
+          console.log('🗑️ Satış Bot oturumu kapatıldı. Panel\'den yeniden başlatıp QR tarayın.');
+        } else if (credsExist && this.reconnectAttempts < this.maxReconnectAttempts) {
+          this.reconnectAttempts++;
+          this.durum = 'kapali';
+          this.sock = null;
+          const bekleme = Math.min(3000 * this.reconnectAttempts, 30000);
+          console.log(`🔄 Satış Bot ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+          setTimeout(() => this.baslat(), bekleme);
+        } else if (!credsExist && this.reconnectAttempts < 3) {
+          this.reconnectAttempts++;
+          this.durum = 'kapali';
+          this.sock = null;
+          console.log(`🔄 QR süresi doldu, yeni QR üretiliyor (deneme ${this.reconnectAttempts}/3)...`);
+          setTimeout(() => this.baslat(), 3000);
+        } else {
+          this.durum = 'kapali';
+          this.qrBase64 = null;
+          this.sock = null;
+          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
+            console.log('🗑️ Max deneme aşıldı, auth temizlendi.');
+          }
+          console.log('⏹️ Satış Bot durdu. Panel\'den "Botu Başlat" ile yeniden başlatıp QR tarayın.');
+        }
+      }
+    } catch (connErr) {
+      console.error('❌ SatışBot connection.update HATA:', connErr.message, connErr.stack);
+    }
+  }
+
+  async _handleMessagesUpsert(upsert) {
+    try {
+      const messages = upsert.messages || upsert;
+      const type = upsert.type || 'unknown';
+      console.log(`📨 messages.upsert event: type=${type}, count=${Array.isArray(messages) ? messages.length : '?'}`);
+      
+      const msgArray = Array.isArray(messages) ? messages : [messages];
+      for (const msg of msgArray) {
+        if (!msg?.key) continue;
+        const jid = msg.key.remoteJid || '';
+        const fromMe = msg.key.fromMe;
+        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+        console.log(`📨 Mesaj detay: jid=${jid}, fromMe=${fromMe}, type=${type}, text="${text.slice(0, 80)}"`);
+        
+        if (fromMe) { console.log('📨 → fromMe, atlanıyor'); continue; }
+        if (!msg.message) { console.log('📨 → message yok, atlanıyor'); continue; }
+        if (jid.endsWith('@g.us')) { console.log('📨 → grup mesajı, atlanıyor'); continue; }
+        if (jid === 'status@broadcast') { console.log('📨 → status broadcast, atlanıyor'); continue; }
+        
+        try {
+          await this.gelenMesajIsle(msg);
+        } catch (err) {
+          console.error('❌ Satış bot gelen mesaj hatası:', err.message, err.stack);
+        }
+      }
+    } catch (err) {
+      console.error('❌ _handleMessagesUpsert HATA:', err.message, err.stack);
     }
   }
 
