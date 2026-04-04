@@ -467,7 +467,15 @@ class SatisBot extends EventEmitter {
     if (!metin) return;
 
     const remoteJid = msg.key.remoteJid;
-    const telefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+    // WhatsApp Business LID desteği: @lid JID'lerde gerçek numara remoteJidAlt'ta
+    const altJid = msg.key.remoteJidAlt || '';
+    let telefon;
+    if (remoteJid.endsWith('@lid') && altJid.includes('@s.whatsapp.net')) {
+      telefon = altJid.replace('@s.whatsapp.net', '');
+      console.log(`📩 LID → telefon çevrildi: ${remoteJid} → ${telefon}`);
+    } else {
+      telefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+    }
 
     console.log(`📩 Satış Bot cevap aldı: ${telefon} → "${metin}"`);
 
@@ -478,7 +486,7 @@ class SatisBot extends EventEmitter {
     )).rows[0];
 
     if (!konusma) {
-      console.log(`⚠️ Bilinmeyen numara: ${telefon}`);
+      console.log(`⚠️ Bilinmeyen numara: ${telefon} (jid: ${remoteJid}, alt: ${altJid})`);
       return;
     }
 
