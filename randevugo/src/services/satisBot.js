@@ -660,6 +660,7 @@ KURALLAR:
 - Türkçe yaz, doğal ve samimi ol
 - Max 4-5 cümle (uzun yazma)
 - Her mesajda sırago.com linkini ver
+- ASLA "admin.sirago.com" yazma! Sadece "sırago.com" yaz. admin subdomain'i YASAK!
 - Emoji kullan ama abartma (max 2-3)
 - Müşterinin adını/işletme adını kullan
 - ASLA "yapay zeka" veya "bot" olduğunu söyleme
@@ -688,7 +689,11 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.mesaj) return parsed;
+        if (parsed.mesaj) {
+          // Post-processing: yanlış domain varsa düzelt
+          parsed.mesaj = parsed.mesaj.replace(/admin\.sirago\.com/gi, 'sırago.com').replace(/sirago\.com/gi, 'sırago.com');
+          return parsed;
+        }
       }
       // JSON parse başarısız — fallback
       console.log('⚠️ DeepSeek JSON parse hatası, fallback kullanılıyor');
