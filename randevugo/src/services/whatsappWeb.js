@@ -13,7 +13,6 @@ class WhatsAppWebService extends EventEmitter {
   constructor() {
     super();
     this.isletmeler = {}; // isletme_id -> { sock, durum, qr, qrBase64 }
-    this.lastMsgKeys = {}; // `${isletmeId}_${jid}` -> message key (for edit)
   }
 
   async tumIsletmeleriBaslat() {
@@ -167,78 +166,84 @@ class WhatsAppWebService extends EventEmitter {
     return { durum: state.durum, qrBase64: state.qrBase64 };
   }
 
-  // Baileys mesajdan metin çıkart
+  // Baileys mesajdan metin çıkart — tüm wrapper'ları (viewOnce, ephemeral, protocol) aç
   _getMsgText(msg) {
+    let m = msg.message;
+    if (!m) return '';
+
+    // Wrapper'ları aç (viewOnceMessage, viewOnceMessageV2, ephemeralMessage, documentWithCaptionMessage)
+    if (m.viewOnceMessage) m = m.viewOnceMessage.message || m;
+    if (m.viewOnceMessageV2) m = m.viewOnceMessageV2.message || m;
+    if (m.ephemeralMessage) m = m.ephemeralMessage.message || m;
+    if (m.documentWithCaptionMessage) m = m.documentWithCaptionMessage.message || m;
+
     // Normal metin
-    if (msg.message?.conversation) return msg.message.conversation;
-    if (msg.message?.extendedTextMessage?.text) return msg.message.extendedTextMessage.text;
+    if (m.conversation) return m.conversation;
+    if (m.extendedTextMessage?.text) return m.extendedTextMessage.text;
+
+    // Resim/video/belge caption
+    if (m.imageMessage?.caption) return m.imageMessage.caption;
+    if (m.videoMessage?.caption) return m.videoMessage.caption;
 
     // Buton yanıtları - ID'den label'ı çıkar (btn_0_Bugün → Bugün, row_1_Yarın → Yarın)
-    const btnId = msg.message?.buttonsResponseMessage?.selectedButtonId
-      || msg.message?.templateButtonReplyMessage?.selectedId
-      || msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId;
+    const btnId = m.buttonsResponseMessage?.selectedButtonId
+      || m.templateButtonReplyMessage?.selectedId
+      || m.listResponseMessage?.singleSelectReply?.selectedRowId;
     if (btnId) {
-      // btn_0_label veya row_0_label formatından label'ı çıkar
       const parts = btnId.split('_');
       if (parts.length >= 3) return parts.slice(2).join('_');
       return btnId;
     }
 
     // Buton display text (alternatif)
-    if (msg.message?.buttonsResponseMessage?.selectedDisplayText) return msg.message.buttonsResponseMessage.selectedDisplayText;
-    if (msg.message?.templateButtonReplyMessage?.selectedDisplayText) return msg.message.templateButtonReplyMessage.selectedDisplayText;
-    if (msg.message?.listResponseMessage?.title) return msg.message.listResponseMessage.title;
+    if (m.buttonsResponseMessage?.selectedDisplayText) return m.buttonsResponseMessage.selectedDisplayText;
+    if (m.templateButtonReplyMessage?.selectedDisplayText) return m.templateButtonReplyMessage.selectedDisplayText;
+    if (m.listResponseMessage?.title) return m.listResponseMessage.title;
 
-    // Interactive response
-    if (msg.message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
+    // Interactive response (nativeFlowResponseMessage)
+    const interResp = m.interactiveResponseMessage;
+    if (interResp?.nativeFlowResponseMessage?.paramsJson) {
       try {
-        const params = JSON.parse(msg.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
-        return params.id?.split('_').slice(2).join('_') || params.id || '';
-      } catch (e) { return ''; }
+        const params = JSON.parse(interResp.nativeFlowResponseMessage.paramsJson);
+        // display_text varsa onu döndür, yoksa id'den label çıkar
+        if (params.display_text) return params.display_text;
+        if (params.id) {
+          const parts = params.id.split('_');
+          if (parts.length >= 3) return parts.slice(2).join('_');
+          return params.id;
+        }
+      } catch (e) { /* ignore */ }
     }
+
+    // editedMessage wrapper
+    if (m.editedMessage?.message) {
+      return this._getMsgText({ message: m.editedMessage.message });
+    }
+
+    // protocolMessage (mesaj silinmesi vs) → boş döndür, işleme
+    if (m.protocolMessage || m.reactionMessage || m.senderKeyDistributionMessage) return '';
 
     return '';
   }
 
-  _lastMsgKey(isletmeId, jid) {
-    return this.lastMsgKeys[`${isletmeId}_${jid}`] || null;
-  }
 
-  _setLastMsgKey(isletmeId, jid, key) {
-    this.lastMsgKeys[`${isletmeId}_${jid}`] = key;
-  }
-
-  async mesajGonder(isletmeId, hedef, mesaj, butonlar = null, edit = false) {
+  async mesajGonder(isletmeId, hedef, mesaj, butonlar = null) {
     const state = this.isletmeler[isletmeId];
     if (!state || state.durum !== 'bagli') return { success: false, hata: 'Bağlı değil' };
     try {
       const jid = hedef.includes('@') ? hedef : `${hedef.replace(/^\+/, '')}@s.whatsapp.net`;
-      const lastKey = this._lastMsgKey(isletmeId, jid);
 
-      // Butonlu mesaj → her zaman yeni mesaj gönder (interactive edit edilemez)
+      // Butonlu mesaj
       if (butonlar && butonlar.length > 0) {
         const btnSent = await this._butonluMesajGonder(state.sock, jid, mesaj, butonlar);
-        if (btnSent) {
-          this._setLastMsgKey(isletmeId, jid, btnSent.key);
-          return { success: true };
-        }
+        if (btnSent) return { success: true };
       }
 
-      // Butonsuz mesaj — edit dene
-      if (edit && lastKey) {
-        try {
-          await state.sock.sendMessage(jid, { text: mesaj, edit: lastKey });
-          return { success: true };
-        } catch (e) {
-          console.log('⚠️ Edit başarısız, yeni mesaj:', e.message);
-        }
-      }
-
-      // Normal metin mesajı
-      const sent = await state.sock.sendMessage(jid, { text: mesaj });
-      this._setLastMsgKey(isletmeId, jid, sent.key);
+      // Normal metin mesajı — her zaman YENİ mesaj gönder (edit karışıklık yapıyor)
+      await state.sock.sendMessage(jid, { text: mesaj });
       return { success: true };
     } catch (err) {
+      console.error(`❌ mesajGonder hata [${isletmeId}]:`, err.message);
       return { success: false, hata: err.message };
     }
   }
@@ -246,7 +251,72 @@ class WhatsAppWebService extends EventEmitter {
   async _butonluMesajGonder(sock, jid, mesaj, butonlar) {
     const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
 
-    // Şimdilik numaralı metin — stabil çalışıyor, mesaj cevabını önce düzeltiyoruz
+    // ═══ Yöntem 1: Interactive Native Flow — Quick Reply (≤3) ═══
+    if (btnLabels.length <= 3) {
+      try {
+        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
+          viewOnceMessage: {
+            message: {
+              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
+                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
+                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', hasMediaAttachment: false }),
+                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
+                  buttons: btnLabels.map((label, i) => ({
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({ display_text: label, id: `btn_${i}_${label}` })
+                  }))
+                })
+              })
+            }
+          }
+        }), {});
+        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
+        console.log('✅ Interactive buton gönderildi:', btnLabels.join(', '));
+        return msg;
+      } catch (e) {
+        console.log('⚠️ Interactive quick_reply başarısız:', e.message);
+      }
+    }
+
+    // ═══ Yöntem 2: Interactive Native Flow — List (4-10) ═══
+    if (btnLabels.length >= 4 && btnLabels.length <= 10) {
+      try {
+        const msg = generateWAMessageFromContent(jid, proto.Message.fromObject({
+          viewOnceMessage: {
+            message: {
+              messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+              interactiveMessage: proto.Message.InteractiveMessage.fromObject({
+                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mesaj }),
+                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: '' }),
+                header: proto.Message.InteractiveMessage.Header.fromObject({ title: '', hasMediaAttachment: false }),
+                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({
+                  buttons: [{
+                    name: 'single_select',
+                    buttonParamsJson: JSON.stringify({
+                      title: '📋 Seçenekler',
+                      sections: [{
+                        title: 'Seçim yapın',
+                        rows: btnLabels.map((label, i) => ({ title: label, id: `row_${i}_${label}` }))
+                      }]
+                    })
+                  }]
+                })
+              })
+            }
+          }
+        }), {});
+        await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
+        console.log('✅ Interactive list gönderildi:', btnLabels.join(', '));
+        return msg;
+      } catch (e) {
+        console.log('⚠️ Interactive list başarısız:', e.message);
+      }
+    }
+
+    // ═══ Fallback: Numaralı metin ═══
+    console.log('📝 Numaralı metin fallback');
     let butonMetin = mesaj + '\n';
     btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });
     return await sock.sendMessage(jid, { text: butonMetin });
@@ -254,10 +324,20 @@ class WhatsAppWebService extends EventEmitter {
 
   async mesajIsle(msg, isletmeId) {
     const metin = (this._getMsgText(msg) || '').trim();
-    console.log(`🔄 mesajIsle başladı: isletme=${isletmeId}, metin="${metin}", jid=${msg.key.remoteJid}`);
-    if (!metin) { console.log('⚠️ Boş metin, çıkılıyor'); return; }
     const remoteJid = msg.key.remoteJid;
-    const musteriTelefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+    console.log(`🔄 mesajIsle: isletme=${isletmeId}, metin="${metin}", jid=${remoteJid}, keys=${msg.message ? Object.keys(msg.message).join(',') : 'null'}`);
+    if (!metin) return;
+
+    // @lid veya @s.whatsapp.net — telefon numarasını çıkar
+    let musteriTelefon;
+    if (remoteJid.endsWith('@s.whatsapp.net')) {
+      musteriTelefon = remoteJid.replace('@s.whatsapp.net', '');
+    } else if (remoteJid.endsWith('@lid')) {
+      // LID formatında telefon numarası yok, pushName + lid kullan
+      musteriTelefon = remoteJid.replace('@lid', '');
+    } else {
+      musteriTelefon = remoteJid.replace('@c.us', '');
+    }
 
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
@@ -309,8 +389,7 @@ class WhatsAppWebService extends EventEmitter {
     if (cevap) {
       const cevapMetin = typeof cevap === 'object' ? cevap.metin : cevap;
       const butonlar = typeof cevap === 'object' ? cevap.butonlar : null;
-      // Mevcut mesajı düzenle (Telegram editMessageText gibi), başarısızsa yeni mesaj gönder
-      await this.mesajGonder(isletmeId, remoteJid, cevapMetin, butonlar, true);
+      await this.mesajGonder(isletmeId, remoteJid, cevapMetin, butonlar);
       await pool.query(
         'INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)',
         [musteriTelefon, isletmeId, 'giden', cevapMetin]
