@@ -567,7 +567,7 @@ class SatisBot extends EventEmitter {
     const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz', 'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın'];
     if (redKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Anlıyorum, rahatsız ettiysem özür dilerim 🙏\n\nAma şunu bilmenizi isterim: Rakipleriniz online randevu sistemine geçiyor ve müşterileri artık telefonla aramıyor.\n\nFikrinizi değiştirirseniz bize ulaşabilirsiniz: admin.sirago.com\n\nİyi çalışmalar dilerim! 🙂`,
+        mesaj: `Anlıyorum, rahatsız ettiysem özür dilerim 🙏\n\nAma şunu bilmenizi isterim: Rakipleriniz online randevu sistemine geçiyor ve müşterileri artık telefonla aramıyor.\n\nFikrinizi değiştirirseniz bize ulaşabilirsiniz: sırago.com\n\nİyi çalışmalar dilerim! 🙂`,
         durum: 'olumsuz'
       };
     }
@@ -576,7 +576,7 @@ class SatisBot extends EventEmitter {
     const fiyatKelimeler = ['fiyat', 'ücret', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'pahalı', 'pahali', 'para', 'maliyet', 'aylık', 'aylik'];
     if (fiyatKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Harika soru! 💰\n\nİlk ay tamamen ÜCRETSİZ — hiçbir ödeme yok, kart bilgisi istemiyoruz.\n\nSonra:\n• Başlangıç: 299₺/ay (1 çalışan)\n• Profesyonel: 599₺/ay (5 çalışana kadar)\n• Premium: 999₺/ay (sınırsız)\n\nGünde bir kahve parası ile müşteri kaybını %80 azaltırsınız ☕\n\nÜcretsiz denemeyi hemen başlatayım mı? 👉 admin.sirago.com`,
+        mesaj: `Harika soru! 💰\n\nİlk ay tamamen ÜCRETSİZ — hiçbir ödeme yok, kart bilgisi istemiyoruz.\n\nSonra:\n• Başlangıç: 299₺/ay (1 çalışan)\n• Profesyonel: 599₺/ay (5 çalışana kadar)\n• Premium: 999₺/ay (sınırsız)\n\nGünde bir kahve parası ile müşteri kaybını %80 azaltırsınız ☕\n\nÜcretsiz denemeyi hemen başlatayım mı? 👉 sırago.com`,
         durum: 'olumlu'
       };
     }
@@ -585,7 +585,7 @@ class SatisBot extends EventEmitter {
     const merakKelimeler = ['nedir', 'ne', 'nasıl', 'nasil', 'anlamadım', 'anlamadim', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'ne yapıyor', 'ne yapiyor', 'özellik'];
     if (merakKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Tabii, kısaca anlatayım 😊\n\nSıraGO, ${ad} için online randevu sistemi:\n\n✅ Müşterileriniz 7/24 telefondan randevu alır\n✅ WhatsApp ile otomatik hatırlatma gider\n✅ Randevu kaçırma oranı %80 düşer\n✅ Tüm yönetimi tek panelden yaparsınız\n\nSektörünüzdeki işletmeler bunu kullanarak müşteri memnuniyetini ciddi artırdı.\n\nÜcretsiz deneyin: admin.sirago.com 🚀`,
+        mesaj: `Tabii, kısaca anlatayım 😊\n\nSıraGO, ${ad} için online randevu sistemi:\n\n✅ Müşterileriniz 7/24 telefondan randevu alır\n✅ WhatsApp ile otomatik hatırlatma gider\n✅ Randevu kaçırma oranı %80 düşer\n✅ Tüm yönetimi tek panelden yaparsınız\n\nSektörünüzdeki işletmeler bunu kullanarak müşteri memnuniyetini ciddi artırdı.\n\nÜcretsiz deneyin: sırago.com 🚀`,
         durum: 'olumlu'
       };
     }
@@ -594,7 +594,7 @@ class SatisBot extends EventEmitter {
     const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'bakalım', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'güzel', 'iyi', 'süper', 'harika'];
     if (olumluKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Harika! 🎉\n\nHemen başlayalım! Şu adrese girin:\n👉 admin.sirago.com\n\n30 saniyede kayıt olun, sistemi hemen kullanmaya başlayın. İlk ay tamamen ücretsiz!\n\nKurulumda yardıma ihtiyacınız olursa ben buradayım 💪`,
+        mesaj: `Harika! 🎉\n\nHemen başlayalım! Şu adrese girin:\n👉 sırago.com\n\n30 saniyede kayıt olun, sistemi hemen kullanmaya başlayın. İlk ay tamamen ücretsiz!\n\nKurulumda yardıma ihtiyacınız olursa ben buradayım 💪`,
         durum: 'olumlu'
       };
     }
@@ -603,14 +603,14 @@ class SatisBot extends EventEmitter {
     const selamKelimeler = ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'gunaydin', 'günaydın'];
     if (selamKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Merhabalar! 🙂\n\n${ad} için online randevu sistemi hakkında yazmıştım. Müşterileriniz telefonla aramak yerine 7/24 online randevu alabilir.\n\nİlk ay tamamen ücretsiz — denemek ister misiniz?\n\n👉 admin.sirago.com`,
+        mesaj: `Merhabalar! 🙂\n\n${ad} için online randevu sistemi hakkında yazmıştım. Müşterileriniz telefonla aramak yerine 7/24 online randevu alabilir.\n\nİlk ay tamamen ücretsiz — denemek ister misiniz?\n\n👉 sırago.com`,
         durum: 'bekliyor'
       };
     }
 
     // Genel / bilinmeyen mesajlar — ısrarcı ama kibar
     return {
-      mesaj: `Teşekkürler yanıtınız için! 🙏\n\n${ad} için online randevu sistemi gerçekten fark yaratır. Müşterileriniz telefonla aramak yerine anında randevu alır, siz de WhatsApp ile otomatik hatırlatma gönderirsiniz.\n\nÜstelik ilk ay tamamen ücretsiz — risk yok!\n\n2 dakikada deneyin: admin.sirago.com 🚀`,
+      mesaj: `Teşekkürler yanıtınız için! 🙏\n\n${ad} için online randevu sistemi gerçekten fark yaratır. Müşterileriniz telefonla aramak yerine anında randevu alır, siz de WhatsApp ile otomatik hatırlatma gönderirsiniz.\n\nÜstelik ilk ay tamamen ücretsiz — risk yok!\n\n2 dakikada deneyin: sırago.com 🚀`,
       durum: 'bekliyor'
     };
   }
@@ -637,7 +637,7 @@ NE SATIYORSUN: İşletmelere online randevu sistemi
 - Müşteri kaybını %80 azaltır
 - Fiyatlar: Başlangıç 299₺/ay, Profesyonel 599₺/ay, Premium 999₺/ay
 - İLK AY TAMAMEN ÜCRETSİZ (kart bilgisi istemiyorsun)
-- Demo/Kayıt linki: admin.sirago.com
+- Demo/Kayıt linki: sırago.com
 
 KONUŞMA:
 İşletme: ${konusma.isletme_adi} (Kategori: ${konusma.kategori})
@@ -651,7 +651,7 @@ SATIŞ STRATEJİN:
 1. Müşteri "merhaba/selam" derse → ürünü kısaca tanıt, ücretsiz denemeyi vurgula
 2. Müşteri soru sorarsa → net ve ikna edici cevap ver, somut faydalar söyle
 3. Müşteri fiyat sorarsa → "İlk ay ücretsiz" vurgula, günlük maliyet hesabı yap (günde 10₺)
-4. Müşteri ilgileniyorsa → hemen admin.sirago.com'a yönlendir, aciliyet yarat
+4. Müşteri ilgileniyorsa → hemen sırago.com'a yönlendir, aciliyet yarat
 5. Müşteri tereddüt ediyorsa → sektöründen örnek ver, kaybettiği müşteriyi hatırlat
 6. Müşteri reddederse → son bir koz kullan: "Rakipleriniz bunu kullanıyor", sonra kibar bir şekilde kapanış yap
 7. ${mesajSayisi} > 3 ve hala karar vermemişse → son teklif yap: "Sizin için özel 2 ay ücretsiz yapabilirim"
@@ -659,7 +659,7 @@ SATIŞ STRATEJİN:
 KURALLAR:
 - Türkçe yaz, doğal ve samimi ol
 - Max 4-5 cümle (uzun yazma)
-- Her mesajda admin.sirago.com linkini ver
+- Her mesajda sırago.com linkini ver
 - Emoji kullan ama abartma (max 2-3)
 - Müşterinin adını/işletme adını kullan
 - ASLA "yapay zeka" veya "bot" olduğunu söyleme
