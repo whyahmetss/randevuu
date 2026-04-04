@@ -141,29 +141,30 @@ class SatisBot extends EventEmitter {
         this._handleConnectionUpdate(update);
       });
 
-      // Gelen mesajları dinle — whatsappWeb.js ile birebir aynı pattern
-      this.sock.ev.on('messages.upsert', async ({ messages, type }) => {
-        console.log(`� SatışBot messages.upsert: type=${type}, count=${messages?.length}`);
-        if (type !== 'notify') { console.log('📨 → type notify değil, atlanıyor'); return; }
-        for (const msg of messages) {
-          if (!msg?.key) continue;
-          const jid = msg.key.remoteJid || '';
-          const fromMe = msg.key.fromMe;
-          const text = this._getMsgText(msg);
-          console.log(`📨 Mesaj: jid=${jid}, fromMe=${fromMe}, text="${(text || '').slice(0, 80)}"`);
-          
-          if (fromMe) continue;
-          if (!msg.message) continue;
-          if (jid.endsWith('@g.us')) continue;
-          if (jid === 'status@broadcast') continue;
-          
-          try {
+      // Gelen mesajları dinle
+      this.sock.ev.on('messages.upsert', async (data) => {
+        try {
+          console.log(`📨 SatışBot RAW messages.upsert:`, JSON.stringify(data).slice(0, 500));
+          const messages = data?.messages || (Array.isArray(data) ? data : []);
+          for (const msg of messages) {
+            if (!msg?.key) continue;
+            const jid = msg.key.remoteJid || '';
+            const fromMe = msg.key.fromMe;
+            const text = this._getMsgText(msg);
+            console.log(`📨 Mesaj: jid=${jid}, fromMe=${fromMe}, text="${(text || '').slice(0, 80)}"`);
+            
+            if (fromMe) continue;
+            if (!msg.message) continue;
+            if (jid.endsWith('@g.us')) continue;
+            if (jid === 'status@broadcast') continue;
+            
             await this.gelenMesajIsle(msg);
-          } catch (err) {
-            console.error('❌ Satış bot gelen mesaj hatası:', err.message, err.stack);
           }
+        } catch (err) {
+          console.error('❌ SatışBot messages.upsert HATA:', err.message, err.stack);
         }
       });
+      console.log('✅ SatışBot event listener\'lar bağlandı (connection.update + messages.upsert)');
 
     } catch (err) {
       console.error('❌ Satış bot başlatma hatası:', err.message);
