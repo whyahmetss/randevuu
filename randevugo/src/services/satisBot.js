@@ -678,10 +678,17 @@ class SatisBot extends EventEmitter {
           try {
             const bcrypt = require('bcryptjs');
             // İşletme oluştur
+            // Telefonu +90XXXXXXXXXX formatına çevir
+            let telFormatli = telefon;
+            if (telFormatli.startsWith('90')) telFormatli = '+' + telFormatli;
+            else if (!telFormatli.startsWith('+')) telFormatli = '+90' + telFormatli;
+            // Aynı telefon varsa farklı yap (timestamp ekle)
+            const telMevcut = (await pool.query('SELECT id FROM isletmeler WHERE telefon = $1', [telFormatli])).rows[0];
+            if (telMevcut) telFormatli = telFormatli + '_' + Date.now();
             const isletme = (await pool.query(
-              `INSERT INTO isletmeler (isim, telefon, aktif, paket, olusturma_tarihi) 
-               VALUES ($1, $2, true, 'baslangic', NOW()) RETURNING *`,
-              [k.isletmeAdi, telefon]
+              `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi) 
+               VALUES ($1, $2, 'genel', true, 'baslangic', NOW()) RETURNING *`,
+              [k.isletmeAdi, telFormatli]
             )).rows[0];
 
             // Admin kullanıcı oluştur

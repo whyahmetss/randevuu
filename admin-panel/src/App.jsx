@@ -58,7 +58,7 @@ function Login({ onLogin }) {
 
   // WhatsApp satış bot numarası
   const WP_NUMARA = "905379681840";
-  const TG_BOT = "SiraGO_bot";
+  const TG_BOT = "siragoapp_bot";
 
   if (ekran === "kayit") {
     return (

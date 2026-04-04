@@ -42,9 +42,9 @@ class AuthController {
 
       // İşletme oluştur
       const isletme = (await pool.query(
-        `INSERT INTO isletmeler (isim, telefon, aktif, paket, olusturma_tarihi) 
-         VALUES ($1, $2, true, 'baslangic', NOW()) RETURNING *`,
-        [isletmeAdi, telefon || null]
+        `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi) 
+         VALUES ($1, $2, 'genel', true, 'baslangic', NOW()) RETURNING *`,
+        [isletmeAdi, telefon || '']
       )).rows[0];
 
       // Admin kullanıcı oluştur
