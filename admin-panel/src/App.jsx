@@ -836,46 +836,169 @@ function Dashboard() {
           )}
 
           {/* ── RANDEVULAR ── */}
-          {sayfa === "randevular" && (
+          {sayfa === "randevular" && (() => {
+            const bugun = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
+            const dunDate = new Date(); dunDate.setDate(dunDate.getDate() - 1);
+            const dun = dunDate.toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
+            const yarinDate = new Date(); yarinDate.setDate(yarinDate.getDate() + 1);
+            const yarin = yarinDate.toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
+
+            const aktifTab = randevuTarih === bugun ? "bugun" : randevuTarih === dun ? "dun" : randevuTarih === yarin ? "yarin" : "ozel";
+            const tarihLabel = (t) => {
+              const d = new Date(t + "T00:00:00");
+              return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+            };
+
+            const durumSayac = { onaylandi: 0, bekliyor: 0, tamamlandi: 0, gelmedi: 0, iptal: 0 };
+            randevular.forEach(r => { if (durumSayac[r.durum] !== undefined) durumSayac[r.durum]++; else durumSayac.bekliyor++; });
+
+            const tabBtn = (label, emoji, tarihVal, tabId) => (
+              <button key={tabId}
+                onClick={() => { setRandevuTarih(tarihVal); verileriYukle(tarihVal); }}
+                style={{
+                  padding: "10px 20px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
+                  background: aktifTab === tabId ? "var(--primary)" : "rgba(255,255,255,0.06)",
+                  color: aktifTab === tabId ? "#fff" : "var(--dim)",
+                  transition: "all .2s"
+                }}>
+                {emoji} {label}
+              </button>
+            );
+
+            return (
             <>
-              <div className="row gap-10 mb-20">
+              {/* Hızlı tarih sekmeleri */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+                {tabBtn("Dün", "⏪", dun, "dun")}
+                {tabBtn("Bugün", "📅", bugun, "bugun")}
+                {tabBtn("Yarın", "⏩", yarin, "yarin")}
+                <div style={{ width: 1, height: 28, background: "var(--border)", margin: "0 4px" }} />
                 <input type="date" value={randevuTarih}
-                  onChange={e => { setRandevuTarih(e.target.value); verileriYukle(e.target.value); }} className="input" style={{ width: "auto" }} />
-                <button onClick={() => verileriYukle()} className="btn btn-primary btn-sm">Yenile</button>
-                <span style={{ color: "var(--dim)", fontSize: 13 }}>{randevular.length} randevu</span>
+                  onChange={e => { setRandevuTarih(e.target.value); verileriYukle(e.target.value); }}
+                  style={{
+                    padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)",
+                    background: aktifTab === "ozel" ? "var(--primary)" : "rgba(255,255,255,0.08)",
+                    color: "#fff", fontSize: 14, cursor: "pointer", outline: "none",
+                    colorScheme: "dark"
+                  }} />
+                <button onClick={() => verileriYukle()} style={{
+                  padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer",
+                  background: "rgba(16,185,129,0.15)", color: "#10b981", fontSize: 13, fontWeight: 600
+                }}>↻ Yenile</button>
               </div>
 
-              {randevular.length === 0 ? (
-                <div className="card text-center" style={{ padding: "50px 0" }}>
-                  <div style={{ fontSize: 40 }} className="mb-10">📭</div>
-                  <div style={{ color: "var(--dim)", fontSize: 14 }}>Bu tarih için randevu yok</div>
+              {/* Tarih başlığı ve randevu sayısı */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", textTransform: "capitalize" }}>
+                    {aktifTab === "bugun" ? "📅 Bugünün Randevuları" : aktifTab === "dun" ? "⏪ Dünün Randevuları" : aktifTab === "yarin" ? "⏩ Yarının Randevuları" : "📅 Randevular"}
+                  </div>
+                  <div style={{ color: "var(--dim)", fontSize: 13, marginTop: 2 }}>{tarihLabel(randevuTarih)}</div>
                 </div>
-              ) : randevular.map(r => (
-                <div key={r.id} className="list-item list-item-lg">
-                  <div className="time-avatar time-avatar-lg"><span>{r.saat?.slice(0, 5)}</span></div>
-                  <div className="flex-1">
-                    <div style={{ fontWeight: 700, fontSize: 15 }} className="mb-3">{r.musteri_isim}</div>
-                    <div className="list-item-meta">
-                      📞 {r.musteri_telefon}
-                      {r.hizmet_isim && <span style={{ marginLeft: 10 }}>✂️ {r.hizmet_isim}{r.fiyat ? ` · ${r.fiyat}₺` : ""}</span>}
-                      {r.calisan_isim && <span style={{ marginLeft: 10 }}>👤 {r.calisan_isim}</span>}
+                <div style={{
+                  background: "rgba(139,92,246,0.12)", color: "#8b5cf6", padding: "6px 16px",
+                  borderRadius: 20, fontSize: 14, fontWeight: 700
+                }}>
+                  {randevular.length} randevu
+                </div>
+              </div>
+
+              {/* Durum özet kartları */}
+              {randevular.length > 0 && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 20 }}>
+                  {[
+                    { key: "onaylandi", label: "Onaylı", emoji: "✅", color: "#10b981" },
+                    { key: "bekliyor", label: "Bekliyor", emoji: "⏳", color: "#f59e0b" },
+                    { key: "tamamlandi", label: "Tamamlandı", emoji: "✔️", color: "#3b82f6" },
+                    { key: "gelmedi", label: "Gelmedi", emoji: "❌", color: "#6b7280" },
+                    { key: "iptal", label: "İptal", emoji: "🚫", color: "#ef4444" },
+                  ].filter(s => durumSayac[s.key] > 0).map(s => (
+                    <div key={s.key} style={{
+                      background: s.color + "12", borderRadius: 12, padding: "12px 14px",
+                      display: "flex", alignItems: "center", gap: 10, border: `1px solid ${s.color}20`
+                    }}>
+                      <span style={{ fontSize: 20 }}>{s.emoji}</span>
+                      <div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{durumSayac[s.key]}</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)" }}>{s.label}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Randevu listesi */}
+              {randevular.length === 0 ? (
+                <div className="card text-center" style={{ padding: "60px 20px" }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                  <div style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Randevu bulunamadı</div>
+                  <div style={{ color: "var(--dim)", fontSize: 13 }}>{tarihLabel(randevuTarih)} için randevu yok</div>
+                </div>
+              ) : randevular.map((r, idx) => {
+                const durumRenk = DR[r.durum] || "#f59e0b";
+                return (
+                <div key={r.id} style={{
+                  background: "var(--card)", borderRadius: 14, padding: "16px 20px",
+                  marginBottom: 10, border: "1px solid var(--border)",
+                  borderLeft: `4px solid ${durumRenk}`,
+                  transition: "transform .15s, box-shadow .15s"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    {/* Saat badge */}
+                    <div style={{
+                      background: `linear-gradient(135deg, ${durumRenk}30, ${durumRenk}10)`,
+                      color: durumRenk, fontWeight: 800, fontSize: 16,
+                      width: 60, height: 60, borderRadius: 14,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0
+                    }}>
+                      {r.saat?.slice(0, 5)}
+                    </div>
+
+                    {/* Bilgiler */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "#fff", marginBottom: 4 }}>
+                        {r.musteri_isim || "İsimsiz"}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: 13, color: "var(--dim)" }}>
+                        <span>📞 {r.musteri_telefon}</span>
+                        {r.hizmet_isim && <span>✂️ {r.hizmet_isim}{r.fiyat ? ` · ${Number(r.fiyat).toLocaleString("tr-TR")}₺` : ""}</span>}
+                        {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
+                      </div>
+                    </div>
+
+                    {/* Durum butonu (mevcut durum) */}
+                    <div style={{
+                      background: durumRenk + "20", color: durumRenk,
+                      padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700,
+                      whiteSpace: "nowrap"
+                    }}>
+                      {DL[r.durum] || "Bekliyor"}
                     </div>
                   </div>
-                  <div className="list-item-actions">
-                    {[["onaylandi","✓ Onaylı"], ["tamamlandi","Tamam"], ["gelmedi","Gelmedi"], ["iptal","İptal"]].map(([d, l]) => (
+
+                  {/* Aksiyon butonları */}
+                  <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
+                    {[["onaylandi","✅ Onayla"], ["tamamlandi","✔️ Tamam"], ["gelmedi","❌ Gelmedi"], ["iptal","🚫 İptal"]].map(([d, l]) => (
                       <button key={d}
                         onClick={async () => { await api.put(`/randevular/${r.id}/durum`, { durum: d }); verileriYukle(); }}
-                        className="btn btn-sm" style={{ background: r.durum === d ? (DR[d] + "25") : "transparent",
-                          color: r.durum === d ? DR[d] : "var(--dim)", border: r.durum === d ? "none" : "1px solid var(--border)",
-                          fontWeight: r.durum === d ? 700 : 400 }}>
+                        style={{
+                          padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                          fontSize: 12, fontWeight: 600, transition: "all .15s",
+                          background: r.durum === d ? DR[d] + "30" : "rgba(255,255,255,0.04)",
+                          color: r.durum === d ? DR[d] : "var(--dim)",
+                          outline: r.durum === d ? `1px solid ${DR[d]}40` : "1px solid var(--border)"
+                        }}>
                         {l}
                       </button>
                     ))}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </>
-          )}
+            );
+          })()}
 
           {/* ── HİZMETLER ── */}
           {sayfa === "hizmetler" && (
