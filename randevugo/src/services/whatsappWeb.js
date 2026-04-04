@@ -419,10 +419,20 @@ class WhatsAppWebService extends EventEmitter {
       return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
     }
 
-    // İptal butonu
-    if ((metinKucuk.includes('iptal') || metinKucuk.includes('❌')) && botDurum.asama !== 'randevu_iptal') {
-      await this.durumGuncelle(musteriTelefon, isletmeId, 'randevu_iptal');
-      return { metin: `❌ *Randevu İptali*\n\nEmin misiniz?\n\n*1.* Evet, iptal et\n*2.* Geri dön`, butonlar: null };
+    // İptal butonu — randevu seçim listesine yönlendir
+    if ((metinKucuk.includes('iptal') || metinKucuk.includes('❌')) && botDurum.asama !== 'randevu_iptal_secim' && botDurum.asama !== 'iptal_onay') {
+      const randevuService = require('./randevu');
+      const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
+      if (!randevular.length) {
+        return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak için *1* yazın.`, butonlar: null };
+      }
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'randevu_iptal_secim');
+      let txt = `❌ *Randevu İptali*\n\nHangi randevuyu iptal etmek istiyorsunuz?\n\n`;
+      randevular.forEach((r, i) => {
+        txt += `*${i+1}.* ${r.hizmet_isim || 'Randevu'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${String(r.saat).substring(0,5)}\n\n`;
+      });
+      txt += `*0.* Vazgeç`;
+      return { metin: txt, butonlar: null };
     }
 
     switch (botDurum.asama) {
@@ -469,10 +479,18 @@ class WhatsAppWebService extends EventEmitter {
           return { metin: metin2, butonlar: null };
         }
         if (randevuIptal) {
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'randevu_iptal');
-          const deepseekIptal = require('./deepseek');
-          const ikna = await deepseekIptal.serbetCevap('Müşteri randevusunu iptal etmek istiyor. Önce nedenini sor, empati kur, mümkünse ertelemeyi öner. Kısa ve sıcak cevap ver.', isletme, hizmetler, 'whatsapp');
-          return { metin: ikna || `Randevunuzu iptal etmek istiyorsunuz.\n\n*1.* İptal Et\n*2.* Farklı Gün\n*3.* Vazgeç`, butonlar: null };
+          const randevuService = require('./randevu');
+          const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
+          if (!randevular.length) {
+            return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak için *1* yazın.`, butonlar: null };
+          }
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'randevu_iptal_secim');
+          let txt = `❌ *Randevu İptali*\n\nHangi randevuyu iptal etmek istiyorsunuz?\n\n`;
+          randevular.forEach((r, i) => {
+            txt += `*${i+1}.* ${r.hizmet_isim || 'Randevu'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${String(r.saat).substring(0,5)}\n\n`;
+          });
+          txt += `*0.* Vazgeç`;
+          return { metin: txt, butonlar: null };
         }
         // Bilinmeyen mesaj → DeepSeek
         const deepseekFb = require('./deepseek');
@@ -648,23 +666,57 @@ class WhatsAppWebService extends EventEmitter {
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
       }
 
-      case 'randevu_iptal': {
-        const randevuService = require('./randevu');
-        if (metinKucuk.includes('iptal') || metinKucuk.includes('evet') || metin === '1') {
-          const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
-          if (!randevular.length) {
-            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
-            return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak için *1* yazın.`, butonlar: null };
-          }
-          await randevuService.randevuIptal(randevular[0].id);
+      case 'randevu_iptal_secim': {
+        // Kullanıcı numara ile randevu seçiyor
+        if (metinKucuk === '0' || metinKucuk.includes('vazgeç') || metinKucuk.includes('geri')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
-          return { metin: `✅ Randevunuz iptal edildi.\n\n📅 Yeni randevu için *1* yazın.`, butonlar: null };
+          return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
         }
-        if (metinKucuk.includes('farkl') || metinKucuk.includes('ertele') || metin === '2') {
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
-          return { metin: `📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+        const randevuService = require('./randevu');
+        const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
+        if (!randevular.length) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+          return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak için *1* yazın.`, butonlar: null };
         }
-        await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+        const secimIdx = parseInt(metin) - 1;
+        let secilenRandevu = null;
+        if (secimIdx >= 0 && secimIdx < randevular.length) {
+          secilenRandevu = randevular[secimIdx];
+        } else {
+          // Tarih ile eşleştirmeyi dene ("9 nisan" gibi)
+          const temiz = metinKucuk.replace(/[^a-z0-9ğüşıöç\s]/gi, '').trim();
+          for (const r of randevular) {
+            const rTarih = this.tarihFormat(r.tarih).toLowerCase();
+            if (temiz.includes(rTarih.split(' ')[0]) || rTarih.includes(temiz.split(' ')[0])) {
+              secilenRandevu = r; break;
+            }
+          }
+        }
+        if (secilenRandevu) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'iptal_onay', { iptal_randevu_id: secilenRandevu.id });
+          return { metin: `❌ *Bu randevuyu iptal etmek istediğinize emin misiniz?*\n\n✂️ ${secilenRandevu.hizmet_isim || 'Randevu'}\n📅 ${this.tarihFormat(secilenRandevu.tarih)}\n🕐 ${String(secilenRandevu.saat).substring(0,5)}\n\n*1.* ✅ Evet, iptal et\n*2.* ↩️ Geri dön`, butonlar: null };
+        }
+        // Anlaşılamadı, listeyi tekrar göster
+        let txt = `Anlayamadım. Numara yazarak seçin:\n\n`;
+        randevular.forEach((r, i) => {
+          txt += `*${i+1}.* ${r.hizmet_isim || 'Randevu'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${String(r.saat).substring(0,5)}\n\n`;
+        });
+        txt += `*0.* Vazgeç`;
+        return { metin: txt, butonlar: null };
+      }
+
+      case 'iptal_onay': {
+        const randevuService = require('./randevu');
+        if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('iptal et')) {
+          const gd = (await pool.query('SELECT iptal_randevu_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+          if (gd?.iptal_randevu_id) {
+            await randevuService.randevuIptal(gd.iptal_randevu_id);
+          }
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
+          return { metin: `✅ Randevunuz başarıyla iptal edildi.\n\n📅 Yeni randevu için *1* yazın.`, butonlar: null };
+        }
+        // Geri dön veya vazgeç
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
       }
 
