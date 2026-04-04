@@ -269,31 +269,22 @@ class WhatsAppWebService extends EventEmitter {
       const jid = hedef.includes('@') ? hedef : `${hedef.replace(/^\+/, '')}@s.whatsapp.net`;
       const lastKey = this._lastMsgKey(isletmeId, jid);
 
-      // Mesaj düzenleme (edit) - Telegram'daki editMessageText gibi
-      if (edit && lastKey) {
-        try {
-          // Butonlu mesajı tek seferde edit olarak gönder
-          if (butonlar && butonlar.length > 0) {
-            const btnSent = await this._butonluMesajGonder(state.sock, jid, mesaj, butonlar, lastKey);
-            if (btnSent) {
-              this._setLastMsgKey(isletmeId, jid, btnSent.key);
-              return { success: true };
-            }
-          }
-          // Butonsuz edit
-          await state.sock.sendMessage(jid, { text: mesaj, edit: lastKey });
-          return { success: true };
-        } catch (e) {
-          console.log('⚠️ Edit başarısız, normal gönderim:', e.message);
-        }
-      }
-
-      // Butonlu mesaj gönderimi (yeni mesaj)
+      // Butonlu mesaj → her zaman yeni mesaj gönder (interactive edit edilemez)
       if (butonlar && butonlar.length > 0) {
         const btnSent = await this._butonluMesajGonder(state.sock, jid, mesaj, butonlar);
         if (btnSent) {
           this._setLastMsgKey(isletmeId, jid, btnSent.key);
           return { success: true };
+        }
+      }
+
+      // Butonsuz mesaj — edit dene
+      if (edit && lastKey) {
+        try {
+          await state.sock.sendMessage(jid, { text: mesaj, edit: lastKey });
+          return { success: true };
+        } catch (e) {
+          console.log('⚠️ Edit başarısız, yeni mesaj:', e.message);
         }
       }
 
@@ -306,23 +297,78 @@ class WhatsAppWebService extends EventEmitter {
     }
   }
 
-  async _butonluMesajGonder(sock, jid, mesaj, butonlar, editKey = null) {
+  async _butonluMesajGonder(sock, jid, mesaj, butonlar) {
     const btnLabels = butonlar.map(b => typeof b === 'string' ? b : (b.text || b.body || ''));
 
-    // ═══ Yöntem 1: Poll (anket) — HER YERDE ÇALIŞIR, tıklanabilir! ═══
-    // Meta, buttons ve list message'ı 2024'te kaldırdı. Poll en güvenilir yöntem.
+    // ═══ Yöntem 1: Interactive Native Flow Buttons (Yunus Akar tarzı) ═══
+    // Gerçek tıklanabilir butonlar — WhatsApp'ın native buton sistemi
+    if (btnLabels.length <= 3) {
+      try {
+        const interactiveMsg = {
+          viewOnceMessage: {
+            message: {
+              interactiveMessage: {
+                body: { text: mesaj },
+                nativeFlowMessage: {
+                  buttons: btnLabels.map((label, i) => ({
+                    name: 'quick_reply',
+                    buttonParamsJson: JSON.stringify({
+                      display_text: label,
+                      id: `btn_${i}_${label}`
+                    })
+                  }))
+                }
+              }
+            }
+          }
+        };
+        const sent = await sock.sendMessage(jid, interactiveMsg);
+        console.log('✅ Interactive buton gönderildi:', btnLabels.join(', '));
+        return sent;
+      } catch (e) {
+        console.log('⚠️ Interactive buton başarısız:', e.message);
+      }
+    }
+
+    // ═══ Yöntem 2: Interactive List (4+ seçenek için) ═══
+    if (btnLabels.length >= 4 && btnLabels.length <= 10) {
+      try {
+        const listMsg = {
+          viewOnceMessage: {
+            message: {
+              interactiveMessage: {
+                body: { text: mesaj },
+                nativeFlowMessage: {
+                  buttons: [{
+                    name: 'single_select',
+                    buttonParamsJson: JSON.stringify({
+                      title: '📋 Seçenekler',
+                      sections: [{
+                        title: 'Seçim yapın',
+                        rows: btnLabels.map((label, i) => ({
+                          title: label,
+                          id: `row_${i}_${label}`
+                        }))
+                      }]
+                    })
+                  }]
+                }
+              }
+            }
+          }
+        };
+        const sent = await sock.sendMessage(jid, listMsg);
+        console.log('✅ Interactive list gönderildi:', btnLabels.join(', '));
+        return sent;
+      } catch (e) {
+        console.log('⚠️ Interactive list başarısız:', e.message);
+      }
+    }
+
+    // ═══ Yöntem 3: Poll (fallback) ═══
     if (btnLabels.length <= 12) {
       try {
-        // Önce mesaj metnini gönder
-        let textSent;
-        if (editKey) {
-          await sock.sendMessage(jid, { text: mesaj, edit: editKey });
-          textSent = { key: editKey };
-        } else {
-          textSent = await sock.sendMessage(jid, { text: mesaj });
-        }
-
-        // Sonra poll gönder (tıklanabilir butonlar)
+        await sock.sendMessage(jid, { text: mesaj });
         const pollSent = await sock.sendMessage(jid, {
           poll: {
             name: '👇 Seçim yapın:',
@@ -330,20 +376,17 @@ class WhatsAppWebService extends EventEmitter {
             selectableCount: 1
           }
         });
-        console.log('✅ Poll buton gönderildi:', btnLabels.join(', '));
+        console.log('✅ Poll buton gönderildi (fallback):', btnLabels.join(', '));
         return pollSent;
       } catch (e) {
         console.log('⚠️ Poll başarısız:', e.message);
       }
     }
 
-    // ═══ Son çare: Numaralı metin (12+ seçenek veya poll başarısızsa) ═══
+    // ═══ Son çare: Numaralı metin ═══
     console.log('📝 Numaralı metin olarak gönderiliyor');
     let butonMetin = mesaj + '\n';
     btnLabels.forEach((label, i) => { butonMetin += `\n${i + 1}️⃣ ${label}`; });
-    if (editKey) {
-      return await sock.sendMessage(jid, { text: butonMetin, edit: editKey });
-    }
     return await sock.sendMessage(jid, { text: butonMetin });
   }
 
@@ -620,15 +663,35 @@ class WhatsAppWebService extends EventEmitter {
         if (metin === '1' || metinKucuk.includes('bugün')) secilenTarih = bugunTarih();
         else if (metin === '2' || metinKucuk.includes('yarın')) {
           secilenTarih = yarinTarih();
-        } else if (metin === '3' || metinKucuk.includes('başka')) {
+        } else if (metin === '3' || metinKucuk.includes('başka') || metinKucuk.includes('bu hafta')) {
           return this.haftaSecenekleri();
         } else if (metinKucuk === '0' || metinKucuk.includes('ana menü')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
           return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
         } else {
-          const gunIdx = parseInt(metin) - 1;
-          if (gunIdx >= 0 && gunIdx < 7) {
-            secilenTarih = gunSonraTarih(gunIdx);
+          // Gün ismi butonundan parse: "Cuma (4.4)" → günü bul
+          const gunIsimleri = ['pazar','pazartesi','salı','çarşamba','perşembe','cuma','cumartesi'];
+          const gunMatch = gunIsimleri.findIndex(g => metinKucuk.startsWith(g));
+          if (gunMatch >= 0) {
+            // Gün isminden tarih hesapla
+            const bugunGun = new Date().getDay();
+            let fark = gunMatch - bugunGun;
+            if (fark < 0) fark += 7;
+            secilenTarih = gunSonraTarih(fark);
+          }
+          // Tarih parantez içinde: "Cuma (4.4)" → 4.4
+          const parantezMatch = metin.match(/\((\d{1,2})\.(\d{1,2})\)/);
+          if (parantezMatch && !secilenTarih) {
+            const gun = parantezMatch[1].padStart(2, '0');
+            const ay = parantezMatch[2].padStart(2, '0');
+            const yil = new Date().getFullYear();
+            secilenTarih = `${yil}-${ay}-${gun}`;
+          }
+          if (!secilenTarih) {
+            const gunIdx = parseInt(metin) - 1;
+            if (gunIdx >= 0 && gunIdx < 7) {
+              secilenTarih = gunSonraTarih(gunIdx);
+            }
           }
           const parca = metin.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
           if (parca) secilenTarih = `${parca[3]}-${parca[2].padStart(2,'0')}-${parca[1].padStart(2,'0')}`;
@@ -651,7 +714,8 @@ class WhatsAppWebService extends EventEmitter {
           }
           let txt = `📅 *${this.tarihFormat(secilenTarih)}* müsait saatler:\n\n`;
           saatler.forEach((s, i) => { txt += `${i+1}️⃣ ${s}\n`; });
-          return { metin: txt, butonlar: null };
+          txt += `\nNumara yazarak veya listeden seçin:`;
+          return { metin: txt, butonlar: saatler.slice(0, 10) };
         }
         return { metin: `Tarihi anlayamadım. Lütfen seçin:`, butonlar: ['📅 Bugün', '📅 Yarın', '📆 Başka Gün'] };
       }
@@ -676,7 +740,8 @@ class WhatsAppWebService extends EventEmitter {
         }
         let txt = `Lütfen bir saat seçin:\n\n`;
         saatler.forEach((s, i) => { txt += `${i+1}️⃣ ${s}\n`; });
-        return { metin: txt, butonlar: null };
+        txt += `\nNumara yazarak veya listeden seçin:`;
+        return { metin: txt, butonlar: saatler.slice(0, 10) };
       }
 
       case 'onay': {
@@ -770,32 +835,35 @@ class WhatsAppWebService extends EventEmitter {
       msg = `*${isletme.isim}*'e hoş geldiniz! 👋\n\nSize nasıl yardımcı olabilirim?`;
     }
 
-    msg += `\n\n1️⃣ 📅 Randevu Al\n2️⃣ 📝 Randevularım\n3️⃣ ❌ Randevu İptal\n\n📍 Konum için *konum* yazın\n🕐 Çalışma saatleri için *saatler* yazın`;
+    msg += `\n\nAşağıdaki butonlardan seçim yapabilirsiniz 👇\n\n_📍 Konum için *konum* yazın_\n_🕐 Saatler için *saatler* yazın_`;
 
     const butonlar = ['📅 Randevu Al', '📝 Randevularım', '❌ Randevu İptal'];
     return { metin: msg, butonlar };
   }
 
   hizmetListesi(isletme, hizmetler) {
-    let metin = `📋 *Hizmetlerimiz*\n\nSize en uygun hizmeti seçin:\n\n`;
+    let metin = `📋 *${isletme.isim} — Hizmetlerimiz*\n\nSize en uygun hizmeti seçin:\n\n`;
     hizmetler.forEach((h, i) => {
       metin += `*${i+1}.* ${h.emoji ? h.emoji + ' ' : ''}${h.isim} • ${h.sure_dk}dk • ₺${h.fiyat}\n`;
     });
-    metin += `\nNumara yazarak seçin (0 = Ana Menü):`;
-    // WP butonları maks 3 - ilk 3 hizmeti göster
-    const butonlar = hizmetler.slice(0, 3).map(h => `${h.emoji ? h.emoji + ' ' : ''}${h.isim} • ₺${h.fiyat}`);
+    metin += `\nNumara yazarak veya butondan seçin:`;
+    // Tüm hizmetleri buton olarak gönder (3'e kadar quick reply, 4-10 interactive list)
+    const butonlar = hizmetler.slice(0, 10).map(h => `${h.emoji ? h.emoji + ' ' : ''}${h.isim} • ₺${h.fiyat}`);
     return { metin, butonlar: butonlar.length > 0 ? butonlar : null };
   }
 
   haftaSecenekleri() {
     const gunler = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
     let cevap = `📅 *Gün Seçin:*\n\n`;
+    const butonlar = [];
     for (let i = 0; i < 7; i++) {
       const t = new Date(); t.setDate(t.getDate() + i);
-      cevap += `${i+1}️⃣ ${gunler[t.getDay()]} (${t.getDate()}.${t.getMonth()+1})\n`;
+      const label = `${gunler[t.getDay()]} (${t.getDate()}.${t.getMonth()+1})`;
+      cevap += `${i+1}️⃣ ${label}\n`;
+      butonlar.push(label);
     }
-    cevap += `\n0️⃣ Ana Menü`;
-    return cevap;
+    cevap += `\nNumara yazarak veya listeden seçin:`;
+    return { metin: cevap, butonlar };
   }
 
   async durumGuncelle(musteriTelefon, isletmeId, asama, ekstra = {}) {
