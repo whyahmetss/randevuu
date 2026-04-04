@@ -337,7 +337,7 @@ class WhatsAppWebService extends EventEmitter {
         if (idx >= 0 && idx < hizmetler.length) {
           const h = hizmetler[idx];
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: h.id });
-          return `*${h.isim}* secildi\n\nSure: ${h.sure_dk} dk\nUcret: ${this.fiyatFormat(h.fiyat)} TL\n\nHangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`;
+          return `✅ *${h.isim}* secildi\n\n⏱ Sure: ${h.sure_dk} dk\n💰 Ucret: ${this.fiyatFormat(h.fiyat)} TL\n\n📅 Hangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`;
         }
         return cevap;
       }
@@ -355,7 +355,7 @@ class WhatsAppWebService extends EventEmitter {
           if (!saatler.length) return `${this.tarihFormat(tarih)} tarihinde musait saat yok.\n\n*1.* Bugun\n*2.* Yarin\n*0.* Ana Menu`;
           await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: tarih });
           const saatFmtAi = saatler.map(s => String(s).substring(0,5));
-          let r = `*${this.tarihFormat(tarih)}* musait saatler:\n\n`;
+          let r = `📅 *${this.tarihFormat(tarih)}* musait saatler:\n\n`;
           saatFmtAi.forEach((s, i) => { r += `*${i+1}.* ${s}\n`; });
           return r + `\nNumara yazarak secin:`;
         }
@@ -371,13 +371,13 @@ class WhatsAppWebService extends EventEmitter {
         if (saat && saatler.includes(saat)) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: saat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
-          let ozetAi = `*Randevu Ozeti*\n\n`;
-          ozetAi += `${isletme.isim}\n`;
-          if (hz) ozetAi += `Hizmet: ${hz.isim}\n`;
-          ozetAi += `Tarih: ${this.tarihFormat(gd.secilen_tarih)}\n`;
-          ozetAi += `Saat: ${this.saatFormat(saat)}\n`;
-          if (hz) ozetAi += `Ucret: ${this.fiyatFormat(hz.fiyat)} TL\n`;
-          ozetAi += `\nHer sey dogru mu?\n\n*1.* Onayla\n*2.* Iptal`;
+          let ozetAi = `📋 *Randevu Ozeti*\n\n`;
+          ozetAi += `🏥 ${isletme.isim}\n`;
+          if (hz) ozetAi += `✂️ ${hz.isim}\n`;
+          ozetAi += `📅 ${this.tarihFormat(gd.secilen_tarih)}\n`;
+          ozetAi += `🕐 ${this.saatFormat(saat)}\n`;
+          if (hz) ozetAi += `💰 ${this.fiyatFormat(hz.fiyat)} TL\n`;
+          ozetAi += `\nHer sey dogru mu?\n\n*1.* ✅ Onayla\n*2.* ❌ Iptal`;
           return ozetAi;
         }
         return cevap;
@@ -388,12 +388,12 @@ class WhatsAppWebService extends EventEmitter {
         if (metin === '1' || metin.toLowerCase().includes('evet') || metin.toLowerCase().includes('onayla')) {
           const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
-          let tebrikAi = `*Randevunuz Olusturuldu!*\n\n`;
-          tebrikAi += `${isletme.isim}\n`;
-          if (sonuc.hizmet) tebrikAi += `Hizmet: ${sonuc.hizmet.isim}\n`;
-          tebrikAi += `Tarih: ${this.tarihFormat(sd.secilen_tarih)}\n`;
-          tebrikAi += `Saat: ${this.saatFormat(sd.secilen_saat)}\n`;
-          tebrikAi += `\nRandevunuzdan 1 saat once hatirlatma alacaksiniz.\n\nGorusmek uzere!`;
+          let tebrikAi = `✅ *Randevunuz Olusturuldu!*\n\n`;
+          tebrikAi += `🏥 ${isletme.isim}\n`;
+          if (sonuc.hizmet) tebrikAi += `✂️ ${sonuc.hizmet.isim}\n`;
+          tebrikAi += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+          tebrikAi += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
+          tebrikAi += `\n⏰ Randevunuzdan 1 saat once hatirlatma alacaksiniz.\n\nGorusmek uzere! 😊`;
           return tebrikAi;
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
@@ -422,7 +422,7 @@ class WhatsAppWebService extends EventEmitter {
     // İptal butonu
     if ((metinKucuk.includes('iptal') || metinKucuk.includes('❌')) && botDurum.asama !== 'randevu_iptal') {
       await this.durumGuncelle(musteriTelefon, isletmeId, 'randevu_iptal');
-      return { metin: `*Randevu Iptali*\n\nEmin misiniz?\n\n*1.* Evet, iptal et\n*2.* Geri don`, butonlar: null };
+      return { metin: `❌ *Randevu Iptali*\n\nEmin misiniz?\n\n*1.* Evet, iptal et\n*2.* Geri don`, butonlar: null };
     }
 
     switch (botDurum.asama) {
@@ -438,7 +438,7 @@ class WhatsAppWebService extends EventEmitter {
           const ilce = isletme.ilce || '';
           const tel = isletme.telefon || '';
           const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adres + ' ' + ilce + ' ' + sehir)}`;
-          return { metin: `*Adresimiz*\n\n${isletme.isim}\n${adres}${ilce ? ', ' + ilce : ''}${sehir ? ', ' + sehir : ''}\n${tel ? 'Tel: ' + tel + '\n' : ''}\nGoogle Maps: ${mapsLink}\n\nRandevu almak icin *1* yazin.`, butonlar: null };
+          return { metin: `📍 *Adresimiz*\n\n${isletme.isim}\n📍 ${adres}${ilce ? ', ' + ilce : ''}${sehir ? ', ' + sehir : ''}\n${tel ? '📞 ' + tel + '\n' : ''}\n🗺 Google Maps: ${mapsLink}\n\nRandevu almak icin *1* yazin.`, butonlar: null };
         }
         // Çalışma saatleri
         if (metinKucuk === 'saatler' || metinKucuk.includes('çalışma saat') || metin === '5') {
@@ -447,9 +447,9 @@ class WhatsAppWebService extends EventEmitter {
           const kapaliGunler = isletme.kapali_gunler || '';
           const gunIsimleri = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
           const kapaliList = kapaliGunler.split(',').filter(g => g.trim()).map(g => gunIsimleri[parseInt(g.trim())] || g.trim());
-          let txt = `*Calisma Saatlerimiz*\n\nAcik: ${bas} - ${bit}\n`;
-          if (kapaliList.length > 0) txt += `Kapali: ${kapaliList.join(', ')}\n`;
-          txt += `\nSure: ${isletme.randevu_suresi_dk || 30} dk seans\n\nRandevu almak icin *1* yazin.`;
+          let txt = `🕐 *Calisma Saatlerimiz*\n\n✅ Acik: ${bas} - ${bit}\n`;
+          if (kapaliList.length > 0) txt += `❌ Kapali: ${kapaliList.join(', ')}\n`;
+          txt += `\n⏱ Sure: ${isletme.randevu_suresi_dk || 30} dk seans\n\nRandevu almak icin *1* yazin.`;
           return { metin: txt, butonlar: null };
         }
         if (randevuAl) {
@@ -460,10 +460,10 @@ class WhatsAppWebService extends EventEmitter {
           const randevuService = require('./randevu');
           const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
           if (randevular.length === 0) return { metin: `Aktif randevunuz bulunmuyor.\n\nRandevu almak icin *1* yazin.`, butonlar: null };
-          let metin2 = `*Randevulariniz*\n\n`;
+          let metin2 = `📋 *Randevulariniz*\n\n`;
           randevular.slice(0, 3).forEach((r, i) => {
             const saatStr = String(r.saat).substring(0, 5);
-            metin2 += `*${i+1}.* ${r.hizmet_isim || 'Hizmet'}\n     ${this.tarihFormat(r.tarih)} - ${saatStr}\n\n`;
+            metin2 += `*${i+1}.* ${r.hizmet_isim || 'Hizmet'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${saatStr}\n\n`;
           });
           metin2 += `*0.* Ana Menu`;
           return { metin: metin2, butonlar: null };
@@ -499,17 +499,17 @@ class WhatsAppWebService extends EventEmitter {
           if (calisanlar.length > 1) {
             // Birden fazla çalışan → seçtir
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
-            let txt = `*${secilenHizmet.isim}* secildi\n\nSure: ${secilenHizmet.sure_dk} dk\nUcret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\nCalisan secin:\n\n`;
+            let txt = `✅ *${secilenHizmet.isim}* secildi\n\n⏱ Sure: ${secilenHizmet.sure_dk} dk\n💰 Ucret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\n👤 Calisan secin:\n\n`;
             calisanlar.forEach((c, i) => { txt += `*${i+1}.* ${c.isim}\n`; });
             return { metin: txt, butonlar: null };
           } else if (calisanlar.length === 1) {
             // Tek çalışan → otomatik ata
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: calisanlar[0].id });
-            return { metin: `*${secilenHizmet.isim}* secildi\n\nSure: ${secilenHizmet.sure_dk} dk\nUcret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\nCalisan: ${calisanlar[0].isim}\n\nHangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
+            return { metin: `✅ *${secilenHizmet.isim}* secildi\n\n⏱ Sure: ${secilenHizmet.sure_dk} dk\n💰 Ucret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n👤 Calisan: ${calisanlar[0].isim}\n\n📅 Hangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
           } else {
             // Çalışan yok → null bırak, direkt tarih seçimine geç
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id });
-            return { metin: `*${secilenHizmet.isim}* secildi\n\nSure: ${secilenHizmet.sure_dk} dk\nUcret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\nHangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
+            return { metin: `✅ *${secilenHizmet.isim}* secildi\n\n⏱ Sure: ${secilenHizmet.sure_dk} dk\n💰 Ucret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\n📅 Hangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
           }
         }
         const deepseek2 = require('./deepseek');
@@ -533,9 +533,9 @@ class WhatsAppWebService extends EventEmitter {
         }
         if (secilenCalisan) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_calisan_id: secilenCalisan.id });
-          return { metin: `*${secilenCalisan.isim}* secildi\n\nHangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
+          return { metin: `👤 *${secilenCalisan.isim}* secildi\n\n📅 Hangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
         }
-        let txt = `Calisan secin:\n\n`;
+        let txt = `👤 Calisan secin:\n\n`;
         calisanlarQ.forEach((c, i) => { txt += `*${i+1}.* ${c.isim}\n`; });
         return { metin: txt, butonlar: null };
       }
@@ -546,77 +546,40 @@ class WhatsAppWebService extends EventEmitter {
         else if (metin === '2' || metinKucuk.includes('yarın')) {
           secilenTarih = yarinTarih();
         } else if (metin === '3' || metinKucuk.includes('başka') || metinKucuk.includes('bu hafta')) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'hafta_gun_secimi');
           return this.haftaSecenekleri();
         } else if (metinKucuk === '0' || metinKucuk.includes('ana menü')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
           return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
         } else {
-          // Parantez icinde tarih: "Cuma (4.4)" veya "6.4" → gun.ay
-          const parantezMatch = metin.match(/\((\d{1,2})\.(\d{1,2})\)/);
-          if (parantezMatch) {
-            const gun = parantezMatch[1].padStart(2, '0');
-            const ay = parantezMatch[2].padStart(2, '0');
-            const yil = new Date().getFullYear();
-            secilenTarih = `${yil}-${ay}-${gun}`;
-          }
-          // gun.ay formati: "6.4" → 6 Nisan
-          if (!secilenTarih) {
-            const gunAyMatch = metin.match(/^(\d{1,2})\.(\d{1,2})$/);
-            if (gunAyMatch) {
-              const gun = gunAyMatch[1].padStart(2, '0');
-              const ay = gunAyMatch[2].padStart(2, '0');
-              const yil = new Date().getFullYear();
-              secilenTarih = `${yil}-${ay}-${gun}`;
-            }
-          }
-          // Gun ismi: "Pazartesi" — UZUN isimler once (pazartesi before pazar)
-          if (!secilenTarih) {
-            const gunSirali = [
-              {isim:'pazartesi', idx:1}, {isim:'persembe', idx:4}, {isim:'carsamba', idx:3},
-              {isim:'cumartesi', idx:6}, {isim:'pazar', idx:0}, {isim:'sali', idx:2},
-              {isim:'cuma', idx:5}
-            ];
-            const temiz = metinKucuk.replace(/[\u0131]/g,'i').replace(/[\u015f]/g,'s').replace(/[\u00e7]/g,'c').replace(/[\u00f6]/g,'o').replace(/[\u00fc]/g,'u').replace(/[\u011f]/g,'g');
-            for (const g of gunSirali) {
-              if (temiz.startsWith(g.isim)) {
-                const bugunGun = new Date().getDay();
-                let fark = g.idx - bugunGun;
-                if (fark <= 0) fark += 7;
-                secilenTarih = gunSonraTarih(fark);
-                break;
-              }
-            }
-          }
-          // Hafta listesinden numara secimi (4-7 arasi)
-          if (!secilenTarih) {
-            const gunIdx = parseInt(metin);
-            if (gunIdx >= 1 && gunIdx <= 7) {
-              secilenTarih = gunSonraTarih(gunIdx - 1);
-            }
-          }
-          // Tam tarih: 06.04.2026
-          const parca = metin.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
-          if (parca) secilenTarih = `${parca[3]}-${parca[2].padStart(2,'0')}-${parca[1].padStart(2,'0')}`;
+          secilenTarih = this._tarihParse(metin, metinKucuk);
         }
-
         if (secilenTarih) {
-          const randevuService = require('./randevu');
-          const gdTarih = (await pool.query('SELECT secilen_calisan_id, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const saatler = await randevuService.musaitSaatleriGetir(isletmeId, secilenTarih, gdTarih?.secilen_calisan_id, gdTarih?.secilen_hizmet_id);
-          if (saatler.length === 0) {
-            const gd = gdTarih;
-            try { await pool.query('INSERT INTO bekleme_listesi (musteri_telefon, isletme_id, hizmet_id, istenen_tarih) VALUES ($1,$2,$3,$4)',
-              [musteriTelefon, isletmeId, gd?.secilen_hizmet_id || null, secilenTarih]); } catch(e) {}
-            return { metin: `${this.tarihFormat(secilenTarih)} tarihinde musait saat yok.\n\nBekleme listesine eklendi.\n\n*1.* Bugun\n*2.* Yarin\n*3.* Baska Gun`, butonlar: null };
-          }
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: secilenTarih });
-          let txt = `*${this.tarihFormat(secilenTarih)}* musait saatler:\n\n`;
-          const saatFmt = saatler.map(s => String(s).substring(0,5));
-          saatFmt.forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
-          txt += `\nNumara yazarak secin:`;
-          return { metin: txt, butonlar: null };
+          return await this._tarihSecildi(secilenTarih, musteriTelefon, isletmeId, isletme, hizmetler);
         }
         return { metin: `Tarihi anlayamadim.\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
+      }
+
+      case 'hafta_gun_secimi': {
+        if (metinKucuk === '0' || metinKucuk.includes('ana menü')) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+          return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
+        }
+        let secilenTarih = null;
+        // Numara ile gun secimi (1-7)
+        const gunIdx = parseInt(metin);
+        if (gunIdx >= 1 && gunIdx <= 7) {
+          secilenTarih = gunSonraTarih(gunIdx - 1);
+        }
+        // Diger formatlar
+        if (!secilenTarih) {
+          secilenTarih = this._tarihParse(metin, metinKucuk);
+        }
+        if (secilenTarih) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
+          return await this._tarihSecildi(secilenTarih, musteriTelefon, isletmeId, isletme, hizmetler);
+        }
+        return this.haftaSecenekleri();
       }
 
       case 'saat_secimi': {
@@ -637,17 +600,17 @@ class WhatsAppWebService extends EventEmitter {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
           const hz = guncelDurum.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [guncelDurum.secilen_hizmet_id])).rows[0] : null;
           const cl = guncelDurum.secilen_calisan_id ? (await pool.query('SELECT * FROM calisanlar WHERE id=$1', [guncelDurum.secilen_calisan_id])).rows[0] : null;
-          let ozet = `*Randevu Ozeti*\n\n`;
-          ozet += `${isletme.isim}\n`;
-          if (hz) ozet += `Hizmet: ${hz.isim}\n`;
-          if (cl) ozet += `Calisan: ${cl.isim}\n`;
-          ozet += `Tarih: ${this.tarihFormat(guncelDurum.secilen_tarih)}\n`;
-          ozet += `Saat: ${secilenSaat}\n`;
-          if (hz) ozet += `Ucret: ${this.fiyatFormat(hz.fiyat)} TL\n`;
-          ozet += `\nHer sey dogru mu?\n\n*1.* Onayla\n*2.* Iptal\n\nNot eklemek icin yazabilirsiniz.`;
+          let ozet = `📋 *Randevu Ozeti*\n\n`;
+          ozet += `🏥 ${isletme.isim}\n`;
+          if (hz) ozet += `✂️ ${hz.isim}\n`;
+          if (cl) ozet += `👤 ${cl.isim}\n`;
+          ozet += `📅 ${this.tarihFormat(guncelDurum.secilen_tarih)}\n`;
+          ozet += `🕐 ${secilenSaat}\n`;
+          if (hz) ozet += `💰 ${this.fiyatFormat(hz.fiyat)} TL\n`;
+          ozet += `\nHer sey dogru mu?\n\n*1.* ✅ Onayla\n*2.* ❌ Iptal\n\n💬 Not eklemek icin yazabilirsiniz.`;
           return { metin: ozet, butonlar: null };
         }
-        let txt = `Saat secin:\n\n`;
+        let txt = `🕐 Saat secin:\n\n`;
         saatFmt.forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
         txt += `\nNumara yazarak secin:`;
         return { metin: txt, butonlar: null };
@@ -661,15 +624,15 @@ class WhatsAppWebService extends EventEmitter {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
           const clOnay = sd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [sd.secilen_calisan_id])).rows[0] : null;
 
-          let tebrik = `*Randevunuz Olusturuldu!*\n\n`;
-          tebrik += `${isletme.isim}\n`;
-          if (sonuc.hizmet) tebrik += `Hizmet: ${sonuc.hizmet.isim}\n`;
-          if (clOnay) tebrik += `Calisan: ${clOnay.isim}\n`;
-          tebrik += `Tarih: ${this.tarihFormat(sd.secilen_tarih)}\n`;
-          tebrik += `Saat: ${this.saatFormat(sd.secilen_saat)}\n`;
-          tebrik += `\nRandevunuzdan 1 gun ve 1 saat once hatirlatma alacaksiniz.`;
-          tebrik += `\n\nGorusmek uzere!`;
-          tebrik += `\n\nYeni randevu icin *1* yazin.`;
+          let tebrik = `✅ *Randevunuz Olusturuldu!*\n\n`;
+          tebrik += `🏥 ${isletme.isim}\n`;
+          if (sonuc.hizmet) tebrik += `✂️ ${sonuc.hizmet.isim}\n`;
+          if (clOnay) tebrik += `👤 ${clOnay.isim}\n`;
+          tebrik += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+          tebrik += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
+          tebrik += `\n⏰ Randevunuzdan 1 gun ve 1 saat once hatirlatma alacaksiniz.`;
+          tebrik += `\n\nGorusmek uzere! 😊`;
+          tebrik += `\n\n📅 Yeni randevu icin *1* yazin.`;
           return { metin: tebrik, butonlar: null };
         } else if (metinKucuk !== '2' && !metinKucuk.includes('iptal') && !metinKucuk.includes('hayır') && metin.length > 1) {
           // Musteri not yazdi - onaylayip notu kaydet
@@ -679,7 +642,7 @@ class WhatsAppWebService extends EventEmitter {
             await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc.randevu.id]);
           }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
-          return { metin: `*Randevunuz olusturuldu!*\n\nNotunuz: "${metin}"\n\nGorusmek uzere!`, butonlar: null };
+          return { metin: `✅ *Randevunuz olusturuldu!*\n\n💬 Notunuz: "${metin}"\n\nGorusmek uzere! 😊`, butonlar: null };
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -691,15 +654,15 @@ class WhatsAppWebService extends EventEmitter {
           const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
           if (!randevular.length) {
             await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
-            return { metin: `Aktif randevunuz bulunmuyor.\n\nRandevu almak icin *1* yazin.`, butonlar: null };
+            return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak icin *1* yazin.`, butonlar: null };
           }
           await randevuService.randevuIptal(randevular[0].id);
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
-          return { metin: `Randevunuz iptal edildi.\n\nYeni randevu icin *1* yazin.`, butonlar: null };
+          return { metin: `✅ Randevunuz iptal edildi.\n\n📅 Yeni randevu icin *1* yazin.`, butonlar: null };
         }
         if (metinKucuk.includes('farkl') || metinKucuk.includes('ertele') || metin === '2') {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
-          return { metin: `Hangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
+          return { metin: `📅 Hangi gun istersiniz?\n\n*1.* Bugun\n*2.* Yarin\n*3.* Bu Hafta`, butonlar: null };
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -721,13 +684,13 @@ class WhatsAppWebService extends EventEmitter {
     } catch(e) {}
 
     const selamIsim = musteriAd ? ` ${musteriAd}` : '';
-    const msg = `Merhaba${selamIsim}! *${isletme.isim}*'e hos geldiniz.\n\nSize nasil yardimci olabilirim?\n\n*1.* Randevu Al\n*2.* Randevularim\n*3.* Randevu Iptal\n\nNumara yazarak secin:`;
+    const msg = `Merhaba${selamIsim}! 👋\n*${isletme.isim}*'e hos geldiniz.\n\nSize nasil yardimci olabilirim?\n\n*1.* 📅 Randevu Al\n*2.* 📋 Randevularim\n*3.* ❌ Randevu Iptal\n\nNumara yazarak secin:`;
 
     return { metin: msg, butonlar: null };
   }
 
   hizmetListesi(isletme, hizmetler) {
-    let metin = `*${isletme.isim} - Hizmetlerimiz*\n\n`;
+    let metin = `✂️ *${isletme.isim} - Hizmetlerimiz*\n\n`;
     hizmetler.forEach((h, i) => {
       metin += `*${i+1}.* ${h.isim} - ${h.sure_dk}dk - ${this.fiyatFormat(h.fiyat)} TL\n`;
     });
@@ -737,14 +700,89 @@ class WhatsAppWebService extends EventEmitter {
 
   haftaSecenekleri() {
     const gunler = ['Pazar','Pazartesi','Sali','Carsamba','Persembe','Cuma','Cumartesi'];
-    let cevap = `*Gun Secin:*\n\n`;
+    const aylar = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik'];
+    let cevap = `📅 *Gun Secin:*\n\n`;
     for (let i = 0; i < 7; i++) {
       const t = new Date(); t.setDate(t.getDate() + i);
-      const label = `${gunler[t.getDay()]} (${t.getDate()}.${t.getMonth()+1})`;
+      const label = `${t.getDate()} ${aylar[t.getMonth()]} ${gunler[t.getDay()]}`;
       cevap += `*${i+1}.* ${label}\n`;
     }
     cevap += `\nNumara yazarak secin:`;
     return { metin: cevap, butonlar: null };
+  }
+
+  _tarihParse(metin, metinKucuk) {
+    // Parantez icinde tarih: "Cuma (4.4)"
+    const parantezMatch = metin.match(/\((\d{1,2})\.(\d{1,2})\)/);
+    if (parantezMatch) {
+      const gun = parantezMatch[1].padStart(2, '0');
+      const ay = parantezMatch[2].padStart(2, '0');
+      return `${new Date().getFullYear()}-${ay}-${gun}`;
+    }
+    // gun.ay formati: "6.4"
+    const gunAyMatch = metin.match(/^(\d{1,2})\.(\d{1,2})$/);
+    if (gunAyMatch) {
+      const gun = gunAyMatch[1].padStart(2, '0');
+      const ay = gunAyMatch[2].padStart(2, '0');
+      return `${new Date().getFullYear()}-${ay}-${gun}`;
+    }
+    // Gun ismi: "Pazartesi" — UZUN isimler once
+    const gunSirali = [
+      {isim:'pazartesi', idx:1}, {isim:'persembe', idx:4}, {isim:'carsamba', idx:3},
+      {isim:'cumartesi', idx:6}, {isim:'pazar', idx:0}, {isim:'sali', idx:2},
+      {isim:'cuma', idx:5}
+    ];
+    const temiz = metinKucuk.replace(/[\u0131]/g,'i').replace(/[\u015f]/g,'s').replace(/[\u00e7]/g,'c').replace(/[\u00f6]/g,'o').replace(/[\u00fc]/g,'u').replace(/[\u011f]/g,'g');
+    for (const g of gunSirali) {
+      if (temiz.startsWith(g.isim)) {
+        const bugunGun = new Date().getDay();
+        let fark = g.idx - bugunGun;
+        if (fark <= 0) fark += 7;
+        return gunSonraTarih(fark);
+      }
+    }
+    // Tam tarih: 06.04.2026
+    const parca = metin.match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+    if (parca) return `${parca[3]}-${parca[2].padStart(2,'0')}-${parca[1].padStart(2,'0')}`;
+    return null;
+  }
+
+  async _tarihSecildi(secilenTarih, musteriTelefon, isletmeId, isletme, hizmetler) {
+    const randevuService = require('./randevu');
+    const gdTarih = (await pool.query('SELECT secilen_calisan_id, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+    const saatler = await randevuService.musaitSaatleriGetir(isletmeId, secilenTarih, gdTarih?.secilen_calisan_id, gdTarih?.secilen_hizmet_id);
+    if (saatler.length === 0) {
+      try { await pool.query('INSERT INTO bekleme_listesi (musteri_telefon, isletme_id, hizmet_id, istenen_tarih) VALUES ($1,$2,$3,$4)',
+        [musteriTelefon, isletmeId, gdTarih?.secilen_hizmet_id || null, secilenTarih]); } catch(e) {}
+      return { metin: `${this.tarihFormat(secilenTarih)} tarihinde musait saat yok.\n\n📋 Bekleme listesine eklendiniz.\n\n*1.* Bugun\n*2.* Yarin\n*3.* Baska Gun`, butonlar: null };
+    }
+    await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: secilenTarih });
+    const saatFmt = saatler.map(s => String(s).substring(0,5));
+
+    // Sabah / Ogle / Aksam gruplama
+    const sabah = [], ogle = [], aksam = [];
+    saatFmt.forEach((s, i) => {
+      const saat = parseInt(s.split(':')[0]);
+      if (saat < 12) sabah.push({s, n: i+1});
+      else if (saat < 17) ogle.push({s, n: i+1});
+      else aksam.push({s, n: i+1});
+    });
+
+    let txt = `📅 *${this.tarihFormat(secilenTarih)}* musait saatler:\n`;
+    if (sabah.length > 0) {
+      txt += `\n🌅 *Sabah:*\n`;
+      sabah.forEach(x => { txt += `*${x.n}.* ${x.s}\n`; });
+    }
+    if (ogle.length > 0) {
+      txt += `\n☀️ *Ogle:*\n`;
+      ogle.forEach(x => { txt += `*${x.n}.* ${x.s}\n`; });
+    }
+    if (aksam.length > 0) {
+      txt += `\n🌙 *Aksam:*\n`;
+      aksam.forEach(x => { txt += `*${x.n}.* ${x.s}\n`; });
+    }
+    txt += `\nNumara yazarak secin:`;
+    return { metin: txt, butonlar: null };
   }
 
   async durumGuncelle(musteriTelefon, isletmeId, asama, ekstra = {}) {
