@@ -502,13 +502,21 @@ class SatisBot extends EventEmitter {
     }
 
     if (!konusma) {
-      // Debug: DB'deki tüm konuşmaları logla
-      const tumKonusmalar = (await pool.query(
-        "SELECT id, telefon, isletme_adi FROM satis_konusmalar ORDER BY olusturma_tarihi DESC LIMIT 10"
-      )).rows;
-      console.log(`⚠️ Bilinmeyen numara: ${telefon} (son10: ${son10})`);
-      console.log(`📋 DB'deki son konuşmalar:`, tumKonusmalar.map(k => `${k.telefon} (${k.isletme_adi})`).join(', '));
-      return;
+      console.log(`📝 Yeni numara, konuşma oluşturuluyor: ${telefon}`);
+      // Bilinmeyen numaradan gelen mesaj — yeni konuşma oluştur ve cevap ver
+      try {
+        const pushName = msg.pushName || 'Müşteri';
+        const yeniKonusma = (await pool.query(
+          `INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, gonderilen_mesaj, durum, gelen_mesajlar)
+           VALUES ($1, $2, 'genel', 'Müşteri kendisi yazdı', 'bekliyor', $3) RETURNING *`,
+          [telefon, pushName, `\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`]
+        )).rows[0];
+        konusma = yeniKonusma;
+        console.log(`✅ Yeni konuşma oluşturuldu: id=${konusma.id}, telefon=${telefon}, isim=${pushName}`);
+      } catch (dbErr) {
+        console.error(`❌ Yeni konuşma oluşturma hatası:`, dbErr.message);
+        return;
+      }
     }
 
     // Gelen mesajı kaydet
