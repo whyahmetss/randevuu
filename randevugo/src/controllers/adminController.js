@@ -1118,6 +1118,22 @@ class AdminController {
     }
   }
 
+  async satisBotWpYok(req, res) {
+    try {
+      const pool = require('../config/db');
+      const result = await pool.query(`
+        SELECT id, isletme_adi, telefon, kategori, ilce, skor 
+        FROM potansiyel_musteriler 
+        WHERE wp_mesaj_durumu = 'wp_yok' AND telefon IS NOT NULL
+        ORDER BY skor DESC
+        LIMIT 50
+      `);
+      res.json({ liste: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   async satisBotAyarGuncelle(req, res) {
     try {
       const satisBot = require('../services/satisBot');

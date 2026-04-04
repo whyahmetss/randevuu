@@ -103,6 +103,7 @@ class SatisBot extends EventEmitter {
       minBekleme: 8,        // dakika
       maxBekleme: 15,       // dakika
       tatil: false,         // bugün tatil mi
+      hedefKategori: '',    // boş = tüm kategoriler, değilse sadece o kategori
     };
   }
 
@@ -503,15 +504,22 @@ class SatisBot extends EventEmitter {
   // ═══════════════════════════════════════════════════
   async siradakiLeadGetir() {
     // Telefonu olan, mesaj gönderilmemiş, yeni durumdaki lead'ler
-    const result = await pool.query(`
+    // hedefKategori seçiliyse sadece o kategoriden
+    const kategori = this.ayarlar.hedefKategori;
+    let query = `
       SELECT * FROM potansiyel_musteriler 
       WHERE telefon IS NOT NULL 
         AND telefon != '' 
         AND durum = 'yeni'
         AND wp_mesaj_durumu IS NULL
-      ORDER BY skor DESC 
-      LIMIT 1
-    `);
+    `;
+    const params = [];
+    if (kategori) {
+      query += ` AND LOWER(kategori) = LOWER($1)`;
+      params.push(kategori);
+    }
+    query += ` ORDER BY skor DESC LIMIT 1`;
+    const result = await pool.query(query, params);
     return result.rows[0] || null;
   }
 

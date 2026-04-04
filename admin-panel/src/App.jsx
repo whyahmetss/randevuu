@@ -1146,6 +1146,7 @@ function SuperAdminPanel({ kullanici }) {
   const [satisBotDurum, setSatisBotDurum] = useState(null);
   const [satisBotKonusmalar, setSatisBotKonusmalar] = useState([]);
   const [satisBotYukleniyor, setSatisBotYukleniyor] = useState(false);
+  const [wpYokListe, setWpYokListe] = useState([]);
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
@@ -1190,6 +1191,8 @@ function SuperAdminPanel({ kullanici }) {
       if (d && !d.hata) setSatisBotDurum(d);
       const k = await api.get("/admin/satis-bot/konusmalar");
       setSatisBotKonusmalar(k?.konusmalar || []);
+      const wp = await api.get("/admin/satis-bot/wp-yok");
+      setWpYokListe(wp?.liste || []);
     } catch (e) { console.log("satis bot yükleme hatası:", e); }
   };
 
@@ -2108,6 +2111,26 @@ function SuperAdminPanel({ kullanici }) {
                     </button>
                   </div>
                 </div>
+                <div className="row row-wrap gap-16 mt-16" style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+                  <div style={{ flex: "1 1 300px" }}>
+                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>🎯 Hedef Kategori (bot sadece bu kategoriye yazar)</label>
+                    <select value={satisBotDurum.ayarlar.hedefKategori || ''} onChange={async (e) => {
+                      await api.put("/admin/satis-bot/ayarlar", { hedefKategori: e.target.value }); satisBotYukle();
+                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
+                      <option value="">Tüm Kategoriler</option>
+                      {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
+                        <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
+                      )}
+                    </select>
+                  </div>
+                  {satisBotDurum.ayarlar.hedefKategori && (
+                    <div style={{ flex: "0 0 auto", display: "flex", alignItems: "flex-end" }}>
+                      <span className="tag" style={{ background: "rgba(139,92,246,.15)", color: "#8b5cf6", fontWeight: 700, fontSize: 13 }}>
+                        🎯 Bugün: {satisBotDurum.ayarlar.hedefKategori}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -2162,6 +2185,45 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               );
             })}
+
+            {/* 📵 WP Yok — Manuel Ara Listesi */}
+            {wpYokListe.length > 0 && (
+              <>
+                <h3 className="mb-12 mt-24" style={{ fontSize: 16 }}>📵 WhatsApp'ı Olmayan İşletmeler ({wpYokListe.length})</h3>
+                <p style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Bu işletmelerin WP'si yok — telefon ile kendin ara!</p>
+                <div className="card mb-24" style={{ padding: 0, overflow: "hidden" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "rgba(100,116,139,.08)", textAlign: "left" }}>
+                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>İşletme</th>
+                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>Telefon</th>
+                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>Kategori</th>
+                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>Skor</th>
+                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>İşlem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {wpYokListe.map(m => (
+                        <tr key={m.id} style={{ borderTop: "1px solid var(--border)" }}>
+                          <td style={{ padding: "10px 14px", fontWeight: 600, color: "var(--text)" }}>{m.isletme_adi}</td>
+                          <td style={{ padding: "10px 14px" }}>
+                            <a href={`tel:${m.telefon}`} style={{ color: "var(--blue)", textDecoration: "none", fontWeight: 600 }}>📞 {m.telefon}</a>
+                          </td>
+                          <td style={{ padding: "10px 14px", color: "var(--dim)" }}>{m.kategori}</td>
+                          <td style={{ padding: "10px 14px", color: "var(--amber)", fontWeight: 700 }}>{m.skor}</td>
+                          <td style={{ padding: "10px 14px" }}>
+                            <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); satisBotYukle(); }}
+                              className="btn btn-sm" style={{ background: "rgba(139,92,246,.12)", color: "#8b5cf6", border: "none", fontWeight: 600, fontSize: 11 }}>
+                              ✅ Arandı
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
 
             {/* Anti-ban bilgi kutusu */}
             <div className="card mt-24" style={{ padding: 16, background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.15)" }}>
