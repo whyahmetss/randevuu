@@ -479,14 +479,35 @@ class SatisBot extends EventEmitter {
 
     console.log(`📩 Satış Bot cevap aldı: ${telefon} → "${metin}"`);
 
-    // Bu lead'in konuşma kaydını bul
-    const konusma = (await pool.query(
+    // Bu lead'in konuşma kaydını bul — birden fazla format dene
+    const son10 = telefon.slice(-10);
+    let konusma = (await pool.query(
       "SELECT * FROM satis_konusmalar WHERE telefon = $1 ORDER BY olusturma_tarihi DESC LIMIT 1",
       [telefon]
     )).rows[0];
 
     if (!konusma) {
-      console.log(`⚠️ Bilinmeyen numara: ${telefon} (jid: ${remoteJid}, alt: ${altJid})`);
+      // +90 prefix ile dene
+      konusma = (await pool.query(
+        "SELECT * FROM satis_konusmalar WHERE telefon = $1 ORDER BY olusturma_tarihi DESC LIMIT 1",
+        ['+' + telefon]
+      )).rows[0];
+    }
+    if (!konusma) {
+      // Son 10 hane ile dene (LIKE)
+      konusma = (await pool.query(
+        "SELECT * FROM satis_konusmalar WHERE telefon LIKE $1 ORDER BY olusturma_tarihi DESC LIMIT 1",
+        ['%' + son10]
+      )).rows[0];
+    }
+
+    if (!konusma) {
+      // Debug: DB'deki tüm konuşmaları logla
+      const tumKonusmalar = (await pool.query(
+        "SELECT id, telefon, isletme_adi FROM satis_konusmalar ORDER BY olusturma_tarihi DESC LIMIT 10"
+      )).rows;
+      console.log(`⚠️ Bilinmeyen numara: ${telefon} (son10: ${son10})`);
+      console.log(`📋 DB'deki son konuşmalar:`, tumKonusmalar.map(k => `${k.telefon} (${k.isletme_adi})`).join(', '));
       return;
     }
 
