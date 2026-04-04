@@ -365,8 +365,14 @@ class AvciBot {
       }
     }
     if (durum && durum !== 'hepsi') {
-      query += ` AND durum = $${idx++}`;
-      params.push(durum);
+      if (durum === 'bot_yazdi') {
+        query += ` AND wp_mesaj_durumu = 'gonderildi'`;
+      } else if (durum === 'cevapsiz') {
+        query += ` AND wp_mesaj_durumu = 'gonderildi' AND id NOT IN (SELECT lead_id FROM satis_konusmalar WHERE lead_id IS NOT NULL AND gelen_mesajlar IS NOT NULL AND gelen_mesajlar != '')`;
+      } else {
+        query += ` AND durum = $${idx++}`;
+        params.push(durum);
+      }
     }
     if (kategori && kategori !== 'hepsi') {
       query += ` AND kategori = $${idx++}`;
@@ -458,12 +464,13 @@ class AvciBot {
     return result.rows[0];
   }
 
-  // Günlük arama listesi - en yüksek skorlu, henüz aranmamış
+  // Günlük arama listesi - en yüksek skorlu, henüz aranmamış, bot yazmamış
   async gunlukListe(limit = 10) {
     const result = await pool.query(`
       SELECT * FROM potansiyel_musteriler 
       WHERE durum IN ('yeni', 'arandi') 
         AND telefon IS NOT NULL
+        AND (wp_mesaj_durumu IS NULL OR wp_mesaj_durumu = '')
         AND (sonraki_arama IS NULL OR sonraki_arama <= NOW())
       ORDER BY 
         CASE WHEN durum = 'arandi' AND sonraki_arama <= NOW() THEN 0 ELSE 1 END,

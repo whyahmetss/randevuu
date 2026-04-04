@@ -1834,7 +1834,7 @@ function SuperAdminPanel({ kullanici }) {
                     <span>📞</span>
                     <span>Bugün Aranacak {avciGunluk.length} İşletme</span>
                   </div>
-                  <p style={{ color: "var(--muted)", fontSize: 12, margin: 0 }}>En yüksek skorlu, telefonu olan, henüz aranmamış veya tekrar aranacak işletmeler</p>
+                  <p style={{ color: "var(--muted)", fontSize: 12, margin: 0 }}>Satış botunun henüz yazmadığı, telefonu olan, en yüksek skorlu işletmeler (bot yazdıkları otomatik çıkar)</p>
                 </div>
                 {avciGunluk.length === 0 ? (
                   <div className="list-empty"><p>Bugün aranacak kimse yok. Yeni tarama yap! 🔍</p></div>
@@ -1884,15 +1884,15 @@ function SuperAdminPanel({ kullanici }) {
 
             {/* TÜM LİSTE */}
             {avciTab === "liste" && (() => {
-              const durumRenk = { yeni: "#3b82f6", arandi: "#8b5cf6", ilgileniyor: "#10b981", ilgilenmiyor: "#ef4444", demo_yapildi: "#f59e0b", musteri_oldu: "#10b981" };
-              const durumLabel = { yeni: "Yeni", arandi: "Arandı", ilgileniyor: "İlgileniyor", ilgilenmiyor: "İlgilenmiyor", demo_yapildi: "Demo Yapıldı", musteri_oldu: "Müşteri ✓" };
+              const durumRenk = { yeni: "#3b82f6", arandi: "#8b5cf6", ilgileniyor: "#10b981", ilgilenmiyor: "#ef4444", musteri_oldu: "#10b981", cevapsiz: "#64748b" };
+              const durumLabel = { yeni: "Yeni", arandi: "Arandı", ilgileniyor: "İlgileniyor", ilgilenmiyor: "İlgilenmiyor", musteri_oldu: "Müşteri ✓", cevapsiz: "Cevapsız" };
               const kaynakIcon = { maps: "🗺️", instagram: "📸", facebook: "📘", tiktok: "🎵" };
               const kaynakRenk = { maps: "#3b82f6", instagram: "#e11d48", facebook: "#1877f2", tiktok: "#000" };
               const isSosyal = (k) => ["instagram", "facebook", "tiktok"].includes(k);
               return (
               <>
                 <div className="filter-bar mb-8">
-                  {[["hepsi","Tümü"],["yeni","Yeni"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["demo_yapildi","Demo"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
+                  {[["hepsi","Tümü"],["yeni","Yeni"],["bot_yazdi","📱 Bot Yazdı"],["cevapsiz","📭 Cevapsız"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
                     <button key={v} onClick={() => setAvciFiltre(v)} className={`pill pill-sm${avciFiltre === v ? ' active' : ''}`}>{l}</button>
                   ))}
                   <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)} className="input ml-auto" style={{ width: "auto", padding: "5px 10px", fontSize: 12 }}>
@@ -1927,6 +1927,8 @@ function SuperAdminPanel({ kullanici }) {
                             <span className="tag-xs" style={{ background: (kaynakRenk[platform] || "#64748b") + "18", color: kaynakRenk[platform] || "#64748b", fontWeight: 600 }}>
                               {kaynakIcon[platform] || "🔗"} {platform === "maps" ? "Maps" : platform.charAt(0).toUpperCase() + platform.slice(1)}
                             </span>
+                            {m.wp_mesaj_durumu === 'gonderildi' && <span className="tag-xs" style={{ background: "rgba(16,185,129,.15)", color: "#10b981", fontWeight: 600 }}>📱 Bot Yazdı</span>}
+                            {m.wp_mesaj_durumu === 'wp_yok' && <span className="tag-xs" style={{ background: "rgba(239,68,68,.12)", color: "#ef4444", fontWeight: 600 }}>📵 WP Yok</span>}
                             {!sosyal && m.puan && <span style={{ color: "var(--amber)", fontSize: 12 }}>⭐ {m.puan}</span>}
                             {!sosyal && <span style={{ color: "var(--dim)", fontSize: 11 }}>💬 {m.yorum_sayisi}</span>}
                           </div>
@@ -1956,7 +1958,7 @@ function SuperAdminPanel({ kullanici }) {
                               {kaynakIcon[platform]} Profil
                             </a>
                           )}
-                          {["yeni","arandi","ilgileniyor","ilgilenmiyor","demo_yapildi","musteri_oldu"].filter(d => d !== m.durum).slice(0,3).map(d => (
+                          {["yeni","arandi","ilgileniyor","ilgilenmiyor","musteri_oldu"].filter(d => d !== m.durum).slice(0,3).map(d => (
                             <button key={d} onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: d }); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); }}
                               className="btn btn-sm" style={{ background: (durumRenk[d] || "#64748b") + "22", color: durumRenk[d] || "#64748b", border: "none", fontWeight: 600, fontSize: 11 }}>
                               {durumLabel[d]}
