@@ -102,7 +102,14 @@ class WhatsAppWebService extends EventEmitter {
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
           console.log(`❌ WhatsApp ayrıldı: ${isletmeIsim} - kod: ${statusCode}`);
 
-          if (statusCode === DisconnectReason.loggedOut) {
+          if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
+            // QR tarandıktan sonra WhatsApp bilerek koparıyor — NORMAL, hemen yeniden bağlan
+            console.log(`🔄 restartRequired — QR tarandı, yeniden bağlanılıyor: ${isletmeIsim}`);
+            setTimeout(() => {
+              this.isletmeler[isletmeId] = null;
+              this.isletmeBaslat(isletmeId, isletmeIsim, true);
+            }, 1000);
+          } else if (statusCode === DisconnectReason.loggedOut) {
             // Oturum silindi, auth dosyalarını temizle
             this.isletmeler[isletmeId].durum = 'bagli_degil';
             try { fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) {}

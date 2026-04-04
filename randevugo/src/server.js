@@ -177,6 +177,22 @@ app.listen(PORT, () => {
   } catch (e) {
     console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
   }
+
+  // Render keep-alive: 14 dakikada bir self-ping (uyku modunu engelle)
+  const keepAliveUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+  setInterval(async () => {
+    try {
+      const https = require('https');
+      const http = require('http');
+      const mod = keepAliveUrl.startsWith('https') ? https : http;
+      mod.get(`${keepAliveUrl}/api/health`, (res) => {
+        console.log(`🏓 Keep-alive ping: ${res.statusCode}`);
+      }).on('error', (e) => {
+        console.log('🏓 Keep-alive ping hatası:', e.message);
+      });
+    } catch (e) {}
+  }, 14 * 60 * 1000); // 14 dakika
+  console.log('🏓 Keep-alive başlatıldı (14dk aralıklarla)');
 });
 
 module.exports = app;

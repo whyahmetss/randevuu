@@ -127,13 +127,12 @@ class SatisBot extends EventEmitter {
         version,
         auth: {
           creds: state.creds,
-          keys: makeCacheableSignalKeyStore(state.keys, baileysLogger),
+          keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         printQRInTerminal: true,
-        logger: baileysLogger,
-        browser: ['RandevuGO SatisBot', 'Chrome', '4.0.0'],
+        logger: pino({ level: 'silent' }),
+        browser: ['RandevuGO', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
-        qrTimeout: 90000,
       });
 
       this.sock.ev.on('creds.update', saveCreds);
@@ -165,11 +164,18 @@ class SatisBot extends EventEmitter {
 
         if (connection === 'close') {
           const statusCode = lastDisconnect?.error?.output?.statusCode;
-          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          const errorMsg = lastDisconnect?.error?.message || '';
           const credsExist = fs.existsSync(path.join(AUTH_DIR, 'creds.json'));
-          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, reconnect: ${shouldReconnect}, creds: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+          console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, creds: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
           
-          if (statusCode === DisconnectReason.loggedOut) {
+          // restartRequired (515) = QR tarandıktan sonra WhatsApp bilerek koparıyor
+          // Bu NORMAL! Auth dosyalarını SİLME, hemen yeni socket oluştur
+          if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
+            console.log('🔄 restartRequired — QR tarandı, yeni socket oluşturuluyor (auth korunuyor)...');
+            this.durum = 'kapali';
+            this.sock = null;
+            setTimeout(() => this.baslat(), 1000);
+          } else if (statusCode === DisconnectReason.loggedOut) {
             this.durum = 'kapali';
             this.qrBase64 = null;
             this.aktif = false;
@@ -504,7 +510,7 @@ class SatisBot extends EventEmitter {
       // Konuşma kaydını güncelle
       await pool.query(
         "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
-        [`\n[${new Date().toLocaleTimeString('tr-TR')}] Bot: ${aiCevap.mesaj}`, aiCevap.durum || konusma.durum, konusma.id]
+        [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${aiCevap.mesaj}`, aiCevap.durum || konusma.durum, konusma.id]
       );
 
       // Lead durumunu güncelle

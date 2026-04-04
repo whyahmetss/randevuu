@@ -1,0 +1,39 @@
+# Shopier Developer Portal
+
+Jump to Content
+[Home](https://developer.shopier.com/)
+[Getting Started](https://developer.shopier.com/docs)
+[Recipes](https://developer.shopier.com/recipes)
+[API Reference](https://developer.shopier.com/reference)
+[App Store](https://appstore.shopier.com/)
+[Log in](https://www.shopier.com/m/login.php)
+[Sign up](https://www.shopier.com/m/signup.php)
+[Log in](https://www.shopier.com/m/login.php)
+[Sign up](https://www.shopier.com/m/signup.php)
+
+# Let’s develop e-commerce together!
+Support Shopier merchants by building apps for their business needs.
+[Get Started](https://developer.shopier.com/docs)
+[Home](https://developer.shopier.com/)
+[Getting Started](https://developer.shopier.com/docs)
+[Recipes](https://developer.shopier.com/recipes)
+[API Reference](https://developer.shopier.com/reference)
+[App Store](https://appstore.shopier.com/)
+
+## Start building on Shopier today
+Welcome to the Shopier Developer Portal. Here you'll find comprehensive guides and documentation to help you start working with Shopier as quickly as possible.
+Integrate with Shopier to support Shopier merchants and grow your app audience by publishing a listed app. Or simply build an unlisted app for your own or customer's needs. Follow these easy steps below to build an integration with us.
+
+## ✍️ 1. Create an account
+[Sign up](https://www.shopier.com/m/signup.php) for a Shopier seller account first. Then enable the developer mode to start creating your apps.
+
+## 🛠 2. Build your app
+Getting Started guide is the starting point to understand how to integrate with Shopier. On [API Reference](https://developer.shopier.com/reference/introduction) section you'll find a large library of APIs and webhooks to build and integrate quickly.
+
+## 🚀 3. Launch your app
+Submit your app for our review. Publish it to [Shopier App Store](https://appstore.shopier.com) or promote it only on your own website.
+
+## Focus on merchants' needs
+Shopier App Store is the destination for merchants with the need of additional features. Publish your app to the Shopier App Store to reach hundreds of thousands of Shopier merchants.
+By accessing merchants' data via Shopier API, develop value added solutions such as,
+➡️ digital marketing campaigns, ➡️ electronic invoicing and accounting integrations, ➡️ CRM and ERP integrations, ➡️ order automation & product automation solutions, ➡️ integrations with third party platforms, ➡️ customized reporting services.
