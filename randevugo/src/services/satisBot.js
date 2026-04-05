@@ -707,7 +707,7 @@ class SatisBot extends EventEmitter {
               `🏪 İşletme: *${k.isletmeAdi}*\n` +
               `📧 E-posta: *${k.email}*\n\n` +
               `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
-              `🔗 *admin.sirago.com*\n\n` +
+              `🔗 *admin.sırago.com*\n\n` +
               `E-posta ve şifrenizle giriş yapın. İlk ay tamamen ücretsiz! 🚀\n\n` +
               `Yardıma ihtiyacınız olursa bize yazın 💪`
             );
@@ -823,6 +823,42 @@ class SatisBot extends EventEmitter {
       [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, konusma.id]
     );
 
+    // Zaten olumsuz olan konuşmalara cevap verme
+    if (konusma.durum === 'olumsuz') {
+      console.log(`🚫 Konuşma zaten olumsuz, cevap verilmiyor: ${telefon}`);
+      return;
+    }
+
+    // Red / ilgilenmiyorum algılama — AI'dan önce yakala
+    const metinLower = metin.toLowerCase().replace(/[?!.,]/g, '');
+    const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz',
+      'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın', 'yazmayin', 'engel',
+      'beni arama', 'aramayın', 'aramayin', 'mesaj atma', 'mesaj atmayin', 'rahatsız', 'darlamayın', 'darlama',
+      'ilgilenmem', 'istemem', 'yok teşekkürler', 'teşekkür ederim gerek yok', 'sağol gerek yok',
+      'ben dönerim', 'ben döneceğim', 'ben donerim', 'ben size döneceğim', 'ben ararım', 'ben ararim',
+      'sizi ararız', 'biz ararız', 'gerekirse ararız', 'gerekirse döneriz',
+      'şu an ilgilenmiyorum', 'şuan ilgilenmiyorum', 'şimdilik gerek yok', 'şimdilik istemiyorum',
+      'anlamıyorum bu konulardan', 'bilgilenemiyo', 'anlamıyo'];
+    if (redKelimeler.some(k => metinLower.includes(k))) {
+      console.log(`🚫 Red algılandı: ${telefon} → "${metin}"`);
+      const ad = konusma.isletme_adi || '';
+      const vedaMesaj = `Anlıyorum ${ad}, rahatsız ettiysem özür dilerim 🙏\n\nFikrinizi değiştirirseniz sırago.com adresinden bize ulaşabilirsiniz.\n\nİyi çalışmalar dilerim! 🙂`;
+      try {
+        await this.sock.sendPresenceUpdate('composing', remoteJid);
+        await new Promise(r => setTimeout(r, 1500));
+        await this.sock.sendPresenceUpdate('paused', remoteJid);
+      } catch(e) {}
+      await this.sock.sendMessage(remoteJid, { text: vedaMesaj });
+      await pool.query(
+        "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = 'olumsuz' WHERE id = $2",
+        [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${vedaMesaj}`, konusma.id]
+      );
+      if (konusma.lead_id) {
+        await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
+      }
+      return;
+    }
+
     // DeepSeek AI ile satış cevabı oluştur
     console.log(`🤖 AI cevap üretiliyor: konusma_id=${konusma.id}, isletme=${konusma.isletme_adi}`);
     const aiCevap = await this.deepseekSatisCevabi(metin, konusma);
@@ -862,10 +898,17 @@ class SatisBot extends EventEmitter {
     const ad = konusma.isletme_adi || 'işletmeniz';
 
     // Olumsuz / red cevapları
-    const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz', 'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın'];
+    const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz',
+      'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın', 'yazmayin',
+      'beni arama', 'aramayın', 'aramayin', 'mesaj atma', 'engel', 'darlamayın', 'darlama',
+      'ilgilenmem', 'istemem', 'yok teşekkürler', 'teşekkür ederim gerek yok', 'sağol gerek yok',
+      'ben dönerim', 'ben döneceğim', 'ben donerim', 'ben ararım', 'ben ararim',
+      'sizi ararız', 'biz ararız', 'gerekirse ararız', 'gerekirse döneriz',
+      'şu an ilgilenmiyorum', 'şimdilik gerek yok', 'şimdilik istemiyorum',
+      'anlamıyorum bu konulardan', 'bilgilenemiyo', 'anlamıyo'];
     if (redKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Anlıyorum, rahatsız ettiysem özür dilerim 🙏\n\nAma şunu bilmenizi isterim: Rakipleriniz online randevu sistemine geçiyor ve müşterileri artık telefonla aramıyor.\n\nFikrinizi değiştirirseniz bize ulaşabilirsiniz: sırago.com\n\nİyi çalışmalar dilerim! 🙂`,
+        mesaj: `Anlıyorum, rahatsız ettiysem özür dilerim 🙏\n\nFikrinizi değiştirirseniz bize ulaşabilirsiniz: sırago.com\n\nİyi çalışmalar dilerim! 🙂`,
         durum: 'olumsuz'
       };
     }
@@ -906,9 +949,9 @@ class SatisBot extends EventEmitter {
       };
     }
 
-    // Genel / bilinmeyen mesajlar — ısrarcı ama kibar
+    // Genel / bilinmeyen mesajlar — kibar ve kısa
     return {
-      mesaj: `Teşekkürler yanıtınız için! 🙏\n\n${ad} için online randevu sistemi gerçekten fark yaratır. Müşterileriniz telefonla aramak yerine anında randevu alır, siz de WhatsApp ile otomatik hatırlatma gönderirsiniz.\n\nÜstelik ilk ay tamamen ücretsiz — risk yok!\n\n2 dakikada deneyin: sırago.com 🚀`,
+      mesaj: `Teşekkürler yanıtınız için! 🙏\n\n${ad} için online randevu sistemi hakkında merak ettiğiniz bir şey olursa sırago.com'dan bilgi alabilirsiniz.\n\nİyi çalışmalar! �`,
       durum: 'bekliyor'
     };
   }
@@ -923,7 +966,7 @@ class SatisBot extends EventEmitter {
     const konusmaGecmisi = konusma.gelen_mesajlar || '';
     const mesajSayisi = (konusmaGecmisi.match(/Müşteri:/g) || []).length;
 
-    const prompt = `Sen Türkiye'nin en iyi satış uzmanısın. Profesyonel, ısrarcı ama saygılı bir pazarlamacısın. ASLA pes etmezsin. Müşteriyi ikna etmek senin işin.
+    const prompt = `Sen profesyonel ve saygılı bir satış danışmanısın. Kibar ve yardımseversin. Müşteriye yardımcı olmak istiyorsun ama ASLA ISRAR ETMİYORSUN.
 
 SEN KİMSİN: SıraGO satış temsilcisi
 NE SATIYORSUN: İşletmelere online randevu sistemi
@@ -950,9 +993,10 @@ SATIŞ STRATEJİN:
 2. Müşteri soru sorarsa → net ve ikna edici cevap ver, somut faydalar söyle
 3. Müşteri fiyat sorarsa → "İlk ay ücretsiz" vurgula, günlük maliyet hesabı yap (günde 10₺)
 4. Müşteri ilgileniyorsa → hemen sırago.com'a yönlendir, aciliyet yarat
-5. Müşteri tereddüt ediyorsa → sektöründen örnek ver, kaybettiği müşteriyi hatırlat
-6. Müşteri reddederse → son bir koz kullan: "Rakipleriniz bunu kullanıyor", sonra kibar bir şekilde kapanış yap
-7. ${mesajSayisi} > 3 ve hala karar vermemişse → son teklif yap: "Sizin için özel 2 ay ücretsiz yapabilirim"
+5. Müşteri tereddüt ediyorsa → nazikçe faydalarını anlat ama baskı yapma
+6. Müşteri reddederse → HEMEN kabul et, kibar veda mesajı yaz, ısrar ETME. "Fikrinizi değiştirirseniz sırago.com'dan ulaşabilirsiniz" de
+7. Müşteri "arayın/konuşalım/döneceğim/ben ararım" derse → bu KİBAR REDDİR, kabul et ve veda et, tekrar mesaj atma
+8. ${mesajSayisi} > 3 ve hala karar vermemişse → son kez nazikçe hatırlat ve bırak, ISRAR ETME
 
 KURALLAR:
 - Türkçe yaz, doğal ve samimi ol
@@ -971,7 +1015,7 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
       const response = await axios.post('https://api.deepseek.com/chat/completions', {
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: 'Sen agresif ama kibar bir satış uzmanısın. Hedefin müşteriyi ikna etmek. Sadece JSON formatında yanıt ver, başka hiçbir şey yazma.' },
+          { role: 'system', content: 'Sen kibar ve saygılı bir satış danışmanısın. Müşteri ilgilenmiyorsa veya reddetmişse ASLA ISRAR ETME, kibarca veda et. Sadece JSON formatında yanıt ver, başka hiçbir şey yazma.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.8,
