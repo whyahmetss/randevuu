@@ -130,11 +130,25 @@
     .chat-slots{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
     .chat-slot{padding:6px 14px;border-radius:8px;background:rgba(99,102,241,.15);color:var(--accent);font-size:12px;font-weight:600;border:1px solid rgba(99,102,241,.2)}
 
-    /* ---------- LOGOS ---------- */
-    .logos-section{padding:60px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-    .logos-label{text-align:center;font-size:13px;color:var(--dim);font-weight:500;margin-bottom:32px;text-transform:uppercase;letter-spacing:2px}
-    .logos-row{display:flex;justify-content:center;align-items:center;gap:48px;flex-wrap:wrap;opacity:.4}
-    .logos-row span{font-size:20px;font-weight:700;letter-spacing:-.5px;color:var(--muted)}
+    /* ---------- SECTORS ---------- */
+    .sectors{padding:80px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden}
+    .sectors .sec-head{margin-bottom:48px}
+    .sector-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+    .sector-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:28px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--border);transition:all .35s;cursor:default;text-align:center}
+    .sector-card:hover{border-color:rgba(99,102,241,.25);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.2)}
+    .sector-icon{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:28px}
+    .sector-icon.s1{background:rgba(99,102,241,.1)}
+    .sector-icon.s2{background:rgba(236,72,153,.1)}
+    .sector-icon.s3{background:rgba(16,185,129,.1)}
+    .sector-icon.s4{background:rgba(245,158,11,.1)}
+    .sector-icon.s5{background:rgba(59,130,246,.1)}
+    .sector-icon.s6{background:rgba(239,68,68,.1)}
+    .sector-icon.s7{background:rgba(139,92,246,.1)}
+    .sector-icon.s8{background:rgba(20,184,166,.1)}
+    .sector-card h4{font-size:14px;font-weight:700;line-height:1.3}
+    .sector-card p{font-size:12px;color:var(--dim);line-height:1.5}
+    @media(max-width:1024px){.sector-grid{grid-template-columns:repeat(4,1fr);gap:12px}}
+    @media(max-width:768px){.sector-grid{grid-template-columns:repeat(2,1fr);gap:12px}.sector-card{padding:20px 12px}.sector-icon{width:48px;height:48px;font-size:24px}.sectors{padding:60px 0}}
 
     /* ---------- SECTION SHARED ---------- */
     .sec{padding:120px 0;position:relative}
@@ -384,18 +398,55 @@
     </div>
   </section>
 
-  <!-- LOGOS -->
-  <section class="logos-section">
+  <!-- SECTORS -->
+  <section class="sectors" id="sektorler">
     <div class="container">
-      <div class="logos-label">Her sektörden işletmenin tercihi</div>
-      <div class="logos-row">
-        <span>Berber</span>
-        <span>Kuaför</span>
-        <span>Güzellik Salonu</span>
-        <span>Diş Kliniği</span>
-        <span>Veteriner</span>
-        <span>Spa</span>
-        <span>Diyetisyen</span>
+      <div class="sec-head" data-anim>
+        <div class="sec-label">Sektörler</div>
+        <h2 class="sec-title">Hangi işletmelere hizmet veriyoruz?</h2>
+        <p class="sec-desc">Randevu ile çalışan her sektöre uygun altyapı sunuyoruz.</p>
+      </div>
+      <div class="sector-grid">
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s1">✂️</div>
+          <h4>Berber & Kuaför</h4>
+          <p>Saç kesimi, sakal, bakım hizmetleri</p>
+        </div>
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s2">💅</div>
+          <h4>Güzellik Salonu</h4>
+          <p>Cilt bakımı, manikür, epilasyon</p>
+        </div>
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s3">🩺</div>
+          <h4>Diş Kliniği</h4>
+          <p>Muayene, tedavi, kontrol randevuları</p>
+        </div>
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s4">🐾</div>
+          <h4>Veteriner</h4>
+          <p>Evcil hayvan muayene ve aşılama</p>
+        </div>
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s5">💪</div>
+          <h4>Fitness & Spor</h4>
+          <p>PT randevusu, grup dersleri</p>
+        </div>
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s6">🫀</div>
+          <h4>Psikolog & Terapi</h4>
+          <p>Seans ve danışmanlık randevuları</p>
+        </div>
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s7">💆</div>
+          <h4>Spa & Masaj</h4>
+          <p>Masaj, sauna, wellness hizmetleri</p>
+        </div>
+        <div class="sector-card" data-anim>
+          <div class="sector-icon s8">🍏</div>
+          <h4>Diyetisyen</h4>
+          <p>Beslenme danışmanlığı, takip seçenekleri</p>
+        </div>
       </div>
     </div>
   </section>
