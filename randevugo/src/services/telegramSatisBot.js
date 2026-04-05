@@ -164,7 +164,7 @@ class TelegramSatisBot {
         const mevcut = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [metin.trim().toLowerCase()])).rows[0];
         if (mevcut) {
           return await this.bot.sendMessage(chatId,
-            `⚠️ Bu e-posta zaten kayıtlı!\n\nFarklı bir e-posta yazın veya admin.sirago.com adresinden giriş yapın.`
+            `⚠️ Bu e-posta zaten kayıtlı!\n\nFarklı bir e-posta yazın veya admin.sırago.com adresinden giriş yapın.`
           );
         }
         this.kayitlar[chatId].email = metin.trim().toLowerCase();
@@ -247,13 +247,13 @@ class TelegramSatisBot {
         `🏪 İşletme: *${k.isletmeAdi}*\n` +
         `📧 E-posta: *${k.email}*\n\n` +
         `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
-        `🔗 *admin.sirago.com*\n\n` +
+        `🔗 *admin.sırago.com*\n\n` +
         `E-posta ve şifrenizle giriş yapın.\nİlk ay tamamen ücretsiz! 🚀`,
         {
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [{ text: '🔗 Admin Panele Git', url: 'https://admin.sirago.com' }]
+              [{ text: '🔗 Admin Panele Git', url: 'https://admin.xn--srago-n4a.com' }]
             ]
           }
         }

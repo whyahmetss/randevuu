@@ -643,7 +643,7 @@ class SatisBot extends EventEmitter {
         // Email zaten kayıtlı mı?
         const mevcut = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [metin.trim().toLowerCase()])).rows[0];
         if (mevcut) {
-          await mesajGonder(`⚠️ Bu e-posta zaten kayıtlı!\n\nFarklı bir e-posta yazın veya *admin.sirago.com* adresinden giriş yapın.`);
+          await mesajGonder(`⚠️ Bu e-posta zaten kayıtlı!\n\nFarklı bir e-posta yazın veya *admin.sırago.com* adresinden giriş yapın.`);
           return true;
         }
         this.konusmalar[telefon].kayit.email = metin.trim().toLowerCase();
@@ -1002,7 +1002,7 @@ KURALLAR:
 - Türkçe yaz, doğal ve samimi ol
 - Max 4-5 cümle (uzun yazma)
 - Her mesajda sırago.com linkini ver
-- ASLA "admin.sirago.com" yazma! Sadece "sırago.com" yaz. admin subdomain'i YASAK!
+- ASLA "admin.sırago.com" yazma! Sadece "sırago.com" yaz. admin subdomain'i YASAK!
 - Emoji kullan ama abartma (max 2-3)
 - Müşterinin adını/işletme adını kullan
 - ASLA "yapay zeka" veya "bot" olduğunu söyleme
