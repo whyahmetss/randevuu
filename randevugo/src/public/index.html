@@ -89,6 +89,7 @@
 
     /* ---------- HERO ---------- */
     .hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding:120px 0 80px}
+    .hero-visual{order:2}
     .hero-bg{position:absolute;inset:0;pointer-events:none}
     .hero-bg .orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:.35;animation:orbFloat 18s ease-in-out infinite}
     .hero-bg .orb-1{width:600px;height:600px;background:#6366f1;top:-20%;left:-10%;animation-delay:0s}
@@ -274,13 +275,13 @@
 
     /* ---------- RESPONSIVE ---------- */
     @media(max-width:1024px){
-      .hero-grid{grid-template-columns:1fr;gap:48px;text-align:center}
+      .hero-grid{grid-template-columns:1fr;gap:40px;text-align:center}
       .hero-content{max-width:100%}
       .hero .sub{margin-left:auto;margin-right:auto}
       .hero-actions{justify-content:center}
       .trust-row{justify-content:center}
-      .hero-visual{order:-1}
       .hero-mockup{max-width:380px}
+      .hero{padding:90px 0 60px;min-height:auto}
     }
     @media(max-width:768px){
       .container{padding:0 20px}
