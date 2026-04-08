@@ -1,33 +1,90 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Ana Sayfa -->
   <url>
     <loc>https://xn--srago-n4a.com/</loc>
-    <lastmod>2026-04-03</lastmod>
+    <lastmod>2026-04-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  <url>
-    <loc>https://xn--srago-n4a.com/#ozellikler</loc>
-    <lastmod>2026-04-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://xn--srago-n4a.com/#fiyat</loc>
-    <lastmod>2026-04-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
+
+  <!-- Nasıl Çalışır -->
   <url>
     <loc>https://xn--srago-n4a.com/#nasil</loc>
-    <lastmod>2026-04-03</lastmod>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Özellikler -->
+  <url>
+    <loc>https://xn--srago-n4a.com/#ozellikler</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Sektörler -->
+  <url>
+    <loc>https://xn--srago-n4a.com/#sektorler</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Fiyatlandırma -->
+  <url>
+    <loc>https://xn--srago-n4a.com/#fiyat</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- SSS -->
+  <url>
+    <loc>https://xn--srago-n4a.com/#sss</loc>
+    <lastmod>2026-04-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <!-- İletişim / Ücretsiz Dene -->
   <url>
-    <loc>https://xn--srago-n4a.com/#sss</loc>
-    <lastmod>2026-04-03</lastmod>
+    <loc>https://xn--srago-n4a.com/#iletisim</loc>
+    <lastmod>2026-04-09</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Gizlilik Politikası -->
+  <url>
+    <loc>https://xn--srago-n4a.com/gizlilik.html</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- KVKK Aydınlatma Metni -->
+  <url>
+    <loc>https://xn--srago-n4a.com/kvkk.html</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- Kullanım Koşulları -->
+  <url>
+    <loc>https://xn--srago-n4a.com/kullanim.html</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+
+  <!-- Çerez Politikası -->
+  <url>
+    <loc>https://xn--srago-n4a.com/cerez.html</loc>
+    <lastmod>2026-04-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
 </urlset>
