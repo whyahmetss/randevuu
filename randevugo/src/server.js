@@ -127,6 +127,19 @@ const PORT = process.env.PORT || 3000;
       UNIQUE(calisan_id, hizmet_id)
     )`);
 
+    // ─── SATIŞ BOT ÇOKLU NUMARA ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS satis_bot_numaralar (
+      id SERIAL PRIMARY KEY,
+      isim VARCHAR(100) DEFAULT 'Numara',
+      telefon VARCHAR(50),
+      durum VARCHAR(30) DEFAULT 'bekliyor',
+      gonderim_sayisi INTEGER DEFAULT 0,
+      son_gonderim TIMESTAMP,
+      ban_tarihi TIMESTAMP,
+      ban_notu TEXT,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);

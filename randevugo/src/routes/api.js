@@ -69,6 +69,8 @@ router.get('/admin/isletmeler', authMiddleware, superAdminMiddleware, (req, res)
 router.post('/admin/isletmeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeEkle(req, res));
 router.put('/admin/isletmeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeGuncelleAdmin(req, res));
 router.delete('/admin/isletmeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeSil(req, res));
+router.get('/admin/saas-metrikleri', authMiddleware, superAdminMiddleware, (req, res) => adminController.saasMetrikleri(req, res));
+router.post('/admin/impersonate/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.impersonate(req, res));
 
 router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeleriGetir(req, res));
 router.post('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeEkle(req, res));
@@ -106,5 +108,9 @@ router.post('/admin/satis-bot/gonderim-durdur', authMiddleware, superAdminMiddle
 router.get('/admin/satis-bot/konusmalar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotKonusmalar(req, res));
 router.put('/admin/satis-bot/ayarlar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotAyarGuncelle(req, res));
 router.get('/admin/satis-bot/wp-yok', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotWpYok(req, res));
+router.get('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaralar(req, res));
+router.post('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraEkle(req, res));
+router.delete('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraSil(req, res));
+router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraDurumGuncelle(req, res));
 
 module.exports = router;

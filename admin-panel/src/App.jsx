@@ -1517,6 +1517,12 @@ function SuperAdminPanel({ kullanici }) {
   const [odemeFiltre, setOdemeFiltre] = useState("hepsi");
   const [yeniOdeme, setYeniOdeme] = useState({ isletme_id: "", tutar: "", donem: new Date().toISOString().slice(0, 7) });
   const [odemeFormAcik, setOdemeFormAcik] = useState(false);
+  // SaaS Metrikleri
+  const [saasMetrik, setSaasMetrik] = useState(null);
+  // Numara yönetimi
+  const [numaralar, setNumaralar] = useState([]);
+  const [numaraFormAcik, setNumaraFormAcik] = useState(false);
+  const [yeniNumara, setYeniNumara] = useState({ isim: "", telefon: "" });
   // Avcı Bot state
   const [avciListe, setAvciListe] = useState([]);
   const [avciStats, setAvciStats] = useState(null);
@@ -1563,9 +1569,18 @@ function SuperAdminPanel({ kullanici }) {
     setYukleniyor(false);
   };
 
+  const saasMetrikleriYukle = async () => {
+    try { const d = await api.get("/admin/saas-metrikleri"); setSaasMetrik(d); } catch (e) { console.log("SaaS metrikleri yükleme hatası:", e); }
+  };
+
+  const numaralariYukle = async () => {
+    try { const d = await api.get("/admin/satis-bot/numaralar"); setNumaralar(d.numaralar || []); } catch (e) { console.log("Numara yükleme hatası:", e); }
+  };
+
   useEffect(() => {
     isletmeleriYukle();
     odemeleriYukle();
+    saasMetrikleriYukle();
   }, []);
 
   const avciListeYukle = async () => {
@@ -1606,10 +1621,12 @@ function SuperAdminPanel({ kullanici }) {
   }, [sayfa]);
 
   useEffect(() => {
+    if (sayfa === "dashboard") saasMetrikleriYukle();
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
     if (sayfa === "iletisim") iletisimYukle();
+    if (sayfa === "satisBot") numaralariYukle();
   }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak]);
 
   const isletmeEkle = async (e) => {
@@ -1753,16 +1770,114 @@ function SuperAdminPanel({ kullanici }) {
           <>
             <div className="page-header">
               <h1>Dashboard</h1>
-              <p>Genel bakış ve işletme özeti</p>
-            </div>
-            <div className="stats-grid">
-              <div className="stat-card amber"><div className="sc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div className="sc-label">Toplam İşletme</div><div className="sc-val">{isletmeler.length}</div></div>
-              <div className="stat-card green"><div className="sc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div className="sc-label">Aktif İşletme</div><div className="sc-val">{isletmeler.filter(i => i.aktif).length}</div></div>
-              <div className="stat-card purple"><div className="sc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div className="sc-label">Toplam Gelir</div><div className="sc-val">{toplamGelir.toFixed(0)} ₺</div></div>
-              <div className="stat-card blue"><div className="sc-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div className="sc-label">Bu Ay Gelir</div><div className="sc-val">{buAyGelir.toFixed(0)} ₺</div></div>
+              <p>SaaS metrikleri ve genel bakış</p>
             </div>
 
-            {/* Bu ay ödeme durumu */}
+            {/* SaaS KPI Kartları */}
+            <div className="stats-grid">
+              <div className="stat-card green">
+                <div className="sc-icon">💰</div>
+                <div className="sc-label">MRR (Aylık Gelir)</div>
+                <div className="sc-val">{saasMetrik ? saasMetrik.mrr.toLocaleString("tr-TR") : buAyGelir.toFixed(0)} ₺</div>
+                {saasMetrik && saasMetrik.mrrBuyume !== 0 && (
+                  <div style={{ fontSize: 11, color: saasMetrik.mrrBuyume > 0 ? "#10b981" : "#ef4444", fontWeight: 600, marginTop: 4 }}>
+                    {saasMetrik.mrrBuyume > 0 ? "▲" : "▼"} {Math.abs(saasMetrik.mrrBuyume)}% geçen aya göre
+                  </div>
+                )}
+              </div>
+              <div className="stat-card purple">
+                <div className="sc-icon">📊</div>
+                <div className="sc-label">ARR (Yıllık Gelir)</div>
+                <div className="sc-val">{saasMetrik ? saasMetrik.arr.toLocaleString("tr-TR") : (buAyGelir * 12).toFixed(0)} ₺</div>
+              </div>
+              <div className="stat-card" style={{ "--card-accent": "#ef4444" }}>
+                <div className="sc-icon">📉</div>
+                <div className="sc-label">Churn Rate</div>
+                <div className="sc-val" style={{ color: saasMetrik?.churnRate > 10 ? "#ef4444" : saasMetrik?.churnRate > 5 ? "#f59e0b" : "#10b981" }}>
+                  %{saasMetrik?.churnRate || 0}
+                </div>
+                {saasMetrik?.churnSayi > 0 && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>{saasMetrik.churnSayi} müşteri ayrıldı</div>}
+              </div>
+              <div className="stat-card blue">
+                <div className="sc-icon">💵</div>
+                <div className="sc-label">ARPU</div>
+                <div className="sc-val">{saasMetrik?.arpu || 0} ₺</div>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Müşteri başına ort. gelir</div>
+              </div>
+            </div>
+
+            {/* İkinci sıra metrikler */}
+            <div className="stats-grid" style={{ marginTop: 0 }}>
+              <div className="stat-card amber">
+                <div className="sc-icon">🏢</div>
+                <div className="sc-label">Toplam İşletme</div>
+                <div className="sc-val">{isletmeler.length}</div>
+              </div>
+              <div className="stat-card green">
+                <div className="sc-icon">✅</div>
+                <div className="sc-label">Aktif Abone</div>
+                <div className="sc-val">{saasMetrik?.buAyOdeyen || buAyOdeyenler.length}</div>
+              </div>
+              <div className="stat-card blue">
+                <div className="sc-icon">🆕</div>
+                <div className="sc-label">Yeni Müşteri</div>
+                <div className="sc-val">{saasMetrik?.yeniMusteri || 0}</div>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Bu ay katılan</div>
+              </div>
+              <div className="stat-card" style={{ "--card-accent": "#ef4444" }}>
+                <div className="sc-icon">⏳</div>
+                <div className="sc-label">Ödemeyenler</div>
+                <div className="sc-val" style={{ color: buAyOdemeyenler.length > 0 ? "#ef4444" : "#10b981" }}>{buAyOdemeyenler.length}</div>
+              </div>
+            </div>
+
+            {/* Gelir Trendi + Paket Dağılımı */}
+            <div className="grid-2">
+              <div className="card-dark">
+                <h3 style={{ color: "var(--muted)", fontSize: 15, fontWeight: 700 }} className="mb-12">📈 Son 6 Ay Gelir Trendi</h3>
+                {saasMetrik?.gelirTrendi ? (
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 140, padding: "0 4px" }}>
+                    {saasMetrik.gelirTrendi.map((g, i) => {
+                      const maxGelir = Math.max(...saasMetrik.gelirTrendi.map(x => x.gelir), 1);
+                      const h = Math.max(8, (g.gelir / maxGelir) * 120);
+                      const ayLabel = new Date(g.donem + "-01").toLocaleDateString("tr-TR", { month: "short" });
+                      return (
+                        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: 10, color: "var(--green)", fontWeight: 700 }}>{g.gelir > 0 ? g.gelir.toLocaleString("tr-TR") + "₺" : ""}</span>
+                          <div style={{ width: "100%", height: h, background: i === saasMetrik.gelirTrendi.length - 1 ? "var(--green)" : "rgba(16,185,129,.3)", borderRadius: 6, transition: "height .3s" }} />
+                          <span style={{ fontSize: 10, color: "var(--dim)" }}>{ayLabel}</span>
+                          <span style={{ fontSize: 9, color: "var(--dim)" }}>{g.odeyen} müşteri</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : <p style={{ color: "var(--dim)", fontSize: 13 }}>Yükleniyor...</p>}
+              </div>
+              <div className="card-dark">
+                <h3 style={{ color: "var(--muted)", fontSize: 15, fontWeight: 700 }} className="mb-12">📦 Paket Dağılımı</h3>
+                {saasMetrik?.paketDagilimi?.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {saasMetrik.paketDagilimi.map(p => {
+                      const toplam = saasMetrik.aktifIsletme || 1;
+                      const yuzde = ((parseInt(p.sayi) / toplam) * 100).toFixed(0);
+                      return (
+                        <div key={p.paket}>
+                          <div className="row row-between mb-4">
+                            <span style={{ fontSize: 13, fontWeight: 600, color: paketRenk[p.paket] || "var(--text)" }}>{p.paket} ({paketFiyat[p.paket] || "?"}₺)</span>
+                            <span style={{ fontSize: 12, color: "var(--dim)" }}>{p.sayi} işletme · %{yuzde}</span>
+                          </div>
+                          <div style={{ background: "var(--bg)", borderRadius: 4, height: 6, overflow: "hidden" }}>
+                            <div style={{ width: yuzde + "%", height: "100%", background: paketRenk[p.paket] || "var(--primary)", borderRadius: 4, transition: "width .5s" }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : <p style={{ color: "var(--dim)", fontSize: 13 }}>Veri yok</p>}
+              </div>
+            </div>
+
+            {/* Ödeme durumu + Son işletmeler */}
             <div className="grid-2">
               <div className="card-dark">
                 <h3 style={{ color: "var(--green)", fontSize: 15, fontWeight: 700 }} className="mb-12">Bu Ay Ödeyen ({buAyOdeyenler.length})</h3>
@@ -1778,7 +1893,7 @@ function SuperAdminPanel({ kullanici }) {
               <div className="card-dark">
                 <h3 style={{ color: "var(--red)", fontSize: 15, fontWeight: 700 }} className="mb-12">Bu Ay Ödemeyenler ({buAyOdemeyenler.length})</h3>
                 {buAyOdemeyenler.length === 0
-                  ? <p style={{ color: "var(--dim)", fontSize: 13 }}>Herkes ödedi.</p>
+                  ? <p style={{ color: "var(--dim)", fontSize: 13 }}>Herkes ödedi 🎉</p>
                   : buAyOdemeyenler.map(i => (
                     <div key={i.id} className="row row-between" style={{ padding: "8px 0", borderBottom: "1px solid var(--bg)" }}>
                       <span style={{ color: "var(--text)", fontSize: 13 }}>{i.isim}</span>
@@ -1877,6 +1992,22 @@ function SuperAdminPanel({ kullanici }) {
                     </div>
                   </div>
                   <div className="list-item-actions shrink-0" style={{ marginLeft: 12 }}>
+                    <button onClick={async () => {
+                      try {
+                        const res = await api.post(`/admin/impersonate/${i.id}`);
+                        if (res.hata) { alert("Hata: " + res.hata); return; }
+                        if (res.token) {
+                          const yeniSekme = window.open("", "_blank");
+                          yeniSekme.document.write(`<html><body><script>
+                            localStorage.setItem("randevugo_token","${res.token}");
+                            localStorage.setItem("randevugo_impersonated","true");
+                            window.location.href = window.location.origin;
+                          <\/script></body></html>`);
+                        }
+                      } catch (e) { alert("Impersonation hatası: " + e.message); }
+                    }} className="btn btn-sm" style={{ background: "rgba(139,92,246,.12)", color: "#8b5cf6", border: "none", fontWeight: 700 }}>
+                      👤 Müşteri Girişi
+                    </button>
                     <button onClick={() => aktifToggle(i)} className="btn btn-sm"
                       style={{ background: i.aktif ? "rgba(16,185,129,.12)" : "rgba(245,158,11,.12)", color: i.aktif ? "var(--green)" : "var(--amber)", border: "none", fontWeight: 700 }}>
                       {i.aktif ? "✓ Aktif" : "⏸ Pasif"}
@@ -1892,6 +2023,23 @@ function SuperAdminPanel({ kullanici }) {
         {/* ÖDEMELER */}
         {sayfa === "odemeler" && (
           <>
+            {/* Shopier Otomatik Tahsilat Bilgi Kutusu */}
+            <div className="card mb-16" style={{ padding: "14px 18px", background: "rgba(16,185,129,.06)", border: "1px solid rgba(16,185,129,.15)" }}>
+              <div className="row row-between row-wrap gap-8">
+                <div className="row gap-8" style={{ alignItems: "center" }}>
+                  <span style={{ fontSize: 18 }}>🔗</span>
+                  <div>
+                    <div style={{ color: "#10b981", fontWeight: 700, fontSize: 14 }}>Shopier Otomatik Tahsilat Aktif</div>
+                    <div style={{ color: "var(--dim)", fontSize: 12 }}>Müşteri karttan ödeyince webhook ile otomatik "Ödendi" düşer. Manuel takip gerekmez.</div>
+                  </div>
+                </div>
+                <div className="row gap-6">
+                  <span className="tag" style={{ background: "rgba(16,185,129,.15)", color: "#10b981", fontWeight: 700, fontSize: 11 }}>Webhook Aktif</span>
+                  <span style={{ color: "var(--dim)", fontSize: 11 }}>Shopier → /api/odeme/shopier/webhook</span>
+                </div>
+              </div>
+            </div>
+
             <div className="row row-wrap gap-16 mb-24">
               <StatCard icon="💰" baslik="Toplam Gelir" deger={toplamGelir.toFixed(0) + " ₺"} renk="#10b981" />
               <StatCard icon="📅" baslik="Bu Ay Gelir" deger={buAyGelir.toFixed(0) + " ₺"} renk="#3b82f6" />
@@ -1972,6 +2120,16 @@ function SuperAdminPanel({ kullanici }) {
                       {odemeLabel[o.durum] || o.durum}
                     </span>
                   </div>
+                  {/* Shopier detayları */}
+                  {o.odeme_yontemi === "shopier" && (
+                    <div style={{ background: "rgba(16,185,129,.06)", border: "1px solid rgba(16,185,129,.15)", borderRadius: 10, padding: "12px 16px" }}>
+                      <div className="row row-wrap gap-12" style={{ fontSize: 13 }}>
+                        <span style={{ color: "var(--muted)" }}>Yöntem: <strong style={{ color: "#10b981" }}>💳 Shopier (Otomatik)</strong></span>
+                        {o.referans_kodu && <span style={{ color: "var(--muted)" }}>Referans: <strong className="ref-kod">{o.referans_kodu}</strong></span>}
+                        {o.shopier_siparis_id && <span style={{ color: "var(--muted)" }}>Sipariş: <strong style={{ color: "var(--text)" }}>#{o.shopier_siparis_id}</strong></span>}
+                      </div>
+                    </div>
+                  )}
                   {/* Havale detayları */}
                   {(o.durum === "havale_bekliyor" || o.odeme_yontemi === "havale") && (
                     <div style={{ background: "rgba(129,140,248,.06)", border: "1px solid rgba(129,140,248,.15)", borderRadius: 10, padding: "12px 16px" }}>
@@ -2626,16 +2784,138 @@ function SuperAdminPanel({ kullanici }) {
               </>
             )}
 
+            {/* 📱 NUMARA YÖNETİMİ + SAĞLIK */}
+            <div className="card mt-24" style={{ padding: 20 }}>
+              <div className="row row-between row-wrap gap-8 mb-16">
+                <div>
+                  <h3 style={{ fontSize: 16, marginBottom: 4 }}>📱 Numara Yönetimi & Sağlık</h3>
+                  <p style={{ color: "var(--dim)", fontSize: 12 }}>Birden fazla numara ekle, banlanınca diğerine geç. Tek numaraya güvenme!</p>
+                </div>
+                <button onClick={() => setNumaraFormAcik(!numaraFormAcik)} className="btn btn-sm" style={{ background: "rgba(139,92,246,.15)", color: "#8b5cf6", fontWeight: 700 }}>
+                  + Numara Ekle
+                </button>
+              </div>
+
+              {numaraFormAcik && (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  await api.post("/admin/satis-bot/numaralar", yeniNumara);
+                  setYeniNumara({ isim: "", telefon: "" });
+                  setNumaraFormAcik(false);
+                  numaralariYukle();
+                }} className="row row-wrap gap-12 mb-16" style={{ background: "var(--bg)", borderRadius: 10, padding: 16, alignItems: "flex-end" }}>
+                  <div>
+                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>İsim / Etiket</label>
+                    <input value={yeniNumara.isim} onChange={e => setYeniNumara({...yeniNumara, isim: e.target.value})} placeholder="Satış 1" className="input" style={{ width: 150 }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Telefon Numarası</label>
+                    <input value={yeniNumara.telefon} onChange={e => setYeniNumara({...yeniNumara, telefon: e.target.value})} placeholder="905551234567" className="input" style={{ width: 180 }} />
+                  </div>
+                  <button type="submit" className="btn btn-sm" style={{ background: "#8b5cf6", color: "#fff", fontWeight: 700 }}>Kaydet</button>
+                  <button type="button" onClick={() => setNumaraFormAcik(false)} className="btn btn-ghost btn-sm">İptal</button>
+                </form>
+              )}
+
+              {/* Aktif numara (bot bağlı) */}
+              {satisBotDurum?.durum === 'bagli' && (
+                <div className="row row-wrap gap-8 mb-12" style={{ background: "rgba(16,185,129,.06)", borderRadius: 10, padding: "12px 16px", border: "1px solid rgba(16,185,129,.15)" }}>
+                  <span style={{ fontSize: 14 }}>✅</span>
+                  <span style={{ color: "#10b981", fontWeight: 700, fontSize: 14 }}>Aktif Numara</span>
+                  <span style={{ color: "var(--text)", fontSize: 13 }}>— Bot şu an bu numarayla bağlı</span>
+                  {satisBotDurum?.gunlukGonderim > 0 && (
+                    <span className="tag" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", fontWeight: 600, fontSize: 11, marginLeft: "auto" }}>
+                      Bugün {satisBotDurum.gunlukGonderim}/50 mesaj
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Numara listesi */}
+              {numaralar.length === 0 ? (
+                <div style={{ color: "var(--dim)", fontSize: 13, padding: "16px 0", textAlign: "center" }}>
+                  Henüz kayıtlı numara yok. Yedek numaralar ekleyerek ban riskini azalt!
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {numaralar.map(n => {
+                    const durumRenk = { aktif: "#10b981", bekliyor: "#f59e0b", banli: "#ef4444", dinleniyor: "#3b82f6" };
+                    const durumLabel = { aktif: "✅ Aktif", bekliyor: "⏳ Bekliyor", banli: "🚫 Banlı", dinleniyor: "😴 Dinleniyor" };
+                    return (
+                      <div key={n.id} className="row row-between row-wrap gap-8" style={{
+                        background: n.durum === 'banli' ? "rgba(239,68,68,.04)" : "var(--bg)",
+                        borderRadius: 10, padding: "12px 16px",
+                        border: n.durum === 'banli' ? "1px solid rgba(239,68,68,.15)" : "1px solid var(--border)"
+                      }}>
+                        <div className="row row-wrap gap-8">
+                          <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{n.isim}</span>
+                          <span style={{ color: "var(--dim)", fontSize: 13 }}>📞 {n.telefon || "—"}</span>
+                          <span className="tag" style={{ background: (durumRenk[n.durum] || "#64748b") + "22", color: durumRenk[n.durum] || "#64748b", fontWeight: 700, fontSize: 11 }}>
+                            {durumLabel[n.durum] || n.durum}
+                          </span>
+                          {n.gonderim_sayisi > 0 && <span style={{ color: "var(--dim)", fontSize: 11 }}>📤 {n.gonderim_sayisi} mesaj</span>}
+                          {n.ban_tarihi && <span style={{ color: "#ef4444", fontSize: 11 }}>Ban: {new Date(n.ban_tarihi).toLocaleDateString("tr-TR")}</span>}
+                          {n.ban_notu && <span style={{ color: "var(--dim)", fontSize: 11 }}>({n.ban_notu})</span>}
+                        </div>
+                        <div className="row gap-6">
+                          {n.durum !== 'aktif' && n.durum !== 'banli' && (
+                            <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'aktif' }); numaralariYukle(); }}
+                              className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "#10b981", border: "none", fontWeight: 600, fontSize: 11 }}>
+                              Aktif Et
+                            </button>
+                          )}
+                          {n.durum === 'aktif' && (
+                            <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'dinleniyor' }); numaralariYukle(); }}
+                              className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", border: "none", fontWeight: 600, fontSize: 11 }}>
+                              Dinlendir
+                            </button>
+                          )}
+                          <button onClick={async () => {
+                            const notu = prompt("Ban notu (opsiyonel):");
+                            await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'banli', ban_notu: notu || 'WhatsApp ban' });
+                            numaralariYukle();
+                          }} className="btn btn-sm" style={{ background: "rgba(239,68,68,.08)", color: "#ef4444", border: "none", fontWeight: 600, fontSize: 11 }}>
+                            🚫 Ban
+                          </button>
+                          <button onClick={async () => {
+                            if (confirm(`"${n.isim}" numarasını silmek istediğinize emin misiniz?`)) {
+                              await api.del(`/admin/satis-bot/numaralar/${n.id}`);
+                              numaralariYukle();
+                            }
+                          }} className="btn btn-sm" style={{ background: "rgba(239,68,68,.06)", color: "var(--red)", border: "none", fontSize: 11 }}>
+                            Sil
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Numara sağlığı önerileri */}
+              <div style={{ marginTop: 16, background: "rgba(139,92,246,.04)", borderRadius: 10, padding: "14px 16px", border: "1px solid rgba(139,92,246,.1)" }}>
+                <h4 style={{ color: "#8b5cf6", fontSize: 13, marginBottom: 8 }}>💡 Numara Rotasyonu Önerileri</h4>
+                <ul style={{ color: "var(--dim)", fontSize: 12, margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
+                  <li>En az <strong>3 numara</strong> kayıtlı tut — biri banlanınca diğeri devreye girer</li>
+                  <li>Her numarayı <strong>2-3 gün</strong> kullandıktan sonra <strong>"Dinlendir"</strong> durumuna al</li>
+                  <li>Banlanmış numarayı <strong>2-4 hafta</strong> dinlendirdikten sonra tekrar dene</li>
+                  <li>Günlük limiti <strong>30'un altında</strong> tut — düşük limit = düşük ban riski</li>
+                  <li>Yeni numara eklemeden önce <strong>1-2 gün</strong> normal kullan (kişisel mesajlar at)</li>
+                </ul>
+              </div>
+            </div>
+
             {/* Anti-ban bilgi kutusu */}
             <div className="card mt-24" style={{ padding: 16, background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.15)" }}>
               <h4 style={{ color: "#f59e0b", fontSize: 13, marginBottom: 8 }}>⚠️ Anti-Ban Koruması Aktif</h4>
               <ul style={{ color: "var(--dim)", fontSize: 12, margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-                <li>Her mesaj arasında <strong>8-15 dakika</strong> rastgele bekleme</li>
-                <li>Günlük maksimum <strong>50 mesaj</strong> limiti</li>
-                <li>Mesai saatleri: <strong>09:00 - 19:00</strong></li>
+                <li>Her mesaj arasında <strong>{satisBotDurum?.ayarlar?.minBekleme || 8}-{satisBotDurum?.ayarlar?.maxBekleme || 15} dakika</strong> rastgele bekleme</li>
+                <li>Günlük maksimum <strong>{satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj</strong> limiti</li>
+                <li>Mesai saatleri: <strong>{satisBotDurum?.ayarlar?.mesaiBaslangic || "09"}:00 - {satisBotDurum?.ayarlar?.mesaiBitis || "19"}:00</strong></li>
                 <li>Her kategoriye <strong>3 farklı mesaj varyasyonu</strong></li>
                 <li>Gönderim öncesi <strong>"yazıyor..."</strong> simülasyonu</li>
                 <li>Numara WhatsApp'ta yoksa <strong>atlanır</strong></li>
+                <li><strong>{numaralar.length} numara</strong> kayıtlı · {numaralar.filter(n => n.durum === 'aktif').length} aktif · {numaralar.filter(n => n.durum === 'banli').length} banlı</li>
               </ul>
             </div>
           </>

@@ -1218,6 +1218,182 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+
+  // ==================== SAAS METRİKLERİ ====================
+
+  async saasMetrikleri(req, res) {
+    try {
+      const buAy = new Date().toISOString().slice(0, 7);
+      const gecenAyDate = new Date(); gecenAyDate.setMonth(gecenAyDate.getMonth() - 1);
+      const gecenAy = gecenAyDate.toISOString().slice(0, 7);
+      const ikiAyOnceDate = new Date(); ikiAyOnceDate.setMonth(ikiAyOnceDate.getMonth() - 2);
+      const ikiAyOnce = ikiAyOnceDate.toISOString().slice(0, 7);
+
+      // Aktif işletme sayısı
+      const aktifIsletme = (await pool.query("SELECT COUNT(*) as sayi FROM isletmeler WHERE aktif = true")).rows[0];
+
+      // MRR — Bu ay ödenen toplam
+      const mrrResult = (await pool.query(
+        "SELECT COALESCE(SUM(tutar), 0) as toplam FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [buAy]
+      )).rows[0];
+      const mrr = parseFloat(mrrResult.toplam);
+
+      // Geçen ay MRR
+      const gecenAyMrr = (await pool.query(
+        "SELECT COALESCE(SUM(tutar), 0) as toplam FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [gecenAy]
+      )).rows[0];
+      const mrrGecen = parseFloat(gecenAyMrr.toplam);
+
+      // MRR Büyüme %
+      const mrrBuyume = mrrGecen > 0 ? ((mrr - mrrGecen) / mrrGecen * 100).toFixed(1) : 0;
+
+      // ARR (Annual Recurring Revenue) — MRR x 12
+      const arr = mrr * 12;
+
+      // Churn: Geçen ay ödeyip bu ay ödemeyenler
+      const gecenAyOdeyenler = (await pool.query(
+        "SELECT DISTINCT isletme_id FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [gecenAy]
+      )).rows.map(r => r.isletme_id);
+
+      const buAyOdeyenler = (await pool.query(
+        "SELECT DISTINCT isletme_id FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [buAy]
+      )).rows.map(r => r.isletme_id);
+
+      const churnSayi = gecenAyOdeyenler.filter(id => !buAyOdeyenler.includes(id)).length;
+      const churnRate = gecenAyOdeyenler.length > 0 ? ((churnSayi / gecenAyOdeyenler.length) * 100).toFixed(1) : 0;
+
+      // Yeni müşteriler (bu ay ödeyip geçen ay ödemeyenler)
+      const yeniMusteri = buAyOdeyenler.filter(id => !gecenAyOdeyenler.includes(id)).length;
+
+      // Paket dağılımı
+      const paketDagilimi = (await pool.query(
+        "SELECT paket, COUNT(*) as sayi FROM isletmeler WHERE aktif = true GROUP BY paket ORDER BY sayi DESC"
+      )).rows;
+
+      // Son 6 ay gelir trendi
+      const gelirTrendi = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(); d.setMonth(d.getMonth() - i);
+        const donem = d.toISOString().slice(0, 7);
+        const gelir = (await pool.query(
+          "SELECT COALESCE(SUM(tutar), 0) as toplam FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [donem]
+        )).rows[0];
+        const odeyenSayi = (await pool.query(
+          "SELECT COUNT(DISTINCT isletme_id) as sayi FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [donem]
+        )).rows[0];
+        gelirTrendi.push({ donem, gelir: parseFloat(gelir.toplam), odeyen: parseInt(odeyenSayi.sayi) });
+      }
+
+      // ARPU (Average Revenue Per User)
+      const arpu = buAyOdeyenler.length > 0 ? (mrr / buAyOdeyenler.length).toFixed(0) : 0;
+
+      // Kategori dağılımı
+      const kategoriDagilimi = (await pool.query(
+        "SELECT kategori, COUNT(*) as sayi FROM isletmeler WHERE aktif = true GROUP BY kategori ORDER BY sayi DESC"
+      )).rows;
+
+      res.json({
+        mrr, mrrGecen, mrrBuyume: parseFloat(mrrBuyume),
+        arr,
+        churnSayi, churnRate: parseFloat(churnRate),
+        yeniMusteri,
+        aktifIsletme: parseInt(aktifIsletme.sayi),
+        buAyOdeyen: buAyOdeyenler.length,
+        arpu: parseFloat(arpu),
+        paketDagilimi,
+        kategoriDagilimi,
+        gelirTrendi
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== IMPERSONATION (Müşteri olarak giriş) ====================
+
+  async impersonate(req, res) {
+    try {
+      const isletmeId = parseInt(req.params.id);
+      const jwt = require('jsonwebtoken');
+      
+      // İşletme admin kullanıcısını bul
+      const kullanici = (await pool.query(
+        "SELECT * FROM admin_kullanicilar WHERE isletme_id = $1 AND aktif = true ORDER BY id LIMIT 1",
+        [isletmeId]
+      )).rows[0];
+
+      if (!kullanici) return res.status(404).json({ hata: 'Bu işletme için admin kullanıcı bulunamadı' });
+
+      const jwtSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
+      const token = jwt.sign(
+        { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, impersonated: true, impersonator: req.kullanici.email },
+        jwtSecret,
+        { expiresIn: '2h' }
+      );
+
+      const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+
+      console.log(`👤 Impersonation: ${req.kullanici.email} → ${isletme?.isim} (${kullanici.email})`);
+
+      res.json({ token, isletme_isim: isletme?.isim, kullanici_email: kullanici.email });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== SATIŞ BOT — ÇOKLU NUMARA ====================
+
+  async satisBotNumaralar(req, res) {
+    try {
+      const result = await pool.query(
+        "SELECT * FROM satis_bot_numaralar ORDER BY id"
+      );
+      res.json({ numaralar: result.rows });
+    } catch (error) {
+      // Tablo yoksa boş dön
+      res.json({ numaralar: [] });
+    }
+  }
+
+  async satisBotNumaraEkle(req, res) {
+    try {
+      const { isim, telefon } = req.body;
+      const result = await pool.query(
+        "INSERT INTO satis_bot_numaralar (isim, telefon, durum, gonderim_sayisi) VALUES ($1, $2, 'bekliyor', 0) RETURNING *",
+        [isim || 'Numara', telefon || '']
+      );
+      res.json({ numara: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisBotNumaraSil(req, res) {
+    try {
+      await pool.query("DELETE FROM satis_bot_numaralar WHERE id = $1", [req.params.id]);
+      res.json({ mesaj: 'Numara silindi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisBotNumaraDurumGuncelle(req, res) {
+    try {
+      const { durum, ban_notu } = req.body;
+      const fields = ['durum = $1'];
+      const values = [durum];
+      let idx = 2;
+      if (ban_notu !== undefined) { fields.push(`ban_notu = $${idx++}`); values.push(ban_notu); }
+      if (durum === 'banli') { fields.push(`ban_tarihi = NOW()`); }
+      values.push(req.params.id);
+      await pool.query(
+        `UPDATE satis_bot_numaralar SET ${fields.join(', ')} WHERE id = $${idx}`, values
+      );
+      res.json({ mesaj: 'Güncellendi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
 }
 
 module.exports = new AdminController();
