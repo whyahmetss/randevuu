@@ -140,6 +140,76 @@ const PORT = process.env.PORT || 3000;
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
 
+    // ─── AUDIT LOG (Sistem Logları) ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS audit_log (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER,
+      kullanici_id INTEGER,
+      kullanici_email VARCHAR(200),
+      islem VARCHAR(100) NOT NULL,
+      detay TEXT,
+      hedef_tablo VARCHAR(100),
+      hedef_id INTEGER,
+      ip_adresi VARCHAR(50),
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── DESTEK TALEPLERİ (Ticket Sistemi) ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS destek_talepleri (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER REFERENCES isletmeler(id) ON DELETE CASCADE,
+      kullanici_id INTEGER,
+      konu VARCHAR(200) NOT NULL,
+      mesaj TEXT NOT NULL,
+      oncelik VARCHAR(20) DEFAULT 'normal',
+      durum VARCHAR(30) DEFAULT 'acik',
+      admin_yanit TEXT,
+      admin_yanit_tarihi TIMESTAMP,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── GLOBAL DUYURULAR ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS duyurular (
+      id SERIAL PRIMARY KEY,
+      baslik VARCHAR(300) NOT NULL,
+      mesaj TEXT NOT NULL,
+      tip VARCHAR(30) DEFAULT 'bilgi',
+      aktif BOOLEAN DEFAULT true,
+      hedef VARCHAR(30) DEFAULT 'hepsi',
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── REFERANS (Affiliate) SİSTEMİ ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS referanslar (
+      id SERIAL PRIMARY KEY,
+      referans_kodu VARCHAR(50) UNIQUE NOT NULL,
+      sahip_isletme_id INTEGER REFERENCES isletmeler(id) ON DELETE CASCADE,
+      kazanilan_ay INTEGER DEFAULT 0,
+      toplam_davet INTEGER DEFAULT 0,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(50)`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_ile_gelen INTEGER`);
+
+    // ─── DİNAMİK PAKETLER ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS paket_tanimlari (
+      id SERIAL PRIMARY KEY,
+      kod VARCHAR(50) UNIQUE NOT NULL,
+      isim VARCHAR(100) NOT NULL,
+      fiyat DECIMAL(10,2) NOT NULL,
+      calisan_limit INTEGER DEFAULT 1,
+      hizmet_limit INTEGER DEFAULT 5,
+      aylik_randevu_limit INTEGER DEFAULT 100,
+      bot_aktif BOOLEAN DEFAULT true,
+      hatirlatma BOOLEAN DEFAULT false,
+      istatistik BOOLEAN DEFAULT false,
+      export_aktif BOOLEAN DEFAULT false,
+      ozellikler TEXT,
+      aktif BOOLEAN DEFAULT true,
+      sira INTEGER DEFAULT 0,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);

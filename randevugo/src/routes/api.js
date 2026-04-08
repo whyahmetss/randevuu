@@ -113,4 +113,40 @@ router.post('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, 
 router.delete('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraSil(req, res));
 router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraDurumGuncelle(req, res));
 
+// ==================== AUDIT LOG ====================
+router.get('/admin/audit-log', authMiddleware, superAdminMiddleware, (req, res) => adminController.auditLogListele(req, res));
+
+// ==================== UPTIME & HEALTH MONITOR ====================
+router.get('/admin/sistem-durumu', authMiddleware, superAdminMiddleware, (req, res) => adminController.sistemDurumu(req, res));
+
+// ==================== DESTEK TALEPLERİ (Ticket) ====================
+router.post('/destek', authMiddleware, (req, res) => adminController.destekTalebiOlustur(req, res));
+router.get('/destek', authMiddleware, (req, res) => adminController.destekTaleplerimGetir(req, res));
+router.get('/admin/destek', authMiddleware, superAdminMiddleware, (req, res) => adminController.destekTalepleriListele(req, res));
+router.put('/admin/destek/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.destekTalebiYanitla(req, res));
+
+// ==================== DİNAMİK PAKET YÖNETİMİ ====================
+router.get('/admin/paketler', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimlariGetir(req, res));
+router.post('/admin/paketler', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimiEkle(req, res));
+router.put('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimiGuncelle(req, res));
+router.delete('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimiSil(req, res));
+
+// ==================== ZOMBİ MÜŞTERİ TAKİBİ ====================
+router.get('/admin/zombiler', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiMusteriler(req, res));
+
+// ==================== REFERANS (Affiliate) SİSTEMİ ====================
+router.get('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res) => adminController.referanslarListele(req, res));
+router.post('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res) => adminController.referansOlustur(req, res));
+router.post('/referans/kullan', (req, res) => adminController.referansKullan(req, res));
+
+// ==================== GLOBAL DUYURULAR ====================
+router.get('/admin/duyurular', authMiddleware, superAdminMiddleware, (req, res) => adminController.duyurulariGetir(req, res));
+router.post('/admin/duyurular', authMiddleware, superAdminMiddleware, (req, res) => adminController.duyuruEkle(req, res));
+router.put('/admin/duyurular/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.duyuruGuncelle(req, res));
+router.delete('/admin/duyurular/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.duyuruSil(req, res));
+router.get('/duyurular', authMiddleware, (req, res) => adminController.aktifDuyurular(req, res));
+
+// ==================== VERİ DIŞA AKTARMA (Export) ====================
+router.get('/export/musteriler', authMiddleware, (req, res) => adminController.exportMusteriler(req, res));
+
 module.exports = router;

@@ -1523,6 +1523,29 @@ function SuperAdminPanel({ kullanici }) {
   const [numaralar, setNumaralar] = useState([]);
   const [numaraFormAcik, setNumaraFormAcik] = useState(false);
   const [yeniNumara, setYeniNumara] = useState({ isim: "", telefon: "" });
+  // Audit Log
+  const [auditLoglar, setAuditLoglar] = useState([]);
+  const [auditToplam, setAuditToplam] = useState(0);
+  const [auditFiltre, setAuditFiltre] = useState("");
+  // Sistem Durumu
+  const [sistemDurum, setSistemDurum] = useState(null);
+  // Destek Talepleri
+  const [destekTalepler, setDestekTalepler] = useState([]);
+  const [destekFiltre, setDestekFiltre] = useState("hepsi");
+  const [destekYanitAcik, setDestekYanitAcik] = useState(null);
+  const [destekYanitMetin, setDestekYanitMetin] = useState("");
+  // Dinamik Paketler
+  const [paketTanimlar, setPaketTanimlar] = useState([]);
+  const [paketFormAcik, setPaketFormAcik] = useState(false);
+  const [yeniPaket, setYeniPaket] = useState({ kod:"", isim:"", fiyat:"", calisan_limit:1, hizmet_limit:5, aylik_randevu_limit:100, bot_aktif:true, hatirlatma:false, istatistik:false, export_aktif:false, ozellikler:"", sira:0 });
+  // Zombi Müşteriler
+  const [zombiler, setZombiler] = useState([]);
+  // Referans Sistemi
+  const [referanslar, setReferanslar] = useState([]);
+  // Duyurular
+  const [duyurular, setDuyurular] = useState([]);
+  const [duyuruFormAcik, setDuyuruFormAcik] = useState(false);
+  const [yeniDuyuru, setYeniDuyuru] = useState({ baslik:"", mesaj:"", tip:"bilgi", hedef:"hepsi" });
   // Avcı Bot state
   const [avciListe, setAvciListe] = useState([]);
   const [avciStats, setAvciStats] = useState(null);
@@ -1601,6 +1624,28 @@ function SuperAdminPanel({ kullanici }) {
     setIletisimMesajlar(d.mesajlar || []);
   };
 
+  const auditLogYukle = async () => {
+    try { const d = await api.get(`/admin/audit-log?limit=50&islem=${auditFiltre}`); setAuditLoglar(d.loglar || []); setAuditToplam(d.toplam || 0); } catch(e) {}
+  };
+  const sistemDurumuYukle = async () => {
+    try { const d = await api.get("/admin/sistem-durumu"); setSistemDurum(d); } catch(e) {}
+  };
+  const destekYukle = async () => {
+    try { const d = await api.get(`/admin/destek?durum=${destekFiltre}`); setDestekTalepler(d.talepler || []); } catch(e) {}
+  };
+  const paketleriYukle = async () => {
+    try { const d = await api.get("/admin/paketler"); setPaketTanimlar(d.paketler || []); } catch(e) {}
+  };
+  const zombileriYukle = async () => {
+    try { const d = await api.get("/admin/zombiler"); setZombiler(d.zombiler || []); } catch(e) {}
+  };
+  const referanslariYukle = async () => {
+    try { const d = await api.get("/admin/referanslar"); setReferanslar(d.referanslar || []); } catch(e) {}
+  };
+  const duyurulariYukle = async () => {
+    try { const d = await api.get("/admin/duyurular"); setDuyurular(d.duyurular || []); } catch(e) {}
+  };
+
   const satisBotYukle = async () => {
     try {
       const d = await api.get("/admin/satis-bot/durum");
@@ -1627,7 +1672,14 @@ function SuperAdminPanel({ kullanici }) {
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
     if (sayfa === "iletisim") iletisimYukle();
     if (sayfa === "satisBot") numaralariYukle();
-  }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak]);
+    if (sayfa === "auditLog") auditLogYukle();
+    if (sayfa === "sistemDurum") sistemDurumuYukle();
+    if (sayfa === "destek") destekYukle();
+    if (sayfa === "paketler") paketleriYukle();
+    if (sayfa === "zombiler") zombileriYukle();
+    if (sayfa === "referanslar") referanslariYukle();
+    if (sayfa === "duyurular") duyurulariYukle();
+  }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak, auditFiltre, destekFiltre]);
 
   const isletmeEkle = async (e) => {
     e.preventDefault();
@@ -1686,9 +1738,16 @@ function SuperAdminPanel({ kullanici }) {
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
     { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
     { id: "odemeler", icon: SVGA.odemeler, label: "Ödemeler" },
+    { id: "destek", icon: <span style={{fontSize:14}}>🎫</span>, label: "Destek" },
+    { id: "paketler", icon: <span style={{fontSize:14}}>📦</span>, label: "Paketler" },
+    { id: "zombiler", icon: <span style={{fontSize:14}}>🧟</span>, label: "Zombiler" },
+    { id: "referanslar", icon: <span style={{fontSize:14}}>🤝</span>, label: "Referanslar" },
+    { id: "duyurular", icon: <span style={{fontSize:14}}>📢</span>, label: "Duyurular" },
     { id: "iletisim", icon: SVGA.iletisim, label: "İletişim" },
     { id: "avci", icon: SVGA.avci, label: "Avcı Bot" },
     { id: "satisBot", icon: SVGA.satisBot, label: "Satış Bot" },
+    { id: "auditLog", icon: <span style={{fontSize:14}}>📋</span>, label: "Audit Log" },
+    { id: "sistemDurum", icon: <span style={{fontSize:14}}>🖥️</span>, label: "Sistem Durumu" },
   ];
 
   const kategoriRenk = { berber: "#3b82f6", kuafor: "#8b5cf6", disci: "#10b981", guzellik: "#f59e0b", veteriner: "#ef4444", diyetisyen: "#06b6d4" };
@@ -2214,6 +2273,421 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               </div>
             ))}
+          </>
+        )}
+
+        {/* AUDIT LOG */}
+        {sayfa === "auditLog" && (
+          <>
+            <div className="page-header">
+              <h1>📋 Audit Log — Sistem Logları</h1>
+              <p>Kim, ne zaman, ne yaptı? Tüm kritik işlem kayıtları ({auditToplam} log)</p>
+            </div>
+            <div className="filter-bar mb-16">
+              {[["","Tümü"],["randevu","Randevu"],["odeme","Ödeme"],["isletme","İşletme"],["silme","Silme"],["destek","Destek"],["export","Export"],["duyuru","Duyuru"],["referans","Referans"]].map(([v,l]) => (
+                <button key={v} onClick={() => setAuditFiltre(v)} className={`pill pill-sm${auditFiltre === v ? ' active' : ''}`}>{l}</button>
+              ))}
+            </div>
+            {auditLoglar.length === 0 ? (
+              <div className="list-empty"><p>Henüz log kaydı yok.</p></div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {auditLoglar.map(l => (
+                  <div key={l.id} className="list-item" style={{ padding: "10px 16px" }}>
+                    <div className="row row-between row-wrap gap-8">
+                      <div className="row row-wrap gap-8" style={{ flex: 1 }}>
+                        <span className="tag" style={{ background: "rgba(139,92,246,.12)", color: "#8b5cf6", fontWeight: 700, fontSize: 11 }}>{l.islem}</span>
+                        <span style={{ color: "var(--text)", fontSize: 13 }}>{l.detay}</span>
+                        {l.isletme_isim && <span style={{ color: "var(--dim)", fontSize: 12 }}>🏢 {l.isletme_isim}</span>}
+                        {l.hedef_tablo && <span style={{ color: "var(--dim)", fontSize: 11 }}>({l.hedef_tablo}#{l.hedef_id})</span>}
+                      </div>
+                      <div className="row gap-8">
+                        <span style={{ color: "var(--dim)", fontSize: 11 }}>{l.kullanici_email}</span>
+                        <span style={{ color: "var(--dim)", fontSize: 11 }}>{new Date(l.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                        {l.ip_adresi && <span style={{ color: "var(--dim)", fontSize: 10 }}>IP: {l.ip_adresi}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* SİSTEM DURUMU */}
+        {sayfa === "sistemDurum" && (
+          <>
+            <div className="page-header">
+              <h1>🖥️ Sistem Durumu & Health Monitor</h1>
+              <p>Sunucu, veritabanı ve servis sağlığı</p>
+            </div>
+            <button onClick={sistemDurumuYukle} className="btn btn-sm mb-16" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", fontWeight: 700 }}>🔄 Yenile</button>
+            {!sistemDurum ? <div style={{ color: "var(--dim)" }}>Yükleniyor...</div> : (
+              <>
+                {/* Genel durum banner */}
+                <div className="card mb-16" style={{ padding: "16px 20px", background: sistemDurum.durum === 'aktif' ? "rgba(16,185,129,.06)" : "rgba(239,68,68,.06)", border: `1px solid ${sistemDurum.durum === 'aktif' ? "rgba(16,185,129,.15)" : "rgba(239,68,68,.15)"}` }}>
+                  <div className="row gap-10">
+                    <span style={{ fontSize: 24 }}>{sistemDurum.durum === 'aktif' ? '✅' : '❌'}</span>
+                    <div>
+                      <div style={{ color: sistemDurum.durum === 'aktif' ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 16 }}>
+                        Sistem {sistemDurum.durum === 'aktif' ? 'Çalışıyor' : 'Sorunlu'}
+                      </div>
+                      <div style={{ color: "var(--dim)", fontSize: 12 }}>Son kontrol: {new Date(sistemDurum.zaman).toLocaleString("tr-TR")}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="stats-grid">
+                  <div className="stat-card green"><div className="sc-icon">⏱️</div><div className="sc-label">Uptime</div><div className="sc-val">{sistemDurum.sunucu.uptime_saat} saat</div></div>
+                  <div className="stat-card blue"><div className="sc-icon">💾</div><div className="sc-label">Bellek</div><div className="sc-val">{sistemDurum.sunucu.bellek_mb} MB</div><div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>/ {sistemDurum.sunucu.bellek_toplam_mb} MB</div></div>
+                  <div className="stat-card" style={{"--card-accent": sistemDurum.veritabani.durum === 'saglikli' ? "#10b981" : "#ef4444"}}>
+                    <div className="sc-icon">🗄️</div><div className="sc-label">Veritabanı</div>
+                    <div className="sc-val" style={{ color: sistemDurum.veritabani.durum === 'saglikli' ? "#10b981" : "#ef4444" }}>{sistemDurum.veritabani.yanit_ms}ms</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>{sistemDurum.veritabani.durum}</div>
+                  </div>
+                  <div className="stat-card amber"><div className="sc-icon">📅</div><div className="sc-label">24s Randevu</div><div className="sc-val">{sistemDurum.son_24_saat.randevu}</div></div>
+                </div>
+
+                {/* Servisler */}
+                <div className="card-dark mt-16">
+                  <h3 style={{ fontSize: 15, color: "var(--muted)", marginBottom: 12 }}>Servisler</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {Object.entries(sistemDurum.servisler).map(([k, v]) => (
+                      <div key={k} className="row row-between" style={{ padding: "10px 14px", background: "var(--bg)", borderRadius: 8 }}>
+                        <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{k.replace(/_/g, ' ')}</span>
+                        <span className="tag" style={{ background: v === 'bagli' || v === 'aktif' ? "rgba(16,185,129,.15)" : "rgba(245,158,11,.15)", color: v === 'bagli' || v === 'aktif' ? "#10b981" : "#f59e0b", fontWeight: 700 }}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* DB Havuzu */}
+                <div className="card-dark mt-16">
+                  <h3 style={{ fontSize: 15, color: "var(--muted)", marginBottom: 12 }}>DB Bağlantı Havuzu</h3>
+                  <div className="row gap-16">
+                    <div><span style={{ color: "var(--dim)", fontSize: 12 }}>Toplam:</span> <strong style={{ color: "var(--text)" }}>{sistemDurum.veritabani.havuz.total}</strong></div>
+                    <div><span style={{ color: "var(--dim)", fontSize: 12 }}>Boşta:</span> <strong style={{ color: "#10b981" }}>{sistemDurum.veritabani.havuz.idle}</strong></div>
+                    <div><span style={{ color: "var(--dim)", fontSize: 12 }}>Bekleyen:</span> <strong style={{ color: "#f59e0b" }}>{sistemDurum.veritabani.havuz.waiting}</strong></div>
+                  </div>
+                </div>
+
+                <div className="card-dark mt-16">
+                  <h3 style={{ fontSize: 15, color: "var(--muted)", marginBottom: 8 }}>Sunucu Bilgileri</h3>
+                  <div style={{ fontSize: 13, color: "var(--dim)", lineHeight: 2 }}>
+                    Platform: <strong style={{ color: "var(--text)" }}>{sistemDurum.sunucu.platform}</strong> · Node: <strong style={{ color: "var(--text)" }}>{sistemDurum.sunucu.node_versiyon}</strong> · CPU: <strong style={{ color: "var(--text)" }}>{sistemDurum.sunucu.cpu_yukleme}</strong> · Hatalar (24s): <strong style={{ color: sistemDurum.son_24_saat.hata > 0 ? "#ef4444" : "#10b981" }}>{sistemDurum.son_24_saat.hata}</strong>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* DESTEK TALEPLERİ */}
+        {sayfa === "destek" && (
+          <>
+            <div className="page-header">
+              <h1>🎫 Destek Talepleri</h1>
+              <p>Müşterilerden gelen destek talepleri</p>
+            </div>
+            <div className="filter-bar mb-16">
+              {[["hepsi","Tümü"],["acik","Açık"],["yanitlandi","Yanıtlandı"],["cozuldu","Çözüldü"],["kapali","Kapalı"]].map(([v,l]) => (
+                <button key={v} onClick={() => setDestekFiltre(v)} className={`pill pill-sm${destekFiltre === v ? ' active' : ''}`}>{l}</button>
+              ))}
+            </div>
+            {destekTalepler.length === 0 ? (
+              <div className="list-empty"><p>Destek talebi yok.</p></div>
+            ) : destekTalepler.map(t => {
+              const oncelikRenk = { acil: "#ef4444", yuksek: "#f59e0b", normal: "#3b82f6", dusuk: "#64748b" };
+              const durumRenk = { acik: "#f59e0b", yanitlandi: "#3b82f6", cozuldu: "#10b981", kapali: "#64748b" };
+              return (
+                <div key={t.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
+                  <div className="row row-between row-wrap gap-8">
+                    <div className="row row-wrap gap-8">
+                      <span className="tag" style={{ background: (oncelikRenk[t.oncelik]||"#64748b") + "22", color: oncelikRenk[t.oncelik]||"#64748b", fontWeight: 700, fontSize: 11 }}>{t.oncelik}</span>
+                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{t.konu}</span>
+                      {t.isletme_isim && <span style={{ color: "var(--dim)", fontSize: 12 }}>🏢 {t.isletme_isim}</span>}
+                    </div>
+                    <div className="row gap-8">
+                      <span className="tag" style={{ background: (durumRenk[t.durum]||"#64748b") + "22", color: durumRenk[t.durum]||"#64748b", fontWeight: 700, fontSize: 11 }}>{t.durum}</span>
+                      <span style={{ color: "var(--dim)", fontSize: 11 }}>{new Date(t.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                    </div>
+                  </div>
+                  <div style={{ color: "var(--muted)", fontSize: 13, background: "var(--bg)", padding: "10px 14px", borderRadius: 8 }}>{t.mesaj}</div>
+                  {t.admin_yanit && (
+                    <div style={{ background: "rgba(16,185,129,.05)", border: "1px solid rgba(16,185,129,.12)", borderRadius: 8, padding: "10px 14px" }}>
+                      <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, marginBottom: 4 }}>Admin Yanıtı ({t.admin_yanit_tarihi ? new Date(t.admin_yanit_tarihi).toLocaleString("tr-TR") : ""})</div>
+                      <div style={{ color: "var(--text)", fontSize: 13 }}>{t.admin_yanit}</div>
+                    </div>
+                  )}
+                  <div className="row gap-6">
+                    {destekYanitAcik === t.id ? (
+                      <div className="row gap-8" style={{ flex: 1 }}>
+                        <input value={destekYanitMetin} onChange={e => setDestekYanitMetin(e.target.value)} placeholder="Yanıtınızı yazın..." className="input" style={{ flex: 1 }} />
+                        <button onClick={async () => {
+                          await api.put(`/admin/destek/${t.id}`, { admin_yanit: destekYanitMetin, durum: 'yanitlandi' });
+                          setDestekYanitAcik(null); setDestekYanitMetin(""); destekYukle();
+                        }} className="btn btn-sm" style={{ background: "#10b981", color: "#fff", fontWeight: 700 }}>Gönder</button>
+                        <button onClick={() => setDestekYanitAcik(null)} className="btn btn-ghost btn-sm">İptal</button>
+                      </div>
+                    ) : (
+                      <>
+                        <button onClick={() => { setDestekYanitAcik(t.id); setDestekYanitMetin(t.admin_yanit || ""); }} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", border: "none", fontWeight: 600 }}>💬 Yanıtla</button>
+                        {t.durum !== 'cozuldu' && <button onClick={async () => { await api.put(`/admin/destek/${t.id}`, { durum: 'cozuldu' }); destekYukle(); }} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "#10b981", border: "none", fontWeight: 600 }}>✓ Çözüldü</button>}
+                        {t.durum !== 'kapali' && <button onClick={async () => { await api.put(`/admin/destek/${t.id}`, { durum: 'kapali' }); destekYukle(); }} className="btn btn-sm" style={{ background: "rgba(100,116,139,.12)", color: "#64748b", border: "none" }}>Kapat</button>}
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/* DİNAMİK PAKETLER */}
+        {sayfa === "paketler" && (
+          <>
+            <div className="page-header">
+              <h1>📦 Paket Yönetimi</h1>
+              <p>Paket özelliklerini if/else yazmadan panelden yönet</p>
+            </div>
+            <button onClick={() => setPaketFormAcik(!paketFormAcik)} className="btn btn-sm mb-16" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>+ Yeni Paket Tanımla</button>
+
+            {paketFormAcik && (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                await api.post("/admin/paketler", yeniPaket);
+                setYeniPaket({ kod:"", isim:"", fiyat:"", calisan_limit:1, hizmet_limit:5, aylik_randevu_limit:100, bot_aktif:true, hatirlatma:false, istatistik:false, export_aktif:false, ozellikler:"", sira:0 });
+                setPaketFormAcik(false); paketleriYukle();
+              }} className="form-card card-accent-amber mb-16">
+                <h3 className="amber">Yeni Paket</h3>
+                <div className="form-grid">
+                  <div><label className="form-label">Kod</label><input value={yeniPaket.kod} onChange={e => setYeniPaket({...yeniPaket, kod: e.target.value})} placeholder="premium_plus" className="input" required /></div>
+                  <div><label className="form-label">İsim</label><input value={yeniPaket.isim} onChange={e => setYeniPaket({...yeniPaket, isim: e.target.value})} placeholder="Premium Plus" className="input" required /></div>
+                  <div><label className="form-label">Fiyat (₺)</label><input type="number" value={yeniPaket.fiyat} onChange={e => setYeniPaket({...yeniPaket, fiyat: e.target.value})} placeholder="1499" className="input" required /></div>
+                  <div><label className="form-label">Çalışan Limiti</label><input type="number" value={yeniPaket.calisan_limit} onChange={e => setYeniPaket({...yeniPaket, calisan_limit: parseInt(e.target.value)})} className="input" /></div>
+                  <div><label className="form-label">Hizmet Limiti</label><input type="number" value={yeniPaket.hizmet_limit} onChange={e => setYeniPaket({...yeniPaket, hizmet_limit: parseInt(e.target.value)})} className="input" /></div>
+                  <div><label className="form-label">Aylık Randevu Limiti</label><input type="number" value={yeniPaket.aylik_randevu_limit} onChange={e => setYeniPaket({...yeniPaket, aylik_randevu_limit: parseInt(e.target.value)})} className="input" /></div>
+                </div>
+                <div className="row row-wrap gap-12 mt-12">
+                  {[["bot_aktif","Bot"],["hatirlatma","Hatırlatma"],["istatistik","İstatistik"],["export_aktif","Excel Export"]].map(([k,l]) => (
+                    <label key={k} className="row gap-6" style={{ fontSize: 13, cursor: "pointer" }}>
+                      <input type="checkbox" checked={yeniPaket[k]} onChange={e => setYeniPaket({...yeniPaket, [k]: e.target.checked})} />
+                      <span style={{ color: "var(--text)" }}>{l}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-12"><label className="form-label">Özellikler (her satır bir madde)</label><textarea value={yeniPaket.ozellikler} onChange={e => setYeniPaket({...yeniPaket, ozellikler: e.target.value})} placeholder="Sınırsız çalışan&#10;Sınırsız hizmet" className="input" rows={3} style={{ resize: "vertical" }} /></div>
+                <div className="form-actions mt-12">
+                  <button type="submit" className="btn" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>Kaydet</button>
+                  <button type="button" onClick={() => setPaketFormAcik(false)} className="btn btn-ghost">İptal</button>
+                </div>
+              </form>
+            )}
+
+            {paketTanimlar.length === 0 ? (
+              <div className="card-dark" style={{ padding: 20, textAlign: "center" }}>
+                <p style={{ color: "var(--dim)", marginBottom: 12 }}>Henüz DB'de paket tanımı yok. Mevcut paketler config dosyasından okunuyor.</p>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+                  {Object.entries({baslangic:{isim:"Başlangıç",fiyat:299}, profesyonel:{isim:"Profesyonel",fiyat:599}, premium:{isim:"Premium",fiyat:999}}).map(([kod,p]) => (
+                    <button key={kod} onClick={async () => {
+                      const PAKET_DEFAULTS = {baslangic:{calisan_limit:1,hizmet_limit:5,aylik_randevu_limit:100,bot_aktif:true,hatirlatma:false,istatistik:false,export_aktif:false},profesyonel:{calisan_limit:5,hizmet_limit:20,aylik_randevu_limit:500,bot_aktif:true,hatirlatma:true,istatistik:false,export_aktif:false},premium:{calisan_limit:999,hizmet_limit:999,aylik_randevu_limit:99999,bot_aktif:true,hatirlatma:true,istatistik:true,export_aktif:true}};
+                      await api.post("/admin/paketler", { kod, isim: p.isim, fiyat: p.fiyat, ...PAKET_DEFAULTS[kod], sira: kod==='baslangic'?1:kod==='profesyonel'?2:3 });
+                      paketleriYukle();
+                    }} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", fontWeight: 700 }}>
+                      {p.isim} ({p.fiyat}₺) DB'ye Aktar
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : paketTanimlar.map(p => (
+              <div key={p.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
+                <div className="row row-between row-wrap gap-8">
+                  <div className="row row-wrap gap-8">
+                    <span style={{ color: paketRenk[p.kod] || "#8b5cf6", fontWeight: 700, fontSize: 16 }}>{p.isim}</span>
+                    <span className="tag" style={{ background: "rgba(245,158,11,.12)", color: "#f59e0b", fontWeight: 700 }}>{parseFloat(p.fiyat)}₺/ay</span>
+                    <span style={{ color: "var(--dim)", fontSize: 12 }}>kod: {p.kod}</span>
+                    {!p.aktif && <span className="tag" style={{ background: "rgba(239,68,68,.12)", color: "#ef4444", fontWeight: 600, fontSize: 11 }}>Pasif</span>}
+                  </div>
+                  <button onClick={async () => { if(confirm(`"${p.isim}" paketini silmek istediğinize emin misiniz?`)) { await api.del(`/admin/paketler/${p.id}`); paketleriYukle(); } }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
+                </div>
+                <div className="row row-wrap gap-12" style={{ fontSize: 12, color: "var(--dim)" }}>
+                  <span>👥 {p.calisan_limit >= 999 ? "Sınırsız" : p.calisan_limit} çalışan</span>
+                  <span>🔧 {p.hizmet_limit >= 999 ? "Sınırsız" : p.hizmet_limit} hizmet</span>
+                  <span>📅 {p.aylik_randevu_limit >= 9999 ? "Sınırsız" : p.aylik_randevu_limit} randevu</span>
+                  {p.bot_aktif && <span style={{ color: "#10b981" }}>🤖 Bot</span>}
+                  {p.hatirlatma && <span style={{ color: "#3b82f6" }}>🔔 Hatırlatma</span>}
+                  {p.istatistik && <span style={{ color: "#8b5cf6" }}>📊 İstatistik</span>}
+                  {p.export_aktif && <span style={{ color: "#f59e0b" }}>📥 Export</span>}
+                </div>
+                {p.ozellikler && <div style={{ fontSize: 12, color: "var(--dim)" }}>{p.ozellikler}</div>}
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* ZOMBİ MÜŞTERİLER */}
+        {sayfa === "zombiler" && (
+          <>
+            <div className="page-header">
+              <h1>🧟 Zombi Müşteri Takibi</h1>
+              <p>Kayıt olup botu bağlamayan veya hiç randevu almayan müşteriler</p>
+            </div>
+            <div className="stats-grid" style={{ marginBottom: 16 }}>
+              <div className="stat-card" style={{"--card-accent":"#ef4444"}}><div className="sc-icon">🚫</div><div className="sc-label">Bot Bağlamayan</div><div className="sc-val">{zombiler.filter(z => z.zombi_durum === 'bot_yok').length}</div></div>
+              <div className="stat-card amber"><div className="sc-icon">📭</div><div className="sc-label">Hiç Randevu Yok</div><div className="sc-val">{zombiler.filter(z => z.zombi_durum === 'randevu_yok').length}</div></div>
+              <div className="stat-card blue"><div className="sc-icon">😴</div><div className="sc-label">30+ Gün Pasif</div><div className="sc-val">{zombiler.filter(z => z.zombi_durum === 'pasif').length}</div></div>
+              <div className="stat-card green"><div className="sc-icon">🧟</div><div className="sc-label">Toplam Zombi</div><div className="sc-val">{zombiler.length}</div></div>
+            </div>
+            {zombiler.length === 0 ? (
+              <div className="list-empty"><p>Zombi müşteri yok! Herkes aktif 🎉</p></div>
+            ) : zombiler.map(z => {
+              const durumRenk = { bot_yok: "#ef4444", randevu_yok: "#f59e0b", pasif: "#3b82f6" };
+              const durumLabel = { bot_yok: "🚫 Bot Bağlanmamış", randevu_yok: "📭 Hiç Randevu Yok", pasif: "😴 30+ Gün Pasif" };
+              return (
+                <div key={z.id} className="list-item" style={{ padding: "12px 16px" }}>
+                  <div className="row row-between row-wrap gap-8">
+                    <div className="row row-wrap gap-8">
+                      <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{z.isim}</span>
+                      <span style={{ color: "var(--dim)", fontSize: 12 }}>📞 {z.telefon}</span>
+                      <span className="tag" style={{ background: (durumRenk[z.zombi_durum]||"#64748b") + "22", color: durumRenk[z.zombi_durum]||"#64748b", fontWeight: 700, fontSize: 11 }}>{durumLabel[z.zombi_durum] || z.zombi_durum}</span>
+                      <span style={{ color: "var(--dim)", fontSize: 11 }}>{z.kategori} · {z.paket}</span>
+                      <span style={{ color: "var(--dim)", fontSize: 11 }}>Kayıt: {new Date(z.olusturma_tarihi).toLocaleDateString("tr-TR")}</span>
+                    </div>
+                    <div className="row gap-6">
+                      <span style={{ color: "var(--dim)", fontSize: 12 }}>📅 {z.randevu_sayisi} randevu</span>
+                      {z.son_randevu && <span style={{ color: "var(--dim)", fontSize: 11 }}>Son: {new Date(z.son_randevu).toLocaleDateString("tr-TR")}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/* REFERANS (Affiliate) SİSTEMİ */}
+        {sayfa === "referanslar" && (
+          <>
+            <div className="page-header">
+              <h1>🤝 Referans (Affiliate) Sistemi</h1>
+              <p>"Müşteri getiren işletmeye 1 ay bedava" — Bırak esnaf senin için pazarlama yapsın</p>
+            </div>
+            <div className="stats-grid" style={{ marginBottom: 16 }}>
+              <div className="stat-card green"><div className="sc-icon">🔗</div><div className="sc-label">Toplam Referans</div><div className="sc-val">{referanslar.length}</div></div>
+              <div className="stat-card blue"><div className="sc-icon">👥</div><div className="sc-label">Toplam Davet</div><div className="sc-val">{referanslar.reduce((s,r) => s + r.toplam_davet, 0)}</div></div>
+              <div className="stat-card amber"><div className="sc-icon">🎁</div><div className="sc-label">Kazanılan Ay</div><div className="sc-val">{referanslar.reduce((s,r) => s + r.kazanilan_ay, 0)}</div></div>
+            </div>
+
+            <div className="card-dark mb-16" style={{ padding: 16 }}>
+              <h3 style={{ fontSize: 14, color: "var(--muted)", marginBottom: 8 }}>Yeni Referans Kodu Oluştur</h3>
+              <div className="row gap-12" style={{ alignItems: "flex-end" }}>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label">İşletme</label>
+                  <select id="refIsletme" className="input">
+                    <option value="">Seç...</option>
+                    {isletmeler.map(i => <option key={i.id} value={i.id}>{i.isim}</option>)}
+                  </select>
+                </div>
+                <button onClick={async () => {
+                  const isletme_id = document.getElementById('refIsletme').value;
+                  if (!isletme_id) { alert('İşletme seçin'); return; }
+                  const res = await api.post("/admin/referanslar", { isletme_id });
+                  if (res.referans) { alert(`Referans kodu: ${res.referans.referans_kodu}`); referanslariYukle(); }
+                }} className="btn btn-sm" style={{ background: "#10b981", color: "#fff", fontWeight: 700 }}>Oluştur</button>
+              </div>
+            </div>
+
+            {referanslar.length === 0 ? (
+              <div className="list-empty"><p>Henüz referans kodu yok.</p></div>
+            ) : referanslar.map(r => (
+              <div key={r.id} className="list-item" style={{ padding: "12px 16px" }}>
+                <div className="row row-between row-wrap gap-8">
+                  <div className="row row-wrap gap-8">
+                    <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{r.isletme_isim}</span>
+                    <span className="tag" style={{ background: "rgba(16,185,129,.12)", color: "#10b981", fontWeight: 700, fontSize: 13, fontFamily: "monospace" }}>{r.referans_kodu}</span>
+                  </div>
+                  <div className="row gap-12">
+                    <span style={{ color: "var(--dim)", fontSize: 12 }}>👥 {r.toplam_davet} davet</span>
+                    <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 600 }}>🎁 {r.kazanilan_ay} ay bedava</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* GLOBAL DUYURULAR */}
+        {sayfa === "duyurular" && (
+          <>
+            <div className="page-header">
+              <h1>📢 Duyurular</h1>
+              <p>Tek tuşla tüm müşterilerin dashboard'una bildirim çak</p>
+            </div>
+            <button onClick={() => setDuyuruFormAcik(!duyuruFormAcik)} className="btn btn-sm mb-16" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>+ Yeni Duyuru</button>
+
+            {duyuruFormAcik && (
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                await api.post("/admin/duyurular", yeniDuyuru);
+                setYeniDuyuru({ baslik:"", mesaj:"", tip:"bilgi", hedef:"hepsi" });
+                setDuyuruFormAcik(false); duyurulariYukle();
+              }} className="form-card card-accent-amber mb-16">
+                <h3 className="amber">Yeni Duyuru Yayınla</h3>
+                <div className="form-grid">
+                  <div><label className="form-label">Başlık</label><input value={yeniDuyuru.baslik} onChange={e => setYeniDuyuru({...yeniDuyuru, baslik: e.target.value})} placeholder="🎉 Yeni özellik!" className="input" required /></div>
+                  <div>
+                    <label className="form-label">Tip</label>
+                    <select value={yeniDuyuru.tip} onChange={e => setYeniDuyuru({...yeniDuyuru, tip: e.target.value})} className="input">
+                      <option value="bilgi">ℹ️ Bilgi</option>
+                      <option value="guncelleme">🆕 Güncelleme</option>
+                      <option value="bakim">🔧 Bakım</option>
+                      <option value="uyari">⚠️ Uyarı</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Hedef</label>
+                    <select value={yeniDuyuru.hedef} onChange={e => setYeniDuyuru({...yeniDuyuru, hedef: e.target.value})} className="input">
+                      <option value="hepsi">Tüm Müşteriler</option>
+                      <option value="premium">Sadece Premium</option>
+                      <option value="profesyonel">Profesyonel+</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-12"><label className="form-label">Mesaj</label><textarea value={yeniDuyuru.mesaj} onChange={e => setYeniDuyuru({...yeniDuyuru, mesaj: e.target.value})} placeholder="Duyuru içeriğini yazın..." className="input" rows={3} required /></div>
+                <div className="form-actions mt-12">
+                  <button type="submit" className="btn" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>Yayınla 🚀</button>
+                  <button type="button" onClick={() => setDuyuruFormAcik(false)} className="btn btn-ghost">İptal</button>
+                </div>
+              </form>
+            )}
+
+            {duyurular.length === 0 ? (
+              <div className="list-empty"><p>Henüz duyuru yok.</p></div>
+            ) : duyurular.map(d => {
+              const tipRenk = { bilgi: "#3b82f6", guncelleme: "#10b981", bakim: "#f59e0b", uyari: "#ef4444" };
+              const tipIcon = { bilgi: "ℹ️", guncelleme: "🆕", bakim: "🔧", uyari: "⚠️" };
+              return (
+                <div key={d.id} className="list-item" style={{ flexDirection: "column", gap: 8, opacity: d.aktif ? 1 : 0.5 }}>
+                  <div className="row row-between row-wrap gap-8">
+                    <div className="row row-wrap gap-8">
+                      <span style={{ fontSize: 16 }}>{tipIcon[d.tip] || "📢"}</span>
+                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{d.baslik}</span>
+                      <span className="tag" style={{ background: (tipRenk[d.tip]||"#64748b") + "22", color: tipRenk[d.tip]||"#64748b", fontWeight: 700, fontSize: 11 }}>{d.tip}</span>
+                      <span style={{ color: "var(--dim)", fontSize: 11 }}>Hedef: {d.hedef}</span>
+                    </div>
+                    <div className="row gap-6">
+                      <button onClick={async () => { await api.put(`/admin/duyurular/${d.id}`, { ...d, aktif: !d.aktif }); duyurulariYukle(); }}
+                        className="btn btn-sm" style={{ background: d.aktif ? "rgba(239,68,68,.12)" : "rgba(16,185,129,.12)", color: d.aktif ? "#ef4444" : "#10b981", border: "none", fontWeight: 600, fontSize: 11 }}>
+                        {d.aktif ? "Pasifleştir" : "Aktifleştir"}
+                      </button>
+                      <button onClick={async () => { if(confirm('Bu duyuruyu silmek istediğinize emin misiniz?')) { await api.del(`/admin/duyurular/${d.id}`); duyurulariYukle(); } }}
+                        className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
+                      <span style={{ color: "var(--dim)", fontSize: 11 }}>{new Date(d.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                    </div>
+                  </div>
+                  <div style={{ color: "var(--muted)", fontSize: 13 }}>{d.mesaj}</div>
+                </div>
+              );
+            })}
           </>
         )}
 
