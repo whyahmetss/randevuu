@@ -271,7 +271,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
             <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>
             <span className="tag-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", fontWeight: 700 }}>{h.fiyat} ₺</span>
           </div>
-          <button onClick={() => sil(h.id)} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
+          <button onClick={() => sil(h.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", transition: "all .2s" }} onMouseOver={e => { e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-s)"; }} onMouseOut={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "none"; }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div>
       ))}
     </>
@@ -843,8 +843,8 @@ function Dashboard() {
                       <Bar data={{
                         labels: (grafikVeri.haftalik || []).map(h => { const d = new Date(h.tarih); return d.toLocaleDateString("tr-TR", { weekday: "short", day: "numeric" }); }),
                         datasets: [
-                          { label: "Toplam", data: (grafikVeri.haftalik || []).map(h => parseInt(h.sayi)), backgroundColor: "rgba(99,102,241,.6)", borderRadius: 6 },
-                          { label: "Onaylanan", data: (grafikVeri.haftalik || []).map(h => parseInt(h.onaylanan)), backgroundColor: "rgba(16,185,129,.6)", borderRadius: 6 },
+                          { label: "Toplam", data: (grafikVeri.haftalik || []).map(h => parseInt(h.sayi)), backgroundColor: "rgba(139,92,246,.5)", hoverBackgroundColor: "rgba(139,92,246,.7)", borderRadius: 8, borderSkipped: false },
+                          { label: "Onaylanan", data: (grafikVeri.haftalik || []).map(h => parseInt(h.onaylanan)), backgroundColor: "rgba(16,185,129,.5)", hoverBackgroundColor: "rgba(16,185,129,.7)", borderRadius: 8, borderSkipped: false },
                         ]
                       }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8892b0", font: { size: 11 } } } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
                     </div>
@@ -857,7 +857,7 @@ function Dashboard() {
                         labels: (grafikVeri.aylikGelir || []).map(g => { const d = new Date(g.tarih); return `${d.getDate()}/${d.getMonth()+1}`; }),
                         datasets: [{
                           label: "Gelir (₺)", data: (grafikVeri.aylikGelir || []).map(g => parseFloat(g.gelir)),
-                          borderColor: "#a78bfa", backgroundColor: "rgba(167,139,250,.1)", fill: true, tension: .4, pointRadius: 2,
+                          borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.08)", fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: "#10b981", pointBorderColor: "transparent", borderWidth: 2.5,
                         }]
                       }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8892b0", font: { size: 11 } } } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 }, callback: v => v + "₺" }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
                     </div>
@@ -869,8 +869,8 @@ function Dashboard() {
                       <Doughnut data={{
                         labels: (grafikVeri.hizmetDagilimi || []).map(h => h.isim),
                         datasets: [{ data: (grafikVeri.hizmetDagilimi || []).map(h => parseInt(h.sayi)),
-                          backgroundColor: ["#6366f1","#10b981","#f59e0b","#ec4899","#3b82f6","#ef4444","#8b5cf6","#14b8a6"],
-                          borderWidth: 0,
+                          backgroundColor: ["#10b981","#8b5cf6","#a78bfa","#34d399","#6366f1","#c4b5fd","#059669","#7c3aed"],
+                          borderWidth: 0, borderRadius: 4, hoverOffset: 6,
                         }]
                       }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { color: "#8892b0", font: { size: 11 }, padding: 12 } } } }} />
                     </div>
@@ -882,7 +882,7 @@ function Dashboard() {
                       <Bar data={{
                         labels: (grafikVeri.saatDagilimi || []).map(s => s.saat?.slice(0,5)),
                         datasets: [{ label: "Randevu", data: (grafikVeri.saatDagilimi || []).map(s => parseInt(s.sayi)),
-                          backgroundColor: "rgba(245,158,11,.5)", borderRadius: 4,
+                          backgroundColor: "rgba(139,92,246,.4)", hoverBackgroundColor: "rgba(139,92,246,.65)", borderRadius: 8, borderSkipped: false,
                         }]
                       }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
                     </div>
