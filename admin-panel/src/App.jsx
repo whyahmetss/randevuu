@@ -192,15 +192,15 @@ function Login({ onLogin }) {
 // ==================== HİZMETLER SAYFASI ====================
 function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   const [formAcik, setFormAcik] = useState(false);
-  const [form, setForm] = useState({ isim: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "" });
+  const [form, setForm] = useState({ isim: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0" });
   const [hata, setHata] = useState("");
 
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api.post("/hizmetler", { isim: form.isim, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji });
+    const res = await api.post("/hizmetler", { isim: form.isim, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0 });
     if (res.hata) { setHata(res.hata); return; }
-    setForm({ isim: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "" });
+    setForm({ isim: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0" });
     setFormAcik(false);
     yukle();
   };
@@ -251,6 +251,11 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               <label className="form-label">Fiyat (₺) *</label>
               <input type="number" placeholder="150" required value={form.fiyat} onChange={e => setForm({...form, fiyat: e.target.value})} className="input" />
             </div>
+            <div>
+              <label className="form-label">Kapora Oranı (%)</label>
+              <input type="number" min="0" max="100" placeholder="0" value={form.kapora_yuzdesi} onChange={e => setForm({...form, kapora_yuzdesi: e.target.value})} className="input" />
+              <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>0 = kapora yok. Ör: %20 → 150₺ hizmetten 30₺ kapora</div>
+            </div>
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">Kaydet</button>
@@ -270,6 +275,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
             </div>
             <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>
             <span className="tag-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", fontWeight: 700 }}>{h.fiyat} ₺</span>
+            {h.kapora_yuzdesi > 0 && <span className="tag-sm" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", fontWeight: 600 }}>💳 %{h.kapora_yuzdesi} kapora</span>}
           </div>
           <button onClick={() => sil(h.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", transition: "all .2s" }} onMouseOver={e => { e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-s)"; }} onMouseOut={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "none"; }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div>
@@ -282,8 +288,11 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
 function CalisanlarSayfasi({ paketDurum }) {
   const [calisanlar, setCalisanlar] = useState([]);
   const [formAcik, setFormAcik] = useState(false);
-  const [form, setForm] = useState({ isim: "", telefon: "", uzmanlik: "" });
+  const [form, setForm] = useState({ isim: "", telefon: "", uzmanlik: "", calisma_baslangic: "", calisma_bitis: "", kapali_gunler: "", mola_saatleri: [] });
   const [hata, setHata] = useState("");
+  const [duzenle, setDuzenle] = useState(null); // düzenlenen çalışan ID
+  const [hizmetModal, setHizmetModal] = useState(null); // hizmet atama modal
+  const [hizmetListesi, setHizmetListesi] = useState([]);
 
   const yukle = async () => {
     const d = await api.get("/calisanlar");
@@ -292,17 +301,55 @@ function CalisanlarSayfasi({ paketDurum }) {
 
   useEffect(() => { yukle(); }, []);
 
+  const formSifirla = () => ({ isim: "", telefon: "", uzmanlik: "", calisma_baslangic: "", calisma_bitis: "", kapali_gunler: "", mola_saatleri: [] });
+
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api.post("/calisanlar", form);
+    const gonder = { ...form, mola_saatleri: form.mola_saatleri || [] };
+    const res = duzenle
+      ? await api.put(`/calisanlar/${duzenle}`, { ...gonder, aktif: true })
+      : await api.post("/calisanlar", gonder);
     if (res.hata) { setHata(res.hata); return; }
-    setForm({ isim: "", telefon: "", uzmanlik: "" });
+    setForm(formSifirla());
     setFormAcik(false);
+    setDuzenle(null);
     yukle();
   };
 
+  const sil = async (id) => {
+    if (!confirm("Bu çalışanı silmek istediğinize emin misiniz?")) return;
+    await api.del(`/calisanlar/${id}`);
+    yukle();
+  };
+
+  const duzenleBasla = (c) => {
+    const molalar = typeof c.mola_saatleri === 'string' ? JSON.parse(c.mola_saatleri || '[]') : (c.mola_saatleri || []);
+    setForm({
+      isim: c.isim || "", telefon: c.telefon || "", uzmanlik: c.uzmanlik || "",
+      calisma_baslangic: c.calisma_baslangic ? String(c.calisma_baslangic).substring(0, 5) : "",
+      calisma_bitis: c.calisma_bitis ? String(c.calisma_bitis).substring(0, 5) : "",
+      kapali_gunler: c.kapali_gunler || "",
+      mola_saatleri: molalar
+    });
+    setDuzenle(c.id);
+    setFormAcik(true);
+  };
+
+  const hizmetAtamaAc = async (calisanId) => {
+    const d = await api.get(`/calisanlar/${calisanId}/hizmetler`);
+    setHizmetListesi(d.hizmetler || []);
+    setHizmetModal(calisanId);
+  };
+
+  const hizmetAtamaKaydet = async () => {
+    const secili = hizmetListesi.filter(h => h.atanmis).map(h => h.id);
+    await api.put(`/calisanlar/${hizmetModal}/hizmetler`, { hizmet_idler: secili });
+    setHizmetModal(null);
+  };
+
   const limit = paketDurum?.paket_bilgi?.calisan_limit || 1;
+  const gunler = [["0","Paz"],["1","Pzt"],["2","Sal"],["3","Çar"],["4","Per"],["5","Cum"],["6","Cmt"]];
 
   return (
     <>
@@ -314,13 +361,13 @@ function CalisanlarSayfasi({ paketDurum }) {
               {calisanlar.length}/{limit >= 999 ? "∞" : limit} kullanıldı
             </span>
           )}
-          <button onClick={() => setFormAcik(!formAcik)} className="btn btn-primary">+ Yeni Çalışan</button>
+          <button onClick={() => { setForm(formSifirla()); setDuzenle(null); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Çalışan</button>
         </div>
       </div>
 
       {formAcik && (
         <form onSubmit={ekle} className="form-card card-accent-green">
-          <h3 className="green">Yeni Çalışan Ekle</h3>
+          <h3 className="green">{duzenle ? "Çalışan Düzenle" : "Yeni Çalışan Ekle"}</h3>
           {hata && <div className="alert alert-error">{hata}</div>}
           <div className="form-grid">
             <div>
@@ -336,9 +383,76 @@ function CalisanlarSayfasi({ paketDurum }) {
               <input placeholder="sac_kesimi, sakal, cilt_bakimi" value={form.uzmanlik} onChange={e => setForm({...form, uzmanlik: e.target.value})} className="input" />
             </div>
           </div>
+
+          <div style={{ borderTop: "1px solid var(--border2)", margin: "16px 0", paddingTop: 16 }}>
+            <h4 style={{ marginBottom: 12, color: "var(--text)", fontSize: 14 }}>Mesai Saatleri <span style={{ color: "var(--dim)", fontWeight: 400, fontSize: 12 }}>(boş = işletme varsayılanı)</span></h4>
+            <div className="form-grid" style={{ gap: 12 }}>
+              <div>
+                <label className="form-label">Başlangıç</label>
+                <input type="time" value={form.calisma_baslangic} onChange={e => setForm({...form, calisma_baslangic: e.target.value})} className="input" />
+              </div>
+              <div>
+                <label className="form-label">Bitiş</label>
+                <input type="time" value={form.calisma_bitis} onChange={e => setForm({...form, calisma_bitis: e.target.value})} className="input" />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border2)", margin: "16px 0", paddingTop: 16 }}>
+            <h4 style={{ marginBottom: 12, color: "var(--text)", fontSize: 14 }}>Kapalı Günler</h4>
+            <div className="row row-wrap gap-8">
+              {gunler.map(([v, l]) => {
+                const kapalilar = String(form.kapali_gunler || "").split(",").map(s => s.trim()).filter(Boolean);
+                const kapali = kapalilar.includes(v);
+                return (
+                  <button key={v} type="button" onClick={() => {
+                    const yeni = kapali ? kapalilar.filter(k => k !== v) : [...kapalilar, v];
+                    setForm({...form, kapali_gunler: yeni.join(",")});
+                  }} className={`day-btn ${kapali ? 'on' : 'off'}`} style={{ padding: "6px 12px", fontSize: 12 }}>
+                    {l}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ borderTop: "1px solid var(--border2)", margin: "16px 0", paddingTop: 16 }}>
+            <h4 style={{ marginBottom: 12, color: "var(--text)", fontSize: 14 }}>Mola Saatleri</h4>
+            {(form.mola_saatleri || []).map((mola, idx) => (
+              <div key={idx} className="mola-row">
+                <input value={mola.isim || ""} placeholder="Yemek Arası" onChange={e => {
+                  const yeni = [...(form.mola_saatleri || [])];
+                  yeni[idx] = { ...yeni[idx], isim: e.target.value };
+                  setForm({...form, mola_saatleri: yeni});
+                }} className="input flex-1" />
+                <input type="time" value={mola.baslangic || ""} onChange={e => {
+                  const yeni = [...(form.mola_saatleri || [])];
+                  yeni[idx] = { ...yeni[idx], baslangic: e.target.value };
+                  setForm({...form, mola_saatleri: yeni});
+                }} className="input" style={{ width: 110 }} />
+                <span style={{ color: "var(--dim)" }}>—</span>
+                <input type="time" value={mola.bitis || ""} onChange={e => {
+                  const yeni = [...(form.mola_saatleri || [])];
+                  yeni[idx] = { ...yeni[idx], bitis: e.target.value };
+                  setForm({...form, mola_saatleri: yeni});
+                }} className="input" style={{ width: 110 }} />
+                <button type="button" onClick={() => {
+                  const yeni = (form.mola_saatleri || []).filter((_, i) => i !== idx);
+                  setForm({...form, mola_saatleri: yeni});
+                }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "1px solid rgba(239,68,68,.25)" }}>✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => {
+              const yeni = [...(form.mola_saatleri || []), { isim: "", baslangic: "12:00", bitis: "13:00" }];
+              setForm({...form, mola_saatleri: yeni});
+            }} className="btn btn-ghost btn-block" style={{ border: "1px dashed var(--border2)", fontSize: 12 }}>
+              + Mola Ekle
+            </button>
+          </div>
+
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary">Kaydet</button>
-            <button type="button" onClick={() => { setFormAcik(false); setHata(""); }} className="btn btn-ghost">İptal</button>
+            <button type="submit" className="btn btn-primary">{duzenle ? "Güncelle" : "Kaydet"}</button>
+            <button type="button" onClick={() => { setFormAcik(false); setHata(""); setDuzenle(null); }} className="btn btn-ghost">İptal</button>
           </div>
         </form>
       )}
@@ -346,23 +460,60 @@ function CalisanlarSayfasi({ paketDurum }) {
       {calisanlar.length === 0 ? (
         <div className="list-empty"><p>Henüz çalışan eklenmemiş.</p></div>
       ) : calisanlar.map(c => (
-        <div key={c.id} className="list-item">
-          <div>
-            <span className="list-item-name">{c.isim}</span>
-            {c.telefon && <span className="list-item-sub" style={{ marginLeft: 12, display: "inline" }}>📞 {c.telefon}</span>}
-            {c.uzmanlik && (
-              <div className="mt-4">
-                {c.uzmanlik.split(",").map(u => (
-                  <span key={u} className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)", marginRight: 4 }}>{u.trim()}</span>
-                ))}
-              </div>
-            )}
+        <div key={c.id} className="list-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <div>
+              <span className="list-item-name">{c.isim}</span>
+              {c.telefon && <span className="list-item-sub" style={{ marginLeft: 12, display: "inline" }}>📞 {c.telefon}</span>}
+            </div>
+            <div className="row gap-8">
+              <span className="tag" style={{ background: (c.aktif === false) ? "var(--red-s)" : "rgba(16,185,129,.12)", color: (c.aktif === false) ? "var(--red)" : "var(--green)" }}>
+                {(c.aktif === false) ? "Pasif" : "Aktif"}
+              </span>
+              <button onClick={() => hizmetAtamaAc(c.id)} title="Hizmet Ata" className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>🔗 Hizmetler</button>
+              <button onClick={() => duzenleBasla(c)} title="Düzenle" className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>✏️</button>
+              <button onClick={() => sil(c.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, color: "var(--muted)", transition: "all .2s" }} onMouseOver={e => { e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-s)"; }} onMouseOut={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "none"; }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+            </div>
           </div>
-          <span className="tag" style={{ background: c.aktif ? "rgba(16,185,129,.12)" : "var(--red-s)", color: c.aktif ? "var(--green)" : "var(--red)" }}>
-            {c.aktif ? "Aktif" : "Pasif"}
-          </span>
+          <div className="row gap-8" style={{ flexWrap: "wrap" }}>
+            {c.uzmanlik && c.uzmanlik.split(",").map(u => (
+              <span key={u} className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>{u.trim()}</span>
+            ))}
+            {c.calisma_baslangic && <span className="tag-sm" style={{ background: "rgba(59,130,246,.1)", color: "var(--blue)" }}>🕐 {String(c.calisma_baslangic).substring(0,5)} - {String(c.calisma_bitis || '').substring(0,5)}</span>}
+            {c.kapali_gunler && <span className="tag-sm" style={{ background: "rgba(239,68,68,.1)", color: "var(--red)" }}>Kapalı: {c.kapali_gunler.split(",").filter(Boolean).map(g => gunler.find(gl => gl[0] === g)?.[1] || g).join(", ")}</span>}
+          </div>
         </div>
       ))}
+
+      {/* Hizmet Atama Modal */}
+      {hizmetModal && (
+        <div onClick={() => setHizmetModal(null)} className="modal-overlay">
+          <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 420 }}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: 16 }}>Hizmet Ataması</h2>
+              <button onClick={() => setHizmetModal(null)} className="modal-close">✕</button>
+            </div>
+            <div style={{ padding: "16px 20px", color: "var(--dim)", fontSize: 12 }}>
+              Bu çalışanın yapabileceği hizmetleri seçin. Hiçbiri seçilmezse tüm hizmetlere atanır.
+            </div>
+            <div style={{ padding: "0 20px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {hizmetListesi.map(h => (
+                <label key={h.id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", padding: "8px 12px", borderRadius: 8, background: h.atanmis ? "rgba(16,185,129,.08)" : "var(--bg)", border: `1px solid ${h.atanmis ? "rgba(16,185,129,.3)" : "var(--border2)"}`, transition: "all .2s" }}>
+                  <input type="checkbox" checked={h.atanmis} onChange={() => {
+                    setHizmetListesi(hizmetListesi.map(hh => hh.id === h.id ? { ...hh, atanmis: !hh.atanmis } : hh));
+                  }} style={{ accentColor: "var(--green)" }} />
+                  <span style={{ fontSize: 14 }}>{h.emoji ? h.emoji + ' ' : ''}{h.isim}</span>
+                </label>
+              ))}
+              {hizmetListesi.length === 0 && <div style={{ color: "var(--dim)", fontSize: 13 }}>Henüz hizmet eklenmemiş.</div>}
+            </div>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border2)", display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setHizmetModal(null)} className="btn btn-ghost">İptal</button>
+              <button onClick={hizmetAtamaKaydet} className="btn btn-primary">Kaydet</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -652,8 +803,8 @@ function Dashboard() {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [testCevaplar]);
 
-  const DR = { onaylandi: "#10b981", bekliyor: "#f59e0b", iptal: "#ef4444", tamamlandi: "#3b82f6", gelmedi: "#6b7280" };
-  const DL = { onaylandi: "Onaylı ✓", bekliyor: "Bekliyor", iptal: "İptal", tamamlandi: "Tamamlandı", gelmedi: "Gelmedi" };
+  const DR = { onaylandi: "#10b981", bekliyor: "#f59e0b", iptal: "#ef4444", tamamlandi: "#3b82f6", gelmedi: "#6b7280", kapora_bekliyor: "#f59e0b" };
+  const DL = { onaylandi: "Onaylı ✓", bekliyor: "Bekliyor", iptal: "İptal", tamamlandi: "Tamamlandı", gelmedi: "Gelmedi", kapora_bekliyor: "💳 Kapora Bekleniyor" };
 
   const botTest = async () => {
     if (!testMesaj.trim()) return;
@@ -954,7 +1105,7 @@ function Dashboard() {
               return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
             };
 
-            const durumSayac = { onaylandi: 0, bekliyor: 0, tamamlandi: 0, gelmedi: 0, iptal: 0 };
+            const durumSayac = { onaylandi: 0, bekliyor: 0, tamamlandi: 0, gelmedi: 0, iptal: 0, kapora_bekliyor: 0 };
             randevular.forEach(r => { if (durumSayac[r.durum] !== undefined) durumSayac[r.durum]++; else durumSayac.bekliyor++; });
 
             const tabBtn = (label, emoji, tarihVal, tabId) => (
@@ -1069,6 +1220,11 @@ function Dashboard() {
                         <span>📞 {r.musteri_telefon}</span>
                         {r.hizmet_isim && <span>✂️ {r.hizmet_isim}{r.fiyat ? ` · ${Number(r.fiyat).toLocaleString("tr-TR")}₺` : ""}</span>}
                         {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
+                        {r.kapora_durumu && r.kapora_durumu !== 'yok' && (
+                          <span style={{ color: r.kapora_durumu === 'odendi' ? 'var(--green)' : 'var(--amber)', fontWeight: 600 }}>
+                            💳 {r.kapora_durumu === 'odendi' ? `Kapora ödendi (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)` : `Kapora bekliyor (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)`}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -1265,6 +1421,23 @@ function Dashboard() {
                     })}
                   </div>
                   <div style={{ color: "var(--dim)", fontSize: 12 }} className="mt-10">Seçilen günlerde randevu alınamaz</div>
+                </div>
+                <div className="settings-card">
+                  <h3>Kapora / Ön Ödeme</h3>
+                  <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 16 }}>Aktif edildiğinde, kapora oranı belirlenmiş hizmetler için müşteriden ön ödeme istenir. Ödeme Shopier üzerinden alınır.</div>
+                  <div className="row gap-12" style={{ alignItems: "center" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                      <input type="checkbox" checked={!!ayarlar.kapora_aktif} onChange={async (e) => {
+                        const yeniDurum = e.target.checked;
+                        setAyarlar({...ayarlar, kapora_aktif: yeniDurum});
+                        await api.put("/kapora", { kapora_aktif: yeniDurum });
+                      }} style={{ accentColor: "var(--green)", width: 18, height: 18 }} />
+                      <span style={{ fontWeight: 600, color: ayarlar.kapora_aktif ? "var(--green)" : "var(--muted)" }}>
+                        {ayarlar.kapora_aktif ? "Kapora Sistemi Aktif" : "Kapora Sistemi Kapalı"}
+                      </span>
+                    </label>
+                  </div>
+                  <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 8 }}>Hizmetlerin kapora oranını Hizmetler sayfasından ayarlayabilirsiniz.</div>
                 </div>
                 <button onClick={async () => {
                   await api.put("/ayarlar", ayarlar);

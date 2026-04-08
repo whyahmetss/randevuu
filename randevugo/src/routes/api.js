@@ -28,6 +28,11 @@ router.delete('/hizmetler/:id', authMiddleware, (req, res) => adminController.hi
 
 router.get('/calisanlar', authMiddleware, (req, res) => adminController.calisanlariGetir(req, res));
 router.post('/calisanlar', authMiddleware, (req, res) => adminController.calisanEkle(req, res));
+router.put('/calisanlar/:id', authMiddleware, (req, res) => adminController.calisanGuncelle(req, res));
+router.delete('/calisanlar/:id', authMiddleware, (req, res) => adminController.calisanSil(req, res));
+router.get('/calisanlar/:id/hizmetler', authMiddleware, (req, res) => adminController.calisanHizmetleriGetir(req, res));
+router.put('/calisanlar/:id/hizmetler', authMiddleware, (req, res) => adminController.calisanHizmetleriGuncelle(req, res));
+router.put('/kapora', authMiddleware, (req, res) => adminController.kaporaToggle(req, res));
 
 router.get('/musteriler', authMiddleware, (req, res) => adminController.musterileriGetir(req, res));
 

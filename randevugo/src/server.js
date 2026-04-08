@@ -104,6 +104,29 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE bot_durum ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
     await pool.query(`ALTER TABLE sohbet_gecmisi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
     await pool.query(`ALTER TABLE bekleme_listesi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
+
+    // ─── KAPORA SİSTEMİ ───
+    await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS kapora_yuzdesi INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS kapora_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_durumu VARCHAR(30) DEFAULT 'yok'`); // yok, bekliyor, odendi, iade
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_tutari DECIMAL(10,2) DEFAULT 0`);
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_link TEXT`);
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_shopier_urun_id VARCHAR(100)`);
+
+    // ─── PERSONEL BAZLI YÖNETİM ───
+    // Çalışan kişisel mesai saatleri
+    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS calisma_baslangic TIME`);
+    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS calisma_bitis TIME`);
+    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS kapali_gunler VARCHAR(50) DEFAULT ''`);
+    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS mola_saatleri JSONB DEFAULT '[]'`);
+    // Çalışan-hizmet eşleştirme tablosu
+    await pool.query(`CREATE TABLE IF NOT EXISTS calisan_hizmetler (
+      id SERIAL PRIMARY KEY,
+      calisan_id INTEGER REFERENCES calisanlar(id) ON DELETE CASCADE,
+      hizmet_id INTEGER REFERENCES hizmetler(id) ON DELETE CASCADE,
+      UNIQUE(calisan_id, hizmet_id)
+    )`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);

@@ -355,8 +355,9 @@ class TelegramService {
         }
 
         if (secilenHizmet) {
-          // Çalışan kontrolü
-          const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
+          // Çalışan kontrolü (hizmete uygun çalışanları getir)
+          const randevuService = require('./randevu');
+          const calisanlar = await randevuService.uygunCalisanlar(isletmeId, secilenHizmet.id);
           console.log(`👤 Çalışan sorgusu: isletme=${isletmeId}, bulunan=${calisanlar.length}, isimler=${calisanlar.map(c=>c.isim).join(',')}`);
           if (calisanlar.length > 1) {
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
@@ -404,7 +405,9 @@ class TelegramService {
           await this.anaMenuGonder(bot, chatId, isletmeId, musteriTelefon, isletme, hizmetler);
           break;
         }
-        const calisanlarTg = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
+        const gd = (await pool.query('SELECT secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+        const randevuServiceTg = require('./randevu');
+        const calisanlarTg = await randevuServiceTg.uygunCalisanlar(isletmeId, gd?.secilen_hizmet_id);
         let secilenCalisan = null;
         if (mk.startsWith('cl_')) {
           const cIdx = parseInt(mk.replace('cl_', ''));
@@ -553,6 +556,36 @@ class TelegramService {
             const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
             await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
             const clTg = sd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [sd.secilen_calisan_id])).rows[0] : null;
+
+            // Kapora gerekiyorsa ödeme linki gönder
+            if (sonuc.kapora && sonuc.kapora.gerekli) {
+              try {
+                const shopierService = require('./shopierService');
+                const urun = await shopierService.urunOlustur({
+                  baslik: `Kapora - ${isletme.isim} - ${sonuc.hizmet?.isim || 'Randevu'}`,
+                  aciklama: `${sd.secilen_tarih} ${sd.secilen_saat} randevusu için kapora ödemesi`,
+                  fiyat: sonuc.kapora.tutar
+                });
+                await pool.query('UPDATE randevular SET kapora_link=$1, kapora_shopier_urun_id=$2 WHERE id=$3',
+                  [urun.url, urun.id, sonuc.randevu.id]);
+                let kaporaMesaj = `📋 *Randevunuz kaydedildi!*\n\n` +
+                  `🏥  ${isletme.isim}\n` +
+                  `${sonuc.hizmet ? `${sonuc.hizmet.emoji ? sonuc.hizmet.emoji + '  ' : ''}${sonuc.hizmet.isim}\n` : ''}` +
+                  `${clTg ? `👤  ${clTg.isim}\n` : ''}` +
+                  `📅  ${this.tarihFormat(sd.secilen_tarih)}\n` +
+                  `🕐  ${String(sd.secilen_saat).substring(0,5)}\n\n` +
+                  `💳 *Kapora: ${sonuc.kapora.tutar} ₺* (%${sonuc.kapora.yuzde})\n\n` +
+                  `⚠️ Randevunuz, kapora ödemeniz onaylandıktan sonra kesinleşecektir.\n\n` +
+                  `🔗 Ödeme linki: ${urun.url}\n\n` +
+                  `⏳ Ödemeniz otomatik kontrol edilecektir.`;
+                await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, kaporaMesaj,
+                  [[{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+                break;
+              } catch (err) {
+                console.error('❌ Kapora ödeme linki hatası:', err.message);
+                await pool.query("UPDATE randevular SET durum='onaylandi', kapora_durumu='yok' WHERE id=$1", [sonuc.randevu.id]);
+              }
+            }
 
             let tebrik = `✅ *Randevunuz Oluşturuldu!*\n\n` +
               `🏥  ${isletme.isim}\n` +

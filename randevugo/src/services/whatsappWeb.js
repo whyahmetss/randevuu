@@ -512,8 +512,9 @@ class WhatsAppWebService extends EventEmitter {
           secilenHizmet = hizmetler.find(h => metinKucuk.includes(h.isim.toLowerCase()));
         }
         if (secilenHizmet) {
-          // Çalışan kontrolü
-          const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
+          // Çalışan kontrolü (hizmete uygun çalışanları getir)
+          const randevuService = require('./randevu');
+          const calisanlar = await randevuService.uygunCalisanlar(isletmeId, secilenHizmet.id);
           if (calisanlar.length > 1) {
             // Birden fazla çalışan → seçtir
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
@@ -641,6 +642,36 @@ class WhatsAppWebService extends EventEmitter {
           const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
           const clOnay = sd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [sd.secilen_calisan_id])).rows[0] : null;
+
+          // Kapora gerekiyorsa ödeme linki gönder
+          if (sonuc.kapora && sonuc.kapora.gerekli) {
+            try {
+              const shopierService = require('./shopierService');
+              const urun = await shopierService.urunOlustur({
+                baslik: `Kapora - ${isletme.isim} - ${sonuc.hizmet?.isim || 'Randevu'}`,
+                aciklama: `${sd.secilen_tarih} ${sd.secilen_saat} randevusu için kapora ödemesi`,
+                fiyat: sonuc.kapora.tutar
+              });
+              // Randevuya Shopier bilgilerini kaydet
+              await pool.query('UPDATE randevular SET kapora_link=$1, kapora_shopier_urun_id=$2 WHERE id=$3',
+                [urun.url, urun.id, sonuc.randevu.id]);
+              let kaporaMesaj = `📋 *Randevunuz kaydedildi!*\n\n`;
+              kaporaMesaj += `🏥 ${isletme.isim}\n`;
+              if (sonuc.hizmet) kaporaMesaj += `✂️ ${sonuc.hizmet.isim}\n`;
+              if (clOnay) kaporaMesaj += `👤 ${clOnay.isim}\n`;
+              kaporaMesaj += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+              kaporaMesaj += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
+              kaporaMesaj += `\n💳 *Kapora: ${sonuc.kapora.tutar} ₺* (%${sonuc.kapora.yuzde})\n`;
+              kaporaMesaj += `\n⚠️ Randevunuz, kapora ödemeniz onaylandıktan sonra kesinleşecektir.\n`;
+              kaporaMesaj += `\n🔗 Ödeme linki: ${urun.url}`;
+              kaporaMesaj += `\n\n⏳ Ödemeniz otomatik kontrol edilecektir.`;
+              return { metin: kaporaMesaj, butonlar: null };
+            } catch (err) {
+              console.error('❌ Kapora ödeme linki hatası:', err.message);
+              // Shopier hatası — randevuyu yine de normal onayla
+              await pool.query("UPDATE randevular SET durum='onaylandi', kapora_durumu='yok' WHERE id=$1", [sonuc.randevu.id]);
+            }
+          }
 
           let tebrik = `✅ *Randevunuz Oluşturuldu!*\n\n`;
           tebrik += `🏥 ${isletme.isim}\n`;

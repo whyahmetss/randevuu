@@ -12,6 +12,18 @@ class RandevuService {
 
     // Gün kontrolü (0=Pazar, 6=Cumartesi)
     const gun = new Date(tarih).getDay();
+
+    // Çalışan varsa, çalışanın kapalı günlerini de kontrol et
+    let calisan = null;
+    if (calisanId) {
+      calisan = (await pool.query('SELECT * FROM calisanlar WHERE id=$1', [calisanId])).rows[0];
+      if (calisan) {
+        const calisanKapali = (calisan.kapali_gunler || '').split(',').filter(Boolean).map(Number);
+        if (calisanKapali.includes(gun)) return [];
+      }
+    }
+
+    // İşletme kapalı günleri
     const kapaliGunler = (isletme.kapali_gunler || '').split(',').map(Number);
     if (kapaliGunler.includes(gun)) return [];
 
@@ -25,9 +37,9 @@ class RandevuService {
     // 5dk tampon (arası hazırlık/temizlik)
     const TAMPON_DK = 5;
 
-    // Çalışma saatleri
-    const baslangic = isletme.calisma_baslangic;
-    const bitis = isletme.calisma_bitis;
+    // Çalışma saatleri: çalışanın kendi mesaisi varsa onu kullan, yoksa işletme varsayılanı
+    const baslangic = (calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : isletme.calisma_baslangic;
+    const bitis = (calisan && calisan.calisma_bitis) ? calisan.calisma_bitis : isletme.calisma_bitis;
 
     // Mevcut randevuları al
     let randevuQuery = 'SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum != $3';
@@ -47,8 +59,11 @@ class RandevuService {
       return { bas: rH * 60 + rM, bit: rbH * 60 + rbM + TAMPON_DK };
     });
 
-    // Mola saatlerini de dolu aralık olarak ekle (yemek arası, okul, vs.)
-    const molalar = isletme.mola_saatleri || [];
+    // Mola saatlerini de dolu aralık olarak ekle
+    // Önce çalışan molaları, sonra işletme molaları
+    const molalar = (calisan && calisan.mola_saatleri && calisan.mola_saatleri.length > 0)
+      ? calisan.mola_saatleri
+      : (isletme.mola_saatleri || []);
     molalar.forEach(m => {
       if (m.baslangic && m.bitis) {
         const [mBH, mBM] = m.baslangic.split(':').map(Number);
@@ -104,6 +119,40 @@ class RandevuService {
     return musaitSaatler;
   }
 
+  // Kapora hesapla
+  async kaporaHesapla(isletmeId, hizmetId) {
+    const isletme = (await pool.query('SELECT kapora_aktif FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    if (!isletme || !isletme.kapora_aktif) return { gerekli: false, tutar: 0, yuzde: 0 };
+    
+    if (!hizmetId) return { gerekli: false, tutar: 0, yuzde: 0 };
+    const hizmet = (await pool.query('SELECT fiyat, kapora_yuzdesi FROM hizmetler WHERE id=$1', [hizmetId])).rows[0];
+    if (!hizmet || !hizmet.kapora_yuzdesi || hizmet.kapora_yuzdesi <= 0) return { gerekli: false, tutar: 0, yuzde: 0 };
+    
+    const tutar = Math.ceil(parseFloat(hizmet.fiyat) * hizmet.kapora_yuzdesi / 100);
+    return { gerekli: true, tutar, yuzde: hizmet.kapora_yuzdesi };
+  }
+
+  // Hizmete uygun çalışanları getir (calisan_hizmetler tablosundan)
+  async uygunCalisanlar(isletmeId, hizmetId = null) {
+    let query = 'SELECT c.* FROM calisanlar c WHERE c.isletme_id=$1 AND (c.aktif IS NULL OR c.aktif=true)';
+    const params = [isletmeId];
+    
+    if (hizmetId) {
+      // calisan_hizmetler tablosunda kayıt varsa sadece eşleşenleri getir, yoksa tüm çalışanları getir
+      const eslesme = (await pool.query('SELECT COUNT(*) as sayi FROM calisan_hizmetler ch JOIN calisanlar c ON c.id=ch.calisan_id WHERE c.isletme_id=$1', [isletmeId])).rows[0];
+      if (parseInt(eslesme.sayi) > 0) {
+        // Eşleştirme sistemi aktif — sadece bu hizmete atanmış çalışanları getir
+        query = `SELECT c.* FROM calisanlar c 
+                 JOIN calisan_hizmetler ch ON ch.calisan_id = c.id 
+                 WHERE c.isletme_id=$1 AND (c.aktif IS NULL OR c.aktif=true) AND ch.hizmet_id=$2`;
+        params.push(hizmetId);
+      }
+    }
+    
+    query += ' ORDER BY c.id';
+    return (await pool.query(query, params)).rows;
+  }
+
   // Randevu oluştur
   async randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, calisanId, tarih, saat }) {
     // Müşteriyi bul veya oluştur
@@ -126,14 +175,20 @@ class RandevuService {
     const bitisDk = saatH * 60 + saatM + sureDk;
     const bitisSaat = `${String(Math.floor(bitisDk / 60)).padStart(2, '0')}:${String(bitisDk % 60).padStart(2, '0')}`;
 
+    // Kapora kontrolü
+    const kapora = await this.kaporaHesapla(isletmeId, hizmetId);
+
     // Randevuyu kaydet
     const randevu = (await pool.query(
-      `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'onaylandi') RETURNING *`,
-      [isletmeId, calisanId, musteri.id, hizmetId, tarih, saat, bitisSaat]
+      `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum, kapora_durumu, kapora_tutari)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [isletmeId, calisanId, musteri.id, hizmetId, tarih, saat, bitisSaat,
+       kapora.gerekli ? 'kapora_bekliyor' : 'onaylandi',
+       kapora.gerekli ? 'bekliyor' : 'yok',
+       kapora.tutar]
     )).rows[0];
 
-    return { randevu, musteri, hizmet };
+    return { randevu, musteri, hizmet, kapora };
   }
 
   // Randevu iptal et

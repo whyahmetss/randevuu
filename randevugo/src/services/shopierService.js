@@ -107,6 +107,25 @@ class ShopierService {
 
     console.log(`📦 Shopier sipariş geldi: #${siparisId} - ${urunBaslik} - ${tutar}₺ - ${aliciEmail}`);
 
+    // ─── KAPORA KONTROLÜ ───
+    // Ürün başlığı "Kapora -" ile başlıyorsa, bu bir randevu kapora ödemesi
+    if (urunBaslik.startsWith('Kapora -') && urunId) {
+      const kaporaRandevu = (await pool.query(
+        "SELECT id FROM randevular WHERE kapora_shopier_urun_id=$1 AND kapora_durumu='bekliyor'",
+        [urunId]
+      )).rows[0];
+      if (kaporaRandevu) {
+        await pool.query(
+          "UPDATE randevular SET kapora_durumu='odendi', durum='onaylandi' WHERE id=$1",
+          [kaporaRandevu.id]
+        );
+        console.log(`✅ Kapora ödendi → randevu #${kaporaRandevu.id} onaylandı`);
+        // Ürünü sil
+        await this.urunSil(urunId);
+        return { islem: 'kapora_onaylandi', randevuId: kaporaRandevu.id, tutar };
+      }
+    }
+
     // İşletme ID'yi bul: ürün başlığından veya sipariş notundan
     let isletmeId = null;
     const refMatch = (urunBaslik + ' ' + siparisNotu).match(/SRGO-(\d+)/);

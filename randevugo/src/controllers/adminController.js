@@ -68,7 +68,7 @@ class AdminController {
 
   async hizmetEkle(req, res) {
     try {
-      const { isim, sure_dk, fiyat, aciklama, emoji } = req.body;
+      const { isim, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
       const paket = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
@@ -76,8 +76,8 @@ class AdminController {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
       }
       const result = await pool.query(
-        'INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aciklama, emoji) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [req.kullanici.isletme_id, isim, sure_dk, fiyat, aciklama, emoji || '']
+        'INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [req.kullanici.isletme_id, isim, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
@@ -88,10 +88,10 @@ class AdminController {
   async hizmetGuncelle(req, res) {
     try {
       const { id } = req.params;
-      const { isim, sure_dk, fiyat, aciklama, aktif, emoji } = req.body;
+      const { isim, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi } = req.body;
       const result = await pool.query(
-        'UPDATE hizmetler SET isim=$1, sure_dk=$2, fiyat=$3, aciklama=$4, aktif=$5, emoji=$6 WHERE id=$7 AND isletme_id=$8 RETURNING *',
-        [isim, sure_dk, fiyat, aciklama, aktif, emoji || '', id, req.kullanici.isletme_id]
+        'UPDATE hizmetler SET isim=$1, sure_dk=$2, fiyat=$3, aciklama=$4, aktif=$5, emoji=$6, kapora_yuzdesi=$7 WHERE id=$8 AND isletme_id=$9 RETURNING *',
+        [isim, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, id, req.kullanici.isletme_id]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
@@ -123,7 +123,7 @@ class AdminController {
 
   async calisanEkle(req, res) {
     try {
-      const { isim, telefon, uzmanlik } = req.body;
+      const { isim, telefon, uzmanlik, calisma_baslangic, calisma_bitis, kapali_gunler, mola_saatleri } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
       const paket = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
@@ -131,10 +131,85 @@ class AdminController {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.calisan_limit} çalışan ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
       }
       const result = await pool.query(
-        'INSERT INTO calisanlar (isletme_id, isim, telefon, uzmanlik) VALUES ($1, $2, $3, $4) RETURNING *',
-        [req.kullanici.isletme_id, isim, telefon, uzmanlik]
+        `INSERT INTO calisanlar (isletme_id, isim, telefon, uzmanlik, calisma_baslangic, calisma_bitis, kapali_gunler, mola_saatleri)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [req.kullanici.isletme_id, isim, telefon, uzmanlik, calisma_baslangic || null, calisma_bitis || null, kapali_gunler || '', JSON.stringify(mola_saatleri || [])]
       );
       res.json({ calisan: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async calisanGuncelle(req, res) {
+    try {
+      const { id } = req.params;
+      const { isim, telefon, uzmanlik, aktif, calisma_baslangic, calisma_bitis, kapali_gunler, mola_saatleri } = req.body;
+      const result = await pool.query(
+        `UPDATE calisanlar SET isim=$1, telefon=$2, uzmanlik=$3, aktif=$4,
+         calisma_baslangic=$5, calisma_bitis=$6, kapali_gunler=$7, mola_saatleri=$8
+         WHERE id=$9 AND isletme_id=$10 RETURNING *`,
+        [isim, telefon, uzmanlik, aktif !== undefined ? aktif : true, calisma_baslangic || null, calisma_bitis || null, kapali_gunler || '', JSON.stringify(mola_saatleri || []), id, req.kullanici.isletme_id]
+      );
+      res.json({ calisan: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async calisanSil(req, res) {
+    try {
+      await pool.query('DELETE FROM calisan_hizmetler WHERE calisan_id=$1', [req.params.id]);
+      await pool.query('DELETE FROM calisanlar WHERE id=$1 AND isletme_id=$2', [req.params.id, req.kullanici.isletme_id]);
+      res.json({ mesaj: 'Silindi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Çalışan-Hizmet eşleştirme
+  async calisanHizmetleriGetir(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await pool.query(
+        `SELECT h.id, h.isim, h.emoji, CASE WHEN ch.id IS NOT NULL THEN true ELSE false END as atanmis
+         FROM hizmetler h
+         LEFT JOIN calisan_hizmetler ch ON ch.hizmet_id = h.id AND ch.calisan_id = $1
+         WHERE h.isletme_id = $2 AND h.aktif = true ORDER BY h.id`,
+        [id, req.kullanici.isletme_id]
+      );
+      res.json({ hizmetler: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async calisanHizmetleriGuncelle(req, res) {
+    try {
+      const { id } = req.params;
+      const { hizmet_idler } = req.body; // [1, 3, 5]
+      // Önce mevcut eşleştirmeleri sil
+      await pool.query('DELETE FROM calisan_hizmetler WHERE calisan_id=$1', [id]);
+      // Yenilerini ekle
+      if (hizmet_idler && hizmet_idler.length > 0) {
+        const values = hizmet_idler.map((hId, i) => `($1, $${i + 2})`).join(', ');
+        await pool.query(
+          `INSERT INTO calisan_hizmetler (calisan_id, hizmet_id) VALUES ${values} ON CONFLICT DO NOTHING`,
+          [id, ...hizmet_idler]
+        );
+      }
+      res.json({ mesaj: 'Güncellendi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Kapora aktif/pasif toggle
+  async kaporaToggle(req, res) {
+    try {
+      const { kapora_aktif } = req.body;
+      await pool.query('UPDATE isletmeler SET kapora_aktif=$1 WHERE id=$2', [!!kapora_aktif, req.kullanici.isletme_id]);
+      res.json({ mesaj: 'Güncellendi', kapora_aktif: !!kapora_aktif });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
