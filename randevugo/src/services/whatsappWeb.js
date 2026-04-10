@@ -685,7 +685,7 @@ class WhatsAppWebService extends EventEmitter {
           if (saatFmt.includes(giris)) {
             // Direkt eşleşti
             await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: giris });
-            return this._ozetOlustur(isletme, guncelDurum, giris);
+            return await this._ozetOlustur(isletme, guncelDurum, giris);
           }
           // Dolu — akıllı öneri
           const alternatifler = this._enYakinAlternatif(saatFmt, giris);
@@ -704,7 +704,7 @@ class WhatsAppWebService extends EventEmitter {
 
         if (secilenSaat) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
-          return this._ozetOlustur(isletme, guncelDurum, secilenSaat);
+          return await this._ozetOlustur(isletme, guncelDurum, secilenSaat);
         }
         // Anlaşılamadı
         let txt = `Anlayamadım. Saat yazın _(örn: 14:30)_ veya numara seçin:\n\n`;
