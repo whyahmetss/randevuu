@@ -116,7 +116,16 @@ class SatisBot extends EventEmitter {
   // WhatsApp Bağlantısı (Baileys)
   // ═══════════════════════════════════════════════════
   async baslat() {
-    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor' || this.durum === 'baslatiyor') return;
+    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor' || this.durum === 'baslatiyor') {
+      console.log(`🔄 Satış Bot başlatma isteği geldi, mevcut durum: ${this.durum}`);
+      return;
+    }
+
+    // Bekleyen reconnect timer varsa iptal et
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
 
     // Eski socket varsa kapat
     if (this.sock) {
@@ -214,11 +223,18 @@ class SatisBot extends EventEmitter {
         const credsExist = this.basariliOturumVardi;
         console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, session: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         
+        // Conflict = başka bir socket zaten bağlı, müdahale etme
+        if (statusCode === 440) {
+          console.log('⚠️ Conflict — başka socket zaten bağlı, bu instance durduruluyor.');
+          this.sock = null;
+          return;
+        }
+
         if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
           console.log('🔄 restartRequired — QR tarandı, yeni socket oluşturuluyor (auth korunuyor)...');
           this.durum = 'kapali';
           this.sock = null;
-          setTimeout(() => this.baslat(), 1000);
+          this._reconnectTimer = setTimeout(() => this.baslat(), 1500);
         } else if (statusCode === DisconnectReason.loggedOut) {
           this.durum = 'kapali';
           this.qrBase64 = null;
@@ -232,13 +248,13 @@ class SatisBot extends EventEmitter {
           this.sock = null;
           const bekleme = Math.min(3000 * this.reconnectAttempts, 30000);
           console.log(`🔄 Satış Bot ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-          setTimeout(() => this.baslat(), bekleme);
+          this._reconnectTimer = setTimeout(() => this.baslat(), bekleme);
         } else if (!credsExist && this.reconnectAttempts < 3) {
           this.reconnectAttempts++;
           this.durum = 'kapali';
           this.sock = null;
           console.log(`🔄 QR süresi doldu, yeni QR üretiliyor (deneme ${this.reconnectAttempts}/3)...`);
-          setTimeout(() => this.baslat(), 3000);
+          this._reconnectTimer = setTimeout(() => this.baslat(), 3000);
         } else {
           this.durum = 'kapali';
           this.qrBase64 = null;

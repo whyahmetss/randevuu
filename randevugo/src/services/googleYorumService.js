@@ -23,11 +23,12 @@ class GoogleYorumService {
     try {
       // Tamamlanmış randevuları bul: 2 saat geçmiş, henüz feedback gönderilmemiş, premium + aktif
       const randevular = (await pool.query(`
-        SELECT r.id, r.musteri_id, r.isletme_id, r.tarih, r.saat, r.musteri_telefon,
-               i.isim as isletme_isim, i.google_maps_url, m.isim as musteri_isim
+        SELECT r.id, r.musteri_id, r.isletme_id, r.tarih, r.saat,
+               m.telefon as musteri_telefon, m.isim as musteri_isim,
+               i.isim as isletme_isim, i.google_maps_url
         FROM randevular r
         JOIN isletmeler i ON i.id = r.isletme_id
-        LEFT JOIN musteriler m ON m.id = r.musteri_id
+        JOIN musteriler m ON m.id = r.musteri_id
         WHERE r.durum = 'tamamlandi'
           AND i.paket = 'premium'
           AND i.google_yorum_aktif = true
