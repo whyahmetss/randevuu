@@ -481,8 +481,9 @@ class WhatsAppWebService extends EventEmitter {
       return { metin: txt, butonlar: null };
     }
 
-    // Randevu alma intent — hangi aşamada olursa olsun "randevu" yazarsa direkt hizmet listesine at
-    if ((metinKucuk === 'randevu' || metinKucuk === 'randevu al' || metinKucuk === 'randevu almak istiyorum') && botDurum.asama !== 'hizmet_secimi' && botDurum.asama !== 'calisan_secimi' && botDurum.asama !== 'tarih_secimi' && botDurum.asama !== 'saat_secimi' && botDurum.asama !== 'onay') {
+    // Randevu alma intent — hangi aşamada olursa olsun direkt hizmet listesine at
+    const randevuAlIntents = ['randevu', 'randevu al', 'randevu almak istiyorum', 'al', 'almak istiyorum', 'randevu alalim', 'randevu alayim'];
+    if (randevuAlIntents.includes(metinKucuk) && botDurum.asama !== 'hizmet_secimi' && botDurum.asama !== 'calisan_secimi' && botDurum.asama !== 'tarih_secimi' && botDurum.asama !== 'saat_secimi' && botDurum.asama !== 'onay') {
       await this.durumGuncelle(musteriTelefon, isletmeId, 'hizmet_secimi', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
       return this.hizmetListesi(isletme, hizmetler);
     }
@@ -513,7 +514,7 @@ class WhatsAppWebService extends EventEmitter {
 
     switch (botDurum.asama) {
       case 'ana_menu': {
-        const randevuAl = metin === '1' || metinKucuk.includes('randevu al') || metinKucuk === 'randevu' || metinKucuk === 'randevu almak istiyorum';
+        const randevuAl = metin === '1' || metinKucuk.includes('randevu al') || metinKucuk === 'randevu' || metinKucuk === 'al' || metinKucuk === 'almak istiyorum' || metinKucuk === 'randevu almak istiyorum';
         const randevularim = metin === '2' || metinKucuk.includes('randevularım') || metinKucuk.includes('randevularim');
         const randevuIptal = metin === '3' || metinKucuk.includes('randevu iptal');
 
@@ -608,10 +609,8 @@ class WhatsAppWebService extends EventEmitter {
             return { metin: `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
           }
         }
-        const deepseek2 = require('./deepseek');
-        const ai2 = await deepseek2.serbetCevap(metin, isletme, hizmetler, 'whatsapp');
-        if (ai2) return { metin: ai2 + '\n\nRandevu almak için *1* yazın.', butonlar: null };
-        return this.hizmetListesi(isletme, hizmetler);
+        // Hizmet bulunamadı — direkt listeyi tekrar göster
+        return { metin: `❌ Anlayamadım. Lütfen hizmet numarası veya adı yazın:\n\n${hizmetler.map((h,i) => `*${i+1}.* ${h.isim} - ${h.sure_dk}dk - ${this.fiyatFormat(h.fiyat)} TL`).join('\n')}\n\nNumara yazarak seçin:`, butonlar: null };
       }
 
       case 'calisan_secimi': {
