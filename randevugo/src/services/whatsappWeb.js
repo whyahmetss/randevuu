@@ -1,13 +1,10 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
-const fs = require('fs');
-const path = require('path');
 const pino = require('pino');
 const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
-
-const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth');
+const { usePostgresAuthState } = require('../utils/pgAuthState');
 
 // Türkçe karakter normalize + Levenshtein mesafe (yazım hatası toleransı)
 function trNormalize(str) {
@@ -83,13 +80,10 @@ class WhatsAppWebService extends EventEmitter {
       try { this.isletmeler[isletmeId].sock.end(); } catch (e) {}
     }
 
-    const authFolder = path.join(AUTH_DIR, `isletme_${isletmeId}`);
-    if (!fs.existsSync(authFolder)) fs.mkdirSync(authFolder, { recursive: true });
-
     this.isletmeler[isletmeId] = { sock: null, durum: 'baslatiyor', qr: null, qrBase64: null };
 
     try {
-      const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+      const { state, saveCreds } = await usePostgresAuthState(pool, isletmeId);
       const { version } = await fetchLatestBaileysVersion();
 
       const sock = makeWASocket({
@@ -151,9 +145,9 @@ class WhatsAppWebService extends EventEmitter {
               this.isletmeBaslat(isletmeId, isletmeIsim, true);
             }, 1000);
           } else if (statusCode === DisconnectReason.loggedOut) {
-            // Oturum silindi, auth dosyalarını temizle
+            // Oturum silindi, DB'den auth verilerini temizle
             this.isletmeler[isletmeId].durum = 'bagli_degil';
-            try { fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) {}
+            try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch (e) {}
             this.emit(`ayrildi_${isletmeId}`, 'logged_out');
           } else if (shouldReconnect) {
             // Yeniden bağlan
@@ -197,8 +191,7 @@ class WhatsAppWebService extends EventEmitter {
       try { this.isletmeler[isletmeId].sock?.end(); } catch (e) {}
       delete this.isletmeler[isletmeId];
     }
-    const authFolder = path.join(AUTH_DIR, `isletme_${isletmeId}`);
-    try { fs.rmSync(authFolder, { recursive: true, force: true }); } catch (e) {}
+    try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch (e) {}
     await pool.query('UPDATE isletmeler SET whatsapp_no=NULL WHERE id=$1', [isletmeId]);
   }
 

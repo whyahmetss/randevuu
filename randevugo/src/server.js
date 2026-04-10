@@ -210,6 +210,18 @@ const PORT = process.env.PORT || 3000;
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
 
+    // ─── WHATSAPP AUTH (Session verileri DB'de) ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS wa_auth_keys (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL,
+      key_id VARCHAR(500) NOT NULL,
+      key_data TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(isletme_id, key_id)
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wa_auth_isletme ON wa_auth_keys(isletme_id)`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
