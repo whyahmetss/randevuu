@@ -413,6 +413,8 @@ class WhatsAppWebService extends EventEmitter {
   async akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId) {
     const metinKucuk = metin.toLowerCase();
 
+    // === GLOBAL INTENT DETECTION (her aşamada çalışır) ===
+
     // Merhaba / başlangıç / ana menü
     const merhabaSozler = ['merhaba', 'selam', 'hi', 'hello', 'alo', '/start', '0', 'ana menü', 'menu', 'menü', 'başlat'];
     if (merhabaSozler.includes(metinKucuk) || botDurum.asama === 'baslangic') {
@@ -420,8 +422,9 @@ class WhatsAppWebService extends EventEmitter {
       return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
     }
 
-    // İptal butonu — randevu seçim listesine yönlendir
+    // İptal intent — her aşamada yakalanır (state sıfırlanır, direkt iptal listesi)
     if ((metinKucuk.includes('iptal') || metinKucuk.includes('❌')) && botDurum.asama !== 'randevu_iptal_secim' && botDurum.asama !== 'iptal_onay') {
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
       const randevuService = require('./randevu');
       const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
       if (!randevular.length) {
@@ -436,10 +439,40 @@ class WhatsAppWebService extends EventEmitter {
       return { metin: txt, butonlar: null };
     }
 
+    // Randevu alma intent — hangi aşamada olursa olsun "randevu" yazarsa direkt hizmet listesine at
+    if ((metinKucuk === 'randevu' || metinKucuk === 'randevu al' || metinKucuk === 'randevu almak istiyorum') && botDurum.asama !== 'hizmet_secimi' && botDurum.asama !== 'calisan_secimi' && botDurum.asama !== 'tarih_secimi' && botDurum.asama !== 'saat_secimi' && botDurum.asama !== 'onay') {
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'hizmet_secimi', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+      return this.hizmetListesi(isletme, hizmetler);
+    }
+
+    // Geri / değiştir intent — adım geri al
+    if ((metinKucuk === 'geri' || metinKucuk === 'değiştir' || metinKucuk === 'degistir') && !['ana_menu', 'baslangic'].includes(botDurum.asama)) {
+      const geriMap = { 'onay': 'saat_secimi', 'saat_secimi': 'tarih_secimi', 'tarih_secimi': 'hizmet_secimi', 'calisan_secimi': 'hizmet_secimi', 'hizmet_secimi': 'ana_menu' };
+      const oncekiAsama = geriMap[botDurum.asama] || 'ana_menu';
+      if (oncekiAsama === 'ana_menu') {
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+        return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
+      }
+      if (oncekiAsama === 'hizmet_secimi') {
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'hizmet_secimi');
+        return this.hizmetListesi(isletme, hizmetler);
+      }
+      if (oncekiAsama === 'tarih_secimi') {
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
+        return { metin: `📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+      }
+      if (oncekiAsama === 'saat_secimi') {
+        const gdGeri = (await pool.query('SELECT secilen_tarih, secilen_calisan_id, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+        if (gdGeri?.secilen_tarih) return await this._tarihSecildi(gdGeri.secilen_tarih, musteriTelefon, isletmeId, isletme, hizmetler);
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
+        return { metin: `📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+      }
+    }
+
     switch (botDurum.asama) {
       case 'ana_menu': {
-        const randevuAl = metin === '1' || metinKucuk.includes('randevu al');
-        const randevularim = metin === '2' || metinKucuk.includes('randevularım');
+        const randevuAl = metin === '1' || metinKucuk.includes('randevu al') || metinKucuk === 'randevu' || metinKucuk === 'randevu almak istiyorum';
+        const randevularim = metin === '2' || metinKucuk.includes('randevularım') || metinKucuk.includes('randevularim');
         const randevuIptal = metin === '3' || metinKucuk.includes('randevu iptal');
 
         // Konum bilgisi
@@ -614,6 +647,19 @@ class WhatsAppWebService extends EventEmitter {
         if (metinKucuk === '0' || metinKucuk.includes('ana menü')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
           return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
+        }
+        // Context switch: kullanıcı saat seçiminde tarih değiştirmek istiyor
+        if (metinKucuk.includes('bugün') || metinKucuk.includes('bugun')) {
+          const yeniTarih = bugunTarih();
+          return await this._tarihSecildi(yeniTarih, musteriTelefon, isletmeId, isletme, hizmetler);
+        }
+        if (metinKucuk.includes('yarın') || metinKucuk.includes('yarin')) {
+          const yeniTarih = yarinTarih();
+          return await this._tarihSecildi(yeniTarih, musteriTelefon, isletmeId, isletme, hizmetler);
+        }
+        if (metinKucuk.includes('bu hafta') || metinKucuk.includes('başka gün') || metinKucuk.includes('baska gun')) {
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'hafta_gun_secimi');
+          return this.haftaSecenekleri();
         }
         const randevuService = require('./randevu');
         const guncelDurum = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
