@@ -1,13 +1,12 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
-const fs = require('fs');
-const path = require('path');
 const pino = require('pino');
 const axios = require('axios');
+const { usePostgresAuthState } = require('../utils/pgAuthState');
 
-const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth', 'satis_bot');
+const SATIS_BOT_ID = 999999; // sabit isletme_id for satis bot auth
 
 // Türkiye saati (UTC+3)
 function turkiyeSaati() {
@@ -125,20 +124,11 @@ class SatisBot extends EventEmitter {
       this.sock = null;
     }
 
-    // Auth dizinini kontrol et — bozuk/boş ise temizle
-    if (fs.existsSync(AUTH_DIR)) {
-      const credsFile = path.join(AUTH_DIR, 'creds.json');
-      if (!fs.existsSync(credsFile)) {
-        console.log('🗑️ Satış Bot auth dizini boş/bozuk, temizleniyor...');
-        try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
-      }
-    }
-    if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
     this.durum = 'baslatiyor';
     console.log('🔄 Satış Bot başlatılıyor...');
 
     try {
-      const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+      const { state, saveCreds } = await usePostgresAuthState(pool, SATIS_BOT_ID);
       const { version } = await fetchLatestBaileysVersion();
       console.log('📱 Baileys version:', version);
 
@@ -192,7 +182,7 @@ class SatisBot extends EventEmitter {
     }
   }
 
-  _handleConnectionUpdate(update) {
+  async _handleConnectionUpdate(update) {
     try {
       console.log('📡 SatışBot connection.update:', JSON.stringify(update, null, 0).slice(0, 300));
       const { connection, lastDisconnect, qr } = update;
@@ -221,8 +211,8 @@ class SatisBot extends EventEmitter {
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const errorMsg = lastDisconnect?.error?.message || '';
-        const credsExist = fs.existsSync(path.join(AUTH_DIR, 'creds.json'));
-        console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, creds: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+        const credsExist = this.basariliOturumVardi;
+        console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, session: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         
         if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
           console.log('🔄 restartRequired — QR tarandı, yeni socket oluşturuluyor (auth korunuyor)...');
@@ -234,7 +224,7 @@ class SatisBot extends EventEmitter {
           this.qrBase64 = null;
           this.aktif = false;
           this.sock = null;
-          try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
+          try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [SATIS_BOT_ID]); } catch (e) {}
           console.log('🗑️ Satış Bot oturumu kapatıldı. Panel\'den yeniden başlatıp QR tarayın.');
         } else if (credsExist && this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++;
@@ -254,7 +244,7 @@ class SatisBot extends EventEmitter {
           this.qrBase64 = null;
           this.sock = null;
           if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
+            try { pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [SATIS_BOT_ID]); } catch (e) {}
             console.log('🗑️ Max deneme aşıldı, auth temizlendi.');
           }
           console.log('⏹️ Satış Bot durdu. Panel\'den "Botu Başlat" ile yeniden başlatıp QR tarayın.');
