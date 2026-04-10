@@ -215,6 +215,11 @@ class SatisBot extends EventEmitter {
         this.emit('bagli');
         // Takip kontrol timer'ı başlat (her 30dk)
         this.takipTimerBaslat();
+        // Gönderim aktifse ama timer yoksa, devam ettir
+        if (this.aktif && !this.gonderimTimer) {
+          console.log('🚀 Gönderim aktifti, timer devam ettiriliyor...');
+          this.sonrakiGonderim();
+        }
       }
 
       if (connection === 'close') {
@@ -223,10 +228,11 @@ class SatisBot extends EventEmitter {
         const credsExist = this.basariliOturumVardi;
         console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, session: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         
-        // Conflict = başka bir socket zaten bağlı, müdahale etme
+        // Conflict = başka bir socket zaten bağlı, bu eski instance'i durdur
         if (statusCode === 440) {
-          console.log('⚠️ Conflict — başka socket zaten bağlı, bu instance durduruluyor.');
+          console.log('⚠️ Conflict — başka socket zaten bağlı, eski instance durduruluyor.');
           this.sock = null;
+          // aktif ve gonderimTimer koru — yeni socket devam etsin
           return;
         }
 
@@ -293,8 +299,8 @@ class SatisBot extends EventEmitter {
 
   async tamamenKapat() {
     await this.durdur();
-    try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (e) {}
-    console.log('�️ Satış Bot oturumu tamamen silindi');
+    try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [SATIS_BOT_ID]); } catch (e) {}
+    console.log('🗑️ Satış Bot oturumu tamamen silindi');
   }
 
   // ═══════════════════════════════════════════════════
