@@ -470,22 +470,9 @@ class TelegramService {
                [{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
           } else {
             await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: secilenTarih });
-            // Sabah/Öğle/Akşam grupla, 4'lü satırlar
-            const sabah = saatler.filter(s => parseInt(s.split(':')[0]) < 12);
-            const ogle = saatler.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; });
-            const aksam = saatler.filter(s => parseInt(s.split(':')[0]) >= 17);
-            const satirlar = [];
-            const grupEkle = (baslik, list) => {
-              if (!list.length) return;
-              satirlar.push([{ text: baslik, callback_data: 'ignore' }]);
-              const btnlar = list.map(s => ({ text: s, callback_data: `saat_${s}` }));
-              for (let i = 0; i < btnlar.length; i += 4) satirlar.push(btnlar.slice(i, i + 4));
-            };
-            grupEkle('🌅 Sabah', sabah);
-            grupEkle('☀️ Öğle', ogle);
-            grupEkle('🌙 Akşam', aksam);
-            satirlar.push([{ text: '🔙 Geri', callback_data: 'geri_tarih' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
-            await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, `🕐 *${this.tarihFormat(secilenTarih)}*\n\nBir saat seçin:`, satirlar);
+            // Sayfalama: ilk 4 saat + "Diğer Saatler" butonu
+            const satirlar = this._tgSaatSayfalama(saatler, 0);
+            await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, `🕐 *${this.tarihFormat(secilenTarih)}*\n\nEn yakın müsait saatler:`, satirlar);
           }
         } else {
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
@@ -510,6 +497,15 @@ class TelegramService {
         const randevuService = require('./randevu');
         const gd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
         const saatler = await randevuService.musaitSaatleriGetir(isletmeId, gd.secilen_tarih, gd.secilen_calisan_id, gd.secilen_hizmet_id);
+
+        // Sayfalama callback: tg_sayfa_0, tg_sayfa_4, tg_sayfa_8...
+        if (mk.startsWith('tg_sayfa_')) {
+          const sayfa = parseInt(mk.replace('tg_sayfa_', '')) || 0;
+          const satirlar = this._tgSaatSayfalama(saatler, sayfa);
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, `🕐 *${this.tarihFormat(gd.secilen_tarih)}*\n\nMüsait saatler (${sayfa+1}-${Math.min(sayfa+4, saatler.length)}/${saatler.length}):`, satirlar);
+          break;
+        }
+
         let secilenSaat = null;
         if (mk.startsWith('saat_')) secilenSaat = metin.replace('saat_', '');
         else if (saatler.includes(metin)) secilenSaat = metin;
@@ -532,10 +528,8 @@ class TelegramService {
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],
              [{ text: '✏️ Değiştir', callback_data: 'geri_hizmet' }, { text: '❌ İptal', callback_data: 'hayir' }]]);
         } else {
-          const sb = saatler.map(s => ({ text: s, callback_data: `saat_${s}` }));
-          const sat = []; for (let i=0;i<sb.length;i+=3) sat.push(sb.slice(i,i+3));
-          sat.push([{ text: '🔙 Geri', callback_data: 'geri_tarih' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
-          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, `Lütfen bir saat seçin:`, sat);
+          const satirlar = this._tgSaatSayfalama(saatler, 0);
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, `Lütfen bir saat seçin:`, satirlar);
         }
         break;
       }
@@ -955,6 +949,24 @@ class TelegramService {
   saatFormat(saat) {
     if (!saat) return '';
     return String(saat).substring(0, 5);
+  }
+
+  _tgSaatSayfalama(saatler, baslangic = 0) {
+    const SAYFA_BOYUT = 4;
+    const sayfa = saatler.slice(baslangic, baslangic + SAYFA_BOYUT);
+    const satirlar = [];
+    // 2'li satırlar halinde saat butonları
+    for (let i = 0; i < sayfa.length; i += 2) {
+      const satir = sayfa.slice(i, i + 2).map(s => ({ text: `🕐 ${s}`, callback_data: `saat_${s}` }));
+      satirlar.push(satir);
+    }
+    // Sayfalama butonları
+    const navSatir = [];
+    if (baslangic > 0) navSatir.push({ text: '⬅️ Önceki', callback_data: `tg_sayfa_${baslangic - SAYFA_BOYUT}` });
+    if (baslangic + SAYFA_BOYUT < saatler.length) navSatir.push({ text: `➡️ Diğer Saatler (${saatler.length - baslangic - SAYFA_BOYUT} tane)`, callback_data: `tg_sayfa_${baslangic + SAYFA_BOYUT}` });
+    if (navSatir.length) satirlar.push(navSatir);
+    satirlar.push([{ text: '🔙 Geri', callback_data: 'geri_tarih' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
+    return satirlar;
   }
 }
 

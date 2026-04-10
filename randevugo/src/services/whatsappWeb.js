@@ -665,28 +665,51 @@ class WhatsAppWebService extends EventEmitter {
         const guncelDurum = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
         const saatler = await randevuService.musaitSaatleriGetir(isletmeId, guncelDurum.secilen_tarih, guncelDurum.secilen_calisan_id, guncelDurum.secilen_hizmet_id);
         const saatFmt = saatler.map(s => String(s).substring(0,5));
+        const tarihStr = this.tarihFormat(guncelDurum.secilen_tarih);
+
+        // Zaman dilimi seçimi (sabah/öğle/akşam) — sadece çok saat varsa
+        if (saatFmt.length > 6) {
+          const dilimler = { '1': 'sabah', '2': 'ogle', '3': 'aksam', '4': 'hepsi' };
+          const dilimAlias = { 'sabah': 'sabah', 'öğle': 'ogle', 'ogle': 'ogle', 'akşam': 'aksam', 'aksam': 'aksam', 'tümü': 'hepsi', 'hepsi': 'hepsi' };
+          let secDilim = dilimler[metin] || dilimAlias[metinKucuk];
+          if (secDilim) {
+            const sonuc = this._saatDilimiListele(saatFmt, secDilim === 'hepsi' ? null : secDilim, tarihStr);
+            return { metin: sonuc.metin, butonlar: null };
+          }
+        }
+
+        // Serbest saat girişi: "14:30", "14.30", "1430", "14"
+        const saatMatch = metin.match(/^(\d{1,2})[.:]?(\d{2})?$/);
+        if (saatMatch) {
+          const giris = saatMatch[1].padStart(2,'0') + ':' + (saatMatch[2] || '00');
+          if (saatFmt.includes(giris)) {
+            // Direkt eşleşti
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: giris });
+            return this._ozetOlustur(isletme, guncelDurum, giris);
+          }
+          // Dolu — akıllı öneri
+          const alternatifler = this._enYakinAlternatif(saatFmt, giris);
+          if (alternatifler.length > 0) {
+            let txt = `⏰ *${giris}* dolu.\n\nEn yakın müsait saatler:\n\n`;
+            alternatifler.forEach((a, i) => { txt += `*${i+1}.* ${a.saat}\n`; });
+            txt += `\nNumara veya başka saat yazın:`;
+            return { metin: txt, butonlar: null };
+          }
+        }
+
+        // Numara ile seçim (dilim filtreli listedeki numara)
         let secilenSaat = null;
         if (saatFmt.includes(metin)) secilenSaat = metin;
-        else if (saatler.includes(metin)) secilenSaat = String(metin).substring(0,5);
         else { const si = parseInt(metin) - 1; if (si >= 0 && si < saatFmt.length) secilenSaat = saatFmt[si]; }
 
         if (secilenSaat) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
-          const hz = guncelDurum.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [guncelDurum.secilen_hizmet_id])).rows[0] : null;
-          const cl = guncelDurum.secilen_calisan_id ? (await pool.query('SELECT * FROM calisanlar WHERE id=$1', [guncelDurum.secilen_calisan_id])).rows[0] : null;
-          let ozet = `📋 *Randevu Özeti*\n\n`;
-          ozet += `🏥 ${isletme.isim}\n`;
-          if (hz) ozet += `✂️ ${hz.isim}\n`;
-          if (cl) ozet += `👤 ${cl.isim}\n`;
-          ozet += `📅 ${this.tarihFormat(guncelDurum.secilen_tarih)}\n`;
-          ozet += `🕐 ${secilenSaat}\n`;
-          if (hz) ozet += `💰 ${this.fiyatFormat(hz.fiyat)} TL\n`;
-          ozet += `\nHer şey doğru mu?\n\n*1.* ✅ Onayla\n*2.* ❌ İptal\n\n💬 Not eklemek için yazabilirsiniz.`;
-          return { metin: ozet, butonlar: null };
+          return this._ozetOlustur(isletme, guncelDurum, secilenSaat);
         }
-        let txt = `🕐 Saat seçin:\n\n`;
-        saatFmt.forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
-        txt += `\nNumara yazarak seçin:`;
+        // Anlaşılamadı
+        let txt = `Anlayamadım. Saat yazın _(örn: 14:30)_ veya numara seçin:\n\n`;
+        saatFmt.slice(0, 6).forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
+        if (saatFmt.length > 6) txt += `\n_...ve ${saatFmt.length - 6} saat daha_\n*1.* 🌅 Sabah  *2.* ☀️ Öğle  *3.* 🌙 Akşam`;
         return { metin: txt, butonlar: null };
       }
 
@@ -899,30 +922,68 @@ class WhatsAppWebService extends EventEmitter {
     await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: secilenTarih });
     const saatFmt = saatler.map(s => String(s).substring(0,5));
 
-    // Sabah / Ogle / Aksam gruplama
-    const sabah = [], ogle = [], aksam = [];
-    saatFmt.forEach((s, i) => {
-      const saat = parseInt(s.split(':')[0]);
-      if (saat < 12) sabah.push({s, n: i+1});
-      else if (saat < 17) ogle.push({s, n: i+1});
-      else aksam.push({s, n: i+1});
-    });
+    // Az saat varsa direkt listele, çoksa zaman dilimi sor
+    if (saatFmt.length <= 6) {
+      let txt = `📅 *${this.tarihFormat(secilenTarih)}* müsait saatler:\n\n`;
+      saatFmt.forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
+      txt += `\nNumara veya saat yazın _(örn: 14:30)_:`;
+      return { metin: txt, butonlar: null };
+    }
 
-    let txt = `📅 *${this.tarihFormat(secilenTarih)}* müsait saatler:\n`;
-    if (sabah.length > 0) {
-      txt += `\n🌅 *Sabah:*\n`;
-      sabah.forEach(x => { txt += `*${x.n}.* ${x.s}\n`; });
-    }
-    if (ogle.length > 0) {
-      txt += `\n☀️ *Öğle:*\n`;
-      ogle.forEach(x => { txt += `*${x.n}.* ${x.s}\n`; });
-    }
-    if (aksam.length > 0) {
-      txt += `\n🌙 *Akşam:*\n`;
-      aksam.forEach(x => { txt += `*${x.n}.* ${x.s}\n`; });
-    }
-    txt += `\nNumara yazarak seçin:`;
+    // Çok saat var → zaman dilimi sorusu
+    const sabah = saatFmt.filter(s => parseInt(s.split(':')[0]) < 12);
+    const ogle = saatFmt.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; });
+    const aksam = saatFmt.filter(s => parseInt(s.split(':')[0]) >= 17);
+
+    let txt = `📅 *${this.tarihFormat(secilenTarih)}* — ${saatFmt.length} müsait saat var.\n\nHangi zaman dilimini tercih edersiniz?\n\n`;
+    if (sabah.length) txt += `*1.* 🌅 Sabah _(${sabah[0]} - ${sabah[sabah.length-1]})_ — ${sabah.length} saat\n`;
+    if (ogle.length) txt += `*2.* ☀️ Öğle _(${ogle[0]} - ${ogle[ogle.length-1]})_ — ${ogle.length} saat\n`;
+    if (aksam.length) txt += `*3.* 🌙 Akşam _(${aksam[0]} - ${aksam[aksam.length-1]})_ — ${aksam.length} saat\n`;
+    txt += `*4.* 📋 Tümünü Göster\n`;
+    txt += `\nYa da direkt saat yazın _(örn: 14:30)_:`;
     return { metin: txt, butonlar: null };
+  }
+
+  _saatDilimiListele(saatFmt, dilim, tarihStr) {
+    let filtreli;
+    if (dilim === 'sabah') filtreli = saatFmt.filter(s => parseInt(s.split(':')[0]) < 12);
+    else if (dilim === 'ogle') filtreli = saatFmt.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; });
+    else if (dilim === 'aksam') filtreli = saatFmt.filter(s => parseInt(s.split(':')[0]) >= 17);
+    else filtreli = saatFmt;
+
+    const dilimEmoji = { sabah: '� Sabah', ogle: '☀️ Öğle', aksam: '�� Akşam' };
+    let txt = `📅 *${tarihStr}*`;
+    if (dilimEmoji[dilim]) txt += ` — ${dilimEmoji[dilim]}`;
+    txt += `\n\n`;
+    filtreli.forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
+    if (!filtreli.length) txt += `Bu zaman diliminde müsait saat yok.\n`;
+    txt += `\nNumara veya saat yazın _(örn: 14:30)_:`;
+    return { metin: txt, butonlar: null, filtreli };
+  }
+
+  async _ozetOlustur(isletme, guncelDurum, secilenSaat) {
+    const hz = guncelDurum.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [guncelDurum.secilen_hizmet_id])).rows[0] : null;
+    const cl = guncelDurum.secilen_calisan_id ? (await pool.query('SELECT * FROM calisanlar WHERE id=$1', [guncelDurum.secilen_calisan_id])).rows[0] : null;
+    let ozet = `📋 *Randevu Özeti*\n\n`;
+    ozet += `🏥 ${isletme.isim}\n`;
+    if (hz) ozet += `✂️ ${hz.isim}\n`;
+    if (cl) ozet += `👤 ${cl.isim}\n`;
+    ozet += `📅 ${this.tarihFormat(guncelDurum.secilen_tarih)}\n`;
+    ozet += `🕐 ${secilenSaat}\n`;
+    if (hz) ozet += `💰 ${this.fiyatFormat(hz.fiyat)} TL\n`;
+    ozet += `\nHer şey doğru mu?\n\n*1.* ✅ Onayla\n*2.* ❌ İptal\n\n💬 Not eklemek için yazabilirsiniz.`;
+    return { metin: ozet, butonlar: null };
+  }
+
+  _enYakinAlternatif(saatFmt, istenenSaat) {
+    // "14:30" → dakikaya çevir, en yakın 2 boş saati bul
+    const [ih, im] = istenenSaat.split(':').map(Number);
+    const istenenDk = ih * 60 + (im || 0);
+    const mesafeler = saatFmt.map(s => {
+      const [sh, sm] = s.split(':').map(Number);
+      return { saat: s, fark: Math.abs((sh * 60 + sm) - istenenDk) };
+    }).sort((a, b) => a.fark - b.fark);
+    return mesafeler.slice(0, 2);
   }
 
   async durumGuncelle(musteriTelefon, isletmeId, asama, ekstra = {}) {
