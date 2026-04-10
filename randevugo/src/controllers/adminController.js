@@ -336,21 +336,49 @@ class AdminController {
     try {
       const { id } = req.params;
       const isletmeId = req.kullanici.isletme_id;
+
+      // Premium kontrol
+      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      if (isletme?.paket !== 'premium') return res.status(403).json({ hata: 'Toplu kampanya gönderimi Premium pakete özeldir.' });
+
       const kampanya = (await pool.query('SELECT * FROM kampanyalar WHERE id=$1 AND isletme_id=$2', [id, isletmeId])).rows[0];
       if (!kampanya) return res.status(404).json({ hata: 'Kampanya bulunamadı' });
 
-      // Tüm müşteri telefonlarını al
-      const musteriler = (await pool.query(`
-        SELECT DISTINCT m.telefon FROM musteriler m
-        JOIN randevular r ON r.musteri_id = m.id WHERE r.isletme_id=$1
-      `, [isletmeId])).rows;
+      // Hedef müşteriler: etiket filtresi varsa sadece o etiketli müşteriler
+      let musteriler;
+      if (kampanya.hedef_etiket_id) {
+        musteriler = (await pool.query(`
+          SELECT DISTINCT ea.musteri_telefon as telefon FROM musteri_etiket_atamalari ea
+          WHERE ea.isletme_id=$1 AND ea.etiket_id=$2
+        `, [isletmeId, kampanya.hedef_etiket_id])).rows;
+      } else {
+        musteriler = (await pool.query(`
+          SELECT DISTINCT m.telefon FROM musteriler m
+          JOIN randevular r ON r.musteri_id = m.id WHERE r.isletme_id=$1
+        `, [isletmeId])).rows;
+      }
 
-      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const mesajMetni = `🏷️ *${kampanya.baslik}*\n\n${kampanya.mesaj}\n\n_${isletme.isim}_`;
+      let basarili = 0, basarisiz = 0;
+      const kanal = kampanya.kanal || 'hepsi';
 
-      let gonderilen = 0;
-      // Telegram üzerinden gönder
-      if (isletme.telegram_token) {
+      // WhatsApp broadcast
+      if (kanal === 'hepsi' || kanal === 'whatsapp') {
+        const wpService = require('../services/whatsappWeb');
+        for (const m of musteriler) {
+          try {
+            const tel = m.telefon.replace(/^\+/, '');
+            const jid = `${tel}@s.whatsapp.net`;
+            const sonuc = await wpService.mesajGonder(isletmeId, jid, mesajMetni);
+            if (sonuc.success) basarili++; else basarisiz++;
+            // Rate limit: 1 mesaj/saniye
+            await new Promise(r => setTimeout(r, 1000));
+          } catch (e) { basarisiz++; }
+        }
+      }
+
+      // Telegram broadcast
+      if ((kanal === 'hepsi' || kanal === 'telegram') && isletme.telegram_token) {
         const telegramService = require('../services/telegram');
         const bot = telegramService.botlar[isletmeId];
         if (bot) {
@@ -362,15 +390,18 @@ class AdminController {
                   parse_mode: 'Markdown',
                   reply_markup: { inline_keyboard: [[{ text: '📅 Randevu Al', callback_data: '1' }], [{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]] }
                 });
-                gonderilen++;
+                basarili++;
               }
-            } catch (e) { /* skip failed */ }
+            } catch (e) { basarisiz++; }
           }
         }
       }
 
-      await pool.query("UPDATE kampanyalar SET gonderim_durumu='gonderildi', gonderim_tarihi=NOW() WHERE id=$1", [id]);
-      res.json({ mesaj: `Kampanya ${gonderilen} müşteriye gönderildi`, gonderilen });
+      await pool.query(
+        "UPDATE kampanyalar SET gonderim_durumu='gonderildi', gonderim_tarihi=NOW(), toplam_hedef=$2, basarili=$3, basarisiz=$4 WHERE id=$1",
+        [id, musteriler.length, basarili, basarisiz]
+      );
+      res.json({ mesaj: `Kampanya ${basarili} müşteriye gönderildi`, basarili, basarisiz, toplam: musteriler.length });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
@@ -1779,6 +1810,181 @@ class AdminController {
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
+  }
+  // ==================== PREMIUM KONTROL HELPER ====================
+  _premiumKontrol(paket) {
+    return paket === 'premium';
+  }
+
+  // ==================== ETİKETLEME (Mini-CRM) ====================
+
+  async etiketleriGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const etiketler = (await pool.query(
+        `SELECT e.*, (SELECT COUNT(*) FROM musteri_etiket_atamalari ea WHERE ea.etiket_id=e.id) as musteri_sayisi
+         FROM musteri_etiketler e WHERE e.isletme_id=$1 ORDER BY e.isim`, [isletmeId]
+      )).rows;
+      res.json({ etiketler });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async etiketEkle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Müşteri etiketleme Premium pakete özeldir.' });
+      const { isim, renk } = req.body;
+      if (!isim) return res.status(400).json({ hata: 'Etiket adı gerekli' });
+      const result = await pool.query(
+        'INSERT INTO musteri_etiketler (isletme_id, isim, renk) VALUES ($1,$2,$3) RETURNING *',
+        [isletmeId, isim.trim(), renk || '#6366f1']
+      );
+      res.json({ etiket: result.rows[0] });
+    } catch (error) {
+      if (error.code === '23505') return res.status(400).json({ hata: 'Bu etiket zaten mevcut' });
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async etiketGuncelle(req, res) {
+    try {
+      const { isim, renk } = req.body;
+      await pool.query('UPDATE musteri_etiketler SET isim=COALESCE($1,isim), renk=COALESCE($2,renk) WHERE id=$3 AND isletme_id=$4',
+        [isim, renk, req.params.id, req.kullanici.isletme_id]);
+      res.json({ mesaj: 'Etiket güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async etiketSil(req, res) {
+    try {
+      await pool.query('DELETE FROM musteri_etiketler WHERE id=$1 AND isletme_id=$2', [req.params.id, req.kullanici.isletme_id]);
+      res.json({ mesaj: 'Etiket silindi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async musteriEtiketAta(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Premium paket gerekli.' });
+      const { musteri_telefon, etiket_id } = req.body;
+      if (!musteri_telefon || !etiket_id) return res.status(400).json({ hata: 'Telefon ve etiket ID gerekli' });
+      await pool.query(
+        'INSERT INTO musteri_etiket_atamalari (musteri_telefon, etiket_id, isletme_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+        [musteri_telefon, etiket_id, isletmeId]
+      );
+      res.json({ mesaj: 'Etiket atandı' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async musteriEtiketKaldir(req, res) {
+    try {
+      const { musteri_telefon, etiket_id } = req.body;
+      await pool.query('DELETE FROM musteri_etiket_atamalari WHERE musteri_telefon=$1 AND etiket_id=$2 AND isletme_id=$3',
+        [musteri_telefon, etiket_id, req.kullanici.isletme_id]);
+      res.json({ mesaj: 'Etiket kaldırıldı' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async musteriEtiketleri(req, res) {
+    try {
+      const { telefon } = req.params;
+      const etiketler = (await pool.query(
+        `SELECT e.* FROM musteri_etiketler e
+         JOIN musteri_etiket_atamalari ea ON ea.etiket_id=e.id
+         WHERE ea.musteri_telefon=$1 AND ea.isletme_id=$2`, [telefon, req.kullanici.isletme_id]
+      )).rows;
+      res.json({ etiketler });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async etiketliMusteriler(req, res) {
+    try {
+      const { etiketId } = req.params;
+      const musteriler = (await pool.query(
+        `SELECT DISTINCT m.isim, m.telefon, ea.olusturma_tarihi as etiket_tarihi
+         FROM musteri_etiket_atamalari ea
+         JOIN musteriler m ON m.telefon=ea.musteri_telefon
+         WHERE ea.etiket_id=$1 AND ea.isletme_id=$2 ORDER BY m.isim`,
+        [etiketId, req.kullanici.isletme_id]
+      )).rows;
+      res.json({ musteriler });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async topluEtiketAta(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { telefonlar, etiket_id } = req.body;
+      if (!telefonlar?.length || !etiket_id) return res.status(400).json({ hata: 'Telefon listesi ve etiket ID gerekli' });
+      let atanan = 0;
+      for (const tel of telefonlar) {
+        try {
+          await pool.query('INSERT INTO musteri_etiket_atamalari (musteri_telefon, etiket_id, isletme_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+            [tel, etiket_id, isletmeId]);
+          atanan++;
+        } catch (e) {}
+      }
+      res.json({ mesaj: `${atanan} müşteriye etiket atandı`, atanan });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== GOOGLE YORUM FEEDBACK ====================
+
+  async googleYorumAyarlar(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query('SELECT google_maps_url, google_yorum_aktif, paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Google yorum hatırlatma Premium pakete özeldir.' });
+      res.json({ google_maps_url: isletme.google_maps_url, google_yorum_aktif: isletme.google_yorum_aktif });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async googleYorumAyarGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Premium paket gerekli.' });
+      const { google_maps_url, google_yorum_aktif } = req.body;
+      await pool.query('UPDATE isletmeler SET google_maps_url=COALESCE($1,google_maps_url), google_yorum_aktif=COALESCE($2,google_yorum_aktif) WHERE id=$3',
+        [google_maps_url, google_yorum_aktif, isletmeId]);
+      res.json({ mesaj: 'Google yorum ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async googleYorumTalepleri(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = await pool.query(
+        `SELECT gyt.*, m.isim as musteri_isim FROM google_yorum_talepleri gyt
+         LEFT JOIN musteriler m ON m.telefon=gyt.musteri_telefon
+         WHERE gyt.isletme_id=$1 ORDER BY gyt.olusturma_tarihi DESC LIMIT 50`, [isletmeId]
+      );
+      res.json({ talepler: result.rows });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== PREMİUM ÖZELLİK DURUMU ====================
+
+  async premiumOzellikDurumu(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query('SELECT paket, google_maps_url, google_yorum_aktif FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      const premium = isletme?.paket === 'premium';
+      res.json({
+        premium,
+        paket: isletme?.paket || 'baslangic',
+        ozellikler: {
+          toplu_kampanya: premium,
+          google_yorum: premium,
+          musteri_etiketleme: premium,
+          excel_export: premium,
+        },
+        google_maps_url: isletme?.google_maps_url,
+        google_yorum_aktif: isletme?.google_yorum_aktif
+      });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 }
 

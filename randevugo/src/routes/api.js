@@ -149,4 +149,23 @@ router.get('/duyurular', authMiddleware, (req, res) => adminController.aktifDuyu
 // ==================== VERİ DIŞA AKTARMA (Export) ====================
 router.get('/export/musteriler', authMiddleware, (req, res) => adminController.exportMusteriler(req, res));
 
+// ==================== ETİKETLEME (Mini-CRM) — Premium ====================
+router.get('/etiketler', authMiddleware, (req, res) => adminController.etiketleriGetir(req, res));
+router.post('/etiketler', authMiddleware, (req, res) => adminController.etiketEkle(req, res));
+router.put('/etiketler/:id', authMiddleware, (req, res) => adminController.etiketGuncelle(req, res));
+router.delete('/etiketler/:id', authMiddleware, (req, res) => adminController.etiketSil(req, res));
+router.post('/etiketler/ata', authMiddleware, (req, res) => adminController.musteriEtiketAta(req, res));
+router.post('/etiketler/kaldir', authMiddleware, (req, res) => adminController.musteriEtiketKaldir(req, res));
+router.get('/etiketler/musteri/:telefon', authMiddleware, (req, res) => adminController.musteriEtiketleri(req, res));
+router.get('/etiketler/:etiketId/musteriler', authMiddleware, (req, res) => adminController.etiketliMusteriler(req, res));
+router.post('/etiketler/toplu-ata', authMiddleware, (req, res) => adminController.topluEtiketAta(req, res));
+
+// ==================== GOOGLE YORUM FEEDBACK — Premium ====================
+router.get('/google-yorum/ayarlar', authMiddleware, (req, res) => adminController.googleYorumAyarlar(req, res));
+router.put('/google-yorum/ayarlar', authMiddleware, (req, res) => adminController.googleYorumAyarGuncelle(req, res));
+router.get('/google-yorum/talepler', authMiddleware, (req, res) => adminController.googleYorumTalepleri(req, res));
+
+// ==================== PREMİUM ÖZELLİK DURUMU ====================
+router.get('/premium/durum', authMiddleware, (req, res) => adminController.premiumOzellikDurumu(req, res));
+
 module.exports = router;

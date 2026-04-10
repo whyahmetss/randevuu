@@ -222,6 +222,45 @@ const PORT = process.env.PORT || 3000;
     )`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_wa_auth_isletme ON wa_auth_keys(isletme_id)`);
 
+    // ─── MÜŞTERİ ETİKETLEME (Mini-CRM) ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS musteri_etiketler (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      isim VARCHAR(100) NOT NULL,
+      renk VARCHAR(20) DEFAULT '#6366f1',
+      olusturma_tarihi TIMESTAMP DEFAULT NOW(),
+      UNIQUE(isletme_id, isim)
+    )`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS musteri_etiket_atamalari (
+      id SERIAL PRIMARY KEY,
+      musteri_telefon VARCHAR(50) NOT NULL,
+      etiket_id INTEGER NOT NULL REFERENCES musteri_etiketler(id) ON DELETE CASCADE,
+      isletme_id INTEGER NOT NULL,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW(),
+      UNIQUE(musteri_telefon, etiket_id)
+    )`);
+
+    // ─── GOOGLE YORUM FEEDBACK ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS google_yorum_talepleri (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      randevu_id INTEGER REFERENCES randevular(id) ON DELETE SET NULL,
+      musteri_telefon VARCHAR(50) NOT NULL,
+      gonderim_zamani TIMESTAMP,
+      gonderildi BOOLEAN DEFAULT false,
+      yildiz INTEGER,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_maps_url TEXT`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_yorum_aktif BOOLEAN DEFAULT false`);
+
+    // ─── KAMPANYA BROADCAST GELİŞTİRME ───
+    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS hedef_etiket_id INTEGER`);
+    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS kanal VARCHAR(20) DEFAULT 'hepsi'`);
+    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS toplam_hedef INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarili INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarisiz INTEGER DEFAULT 0`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
@@ -284,6 +323,14 @@ app.listen(PORT, () => {
   // Hatırlatma cron job'ını başlat (production'da sadece ENABLE_CRON=true ise)
   if (process.env.ENABLE_CRON !== 'false') {
     hatirlatmaService.baslat();
+  }
+
+  // Google Yorum Feedback cron (Premium)
+  try {
+    const googleYorumService = require('./services/googleYorumService');
+    googleYorumService.baslat();
+  } catch (e) {
+    console.log('⚠️ Google Yorum servisi başlatma hatası:', e.message);
   }
   
   // Aylık otomatik ödeme kaydı servisi
