@@ -56,6 +56,70 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- Sektörel Landing Page'ler -->
+  <url>
+    <loc>https://xn--srago-n4a.com/berberler-icin-randevu-sistemi.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/kuaforler-icin-randevu-sistemi.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/dis-klinigi-randevu-sistemi.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/psikolog-randevu-sistemi.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/guzellik-salonu-randevu-sistemi.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/veteriner-randevu-sistemi.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Blog -->
+  <url>
+    <loc>https://xn--srago-n4a.com/blog.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/blog/whatsapp-uzerinden-randevu-almanin-avantajlari.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/blog/isletmeler-icin-randevu-takibi-nasil-kolaylasir.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://xn--srago-n4a.com/blog/randevu-kaciranlar-icin-otomatik-hatirlatma-sistemi.html</loc>
+    <lastmod>2026-04-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
   <!-- Gizlilik Politikası -->
   <url>
     <loc>https://xn--srago-n4a.com/gizlilik.html</loc>

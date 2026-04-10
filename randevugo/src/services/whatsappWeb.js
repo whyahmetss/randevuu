@@ -394,6 +394,7 @@ class WhatsAppWebService extends EventEmitter {
           tebrikAi += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
           tebrikAi += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
           tebrikAi += `\n⏰ Randevunuzdan 1 saat önce hatırlatma alacaksınız.\n\nGörüşmek üzere! 😊`;
+          tebrikAi += `\n\n_Powered by SıraGO — sırago.com_`;
           return tebrikAi;
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
@@ -665,6 +666,7 @@ class WhatsAppWebService extends EventEmitter {
               kaporaMesaj += `\n⚠️ Randevunuz, kapora ödemeniz onaylandıktan sonra kesinleşecektir.\n`;
               kaporaMesaj += `\n🔗 Ödeme linki: ${urun.url}`;
               kaporaMesaj += `\n\n⏳ Ödemeniz otomatik kontrol edilecektir.`;
+              kaporaMesaj += `\n\n_Powered by SıraGO — sırago.com_`;
               return { metin: kaporaMesaj, butonlar: null };
             } catch (err) {
               console.error('❌ Kapora ödeme linki hatası:', err.message);
@@ -682,6 +684,7 @@ class WhatsAppWebService extends EventEmitter {
           tebrik += `\n⏰ Randevunuzdan 1 gün ve 1 saat önce hatırlatma alacaksınız.`;
           tebrik += `\n\nGörüşmek üzere! 😊`;
           tebrik += `\n\n📅 Yeni randevu için *1* yazın.`;
+          tebrik += `\n\n_Powered by SıraGO — sırago.com_`;
           return { metin: tebrik, butonlar: null };
         } else if (metinKucuk !== '2' && !metinKucuk.includes('iptal') && !metinKucuk.includes('hayır') && metin.length > 1) {
           // Musteri not yazdi - onaylayip notu kaydet
@@ -691,7 +694,7 @@ class WhatsAppWebService extends EventEmitter {
             await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc.randevu.id]);
           }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
-          return { metin: `✅ *Randevunuz oluşturuldu!*\n\n💬 Notunuz: "${metin}"\n\nGörüşmek üzere! 😊`, butonlar: null };
+          return { metin: `✅ *Randevunuz oluşturuldu!*\n\n💬 Notunuz: "${metin}"\n\nGörüşmek üzere! 😊\n\n_Powered by SıraGO — sırago.com_`, butonlar: null };
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
