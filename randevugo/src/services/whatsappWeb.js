@@ -510,7 +510,11 @@ class WhatsAppWebService extends EventEmitter {
         if (idx >= 0 && idx < hizmetler.length) {
           secilenHizmet = hizmetler[idx];
         } else {
-          secilenHizmet = hizmetler.find(h => metinKucuk.includes(h.isim.toLowerCase()));
+          // Fuzzy match: hizmet adı metni içeriyor VEYA metin hizmet adını içeriyor
+          secilenHizmet = hizmetler.find(h => {
+            const hIsim = h.isim.toLowerCase();
+            return metinKucuk.includes(hIsim) || hIsim.includes(metinKucuk) || hIsim.split(/\s+/).some(w => w.length > 2 && metinKucuk.includes(w)) || metinKucuk.split(/\s+/).some(w => w.length > 2 && hIsim.includes(w));
+          });
         }
         if (secilenHizmet) {
           // Çalışan kontrolü (hizmete uygun çalışanları getir)
@@ -549,7 +553,11 @@ class WhatsAppWebService extends EventEmitter {
         if (cIdx >= 0 && cIdx < calisanlarQ.length) {
           secilenCalisan = calisanlarQ[cIdx];
         } else {
-          secilenCalisan = calisanlarQ.find(c => metinKucuk.includes(c.isim.toLowerCase()));
+          // Fuzzy match: çalışan adı metni içeriyor VEYA metin çalışan adını içeriyor
+          secilenCalisan = calisanlarQ.find(c => {
+            const cIsim = c.isim.toLowerCase();
+            return metinKucuk.includes(cIsim) || cIsim.includes(metinKucuk) || cIsim.split(/\s+/).some(w => w.length > 2 && metinKucuk.includes(w)) || metinKucuk.split(/\s+/).some(w => w.length > 2 && cIsim.includes(w));
+          });
         }
         if (secilenCalisan) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_calisan_id: secilenCalisan.id });
