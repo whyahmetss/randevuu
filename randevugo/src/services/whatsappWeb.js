@@ -9,6 +9,48 @@ const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
 
 const AUTH_DIR = path.join(process.cwd(), '.wwebjs_auth');
 
+// Türkçe karakter normalize + Levenshtein mesafe (yazım hatası toleransı)
+function trNormalize(str) {
+  return str.toLowerCase().replace(/ı/g,'i').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ö/g,'o').replace(/ç/g,'c').replace(/İ/g,'i').replace(/Ğ/g,'g').replace(/Ü/g,'u').replace(/Ş/g,'s').replace(/Ö/g,'o').replace(/Ç/g,'c');
+}
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const d = Array.from({length: m+1}, () => new Array(n+1).fill(0));
+  for (let i = 0; i <= m; i++) d[i][0] = i;
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+cost);
+    }
+  }
+  return d[m][n];
+}
+function fuzzyMatch(metin, hedef) {
+  const a = trNormalize(metin), b = trNormalize(hedef);
+  // Tam/substring eşleşme
+  if (a.includes(b) || b.includes(a)) return true;
+  // Kelime bazlı eşleşme
+  const aKelime = a.split(/\s+/), bKelime = b.split(/\s+/);
+  if (bKelime.some(w => w.length > 2 && a.includes(w))) return true;
+  if (aKelime.some(w => w.length > 2 && b.includes(w))) return true;
+  // Levenshtein: kısa kelimeler için 1 harf, uzunlar için 2 harf tolerans
+  const esik = Math.min(a.length, b.length) <= 4 ? 1 : 2;
+  if (levenshtein(a, b) <= esik) return true;
+  // Kelime bazlı Levenshtein
+  for (const aw of aKelime) {
+    for (const bw of bKelime) {
+      if (aw.length > 2 && bw.length > 2) {
+        const kEsik = Math.min(aw.length, bw.length) <= 4 ? 1 : 2;
+        if (levenshtein(aw, bw) <= kEsik) return true;
+      }
+    }
+  }
+  return false;
+}
+
 class WhatsAppWebService extends EventEmitter {
   constructor() {
     super();
@@ -543,11 +585,8 @@ class WhatsAppWebService extends EventEmitter {
         if (idx >= 0 && idx < hizmetler.length) {
           secilenHizmet = hizmetler[idx];
         } else {
-          // Fuzzy match: hizmet adı metni içeriyor VEYA metin hizmet adını içeriyor
-          secilenHizmet = hizmetler.find(h => {
-            const hIsim = h.isim.toLowerCase();
-            return metinKucuk.includes(hIsim) || hIsim.includes(metinKucuk) || hIsim.split(/\s+/).some(w => w.length > 2 && metinKucuk.includes(w)) || metinKucuk.split(/\s+/).some(w => w.length > 2 && hIsim.includes(w));
-          });
+          // Fuzzy match: substring + Levenshtein yazım hatası toleransı
+          secilenHizmet = hizmetler.find(h => fuzzyMatch(metin, h.isim));
         }
         if (secilenHizmet) {
           // Çalışan kontrolü (hizmete uygun çalışanları getir)
@@ -586,11 +625,8 @@ class WhatsAppWebService extends EventEmitter {
         if (cIdx >= 0 && cIdx < calisanlarQ.length) {
           secilenCalisan = calisanlarQ[cIdx];
         } else {
-          // Fuzzy match: çalışan adı metni içeriyor VEYA metin çalışan adını içeriyor
-          secilenCalisan = calisanlarQ.find(c => {
-            const cIsim = c.isim.toLowerCase();
-            return metinKucuk.includes(cIsim) || cIsim.includes(metinKucuk) || cIsim.split(/\s+/).some(w => w.length > 2 && metinKucuk.includes(w)) || metinKucuk.split(/\s+/).some(w => w.length > 2 && cIsim.includes(w));
-          });
+          // Fuzzy match: substring + Levenshtein yazım hatası toleransı
+          secilenCalisan = calisanlarQ.find(c => fuzzyMatch(metin, c.isim));
         }
         if (secilenCalisan) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_calisan_id: secilenCalisan.id });
