@@ -873,10 +873,14 @@ class SatisBot extends EventEmitter {
       [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, konusma.id]
     );
 
-    // Zaten olumsuz olan konuşmalara cevap verme
+    // Olumsuz konuşma — müşteri tekrar yazarsa ikinci şans ver
     if (konusma.durum === 'olumsuz') {
-      console.log(`🚫 Konuşma zaten olumsuz, cevap verilmiyor: ${telefon}`);
-      return;
+      console.log(`� Olumsuz konuşma tekrar aktif ediliyor: ${telefon}`);
+      await pool.query(
+        "UPDATE satis_konusmalar SET durum = 'ai_devrede' WHERE id = $1",
+        [konusma.id]
+      );
+      konusma.durum = 'ai_devrede';
     }
 
     // Red / ilgilenmiyorum algılama — AI'dan önce yakala
