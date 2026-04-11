@@ -29,7 +29,7 @@ class AuthController {
   // Bot üzerinden kayıt (WP/TG bot çağırır)
   async botKayit(req, res) {
     try {
-      const { isletmeAdi, email, sifre, telefon, kayitKanal } = req.body;
+      const { isletmeAdi, email, sifre, telefon, kayitKanal, referans_kodu } = req.body;
       if (!isletmeAdi || !email || !sifre) {
         return res.status(400).json({ hata: 'İşletme adı, email ve şifre zorunlu' });
       }
@@ -55,13 +55,36 @@ class AuthController {
         [isletmeAdi, email, hashSifre, isletme.id]
       )).rows[0];
 
-      console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}`);
+      // Referans kodu varsa uygula
+      let referansMesaj = '';
+      if (referans_kodu) {
+        try {
+          const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referans_kodu.toUpperCase()])).rows[0];
+          if (ref) {
+            await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
+            await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, isletme.id]);
+            // Min davet kontrolü
+            const guncelRef = (await pool.query("SELECT * FROM referanslar WHERE id = $1", [ref.id])).rows[0];
+            const minDavet = guncelRef.min_davet || 1;
+            if (guncelRef.toplam_davet >= minDavet && guncelRef.toplam_davet % minDavet === 0) {
+              await pool.query("UPDATE referanslar SET kazanilan_ay = kazanilan_ay + 1 WHERE id = $1", [ref.id]);
+              referansMesaj = ` (Referans: ${referans_kodu} — ${guncelRef.bedava_gun || 30} gün bedava kazanıldı!)`;
+            } else {
+              const kalan = minDavet - (guncelRef.toplam_davet % minDavet);
+              referansMesaj = ` (Referans: ${referans_kodu} — ${kalan} davet daha gerekli)`;
+            }
+            console.log(`🤝 Referans kullanıldı: ${referans_kodu}, yeni: ${isletme.id}, sahip: ${ref.sahip_isletme_id}`);
+          }
+        } catch(e) { console.error('Referans uygulama hatası:', e.message); }
+      }
+
+      console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}${referansMesaj}`);
 
       res.json({ 
         basarili: true, 
         isletme_id: isletme.id, 
         kullanici_id: kullanici.id,
-        mesaj: `${isletmeAdi} başarıyla oluşturuldu!` 
+        mesaj: `${isletmeAdi} başarıyla oluşturuldu!${referansMesaj}` 
       });
     } catch (error) {
       console.error('❌ Bot kayıt hatası:', error.message);

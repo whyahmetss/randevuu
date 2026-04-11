@@ -190,6 +190,8 @@ const PORT = process.env.PORT || 3000;
     )`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(50)`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_ile_gelen INTEGER`);
+    await pool.query(`ALTER TABLE referanslar ADD COLUMN IF NOT EXISTS bedava_gun INTEGER DEFAULT 30`);
+    await pool.query(`ALTER TABLE referanslar ADD COLUMN IF NOT EXISTS min_davet INTEGER DEFAULT 1`);
 
     // ─── DİNAMİK PAKETLER ───
     await pool.query(`CREATE TABLE IF NOT EXISTS paket_tanimlari (

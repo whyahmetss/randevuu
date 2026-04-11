@@ -1938,12 +1938,13 @@ class AdminController {
   async referansOlustur(req, res) {
     try {
       const isletmeId = req.body.isletme_id || req.kullanici?.isletme_id;
+      const bedavaGun = parseInt(req.body.bedava_gun) || 30;
+      const minDavet = parseInt(req.body.min_davet) || 1;
       if (!isletmeId) return res.status(400).json({ hata: 'İşletme ID zorunlu' });
-      // Referans kodu üret
       const kod = 'REF-' + Math.random().toString(36).substring(2, 8).toUpperCase();
       const result = await pool.query(
-        "INSERT INTO referanslar (referans_kodu, sahip_isletme_id) VALUES ($1, $2) RETURNING *",
-        [kod, isletmeId]
+        "INSERT INTO referanslar (referans_kodu, sahip_isletme_id, bedava_gun, min_davet) VALUES ($1, $2, $3, $4) RETURNING *",
+        [kod, isletmeId, bedavaGun, minDavet]
       );
       await pool.query("UPDATE isletmeler SET referans_kodu = $1 WHERE id = $2", [kod, isletmeId]);
       res.json({ referans: result.rows[0] });
@@ -1958,11 +1959,34 @@ class AdminController {
       const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referans_kodu])).rows[0];
       if (!ref) return res.status(404).json({ hata: 'Geçersiz referans kodu' });
       // Davet sayısını artır
-      await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1, kazanilan_ay = kazanilan_ay + 1 WHERE id = $1", [ref.id]);
+      await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
       // Yeni işletmeye referans bilgisini kaydet
       await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, yeni_isletme_id]);
-      await this.auditLogYaz(null, 'referans_kullanildi', `Kod: ${referans_kodu}, sahip: ${ref.sahip_isletme_id}, yeni: ${yeni_isletme_id}`, 'referanslar', ref.id);
-      res.json({ mesaj: 'Referans uygulandı! Davet eden işletmeye 1 ay bedava hak eklendi.', sahip_isletme_id: ref.sahip_isletme_id });
+
+      // Min davet sayısına ulaştıysa bedava gün ver
+      const guncelRef = (await pool.query("SELECT * FROM referanslar WHERE id = $1", [ref.id])).rows[0];
+      const minDavet = guncelRef.min_davet || 1;
+      const bedavaGun = guncelRef.bedava_gun || 30;
+      let bedavaVerildi = false;
+
+      if (guncelRef.toplam_davet >= minDavet && guncelRef.toplam_davet % minDavet === 0) {
+        // Her min_davet'e ulaştığında bedava gün ekle
+        const yeniKazanilan = (guncelRef.kazanilan_ay || 0) + 1;
+        await pool.query("UPDATE referanslar SET kazanilan_ay = $1 WHERE id = $2", [yeniKazanilan, ref.id]);
+        bedavaVerildi = true;
+      }
+
+      await this.auditLogYaz(null, 'referans_kullanildi', `Kod: ${referans_kodu}, sahip: ${ref.sahip_isletme_id}, yeni: ${yeni_isletme_id}, davet: ${guncelRef.toplam_davet}/${minDavet}`, 'referanslar', ref.id);
+
+      const kalanDavet = minDavet - (guncelRef.toplam_davet % minDavet);
+      res.json({
+        mesaj: bedavaVerildi
+          ? `Referans uygulandı! ${minDavet} davet tamamlandı — işletmeye ${bedavaGun} gün bedava hak eklendi!`
+          : `Referans uygulandı! Bedava hak için ${kalanDavet} davet daha gerekli.`,
+        sahip_isletme_id: ref.sahip_isletme_id,
+        bedava_verildi: bedavaVerildi,
+        bedava_gun: bedavaGun
+      });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
@@ -1971,9 +1995,17 @@ class AdminController {
   async referansBedavaAyGuncelle(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const { kazanilan_ay } = req.body;
-      await pool.query("UPDATE referanslar SET kazanilan_ay = $1 WHERE id = $2", [kazanilan_ay, id]);
-      res.json({ mesaj: `Bedava ay ${kazanilan_ay} olarak güncellendi` });
+      const { kazanilan_ay, bedava_gun, min_davet } = req.body;
+      const updates = [];
+      const values = [];
+      let idx = 1;
+      if (kazanilan_ay !== undefined) { updates.push(`kazanilan_ay = $${idx++}`); values.push(parseInt(kazanilan_ay)); }
+      if (bedava_gun !== undefined) { updates.push(`bedava_gun = $${idx++}`); values.push(parseInt(bedava_gun)); }
+      if (min_davet !== undefined) { updates.push(`min_davet = $${idx++}`); values.push(parseInt(min_davet)); }
+      if (updates.length === 0) return res.status(400).json({ hata: 'Güncellenecek alan yok' });
+      values.push(id);
+      await pool.query(`UPDATE referanslar SET ${updates.join(', ')} WHERE id = $${idx}`, values);
+      res.json({ mesaj: 'Referans güncellendi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

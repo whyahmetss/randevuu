@@ -3354,104 +3354,158 @@ function SuperAdminPanel({ kullanici }) {
         })()}
 
         {/* REFERANS (Affiliate) SİSTEMİ */}
-        {sayfa === "referanslar" && (
+        {sayfa === "referanslar" && (() => {
+          const toplamDavet = referanslar.reduce((s,r) => s + (r.toplam_davet || 0), 0);
+          const toplamKazanilan = referanslar.reduce((s,r) => s + (r.kazanilan_ay || 0), 0);
+          const gunSecenekleri = [
+            { label: "1 hafta", gun: 7 },
+            { label: "2 hafta", gun: 14 },
+            { label: "3 hafta", gun: 21 },
+            { label: "1 ay", gun: 30 },
+            { label: "2 ay", gun: 60 },
+            { label: "3 ay", gun: 90 },
+            { label: "6 ay", gun: 180 },
+            { label: "1 yıl", gun: 365 },
+          ];
+          const gunLabel = (g) => {
+            if (!g) return "—";
+            if (g < 30) return `${Math.round(g/7)} hafta`;
+            if (g < 365) return `${Math.round(g/30)} ay`;
+            return `${Math.round(g/365)} yıl`;
+          };
+          return (
           <>
             <div className="page-header">
               <h1>🤝 Referans (Affiliate) Sistemi</h1>
-              <p>Müşteri getiren işletmeye bedava ay ver — her referansı buradan yönet</p>
+              <p>İşletmelere referans kodu ver — müşteri getirene bedava süre tanımla</p>
             </div>
+
             <div className="stats-grid" style={{ marginBottom: 16 }}>
               <div className="stat-card green"><div className="sc-icon">🔗</div><div className="sc-label">Toplam Referans</div><div className="sc-val">{referanslar.length}</div></div>
-              <div className="stat-card blue"><div className="sc-icon">👥</div><div className="sc-label">Toplam Davet</div><div className="sc-val">{referanslar.reduce((s,r) => s + (r.toplam_davet || 0), 0)}</div></div>
-              <div className="stat-card amber"><div className="sc-icon">🎁</div><div className="sc-label">Verilen Bedava Ay</div><div className="sc-val">{referanslar.reduce((s,r) => s + (r.kazanilan_ay || 0), 0)}</div></div>
+              <div className="stat-card blue"><div className="sc-icon">👥</div><div className="sc-label">Toplam Davet</div><div className="sc-val">{toplamDavet}</div></div>
+              <div className="stat-card amber"><div className="sc-icon">🎁</div><div className="sc-label">Verilen Bedava Hak</div><div className="sc-val">{toplamKazanilan}</div></div>
             </div>
 
             {/* Yeni Referans Oluştur */}
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: "20px", marginBottom: 16, border: "1px solid var(--border)" }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 12 }}>➕ Yeni Referans Kodu Oluştur</div>
-              <div className="row gap-12" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
-                <div style={{ flex: 1, minWidth: 200 }}>
-                  <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>İşletme</label>
-                  <select id="refIsletme" className="input" style={{ fontSize: 13 }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, marginBottom: 16, border: "1px solid rgba(16,185,129,.15)" }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#10b981", marginBottom: 14 }}>➕ Yeni Referans Kodu Oluştur</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, alignItems: "end" }}>
+                <div style={{ gridColumn: "span 2" }}>
+                  <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", display: "block", marginBottom: 4 }}>İşletme</label>
+                  <select id="refIsletme" style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}>
                     <option value="">Seç...</option>
                     {isletmeler.map(i => <option key={i.id} value={i.id}>{i.isim}</option>)}
                   </select>
                 </div>
-                <div style={{ minWidth: 120 }}>
-                  <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Bedava Ay</label>
-                  <select id="refBedavaAy" className="input" defaultValue="1" style={{ fontSize: 13, fontWeight: 700 }}>
-                    {[0,1,2,3,6,12].map(a => <option key={a} value={a}>{a} ay</option>)}
+                <div>
+                  <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Bedava Süre</label>
+                  <select id="refBedavaGun" defaultValue="30" style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, fontWeight: 700 }}>
+                    {gunSecenekleri.map(g => <option key={g.gun} value={g.gun}>{g.label} ({g.gun} gün)</option>)}
                   </select>
                 </div>
-                <button onClick={async () => {
-                  const isletme_id = document.getElementById('refIsletme').value;
-                  const bedavaAy = parseInt(document.getElementById('refBedavaAy').value) || 0;
-                  if (!isletme_id) { alert('İşletme seçin'); return; }
-                  const res = await api.post("/admin/referanslar", { isletme_id });
-                  if (res.referans && bedavaAy > 0) {
-                    await api.put(`/admin/referanslar/${res.referans.id}/bedava-ay`, { kazanilan_ay: bedavaAy });
-                  }
-                  if (res.referans) { alert(`Referans kodu: ${res.referans.referans_kodu} — ${bedavaAy} ay bedava`); referanslariYukle(); }
-                }} style={{ padding: "10px 24px", borderRadius: 10, border: "none", cursor: "pointer", background: "#10b981", color: "#fff", fontWeight: 700, fontSize: 13 }}>🔗 Oluştur</button>
+                <div>
+                  <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Kaç Davet Gerekli</label>
+                  <select id="refMinDavet" defaultValue="1" style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, fontWeight: 700 }}>
+                    {[1,2,3,5,10].map(n => <option key={n} value={n}>{n} davet → bedava</option>)}
+                  </select>
+                </div>
+                <div>
+                  <button onClick={async () => {
+                    const isletme_id = document.getElementById('refIsletme').value;
+                    const bedava_gun = parseInt(document.getElementById('refBedavaGun').value) || 30;
+                    const min_davet = parseInt(document.getElementById('refMinDavet').value) || 1;
+                    if (!isletme_id) { alert('İşletme seçin'); return; }
+                    const res = await api.post("/admin/referanslar", { isletme_id, bedava_gun, min_davet });
+                    if (res.referans) { alert(`Referans kodu: ${res.referans.referans_kodu}\n${min_davet} davet → ${gunLabel(bedava_gun)} bedava`); referanslariYukle(); }
+                  }} style={{ width: "100%", padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", fontWeight: 700, fontSize: 13 }}>🔗 Oluştur</button>
+                </div>
               </div>
             </div>
 
             {/* Referans Listesi */}
             {referanslar.length === 0 ? (
-              <div className="list-empty"><p>Henüz referans kodu yok.</p></div>
+              <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>🔗</div>
+                <p>Henüz referans kodu yok</p>
+              </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {referanslar.map(r => (
-                  <div key={r.id} style={{ background: "var(--surface)", borderRadius: 12, padding: "14px 18px", border: "1px solid var(--border)" }}>
-                    <div className="row row-between row-wrap gap-8" style={{ alignItems: "center" }}>
-                      {/* Sol: İsletme + Kod + Davet */}
-                      <div className="row row-wrap gap-10" style={{ alignItems: "center", flex: 1 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14 }}>{(r.isletme_isim || "?")[0]}</div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{r.isletme_isim}</div>
-                          <div className="row gap-6" style={{ marginTop: 2 }}>
-                            <span style={{ padding: "1px 8px", borderRadius: 6, background: "rgba(16,185,129,.1)", color: "#10b981", fontWeight: 700, fontSize: 11, fontFamily: "monospace" }}>{r.referans_kodu}</span>
-                            <span style={{ fontSize: 11, color: "var(--dim)" }}>👥 {r.toplam_davet || 0} davet</span>
+                {referanslar.map(r => {
+                  const minD = r.min_davet || 1;
+                  const bedG = r.bedava_gun || 30;
+                  const progress = minD > 0 ? Math.min(((r.toplam_davet || 0) % minD) / minD * 100, 100) : 0;
+                  return (
+                    <div key={r.id} style={{ background: "var(--surface)", borderRadius: 14, padding: "16px 18px", border: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 15, flexShrink: 0 }}>{(r.isletme_isim || "?")[0]}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{r.isletme_isim}</span>
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(16,185,129,.1)", color: "#10b981", fontWeight: 700, fontSize: 11, fontFamily: "monospace", letterSpacing: .5 }}>{r.referans_kodu}</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 11, color: "var(--dim)", flexWrap: "wrap" }}>
+                            <span>👥 {r.toplam_davet || 0} davet</span>
+                            <span>🎯 {minD} davet → {gunLabel(bedG)} bedava</span>
+                            <span>🎁 {r.kazanilan_ay || 0} kez kazanıldı</span>
+                          </div>
+                          {/* Progress bar */}
+                          <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ flex: 1, height: 4, background: "var(--bg)", borderRadius: 2, overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #10b981, #059669)", borderRadius: 2, transition: "width .3s" }} />
+                            </div>
+                            <span style={{ fontSize: 10, color: "var(--dim)", whiteSpace: "nowrap" }}>{(r.toplam_davet || 0) % minD}/{minD}</span>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Sağ: Bedava Ay + Sil */}
-                      <div className="row gap-8" style={{ alignItems: "center" }}>
-                        <div style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 9, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Bedava Ay</div>
-                          <select value={r.kazanilan_ay || 0} onChange={async (e) => {
-                            await api.put(`/admin/referanslar/${r.id}/bedava-ay`, { kazanilan_ay: parseInt(e.target.value) });
+                        {/* Ayarlar */}
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                          <div>
+                            <div style={{ fontSize: 9, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", marginBottom: 2, textAlign: "center" }}>Süre</div>
+                            <select value={bedG} onChange={async (e) => {
+                              await api.put(`/admin/referanslar/${r.id}/bedava-ay`, { bedava_gun: parseInt(e.target.value) });
+                              referanslariYukle();
+                            }} style={{ width: 80, padding: "4px 6px", fontSize: 11, fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.15)", borderRadius: 6, cursor: "pointer" }}>
+                              {gunSecenekleri.map(g => <option key={g.gun} value={g.gun}>{g.label}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", marginBottom: 2, textAlign: "center" }}>Min Davet</div>
+                            <select value={minD} onChange={async (e) => {
+                              await api.put(`/admin/referanslar/${r.id}/bedava-ay`, { min_davet: parseInt(e.target.value) });
+                              referanslariYukle();
+                            }} style={{ width: 60, padding: "4px 6px", fontSize: 11, fontWeight: 700, color: "#3b82f6", background: "rgba(59,130,246,.06)", border: "1px solid rgba(59,130,246,.15)", borderRadius: 6, cursor: "pointer" }}>
+                              {[1,2,3,5,10].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                          </div>
+                          <button onClick={async () => {
+                            if (!confirm(`"${r.isletme_isim}" — "${r.referans_kodu}" kodunu silmek istediğinize emin misiniz?`)) return;
+                            await api.del(`/admin/referanslar/${r.id}`);
                             referanslariYukle();
-                          }} style={{ width: 70, padding: "5px 8px", fontSize: 14, fontWeight: 800, color: "#f59e0b", background: "rgba(245,158,11,.06)", border: "2px solid rgba(245,158,11,.2)", borderRadius: 8, cursor: "pointer", textAlign: "center" }}>
-                            {[0,1,2,3,4,5,6,9,12].map(a => <option key={a} value={a}>{a}</option>)}
-                          </select>
+                          }} title="Sil" style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "rgba(239,68,68,.06)", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>🗑️</button>
                         </div>
-                        <button onClick={async () => {
-                          if (!confirm(`"${r.isletme_isim}" için "${r.referans_kodu}" referans kodunu silmek istediğinize emin misiniz?`)) return;
-                          await api.del(`/admin/referanslar/${r.id}`);
-                          referanslariYukle();
-                        }} style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(239,68,68,.15)", background: "rgba(239,68,68,.05)", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🗑️</button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             {/* Bilgi Kartı */}
             <div style={{ marginTop: 16, background: "rgba(59,130,246,.04)", borderRadius: 12, padding: "14px 18px", border: "1px solid rgba(59,130,246,.1)" }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: "#3b82f6", marginBottom: 6 }}>💡 Referans Nasıl Çalışır?</div>
-              <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.6 }}>
-                • İşletmeye referans kodu oluşturursun (ör: REF-ABC123)<br/>
-                • İşletme bu kodu başka esnafa paylaşır<br/>
-                • Yeni esnaf kayıt olurken bu kodu girer<br/>
-                • Referans veren işletmeye seçtiğin kadar bedava ay tanımlanır<br/>
-                • Bedava ay sayısını istediğin zaman dropdown'dan değiştirebilirsin
+              <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.8 }}>
+                <strong style={{ color: "var(--text)" }}>1.</strong> İşletmeye referans kodu oluşturursun (ör: REF-ABC123)<br/>
+                <strong style={{ color: "var(--text)" }}>2.</strong> İşletme bu kodu tanıdığı esnafa paylaşır<br/>
+                <strong style={{ color: "var(--text)" }}>3.</strong> Yeni esnaf <strong style={{ color: "#10b981" }}>satış botu üzerinden kayıt olurken referans kodunu girer</strong><br/>
+                <strong style={{ color: "var(--text)" }}>4.</strong> Belirlediğin sayıda davet tamamlanınca → işletmeye otomatik bedava süre eklenir<br/>
+                <strong style={{ color: "var(--text)" }}>5.</strong> Süre ve min davet sayısını her referans için ayrı ayrı değiştirebilirsin<br/>
+                <div style={{ marginTop: 8, padding: "8px 12px", background: "rgba(245,158,11,.06)", borderRadius: 8, border: "1px solid rgba(245,158,11,.12)" }}>
+                  <strong style={{ color: "#f59e0b" }}>Örnek:</strong> <span style={{ color: "var(--text)" }}>3 davet → 1 ay bedava</span> — İşletme 3 yeni müşteri getirirse 30 gün bedava kazanır. 6 getirirse 60 gün. Her 3'te bir ödül!
+                </div>
               </div>
             </div>
           </>
-        )}
+          );
+        })()}
 
         {/* GLOBAL DUYURULAR */}
         {sayfa === "duyurular" && (
