@@ -39,3 +39,8 @@ ALTER TABLE randevular ADD COLUMN IF NOT EXISTS memnuniyet_soruldu BOOLEAN DEFAU
 
 -- Müşteriler tablosuna doğum tarihi ekle (ileride kullanılabilir)
 ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS dogum_tarihi DATE;
+
+-- Akıllı teyit zinciri: 1 saat önce teyit mesajı gönderildi mi?
+ALTER TABLE randevular ADD COLUMN IF NOT EXISTS teyit_gonderildi BOOLEAN DEFAULT false;
+-- Post-randevu memnuniyet anketi gönderildi mi?
+ALTER TABLE randevular ADD COLUMN IF NOT EXISTS anket_gonderildi BOOLEAN DEFAULT false;

@@ -358,6 +358,19 @@ class WhatsAppWebService extends EventEmitter {
       [musteriTelefon, isletmeId, 'gelen', metin]
     );
 
+    // ═══ AKILLI TEYİT ZİNCİRİ — Bot akışından ÖNCE yakala ═══
+    const metinKucukTeyit = metin.toLowerCase();
+    const teyitSonuc = await this._teyitZinciriKontrol(metinKucukTeyit, metin, musteriTelefon, isletmeId, remoteJid);
+    if (teyitSonuc) {
+      // Zincir yakaladı — cevabı gönder ve bot akışına geçme
+      await this.mesajGonder(isletmeId, remoteJid, teyitSonuc);
+      await pool.query(
+        'INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)',
+        [musteriTelefon, isletmeId, 'giden', teyitSonuc]
+      );
+      return;
+    }
+
     // Bot durumu
     let botDurum = (await pool.query(
       'SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2',
@@ -1080,6 +1093,103 @@ class WhatsAppWebService extends EventEmitter {
       return { saat: s, fark: Math.abs((sh * 60 + sm) - istenenDk) };
     }).sort((a, b) => a.fark - b.fark);
     return mesafeler.slice(0, 2);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // AKILLI TEYİT ZİNCİRİ — mesajIsle'den önce çağrılır
+  // Geliyorum / İptal → randevu teyidi
+  // 1-5 puan → post-randevu anket cevabı
+  // null döndürürse → normal bot akışına devam
+  // ═══════════════════════════════════════════════════════
+  async _teyitZinciriKontrol(metinKucuk, metin, musteriTelefon, isletmeId, remoteJid) {
+    const randevuService = require('./randevu');
+
+    // ─── Aşama 1: Teyit yanıtı (Geliyorum / İptal) ───
+    // Müşterinin bugün teyit_gonderildi=true olan onaylı randevusu var mı?
+    const geliyorumIntents = ['geliyorum', '1', 'evet', 'geleceğim', 'gelecegim', 'gelicem', 'tamam', 'ok', 'geliyoruz', '✅'];
+    const iptalIntents = ['iptal', '2', 'hayır', 'hayir', 'gelemiyorum', 'gelemem', 'yapamam', 'vazgeçtim', 'vazgectim', '❌', 'iptal et'];
+
+    const isTeyitYanit = geliyorumIntents.includes(metinKucuk) || iptalIntents.includes(metinKucuk);
+
+    if (isTeyitYanit) {
+      try {
+        const teyitRandevu = (await pool.query(`
+          SELECT r.id, r.saat, r.tarih, h.isim as hizmet_isim, i.isim as isletme_isim
+          FROM randevular r
+          JOIN isletmeler i ON r.isletme_id = i.id
+          JOIN musteriler m ON r.musteri_id = m.id
+          LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+          WHERE r.isletme_id = $1 AND m.telefon = $2
+            AND r.durum = 'onaylandi'
+            AND r.teyit_gonderildi = true
+            AND r.tarih = CURRENT_DATE
+            AND r.saat > NOW()::time
+          ORDER BY r.saat ASC LIMIT 1
+        `, [isletmeId, musteriTelefon])).rows[0];
+
+        if (teyitRandevu) {
+          const saat = String(teyitRandevu.saat).substring(0, 5);
+
+          if (iptalIntents.includes(metinKucuk)) {
+            // Müşteri iptal etti → randevuyu düşür, slotu aç
+            await pool.query("UPDATE randevular SET durum = 'iptal' WHERE id = $1", [teyitRandevu.id]);
+            console.log(`❌ Teyit → İPTAL: ${musteriTelefon} - ${teyitRandevu.isletme_isim} ${saat}`);
+            return `❌ *Randevunuz iptal edildi.*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? '✂️ ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 ${saat}\n\nYeni randevu almak için *1* yazın.`;
+          }
+
+          if (geliyorumIntents.includes(metinKucuk)) {
+            // Müşteri gelecek → durum zaten onaylı, teyit edildi
+            console.log(`✅ Teyit → GELİYORUM: ${musteriTelefon} - ${teyitRandevu.isletme_isim} ${saat}`);
+            return `✅ *Harika, sizi bekliyoruz!*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? '✂️ ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}\n\nGörüşmek üzere! 😊`;
+          }
+        }
+      } catch (e) { console.error('Teyit zinciri kontrol hatası:', e.message); }
+    }
+
+    // ─── Aşama 3: Puan yanıtı (1-5) — anket gönderilmiş randevu var mı? ───
+    const puanMatch = metin.match(/^([1-5])$/);
+    if (puanMatch) {
+      try {
+        const anketRandevu = (await pool.query(`
+          SELECT r.id, r.musteri_id, r.isletme_id, r.saat, h.isim as hizmet_isim, i.isim as isletme_isim
+          FROM randevular r
+          JOIN isletmeler i ON r.isletme_id = i.id
+          JOIN musteriler m ON r.musteri_id = m.id
+          LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+          WHERE r.isletme_id = $1 AND m.telefon = $2
+            AND r.durum = 'onaylandi'
+            AND r.anket_gonderildi = true
+            AND r.tarih = CURRENT_DATE
+          ORDER BY r.saat DESC LIMIT 1
+        `, [isletmeId, musteriTelefon])).rows[0];
+
+        if (anketRandevu) {
+          const puan = parseInt(puanMatch[1]);
+          // Randevuyu tamamlandı yap (puan veren adam gelmiştir)
+          await pool.query("UPDATE randevular SET durum = 'tamamlandi' WHERE id = $1", [anketRandevu.id]);
+          // Memnuniyet kaydı oluştur
+          try {
+            await pool.query(
+              'INSERT INTO memnuniyet (randevu_id, musteri_id, isletme_id, puan) VALUES ($1, $2, $3, $4)',
+              [anketRandevu.id, anketRandevu.musteri_id, anketRandevu.isletme_id, puan]
+            );
+          } catch (e) { /* memnuniyet tablosu yoksa skip */ }
+
+          const yildizlar = '⭐'.repeat(puan);
+          console.log(`⭐ Anket → ${puan} puan: ${musteriTelefon} - ${anketRandevu.isletme_isim}`);
+
+          if (puan >= 4) {
+            return `${yildizlar}\n\n*Teşekkür ederiz!* Memnuniyetiniz bizim için çok değerli. 🙏\n\nTekrar görüşmek üzere!\n\n📅 Yeni randevu için *1* yazın.`;
+          } else if (puan >= 2) {
+            return `${yildizlar}\n\n*Geri bildiriminiz için teşekkürler.* Kendimizi geliştirmek için değerlendireceğiz.\n\n📅 Yeni randevu için *1* yazın.`;
+          } else {
+            return `${yildizlar}\n\n*Üzgünüz, beklentinizi karşılayamadık.* Geri bildiriminiz bizim için çok önemli.\n\n📅 Yeni randevu için *1* yazın.`;
+          }
+        }
+      } catch (e) { console.error('Anket puan kontrol hatası:', e.message); }
+    }
+
+    return null; // Zincir yakalamadı → normal bot akışına devam
   }
 
   async durumGuncelle(musteriTelefon, isletmeId, asama, ekstra = {}) {

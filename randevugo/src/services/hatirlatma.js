@@ -6,31 +6,47 @@ class HatirlatmaService {
   baslat() {
     // Her 5 dakikada bir kontrol et
     cron.schedule('*/5 * * * *', async () => {
-      await this.saatlikHatirlatma();
-      await this.gunlukHatirlatma();
-      await this.memnuniyetSorusu();
+      await this.teyitMesaji();           // Aşama 1: 1 saat önce teyit
+      await this.gunlukHatirlatma();      // 1 gün önce bilgi
+      await this.postRandevuAnket();      // Aşama 3: 1 saat sonra anket
+      await this.sessizOnay();            // 3 saat sonra otomatik tamamla
       await this.beklemeListesiBildirim();
       await this.onayTimeoutKontrol();
     });
 
-    console.log('⏰ Hatırlatma servisi başlatıldı (her 5 dk)');
+    console.log('⏰ Hatırlatma servisi başlatıldı — Akıllı Teyit Zinciri aktif (her 5 dk)');
   }
 
-  // 1 saat önce hatırlatma
-  async saatlikHatirlatma() {
+  // ═══════════════════════════════════════════════════════
+  // AŞAMA 1: Randevudan 1 saat önce — Teyit mesajı
+  // Geliyorum ✅ / İptal Et ❌ seçenekli
+  // ═══════════════════════════════════════════════════════
+  async teyitMesaji() {
     try {
-      const randevular = await randevuService.hatirlatmaRandevulari();
-      for (const r of randevular) {
+      const result = await pool.query(`
+        SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
+               h.isim as hizmet_isim, i.isim as isletme_isim, i.adres as isletme_adres,
+               i.telegram_token, i.id as isletme_id
+        FROM randevular r
+        JOIN musteriler m ON r.musteri_id = m.id
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        JOIN isletmeler i ON r.isletme_id = i.id
+        WHERE r.durum = 'onaylandi'
+          AND r.teyit_gonderildi = false
+          AND r.tarih = CURRENT_DATE
+          AND r.saat BETWEEN NOW()::time AND (NOW() + INTERVAL '1 hour')::time
+      `);
+      for (const r of result.rows) {
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏰ *Hatırlatma*\n\n📅 Bugün saat *${saat}*'de randevunuz var!\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '💊 ' + r.hizmet_isim + '\n' : ''}📍 ${r.isletme_adres || ''}\n\nSizi bekliyoruz! 😊`;
+        const mesaj = `⏰ *Randevu Teyidi*\n\nMerhaba ${r.musteri_isim || ''}! Randevunuza *1 saat* kaldı.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}\n📍 ${r.isletme_adres || ''}\n\nGelebilecek misiniz?\n\n*1.* ✅ Geliyorum\n*2.* ❌ İptal Et`;
         await this.mesajGonder(r, mesaj);
-        await randevuService.hatirlatmaIsaretle(r.id);
-        console.log(`⏰ 1 saat hatırlatma: ${r.musteri_isim} - ${saat}`);
+        await pool.query('UPDATE randevular SET teyit_gonderildi = true, hatirlatma_gonderildi = true WHERE id = $1', [r.id]);
+        console.log(`📩 Teyit mesajı gönderildi: ${r.musteri_isim} - ${saat}`);
       }
-    } catch (e) { console.error('❌ Saatlik hatırlatma hatası:', e.message); }
+    } catch (e) { console.error('❌ Teyit mesajı hatası:', e.message); }
   }
 
-  // 1 gün önce hatırlatma
+  // 1 gün önce hatırlatma (bilgi amaçlı, teyit değil)
   async gunlukHatirlatma() {
     try {
       const result = await pool.query(`
@@ -50,15 +66,18 @@ class HatirlatmaService {
         const tarih = new Date(r.tarih);
         const gun = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][tarih.getDay()];
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `📅 *Yarınki Randevunuz*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '💊 ' + r.hizmet_isim + '\n' : ''}📅 Yarın (${gun}) saat ${saat}\n\nSizi bekliyoruz! 😊`;
+        const mesaj = `📅 *Yarınki Randevunuz*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}📅 Yarın (${gun}) saat ${saat}\n📍 ${r.isletme_adres || ''}\n\nSizi bekliyoruz! 😊`;
         await this.mesajGonder(r, mesaj);
         console.log(`📅 1 gün hatırlatma: ${r.musteri_isim} - yarın ${saat}`);
       }
     } catch (e) { console.error('❌ Günlük hatırlatma hatası:', e.message); }
   }
 
-  // Memnuniyet sorusu - randevu bittikten sonra
-  async memnuniyetSorusu() {
+  // ═══════════════════════════════════════════════════════
+  // AŞAMA 3: Randevu bitişinden 1 saat sonra — Memnuniyet anketi
+  // Müşteri puan verirse → otomatik tamamlandı
+  // ═══════════════════════════════════════════════════════
+  async postRandevuAnket() {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
@@ -69,17 +88,40 @@ class HatirlatmaService {
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id
         JOIN isletmeler i ON r.isletme_id = i.id
         WHERE r.durum = 'onaylandi'
-          AND r.memnuniyet_soruldu = false
+          AND r.anket_gonderildi = false
           AND r.tarih = CURRENT_DATE
-          AND (r.saat + (COALESCE(h.sure_dk, 30) || ' minutes')::interval) < NOW()::time
+          AND (r.saat + INTERVAL '1 hour' + (COALESCE(h.sure_dk, 30) || ' minutes')::interval) < NOW()::time
       `);
       for (const r of result.rows) {
-        const mesaj = `⭐ *Hizmetimizi değerlendirin!*\n\n${r.hizmet_isim ? r.hizmet_isim + ' hizmetimizden' : 'Randevunuzdan'} memnun kaldınız mı?\n\nPuanınız bizim için çok değerli:`;
-        await this.memnuniyetMesajGonder(r, mesaj);
-        await pool.query('UPDATE randevular SET memnuniyet_soruldu = true WHERE id = $1', [r.id]);
-        console.log(`⭐ Memnuniyet sorusu: ${r.musteri_isim}`);
+        const mesaj = `⭐ *Hizmetimizi Değerlendirin!*\n\n${r.isletme_isim} ziyaretiniz nasıldı?\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}\nPuanınız bizim için çok değerli:\n\n*1.* ⭐ (Kötü)\n*2.* ⭐⭐\n*3.* ⭐⭐⭐\n*4.* ⭐⭐⭐⭐\n*5.* ⭐⭐⭐⭐⭐ (Mükemmel)`;
+        await this.mesajGonder(r, mesaj);
+        await pool.query('UPDATE randevular SET anket_gonderildi = true, memnuniyet_soruldu = true WHERE id = $1', [r.id]);
+        console.log(`⭐ Post-randevu anket: ${r.musteri_isim} - ${r.isletme_isim}`);
       }
-    } catch (e) { console.error('❌ Memnuniyet sorusu hatası:', e.message); }
+    } catch (e) { console.error('❌ Post-randevu anket hatası:', e.message); }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // SESSİZ ONAY: Randevu saatinden 3 saat geçmiş, usta dokunmamış,
+  // müşteri cevap vermemiş → otomatik tamamlandı
+  // (İşletme cirosu/istatistikleri doğru kalsın diye)
+  // ═══════════════════════════════════════════════════════
+  async sessizOnay() {
+    try {
+      const result = await pool.query(`
+        SELECT r.id, r.saat, m.isim as musteri_isim, i.isim as isletme_isim
+        FROM randevular r
+        JOIN musteriler m ON r.musteri_id = m.id
+        JOIN isletmeler i ON r.isletme_id = i.id
+        WHERE r.durum = 'onaylandi'
+          AND r.tarih = CURRENT_DATE
+          AND (r.saat + INTERVAL '3 hours') < NOW()::time
+      `);
+      for (const r of result.rows) {
+        await pool.query("UPDATE randevular SET durum = 'tamamlandi' WHERE id = $1", [r.id]);
+        console.log(`🔇 Sessiz onay → tamamlandı: ${r.musteri_isim} (${r.isletme_isim}) - ${String(r.saat).substring(0,5)}`);
+      }
+    } catch (e) { console.error('❌ Sessiz onay hatası:', e.message); }
   }
 
   // Bekleme listesi - iptal olunca bildir
@@ -120,13 +162,12 @@ class HatirlatmaService {
     } catch (e) { console.error('❌ Bekleme listesi hatası:', e.message); }
   }
 
-  // Telegram veya WP üzerinden mesaj gönder
+  // Telegram veya WP üzerinden mesaj gönder (Baileys öncelikli)
   async mesajGonder(randevu, mesaj) {
     const isTelegram = randevu.musteri_telefon && randevu.musteri_telefon.startsWith('tg:');
 
     try {
       if (isTelegram && randevu.telegram_token) {
-        // Telegram kullanıcısı → chat_id ile gönder
         const chatId = await this.telegramChatIdBul(randevu.musteri_telefon, randevu.isletme_id);
         if (chatId) {
           const TelegramBot = require('node-telegram-bot-api');
@@ -140,14 +181,19 @@ class HatirlatmaService {
       }
 
       if (!isTelegram) {
-        // WhatsApp kullanıcısı → telefon numarası ile gönder
+        // Önce Baileys (WhatsApp Web) dene — bağlıysa direkt mesaj gönder
+        try {
+          const whatsappWeb = require('./whatsappWeb');
+          const durum = whatsappWeb.getDurum(randevu.isletme_id);
+          if (durum?.durum === 'bagli') {
+            await whatsappWeb.mesajGonder(randevu.isletme_id, randevu.musteri_telefon, mesaj);
+            return;
+          }
+        } catch (e) { /* Baileys bağlı değil, Twilio'ya düş */ }
+
+        // Fallback: Twilio
         const whatsappService = require('./whatsapp');
-        await whatsappService.hatirlatmaGonder(randevu.musteri_telefon, {
-          tarih: new Date(randevu.tarih).toLocaleDateString('tr-TR'),
-          saat: randevu.saat,
-          hizmet: randevu.hizmet_isim || 'Randevu',
-          isletme_isim: randevu.isletme_isim
-        });
+        await whatsappService.mesajGonder(randevu.musteri_telefon, mesaj);
       }
     } catch (e) { console.error('Hatırlatma gönderim hatası:', e.message); }
   }
