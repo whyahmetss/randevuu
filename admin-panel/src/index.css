@@ -614,10 +614,13 @@ select.input { appearance: none; }
 }
 
 /* ── SETTINGS SECTIONS ── */
-.settings-wrap { max-width: 900px; }
-@media (max-width: 700px) { .settings-wrap div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; } }
-.settings-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 0; box-shadow: 0 1px 3px rgba(22,5,39,.04); }
-.settings-card h3 { margin: 0 0 20px; font-size: 15px; color: var(--text); font-weight: 600; }
+@media (max-width: 900px) {
+  .settings-grid-3 { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 600px) {
+  .settings-grid-3 { grid-template-columns: 1fr !important; }
+  .settings-grid-2 { grid-template-columns: 1fr !important; }
+}
 .day-btn { padding: 8px 14px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
 .day-btn.off { background: var(--surface2); color: var(--dim); outline: 1px solid var(--border); }
 .day-btn.on { background: rgba(239,68,68,.1); color: var(--red); outline: 2px solid rgba(239,68,68,.2); }
