@@ -1936,6 +1936,7 @@ function SuperAdminPanel({ kullanici }) {
   const [yeniIsletme, setYeniIsletme] = useState({ isim: "", telefon: "", adres: "", ilce: "", kategori: "berber", email: "", sifre: "" });
   const [formAcik, setFormAcik] = useState(false);
   const [isletmeFiltre, setIsletmeFiltre] = useState("hepsi");
+  const [isletmeArama, setIsletmeArama] = useState("");
   const [odemeFiltre, setOdemeFiltre] = useState("hepsi");
   const [yeniOdeme, setYeniOdeme] = useState({ isletme_id: "", tutar: "", donem: new Date().toISOString().slice(0, 7) });
   const [odemeFormAcik, setOdemeFormAcik] = useState(false);
@@ -2451,102 +2452,141 @@ function SuperAdminPanel({ kullanici }) {
         )}
 
         {/* İŞLETMELER */}
-        {sayfa === "isletmeler" && (
+        {sayfa === "isletmeler" && (() => {
+          const aktifSayi = isletmeler.filter(i => i.aktif).length;
+          const pasifSayi = isletmeler.filter(i => !i.aktif).length;
+          const aramaFiltreli = filtreliIsletmeler.filter(i => {
+            if (!isletmeArama) return true;
+            const q = isletmeArama.toLowerCase();
+            return (i.isim || '').toLowerCase().includes(q) || (i.telefon || '').includes(q) || (i.kategori || '').toLowerCase().includes(q) || (i.ilce || '').toLowerCase().includes(q);
+          });
+          return (
           <>
-            <div className="ph-row">
-              <h1>İşletmeler ({isletmeler.length})</h1>
-              <button onClick={() => setFormAcik(!formAcik)} className="btn" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>+ Yeni İşletme Ekle</button>
+            {/* Başlık + Arama */}
+            <div className="page-header">
+              <h1>İşletmeler</h1>
+              <p>{isletmeler.length} işletme kayıtlı · {aktifSayi} aktif · {pasifSayi} pasif</p>
             </div>
 
-            <div className="filter-bar">
-              {[["hepsi","Hepsi"], ["aktif","Aktif"], ["pasif","Pasif"]].map(([v, l]) => (
-                <button key={v} onClick={() => setIsletmeFiltre(v)} className={`pill${isletmeFiltre === v ? ' active' : ''}`}>
-                  {l} {v === "hepsi" ? isletmeler.length : v === "aktif" ? isletmeler.filter(i=>i.aktif).length : isletmeler.filter(i=>!i.aktif).length}
-                </button>
-              ))}
+            <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
+                <input
+                  type="text" placeholder="İşletme ara (isim, telefon, kategori, ilçe)..."
+                  value={isletmeArama || ''} onChange={e => setIsletmeArama(e.target.value)}
+                  style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }}
+                />
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, opacity: .4 }}>🔍</span>
+              </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[["hepsi", `Hepsi (${isletmeler.length})`], ["aktif", `Aktif (${aktifSayi})`], ["pasif", `Pasif (${pasifSayi})`]].map(([v, l]) => (
+                  <button key={v} onClick={() => setIsletmeFiltre(v)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: isletmeFiltre === v ? "var(--primary)" : "var(--bg)", color: isletmeFiltre === v ? "#fff" : "var(--dim)", transition: "all .15s" }}>{l}</button>
+                ))}
+              </div>
+              <button onClick={() => setFormAcik(!formAcik)} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap" }}>+ Yeni İşletme</button>
             </div>
 
+            {/* Yeni İşletme Formu */}
             {formAcik && (
-              <form onSubmit={isletmeEkle} className="form-card card-accent-amber">
-                <h3 className="amber">Yeni İşletme Kaydı</h3>
-                <div className="form-grid">
-                  {[
-                    { key: "isim", label: "İşletme Adı *", ph: "Berber Ali" },
-                    { key: "telefon", label: "Telefon *", ph: "05551234567" },
-                    { key: "adres", label: "Adres", ph: "Bağcılar Cad. No:1" },
-                    { key: "ilce", label: "İlçe", ph: "Bağcılar" },
-                    { key: "email", label: "Giriş Email *", ph: "ali@berber.com" },
-                    { key: "sifre", label: "Şifre *", ph: "En az 6 karakter" },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="form-label">{f.label}</label>
-                      <input type={f.key === "sifre" ? "password" : "text"} placeholder={f.ph} required={["isim","telefon","email","sifre"].includes(f.key)}
-                        value={yeniIsletme[f.key]} onChange={e => setYeniIsletme({ ...yeniIsletme, [f.key]: e.target.value })} className="input" />
+              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 20, border: "1px solid rgba(245,158,11,.2)", marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "#f59e0b", marginBottom: 14 }}>➕ Yeni İşletme Kaydı</div>
+                <form onSubmit={isletmeEkle}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+                    {[
+                      { key: "isim", label: "İşletme Adı *", ph: "Berber Ali" },
+                      { key: "telefon", label: "Telefon *", ph: "05551234567" },
+                      { key: "adres", label: "Adres", ph: "Bağcılar Cad. No:1" },
+                      { key: "ilce", label: "İlçe", ph: "Bağcılar" },
+                      { key: "email", label: "Email *", ph: "ali@berber.com" },
+                      { key: "sifre", label: "Şifre *", ph: "En az 6 karakter" },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", display: "block", marginBottom: 4 }}>{f.label}</label>
+                        <input type={f.key === "sifre" ? "password" : "text"} placeholder={f.ph} required={["isim","telefon","email","sifre"].includes(f.key)}
+                          value={yeniIsletme[f.key]} onChange={e => setYeniIsletme({ ...yeniIsletme, [f.key]: e.target.value })}
+                          style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }} />
+                      </div>
+                    ))}
+                    <div>
+                      <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Kategori</label>
+                      <select value={yeniIsletme.kategori} onChange={e => setYeniIsletme({ ...yeniIsletme, kategori: e.target.value })}
+                        style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}>
+                        {["berber","kuafor","disci","guzellik","veteriner","diyetisyen","masaj","spa"].map(k => <option key={k} value={k}>{k}</option>)}
+                      </select>
                     </div>
-                  ))}
-                  <div>
-                    <label className="form-label">Kategori</label>
-                    <select value={yeniIsletme.kategori} onChange={e => setYeniIsletme({ ...yeniIsletme, kategori: e.target.value })} className="input">
-                      {["berber","kuafor","disci","guzellik","veteriner","diyetisyen","masaj","spa"].map(k => <option key={k} value={k}>{k}</option>)}
-                    </select>
                   </div>
-                </div>
-                <div className="form-actions mt-16">
-                  <button type="submit" className="btn" style={{ background: "var(--amber)", color: "#000", fontWeight: 700 }}>Kaydet ve Oluştur</button>
-                  <button type="button" onClick={() => setFormAcik(false)} className="btn btn-ghost">İptal</button>
-                </div>
-              </form>
+                  <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                    <button type="submit" style={{ padding: "10px 24px", borderRadius: 10, border: "none", cursor: "pointer", background: "#f59e0b", color: "#fff", fontWeight: 700, fontSize: 13 }}>Kaydet</button>
+                    <button type="button" onClick={() => setFormAcik(false)} style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontWeight: 600, fontSize: 13 }}>İptal</button>
+                  </div>
+                </form>
+              </div>
             )}
 
-            {yukleniyor ? <div style={{ color: "var(--dim)" }}>Yükleniyor...</div> : filtreliIsletmeler.map(i => (
-              <div key={i.id} className={`list-item list-item-lg${!i.aktif ? ' list-item-pasif' : ''}`} style={{ alignItems: "flex-start", flexDirection: "column", gap: 0, cursor: "pointer" }}
-                onClick={(e) => { if(e.target.tagName === 'BUTTON' || e.target.closest('button')) return; isletmeDetayYukle(i.id); }}>
-                <div className="row row-between row-wrap" style={{ width: "100%" }}>
-                  <div className="flex-1">
-                    <div className="row row-wrap gap-10 mb-8">
-                      <div className={i.aktif ? 'dot-green' : 'dot-red'} />
-                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 16 }}>{i.isim}</span>
-                      <span className="tag" style={{ background: (kategoriRenk[i.kategori] || "#64748b") + "22", color: kategoriRenk[i.kategori] || "#64748b" }}>{i.kategori}</span>
-                      <span style={{ color: "var(--muted)", fontSize: 12 }}>📅 {i.toplam_randevu || 0} randevu</span>
-                    </div>
-                    <div className="list-item-meta mb-12">📍 {i.adres || "—"}{i.ilce ? ` · ${i.ilce}` : ""}  ·  📞 {i.telefon}</div>
-                    <div className="row gap-6">
-                      {["baslangic","profesyonel","premium"].map(p => (
-                        <button key={p} onClick={() => paketDegistir(i.id, p)} className="pill-xs"
-                          style={{ background: i.paket === p ? paketRenk[p] : "var(--bg)", color: i.paket === p ? "#fff" : "var(--dim)", outline: i.paket === p ? `2px solid ${paketRenk[p]}` : "none" }}>
-                          {p} {p === "baslangic" ? "299₺" : p === "profesyonel" ? "599₺" : "999₺"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="list-item-actions shrink-0" style={{ marginLeft: 12 }}>
-                    <button onClick={async () => {
-                      try {
-                        const res = await api.post(`/admin/impersonate/${i.id}`);
-                        if (res.hata) { alert("Hata: " + res.hata); return; }
-                        if (res.token) {
-                          const yeniSekme = window.open("", "_blank");
-                          yeniSekme.document.write(`<html><body><script>
-                            localStorage.setItem("randevugo_token","${res.token}");
-                            localStorage.setItem("randevugo_impersonated","true");
-                            window.location.href = window.location.origin;
-                          <\/script></body></html>`);
-                        }
-                      } catch (e) { alert("Impersonation hatası: " + e.message); }
-                    }} className="btn btn-sm" style={{ background: "rgba(139,92,246,.12)", color: "#8b5cf6", border: "none", fontWeight: 700 }}>
-                      👤 Müşteri Girişi
-                    </button>
-                    <button onClick={() => aktifToggle(i)} className="btn btn-sm"
-                      style={{ background: i.aktif ? "rgba(16,185,129,.12)" : "rgba(245,158,11,.12)", color: i.aktif ? "var(--green)" : "var(--amber)", border: "none", fontWeight: 700 }}>
-                      {i.aktif ? "✓ Aktif" : "⏸ Pasif"}
-                    </button>
-                    <button onClick={() => isletmeSil(i.id, i.isim)} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
-                  </div>
-                </div>
+            {/* İşletme Listesi */}
+            {yukleniyor ? (
+              <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}>Yükleniyor...</div>
+            ) : aramaFiltreli.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>🔍</div>
+                <p>Sonuç bulunamadı</p>
               </div>
-            ))}
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {aramaFiltreli.map(i => {
+                  const pRenk = paketRenk[i.paket] || "#64748b";
+                  const kRenk = kategoriRenk[i.kategori] || "#64748b";
+                  return (
+                    <div key={i.id} onClick={(e) => { if(e.target.tagName === 'BUTTON' || e.target.closest('button')) return; isletmeDetayYukle(i.id); }}
+                      style={{ background: "var(--surface)", borderRadius: 14, padding: "16px 20px", border: "1px solid var(--border)", cursor: "pointer", transition: "all .15s", opacity: i.aktif ? 1 : 0.6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        {/* Avatar */}
+                        <div style={{ width: 44, height: 44, borderRadius: 12, background: `linear-gradient(135deg, ${pRenk}, ${pRenk}88)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 17, flexShrink: 0 }}>
+                          {(i.isim || "?")[0]}
+                        </div>
+
+                        {/* Bilgi */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{i.isim}</span>
+                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: i.aktif ? "#10b981" : "#ef4444", flexShrink: 0 }} />
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}15`, color: kRenk, fontSize: 11, fontWeight: 600 }}>{i.kategori}</span>
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: `${pRenk}15`, color: pRenk, fontSize: 11, fontWeight: 700 }}>{(i.paket || "—").toUpperCase()}</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 12, color: "var(--dim)", flexWrap: "wrap" }}>
+                            {i.telefon && <span>📞 {i.telefon}</span>}
+                            {i.ilce && <span>📍 {i.ilce}</span>}
+                            <span>📅 {i.toplam_randevu || 0} randevu</span>
+                          </div>
+                        </div>
+
+                        {/* Aksiyonlar */}
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <button onClick={async () => {
+                            try {
+                              const res = await api.post(`/admin/impersonate/${i.id}`);
+                              if (res.hata) { alert("Hata: " + res.hata); return; }
+                              if (res.token) {
+                                const yeniSekme = window.open("", "_blank");
+                                yeniSekme.document.write(`<html><body><script>
+                                  localStorage.setItem("randevugo_token","${res.token}");
+                                  localStorage.setItem("randevugo_impersonated","true");
+                                  window.location.href = window.location.origin;
+                                <\/script></body></html>`);
+                              }
+                            } catch (e) { alert("Hata: " + e.message); }
+                          }} title="Müşteri olarak giriş" style={{ padding: "6px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontWeight: 700, fontSize: 12 }}>👤</button>
+                          <button onClick={() => aktifToggle(i)} title={i.aktif ? "Pasife al" : "Aktif et"} style={{ padding: "6px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: i.aktif ? "rgba(16,185,129,.08)" : "rgba(245,158,11,.08)", color: i.aktif ? "#10b981" : "#f59e0b", fontWeight: 700, fontSize: 12 }}>{i.aktif ? "✓" : "⏸"}</button>
+                          <button onClick={() => isletmeSil(i.id, i.isim)} title="Sil" style={{ padding: "6px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(239,68,68,.06)", color: "#ef4444", fontSize: 12 }}>🗑️</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
-        )}
+          );
+        })()}
 
         {/* ÖDEMELER */}
         {sayfa === "odemeler" && (
