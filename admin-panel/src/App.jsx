@@ -3247,19 +3247,29 @@ function SuperAdminPanel({ kullanici }) {
 
             <div className="card-dark mb-16" style={{ padding: 16 }}>
               <h3 style={{ fontSize: 14, color: "var(--muted)", marginBottom: 8 }}>Yeni Referans Kodu Oluştur</h3>
-              <div className="row gap-12" style={{ alignItems: "flex-end" }}>
-                <div style={{ flex: 1 }}>
+              <div className="row gap-12" style={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
                   <label className="form-label">İşletme</label>
                   <select id="refIsletme" className="input">
                     <option value="">Seç...</option>
                     {isletmeler.map(i => <option key={i.id} value={i.id}>{i.isim}</option>)}
                   </select>
                 </div>
+                <div style={{ minWidth: 120 }}>
+                  <label className="form-label">Bedava Ay</label>
+                  <select id="refBedavaAy" className="input" defaultValue="1">
+                    {[0,1,2,3,6,12].map(a => <option key={a} value={a}>{a} ay</option>)}
+                  </select>
+                </div>
                 <button onClick={async () => {
                   const isletme_id = document.getElementById('refIsletme').value;
+                  const bedavaAy = parseInt(document.getElementById('refBedavaAy').value) || 0;
                   if (!isletme_id) { alert('İşletme seçin'); return; }
                   const res = await api.post("/admin/referanslar", { isletme_id });
-                  if (res.referans) { alert(`Referans kodu: ${res.referans.referans_kodu}`); referanslariYukle(); }
+                  if (res.referans && bedavaAy > 0) {
+                    await api.put(`/admin/referanslar/${res.referans.id}/bedava-ay`, { kazanilan_ay: bedavaAy });
+                  }
+                  if (res.referans) { alert(`Referans kodu: ${res.referans.referans_kodu} — ${bedavaAy} ay bedava`); referanslariYukle(); }
                 }} className="btn btn-sm" style={{ background: "#10b981", color: "#fff", fontWeight: 700 }}>Oluştur</button>
               </div>
             </div>
@@ -3267,15 +3277,21 @@ function SuperAdminPanel({ kullanici }) {
             {referanslar.length === 0 ? (
               <div className="list-empty"><p>Henüz referans kodu yok.</p></div>
             ) : referanslar.map(r => (
-              <div key={r.id} className="list-item" style={{ padding: "12px 16px" }}>
+              <div key={r.id} className="list-item" style={{ padding: "14px 18px" }}>
                 <div className="row row-between row-wrap gap-8">
-                  <div className="row row-wrap gap-8">
+                  <div className="row row-wrap gap-10" style={{ alignItems: "center" }}>
                     <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{r.isletme_isim}</span>
                     <span className="tag" style={{ background: "rgba(16,185,129,.12)", color: "#10b981", fontWeight: 700, fontSize: 13, fontFamily: "monospace" }}>{r.referans_kodu}</span>
-                  </div>
-                  <div className="row gap-12">
                     <span style={{ color: "var(--dim)", fontSize: 12 }}>👥 {r.toplam_davet} davet</span>
-                    <span style={{ color: "#f59e0b", fontSize: 12, fontWeight: 600 }}>🎁 {r.kazanilan_ay} ay bedava</span>
+                  </div>
+                  <div className="row gap-8" style={{ alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: "var(--dim)" }}>🎁 Bedava:</span>
+                    <select value={r.kazanilan_ay} onChange={async (e) => {
+                      await api.put(`/admin/referanslar/${r.id}/bedava-ay`, { kazanilan_ay: parseInt(e.target.value) });
+                      referanslariYukle();
+                    }} className="input" style={{ width: 75, padding: "4px 8px", fontSize: 13, fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.2)", borderRadius: 8 }}>
+                      {[0,1,2,3,4,5,6,9,12].map(a => <option key={a} value={a}>{a} ay</option>)}
+                    </select>
                   </div>
                 </div>
               </div>

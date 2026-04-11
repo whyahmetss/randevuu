@@ -1937,6 +1937,17 @@ class AdminController {
     }
   }
 
+  async referansBedavaAyGuncelle(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const { kazanilan_ay } = req.body;
+      await pool.query("UPDATE referanslar SET kazanilan_ay = $1 WHERE id = $2", [kazanilan_ay, id]);
+      res.json({ mesaj: `Bedava ay ${kazanilan_ay} olarak güncellendi` });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   // ==================== GLOBAL DUYURU MODÜLÜ ====================
 
   async duyurulariGetir(req, res) {
