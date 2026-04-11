@@ -1960,6 +1960,7 @@ function SuperAdminPanel({ kullanici }) {
   const [paketTanimlar, setPaketTanimlar] = useState([]);
   const [paketFormAcik, setPaketFormAcik] = useState(false);
   const [yeniPaket, setYeniPaket] = useState({ kod:"", isim:"", fiyat:"", calisan_limit:1, hizmet_limit:5, aylik_randevu_limit:100, bot_aktif:true, hatirlatma:false, istatistik:false, export_aktif:false, ozellikler:"", sira:0 });
+  const [duzenlePaket, setDuzenlePaket] = useState(null);
   // Zombi Müşteriler
   const [zombiler, setZombiler] = useState([]);
   // Referans Sistemi
@@ -3165,27 +3166,66 @@ function SuperAdminPanel({ kullanici }) {
                   {paketTanimlar.length === 0 ? (
                     <div className="list-empty"><p>Henüz DB'de paket tanımı yok. Yukarıdan aktar veya yeni paket tanımla.</p></div>
                   ) : paketTanimlar.map(p => (
-              <div key={p.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
-                <div className="row row-between row-wrap gap-8">
-                  <div className="row row-wrap gap-8">
-                    <span style={{ color: paketRenk[p.kod] || "#8b5cf6", fontWeight: 700, fontSize: 16 }}>{p.isim}</span>
-                    <span className="tag" style={{ background: "rgba(245,158,11,.12)", color: "#f59e0b", fontWeight: 700 }}>{parseFloat(p.fiyat)}₺/ay</span>
-                    <span style={{ color: "var(--dim)", fontSize: 12 }}>kod: {p.kod}</span>
-                    {!p.aktif && <span className="tag" style={{ background: "rgba(239,68,68,.12)", color: "#ef4444", fontWeight: 600, fontSize: 11 }}>Pasif</span>}
-                  </div>
-                  <button onClick={async () => { if(confirm(`"${p.isim}" paketini silmek istediğinize emin misiniz?`)) { await api.del(`/admin/paketler/${p.id}`); paketleriYukle(); } }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
-                </div>
-                <div className="row row-wrap gap-12" style={{ fontSize: 12, color: "var(--dim)" }}>
-                  <span>👥 {p.calisan_limit >= 999 ? "Sınırsız" : p.calisan_limit} çalışan</span>
-                  <span>🔧 {p.hizmet_limit >= 999 ? "Sınırsız" : p.hizmet_limit} hizmet</span>
-                  <span>📅 {p.aylik_randevu_limit >= 9999 ? "Sınırsız" : p.aylik_randevu_limit} randevu</span>
-                  {p.bot_aktif && <span style={{ color: "#10b981" }}>🤖 Bot</span>}
-                  {p.hatirlatma && <span style={{ color: "#3b82f6" }}>🔔 Hatırlatma</span>}
-                  {p.istatistik && <span style={{ color: "#8b5cf6" }}>📊 İstatistik</span>}
-                  {p.export_aktif && <span style={{ color: "#f59e0b" }}>📥 Export</span>}
-                </div>
-                {p.ozellikler && <div style={{ fontSize: 12, color: "var(--dim)" }}>{p.ozellikler}</div>}
-              </div>
+                    duzenlePaket?.id === p.id ? (
+                      /* ── Düzenleme Modu ── */
+                      <form key={p.id} onSubmit={async (e) => {
+                        e.preventDefault();
+                        const { id, ...gonder } = duzenlePaket;
+                        await api.put(`/admin/paketler/${id}`, gonder);
+                        setDuzenlePaket(null); paketleriYukle();
+                      }} style={{ background: "var(--surface)", borderRadius: 14, padding: "20px", border: "2px solid rgba(245,158,11,.3)", marginBottom: 8 }}>
+                        <div className="row row-between mb-12">
+                          <span style={{ fontWeight: 700, fontSize: 14, color: "#f59e0b" }}>✏️ Düzenleme: {p.isim}</span>
+                          <div className="row gap-6">
+                            <button type="submit" style={{ padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer", background: "#f59e0b", color: "#000", fontWeight: 700, fontSize: 12 }}>💾 Kaydet</button>
+                            <button type="button" onClick={() => setDuzenlePaket(null)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontSize: 12 }}>İptal</button>
+                          </div>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+                          <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>İsim</label><input value={duzenlePaket.isim} onChange={e => setDuzenlePaket({...duzenlePaket, isim: e.target.value})} className="input" style={{ fontSize: 13 }} /></div>
+                          <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Kod</label><input value={duzenlePaket.kod} onChange={e => setDuzenlePaket({...duzenlePaket, kod: e.target.value})} className="input" style={{ fontSize: 13 }} /></div>
+                          <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Fiyat (₺)</label><input type="number" value={duzenlePaket.fiyat} onChange={e => setDuzenlePaket({...duzenlePaket, fiyat: e.target.value})} className="input" style={{ fontSize: 13 }} /></div>
+                          <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Çalışan Limiti</label><input type="number" value={duzenlePaket.calisan_limit} onChange={e => setDuzenlePaket({...duzenlePaket, calisan_limit: parseInt(e.target.value) || 0})} className="input" style={{ fontSize: 13 }} /></div>
+                          <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Hizmet Limiti</label><input type="number" value={duzenlePaket.hizmet_limit} onChange={e => setDuzenlePaket({...duzenlePaket, hizmet_limit: parseInt(e.target.value) || 0})} className="input" style={{ fontSize: 13 }} /></div>
+                          <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Randevu Limiti</label><input type="number" value={duzenlePaket.aylik_randevu_limit} onChange={e => setDuzenlePaket({...duzenlePaket, aylik_randevu_limit: parseInt(e.target.value) || 0})} className="input" style={{ fontSize: 13 }} /></div>
+                        </div>
+                        <div className="row row-wrap gap-12 mb-12">
+                          {[["bot_aktif","🤖 Bot"],["hatirlatma","🔔 Hatırlatma"],["istatistik","📊 İstatistik"],["export_aktif","📥 Export"]].map(([k,l]) => (
+                            <label key={k} className="row gap-6" style={{ fontSize: 12, cursor: "pointer" }}>
+                              <input type="checkbox" checked={duzenlePaket[k] || false} onChange={e => setDuzenlePaket({...duzenlePaket, [k]: e.target.checked})} />
+                              <span style={{ color: "var(--text)" }}>{l}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Özellikler (her satır bir madde)</label><textarea value={duzenlePaket.ozellikler || ""} onChange={e => setDuzenlePaket({...duzenlePaket, ozellikler: e.target.value})} className="input" rows={3} style={{ resize: "vertical", fontSize: 12 }} /></div>
+                      </form>
+                    ) : (
+                      /* ── Normal Görünüm ── */
+                      <div key={p.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
+                        <div className="row row-between row-wrap gap-8">
+                          <div className="row row-wrap gap-8">
+                            <span style={{ color: paketRenk[p.kod] || "#8b5cf6", fontWeight: 700, fontSize: 16 }}>{p.isim}</span>
+                            <span className="tag" style={{ background: "rgba(245,158,11,.12)", color: "#f59e0b", fontWeight: 700 }}>{parseFloat(p.fiyat)}₺/ay</span>
+                            <span style={{ color: "var(--dim)", fontSize: 12 }}>kod: {p.kod}</span>
+                            {!p.aktif && <span className="tag" style={{ background: "rgba(239,68,68,.12)", color: "#ef4444", fontWeight: 600, fontSize: 11 }}>Pasif</span>}
+                          </div>
+                          <div className="row gap-6">
+                            <button onClick={() => setDuzenlePaket({ id: p.id, kod: p.kod, isim: p.isim, fiyat: p.fiyat, calisan_limit: p.calisan_limit, hizmet_limit: p.hizmet_limit, aylik_randevu_limit: p.aylik_randevu_limit, bot_aktif: p.bot_aktif, hatirlatma: p.hatirlatma, istatistik: p.istatistik, export_aktif: p.export_aktif, ozellikler: p.ozellikler || "", sira: p.sira || 0 })} className="btn btn-sm" style={{ background: "rgba(59,130,246,.1)", color: "#3b82f6", border: "none", fontWeight: 600 }}>✏️ Düzenle</button>
+                            <button onClick={async () => { if(confirm(`"${p.isim}" paketini silmek istediğinize emin misiniz?`)) { await api.del(`/admin/paketler/${p.id}`); paketleriYukle(); } }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
+                          </div>
+                        </div>
+                        <div className="row row-wrap gap-12" style={{ fontSize: 12, color: "var(--dim)" }}>
+                          <span>👥 {p.calisan_limit >= 999 ? "Sınırsız" : p.calisan_limit} çalışan</span>
+                          <span>🔧 {p.hizmet_limit >= 999 ? "Sınırsız" : p.hizmet_limit} hizmet</span>
+                          <span>📅 {p.aylik_randevu_limit >= 9999 ? "Sınırsız" : p.aylik_randevu_limit} randevu</span>
+                          {p.bot_aktif && <span style={{ color: "#10b981" }}>🤖 Bot</span>}
+                          {p.hatirlatma && <span style={{ color: "#3b82f6" }}>🔔 Hatırlatma</span>}
+                          {p.istatistik && <span style={{ color: "#8b5cf6" }}>📊 İstatistik</span>}
+                          {p.export_aktif && <span style={{ color: "#f59e0b" }}>📥 Export</span>}
+                        </div>
+                        {p.ozellikler && <div style={{ fontSize: 12, color: "var(--dim)" }}>{p.ozellikler}</div>}
+                      </div>
+                    )
                   ))}
                 </>
               );
