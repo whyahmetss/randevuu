@@ -90,18 +90,14 @@ function Login({ onLogin }) {
     <div className="login-hero">
       <div className="login-hero-glow g1" />
       <div className="login-hero-glow g2" />
-      <div className="login-hero-logo">
-        <img src={logoIcon} alt="SıraGO" />
-        <span className="brand-name">SıraGO</span>
-      </div>
-      <div className="login-hero-slogan">
-        <h1>Gelmeyen müşteriye <span>son.</span><br/>İşinize odaklanın.</h1>
-        <p>WhatsApp ve Telegram üzerinden akıllı randevu yönetimi. Müşterileriniz 7/24 randevu alsın, siz işinize bakın.</p>
-      </div>
-      <div className="login-hero-stats">
-        <div className="hs-item"><div className="hs-val">500+</div><div className="hs-label">Aktif İşletme</div></div>
-        <div className="hs-item"><div className="hs-val">50K+</div><div className="hs-label">Randevu / Ay</div></div>
-        <div className="hs-item"><div className="hs-val">%95</div><div className="hs-label">Memnuniyet</div></div>
+      <img
+        src="/login.jpg"
+        alt="AI Robot"
+        className="login-hero-img"
+      />
+      <div className="login-hero-overlay">
+        <h2>SıraGO'ya <span>Hoş Geldiniz</span></h2>
+        <p>Yapay zeka destekli randevu yönetimi ile işinizi bir üst seviyeye taşıyın.</p>
       </div>
       <div className="login-hero-features">
         <div className="feat-chip">WhatsApp Bot</div>
@@ -115,8 +111,11 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-page">
-      {heroPanel}
       <div className="login-form-panel">
+        <div className="login-form-logo">
+          <img src={logoIcon} alt="SıraGO" />
+          <span>SıraGO</span>
+        </div>
         <div className="login-card">
           <div className="login-title">{ekran === "giris" ? "Hoş Geldiniz" : "Hesap Oluştur"}</div>
           <div className="login-subtitle">{ekran === "giris" ? "Panele erişmek için giriş yapın" : "Ücretsiz deneyin, kredi kartı gerekmez"}</div>
@@ -180,6 +179,7 @@ function Login({ onLogin }) {
           )}
         </div>
       </div>
+      {heroPanel}
     </div>
   );
 }
