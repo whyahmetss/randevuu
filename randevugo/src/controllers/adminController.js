@@ -1357,6 +1357,216 @@ class AdminController {
     }
   }
 
+  // ==================== İŞLETME DETAY (A-Z Yönetim) ====================
+
+  async isletmeDetay(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const buAy = new Date().toISOString().slice(0, 7);
+
+      // Temel bilgiler
+      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [id])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      // Admin kullanıcı
+      const kullanici = (await pool.query('SELECT id, email, rol, aktif, olusturma_tarihi FROM admin_kullanicilar WHERE isletme_id = $1', [id])).rows;
+
+      // Çalışanlar
+      const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id = $1 ORDER BY id', [id])).rows;
+
+      // Hizmetler
+      const hizmetler = (await pool.query('SELECT * FROM hizmetler WHERE isletme_id = $1 ORDER BY id', [id])).rows;
+
+      // Müşteriler
+      const musteriSayi = (await pool.query('SELECT COUNT(*) as sayi FROM musteriler WHERE isletme_id = $1', [id])).rows[0];
+
+      // Randevu istatistikleri
+      const randevuStats = (await pool.query(`
+        SELECT 
+          COUNT(*) as toplam,
+          COUNT(*) FILTER (WHERE tarih >= date_trunc('month', CURRENT_DATE)) as bu_ay,
+          COUNT(*) FILTER (WHERE durum = 'onaylandi') as onaylanan,
+          COUNT(*) FILTER (WHERE durum = 'bekliyor') as bekleyen,
+          COUNT(*) FILTER (WHERE durum = 'iptal') as iptal
+        FROM randevular WHERE isletme_id = $1
+      `, [id])).rows[0];
+
+      // Ödeme geçmişi
+      const odemeler = (await pool.query(
+        'SELECT * FROM odemeler WHERE isletme_id = $1 ORDER BY donem DESC LIMIT 12', [id]
+      )).rows;
+
+      // Bot durumu
+      let botDurum = null;
+      try {
+        const bot = (await pool.query('SELECT * FROM bot_ayarlar WHERE isletme_id = $1', [id])).rows[0];
+        botDurum = bot || null;
+      } catch(e) {}
+
+      // Deneme süresi hesaplama
+      const olusturmaGun = Math.floor((new Date() - new Date(isletme.olusturma_tarihi)) / 86400000);
+      const denemeSuresiKalan = Math.max(0, 7 - olusturmaGun);
+
+      // Son 30 gün günlük randevu sayısı
+      let gunlukRandevu = [];
+      try {
+        gunlukRandevu = (await pool.query(`
+          SELECT tarih::date as gun, COUNT(*) as sayi FROM randevular 
+          WHERE isletme_id = $1 AND tarih >= CURRENT_DATE - INTERVAL '30 days' 
+          GROUP BY tarih::date ORDER BY gun
+        `, [id])).rows;
+      } catch(e) {}
+
+      // Ayarlar
+      let ayarlar = null;
+      try {
+        ayarlar = (await pool.query('SELECT * FROM isletme_ayarlar WHERE isletme_id = $1', [id])).rows[0];
+      } catch(e) {}
+
+      res.json({
+        isletme,
+        kullanici,
+        calisanlar,
+        hizmetler,
+        musteri_sayisi: parseInt(musteriSayi.sayi),
+        randevu_stats: randevuStats,
+        odemeler,
+        bot_durum: botDurum,
+        deneme_suresi_kalan: denemeSuresiKalan,
+        olusturma_gun: olusturmaGun,
+        gunluk_randevu: gunlukRandevu,
+        ayarlar
+      });
+    } catch (error) {
+      console.error('İşletme detay hatası:', error);
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async isletmeDenemeUzat(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const { gun } = req.body; // kaç gün uzatılacak
+      // olusturma_tarihi'ni geri çekerek deneme süresini uzat
+      const yeniTarih = new Date();
+      yeniTarih.setDate(yeniTarih.getDate() - (7 - (gun || 7)));
+      await pool.query('UPDATE isletmeler SET olusturma_tarihi = $1 WHERE id = $2', [yeniTarih.toISOString(), id]);
+      res.json({ mesaj: `Deneme süresi ${gun || 7} gün olarak ayarlandı` });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async isletmeNotEkle(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const { not } = req.body;
+      await pool.query('UPDATE isletmeler SET admin_notu = $1 WHERE id = $2', [not, id]);
+      res.json({ mesaj: 'Not kaydedildi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== İŞLETME ÖDEME PROFİLİ ====================
+
+  async isletmeOdemeProfili(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const buAy = new Date().toISOString().slice(0, 7);
+
+      // İşletme bilgileri
+      const isletme = (await pool.query('SELECT id, isim, paket, aktif, olusturma_tarihi, ilce, kategori FROM isletmeler WHERE id = $1', [id])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      // Tüm ödeme geçmişi (son 24 ay)
+      const odemeler = (await pool.query(
+        'SELECT * FROM odemeler WHERE isletme_id = $1 ORDER BY donem DESC LIMIT 24', [id]
+      )).rows;
+
+      // Paket değişiklik geçmişi (audit_log'dan)
+      let paketGecmisi = [];
+      try {
+        paketGecmisi = (await pool.query(`
+          SELECT * FROM audit_log WHERE isletme_id = $1 AND islem LIKE '%paket%' ORDER BY olusturma_tarihi DESC LIMIT 20
+        `, [id])).rows;
+      } catch(e) {}
+
+      // Deneme süresi
+      const olusturmaGun = Math.floor((new Date() - new Date(isletme.olusturma_tarihi)) / 86400000);
+      const denemeSuresiKalan = Math.max(0, 7 - olusturmaGun);
+
+      // Ödeme istatistikleri
+      const toplamOdenen = odemeler.filter(o => o.durum === 'odendi').reduce((s, o) => s + parseFloat(o.tutar || 0), 0);
+      const sonOdeme = odemeler.find(o => o.durum === 'odendi');
+      const buAyOdeme = odemeler.find(o => o.donem === buAy);
+      const gecikmisSayi = odemeler.filter(o => o.durum === 'gecikti').length;
+
+      // Aylık ödeme takvimi (son 12 ay)
+      const takvim = [];
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(); d.setMonth(d.getMonth() - i);
+        const donem = d.toISOString().slice(0, 7);
+        const odeme = odemeler.find(o => o.donem === donem);
+        takvim.push({
+          donem,
+          durum: odeme ? odeme.durum : (i === 0 && denemeSuresiKalan > 0 ? 'deneme' : 'yok'),
+          tutar: odeme ? parseFloat(odeme.tutar) : 0,
+          odeme_tarihi: odeme?.odeme_tarihi || null,
+          odeme_yontemi: odeme?.odeme_yontemi || null,
+          id: odeme?.id || null
+        });
+      }
+
+      // Paket fiyat bilgisi
+      const paketFiyat = { baslangic: 299, profesyonel: 599, premium: 999 };
+
+      res.json({
+        isletme,
+        odemeler,
+        paket_gecmisi: paketGecmisi,
+        deneme_suresi_kalan: denemeSuresiKalan,
+        olusturma_gun: olusturmaGun,
+        istatistikler: {
+          toplam_odenen: toplamOdenen,
+          son_odeme_tarihi: sonOdeme?.odeme_tarihi || null,
+          bu_ay_durum: buAyOdeme?.durum || (denemeSuresiKalan > 0 ? 'deneme' : 'odenmedi'),
+          gecikme_sayisi: gecikmisSayi,
+          toplam_ay: odemeler.length,
+          odenen_ay: odemeler.filter(o => o.durum === 'odendi').length
+        },
+        takvim,
+        paket_fiyat: paketFiyat[isletme.paket] || 299
+      });
+    } catch (error) {
+      console.error('Ödeme profili hatası:', error);
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async odemeErteleme(req, res) {
+    try {
+      const odemeId = parseInt(req.params.id);
+      const { yeni_donem, sebep } = req.body;
+      
+      // Mevcut ödemeyi güncelle
+      await pool.query(
+        'UPDATE odemeler SET donem = $1, notlar = COALESCE(notlar, \'\') || $2 WHERE id = $3',
+        [yeni_donem, `\n[Erteleme: ${new Date().toLocaleDateString('tr-TR')}] ${sebep || 'Süre uzatıldı'}`, odemeId]
+      );
+      
+      res.json({ mesaj: `Ödeme ${yeni_donem} dönemine ertelendi` });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async odemeSuresiUzat(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const { gun } = req.body;
+      // olusturma_tarihi'ni ileriye taşı (deneme süresini uzat)
+      const yeniTarih = new Date();
+      yeniTarih.setDate(yeniTarih.getDate() - (7 - (gun || 7)));
+      await pool.query('UPDATE isletmeler SET olusturma_tarihi = $1 WHERE id = $2', [yeniTarih.toISOString(), id]);
+      res.json({ mesaj: `Deneme süresi ${gun || 7} güne uzatıldı` });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
   // ==================== IMPERSONATION (Müşteri olarak giriş) ====================
 
   async impersonate(req, res) {

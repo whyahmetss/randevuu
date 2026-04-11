@@ -70,11 +70,16 @@ router.post('/admin/isletmeler', authMiddleware, superAdminMiddleware, (req, res
 router.put('/admin/isletmeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeGuncelleAdmin(req, res));
 router.delete('/admin/isletmeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeSil(req, res));
 router.get('/admin/saas-metrikleri', authMiddleware, superAdminMiddleware, (req, res) => adminController.saasMetrikleri(req, res));
+router.get('/admin/isletmeler/:id/detay', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeDetay(req, res));
+router.post('/admin/isletmeler/:id/deneme-uzat', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeDenemeUzat(req, res));
+router.put('/admin/isletmeler/:id/not', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeNotEkle(req, res));
 router.post('/admin/impersonate/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.impersonate(req, res));
 
 router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeleriGetir(req, res));
 router.post('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeEkle(req, res));
 router.put('/admin/odemeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeGuncelle(req, res));
+router.get('/admin/isletmeler/:id/odeme-profili', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeOdemeProfili(req, res));
+router.post('/admin/odemeler/:id/ertele', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeErteleme(req, res));
 
 // ==================== İLETİŞİM MESAJLARI (SuperAdmin) ====================
 router.get('/admin/iletisim', authMiddleware, superAdminMiddleware, (req, res) => adminController.iletisimListele(req, res));
