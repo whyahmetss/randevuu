@@ -2282,6 +2282,8 @@ function SuperAdminPanel({ kullanici }) {
   const [formAcik, setFormAcik] = useState(false);
   const [isletmeFiltre, setIsletmeFiltre] = useState("hepsi");
   const [isletmeArama, setIsletmeArama] = useState("");
+  const [isletmeKategoriFiltre, setIsletmeKategoriFiltre] = useState("hepsi");
+  const [isletmeGorunum, setIsletmeGorunum] = useState("kategori");
   const [odemeFiltre, setOdemeFiltre] = useState("hepsi");
   const [yeniOdeme, setYeniOdeme] = useState({ isletme_id: "", tutar: "", donem: new Date().toISOString().slice(0, 7) });
   const [odemeFormAcik, setOdemeFormAcik] = useState(false);
@@ -2571,7 +2573,8 @@ function SuperAdminPanel({ kullanici }) {
     { id: "sistemDurum", icon: SVGA.sistemDurum, label: "Sistem Durumu" },
   ];
 
-  const kategoriRenk = { berber: "#3b82f6", kuafor: "#8b5cf6", disci: "#10b981", guzellik: "#f59e0b", veteriner: "#ef4444", diyetisyen: "#06b6d4" };
+  const kategoriRenk = { berber: "#3b82f6", kuafor: "#8b5cf6", guzellik: "#ec4899", spa: "#f59e0b", disci: "#10b981", veteriner: "#ef4444", diyetisyen: "#06b6d4", psikolog: "#8b5cf6", fizyoterapi: "#0ea5e9", restoran: "#f97316", cafe: "#a16207", spor: "#16a34a", egitim: "#6366f1", foto: "#d946ef", dovme: "#e11d48", oto: "#64748b", hukuk: "#475569", genel: "#94a3b8" };
+  const kategoriLabel = { berber: "💈 Berber", kuafor: "✂️ Kuaför", guzellik: "💅 Güzellik", spa: "🧖 Spa", disci: "🦷 Diş Kliniği", veteriner: "🐾 Veteriner", diyetisyen: "🥗 Diyetisyen", psikolog: "🧠 Psikolog", fizyoterapi: "🏥 Fizyoterapi", restoran: "🍽️ Restoran", cafe: "☕ Kafe", spor: "🏋️ Spor", egitim: "📚 Eğitim", foto: "📸 Fotoğraf", dovme: "🎨 Dövme", oto: "🚗 Oto Servis", hukuk: "⚖️ Hukuk", genel: "🏢 Genel" };
   const paketRenk = { baslangic: "#64748b", profesyonel: "#3b82f6", premium: "#f59e0b" };
   const paketFiyat = { baslangic: 299, profesyonel: 599, premium: 999 };
   const odemeRenk = { odendi: "#10b981", bekliyor: "#f59e0b", gecikti: "#ef4444", havale_bekliyor: "#818cf8", basarisiz: "#ef4444", odeme_bekliyor: "#f59e0b" };
@@ -2805,25 +2808,86 @@ function SuperAdminPanel({ kullanici }) {
           const aktifSayi = isletmeler.filter(i => i.aktif).length;
           const pasifSayi = isletmeler.filter(i => !i.aktif).length;
           const aramaFiltreli = filtreliIsletmeler.filter(i => {
+            if (isletmeKategoriFiltre !== "hepsi" && (i.kategori || "genel") !== isletmeKategoriFiltre) return false;
             if (!isletmeArama) return true;
             const q = isletmeArama.toLowerCase();
             return (i.isim || '').toLowerCase().includes(q) || (i.telefon || '').includes(q) || (i.kategori || '').toLowerCase().includes(q) || (i.ilce || '').toLowerCase().includes(q);
           });
+          // Kategoriye göre grupla
+          const kategoriler = {};
+          aramaFiltreli.forEach(i => {
+            const kat = i.kategori || "genel";
+            if (!kategoriler[kat]) kategoriler[kat] = [];
+            kategoriler[kat].push(i);
+          });
+          const kategoriSirali = Object.keys(kategoriler).sort((a, b) => kategoriler[b].length - kategoriler[a].length);
+          // Mevcut kategorileri bul (filtre chip'leri için)
+          const mevcutKategoriler = [...new Set(isletmeler.map(i => i.kategori || "genel"))].sort();
+
+          const IsletmeKart = ({ i }) => {
+            const kRenk = kategoriRenk[i.kategori] || "#64748b";
+            const pRenk = paketRenk[i.paket] || "#64748b";
+            return (
+              <div onClick={(e) => { if(e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'SELECT' || e.target.closest('select')) return; isletmeDetayYukle(i.id); }}
+                style={{ background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border)", cursor: "pointer", transition: "all .2s", opacity: i.aktif ? 1 : 0.55, overflow: "hidden", position: "relative" }}>
+                <div style={{ height: 3, background: `linear-gradient(90deg, ${kRenk}, ${kRenk}44)` }} />
+                <div style={{ padding: "16px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `linear-gradient(135deg, ${kRenk}22, ${kRenk}08)`, border: `1px solid ${kRenk}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+                      {(kategoriLabel[i.kategori] || "🏢").split(" ")[0]}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.isim}</span>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: i.aktif ? "#10b981" : "#ef4444", flexShrink: 0 }} />
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                        <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}12`, color: kRenk, fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{i.kategori || "genel"}</span>
+                        <span style={{ padding: "2px 8px", borderRadius: 6, background: `${pRenk}12`, color: pRenk, fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{i.paket || "—"}</span>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 12, color: "var(--dim)" }}>
+                        {i.telefon && <span>📞 {i.telefon}</span>}
+                        {i.ilce && <span>📍 {i.ilce}</span>}
+                        <span>📅 {i.toplam_randevu || 0} randevu</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+                    <button onClick={async () => {
+                      try {
+                        const res = await api.post(`/admin/impersonate/${i.id}`);
+                        if (res.hata) { alert("Hata: " + res.hata); return; }
+                        if (res.token) {
+                          const yeniSekme = window.open("", "_blank");
+                          yeniSekme.document.write(`<html><body><script>
+                            localStorage.setItem("randevugo_token","${res.token}");
+                            localStorage.setItem("randevugo_impersonated","true");
+                            window.location.href = window.location.origin;
+                          <\/script></body></html>`);
+                        }
+                      } catch (e) { alert("Hata: " + e.message); }
+                    }} title="Müşteri olarak giriş" style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>👤 Giriş</button>
+                    <button onClick={() => aktifToggle(i)} title={i.aktif ? "Pasife al" : "Aktif et"} style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", background: i.aktif ? "rgba(16,185,129,.08)" : "rgba(245,158,11,.08)", color: i.aktif ? "#10b981" : "#f59e0b", fontWeight: 700, fontSize: 11 }}>{i.aktif ? "✓ Aktif" : "⏸ Pasif"}</button>
+                    <button onClick={() => isletmeSil(i.id, i.isim)} title="Sil" style={{ padding: "7px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(239,68,68,.06)", color: "#ef4444", fontSize: 11 }}>🗑️</button>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
           return (
           <>
-            {/* Başlık + Arama */}
             <div className="page-header">
               <h1>İşletmeler</h1>
-              <p>{isletmeler.length} işletme kayıtlı · {aktifSayi} aktif · {pasifSayi} pasif</p>
+              <p>{isletmeler.length} işletme kayıtlı · {aktifSayi} aktif · {pasifSayi} pasif · {mevcutKategoriler.length} kategori</p>
             </div>
 
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+            {/* Arama + Durum Filtre + Yeni İşletme */}
+            <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
-                <input
-                  type="text" placeholder="İşletme ara (isim, telefon, kategori, ilçe)..."
+                <input type="text" placeholder="İşletme ara (isim, telefon, kategori, ilçe)..."
                   value={isletmeArama || ''} onChange={e => setIsletmeArama(e.target.value)}
-                  style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }}
-                />
+                  style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
                 <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, opacity: .4 }}>🔍</span>
               </div>
               <div style={{ display: "flex", gap: 4 }}>
@@ -2831,7 +2895,34 @@ function SuperAdminPanel({ kullanici }) {
                   <button key={v} onClick={() => setIsletmeFiltre(v)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: isletmeFiltre === v ? "var(--primary)" : "var(--bg)", color: isletmeFiltre === v ? "#fff" : "var(--dim)", transition: "all .15s" }}>{l}</button>
                 ))}
               </div>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => setIsletmeGorunum("kategori")} title="Kategori Görünümü" style={{ padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: isletmeGorunum === "kategori" ? "rgba(59,130,246,.12)" : "var(--bg)", color: isletmeGorunum === "kategori" ? "#3b82f6" : "var(--dim)", fontSize: 14 }}>▦</button>
+                <button onClick={() => setIsletmeGorunum("liste")} title="Liste Görünümü" style={{ padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: isletmeGorunum === "liste" ? "rgba(59,130,246,.12)" : "var(--bg)", color: isletmeGorunum === "liste" ? "#3b82f6" : "var(--dim)", fontSize: 14 }}>☰</button>
+              </div>
               <button onClick={() => setFormAcik(!formAcik)} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", fontWeight: 700, fontSize: 13, whiteSpace: "nowrap" }}>+ Yeni İşletme</button>
+            </div>
+
+            {/* Kategori Filtre Chip'leri */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+              <button onClick={() => setIsletmeKategoriFiltre("hepsi")}
+                style={{ padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontWeight: 600, transition: "all .15s",
+                  background: isletmeKategoriFiltre === "hepsi" ? "var(--primary)" : "var(--surface)", color: isletmeKategoriFiltre === "hepsi" ? "#fff" : "var(--dim)",
+                  border: isletmeKategoriFiltre === "hepsi" ? "1px solid var(--primary)" : "1px solid var(--border)" }}>
+                Tüm Kategoriler
+              </button>
+              {mevcutKategoriler.map(k => {
+                const renk = kategoriRenk[k] || "#64748b";
+                const sayi = isletmeler.filter(i => (i.kategori || "genel") === k).length;
+                return (
+                  <button key={k} onClick={() => setIsletmeKategoriFiltre(isletmeKategoriFiltre === k ? "hepsi" : k)}
+                    style={{ padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontWeight: 600, transition: "all .15s", display: "flex", alignItems: "center", gap: 6,
+                      background: isletmeKategoriFiltre === k ? `${renk}18` : "var(--surface)",
+                      color: isletmeKategoriFiltre === k ? renk : "var(--dim)",
+                      border: isletmeKategoriFiltre === k ? `1px solid ${renk}40` : "1px solid var(--border)" }}>
+                    {(kategoriLabel[k] || k).split(" ")[0]} {k} <span style={{ background: `${renk}15`, color: renk, padding: "1px 6px", borderRadius: 8, fontSize: 10, fontWeight: 800 }}>{sayi}</span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Yeni İşletme Formu */}
@@ -2859,7 +2950,7 @@ function SuperAdminPanel({ kullanici }) {
                       <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", display: "block", marginBottom: 4 }}>Kategori</label>
                       <select value={yeniIsletme.kategori} onChange={e => setYeniIsletme({ ...yeniIsletme, kategori: e.target.value })}
                         style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}>
-                        {["berber","kuafor","disci","guzellik","veteriner","diyetisyen","masaj","spa"].map(k => <option key={k} value={k}>{k}</option>)}
+                        {Object.entries(kategoriLabel).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                       </select>
                     </div>
                   </div>
@@ -2879,58 +2970,32 @@ function SuperAdminPanel({ kullanici }) {
                 <div style={{ fontSize: 40, marginBottom: 8 }}>🔍</div>
                 <p>Sonuç bulunamadı</p>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {aramaFiltreli.map(i => {
-                  const pRenk = paketRenk[i.paket] || "#64748b";
-                  const kRenk = kategoriRenk[i.kategori] || "#64748b";
+            ) : isletmeGorunum === "kategori" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {kategoriSirali.map(kat => {
+                  const renk = kategoriRenk[kat] || "#64748b";
+                  const label = kategoriLabel[kat] || kat;
+                  const liste = kategoriler[kat];
                   return (
-                    <div key={i.id} onClick={(e) => { if(e.target.tagName === 'BUTTON' || e.target.closest('button')) return; isletmeDetayYukle(i.id); }}
-                      style={{ background: "var(--surface)", borderRadius: 14, padding: "16px 20px", border: "1px solid var(--border)", cursor: "pointer", transition: "all .15s", opacity: i.aktif ? 1 : 0.6 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        {/* Avatar */}
-                        <div style={{ width: 44, height: 44, borderRadius: 12, background: `linear-gradient(135deg, ${pRenk}, ${pRenk}88)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 17, flexShrink: 0 }}>
-                          {(i.isim || "?")[0]}
+                    <div key={kat}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 10, background: `${renk}14`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
+                          {label.split(" ")[0]}
                         </div>
-
-                        {/* Bilgi */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <span style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{i.isim}</span>
-                            <span style={{ width: 7, height: 7, borderRadius: "50%", background: i.aktif ? "#10b981" : "#ef4444", flexShrink: 0 }} />
-                            <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}15`, color: kRenk, fontSize: 11, fontWeight: 600 }}>{i.kategori}</span>
-                            <span style={{ padding: "2px 8px", borderRadius: 6, background: `${pRenk}15`, color: pRenk, fontSize: 11, fontWeight: 700 }}>{(i.paket || "—").toUpperCase()}</span>
-                          </div>
-                          <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 12, color: "var(--dim)", flexWrap: "wrap" }}>
-                            {i.telefon && <span>📞 {i.telefon}</span>}
-                            {i.ilce && <span>📍 {i.ilce}</span>}
-                            <span>📅 {i.toplam_randevu || 0} randevu</span>
-                          </div>
-                        </div>
-
-                        {/* Aksiyonlar */}
-                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                          <button onClick={async () => {
-                            try {
-                              const res = await api.post(`/admin/impersonate/${i.id}`);
-                              if (res.hata) { alert("Hata: " + res.hata); return; }
-                              if (res.token) {
-                                const yeniSekme = window.open("", "_blank");
-                                yeniSekme.document.write(`<html><body><script>
-                                  localStorage.setItem("randevugo_token","${res.token}");
-                                  localStorage.setItem("randevugo_impersonated","true");
-                                  window.location.href = window.location.origin;
-                                <\/script></body></html>`);
-                              }
-                            } catch (e) { alert("Hata: " + e.message); }
-                          }} title="Müşteri olarak giriş" style={{ padding: "6px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontWeight: 700, fontSize: 12 }}>👤</button>
-                          <button onClick={() => aktifToggle(i)} title={i.aktif ? "Pasife al" : "Aktif et"} style={{ padding: "6px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: i.aktif ? "rgba(16,185,129,.08)" : "rgba(245,158,11,.08)", color: i.aktif ? "#10b981" : "#f59e0b", fontWeight: 700, fontSize: 12 }}>{i.aktif ? "✓" : "⏸"}</button>
-                          <button onClick={() => isletmeSil(i.id, i.isim)} title="Sil" style={{ padding: "6px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(239,68,68,.06)", color: "#ef4444", fontSize: 12 }}>🗑️</button>
-                        </div>
+                        <span style={{ fontWeight: 800, fontSize: 15, color: "var(--text)" }}>{label.split(" ").slice(1).join(" ") || kat}</span>
+                        <span style={{ padding: "3px 10px", borderRadius: 8, background: `${renk}12`, color: renk, fontSize: 11, fontWeight: 800 }}>{liste.length}</span>
+                        <div style={{ flex: 1, height: 1, background: "var(--border)", marginLeft: 8 }} />
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}>
+                        {liste.map(i => <IsletmeKart key={i.id} i={i} />)}
                       </div>
                     </div>
                   );
                 })}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}>
+                {aramaFiltreli.map(i => <IsletmeKart key={i.id} i={i} />)}
               </div>
             )}
           </>

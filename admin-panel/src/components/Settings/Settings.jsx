@@ -87,6 +87,33 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                 <input value={ayarlar[f.key] || ""} onChange={e => setAyarlar({...ayarlar, [f.key]: e.target.value})} className="input" />
               </div>
             ))}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Kategori</label>
+              <select value={ayarlar.kategori || "genel"} onChange={e => setAyarlar({...ayarlar, kategori: e.target.value})} className="input" style={{ width: "100%" }}>
+                {[
+                  ["berber", "💈 Berber"],
+                  ["kuafor", "✂️ Kuaför"],
+                  ["guzellik", "💅 Güzellik Salonu"],
+                  ["spa", "🧖 Spa & Masaj"],
+                  ["disci", "🦷 Diş Kliniği"],
+                  ["veteriner", "🐾 Veteriner"],
+                  ["diyetisyen", "🥗 Diyetisyen"],
+                  ["psikolog", "🧠 Psikolog"],
+                  ["fizyoterapi", "🏥 Fizyoterapi"],
+                  ["restoran", "🍽️ Restoran"],
+                  ["cafe", "☕ Kafe"],
+                  ["spor", "🏋️ Spor Salonu"],
+                  ["egitim", "📚 Eğitim / Kurs"],
+                  ["foto", "📸 Fotoğraf Stüdyosu"],
+                  ["dovme", "🎨 Dövme / Piercing"],
+                  ["oto", "🚗 Oto Yıkama / Servis"],
+                  ["hukuk", "⚖️ Hukuk / Danışmanlık"],
+                  ["genel", "🏢 Genel / Diğer"],
+                ].map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
