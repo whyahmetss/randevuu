@@ -264,6 +264,10 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarisiz INTEGER DEFAULT 0`);
 
     console.log('✅ DB migration kontrolü tamamlandı');
+
+    // Dosya tabanlı migration'ları çalıştır
+    const migrationRunner = require('./utils/migrationRunner');
+    await migrationRunner.calistir();
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
   }

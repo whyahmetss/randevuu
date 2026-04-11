@@ -104,6 +104,38 @@ class TelegramService {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
 
+    // Kara liste kontrolü — engelli numaraya cevap verme
+    try {
+      const kara = (await pool.query(
+        'SELECT aktif FROM kara_liste WHERE isletme_id=$1 AND telefon=$2 AND aktif=true',
+        [isletmeId, musteriTelefon]
+      )).rows[0];
+      if (kara) return;
+    } catch (e) { /* kara_liste tablosu yoksa devam et */ }
+
+    // Mesai dışı kontrolü
+    try {
+      const simdi = new Date();
+      const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
+      const basSaat = isletme.calisma_baslangic ? String(isletme.calisma_baslangic).substring(0,5) : '09:00';
+      const bitSaat = isletme.calisma_bitis ? String(isletme.calisma_bitis).substring(0,5) : '19:00';
+      const [basH, basM] = basSaat.split(':').map(Number);
+      const [bitH, bitM] = bitSaat.split(':').map(Number);
+      const basDk = basH * 60 + basM;
+      const bitDk = bitH * 60 + bitM;
+      const bugunKapali = (isletme.kapali_gunler || '').split(',').map(Number).includes(simdi.getDay());
+      const mesaiDisi = simdiDk < basDk || simdiDk > bitDk || bugunKapali;
+
+      if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
+        if (isletme.mesai_disi_mod === 'sessiz') return;
+        if (isletme.mesai_disi_mod === 'kapali_mesaj') {
+          const mesaj = isletme.mesai_disi_mesaj || `Şu an kapalıyız. 🕐 Çalışma saatlerimiz: ${basSaat} - ${bitSaat}. Açıldığımızda size dönüş yapacağız.`;
+          await bot.sendMessage(chatId, mesaj, { parse_mode: 'Markdown' });
+          return;
+        }
+      }
+    } catch (e) { /* mesai dışı kontrolü başarısız — devam et */ }
+
     // Müşteriyi kaydet / bul
     const musteriIsim = from ? [from.first_name, from.last_name].filter(Boolean).join(' ') : 'Telegram Kullanıcısı';
     await pool.query(
@@ -150,23 +182,33 @@ class TelegramService {
       const idx = parseInt(mk.replace('hz_', ''));
       const hz = hizmetler[idx];
       if (hz) {
-        // Çalışan kontrolü
-        const calisanlarHz = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true) ORDER BY id', [isletmeId])).rows;
-        if (calisanlarHz.length > 1) {
+        // Çalışan kontrolü (calisan_secim_modu'na göre)
+        const randevuService = require('./randevu');
+        const calisanlarHz = await randevuService.uygunCalisanlar(isletmeId, hz.id);
+        const secimModu = isletme.calisan_secim_modu || 'musteri';
+        const tarihBtnleri = [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
+             [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
+             [{ text: '🔙 Geri', callback_data: 'geri_ana' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]];
+
+        if (calisanlarHz.length > 1 && secimModu === 'musteri') {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: hz.id });
           const cBtnHz = calisanlarHz.map((c, i) => [{ text: `👤 ${c.isim}`, callback_data: `cl_${i}` }]);
           cBtnHz.push([{ text: '🔙 Geri', callback_data: 'geri_hizmet' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]);
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
-            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}\n\n� Çalışan seçin:`, cBtnHz);
-        } else {
-          const cId = calisanlarHz.length === 1 ? calisanlarHz[0].id : null;
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: hz.id, secilen_calisan_id: cId });
-          const clText = calisanlarHz.length === 1 ? `\n👤 Çalışan: ${calisanlarHz[0].isim}` : '';
+            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}\n\n👤 Çalışan seçin:`, cBtnHz);
+        } else if (calisanlarHz.length > 1 && secimModu === 'otomatik') {
+          const bugun = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
+          const enBos = await randevuService.enBosCalisan(isletmeId, bugun, hz.id);
+          const secilenCl = enBos || calisanlarHz[0];
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: hz.id, secilen_calisan_id: secilenCl.id });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
-            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}${clText}\n\n📅 Hangi gün istersiniz?`,
-            [[{ text: '📅 Bugün', callback_data: 'bugun' }, { text: '📅 Yarın', callback_data: 'yarin' }],
-             [{ text: '📆 Bu Hafta', callback_data: 'hafta' }],
-             [{ text: '🔙 Geri', callback_data: 'geri_ana' }, { text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}\n👤 Çalışan: ${secilenCl.isim}\n\n📅 Hangi gün istersiniz?`, tarihBtnleri);
+        } else {
+          const cId = calisanlarHz.length >= 1 ? calisanlarHz[0].id : null;
+          const clText = cId ? `\n� Çalışan: ${calisanlarHz[0].isim}` : '';
+          await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: hz.id, secilen_calisan_id: cId });
+          await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+            `✅ *${hz.isim}* seçildi\n\n⏱ Süre: ${hz.sure_dk} dk\n💰 Ücret: ₺${hz.fiyat}${clText}\n\n📅 Hangi gün istersiniz?`, tarihBtnleri);
         }
         return;
       }
@@ -705,6 +747,26 @@ class TelegramService {
         if (mk.startsWith('iptal_')) {
           const iptalId = parseInt(mk.replace('iptal_', ''));
           if (iptalId) {
+            // İptal sınırı kontrolü
+            const iptalSinir = isletme.iptal_sinir_saat || 0;
+            if (iptalSinir > 0) {
+              try {
+                const rCheck = (await pool.query('SELECT tarih, saat FROM randevular WHERE id=$1', [iptalId])).rows[0];
+                if (rCheck) {
+                  const rTarih = new Date(rCheck.tarih).toISOString().split('T')[0];
+                  const rSaat = String(rCheck.saat).substring(0,5);
+                  const randevuZamani = new Date(`${rTarih}T${rSaat}:00`);
+                  const kalanSaat = (randevuZamani - Date.now()) / 3600000;
+                  if (kalanSaat < iptalSinir) {
+                    await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+                    await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
+                      `❌ *Bu randevu artık iptal edilemez.*\n\nRandevuya ${iptalSinir} saatten az kaldığı için iptal yapılamaz.`,
+                      [[{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
+                    break;
+                  }
+                }
+              } catch (e) { /* tarih parse hatası — devam et */ }
+            }
             const iptalEdilen = await randevuService.randevuIptal(iptalId);
             await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
             await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,

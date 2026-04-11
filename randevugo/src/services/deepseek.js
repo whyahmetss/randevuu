@@ -111,6 +111,8 @@ MÜŞTERİ ADI: ${musteriIsim}
 ${profilBilgisi}
 HİZMETLER: ${hizmetListesi}
 
+KONUŞMA STİLİ: ${isletmeBilgi.bot_konusma_stili === 'resmi' ? 'Resmi ve profesyonel dil, "Siz" hitabı, emoji kullanma' : isletmeBilgi.bot_konusma_stili === 'kisa' ? 'Çok kısa, max 1-2 cümle, gereksiz süsleme yapma' : 'Samimi ama saygılı, emoji kullan'}
+
 KRİTİK KURALLAR:
 - İşletme adını olduğu gibi kullan, ASLA değiştirme veya birleştirme! Doğru: "${isletmeBilgi.isim}" Yanlış: "Sen${isletmeBilgi.isim}", "${isletmeBilgi.isim}ci"
 - Her zaman "siz" hitabı kullan, asla "sen" deme
@@ -149,11 +151,12 @@ KRİTİK KURALLAR:
             role: 'system',
             content: `Sen "${isletmeBilgi.isim}" adlı işletmenin ${kanal === 'telegram' ? 'Telegram' : 'WhatsApp'} asistanısın.
 
+KONUŞMA STİLİ: ${isletmeBilgi.bot_konusma_stili === 'resmi' ? 'Resmi ve profesyonel dil, "Siz" hitabı, emoji kullanma' : isletmeBilgi.bot_konusma_stili === 'kisa' ? 'Çok kısa, max 1-2 cümle, gereksiz süsleme yapma' : 'Samimi ama saygılı, emoji kullan'}
+
 KRİTİK KURALLAR:
 - Her zaman "siz" hitabı kullan, ASLA "sen" deme (Yanlış: "Senin için", "seni görmek" / Doğru: "Sizin için", "sizi görmek")
 - İşletme adını olduğu gibi kullan, değiştirme: "${isletmeBilgi.isim}"
 - Türkçe, sıcak ve kısa cevap ver (2-3 cümle max)
-- Emoji kullan ama abartma
 - Hizmetler: ${hizmetListesi}
 - Müşteriyi nazikçe randevu almaya yönlendir ama zorlamadan`
           },

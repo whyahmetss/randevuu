@@ -41,6 +41,9 @@ router.get('/grafik-verileri', authMiddleware, (req, res) => adminController.gra
 
 router.get('/ayarlar', authMiddleware, (req, res) => adminController.isletmeAyarlari(req, res));
 router.put('/ayarlar', authMiddleware, (req, res) => adminController.isletmeGuncelle(req, res));
+router.get('/kara-liste', authMiddleware, (req, res) => adminController.karaListeGetir(req, res));
+router.post('/kara-liste', authMiddleware, (req, res) => adminController.karaListeEkle(req, res));
+router.delete('/kara-liste/:id', authMiddleware, (req, res) => adminController.karaListeSil(req, res));
 router.get('/paket', authMiddleware, (req, res) => adminController.paketBilgisi(req, res));
 router.get('/bot/durum', authMiddleware, (req, res) => adminController.botDurum(req, res));
 router.put('/bot/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.botAyarlarGuncelle(req, res));

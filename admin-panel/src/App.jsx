@@ -3,6 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, 
 import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoIcon from "./assets/logo1.png";
 import logoFull from "./assets/logo2.png";
+import Settings from "./components/Settings/Settings";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -1700,120 +1701,7 @@ function Dashboard() {
 
           {/* ── AYARLAR ── */}
           {sayfa === "ayarlar" && (
-            ayarlar ? (
-              <div className="settings-wrap">
-                {ayarKaydedildi && (
-                  <div className="alert alert-success mb-20">✓ Ayarlar kaydedildi</div>
-                )}
-                <div className="settings-card">
-                  <h3>İşletme Bilgileri</h3>
-                  <div className="form-grid" style={{ gap: 16 }}>
-                    {[
-                      { label: "İşletme Adı", key: "isim" },
-                      { label: "Adres", key: "adres" },
-                    ].map(f => (
-                      <div key={f.key}>
-                        <label className="form-label">{f.label}</label>
-                        <input value={ayarlar[f.key] || ""} onChange={e => setAyarlar({...ayarlar, [f.key]: e.target.value})} className="input" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="settings-card">
-                  <h3>Çalışma Saatleri</h3>
-                  <div className="form-grid" style={{ gap: 16 }}>
-                    <div>
-                      <label className="form-label">Açılış Saati</label>
-                      <input type="time" value={ayarlar.calisma_baslangic || "09:00"} onChange={e => setAyarlar({...ayarlar, calisma_baslangic: e.target.value})} className="input" />
-                    </div>
-                    <div>
-                      <label className="form-label">Kapanış Saati</label>
-                      <input type="time" value={ayarlar.calisma_bitis || "19:00"} onChange={e => setAyarlar({...ayarlar, calisma_bitis: e.target.value})} className="input" />
-                    </div>
-                  </div>
-                </div>
-                <div className="settings-card">
-                  <h3>Mola / Kapalı Saatler</h3>
-                  <div style={{ color: "var(--dim)", fontSize: 12 }} className="mb-16">Bu saatlerde randevu alınamaz (yemek arası, özel işler, vs.)</div>
-                  {(ayarlar.mola_saatleri || []).map((mola, idx) => (
-                    <div key={idx} className="mola-row">
-                      <input value={mola.isim || ""} placeholder="Açıklama (ör: Yemek Arası)" onChange={e => {
-                        const yeni = [...(ayarlar.mola_saatleri || [])];
-                        yeni[idx] = { ...yeni[idx], isim: e.target.value };
-                        setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} className="input flex-1" />
-                      <input type="time" value={mola.baslangic || ""} onChange={e => {
-                        const yeni = [...(ayarlar.mola_saatleri || [])];
-                        yeni[idx] = { ...yeni[idx], baslangic: e.target.value };
-                        setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} className="input" style={{ width: 120 }} />
-                      <span className="mola-sep">—</span>
-                      <input type="time" value={mola.bitis || ""} onChange={e => {
-                        const yeni = [...(ayarlar.mola_saatleri || [])];
-                        yeni[idx] = { ...yeni[idx], bitis: e.target.value };
-                        setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} className="input" style={{ width: 120 }} />
-                      <button onClick={() => {
-                        const yeni = (ayarlar.mola_saatleri || []).filter((_, i) => i !== idx);
-                        setAyarlar({...ayarlar, mola_saatleri: yeni});
-                      }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "1px solid rgba(239,68,68,.25)" }}>✕</button>
-                    </div>
-                  ))}
-                  <button onClick={() => {
-                    const yeni = [...(ayarlar.mola_saatleri || []), { isim: "", baslangic: "12:00", bitis: "13:00" }];
-                    setAyarlar({...ayarlar, mola_saatleri: yeni});
-                  }} className="btn btn-ghost btn-block" style={{ border: "1px dashed var(--border2)" }}>
-                    + Mola Ekle
-                  </button>
-                </div>
-                <div className="settings-card mb-24">
-                  <h3 style={{ margin: "0 0 16px" }}>Kapalı Günler</h3>
-                  <div className="row row-wrap gap-8">
-                    {[["0","Pazar"],["1","Pazartesi"],["2","Salı"],["3","Çarşamba"],["4","Perşembe"],["5","Cuma"],["6","Cumartesi"]].map(([v, l]) => {
-                      const kapalilar = String(ayarlar.kapali_gunler || "").split(",").map(s => s.trim()).filter(Boolean);
-                      const kapali = kapalilar.includes(v);
-                      return (
-                        <button key={v} onClick={() => {
-                          const yeni = kapali ? kapalilar.filter(k => k !== v) : [...kapalilar, v];
-                          setAyarlar({...ayarlar, kapali_gunler: yeni.join(",")});
-                        }} className={`day-btn ${kapali ? 'on' : 'off'}`}>
-                          {l}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div style={{ color: "var(--dim)", fontSize: 12 }} className="mt-10">Seçilen günlerde randevu alınamaz</div>
-                </div>
-                <div className="settings-card">
-                  <h3>Kapora / Ön Ödeme</h3>
-                  <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 16 }}>Aktif edildiğinde, kapora oranı belirlenmiş hizmetler için müşteriden ön ödeme istenir. Ödeme Shopier üzerinden alınır.</div>
-                  <div className="row gap-12" style={{ alignItems: "center" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-                      <input type="checkbox" checked={!!ayarlar.kapora_aktif} onChange={async (e) => {
-                        const yeniDurum = e.target.checked;
-                        setAyarlar({...ayarlar, kapora_aktif: yeniDurum});
-                        await api.put("/kapora", { kapora_aktif: yeniDurum });
-                      }} style={{ accentColor: "var(--green)", width: 18, height: 18 }} />
-                      <span style={{ fontWeight: 600, color: ayarlar.kapora_aktif ? "var(--green)" : "var(--muted)" }}>
-                        {ayarlar.kapora_aktif ? "Kapora Sistemi Aktif" : "Kapora Sistemi Kapalı"}
-                      </span>
-                    </label>
-                  </div>
-                  <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 8 }}>Hizmetlerin kapora oranını Hizmetler sayfasından ayarlayabilirsiniz.</div>
-                </div>
-                <button onClick={async () => {
-                  await api.put("/ayarlar", ayarlar);
-                  setAyarKaydedildi(true);
-                  setTimeout(() => setAyarKaydedildi(false), 3000);
-                }} className="btn btn-primary btn-lg">
-                  Kaydet
-                </button>
-              </div>
-            ) : (
-              <div className="row gap-10" style={{ color: "var(--dim)", padding: 40 }}>
-                <span>⏳</span> Yükleniyor...
-              </div>
-            )
+            <Settings ayarlar={ayarlar} setAyarlar={setAyarlar} paketDurum={paketDurum} api={api} />
           )}
 
         </div>

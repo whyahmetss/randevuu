@@ -487,11 +487,28 @@ class AdminController {
 
   async isletmeGuncelle(req, res) {
     try {
-      const { isim, adres, calisma_baslangic, calisma_bitis, randevu_suresi_dk, kapali_gunler, mola_saatleri } = req.body;
+      const izinliAlanlar = [
+        'isim','adres','calisma_baslangic','calisma_bitis','randevu_suresi_dk','kapali_gunler','mola_saatleri',
+        'kategori','bot_konusma_stili','randevu_modu','hatirlatma_saat','calisan_secim_modu',
+        'randevu_onay_modu','onay_timeout_dk','iptal_sinir_saat','mesai_disi_mod','mesai_disi_mesaj',
+        'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir'
+      ];
+      const jsonAlanlar = ['mola_saatleri'];
+      const setClauses = [];
+      const values = [];
+      let idx = 1;
+      for (const alan of izinliAlanlar) {
+        if (req.body[alan] !== undefined) {
+          setClauses.push(`${alan}=$${idx}`);
+          values.push(jsonAlanlar.includes(alan) ? JSON.stringify(req.body[alan] || []) : req.body[alan]);
+          idx++;
+        }
+      }
+      if (setClauses.length === 0) return res.json({ isletme: null });
+      values.push(req.kullanici.isletme_id);
       const result = await pool.query(
-        `UPDATE isletmeler SET isim=$1, adres=$2, calisma_baslangic=$3, calisma_bitis=$4, 
-         randevu_suresi_dk=$5, kapali_gunler=$6, mola_saatleri=$7 WHERE id=$8 RETURNING *`,
-        [isim, adres, calisma_baslangic, calisma_bitis, randevu_suresi_dk, kapali_gunler, JSON.stringify(mola_saatleri || []), req.kullanici.isletme_id]
+        `UPDATE isletmeler SET ${setClauses.join(', ')} WHERE id=$${idx} RETURNING *`,
+        values
       );
       res.json({ isletme: result.rows[0] });
     } catch (error) {
@@ -2547,6 +2564,48 @@ class AdminController {
       res.json({ bildirimler, ozet });
     } catch (error) {
       console.error('Bildirim merkezi hatası:', error);
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== KARA LİSTE ====================
+
+  async karaListeGetir(req, res) {
+    try {
+      const result = await pool.query(
+        'SELECT * FROM kara_liste WHERE isletme_id = $1 ORDER BY olusturma_tarihi DESC',
+        [req.kullanici.isletme_id]
+      );
+      res.json({ karaListe: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async karaListeEkle(req, res) {
+    try {
+      const { telefon, sebep } = req.body;
+      if (!telefon) return res.status(400).json({ hata: 'Telefon numarası gerekli' });
+      const result = await pool.query(
+        `INSERT INTO kara_liste (isletme_id, telefon, sebep, aktif) VALUES ($1, $2, $3, true)
+         ON CONFLICT (isletme_id, telefon) DO UPDATE SET aktif = true, sebep = $3
+         RETURNING *`,
+        [req.kullanici.isletme_id, telefon, sebep || 'manuel']
+      );
+      res.json({ kayit: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async karaListeSil(req, res) {
+    try {
+      await pool.query(
+        'DELETE FROM kara_liste WHERE id = $1 AND isletme_id = $2',
+        [req.params.id, req.kullanici.isletme_id]
+      );
+      res.json({ basarili: true });
+    } catch (error) {
       res.status(500).json({ hata: error.message });
     }
   }

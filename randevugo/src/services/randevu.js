@@ -41,12 +41,12 @@ class RandevuService {
     const baslangic = (calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : isletme.calisma_baslangic;
     const bitis = (calisan && calisan.calisma_bitis) ? calisan.calisma_bitis : isletme.calisma_bitis;
 
-    // Mevcut randevuları al
-    let randevuQuery = 'SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum != $3';
-    const params = [isletmeId, tarih, 'iptal'];
+    // Mevcut randevuları al (iptal ve gelmedi hariç — onay_bekliyor dahil, slotu kilitler)
+    let randevuQuery = 'SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum NOT IN ($3, $4)';
+    const params = [isletmeId, tarih, 'iptal', 'gelmedi'];
     
     if (calisanId) {
-      randevuQuery += ' AND calisan_id = $4';
+      randevuQuery += ` AND calisan_id = $${params.length + 1}`;
       params.push(calisanId);
     }
 
@@ -178,17 +178,29 @@ class RandevuService {
     // Kapora kontrolü
     const kapora = await this.kaporaHesapla(isletmeId, hizmetId);
 
+    // İşletme onay modunu al
+    const isletme = (await pool.query('SELECT randevu_onay_modu FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    const manuelOnay = isletme && isletme.randevu_onay_modu === 'manuel';
+
+    // Durum belirleme: kapora > manuel onay > otomatik
+    let durum = 'onaylandi';
+    let kaporaDurumu = 'yok';
+    if (kapora.gerekli) {
+      durum = 'kapora_bekliyor';
+      kaporaDurumu = 'bekliyor';
+    } else if (manuelOnay) {
+      durum = 'onay_bekliyor';
+    }
+
     // Randevuyu kaydet
     const randevu = (await pool.query(
       `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum, kapora_durumu, kapora_tutari)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [isletmeId, calisanId, musteri.id, hizmetId, tarih, saat, bitisSaat,
-       kapora.gerekli ? 'kapora_bekliyor' : 'onaylandi',
-       kapora.gerekli ? 'bekliyor' : 'yok',
-       kapora.tutar]
+       durum, kaporaDurumu, kapora.tutar]
     )).rows[0];
 
-    return { randevu, musteri, hizmet, kapora };
+    return { randevu, musteri, hizmet, kapora, manuelOnay };
   }
 
   // Randevu iptal et
@@ -249,6 +261,48 @@ class RandevuService {
       WHERE isletme_id = $1 AND tarih BETWEEN $2 AND $3
     `, [isletmeId, baslangicTarih, bitisTarih]);
     return result.rows[0];
+  }
+
+  // Slot-aware çalışan atama: ardışık blok kontrolü ile en boş çalışanı seç
+  async enBosCalisan(isletmeId, tarih, hizmetId) {
+    const calisanlar = await this.uygunCalisanlar(isletmeId, hizmetId);
+    if (calisanlar.length === 0) return null;
+    if (calisanlar.length === 1) return calisanlar[0];
+
+    let enIyi = null;
+    let enCokSlot = -1;
+
+    for (const calisan of calisanlar) {
+      const musaitSaatler = await this.musaitSaatleriGetir(isletmeId, tarih, calisan.id, hizmetId);
+      if (musaitSaatler.length === 0) continue;
+      if (musaitSaatler.length > enCokSlot) {
+        enCokSlot = musaitSaatler.length;
+        enIyi = calisan;
+      }
+    }
+
+    return enIyi;
+  }
+
+  // No-show kaydet → kara listeye ihlal ekle (otomatik mod açıksa)
+  async noShowKaydet(isletmeId, musteriTelefon) {
+    try {
+      const isletme = (await pool.query(
+        'SELECT kara_liste_otomatik, kara_liste_ihlal_sinir FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+      if (!isletme || !isletme.kara_liste_otomatik) return;
+
+      await pool.query(`
+        INSERT INTO kara_liste (isletme_id, telefon, sebep, ihlal_sayisi, aktif)
+        VALUES ($1, $2, 'no_show', 1, false)
+        ON CONFLICT (isletme_id, telefon) DO UPDATE SET
+          ihlal_sayisi = kara_liste.ihlal_sayisi + 1,
+          aktif = CASE WHEN kara_liste.ihlal_sayisi + 1 >= $3 THEN true ELSE kara_liste.aktif END
+      `, [isletmeId, musteriTelefon, isletme.kara_liste_ihlal_sinir || 3]);
+    } catch (e) {
+      console.error('No-show kara liste hatası:', e.message);
+    }
   }
 }
 

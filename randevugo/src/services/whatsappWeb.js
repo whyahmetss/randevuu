@@ -314,6 +314,37 @@ class WhatsAppWebService extends EventEmitter {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
 
+    // Kara liste kontrolü — engelli numaraya cevap verme
+    try {
+      const kara = (await pool.query(
+        'SELECT aktif FROM kara_liste WHERE isletme_id=$1 AND telefon=$2 AND aktif=true',
+        [isletmeId, musteriTelefon]
+      )).rows[0];
+      if (kara) return;
+    } catch (e) { /* kara_liste tablosu yoksa devam et */ }
+
+    // Mesai dışı kontrolü
+    try {
+      const simdi = new Date();
+      const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
+      const basSaat = isletme.calisma_baslangic ? String(isletme.calisma_baslangic).substring(0,5) : '09:00';
+      const bitSaat = isletme.calisma_bitis ? String(isletme.calisma_bitis).substring(0,5) : '19:00';
+      const [basH, basM] = basSaat.split(':').map(Number);
+      const [bitH, bitM] = bitSaat.split(':').map(Number);
+      const basDk = basH * 60 + basM;
+      const bitDk = bitH * 60 + bitM;
+      const bugunKapali = (isletme.kapali_gunler || '').split(',').map(Number).includes(simdi.getDay());
+      const mesaiDisi = simdiDk < basDk || simdiDk > bitDk || bugunKapali;
+
+      if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
+        if (isletme.mesai_disi_mod === 'sessiz') return;
+        if (isletme.mesai_disi_mod === 'kapali_mesaj') {
+          const mesaj = isletme.mesai_disi_mesaj || `Şu an kapalıyız. 🕐 Çalışma saatlerimiz: ${basSaat} - ${bitSaat}. Açıldığımızda size dönüş yapacağız.`;
+          return { metin: mesaj, butonlar: null };
+        }
+      }
+    } catch (e) { /* mesai dışı kontrolü başarısız — devam et */ }
+
     // Müşteriyi kaydet / bul (pushName varsa gerçek isim kullan)
     const musteriIsim = msg.pushName || musteriTelefon;
     await pool.query(
@@ -586,14 +617,23 @@ class WhatsAppWebService extends EventEmitter {
           // Çalışan kontrolü (hizmete uygun çalışanları getir)
           const randevuService = require('./randevu');
           const calisanlar = await randevuService.uygunCalisanlar(isletmeId, secilenHizmet.id);
-          if (calisanlar.length > 1) {
-            // Birden fazla çalışan → seçtir
+          const secimModu = isletme.calisan_secim_modu || 'musteri';
+
+          if (calisanlar.length > 1 && secimModu === 'musteri') {
+            // Müşteri seçer modu → listeyi göster
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
             let txt = `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\n👤 Çalışan seçin:\n\n`;
             calisanlar.forEach((c, i) => { txt += `*${i+1}.* ${c.isim}\n`; });
             return { metin: txt, butonlar: null };
-          } else if (calisanlar.length === 1) {
-            // Tek çalışan → otomatik ata
+          } else if (calisanlar.length > 1 && secimModu === 'otomatik') {
+            // Otomatik dağıtım → ardışık blok bazında en boş çalışanı seç
+            const bugun = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
+            const enBos = await randevuService.enBosCalisan(isletmeId, bugun, secilenHizmet.id);
+            const secilenCalisan = enBos || calisanlar[0];
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: secilenCalisan.id });
+            return { metin: `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n👤 Çalışan: ${secilenCalisan.isim}\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+          } else if (calisanlar.length >= 1 && (secimModu === 'tek' || calisanlar.length === 1)) {
+            // Tek çalışan veya 'tek' modu → ilk çalışanı ata
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: calisanlar[0].id });
             return { metin: `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n👤 Çalışan: ${calisanlar[0].isim}\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
           } else {
@@ -780,6 +820,20 @@ class WhatsAppWebService extends EventEmitter {
             }
           }
 
+          // Manuel onay modunda farklı mesaj göster
+          if (sonuc.manuelOnay) {
+            let bekle = `⏳ *Randevunuz kaydedildi!*\n\n`;
+            bekle += `🏥 ${isletme.isim}\n`;
+            if (sonuc.hizmet) bekle += `✂️ ${sonuc.hizmet.isim}\n`;
+            if (clOnay) bekle += `👤 ${clOnay.isim}\n`;
+            bekle += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+            bekle += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
+            bekle += `\n⏳ İşletme randevunuzu *${isletme.onay_timeout_dk || 30} dakika* içinde onaylayacak.`;
+            bekle += `\nOnay verilmezse randevunuz otomatik iptal edilir.`;
+            bekle += `\n\n_Powered by SıraGO — sırago.com_`;
+            return { metin: bekle, butonlar: null };
+          }
+
           let tebrik = `✅ *Randevunuz Oluşturuldu!*\n\n`;
           tebrik += `🏥 ${isletme.isim}\n`;
           if (sonuc.hizmet) tebrik += `✂️ ${sonuc.hizmet.isim}\n`;
@@ -787,7 +841,7 @@ class WhatsAppWebService extends EventEmitter {
           tebrik += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
           tebrik += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
           tebrik += `\n⏰ Randevunuzdan 1 gün ve 1 saat önce hatırlatma alacaksınız.`;
-          tebrik += `\n\nGörüşmek üzere! 😊`;
+          tebrik += `\nGörüşmek üzere! 😊`;
           tebrik += `\n\n📅 Yeni randevu için *1* yazın.`;
           tebrik += `\n\n_Powered by SıraGO — sırago.com_`;
           return { metin: tebrik, butonlar: null };
@@ -832,6 +886,20 @@ class WhatsAppWebService extends EventEmitter {
           }
         }
         if (secilenRandevu) {
+          // İptal sınırı kontrolü
+          const iptalSinir = isletme.iptal_sinir_saat || 0;
+          if (iptalSinir > 0) {
+            try {
+              const rTarih = new Date(secilenRandevu.tarih).toISOString().split('T')[0];
+              const rSaat = String(secilenRandevu.saat).substring(0,5);
+              const randevuZamani = new Date(`${rTarih}T${rSaat}:00`);
+              const kalanSaat = (randevuZamani - Date.now()) / 3600000;
+              if (kalanSaat < iptalSinir) {
+                await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
+                return { metin: `❌ *Bu randevu artık iptal edilemez.*\n\nRandevuya ${iptalSinir} saatten az kaldığı için iptal yapılamaz.\n\n📅 Ana menü için *0* yazın.`, butonlar: null };
+              }
+            } catch (e) { /* tarih parse hatası — devam et */ }
+          }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'iptal_onay', { iptal_randevu_id: secilenRandevu.id });
           return { metin: `❌ *Bu randevuyu iptal etmek istediğinize emin misiniz?*\n\n✂️ ${secilenRandevu.hizmet_isim || 'Randevu'}\n📅 ${this.tarihFormat(secilenRandevu.tarih)}\n🕐 ${String(secilenRandevu.saat).substring(0,5)}\n\n*1.* ✅ Evet, iptal et\n*2.* ↩️ Geri dön`, butonlar: null };
         }

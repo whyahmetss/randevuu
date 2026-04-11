@@ -10,6 +10,7 @@ class HatirlatmaService {
       await this.gunlukHatirlatma();
       await this.memnuniyetSorusu();
       await this.beklemeListesiBildirim();
+      await this.onayTimeoutKontrol();
     });
 
     console.log('⏰ Hatırlatma servisi başlatıldı (her 5 dk)');
@@ -188,6 +189,30 @@ class HatirlatmaService {
       );
       return bd.rows[0]?.chat_id || null;
     } catch (e) { return null; }
+  }
+
+  // Manuel onay timeout kontrolü — süresi dolan onay_bekliyor randevularını iptal et
+  async onayTimeoutKontrol() {
+    try {
+      const result = await pool.query(`
+        SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
+               h.isim as hizmet_isim, i.isim as isletme_isim, i.adres as isletme_adres,
+               i.telegram_token, i.id as isletme_id, i.onay_timeout_dk
+        FROM randevular r
+        JOIN musteriler m ON r.musteri_id = m.id
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        JOIN isletmeler i ON r.isletme_id = i.id
+        WHERE r.durum = 'onay_bekliyor'
+        AND r.olusturma_tarihi < NOW() - INTERVAL '1 minute' * COALESCE(i.onay_timeout_dk, 30)
+      `);
+      for (const r of result.rows) {
+        await pool.query("UPDATE randevular SET durum='iptal' WHERE id=$1", [r.id]);
+        const saat = String(r.saat).substring(0, 5);
+        const mesaj = `⏳ *Randevunuz zaman aşımına uğradı*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}📅 ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\nİşletme belirtilen sürede onay vermediği için randevunuz iptal edildi.\n\n📅 Yeni randevu için *1* yazın.`;
+        await this.mesajGonder(r, mesaj);
+        console.log(`⏳ Onay timeout: ${r.musteri_isim} - ${r.isletme_isim} - ${saat}`);
+      }
+    } catch (e) { console.error('❌ Onay timeout hatası:', e.message); }
   }
 
   tarihFormat(tarih) {
