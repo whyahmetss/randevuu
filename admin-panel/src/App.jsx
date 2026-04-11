@@ -776,6 +776,12 @@ function Dashboard() {
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
+  const [finansVeri, setFinansVeri] = useState(null);
+  const [finansYukleniyor, setFinansYukleniyor] = useState(false);
+  const [fAyar, setFAyar] = useState({ kapora_aktif: false, kapora_alt_siniri: "0", kapora_orani: "20", kapora_iptal_saati: "2" });
+  const [fKaydedildi, setFKaydedildi] = useState(false);
+  const [hakedisForm, setHakedisForm] = useState({ iban: "", ad_soyad: "" });
+  const [hakedisAcik, setHakedisAcik] = useState(false);
   const chatRef = useRef(null);
 
   useEffect(() => {
@@ -819,11 +825,21 @@ function Dashboard() {
   const musterileriYukle = async () => { const d = await api.get("/musteriler"); setMusteriler(d.musteriler || []); };
   const ayarlariYukle = async () => { const d = await api.get("/ayarlar"); setAyarlar(d.isletme); };
 
+  const finansYukle = async () => { setFinansYukleniyor(true); try { const d = await api.get("/finans/ozet"); setFinansVeri(d); } catch(e) {} setFinansYukleniyor(false); };
+
+  useEffect(() => {
+    if (finansVeri?.ayarlar) {
+      const ay = finansVeri.ayarlar;
+      setFAyar({ kapora_aktif: ay.kapora_aktif || false, kapora_alt_siniri: String(ay.kapora_alt_siniri || 0), kapora_orani: String(ay.kapora_orani || 20), kapora_iptal_saati: String(ay.kapora_iptal_saati || 2) });
+    }
+  }, [finansVeri]);
+
   useEffect(() => {
     if (sayfa === "hizmetler") hizmetleriYukle();
     if (sayfa === "musteriler") musterileriYukle();
     if (sayfa === "ayarlar") ayarlariYukle();
     if (sayfa === "randevular") verileriYukle();
+    if (sayfa === "finans") finansYukle();
     if (sayfa === "anasayfa") api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
   }, [sayfa]);
 
@@ -855,7 +871,7 @@ function Dashboard() {
 
   const cikisYap = () => { localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -866,6 +882,7 @@ function Dashboard() {
     botbaglanti: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
     bottest: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
     ayarlar: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    finans: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>,
   };
 
   const menuItems = [
@@ -874,6 +891,7 @@ function Dashboard() {
     { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler" },
     { id: "calisanlar", icon: SVG.calisanlar, label: "Çalışanlar" },
     { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+    { id: "finans", icon: SVG.finans, label: "Finans" },
     { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
     { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
     { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
@@ -1913,6 +1931,229 @@ function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* ── FİNANS & KAPORA ── */}
+          {sayfa === "finans" && (() => {
+            const cz = finansVeri?.cuzdan || {};
+            const odemeler = finansVeri?.son_odemeler || [];
+            const talepler = finansVeri?.talepler || [];
+
+            const kaydet = async () => {
+              try {
+                await api.put("/finans/ayarlar", { kapora_aktif: fAyar.kapora_aktif, kapora_alt_siniri: fAyar.kapora_alt_siniri, kapora_orani: fAyar.kapora_orani, kapora_iptal_saati: fAyar.kapora_iptal_saati });
+                setFKaydedildi(true); setTimeout(() => setFKaydedildi(false), 2000); finansYukle();
+              } catch (e) { alert(e.message || "Kayıt hatası"); }
+            };
+
+            const hakedisTalep = async () => {
+              if (!hakedisForm.iban || !hakedisForm.ad_soyad) return alert("IBAN ve Ad Soyad zorunlu");
+              try {
+                await api.post("/finans/hakedis", hakedisForm);
+                setHakedisAcik(false); setHakedisForm({ iban: "", ad_soyad: "" }); finansYukle();
+                alert("✅ Hakediş talebi oluşturuldu!");
+              } catch (e) { alert(e.hata || e.message || "Talep hatası"); }
+            };
+
+            const tl = (n) => new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", minimumFractionDigits: 0 }).format(n || 0);
+
+            if (finansYukleniyor && !finansVeri) return <div style={{ textAlign: "center", padding: 60, color: "var(--dim)" }}>Yükleniyor...</div>;
+
+            return (
+              <>
+                {/* 2 Kolon: Sol=Kapora Ayarları, Sağ=Cüzdan */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+
+                  {/* ─── KAPORA AYARLARI ─── */}
+                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(59,130,246,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚙️</div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Kapora Ayarları</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)" }}>Ön ödeme kurallarını belirleyin</div>
+                      </div>
+                    </div>
+
+                    {/* Toggle */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: fAyar.kapora_aktif ? "rgba(44,184,114,.06)" : "var(--surface2)", borderRadius: 12, marginBottom: 16, border: `1px solid ${fAyar.kapora_aktif ? "rgba(44,184,114,.2)" : "var(--border)"}` }}>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>💳 Kapora Sistemi</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>{fAyar.kapora_aktif ? "Aktif — kapora alınıyor" : "Kapalı"}</div>
+                      </div>
+                      <div onClick={() => setFAyar(p => ({ ...p, kapora_aktif: !p.kapora_aktif }))} style={{ width: 44, height: 24, borderRadius: 12, background: fAyar.kapora_aktif ? "#2cb872" : "#ccc", cursor: "pointer", position: "relative", transition: "all .2s" }}>
+                        <div style={{ width: 20, height: 20, borderRadius: 10, background: "#fff", position: "absolute", top: 2, left: fAyar.kapora_aktif ? 22 : 2, transition: "all .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
+                      </div>
+                    </div>
+
+                    {fAyar.kapora_aktif && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4 }}>Alt Sınır (₺)</label>
+                          <input value={fAyar.kapora_alt_siniri} onChange={e => setFAyar(p => ({ ...p, kapora_alt_siniri: e.target.value }))} type="number" min="0" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, fontFamily: "inherit" }} placeholder="Örn: 500 (bu tutarın üstü için kapora)" />
+                          <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 3 }}>Bu tutarın üzerindeki hizmetlerde kapora istenir</div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4 }}>Kapora Oranı (%)</label>
+                          <input value={fAyar.kapora_orani} onChange={e => setFAyar(p => ({ ...p, kapora_orani: e.target.value }))} type="number" min="1" max="100" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, fontFamily: "inherit" }} />
+                          <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 3 }}>Hizmet bedelinin yüzde kaçı kapora olarak alınacak</div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4 }}>İptal Süresi (saat)</label>
+                          <input value={fAyar.kapora_iptal_saati} onChange={e => setFAyar(p => ({ ...p, kapora_iptal_saati: e.target.value }))} type="number" min="0" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, fontFamily: "inherit" }} />
+                          <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 3 }}>Bu süreden sonra yapılan iptallerde kapora yanar</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <button onClick={kaydet} style={{ marginTop: 18, width: "100%", padding: "11px 0", borderRadius: 10, border: "none", background: fKaydedildi ? "#2cb872" : "var(--gradient)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", transition: "all .3s" }}>
+                      {fKaydedildi ? "✓ Kaydedildi" : "Kaydet"}
+                    </button>
+                  </div>
+
+                  {/* ─── DİJİTAL CÜZDAN ─── */}
+                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 24, display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #10b981, #059669)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💰</div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Dijital Cüzdan</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)" }}>Kapora gelir takibi</div>
+                      </div>
+                    </div>
+
+                    {/* Net Bakiye - büyük kart */}
+                    <div style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", borderRadius: 14, padding: "24px 20px", marginBottom: 16, color: "#fff", position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,255,255,.08)" }} />
+                      <div style={{ fontSize: 11, fontWeight: 500, opacity: .8, marginBottom: 4 }}>Kullanılabilir Bakiye</div>
+                      <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: -1 }}>{tl(cz.net_bakiye)}</div>
+                      {cz.net_bakiye >= 500 && <div style={{ marginTop: 8, fontSize: 11, background: "rgba(255,255,255,.2)", display: "inline-block", padding: "3px 10px", borderRadius: 20 }}>✓ Çekim yapılabilir</div>}
+                    </div>
+
+                    {/* Detay satırları */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+                      {[
+                        { label: "Toplam Biriken Kapora", value: tl(cz.toplam_kapora), color: "#10b981", icon: "📥" },
+                        { label: "SıraGO Hizmet Bedeli", value: `- ${tl(cz.sirago_kesinti)}`, color: "#ef4444", icon: "🏷️" },
+                        { label: "Paket Ücretinden Mahsup", value: `- ${tl(cz.mahsup_edilen)}`, color: "#f59e0b", icon: "🔄" },
+                        { label: "Çekilen Tutar", value: `- ${tl(cz.cekilen)}`, color: "#6b7280", icon: "💸" },
+                      ].map((item, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "var(--surface2)", borderRadius: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span>{item.icon}</span>
+                            <span style={{ fontSize: 12, color: "var(--dim)" }}>{item.label}</span>
+                          </div>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: item.color }}>{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Hakediş butonu */}
+                    <button
+                      disabled={cz.net_bakiye < 500}
+                      onClick={() => setHakedisAcik(true)}
+                      style={{
+                        marginTop: 16, width: "100%", padding: "12px 0", borderRadius: 12, border: "none",
+                        background: cz.net_bakiye >= 500 ? "linear-gradient(135deg, #f59e0b, #d97706)" : "var(--surface3)",
+                        color: cz.net_bakiye >= 500 ? "#fff" : "var(--dim)", fontWeight: 700, fontSize: 13,
+                        cursor: cz.net_bakiye >= 500 ? "pointer" : "not-allowed", fontFamily: "inherit"
+                      }}
+                    >
+                      {cz.net_bakiye >= 500 ? "💳 Bakiye Çekim Talebi Oluştur" : `Minimum 500 ₺ gerekli (${tl(cz.net_bakiye)})`}
+                    </button>
+                  </div>
+                </div>
+
+                {/* ─── HAKEDİŞ FORMU MODAL ─── */}
+                {hakedisAcik && (
+                  <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setHakedisAcik(false)}>
+                    <div onClick={e => e.stopPropagation()} style={{ background: "var(--bg)", borderRadius: 16, padding: 28, width: 400, maxWidth: "90vw", border: "1px solid var(--border)" }}>
+                      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 20, color: "var(--text)" }}>💳 Bakiye Çekim Talebi</div>
+                      <div style={{ fontSize: 13, color: "var(--dim)", marginBottom: 16 }}>Çekilecek tutar: <strong style={{ color: "#10b981" }}>{tl(cz.net_bakiye)}</strong></div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4 }}>Ad Soyad</label>
+                          <input value={hakedisForm.ad_soyad} onChange={e => setHakedisForm(p => ({ ...p, ad_soyad: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontFamily: "inherit" }} placeholder="Hesap sahibi adı" />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4 }}>IBAN</label>
+                          <input value={hakedisForm.iban} onChange={e => setHakedisForm(p => ({ ...p, iban: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontFamily: "inherit", letterSpacing: 1 }} placeholder="TR00 0000 0000 0000 0000 0000 00" />
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                        <button onClick={() => setHakedisAcik(false)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Vazgeç</button>
+                        <button onClick={hakedisTalep} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Talep Oluştur</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── SON KAPORA ÖDEMELERİ ─── */}
+                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span>📋</span> Son Kapora İşlemleri
+                  </div>
+                  {odemeler.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: 30, color: "var(--dim)", fontSize: 13 }}>Henüz kapora işlemi yok</div>
+                  ) : (
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                            <th style={{ textAlign: "left", padding: "8px 10px", color: "var(--dim)", fontWeight: 600 }}>Müşteri</th>
+                            <th style={{ textAlign: "left", padding: "8px 10px", color: "var(--dim)", fontWeight: 600 }}>Hizmet</th>
+                            <th style={{ textAlign: "left", padding: "8px 10px", color: "var(--dim)", fontWeight: 600 }}>Tarih</th>
+                            <th style={{ textAlign: "right", padding: "8px 10px", color: "var(--dim)", fontWeight: 600 }}>Tutar</th>
+                            <th style={{ textAlign: "center", padding: "8px 10px", color: "var(--dim)", fontWeight: 600 }}>Durum</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {odemeler.map((o, i) => (
+                            <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                              <td style={{ padding: "10px" }}>{o.musteri_isim}</td>
+                              <td style={{ padding: "10px", color: "var(--dim)" }}>{o.hizmet_isim || "-"}</td>
+                              <td style={{ padding: "10px", color: "var(--dim)" }}>{o.tarih ? new Date(o.tarih).toLocaleDateString("tr-TR") : "-"}</td>
+                              <td style={{ padding: "10px", textAlign: "right", fontWeight: 700 }}>{tl(o.kapora_tutari)}</td>
+                              <td style={{ padding: "10px", textAlign: "center" }}>
+                                <span style={{
+                                  fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                                  background: o.kapora_durumu === "odendi" ? "rgba(44,184,114,.1)" : o.kapora_durumu === "bekliyor" ? "rgba(245,158,11,.1)" : "rgba(239,68,68,.1)",
+                                  color: o.kapora_durumu === "odendi" ? "#2cb872" : o.kapora_durumu === "bekliyor" ? "#f59e0b" : "#ef4444"
+                                }}>
+                                  {o.kapora_durumu === "odendi" ? "✓ Ödendi" : o.kapora_durumu === "bekliyor" ? "⏳ Bekliyor" : "↩ İade"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* ─── HAKEDİŞ TALEPLERİ GEÇMİŞİ ─── */}
+                {talepler.length > 0 && (
+                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 20 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                      <span>📄</span> Hakediş Taleplerim
+                    </div>
+                    {talepler.map((t, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderRadius: 10, background: "var(--surface2)", marginBottom: 8 }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>{tl(t.tutar)}</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{new Date(t.talep_tarihi).toLocaleDateString("tr-TR")} — IBAN: {t.iban?.slice(0, 8)}****</div>
+                        </div>
+                        <span style={{
+                          fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                          background: t.durum === "onaylandi" ? "rgba(44,184,114,.1)" : t.durum === "reddedildi" ? "rgba(239,68,68,.1)" : "rgba(245,158,11,.1)",
+                          color: t.durum === "onaylandi" ? "#2cb872" : t.durum === "reddedildi" ? "#ef4444" : "#f59e0b"
+                        }}>
+                          {t.durum === "onaylandi" ? "✓ Onaylandı" : t.durum === "reddedildi" ? "✗ Reddedildi" : "⏳ Bekliyor"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* ── AYARLAR ── */}
           {sayfa === "ayarlar" && (

@@ -2697,6 +2697,184 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+
+  // ==================== FİNANS & CÜZDAN ====================
+
+  async finansOzet(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+
+      // İşletme kapora ayarları
+      const isletme = (await pool.query(
+        'SELECT kapora_aktif, kapora_alt_siniri, kapora_orani, kapora_iptal_saati FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0] || {};
+
+      // Cüzdan bakiyesi (yoksa oluştur)
+      let cuzdan = (await pool.query('SELECT * FROM cuzdan WHERE isletme_id=$1', [isletmeId])).rows[0];
+      if (!cuzdan) {
+        cuzdan = (await pool.query(
+          'INSERT INTO cuzdan (isletme_id) VALUES ($1) RETURNING *', [isletmeId]
+        )).rows[0];
+      }
+
+      // Kapora ödenen randevular toplamı (gerçek zamanlı hesapla)
+      const kaporaTop = (await pool.query(
+        "SELECT COALESCE(SUM(kapora_tutari),0) as toplam FROM randevular WHERE isletme_id=$1 AND kapora_durumu='odendi'",
+        [isletmeId]
+      )).rows[0];
+
+      const toplamKapora = parseFloat(kaporaTop.toplam);
+      const siragoKesinti = parseFloat(cuzdan.sirago_kesinti);
+      const mahsupEdilen = parseFloat(cuzdan.mahsup_edilen);
+      const cekilen = parseFloat(cuzdan.cekilen);
+      const netBakiye = toplamKapora - siragoKesinti - mahsupEdilen - cekilen;
+
+      // Güncel cüzdan bakiyesini güncelle
+      await pool.query(
+        'UPDATE cuzdan SET toplam_kapora=$1, guncelleme_tarihi=NOW() WHERE isletme_id=$2',
+        [toplamKapora, isletmeId]
+      );
+
+      // Son kapora ödemeleri (son 20)
+      const sonOdemeler = (await pool.query(`
+        SELECT r.id, r.tarih, r.saat, r.kapora_tutari, r.kapora_durumu,
+               m.isim as musteri_isim, h.isim as hizmet_isim
+        FROM randevular r
+        JOIN musteriler m ON r.musteri_id = m.id
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        WHERE r.isletme_id=$1 AND r.kapora_durumu IN ('odendi','bekliyor','iade')
+        ORDER BY r.olusturma_tarihi DESC LIMIT 20
+      `, [isletmeId])).rows;
+
+      // Hakediş talepleri
+      const talepler = (await pool.query(
+        'SELECT * FROM hakedis_talepleri WHERE isletme_id=$1 ORDER BY talep_tarihi DESC LIMIT 10',
+        [isletmeId]
+      )).rows;
+
+      res.json({
+        ayarlar: {
+          kapora_aktif: isletme.kapora_aktif || false,
+          kapora_alt_siniri: parseFloat(isletme.kapora_alt_siniri) || 0,
+          kapora_orani: isletme.kapora_orani || 20,
+          kapora_iptal_saati: isletme.kapora_iptal_saati || 2,
+        },
+        cuzdan: {
+          toplam_kapora: toplamKapora,
+          sirago_kesinti: siragoKesinti,
+          mahsup_edilen: mahsupEdilen,
+          cekilen,
+          net_bakiye: netBakiye,
+        },
+        son_odemeler: sonOdemeler,
+        talepler,
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async finansAyarlarGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { kapora_aktif, kapora_alt_siniri, kapora_orani, kapora_iptal_saati } = req.body;
+
+      await pool.query(
+        'UPDATE isletmeler SET kapora_aktif=$1, kapora_alt_siniri=$2, kapora_orani=$3, kapora_iptal_saati=$4 WHERE id=$5',
+        [
+          !!kapora_aktif,
+          parseFloat(kapora_alt_siniri) || 0,
+          parseInt(kapora_orani) || 20,
+          parseInt(kapora_iptal_saati) || 2,
+          isletmeId
+        ]
+      );
+
+      res.json({ mesaj: 'Kapora ayarları güncellendi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async hakedisOlustur(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { iban, ad_soyad } = req.body;
+
+      if (!iban || !ad_soyad) return res.status(400).json({ hata: 'IBAN ve Ad Soyad zorunlu' });
+
+      // Net bakiye kontrolü
+      let cuzdan = (await pool.query('SELECT * FROM cuzdan WHERE isletme_id=$1', [isletmeId])).rows[0];
+      if (!cuzdan) return res.status(400).json({ hata: 'Cüzdan bulunamadı' });
+
+      const kaporaTop = (await pool.query(
+        "SELECT COALESCE(SUM(kapora_tutari),0) as toplam FROM randevular WHERE isletme_id=$1 AND kapora_durumu='odendi'",
+        [isletmeId]
+      )).rows[0];
+      const toplamKapora = parseFloat(kaporaTop.toplam);
+      const netBakiye = toplamKapora - parseFloat(cuzdan.sirago_kesinti) - parseFloat(cuzdan.mahsup_edilen) - parseFloat(cuzdan.cekilen);
+
+      if (netBakiye < 500) return res.status(400).json({ hata: 'Minimum çekim tutarı 500 TL' });
+
+      // Bekleyen talep var mı?
+      const bekleyen = (await pool.query(
+        "SELECT id FROM hakedis_talepleri WHERE isletme_id=$1 AND durum='bekliyor'", [isletmeId]
+      )).rows[0];
+      if (bekleyen) return res.status(400).json({ hata: 'Zaten bekleyen bir talebiniz var' });
+
+      const talep = (await pool.query(
+        'INSERT INTO hakedis_talepleri (isletme_id, tutar, iban, ad_soyad) VALUES ($1, $2, $3, $4) RETURNING *',
+        [isletmeId, netBakiye, iban.replace(/\s/g, ''), ad_soyad]
+      )).rows[0];
+
+      res.json({ mesaj: 'Hakediş talebi oluşturuldu', talep });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // SuperAdmin: Hakediş talepleri
+  async hakedisListele(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT ht.*, i.isim as isletme_isim
+        FROM hakedis_talepleri ht
+        JOIN isletmeler i ON ht.isletme_id = i.id
+        ORDER BY ht.talep_tarihi DESC
+      `);
+      res.json({ talepler: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async hakedisIsle(req, res) {
+    try {
+      const { id } = req.params;
+      const { durum } = req.body; // 'onaylandi' veya 'reddedildi'
+
+      const talep = (await pool.query('SELECT * FROM hakedis_talepleri WHERE id=$1', [id])).rows[0];
+      if (!talep) return res.status(404).json({ hata: 'Talep bulunamadı' });
+
+      await pool.query(
+        'UPDATE hakedis_talepleri SET durum=$1, islem_tarihi=NOW() WHERE id=$2',
+        [durum, id]
+      );
+
+      if (durum === 'onaylandi') {
+        // Cüzdandan düş
+        await pool.query(
+          'UPDATE cuzdan SET cekilen = cekilen + $1, guncelleme_tarihi = NOW() WHERE isletme_id = $2',
+          [talep.tutar, talep.isletme_id]
+        );
+      }
+
+      res.json({ mesaj: `Talep ${durum}` });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
 }
 
 module.exports = new AdminController();

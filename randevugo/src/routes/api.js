@@ -176,6 +176,13 @@ router.get('/etiketler/musteri/:telefon', authMiddleware, odemeKontrol, (req, re
 router.get('/etiketler/:etiketId/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.etiketliMusteriler(req, res));
 router.post('/etiketler/toplu-ata', authMiddleware, odemeKontrol, (req, res) => adminController.topluEtiketAta(req, res));
 
+// ==================== FİNANS & CÜZDAN ====================
+router.get('/finans/ozet', authMiddleware, (req, res) => adminController.finansOzet(req, res));
+router.put('/finans/ayarlar', authMiddleware, (req, res) => adminController.finansAyarlarGuncelle(req, res));
+router.post('/finans/hakedis', authMiddleware, (req, res) => adminController.hakedisOlustur(req, res));
+router.get('/admin/hakedis', authMiddleware, superAdminMiddleware, (req, res) => adminController.hakedisListele(req, res));
+router.put('/admin/hakedis/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.hakedisIsle(req, res));
+
 // ==================== GOOGLE YORUM FEEDBACK — Premium ====================
 router.get('/google-yorum/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumAyarlar(req, res));
 router.put('/google-yorum/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumAyarGuncelle(req, res));

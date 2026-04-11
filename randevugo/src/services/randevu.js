@@ -119,17 +119,25 @@ class RandevuService {
     return musaitSaatler;
   }
 
-  // Kapora hesapla
+  // Kapora hesapla — işletme alt sınırı + oran kontrolü
   async kaporaHesapla(isletmeId, hizmetId) {
-    const isletme = (await pool.query('SELECT kapora_aktif FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    const isletme = (await pool.query('SELECT kapora_aktif, kapora_alt_siniri, kapora_orani FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme || !isletme.kapora_aktif) return { gerekli: false, tutar: 0, yuzde: 0 };
     
     if (!hizmetId) return { gerekli: false, tutar: 0, yuzde: 0 };
     const hizmet = (await pool.query('SELECT fiyat, kapora_yuzdesi FROM hizmetler WHERE id=$1', [hizmetId])).rows[0];
-    if (!hizmet || !hizmet.kapora_yuzdesi || hizmet.kapora_yuzdesi <= 0) return { gerekli: false, tutar: 0, yuzde: 0 };
+    if (!hizmet || !hizmet.fiyat) return { gerekli: false, tutar: 0, yuzde: 0 };
+
+    const fiyat = parseFloat(hizmet.fiyat);
+    const altSinir = parseFloat(isletme.kapora_alt_siniri) || 0;
+    if (fiyat < altSinir) return { gerekli: false, tutar: 0, yuzde: 0 };
+
+    // Hizmet bazlı yüzde varsa onu kullan, yoksa işletme genel oranını kullan
+    const yuzde = (hizmet.kapora_yuzdesi && hizmet.kapora_yuzdesi > 0) ? hizmet.kapora_yuzdesi : (isletme.kapora_orani || 20);
+    if (yuzde <= 0) return { gerekli: false, tutar: 0, yuzde: 0 };
     
-    const tutar = Math.ceil(parseFloat(hizmet.fiyat) * hizmet.kapora_yuzdesi / 100);
-    return { gerekli: true, tutar, yuzde: hizmet.kapora_yuzdesi };
+    const tutar = Math.ceil(fiyat * yuzde / 100);
+    return { gerekli: true, tutar, yuzde };
   }
 
   // Hizmete uygun çalışanları getir (calisan_hizmetler tablosundan)
