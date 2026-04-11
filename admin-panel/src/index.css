@@ -274,7 +274,7 @@ select.input { appearance: none; }
 .login-page {
   min-height: 100vh;
   display: flex;
-  background: #0a0a0f;
+  background: #0c0e14;
 }
 
 /* Sol panel — hero / slogan */
@@ -285,20 +285,11 @@ select.input { appearance: none; }
   justify-content: center;
   padding: 60px 56px;
   background:
-    radial-gradient(ellipse at 20% 80%, rgba(139,92,246,.12) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(16,185,129,.08) 0%, transparent 50%),
-    linear-gradient(160deg, #0d0d14 0%, #111118 100%);
+    radial-gradient(ellipse at 30% 70%, rgba(84,224,151,.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 20%, rgba(20,245,214,.04) 0%, transparent 50%),
+    linear-gradient(160deg, #0f1119 0%, #131620 100%);
   position: relative;
   overflow: hidden;
-}
-.login-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0px, rgba(255,255,255,.015) 1px, transparent 1px, transparent 80px),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.015) 0px, rgba(255,255,255,.015) 1px, transparent 1px, transparent 80px);
-  pointer-events: none;
 }
 .login-hero-logo {
   display: flex;
@@ -322,7 +313,7 @@ select.input { appearance: none; }
   margin: 0 0 20px 0;
 }
 .login-hero-slogan h1 span {
-  background: linear-gradient(135deg, #8b5cf6, #10b981);
+  background: linear-gradient(135deg, #54E097, #14F5D6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -357,14 +348,14 @@ select.input { appearance: none; }
 }
 .login-hero-glow {
   position: absolute;
-  width: 300px; height: 300px;
+  width: 340px; height: 340px;
   border-radius: 50%;
-  filter: blur(120px);
-  opacity: .25;
+  filter: blur(130px);
+  opacity: .18;
   pointer-events: none;
 }
-.login-hero-glow.g1 { background: #8b5cf6; bottom: -60px; left: -40px; }
-.login-hero-glow.g2 { background: #10b981; top: -40px; right: -60px; opacity: .15; }
+.login-hero-glow.g1 { background: #54E097; bottom: -80px; left: -60px; }
+.login-hero-glow.g2 { background: #14F5D6; top: -60px; right: -80px; opacity: .1; }
 
 /* Sağ panel — form */
 .login-form-panel {
@@ -373,9 +364,10 @@ select.input { appearance: none; }
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   padding: 60px 52px;
-  background: #111118;
-  border-left: 1px solid rgba(255,255,255,.06);
+  background: #111420;
+  border-left: 1px solid rgba(255,255,255,.05);
   overflow-y: auto;
 }
 .login-card {
@@ -408,13 +400,44 @@ select.input { appearance: none; }
   font-size: 13px; color: rgba(255,255,255,.4); margin-bottom: 28px;
 }
 
+/* Tab switch — Giriş / Kayıt Ol */
+.login-tabs {
+  display: flex;
+  background: rgba(255,255,255,.04);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255,255,255,.06);
+}
+.login-tab {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,.4);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all .25s;
+}
+.login-tab.active {
+  background: linear-gradient(135deg, #54E097, #14F5D6);
+  color: #0c0e14;
+  box-shadow: 0 2px 12px rgba(84,224,151,.25);
+}
+.login-tab:not(.active):hover {
+  color: rgba(255,255,255,.7);
+}
+
 /* Form inputs — dark */
 .login-card .form-group { margin-bottom: 18px; }
 .login-card .form-label {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255,255,255,.55);
+  color: rgba(255,255,255,.5);
   margin-bottom: 6px;
   letter-spacing: .3px;
   text-transform: uppercase;
@@ -425,7 +448,7 @@ select.input { appearance: none; }
 .login-card input[type="text"] {
   width: 100%;
   padding: 12px 16px;
-  background: rgba(255,255,255,.04);
+  background: rgba(255,255,255,.03);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 12px;
   color: #fff;
@@ -437,23 +460,23 @@ select.input { appearance: none; }
 }
 .login-card .input:focus,
 .login-card input:focus {
-  border-color: #8b5cf6;
-  background: rgba(139,92,246,.04);
+  border-color: #54E097;
+  background: rgba(84,224,151,.03);
 }
 .login-card .input::placeholder,
 .login-card input::placeholder {
-  color: rgba(255,255,255,.2);
+  color: rgba(255,255,255,.18);
 }
 
-/* Primary button — dark */
+/* Primary button */
 .login-card .btn-primary,
 .login-card .login-btn-primary {
   width: 100%;
   padding: 13px 0;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: #fff;
+  background: linear-gradient(135deg, #54E097, #14F5D6);
+  color: #0c0e14;
   font-size: 14px;
   font-weight: 700;
   font-family: inherit;
@@ -463,10 +486,11 @@ select.input { appearance: none; }
 }
 .login-card .btn-primary:hover,
 .login-card .login-btn-primary:hover {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  box-shadow: 0 4px 24px rgba(139,92,246,.3);
+  background: linear-gradient(135deg, #3dd485, #10dcc0);
+  box-shadow: 0 4px 24px rgba(84,224,151,.25);
 }
-.login-card .btn-primary:disabled {
+.login-card .btn-primary:disabled,
+.login-card .login-btn-primary:disabled {
   opacity: .6;
   cursor: not-allowed;
 }
@@ -474,7 +498,7 @@ select.input { appearance: none; }
 /* Error alert — dark */
 .login-card .alert-error {
   background: rgba(239,68,68,.08);
-  border: 1px solid rgba(239,68,68,.2);
+  border: 1px solid rgba(239,68,68,.18);
   color: #f87171;
   font-size: 13px;
   padding: 10px 14px;
@@ -494,12 +518,12 @@ select.input { appearance: none; }
   content: '';
   flex: 1;
   height: 1px;
-  background: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.07);
 }
 .login-divider span {
   font-size: 11px;
   font-weight: 600;
-  color: rgba(255,255,255,.25);
+  color: rgba(255,255,255,.22);
   text-transform: uppercase;
   letter-spacing: .5px;
 }
@@ -513,9 +537,9 @@ select.input { appearance: none; }
   width: 100%;
   padding: 11px 0;
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.07);
   background: rgba(255,255,255,.02);
-  color: rgba(255,255,255,.6);
+  color: rgba(255,255,255,.55);
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
@@ -526,7 +550,7 @@ select.input { appearance: none; }
 }
 .login-alt-btn:hover {
   background: rgba(255,255,255,.05);
-  border-color: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.12);
   color: #fff;
 }
 .login-alt-btn svg { flex-shrink: 0; }
@@ -536,13 +560,13 @@ select.input { appearance: none; }
   text-align: center;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid rgba(255,255,255,.06);
+  border-top: 1px solid rgba(255,255,255,.05);
 }
 .login-toggle span { font-size: 13px; color: rgba(255,255,255,.35); }
 .login-toggle button {
   background: none;
   border: none;
-  color: #8b5cf6;
+  color: #54E097;
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
@@ -550,7 +574,7 @@ select.input { appearance: none; }
   text-decoration: none;
   transition: color .2s;
 }
-.login-toggle button:hover { color: #a78bfa; }
+.login-toggle button:hover { color: #3dd485; }
 
 /* Feature chips in hero */
 .login-hero-features {
@@ -564,8 +588,8 @@ select.input { appearance: none; }
 .login-hero-features .feat-chip {
   padding: 6px 14px;
   border-radius: 20px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.06);
+  background: rgba(84,224,151,.04);
+  border: 1px solid rgba(84,224,151,.1);
   font-size: 11px;
   font-weight: 500;
   color: rgba(255,255,255,.5);
@@ -584,7 +608,7 @@ select.input { appearance: none; }
     min-width: 0;
     padding: 32px 28px 40px;
     border-left: none;
-    border-top: 1px solid rgba(255,255,255,.06);
+    border-top: 1px solid rgba(255,255,255,.05);
   }
 }
 @media (max-width: 480px) {
