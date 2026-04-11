@@ -1340,6 +1340,12 @@ class AdminController {
         "SELECT kategori, COUNT(*) as sayi FROM isletmeler WHERE aktif = true GROUP BY kategori ORDER BY sayi DESC"
       )).rows;
 
+      // Bu ay toplam randevu
+      let buAyToplamRandevu = 0;
+      try {
+        buAyToplamRandevu = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE tarih >= date_trunc('month', CURRENT_DATE)")).rows[0]?.c) || 0;
+      } catch(e) {}
+
       res.json({
         mrr, mrrGecen, mrrBuyume: parseFloat(mrrBuyume),
         arr,
@@ -1350,7 +1356,8 @@ class AdminController {
         arpu: parseFloat(arpu),
         paketDagilimi,
         kategoriDagilimi,
-        gelirTrendi
+        gelirTrendi,
+        buAyToplamRandevu
       });
     } catch (error) {
       res.status(500).json({ hata: error.message });

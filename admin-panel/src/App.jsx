@@ -2303,41 +2303,18 @@ function SuperAdminPanel({ kullanici }) {
               <p>SaaS metrikleri ve genel bakış</p>
             </div>
 
-            {/* SaaS KPI Kartları */}
+            {/* Ana Metrikler */}
             <div className="stats-grid">
               <div className="stat-card green">
                 <div className="sc-icon">💰</div>
-                <div className="sc-label">MRR (Aylık Gelir)</div>
-                <div className="sc-val">{saasMetrik ? saasMetrik.mrr.toLocaleString("tr-TR") : buAyGelir.toFixed(0)} ₺</div>
+                <div className="sc-label">Bu Ay Gelir</div>
+                <div className="sc-val">{(saasMetrik ? saasMetrik.mrr : buAyGelir).toLocaleString("tr-TR")} ₺</div>
                 {saasMetrik && saasMetrik.mrrBuyume !== 0 && (
                   <div style={{ fontSize: 11, color: saasMetrik.mrrBuyume > 0 ? "#10b981" : "#ef4444", fontWeight: 600, marginTop: 4 }}>
-                    {saasMetrik.mrrBuyume > 0 ? "▲" : "▼"} {Math.abs(saasMetrik.mrrBuyume)}% geçen aya göre
+                    {saasMetrik.mrrBuyume > 0 ? "▲" : "▼"} %{Math.abs(saasMetrik.mrrBuyume)} geçen aya göre
                   </div>
                 )}
               </div>
-              <div className="stat-card purple">
-                <div className="sc-icon">📊</div>
-                <div className="sc-label">ARR (Yıllık Gelir)</div>
-                <div className="sc-val">{saasMetrik ? saasMetrik.arr.toLocaleString("tr-TR") : (buAyGelir * 12).toFixed(0)} ₺</div>
-              </div>
-              <div className="stat-card" style={{ "--card-accent": "#ef4444" }}>
-                <div className="sc-icon">📉</div>
-                <div className="sc-label">Churn Rate</div>
-                <div className="sc-val" style={{ color: saasMetrik?.churnRate > 10 ? "#ef4444" : saasMetrik?.churnRate > 5 ? "#f59e0b" : "#10b981" }}>
-                  %{saasMetrik?.churnRate || 0}
-                </div>
-                {saasMetrik?.churnSayi > 0 && <div style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>{saasMetrik.churnSayi} müşteri ayrıldı</div>}
-              </div>
-              <div className="stat-card blue">
-                <div className="sc-icon">💵</div>
-                <div className="sc-label">ARPU</div>
-                <div className="sc-val">{saasMetrik?.arpu || 0} ₺</div>
-                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Müşteri başına ort. gelir</div>
-              </div>
-            </div>
-
-            {/* İkinci sıra metrikler */}
-            <div className="stats-grid" style={{ marginTop: 0 }}>
               <div className="stat-card amber">
                 <div className="sc-icon">🏢</div>
                 <div className="sc-label">Toplam İşletme</div>
@@ -2354,10 +2331,30 @@ function SuperAdminPanel({ kullanici }) {
                 <div className="sc-val">{saasMetrik?.yeniMusteri || 0}</div>
                 <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Bu ay katılan</div>
               </div>
+            </div>
+
+            {/* İkinci sıra */}
+            <div className="stats-grid" style={{ marginTop: 0 }}>
               <div className="stat-card" style={{ "--card-accent": "#ef4444" }}>
                 <div className="sc-icon">⏳</div>
                 <div className="sc-label">Ödemeyenler</div>
                 <div className="sc-val" style={{ color: buAyOdemeyenler.length > 0 ? "#ef4444" : "#10b981" }}>{buAyOdemeyenler.length}</div>
+              </div>
+              <div className="stat-card" style={{ "--card-accent": "#ef4444" }}>
+                <div className="sc-icon">📉</div>
+                <div className="sc-label">Ayrılan Müşteri</div>
+                <div className="sc-val" style={{ color: (saasMetrik?.churnSayi || 0) > 0 ? "#ef4444" : "#10b981" }}>{saasMetrik?.churnSayi || 0}</div>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Geçen ay ödeyip bu ay ödemeyenler</div>
+              </div>
+              <div className="stat-card purple">
+                <div className="sc-icon">💵</div>
+                <div className="sc-label">Müşteri Başına Gelir</div>
+                <div className="sc-val">{saasMetrik?.arpu || 0} ₺</div>
+              </div>
+              <div className="stat-card blue">
+                <div className="sc-icon">📅</div>
+                <div className="sc-label">Bu Ay Toplam Randevu</div>
+                <div className="sc-val">{saasMetrik?.buAyToplamRandevu || 0}</div>
               </div>
             </div>
 
