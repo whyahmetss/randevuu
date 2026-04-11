@@ -103,6 +103,17 @@ class SatisBot extends EventEmitter {
       maxBekleme: 15,       // dakika
       tatil: false,         // bugün tatil mi
       hedefKategori: '',    // boş = tüm kategoriler, değilse sadece o kategori
+      // Yeni gelişmiş ayarlar
+      mod: 'hepsi',          // 'hepsi' = kayıt+satış+ai, 'sadece_kayit' = sadece kayıt akışı, 'sadece_satis' = sadece giden mesaj (kayıt kapalı), 'sadece_ai' = gelen cevap+ai (giden mesaj yok), 'kapali' = hiçbir şey yapma
+      aiCevapAktif: true,    // AI ile otomatik cevap versin mi
+      kayitAktif: true,      // WhatsApp'tan kayıt olma aktif mi
+      takipAktif: true,      // 12 saat takip mesajı aktif mi
+      takipSaati: 12,        // Kaç saat sonra takip mesajı (varsayılan 12)
+      maxTakipSayisi: 2,     // Maksimum kaç takip mesajı gönderilsin
+      gelenMesajCevap: true, // Gelen mesajlara cevap versin mi
+      typingIndicator: true, // "yazıyor..." göstersin mi (anti-ban)
+      typingMinMs: 2000,     // Minimum typing süresi ms
+      typingMaxMs: 6000,     // Maximum typing süresi ms
     };
   }
 
@@ -318,25 +329,34 @@ class SatisBot extends EventEmitter {
   async takipKontrol() {
     if (this.durum !== 'bagli' || !this.sock) return;
 
+    // Takip aktif mi kontrol et
+    if (!this.ayarlar.takipAktif) return;
+    
+    // Mod kontrolü — kapali modunda takip gönderme
+    if (this.ayarlar.mod === 'kapali') return;
+
     // Mesai saatleri dışında takip gönderme
     const saat = turkiyeSaati().getHours();
     if (saat < this.ayarlar.mesaiBaslangic || saat >= this.ayarlar.mesaiBitis) return;
 
+    const takipSaati = this.ayarlar.takipSaati || 12;
+    const maxTakip = this.ayarlar.maxTakipSayisi || 2;
+
     try {
-      // 12 saat+ cevap vermeyen, takip_sayisi < 2, durum = 'bekliyor'
+      // takipSaati saat+ cevap vermeyen, takip_sayisi < maxTakip, durum = 'bekliyor'
       const bekleyenler = (await pool.query(`
         SELECT * FROM satis_konusmalar 
         WHERE durum = 'bekliyor'
           AND (gelen_mesajlar IS NULL OR gelen_mesajlar = '')
-          AND COALESCE(takip_sayisi, 0) < 2
+          AND COALESCE(takip_sayisi, 0) < $1
           AND (
-            (COALESCE(takip_sayisi, 0) = 0 AND olusturma_tarihi < (NOW() AT TIME ZONE 'Europe/Istanbul') - INTERVAL '12 hours')
+            (COALESCE(takip_sayisi, 0) = 0 AND olusturma_tarihi < (NOW() AT TIME ZONE 'Europe/Istanbul') - INTERVAL '1 hour' * $2)
             OR
-            (COALESCE(takip_sayisi, 0) = 1 AND son_takip_tarihi < (NOW() AT TIME ZONE 'Europe/Istanbul') - INTERVAL '12 hours')
+            (COALESCE(takip_sayisi, 0) >= 1 AND son_takip_tarihi < (NOW() AT TIME ZONE 'Europe/Istanbul') - INTERVAL '1 hour' * $2)
           )
         ORDER BY olusturma_tarihi ASC
         LIMIT 5
-      `)).rows;
+      `, [maxTakip, takipSaati])).rows;
 
       if (bekleyenler.length === 0) return;
 
@@ -456,6 +476,13 @@ class SatisBot extends EventEmitter {
     if (this.sonGonderimTarihi !== bugun) {
       this.gunlukGonderim = 0;
       this.sonGonderimTarihi = bugun;
+    }
+
+    // Mod kontrolü — sadece_kayit, sadece_ai veya kapali modunda giden mesaj gönderme
+    if (['sadece_kayit', 'sadece_ai', 'kapali'].includes(this.ayarlar.mod)) {
+      console.log(`⏸️ Mod: ${this.ayarlar.mod} — giden mesaj gönderilmiyor. 30dk sonra tekrar kontrol.`);
+      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
+      return;
     }
 
     // Tatil kontrolü
@@ -759,19 +786,30 @@ class SatisBot extends EventEmitter {
 
     console.log(`📩 Satış Bot cevap aldı: ${telefon} → "${metin}"`);
 
+    // Mod kontrolü — kapali modunda hiçbir şey yapma
+    if (this.ayarlar.mod === 'kapali') {
+      console.log(`⏸️ Mod: kapali — gelen mesaj işlenmiyor`);
+      return;
+    }
+
+    // Gelen mesajlara cevap verme ayarı kapalıysa atla
+    if (!this.ayarlar.gelenMesajCevap && this.ayarlar.mod !== 'sadece_kayit') {
+      console.log(`⏸️ Gelen mesaj cevap kapalı — mesaj loglanıyor ama cevap verilmiyor`);
+    }
+
     // ─── Kayıt akışı kontrolü ───
     if (!this.konusmalar[telefon]) this.konusmalar[telefon] = {};
     
-    // Kayıt akışı devam ediyorsa ona yönlendir
-    if (this.konusmalar[telefon].kayit) {
+    // Kayıt akışı devam ediyorsa ona yönlendir (kayıt aktifse)
+    if (this.konusmalar[telefon].kayit && this.ayarlar.kayitAktif) {
       const handled = await this.kayitAkisi(remoteJid, telefon, metin);
       if (handled) return;
     }
 
-    // Kayıt komutu — akışı başlat
+    // Kayıt komutu — akışı başlat (kayıt aktifse)
     const metinKucuk = metin.toLowerCase().trim();
     const kayitKomutlari = ['kayıt', 'kayit', '/kayit', '/kayıt', 'hesap aç', 'hesap ac', 'kaydol', 'üye ol', 'uye ol', 'register'];
-    if (kayitKomutlari.some(k => metinKucuk.includes(k))) {
+    if (this.ayarlar.kayitAktif && kayitKomutlari.some(k => metinKucuk.includes(k))) {
       this.konusmalar[telefon].kayit = { adim: 'isletme_adi' };
       try {
         await this.sock.sendPresenceUpdate('composing', remoteJid);
@@ -871,7 +909,38 @@ class SatisBot extends EventEmitter {
       return;
     }
 
+    // Sadece kayıt modundaysa veya gelen mesaj cevap kapalıysa — buraya kadar gel, loglayıp dur
+    if (this.ayarlar.mod === 'sadece_kayit' || this.ayarlar.mod === 'sadece_satis') {
+      console.log(`⏸️ Mod: ${this.ayarlar.mod} — AI cevap verilmiyor (mesaj loglandı)`);
+      return;
+    }
+    if (!this.ayarlar.gelenMesajCevap) {
+      console.log(`⏸️ Gelen mesaj cevap kapalı — mesaj loglandı ama cevap verilmiyor`);
+      return;
+    }
+
     // DeepSeek AI ile satış cevabı oluştur
+    if (!this.ayarlar.aiCevapAktif) {
+      console.log(`⏸️ AI cevap kapalı — fallback cevap kullanılacak`);
+      const fallback = this.fallbackCevapUret(metin, konusma);
+      if (fallback) {
+        if (this.ayarlar.typingIndicator) {
+          try {
+            await this.sock.sendPresenceUpdate('composing', remoteJid);
+            const typingMs = (this.ayarlar.typingMinMs || 2000) + Math.random() * ((this.ayarlar.typingMaxMs || 6000) - (this.ayarlar.typingMinMs || 2000));
+            await new Promise(r => setTimeout(r, typingMs));
+            await this.sock.sendPresenceUpdate('paused', remoteJid);
+          } catch(e) {}
+        }
+        await this.sock.sendMessage(remoteJid, { text: fallback.mesaj });
+        await pool.query(
+          "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
+          [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${fallback.mesaj}`, fallback.durum || konusma.durum, konusma.id]
+        );
+      }
+      return;
+    }
+
     console.log(`🤖 AI cevap üretiliyor: konusma_id=${konusma.id}, isletme=${konusma.isletme_adi}`);
     const aiCevap = await this.deepseekSatisCevabi(metin, konusma);
     console.log(`🤖 AI cevap sonuç:`, aiCevap ? `mesaj="${aiCevap.mesaj?.slice(0, 50)}..." durum=${aiCevap.durum}` : 'NULL');

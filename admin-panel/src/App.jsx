@@ -3983,58 +3983,147 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
-            {/* Ayarlar Kartı */}
-            {satisBotDurum?.ayarlar && (
-              <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
-                <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139,92,246,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚙️</div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Bot Ayarları</div>
-                  <button onClick={async () => { await api.put("/admin/satis-bot/ayarlar", { tatil: !satisBotDurum.ayarlar.tatil }); satisBotYukle(); }} style={{ marginLeft: "auto", padding: "6px 16px", borderRadius: 20, border: "none", cursor: "pointer", background: satisBotDurum.ayarlar.tatil ? "rgba(239,68,68,.1)" : "rgba(16,185,129,.1)", color: satisBotDurum.ayarlar.tatil ? "#ef4444" : "#10b981", fontWeight: 700, fontSize: 12 }}>{satisBotDurum.ayarlar.tatil ? "🏖️ TATİL MODU" : "✅ Mesai Aktif"}</button>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
-                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
-                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Mesai Başlangıç</label>
-                    <select value={satisBotDurum.ayarlar.mesaiBaslangic} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { mesaiBaslangic: parseInt(e.target.value) }); satisBotYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 }}>
-                      {[7,8,9,10,11,12].map(s => <option key={s} value={s}>{s}:00</option>)}
-                    </select>
+            {/* ═══ KAPSAMLI BOT AYARLARI PANELİ ═══ */}
+            {satisBotDurum?.ayarlar && (() => {
+              const ay = satisBotDurum.ayarlar;
+              const ayarGuncelle = async (obj) => { await api.put("/admin/satis-bot/ayarlar", obj); satisBotYukle(); };
+              const toggleStyle = (aktif) => ({ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", background: aktif ? "rgba(16,185,129,.12)" : "rgba(239,68,68,.08)", color: aktif ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: 11, transition: "all .2s" });
+              const labelStyle = { fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 };
+              const cellStyle = { background: "var(--bg)", borderRadius: 12, padding: 14 };
+              const selStyle = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 };
+              const modRenk = { hepsi: "#10b981", sadece_kayit: "#3b82f6", sadece_satis: "#f59e0b", sadece_ai: "#8b5cf6", kapali: "#ef4444" };
+              const modIcon = { hepsi: "🚀", sadece_kayit: "📝", sadece_satis: "📤", sadece_ai: "🤖", kapali: "⏸️" };
+              const modAciklama = { hepsi: "Tüm özellikler aktif", sadece_kayit: "Sadece WhatsApp kayıt sistemi", sadece_satis: "Sadece giden mesaj (AI cevap yok)", sadece_ai: "Gelen mesajlara AI cevap (giden yok)", kapali: "Bot bağlı ama hiçbir şey yapmıyor" };
+              return (
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
+                  {/* Başlık */}
+                  <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139,92,246,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚙️</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Bot Ayarları</div>
+                      <div style={{ fontSize: 11, color: "var(--dim)" }}>A'dan Z'ye tüm bot davranışlarını kontrol et</div>
+                    </div>
+                    <button onClick={() => ayarGuncelle({ tatil: !ay.tatil })} style={{ ...toggleStyle(!ay.tatil), marginLeft: "auto" }}>{ay.tatil ? "🏖️ TATİL" : "✅ Mesai"}</button>
                   </div>
-                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
-                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Mesai Bitiş</label>
-                    <select value={satisBotDurum.ayarlar.mesaiBitis} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { mesaiBitis: parseInt(e.target.value) }); satisBotYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 }}>
-                      {[17,18,19,20,21,22].map(s => <option key={s} value={s}>{s}:00</option>)}
-                    </select>
+
+                  {/* ── MOD SEÇİCİ ── */}
+                  <div style={{ background: "var(--bg)", borderRadius: 14, padding: "16px", marginBottom: 16 }}>
+                    <div style={{ ...labelStyle, marginBottom: 10, fontSize: 11 }}>🎮 ÇALIŞMA MODU</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
+                      {[["hepsi","Tam Mod"],["sadece_kayit","Sadece Kayıt"],["sadece_satis","Sadece Satış"],["sadece_ai","Sadece AI"],["kapali","Kapalı"]].map(([k,l]) => (
+                        <button key={k} onClick={() => ayarGuncelle({ mod: k })} style={{ padding: "12px 8px", borderRadius: 12, border: (ay.mod || 'hepsi') === k ? `2px solid ${modRenk[k]}` : "2px solid transparent", background: (ay.mod || 'hepsi') === k ? `${modRenk[k]}12` : "var(--surface)", cursor: "pointer", textAlign: "center", transition: "all .2s" }}>
+                          <div style={{ fontSize: 22, marginBottom: 4 }}>{modIcon[k]}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: (ay.mod || 'hepsi') === k ? modRenk[k] : "var(--dim)" }}>{l}</div>
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: `${modRenk[ay.mod || 'hepsi']}08`, fontSize: 11, color: modRenk[ay.mod || 'hepsi'], fontWeight: 600 }}>
+                      {modIcon[ay.mod || 'hepsi']} {modAciklama[ay.mod || 'hepsi']}
+                    </div>
                   </div>
-                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
-                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Günlük Limit</label>
-                    <select value={satisBotDurum.ayarlar.gunlukLimit} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { gunlukLimit: parseInt(e.target.value) }); satisBotYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 }}>
-                      {[10,20,30,40,50,75,100].map(s => <option key={s} value={s}>{s} mesaj</option>)}
-                    </select>
+
+                  {/* ── TOGGLE BUTONLARI ── */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+                    {[
+                      ["kayitAktif", "📝 WhatsApp Kayıt", "Bot üzerinden hesap açma"],
+                      ["aiCevapAktif", "🤖 AI Cevap", "DeepSeek ile akıllı cevap"],
+                      ["takipAktif", "🔔 Takip Mesajı", "Cevap vermeyenlere hatırlatma"],
+                      ["gelenMesajCevap", "💬 Gelen Mesaj Cevap", "Gelen mesajlara otomatik cevap"],
+                      ["typingIndicator", "✍️ Yazıyor Göster", "Anti-ban: typing indicator"],
+                      ["tatil", "🏖️ Tatil Modu", "Bugün gönderim yapma"],
+                    ].map(([key, title, desc]) => (
+                      <div key={key} onClick={() => ayarGuncelle({ [key]: !ay[key] })} style={{ ...cellStyle, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, transition: "all .2s", border: ay[key] ? "1px solid rgba(16,185,129,.2)" : "1px solid transparent" }}>
+                        <div style={{ width: 38, height: 22, borderRadius: 11, background: ay[key] ? "#10b981" : "rgba(100,116,139,.2)", position: "relative", transition: "all .2s", flexShrink: 0 }}>
+                          <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 2, left: ay[key] ? 18 : 2, transition: "all .2s", boxShadow: "0 1px 3px rgba(0,0,0,.15)" }} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{title}</div>
+                          <div style={{ fontSize: 10, color: "var(--dim)" }}>{desc}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
-                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Mesaj Aralığı (dk)</label>
-                    <div className="row gap-4">
-                      <select value={satisBotDurum.ayarlar.minBekleme} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { minBekleme: parseInt(e.target.value) }); satisBotYukle(); }} style={{ flex: 1, padding: "8px 6px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 700 }}>
-                        {[1,2,3,5,8,10,15].map(s => <option key={s} value={s}>{s}</option>)}
+
+                  {/* ── MESAI AYARLARI ── */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>Mesai Başlangıç</label>
+                      <select value={ay.mesaiBaslangic} onChange={(e) => ayarGuncelle({ mesaiBaslangic: parseInt(e.target.value) })} style={selStyle}>
+                        {[0,1,2,3,4,5,6,7,8,9,10,11,12].map(s => <option key={s} value={s}>{String(s).padStart(2,'0')}:00</option>)}
                       </select>
-                      <span style={{ color: "var(--dim)", fontSize: 11, alignSelf: "center" }}>—</span>
-                      <select value={satisBotDurum.ayarlar.maxBekleme} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { maxBekleme: parseInt(e.target.value) }); satisBotYukle(); }} style={{ flex: 1, padding: "8px 6px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 700 }}>
-                        {[5,8,10,15,20,25,30].map(s => <option key={s} value={s}>{s}</option>)}
+                    </div>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>Mesai Bitiş</label>
+                      <select value={ay.mesaiBitis} onChange={(e) => ayarGuncelle({ mesaiBitis: parseInt(e.target.value) })} style={selStyle}>
+                        {[12,13,14,15,16,17,18,19,20,21,22,23,24].map(s => <option key={s} value={s}>{s === 24 ? "00:00 (gece)" : `${String(s).padStart(2,'0')}:00`}</option>)}
+                      </select>
+                    </div>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>Günlük Limit</label>
+                      <select value={ay.gunlukLimit} onChange={(e) => ayarGuncelle({ gunlukLimit: parseInt(e.target.value) })} style={selStyle}>
+                        {[5,10,15,20,30,40,50,75,100,150,200].map(s => <option key={s} value={s}>{s} mesaj</option>)}
+                      </select>
+                    </div>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>Mesaj Aralığı (dk)</label>
+                      <div className="row gap-4">
+                        <select value={ay.minBekleme} onChange={(e) => ayarGuncelle({ minBekleme: parseInt(e.target.value) })} style={{ ...selStyle, flex: 1, fontSize: 13 }}>
+                          {[1,2,3,5,8,10,15,20].map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <span style={{ color: "var(--dim)", fontSize: 11, alignSelf: "center" }}>—</span>
+                        <select value={ay.maxBekleme} onChange={(e) => ayarGuncelle({ maxBekleme: parseInt(e.target.value) })} style={{ ...selStyle, flex: 1, fontSize: 13 }}>
+                          {[5,8,10,15,20,25,30,45,60].map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── TAKİP AYARLARI ── */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>🔔 Takip Süresi (saat)</label>
+                      <select value={ay.takipSaati || 12} onChange={(e) => ayarGuncelle({ takipSaati: parseInt(e.target.value) })} style={selStyle}>
+                        {[1,2,3,4,6,8,10,12,18,24,36,48].map(s => <option key={s} value={s}>{s} saat sonra</option>)}
+                      </select>
+                    </div>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>🔄 Max Takip Sayısı</label>
+                      <select value={ay.maxTakipSayisi || 2} onChange={(e) => ayarGuncelle({ maxTakipSayisi: parseInt(e.target.value) })} style={selStyle}>
+                        {[0,1,2,3,4,5].map(s => <option key={s} value={s}>{s === 0 ? "Takip yok" : `${s} kez`}</option>)}
                       </select>
                     </div>
                   </div>
-                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14, gridColumn: "1 / -1" }}>
-                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>🎯 Hedef Kategori</label>
+
+                  {/* ── HEDEF KATEGORİ ── */}
+                  <div style={{ ...cellStyle, marginBottom: 16 }}>
+                    <label style={labelStyle}>🎯 Hedef Kategori</label>
                     <div className="row gap-8" style={{ alignItems: "center" }}>
-                      <select value={satisBotDurum.ayarlar.hedefKategori || ''} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { hedefKategori: e.target.value }); satisBotYukle(); }} style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600 }}>
+                      <select value={ay.hedefKategori || ''} onChange={(e) => ayarGuncelle({ hedefKategori: e.target.value })} style={{ ...selStyle, fontSize: 13 }}>
                         <option value="">Tüm Kategoriler</option>
                         {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>)}
                       </select>
-                      {satisBotDurum.ayarlar.hedefKategori && <span style={{ padding: "4px 12px", borderRadius: 20, background: "rgba(139,92,246,.1)", color: "#8b5cf6", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>🎯 {satisBotDurum.ayarlar.hedefKategori}</span>}
+                      {ay.hedefKategori && <span style={{ padding: "4px 12px", borderRadius: 20, background: "rgba(139,92,246,.1)", color: "#8b5cf6", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>🎯 {ay.hedefKategori}</span>}
+                    </div>
+                  </div>
+
+                  {/* ── ANTI-BAN (Typing) AYARLARI ── */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>✍️ Min Typing (ms)</label>
+                      <select value={ay.typingMinMs || 2000} onChange={(e) => ayarGuncelle({ typingMinMs: parseInt(e.target.value) })} style={selStyle}>
+                        {[500,1000,1500,2000,3000,4000,5000].map(s => <option key={s} value={s}>{s/1000}sn</option>)}
+                      </select>
+                    </div>
+                    <div style={cellStyle}>
+                      <label style={labelStyle}>✍️ Max Typing (ms)</label>
+                      <select value={ay.typingMaxMs || 6000} onChange={(e) => ayarGuncelle({ typingMaxMs: parseInt(e.target.value) })} style={selStyle}>
+                        {[2000,3000,4000,5000,6000,8000,10000].map(s => <option key={s} value={s}>{s/1000}sn</option>)}
+                      </select>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Son Konuşmalar — Kompakt WhatsApp Tarzı */}
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
