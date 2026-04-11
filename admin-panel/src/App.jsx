@@ -3564,223 +3564,169 @@ function SuperAdminPanel({ kullanici }) {
         {/* AVCI BOT */}
         {sayfa === "avci" && (
           <>
-            <h1 style={{ fontSize: 24 }} className="mb-8">🎯 Avcı Bot — Potansiyel Müşteriler</h1>
-            <p style={{ color: "var(--dim)", fontSize: 13 }} className="mb-24">Google Maps'ten işletmeleri bul, skorla, ara ve müşteri yap.</p>
+            {/* Hero Header */}
+            <div style={{ background: "linear-gradient(135deg, rgba(139,92,246,.08) 0%, rgba(59,130,246,.06) 50%, rgba(16,185,129,.04) 100%)", borderRadius: 20, padding: "28px 32px", marginBottom: 24, border: "1px solid rgba(139,92,246,.1)" }}>
+              <div className="row row-between row-wrap gap-12">
+                <div>
+                  <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", margin: 0, letterSpacing: "-0.5px" }}>🎯 Avcı Bot</h1>
+                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 6 }}>Google Maps & Sosyal Medya'dan potansiyel müşterileri bul, skorla, ara ve kazan</p>
+                </div>
+                <div className="row gap-8">
+                  <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", fontWeight: 700, borderRadius: 12, border: "none", boxShadow: "0 4px 14px rgba(16,185,129,.3)" }}>🔍 Maps Tara</button>
+                  <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, borderRadius: 12, border: "none", boxShadow: "0 4px 14px rgba(139,92,246,.3)" }}>🚀 Toplu Maps</button>
+                  <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }} className="btn btn-sm" style={{ background: "linear-gradient(135deg, #e11d48, #be123c)", color: "#fff", fontWeight: 700, borderRadius: 12, border: "none", boxShadow: "0 4px 14px rgba(225,29,72,.3)" }}>📱 Sosyal Tara</button>
+                </div>
+              </div>
+            </div>
 
+            {/* Stats Cards */}
             {avciStats && (
-              <div className="row row-wrap gap-12 mb-24">
-                <StatCard icon="📍" baslik="Toplam Lead" deger={avciStats.toplam} renk="#f59e0b" />
-                <StatCard icon="🆕" baslik="Yeni" deger={avciStats.yeni} renk="#3b82f6" />
-                <StatCard icon="📞" baslik="Arandı" deger={avciStats.arandi} renk="#8b5cf6" />
-                <StatCard icon="🤝" baslik="İlgileniyor" deger={avciStats.ilgileniyor} renk="#10b981" />
-                <StatCard icon="✅" baslik="Müşteri Oldu" deger={avciStats.musteri_oldu} renk="#10b981" />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 24 }}>
+                {[
+                  { icon: "📍", label: "Toplam Lead", val: avciStats.toplam, color: "#f59e0b", bg: "linear-gradient(135deg, rgba(245,158,11,.08), rgba(245,158,11,.02))" },
+                  { icon: "🆕", label: "Yeni", val: avciStats.yeni, color: "#3b82f6", bg: "linear-gradient(135deg, rgba(59,130,246,.08), rgba(59,130,246,.02))" },
+                  { icon: "📞", label: "Arandı", val: avciStats.arandi, color: "#8b5cf6", bg: "linear-gradient(135deg, rgba(139,92,246,.08), rgba(139,92,246,.02))" },
+                  { icon: "🤝", label: "İlgileniyor", val: avciStats.ilgileniyor, color: "#f59e0b", bg: "linear-gradient(135deg, rgba(245,158,11,.08), rgba(245,158,11,.02))" },
+                  { icon: "✅", label: "Müşteri Oldu", val: avciStats.musteri_oldu, color: "#10b981", bg: "linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.02))" }
+                ].map((s, i) => (
+                  <div key={i} style={{ background: s.bg, border: `1px solid ${s.color}18`, borderRadius: 16, padding: "20px 18px", position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", top: -8, right: -8, fontSize: 48, opacity: 0.06 }}>{s.icon}</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{s.label}</div>
+                    <div style={{ fontSize: 32, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.val}</div>
+                  </div>
+                ))}
               </div>
             )}
 
-            <div className="row row-between row-wrap gap-10 mb-16">
-              <div className="row gap-8">
-                <button onClick={() => setAvciTab("gunluk")} className={`pill${avciTab === "gunluk" ? ' active' : ''}`}>📞 Bugün Ara ({avciGunluk.length})</button>
-                <button onClick={() => { setAvciTab("liste"); setAvciKaynak("hepsi"); }} className={`pill${avciTab === "liste" && avciKaynak === "hepsi" ? ' active' : ''}`}>📋 Tümü ({avciListe.length})</button>
-                <button onClick={() => { setAvciTab("liste"); setAvciKaynak("maps"); }} className={`pill${avciTab === "liste" && avciKaynak === "maps" ? ' active' : ''}`} style={avciTab === "liste" && avciKaynak === "maps" ? { background: "var(--green)", color: "#fff" } : {}}>🗺️ Maps</button>
-                <button onClick={() => { setAvciTab("liste"); setAvciKaynak("sosyal"); }} className={`pill${avciTab === "liste" && avciKaynak === "sosyal" ? ' active' : ''}`} style={avciTab === "liste" && avciKaynak === "sosyal" ? { background: "#e11d48", color: "#fff" } : {}}>📱 Sosyal Medya</button>
-              </div>
-              <div className="row gap-8">
-                <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "var(--green)", color: "#fff", fontWeight: 700 }}>🔍 Maps Tara</button>
-                <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "var(--purple)", color: "#fff", fontWeight: 700 }}>🚀 Toplu Maps</button>
-                <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }} className="btn btn-sm" style={{ background: "#e11d48", color: "#fff", fontWeight: 700 }}>📱 Sosyal Tara</button>
-              </div>
+            {/* Tab Navigation */}
+            <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 14, padding: 4, marginBottom: 20 }}>
+              {[
+                { key: "gunluk", label: `📞 Bugün Ara (${avciGunluk.length})`, onClick: () => setAvciTab("gunluk") },
+                { key: "liste-hepsi", label: `📋 Tümü (${avciListe.length})`, onClick: () => { setAvciTab("liste"); setAvciKaynak("hepsi"); } },
+                { key: "liste-maps", label: "🗺️ Maps", onClick: () => { setAvciTab("liste"); setAvciKaynak("maps"); } },
+                { key: "liste-sosyal", label: "📱 Sosyal", onClick: () => { setAvciTab("liste"); setAvciKaynak("sosyal"); } }
+              ].map(t => {
+                const isActive = t.key === "gunluk" ? avciTab === "gunluk" : t.key === "liste-hepsi" ? (avciTab === "liste" && avciKaynak === "hepsi") : t.key === "liste-maps" ? (avciTab === "liste" && avciKaynak === "maps") : (avciTab === "liste" && avciKaynak === "sosyal");
+                return (
+                  <button key={t.key} onClick={t.onClick} style={{ flex: 1, padding: "10px 16px", borderRadius: 10, border: "none", fontWeight: isActive ? 700 : 500, fontSize: 13, cursor: "pointer", transition: "all .2s", background: isActive ? "var(--surface)" : "transparent", color: isActive ? "var(--text)" : "var(--dim)", boxShadow: isActive ? "0 2px 8px rgba(0,0,0,.06)" : "none" }}>{t.label}</button>
+                );
+              })}
             </div>
 
             {/* Tekli tarama formu */}
             {avciTaramaAcik && (
-              <div className="form-card card-accent-green">
-                <h3 className="green">🔍 Tekli Tarama</h3>
-                <div className="row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
+              <div style={{ background: "linear-gradient(135deg, rgba(16,185,129,.04), rgba(16,185,129,.01))", border: "1px solid rgba(16,185,129,.15)", borderRadius: 16, padding: "20px 24px", marginBottom: 20 }}>
+                <div className="row gap-8 mb-12" style={{ alignItems: "center" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(16,185,129,.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🔍</div>
                   <div>
-                    <label className="form-label">Şehir *</label>
-                    <input value={avciTarama.sehir} onChange={e => setAvciTarama({...avciTarama, sehir: e.target.value})} placeholder="İstanbul" className="input" />
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Tekli Maps Tarama</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)" }}>Tek bir şehir/ilçe/kategori kombinasyonu tara</div>
                   </div>
-                  <div>
-                    <label className="form-label">İlçe</label>
-                    <input value={avciTarama.ilce} onChange={e => setAvciTarama({...avciTarama, ilce: e.target.value})} placeholder="Kadıköy" className="input" />
-                  </div>
-                  <div>
-                    <label className="form-label">Kategori *</label>
-                    <select value={avciTarama.kategori} onChange={e => setAvciTarama({...avciTarama, kategori: e.target.value})} className="input">
-                      {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
-                        <option key={k} value={k}>{k}</option>
-                      )}
-                    </select>
-                  </div>
-                  <button disabled={avciTaramaYukleniyor} onClick={async () => {
-                    setAvciTaramaYukleniyor(true);
-                    setAvciTaramaSonuc(null);
-                    try {
-                      const res = await api.post("/admin/avci/tarama", avciTarama);
-                      setAvciTaramaSonuc(res);
-                      avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
-                    } catch(e) { setAvciTaramaSonuc({ hata: e.message }); }
-                    setAvciTaramaYukleniyor(false);
-                  }} className="btn btn-primary" style={{ opacity: avciTaramaYukleniyor ? 0.5 : 1 }}>
-                    {avciTaramaYukleniyor ? "Taranıyor..." : "🔍 Tara"}
-                  </button>
                 </div>
-                {avciTaramaSonuc && (
-                  <div className={`result-toast ${avciTaramaSonuc.hata ? 'error' : 'success'}`}>{avciTaramaSonuc.hata
-                      ? `❌ ${avciTaramaSonuc.hata}`
-                      : `✅ "${avciTaramaSonuc.arama_metni}" — ${avciTaramaSonuc.toplam_bulunan} bulundu, ${avciTaramaSonuc.yeni_eklenen} yeni eklendi, ${avciTaramaSonuc.zaten_var} zaten vardı`
-                    }</div>
-                )}
+                <div className="row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
+                  <div><label className="form-label">Şehir *</label><input value={avciTarama.sehir} onChange={e => setAvciTarama({...avciTarama, sehir: e.target.value})} placeholder="İstanbul" className="input" style={{ borderRadius: 10 }} /></div>
+                  <div><label className="form-label">İlçe</label><input value={avciTarama.ilce} onChange={e => setAvciTarama({...avciTarama, ilce: e.target.value})} placeholder="Kadıköy" className="input" style={{ borderRadius: 10 }} /></div>
+                  <div><label className="form-label">Kategori *</label><select value={avciTarama.kategori} onChange={e => setAvciTarama({...avciTarama, kategori: e.target.value})} className="input" style={{ borderRadius: 10 }}>{["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => <option key={k} value={k}>{k}</option>)}</select></div>
+                  <button disabled={avciTaramaYukleniyor} onClick={async () => { setAvciTaramaYukleniyor(true); setAvciTaramaSonuc(null); try { const res = await api.post("/admin/avci/tarama", avciTarama); setAvciTaramaSonuc(res); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); } catch(e) { setAvciTaramaSonuc({ hata: e.message }); } setAvciTaramaYukleniyor(false); }} className="btn" style={{ background: "#10b981", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: avciTaramaYukleniyor ? 0.5 : 1 }}>{avciTaramaYukleniyor ? "Taranıyor..." : "🔍 Tara"}</button>
+                </div>
+                {avciTaramaSonuc && <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: avciTaramaSonuc.hata ? "rgba(239,68,68,.08)" : "rgba(16,185,129,.08)", color: avciTaramaSonuc.hata ? "#ef4444" : "#10b981", fontSize: 13, fontWeight: 600 }}>{avciTaramaSonuc.hata ? `❌ ${avciTaramaSonuc.hata}` : `✅ "${avciTaramaSonuc.arama_metni}" — ${avciTaramaSonuc.toplam_bulunan} bulundu, ${avciTaramaSonuc.yeni_eklenen} yeni, ${avciTaramaSonuc.zaten_var} zaten vardı`}</div>}
               </div>
             )}
 
             {/* Toplu tarama formu */}
             {topluTaramaAcik && (
-              <div className="form-card card-accent-purple">
-                <h3 className="purple">🚀 Toplu Tarama — Tüm İlçeler</h3>
-                <p style={{ color: "var(--dim)", fontSize: 12 }} className="mb-16">İstanbul'un 39 ilçesinde seçtiğin kategorileri otomatik tarar. Bu işlem birkaç dakika sürebilir.</p>
-                <div className="mb-16">
-                  <label className="form-label">Şehir</label>
-                  <input value={topluSehir} onChange={e => setTopluSehir(e.target.value)} className="input" style={{ width: 160 }} />
-                </div>
-                <div className="mb-16">
-                  <label className="form-label mb-8">Kategoriler (tıkla seç/kaldır)</label>
-                  <div className="row row-wrap gap-6">
-                    {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => (
-                      <button key={k} onClick={() => {
-                        setTopluKategoriler(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k]);
-                      }} className={`pill pill-sm${topluKategoriler.includes(k) ? ' active-purple' : ''}`}>{k}</button>
-                    ))}
+              <div style={{ background: "linear-gradient(135deg, rgba(139,92,246,.04), rgba(139,92,246,.01))", border: "1px solid rgba(139,92,246,.15)", borderRadius: 16, padding: "20px 24px", marginBottom: 20 }}>
+                <div className="row gap-8 mb-12" style={{ alignItems: "center" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139,92,246,.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🚀</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Toplu Tarama — Tüm İlçeler</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)" }}>39 ilçede seçtiğin kategorileri otomatik tara (birkaç dk sürebilir)</div>
                   </div>
-                  <span style={{ display: "block", marginTop: 6, color: "var(--dim)", fontSize: 11 }}>{topluKategoriler.length} kategori seçili · ~{topluKategoriler.length * 39} tarama yapılacak</span>
                 </div>
-                <button disabled={topluYukleniyor || !topluKategoriler.length} onClick={async () => {
-                  setTopluYukleniyor(true);
-                  setTopluSonuc(null);
-                  try {
-                    const res = await api.post("/admin/avci/toplu-tarama", { sehir: topluSehir, kategoriler: topluKategoriler });
-                    setTopluSonuc(res);
-                    avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
-                  } catch(e) { setTopluSonuc({ hata: e.message }); }
-                  setTopluYukleniyor(false);
-                }} className="btn" style={{ background: topluYukleniyor ? "var(--surface3)" : "var(--purple)", color: "#fff", fontWeight: 700, opacity: topluYukleniyor ? 0.6 : 1 }}>
-                  {topluYukleniyor ? "⏳ Toplu tarama devam ediyor... (birkaç dk sürer)" : `🚀 ${topluKategoriler.length} Kategori × 39 İlçe Tara`}
-                </button>
-                {topluSonuc && (
-                  <div className={`result-toast ${topluSonuc.hata ? 'error' : 'purple'}`}>
-                    {topluSonuc.hata
-                      ? `❌ ${topluSonuc.hata}`
-                      : `✅ ${topluSonuc.tarama_sayisi} tarama yapıldı — ${topluSonuc.toplam_bulunan} bulundu, ${topluSonuc.yeni_eklenen} yeni eklendi, ${topluSonuc.zaten_var} zaten vardı`
-                    }
-                  </div>
-                )}
+                <div className="mb-16"><label className="form-label">Şehir</label><input value={topluSehir} onChange={e => setTopluSehir(e.target.value)} className="input" style={{ width: 160, borderRadius: 10 }} /></div>
+                <div className="mb-16">
+                  <label className="form-label mb-8">Kategoriler</label>
+                  <div className="row row-wrap gap-6">{["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => (
+                    <button key={k} onClick={() => setTopluKategoriler(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k])} style={{ padding: "6px 14px", borderRadius: 10, border: "none", fontSize: 12, fontWeight: topluKategoriler.includes(k) ? 700 : 500, cursor: "pointer", background: topluKategoriler.includes(k) ? "#8b5cf6" : "var(--bg)", color: topluKategoriler.includes(k) ? "#fff" : "var(--dim)", transition: "all .2s" }}>{k}</button>
+                  ))}</div>
+                  <span style={{ display: "block", marginTop: 8, color: "var(--dim)", fontSize: 11 }}>{topluKategoriler.length} kategori seçili · ~{topluKategoriler.length * 39} tarama</span>
+                </div>
+                <button disabled={topluYukleniyor || !topluKategoriler.length} onClick={async () => { setTopluYukleniyor(true); setTopluSonuc(null); try { const res = await api.post("/admin/avci/toplu-tarama", { sehir: topluSehir, kategoriler: topluKategoriler }); setTopluSonuc(res); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); } catch(e) { setTopluSonuc({ hata: e.message }); } setTopluYukleniyor(false); }} className="btn" style={{ background: topluYukleniyor ? "var(--surface3)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: topluYukleniyor ? 0.6 : 1 }}>{topluYukleniyor ? "⏳ Toplu tarama devam ediyor..." : `🚀 ${topluKategoriler.length} Kategori × 39 İlçe Tara`}</button>
+                {topluSonuc && <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: topluSonuc.hata ? "rgba(239,68,68,.08)" : "rgba(139,92,246,.08)", color: topluSonuc.hata ? "#ef4444" : "#8b5cf6", fontSize: 13, fontWeight: 600 }}>{topluSonuc.hata ? `❌ ${topluSonuc.hata}` : `✅ ${topluSonuc.tarama_sayisi} tarama — ${topluSonuc.toplam_bulunan} bulundu, ${topluSonuc.yeni_eklenen} yeni, ${topluSonuc.zaten_var} zaten vardı`}</div>}
               </div>
             )}
 
             {/* Sosyal medya tarama formu */}
             {sosyalAcik && (
-              <div className="form-card card-accent-rose">
-                <h3 className="rose">📱 Sosyal Medya Tarama</h3>
-                <p style={{ color: "var(--dim)", fontSize: 12 }} className="mb-16">Instagram, Facebook, TikTok'ta işletme profilleri bul. Google Custom Search API kullanır (günlük 100 ücretsiz sorgu).</p>
+              <div style={{ background: "linear-gradient(135deg, rgba(225,29,72,.04), rgba(225,29,72,.01))", border: "1px solid rgba(225,29,72,.15)", borderRadius: 16, padding: "20px 24px", marginBottom: 20 }}>
+                <div className="row gap-8 mb-12" style={{ alignItems: "center" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(225,29,72,.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📱</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Sosyal Medya Tarama</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)" }}>Instagram, Facebook, TikTok profilleri (günlük 100 ücretsiz)</div>
+                  </div>
+                </div>
                 <div className="row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
                   <div>
                     <label className="form-label">Platform *</label>
-                    <div className="row gap-6">
-                      {[["instagram","📸 Instagram"],["facebook","📘 Facebook"],["tiktok","🎵 TikTok"],["hepsi","🌐 Hepsi"]].map(([v,l]) => (
-                        <button key={v} onClick={() => setSosyalTarama({...sosyalTarama, platform: v})}
-                          className={`pill pill-sm${sosyalTarama.platform === v ? ' active-rose' : ''}`}>{l}</button>
-                      ))}
-                    </div>
+                    <div className="row gap-4">{[["instagram","📸 IG"],["facebook","📘 FB"],["tiktok","🎵 TT"],["hepsi","🌐 Hepsi"]].map(([v,l]) => (
+                      <button key={v} onClick={() => setSosyalTarama({...sosyalTarama, platform: v})} style={{ padding: "6px 12px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: sosyalTarama.platform === v ? 700 : 500, cursor: "pointer", background: sosyalTarama.platform === v ? "#e11d48" : "var(--bg)", color: sosyalTarama.platform === v ? "#fff" : "var(--dim)", transition: "all .2s" }}>{l}</button>
+                    ))}</div>
                   </div>
-                  <div>
-                    <label className="form-label">Şehir *</label>
-                    <input value={sosyalTarama.sehir} onChange={e => setSosyalTarama({...sosyalTarama, sehir: e.target.value})} className="input" style={{ width: 120 }} />
-                  </div>
-                  <div>
-                    <label className="form-label">İlçe</label>
-                    <input value={sosyalTarama.ilce} onChange={e => setSosyalTarama({...sosyalTarama, ilce: e.target.value})} placeholder="opsiyonel" className="input" style={{ width: 120 }} />
-                  </div>
-                  <div>
-                    <label className="form-label">Kategori *</label>
-                    <select value={sosyalTarama.kategori} onChange={e => setSosyalTarama({...sosyalTarama, kategori: e.target.value})} className="input">
-                      {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
-                        <option key={k} value={k}>{k}</option>
-                      )}
-                    </select>
-                  </div>
-                  <button disabled={sosyalYukleniyor} onClick={async () => {
-                    setSosyalYukleniyor(true);
-                    setSosyalSonuc(null);
-                    try {
-                      const res = await api.post("/admin/avci/sosyal-tarama", sosyalTarama);
-                      setSosyalSonuc(res);
-                      avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
-                    } catch(e) { setSosyalSonuc({ hata: e.message }); }
-                    setSosyalYukleniyor(false);
-                  }} className="btn" style={{ background: sosyalYukleniyor ? "var(--surface3)" : "#e11d48", color: "#fff", fontWeight: 700, opacity: sosyalYukleniyor ? 0.6 : 1 }}>
-                    {sosyalYukleniyor ? "⏳ Aranıyor..." : "🔍 Tara"}
-                  </button>
+                  <div><label className="form-label">Şehir *</label><input value={sosyalTarama.sehir} onChange={e => setSosyalTarama({...sosyalTarama, sehir: e.target.value})} className="input" style={{ width: 120, borderRadius: 10 }} /></div>
+                  <div><label className="form-label">İlçe</label><input value={sosyalTarama.ilce} onChange={e => setSosyalTarama({...sosyalTarama, ilce: e.target.value})} placeholder="opsiyonel" className="input" style={{ width: 120, borderRadius: 10 }} /></div>
+                  <div><label className="form-label">Kategori *</label><select value={sosyalTarama.kategori} onChange={e => setSosyalTarama({...sosyalTarama, kategori: e.target.value})} className="input" style={{ borderRadius: 10 }}>{["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => <option key={k} value={k}>{k}</option>)}</select></div>
+                  <button disabled={sosyalYukleniyor} onClick={async () => { setSosyalYukleniyor(true); setSosyalSonuc(null); try { const res = await api.post("/admin/avci/sosyal-tarama", sosyalTarama); setSosyalSonuc(res); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); } catch(e) { setSosyalSonuc({ hata: e.message }); } setSosyalYukleniyor(false); }} className="btn" style={{ background: sosyalYukleniyor ? "var(--surface3)" : "linear-gradient(135deg, #e11d48, #be123c)", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: sosyalYukleniyor ? 0.6 : 1 }}>{sosyalYukleniyor ? "⏳ Aranıyor..." : "🔍 Tara"}</button>
                 </div>
-                {sosyalSonuc && (
-                  <div className={`result-toast ${sosyalSonuc.hata ? 'error' : 'rose'}`}>
-                    {sosyalSonuc.hata
-                      ? `❌ ${sosyalSonuc.hata}`
-                      : `✅ "${sosyalSonuc.arama_metni}" — ${sosyalSonuc.toplam_bulunan} sonuç, ${sosyalSonuc.yeni_eklenen} yeni profil eklendi, ${sosyalSonuc.zaten_var} zaten vardı`
-                    }
-                  </div>
-                )}
+                {sosyalSonuc && <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: sosyalSonuc.hata ? "rgba(239,68,68,.08)" : "rgba(225,29,72,.08)", color: sosyalSonuc.hata ? "#ef4444" : "#e11d48", fontSize: 13, fontWeight: 600 }}>{sosyalSonuc.hata ? `❌ ${sosyalSonuc.hata}` : `✅ "${sosyalSonuc.arama_metni}" — ${sosyalSonuc.toplam_bulunan} sonuç, ${sosyalSonuc.yeni_eklenen} yeni, ${sosyalSonuc.zaten_var} zaten vardı`}</div>}
               </div>
             )}
 
             {/* GÜNLÜK ARAMA LİSTESİ */}
             {avciTab === "gunluk" && (
               <>
-                <div className="info-banner">
-                  <div className="ib-head">
-                    <span>📞</span>
-                    <span>Bugün Aranacak {avciGunluk.length} İşletme</span>
+                <div style={{ background: "linear-gradient(135deg, rgba(139,92,246,.06), rgba(59,130,246,.04))", border: "1px solid rgba(139,92,246,.12)", borderRadius: 14, padding: "16px 20px", marginBottom: 16 }}>
+                  <div className="row gap-8" style={{ alignItems: "center" }}>
+                    <span style={{ fontSize: 22 }}>📞</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Bugün Aranacak {avciGunluk.length} İşletme</div>
+                      <div style={{ fontSize: 11, color: "var(--dim)" }}>Henüz yazılmamış, telefonu olan, en yüksek skorlu lead'ler</div>
+                    </div>
                   </div>
-                  <p style={{ color: "var(--muted)", fontSize: 12, margin: 0 }}>Satış botunun henüz yazmadığı, telefonu olan, en yüksek skorlu işletmeler (bot yazdıkları otomatik çıkar)</p>
                 </div>
                 {avciGunluk.length === 0 ? (
-                  <div className="list-empty"><p>Bugün aranacak kimse yok. Yeni tarama yap! 🔍</p></div>
+                  <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}><div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div><p style={{ fontSize: 14 }}>Bugün aranacak kimse yok. Yeni tarama yap!</p></div>
                 ) : avciGunluk.map((m, idx) => (
-                  <div key={m.id} className="list-item" style={{ flexDirection: "column", alignItems: "stretch", padding: 18, marginBottom: 10 }}>
+                  <div key={m.id} style={{ background: "var(--surface)", borderRadius: 14, padding: "18px 20px", marginBottom: 10, border: "1px solid var(--border)", transition: "all .2s" }}>
                     <div className="row row-between" style={{ alignItems: "flex-start", gap: 12 }}>
-                      <div className="flex-1">
-                        <div className="row row-wrap gap-10 mb-6">
-                          <span className="rank-circle">{idx + 1}</span>
-                          <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 16 }}>{m.isletme_adi}</span>
-                          <span className="tag-xs" style={{ background: "rgba(59,130,246,.12)", color: "var(--blue)" }}>{m.kategori}</span>
-                          <span className="tag-xs" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", fontWeight: 700 }}>Skor: {m.skor}</span>
+                      <div style={{ flex: 1 }}>
+                        <div className="row row-wrap gap-8 mb-6" style={{ alignItems: "center" }}>
+                          <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800 }}>{idx + 1}</div>
+                          <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{m.isletme_adi}</span>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(59,130,246,.08)", color: "#3b82f6", fontSize: 11, fontWeight: 600 }}>{m.kategori}</span>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(245,158,11,.08)", color: "#f59e0b", fontSize: 11, fontWeight: 700 }}>Skor: {m.skor}</span>
                         </div>
-                        <div className="list-item-meta mb-6">
-                          {m.telefon && <span>📞 <strong style={{ color: "var(--text)" }}>{m.telefon}</strong></span>}
-                          {m.adres && <span style={{ marginLeft: 12 }}>📍 {m.adres}</span>}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: "var(--dim)", marginBottom: 6 }}>
+                          {m.telefon && <span style={{ fontWeight: 600, color: "var(--text)" }}>📞 {m.telefon}</span>}
+                          {m.adres && <span>📍 {m.adres}</span>}
                         </div>
                         <div className="row row-wrap gap-6" style={{ fontSize: 11 }}>
-                          {!m.web_sitesi && <span className="tag-xs" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)" }}>🌐 Web sitesi yok</span>}
-                          {m.puan && <span className="tag-xs" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)" }}>⭐ {m.puan}</span>}
-                          <span className="tag-xs" style={{ background: "rgba(139,92,246,.12)", color: "var(--purple)" }}>💬 {m.yorum_sayisi} yorum</span>
-                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" className="tag-xs" style={{ background: "rgba(59,130,246,.12)", color: "var(--blue)", textDecoration: "none" }}>🗺️ Maps</a>}
+                          {!m.web_sitesi && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(16,185,129,.08)", color: "#10b981" }}>🌐 Web yok</span>}
+                          {m.puan && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(245,158,11,.08)", color: "#f59e0b" }}>⭐ {m.puan}</span>}
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(139,92,246,.08)", color: "#8b5cf6" }}>💬 {m.yorum_sayisi} yorum</span>
+                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(59,130,246,.08)", color: "#3b82f6", textDecoration: "none" }}>🗺️ Maps</a>}
                         </div>
                       </div>
-                      <div className="list-item-actions shrink-0">
-                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }}
-                          className="btn btn-sm" style={{ background: "rgba(139,92,246,.12)", color: "var(--purple)", border: "none", fontWeight: 600 }}>📞 Arandı</button>
-                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }}
-                          className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "var(--green)", border: "none", fontWeight: 600 }}>🤝 İlgileniyor</button>
-                        <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} className="btn btn-ghost btn-sm">📝 Not</button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={{ padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, fontSize: 12, boxShadow: "0 2px 8px rgba(139,92,246,.25)" }}>📞 Arandı</button>
+                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={{ padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(16,185,129,.1)", color: "#10b981", fontWeight: 600, fontSize: 12 }}>🤝 İlgileniyor</button>
+                        <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} style={{ padding: "6px 14px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontSize: 11 }}>📝 Not</button>
                       </div>
                     </div>
                     {avciSecili === m.id && (
-                      <div className="row gap-8 mt-12">
-                        <input id={`not_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input flex-1" />
-                        <button onClick={async () => {
-                          const notInput = document.getElementById(`not_${m.id}`);
-                          await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value });
-                          setAvciSecili(null); avciListeYukle(); avciGunlukYukle();
-                        }} className="btn btn-primary btn-sm">Kaydet</button>
+                      <div className="row gap-8" style={{ marginTop: 12 }}>
+                        <input id={`not_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input" style={{ flex: 1, borderRadius: 10 }} />
+                        <button onClick={async () => { const notInput = document.getElementById(`not_${m.id}`); await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value }); setAvciSecili(null); avciListeYukle(); avciGunlukYukle(); }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 12 }}>Kaydet</button>
                       </div>
                     )}
                   </div>
@@ -3797,95 +3743,72 @@ function SuperAdminPanel({ kullanici }) {
               const isSosyal = (k) => ["instagram", "facebook", "tiktok"].includes(k);
               return (
               <>
-                <div className="filter-bar mb-8">
+                {/* Filtre Çubuğu */}
+                <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 10, padding: 4, marginBottom: 12, flexWrap: "wrap" }}>
                   {[["hepsi","Tümü"],["yeni","Yeni"],["bot_yazdi","📱 Bot Yazdı"],["cevapsiz","📭 Cevapsız"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
-                    <button key={v} onClick={() => setAvciFiltre(v)} className={`pill pill-sm${avciFiltre === v ? ' active' : ''}`}>{l}</button>
+                    <button key={v} onClick={() => setAvciFiltre(v)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: avciFiltre === v ? 700 : 500, cursor: "pointer", background: avciFiltre === v ? "var(--surface)" : "transparent", color: avciFiltre === v ? "var(--text)" : "var(--dim)", transition: "all .2s", boxShadow: avciFiltre === v ? "0 1px 4px rgba(0,0,0,.06)" : "none" }}>{l}</button>
                   ))}
-                  <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)} className="input ml-auto" style={{ width: "auto", padding: "5px 10px", fontSize: 12 }}>
+                  <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)} style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, background: "var(--surface)", color: "var(--text)", cursor: "pointer" }}>
                     <option value="skor_desc">Skor ↓</option>
                     <option value="puan_desc">Puan ↓</option>
                     <option value="yorum_desc">Yorum ↓</option>
                     <option value="yeni">En Yeni</option>
                   </select>
                 </div>
-                <div className="row row-wrap gap-6 mb-12" style={{ alignItems: "center" }}>
+
+                {/* Kategori Filtreleri */}
+                <div className="row row-wrap gap-4 mb-16" style={{ alignItems: "center" }}>
                   <span style={{ color: "var(--dim)", fontSize: 11, marginRight: 4 }}>Kategori:</span>
                   {[["hepsi","Tümü"],["berber","✂️ Berber"],["kuaför","💇 Kuaför"],["güzellik salonu","💅 Güzellik"],["dövme","🎨 Dövme"],["diş kliniği","🦷 Dişçi"],["veteriner","🐾 Veteriner"],["spa","🧖 Spa"],["diyetisyen","🥗 Diyetisyen"],["tırnak salonu","💅 Tırnak"],["cilt bakım","✨ Cilt Bakım"]].map(([v,l]) => (
-                    <button key={v} onClick={() => setAvciKategoriFiltre(v)} className={`pill-xs${avciKategoriFiltre === v ? ' active-purple' : ''}`}
-                      style={{ background: avciKategoriFiltre === v ? "var(--purple)" : "var(--bg)", color: avciKategoriFiltre === v ? "#fff" : "var(--dim)" }}>{l}</button>
+                    <button key={v} onClick={() => setAvciKategoriFiltre(v)} style={{ padding: "4px 10px", borderRadius: 8, border: "none", fontSize: 11, fontWeight: avciKategoriFiltre === v ? 700 : 500, cursor: "pointer", background: avciKategoriFiltre === v ? "#8b5cf6" : "var(--bg)", color: avciKategoriFiltre === v ? "#fff" : "var(--dim)", transition: "all .15s" }}>{l}</button>
                   ))}
                 </div>
 
+                {/* Lead Kartları */}
                 {avciListe.length === 0 ? (
-                  <div className="list-empty"><p>Henüz potansiyel müşteri yok. Tarama yap! 🔍</p></div>
+                  <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}><div style={{ fontSize: 48, marginBottom: 12 }}>🔍</div><p style={{ fontSize: 14 }}>Henüz potansiyel müşteri yok. Tarama yap!</p></div>
                 ) : avciListe.map(m => {
                   const sosyal = isSosyal(m.kaynak);
                   const platform = m.kaynak || "maps";
+                  const dRenk = durumRenk[m.durum] || "#64748b";
                   return (
-                    <div key={m.id} className="list-item list-item-left" style={{ borderLeftColor: sosyal ? (kaynakRenk[platform] || "#e11d48") : (durumRenk[m.durum] || "var(--border2)"), flexDirection: "column", alignItems: "stretch" }}>
+                    <div key={m.id} style={{ background: "var(--surface)", borderRadius: 14, padding: "16px 20px", marginBottom: 8, borderLeft: `3px solid ${sosyal ? (kaynakRenk[platform] || "#e11d48") : dRenk}`, border: "1px solid var(--border)", borderLeftWidth: 3, borderLeftColor: sosyal ? (kaynakRenk[platform] || "#e11d48") : dRenk, transition: "all .2s" }}>
                       <div className="row row-between" style={{ alignItems: "flex-start", gap: 10 }}>
-                        <div className="flex-1">
-                          <div className="row row-wrap gap-8 mb-4">
+                        <div style={{ flex: 1 }}>
+                          <div className="row row-wrap gap-6 mb-4" style={{ alignItems: "center" }}>
                             <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 14 }}>{m.isletme_adi}</span>
-                            <span className="tag-xs" style={{ background: (durumRenk[m.durum] || "#64748b") + "22", color: durumRenk[m.durum] || "#64748b", fontWeight: 600 }}>{durumLabel[m.durum] || m.durum}</span>
-                            <span className="tag-xs" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", fontWeight: 700 }}>Skor: {m.skor}</span>
-                            {/* Kaynak badge */}
-                            <span className="tag-xs" style={{ background: (kaynakRenk[platform] || "#64748b") + "18", color: kaynakRenk[platform] || "#64748b", fontWeight: 600 }}>
-                              {kaynakIcon[platform] || "🔗"} {platform === "maps" ? "Maps" : platform.charAt(0).toUpperCase() + platform.slice(1)}
-                            </span>
-                            {m.wp_mesaj_durumu === 'gonderildi' && <span className="tag-xs" style={{ background: "rgba(16,185,129,.15)", color: "#10b981", fontWeight: 600 }}>📱 Bot Yazdı</span>}
-                            {m.wp_mesaj_durumu === 'wp_yok' && <span className="tag-xs" style={{ background: "rgba(239,68,68,.12)", color: "#ef4444", fontWeight: 600 }}>📵 WP Yok</span>}
-                            {!sosyal && m.puan && <span style={{ color: "var(--amber)", fontSize: 12 }}>⭐ {m.puan}</span>}
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: `${dRenk}15`, color: dRenk, fontSize: 11, fontWeight: 600 }}>{durumLabel[m.durum] || m.durum}</span>
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(245,158,11,.08)", color: "#f59e0b", fontSize: 11, fontWeight: 700 }}>Skor: {m.skor}</span>
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kaynakRenk[platform] || "#64748b"}12`, color: kaynakRenk[platform] || "#64748b", fontSize: 11, fontWeight: 600 }}>{kaynakIcon[platform] || "🔗"} {platform === "maps" ? "Maps" : platform.charAt(0).toUpperCase() + platform.slice(1)}</span>
+                            {m.wp_mesaj_durumu === 'gonderildi' && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(16,185,129,.1)", color: "#10b981", fontSize: 11, fontWeight: 600 }}>📱 Bot Yazdı</span>}
+                            {m.wp_mesaj_durumu === 'wp_yok' && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(239,68,68,.08)", color: "#ef4444", fontSize: 11 }}>📵 WP Yok</span>}
+                            {!sosyal && m.puan && <span style={{ color: "#f59e0b", fontSize: 12 }}>⭐ {m.puan}</span>}
                             {!sosyal && <span style={{ color: "var(--dim)", fontSize: 11 }}>💬 {m.yorum_sayisi}</span>}
                           </div>
-                          <div style={{ color: "var(--dim)", fontSize: 12 }} className="mb-4">
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, color: "var(--dim)", fontSize: 12, marginBottom: 4 }}>
                             {m.telefon && <span>📞 {m.telefon}</span>}
-                            {m.kategori && <span style={{ marginLeft: 10 }}>🏷️ {m.kategori}</span>}
-                            {m.ilce && <span style={{ marginLeft: 10 }}>📍 {m.ilce}</span>}
-                            {/* Maps: web yok + maps linki */}
-                            {!sosyal && !m.web_sitesi && <span style={{ marginLeft: 10, color: "var(--green)" }}>🌐 Web yok</span>}
-                            {!sosyal && m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ marginLeft: 10, color: "var(--blue)", textDecoration: "none", fontSize: 11 }}>🗺️ Maps</a>}
-                            {/* Sosyal Medya: profil linki */}
-                            {sosyal && m.google_maps_url && (
-                              <a href={m.google_maps_url} target="_blank" rel="noreferrer"
-                                style={{ marginLeft: 10, background: (kaynakRenk[platform] || "#e11d48") + "22", color: kaynakRenk[platform] || "#e11d48", padding: "2px 10px", borderRadius: 6, textDecoration: "none", fontWeight: 600, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                {kaynakIcon[platform]} Profili Aç ↗
-                              </a>
-                            )}
-                            {sosyal && m.instagram && <span style={{ marginLeft: 10, color: "#e11d48", fontSize: 12 }}>@{m.instagram}</span>}
+                            {m.kategori && <span>🏷️ {m.kategori}</span>}
+                            {m.ilce && <span>📍 {m.ilce}</span>}
+                            {!sosyal && !m.web_sitesi && <span style={{ color: "#10b981" }}>🌐 Web yok</span>}
+                            {!sosyal && m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ color: "#3b82f6", textDecoration: "none" }}>🗺️ Maps</a>}
+                            {sosyal && m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ padding: "1px 8px", borderRadius: 6, background: `${kaynakRenk[platform] || "#e11d48"}15`, color: kaynakRenk[platform] || "#e11d48", textDecoration: "none", fontWeight: 600, fontSize: 11 }}>{kaynakIcon[platform]} Profil ↗</a>}
+                            {sosyal && m.instagram && <span style={{ color: "#e11d48" }}>@{m.instagram}</span>}
                           </div>
                           {m.notlar && <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 4, fontStyle: "italic" }}>📝 {m.notlar}</div>}
                         </div>
-                        <div className="list-item-actions list-item-actions-wrap shrink-0">
-                          {/* Sosyal medya profil butonu (büyük) */}
-                          {sosyal && m.google_maps_url && (
-                            <a href={m.google_maps_url} target="_blank" rel="noreferrer"
-                              className="btn btn-sm" style={{ background: (kaynakRenk[platform] || "#e11d48"), color: "#fff", border: "none", fontWeight: 700, fontSize: 12, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                              {kaynakIcon[platform]} Profil
-                            </a>
-                          )}
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, flexShrink: 0 }}>
+                          {sosyal && m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ padding: "6px 12px", borderRadius: 8, background: kaynakRenk[platform] || "#e11d48", color: "#fff", fontWeight: 700, fontSize: 11, textDecoration: "none", border: "none" }}>{kaynakIcon[platform]} Profil</a>}
                           {["yeni","arandi","ilgileniyor","ilgilenmiyor","musteri_oldu"].filter(d => d !== m.durum).slice(0,3).map(d => (
-                            <button key={d} onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: d }); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); }}
-                              className="btn btn-sm" style={{ background: (durumRenk[d] || "#64748b") + "22", color: durumRenk[d] || "#64748b", border: "none", fontWeight: 600, fontSize: 11 }}>
-                              {durumLabel[d]}
-                            </button>
+                            <button key={d} onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: d }); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: `${durumRenk[d] || "#64748b"}15`, color: durumRenk[d] || "#64748b", fontWeight: 600, fontSize: 11 }}>{durumLabel[d]}</button>
                           ))}
-                          <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>📝</button>
-                          <button onClick={async () => {
-                            if (!confirm(`"${m.isletme_adi}" silinsin mi?`)) return;
-                            await api.del(`/admin/avci/${m.id}`);
-                            avciListeYukle(); avciStatsYukle();
-                          }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none", fontSize: 11 }}>✕</button>
+                          <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontSize: 11 }}>📝</button>
+                          <button onClick={async () => { if (!confirm(`"${m.isletme_adi}" silinsin mi?`)) return; await api.del(`/admin/avci/${m.id}`); avciListeYukle(); avciStatsYukle(); }} style={{ padding: "6px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(239,68,68,.08)", color: "#ef4444", fontSize: 11 }}>✕</button>
                         </div>
                       </div>
                       {avciSecili === m.id && (
-                        <div className="row gap-8 mt-12">
-                          <input id={`not2_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input flex-1" />
-                          <button onClick={async () => {
-                            const notInput = document.getElementById(`not2_${m.id}`);
-                            await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value });
-                            setAvciSecili(null); avciListeYukle();
-                          }} className="btn btn-primary btn-sm">Kaydet</button>
+                        <div className="row gap-8" style={{ marginTop: 12 }}>
+                          <input id={`not2_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input" style={{ flex: 1, borderRadius: 10 }} />
+                          <button onClick={async () => { const notInput = document.getElementById(`not2_${m.id}`); await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value }); setAvciSecili(null); avciListeYukle(); }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 12 }}>Kaydet</button>
                         </div>
                       )}
                     </div>
