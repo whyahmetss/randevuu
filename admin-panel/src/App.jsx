@@ -767,6 +767,7 @@ function Dashboard() {
   const [dashCalisanlar, setDashCalisanlar] = useState([]);
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
+  const [duyurular, setDuyurular] = useState([]);
   const chatRef = useRef(null);
 
   useEffect(() => {
@@ -792,6 +793,7 @@ function Dashboard() {
     api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); }).catch(() => {});
     api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
     api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
+    api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
     // Shopier callback sonrası bildirim
     const params = new URLSearchParams(window.location.search);
     if (params.get('odeme') === 'basarili') {
@@ -1069,21 +1071,31 @@ function Dashboard() {
             <>
               {/* ── ROW 1: Stat Cards (Optivue style) ── */}
               <div className="dash-stats-row" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
-                {/* Bugün Randevu */}
-                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, marginBottom: 6 }}>Bugün Randevu</div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                        <span style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", letterSpacing: "-.5px" }}>{bugunRandevu}</span>
-                        {stats?.bugun?.onaylanan > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: "#2cb872", background: "rgba(84,224,151,.1)", padding: "2px 8px", borderRadius: 6 }}>✓ {stats.bugun.onaylanan} onaylı</span>}
-                      </div>
+                {/* Duyurular */}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "16px 18px", border: "1px solid var(--border)", overflow: "hidden" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>📢 Duyurular</div>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(59,130,246,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🔔</div>
+                  </div>
+                  {duyurular.length === 0 ? (
+                    <div style={{ fontSize: 12, color: "var(--dim)", textAlign: "center", padding: "10px 0" }}>Yeni duyuru yok</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 90, overflowY: "auto" }}>
+                      {duyurular.slice(0, 3).map(d => {
+                        const tipRenk = { bilgi: "#3b82f6", guncelleme: "#10b981", bakim: "#f59e0b", uyari: "#ef4444" };
+                        const tipIcon = { bilgi: "ℹ️", guncelleme: "🆕", bakim: "🔧", uyari: "⚠️" };
+                        const renk = tipRenk[d.tip] || "#3b82f6";
+                        return (
+                          <div key={d.id} style={{ padding: "6px 10px", borderRadius: 8, background: `${renk}08`, borderLeft: `3px solid ${renk}` }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: 4 }}>
+                              <span>{tipIcon[d.tip] || "📢"}</span> {d.baslik}
+                            </div>
+                            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2, lineHeight: 1.3 }}>{d.mesaj?.length > 60 ? d.mesaj.slice(0, 60) + "..." : d.mesaj}</div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(84,224,151,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📅</div>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 2, background: "var(--surface3)", overflow: "hidden" }}>
-                    <div style={{ height: "100%", borderRadius: 2, background: "#54E097", width: `${Math.min(100, bugunRandevu * 10)}%`, transition: "width .4s" }} />
-                  </div>
+                  )}
                 </div>
 
                 {/* Bu Hafta */}
