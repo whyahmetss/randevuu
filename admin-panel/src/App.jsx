@@ -4113,6 +4113,340 @@ function SuperAdminPanel({ kullanici }) {
         )}
 
       </div>
+
+      {/* ═══════ İŞLETME DETAY MODAL ═══════ */}
+      {detayIsletme && (() => {
+        const d = detayIsletme;
+        const isl = d.isletme || {};
+        const denemeBitti = d.deneme_suresi_kalan <= 0;
+        const paketRenk = { baslangic: "#3b82f6", profesyonel: "#8b5cf6", kurumsal: "#f59e0b" };
+        const durumRenk = { odendi: "#10b981", bekliyor: "#f59e0b", gecikti: "#ef4444", havale_bekliyor: "#3b82f6", deneme: "#8b5cf6" };
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex" }}>
+            <div onClick={() => setDetayIsletme(null)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.5)", backdropFilter: "blur(4px)" }} />
+            <div style={{ position: "relative", marginLeft: "auto", width: "min(780px, 90vw)", height: "100vh", background: "var(--surface)", overflowY: "auto", boxShadow: "-8px 0 40px rgba(0,0,0,.15)" }}>
+
+              {/* Header */}
+              <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: "18px 24px" }}>
+                <div className="row row-between" style={{ alignItems: "center" }}>
+                  <div className="row gap-10" style={{ alignItems: "center" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: `linear-gradient(135deg, ${paketRenk[isl.paket] || "#64748b"}, ${paketRenk[isl.paket] || "#64748b"}99)`, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 18 }}>{(isl.isim || "?")[0]}</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 18, color: "var(--text)" }}>{isl.isim}</div>
+                      <div className="row gap-6" style={{ marginTop: 2 }}>
+                        <span style={{ padding: "2px 8px", borderRadius: 6, background: `${paketRenk[isl.paket] || "#64748b"}15`, color: paketRenk[isl.paket] || "#64748b", fontSize: 11, fontWeight: 700 }}>{(isl.paket || "—").toUpperCase()}</span>
+                        <span style={{ padding: "2px 8px", borderRadius: 6, background: isl.aktif ? "rgba(16,185,129,.1)" : "rgba(239,68,68,.1)", color: isl.aktif ? "#10b981" : "#ef4444", fontSize: 11, fontWeight: 700 }}>{isl.aktif ? "● Aktif" : "● Pasif"}</span>
+                        {d.deneme_suresi_kalan > 0 && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(139,92,246,.1)", color: "#8b5cf6", fontSize: 11, fontWeight: 700 }}>🧪 {d.deneme_suresi_kalan} gün deneme</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <button onClick={() => setDetayIsletme(null)} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--dim)" }}>✕</button>
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div style={{ display: "flex", gap: 2, background: "var(--bg)", padding: "4px 24px", borderBottom: "1px solid var(--border)" }}>
+                {[["genel","📊 Genel"],["odemeler","💳 Ödemeler"],["randevular","📅 Randevular"],["ekip","👥 Ekip & Hizmetler"],["ayarlar","⚙️ Ayarlar"],["islemler","🔧 İşlemler"]].map(([k,l]) => (
+                  <button key={k} onClick={() => setDetayTab(k)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: detayTab === k ? 700 : 500, cursor: "pointer", background: detayTab === k ? "var(--surface)" : "transparent", color: detayTab === k ? "var(--text)" : "var(--dim)", transition: "all .15s", boxShadow: detayTab === k ? "0 1px 4px rgba(0,0,0,.06)" : "none" }}>{l}</button>
+                ))}
+              </div>
+
+              <div style={{ padding: 24 }}>
+
+                {/* ===== GENEL TAB ===== */}
+                {detayTab === "genel" && (
+                  <>
+                    {/* Quick Stats */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 20 }}>
+                      {[
+                        { icon: "👥", label: "Müşteri", val: d.musteri_sayisi || 0, color: "#3b82f6" },
+                        { icon: "📅", label: "Randevu (Toplam)", val: d.randevu_stats?.toplam || 0, color: "#8b5cf6" },
+                        { icon: "📆", label: "Bu Ay Randevu", val: d.randevu_stats?.bu_ay || 0, color: "#10b981" },
+                        { icon: "👨‍💼", label: "Çalışan", val: (d.calisanlar || []).length, color: "#f59e0b" },
+                        { icon: "🛠️", label: "Hizmet", val: (d.hizmetler || []).length, color: "#e11d48" },
+                        { icon: "📅", label: "Kayıt Günü", val: `${d.olusturma_gun || 0}. gün`, color: "#64748b" }
+                      ].map((s, i) => (
+                        <div key={i} style={{ background: `linear-gradient(135deg, ${s.color}08, ${s.color}02)`, border: `1px solid ${s.color}12`, borderRadius: 12, padding: "14px 12px", textAlign: "center" }}>
+                          <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.val}</div>
+                          <div style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase" }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* İşletme Bilgileri */}
+                    <div style={{ background: "var(--bg)", borderRadius: 14, padding: "18px 20px", marginBottom: 16 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 12 }}>📋 İşletme Bilgileri</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 20px", fontSize: 13 }}>
+                        <div><span style={{ color: "var(--dim)" }}>Telefon:</span> <strong style={{ color: "var(--text)" }}>{isl.telefon || "—"}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Email:</span> <strong style={{ color: "var(--text)" }}>{(d.kullanici || [])[0]?.email || "—"}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Adres:</span> <strong style={{ color: "var(--text)" }}>{isl.adres || "—"}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Sektör:</span> <strong style={{ color: "var(--text)" }}>{isl.sektor || "—"}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Kayıt:</span> <strong style={{ color: "var(--text)" }}>{isl.olusturma_tarihi ? new Date(isl.olusturma_tarihi).toLocaleDateString("tr-TR") : "—"}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Slug:</span> <strong style={{ color: "var(--text)" }}>{isl.slug || "—"}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Paket:</span> <strong style={{ color: paketRenk[isl.paket] || "var(--text)" }}>{(isl.paket || "—").toUpperCase()}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Durum:</span> <strong style={{ color: isl.aktif ? "#10b981" : "#ef4444" }}>{isl.aktif ? "Aktif" : "Pasif"}</strong></div>
+                      </div>
+                    </div>
+
+                    {/* Deneme Süresi */}
+                    <div style={{ background: d.deneme_suresi_kalan > 0 ? "linear-gradient(135deg, rgba(139,92,246,.06), rgba(139,92,246,.02))" : "linear-gradient(135deg, rgba(100,116,139,.06), rgba(100,116,139,.02))", borderRadius: 14, padding: "16px 20px", marginBottom: 16, border: d.deneme_suresi_kalan > 0 ? "1px solid rgba(139,92,246,.12)" : "1px solid var(--border)" }}>
+                      <div className="row row-between" style={{ alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>🧪 Deneme Süresi</div>
+                          <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>
+                            {d.deneme_suresi_kalan > 0 ? `${d.deneme_suresi_kalan} gün kaldı` : `Deneme süresi bitmiş (${d.olusturma_gun} gün önce kayıt)`}
+                          </div>
+                        </div>
+                        <div className="row gap-4">
+                          {[3,7,14,30].map(g => (
+                            <button key={g} onClick={async () => { await api.post(`/admin/isletmeler/${isl.id}/deneme-uzat`, { gun: g }); isletmeDetayYukle(isl.id); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontWeight: 700, fontSize: 11 }}>+{g} gün</button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Progress bar */}
+                      <div style={{ marginTop: 10, height: 6, background: "var(--bg)", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min((d.deneme_suresi_kalan / 7) * 100, 100)}%`, background: d.deneme_suresi_kalan > 3 ? "linear-gradient(90deg, #8b5cf6, #7c3aed)" : d.deneme_suresi_kalan > 0 ? "linear-gradient(90deg, #f59e0b, #d97706)" : "#ef4444", borderRadius: 3, transition: "width .3s" }} />
+                      </div>
+                    </div>
+
+                    {/* Admin Notu */}
+                    <div style={{ background: "var(--bg)", borderRadius: 14, padding: "16px 20px", marginBottom: 16 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 8 }}>📝 Admin Notu</div>
+                      <textarea value={detayNot} onChange={e => setDetayNot(e.target.value)} placeholder="Bu işletme hakkında notlarınız..." rows={3} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, resize: "vertical", fontFamily: "inherit" }} />
+                      <button onClick={async () => { await api.put(`/admin/isletmeler/${isl.id}/not`, { not: detayNot }); alert("Not kaydedildi"); }} style={{ marginTop: 8, padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 12 }}>💾 Notu Kaydet</button>
+                    </div>
+
+                    {/* Bot Durumu */}
+                    <div style={{ background: "var(--bg)", borderRadius: 14, padding: "16px 20px" }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 8 }}>🤖 Bot & Entegrasyon</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
+                        <div className="row gap-6"><span style={{ color: "var(--dim)" }}>WhatsApp Bot:</span> <span style={{ color: d.bot_durum ? "#10b981" : "var(--dim)", fontWeight: 600 }}>{d.bot_durum ? "✅ Kurulu" : "— Yok"}</span></div>
+                        <div className="row gap-6"><span style={{ color: "var(--dim)" }}>Hatırlatma:</span> <span style={{ color: d.bot_durum?.hatirlatma_aktif ? "#10b981" : "var(--dim)", fontWeight: 600 }}>{d.bot_durum?.hatirlatma_aktif ? "✅ Aktif" : "— Kapalı"}</span></div>
+                        <div className="row gap-6"><span style={{ color: "var(--dim)" }}>Kampanya:</span> <span style={{ color: d.bot_durum?.kampanya_aktif ? "#10b981" : "var(--dim)", fontWeight: 600 }}>{d.bot_durum?.kampanya_aktif ? "✅ Aktif" : "— Kapalı"}</span></div>
+                        <div className="row gap-6"><span style={{ color: "var(--dim)" }}>Google Yorum:</span> <span style={{ color: d.bot_durum?.google_yorum_aktif ? "#10b981" : "var(--dim)", fontWeight: 600 }}>{d.bot_durum?.google_yorum_aktif ? "✅ Aktif" : "— Kapalı"}</span></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ===== ÖDEMELER TAB ===== */}
+                {detayTab === "odemeler" && (
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 16 }}>💳 Ödeme Geçmişi</div>
+                    {(d.odemeler || []).length === 0 ? (
+                      <div style={{ textAlign: "center", padding: 30, color: "var(--dim)" }}><div style={{ fontSize: 36, marginBottom: 8 }}>💳</div><p>Henüz ödeme kaydı yok</p></div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {(d.odemeler || []).map((o, i) => (
+                          <div key={i} className="row gap-12" style={{ padding: "12px 14px", borderRadius: 10, background: "var(--bg)", alignItems: "center" }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 4, background: durumRenk[o.durum] || "#64748b", flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <div className="row gap-6" style={{ alignItems: "center" }}>
+                                <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{o.donem}</span>
+                                <span style={{ padding: "1px 8px", borderRadius: 6, background: `${durumRenk[o.durum] || "#64748b"}15`, color: durumRenk[o.durum] || "#64748b", fontSize: 10, fontWeight: 700 }}>{o.durum}</span>
+                              </div>
+                            </div>
+                            <span style={{ fontWeight: 800, fontSize: 15, color: "var(--text)" }}>{o.tutar}₺</span>
+                            {o.odeme_tarihi && <span style={{ fontSize: 11, color: "var(--dim)" }}>{new Date(o.odeme_tarihi).toLocaleDateString("tr-TR")}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ===== RANDEVULAR TAB ===== */}
+                {detayTab === "randevular" && (
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 16 }}>📅 Randevu İstatistikleri</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 20 }}>
+                      {[
+                        { label: "Toplam", val: d.randevu_stats?.toplam || 0, color: "#8b5cf6" },
+                        { label: "Bu Ay", val: d.randevu_stats?.bu_ay || 0, color: "#3b82f6" },
+                        { label: "Onaylanan", val: d.randevu_stats?.onaylanan || 0, color: "#10b981" },
+                        { label: "Bekleyen", val: d.randevu_stats?.bekleyen || 0, color: "#f59e0b" },
+                        { label: "İptal", val: d.randevu_stats?.iptal || 0, color: "#ef4444" }
+                      ].map((s, i) => (
+                        <div key={i} style={{ background: `${s.color}08`, borderRadius: 12, padding: "14px 12px", textAlign: "center", border: `1px solid ${s.color}12` }}>
+                          <div style={{ fontSize: 26, fontWeight: 800, color: s.color }}>{s.val}</div>
+                          <div style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase" }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Son 30 gün grafiği (basit bar) */}
+                    {(d.gunluk_randevu || []).length > 0 && (
+                      <div style={{ background: "var(--bg)", borderRadius: 14, padding: "16px 20px" }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)", marginBottom: 12 }}>📈 Son 30 Gün</div>
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 80 }}>
+                          {(d.gunluk_randevu || []).map((g, i) => {
+                            const maxVal = Math.max(...(d.gunluk_randevu || []).map(x => parseInt(x.sayi) || 0), 1);
+                            const h = Math.max(((parseInt(g.sayi) || 0) / maxVal) * 100, 4);
+                            return (
+                              <div key={i} title={`${g.gun}: ${g.sayi} randevu`} style={{ flex: 1, minWidth: 0, height: `${h}%`, background: "linear-gradient(180deg, #8b5cf6, #7c3aed)", borderRadius: "3px 3px 0 0", cursor: "pointer", transition: "all .15s" }} />
+                            );
+                          })}
+                        </div>
+                        <div className="row row-between" style={{ marginTop: 4 }}>
+                          <span style={{ fontSize: 9, color: "var(--dim)" }}>{(d.gunluk_randevu || [])[0]?.gun?.slice(5)}</span>
+                          <span style={{ fontSize: 9, color: "var(--dim)" }}>{(d.gunluk_randevu || []).at(-1)?.gun?.slice(5)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ===== EKİP & HİZMETLER TAB ===== */}
+                {detayTab === "ekip" && (
+                  <>
+                    {/* Çalışanlar */}
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 12 }}>👥 Çalışanlar ({(d.calisanlar || []).length})</div>
+                    {(d.calisanlar || []).length === 0 ? (
+                      <div style={{ textAlign: "center", padding: 20, color: "var(--dim)", fontSize: 13 }}>Henüz çalışan eklenmemiş</div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 24 }}>
+                        {(d.calisanlar || []).map(c => (
+                          <div key={c.id} className="row gap-10" style={{ padding: "12px 14px", borderRadius: 10, background: "var(--bg)", alignItems: "center" }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14 }}>{(c.isim || "?")[0]}</div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{c.isim}</div>
+                              <div style={{ fontSize: 11, color: "var(--dim)" }}>{c.uzmanlik || "—"}</div>
+                            </div>
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: c.aktif !== false ? "rgba(16,185,129,.08)" : "rgba(239,68,68,.08)", color: c.aktif !== false ? "#10b981" : "#ef4444", fontSize: 10, fontWeight: 600 }}>{c.aktif !== false ? "Aktif" : "Pasif"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hizmetler */}
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 12 }}>🛠️ Hizmetler ({(d.hizmetler || []).length})</div>
+                    {(d.hizmetler || []).length === 0 ? (
+                      <div style={{ textAlign: "center", padding: 20, color: "var(--dim)", fontSize: 13 }}>Henüz hizmet eklenmemiş</div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {(d.hizmetler || []).map(h => (
+                          <div key={h.id} className="row gap-10" style={{ padding: "12px 14px", borderRadius: 10, background: "var(--bg)", alignItems: "center" }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{h.isim}</div>
+                              <div style={{ fontSize: 11, color: "var(--dim)" }}>{h.sure || "—"} dk</div>
+                            </div>
+                            <span style={{ fontWeight: 800, fontSize: 14, color: "#10b981" }}>{h.fiyat || 0}₺</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Kullanıcılar */}
+                    {(d.kullanici || []).length > 0 && (
+                      <>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 12, marginTop: 24 }}>🔑 Admin Kullanıcılar</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {(d.kullanici || []).map(k => (
+                            <div key={k.id} className="row gap-10" style={{ padding: "12px 14px", borderRadius: 10, background: "var(--bg)", alignItems: "center" }}>
+                              <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{k.email}</span>
+                              <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontSize: 10, fontWeight: 600 }}>{k.rol}</span>
+                              <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--dim)" }}>{k.olusturma_tarihi ? new Date(k.olusturma_tarihi).toLocaleDateString("tr-TR") : ""}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* ===== AYARLAR TAB ===== */}
+                {detayTab === "ayarlar" && (
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 16 }}>⚙️ İşletme Ayarları</div>
+                    {d.ayarlar ? (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
+                        {Object.entries(d.ayarlar).filter(([k]) => !['id', 'isletme_id'].includes(k)).map(([k, v]) => (
+                          <div key={k} style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 14px" }}>
+                            <span style={{ color: "var(--dim)", fontSize: 11 }}>{k}:</span>
+                            <div style={{ fontWeight: 600, color: "var(--text)", marginTop: 2 }}>{v === true ? "✅ Evet" : v === false ? "❌ Hayır" : v === null ? "—" : String(v)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: "center", padding: 30, color: "var(--dim)" }}><p>Henüz ayar kaydı yok</p></div>
+                    )}
+
+                    {/* Bot ayarları */}
+                    {d.bot_durum && (
+                      <>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 12, marginTop: 24 }}>🤖 Bot Ayarları</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
+                          {Object.entries(d.bot_durum).filter(([k]) => !['id', 'isletme_id'].includes(k)).map(([k, v]) => (
+                            <div key={k} style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 14px" }}>
+                              <span style={{ color: "var(--dim)", fontSize: 11 }}>{k}:</span>
+                              <div style={{ fontWeight: 600, color: "var(--text)", marginTop: 2 }}>{v === true ? "✅ Evet" : v === false ? "❌ Hayır" : v === null ? "—" : String(v).slice(0, 60)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* ===== İŞLEMLER TAB ===== */}
+                {detayTab === "islemler" && (
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 16 }}>🔧 İşletme İşlemleri</div>
+
+                    {/* Hızlı İşlemler */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+                      {/* Aktif/Pasif Toggle */}
+                      <button onClick={async () => { await api.put(`/admin/isletmeler/${isl.id}`, { aktif: !isl.aktif }); isletmeDetayYukle(isl.id); isletmeleriYukle(); }} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: isl.aktif ? "rgba(239,68,68,.06)" : "rgba(16,185,129,.06)", textAlign: "left" }}>
+                        <div style={{ fontSize: 24, marginBottom: 6 }}>{isl.aktif ? "🔴" : "🟢"}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: isl.aktif ? "#ef4444" : "#10b981" }}>{isl.aktif ? "Pasife Al" : "Aktif Et"}</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İşletmeyi {isl.aktif ? "devre dışı bırak" : "tekrar aktif et"}</div>
+                      </button>
+
+                      {/* Paket Değiştir */}
+                      <div style={{ padding: "18px 20px", borderRadius: 14, background: "rgba(139,92,246,.06)" }}>
+                        <div style={{ fontSize: 24, marginBottom: 6 }}>📦</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#8b5cf6", marginBottom: 6 }}>Paket Değiştir</div>
+                        <select defaultValue={isl.paket || ""} onChange={async (e) => { await api.put(`/admin/isletmeler/${isl.id}`, { paket: e.target.value }); isletmeDetayYukle(isl.id); isletmeleriYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 700 }}>
+                          <option value="baslangic">Başlangıç</option>
+                          <option value="profesyonel">Profesyonel</option>
+                          <option value="kurumsal">Kurumsal</option>
+                        </select>
+                      </div>
+
+                      {/* Deneme Uzat */}
+                      <div style={{ padding: "18px 20px", borderRadius: 14, background: "rgba(59,130,246,.06)" }}>
+                        <div style={{ fontSize: 24, marginBottom: 6 }}>🧪</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#3b82f6", marginBottom: 6 }}>Deneme Uzat</div>
+                        <div className="row gap-4" style={{ flexWrap: "wrap" }}>
+                          {[3,7,14,30].map(g => (
+                            <button key={g} onClick={async () => { await api.post(`/admin/isletmeler/${isl.id}/deneme-uzat`, { gun: g }); isletmeDetayYukle(isl.id); }} style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 12 }}>+{g} gün</button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Müşteri Olarak Giriş */}
+                      <button onClick={async () => { const res = await api.post(`/admin/impersonate/${isl.id}`); if (res.token) { window.open(`${window.location.origin}?impersonate=${res.token}`, '_blank'); } else { alert(res.hata || "Impersonate başarısız"); }}} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: "rgba(245,158,11,.06)", textAlign: "left" }}>
+                        <div style={{ fontSize: 24, marginBottom: 6 }}>👤</div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#f59e0b" }}>Müşteri Olarak Giriş</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İşletmenin panelini gör</div>
+                      </button>
+                    </div>
+
+                    {/* Tehlikeli İşlemler */}
+                    <div style={{ background: "rgba(239,68,68,.04)", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(239,68,68,.1)" }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "#ef4444", marginBottom: 12 }}>⚠️ Tehlikeli İşlemler</div>
+                      <button onClick={async () => { if (!confirm(`"${isl.isim}" işletmesi kalıcı olarak silinecek! Emin misiniz?`)) return; if (!confirm("BU İŞLEM GERİ ALINAMAZ! Son kez onaylıyor musunuz?")) return; await api.del(`/admin/isletmeler/${isl.id}`); setDetayIsletme(null); isletmeleriYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid rgba(239,68,68,.2)", cursor: "pointer", background: "rgba(239,68,68,.08)", color: "#ef4444", fontWeight: 700, fontSize: 13 }}>🗑️ İşletmeyi Kalıcı Sil</button>
+                    </div>
+                  </>
+                )}
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
