@@ -46,6 +46,7 @@ function Login({ onLogin }) {
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
   const [ekran, setEkran] = useState("giris"); // giris | kayit
+  const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "" });
 
   const giris = async (e) => {
     e.preventDefault();
@@ -62,97 +63,103 @@ function Login({ onLogin }) {
     setYukleniyor(false);
   };
 
-  // WhatsApp satış bot numarası
+  const kayitOl = async (e) => {
+    e.preventDefault();
+    setHata("");
+    if (!kayitForm.isletmeAdi || !kayitForm.email || !kayitForm.sifre) return setHata("Tüm alanları doldurun");
+    if (kayitForm.sifre.length < 6) return setHata("Şifre en az 6 karakter olmalı");
+    if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
+    setYukleniyor(true);
+    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre, kayitKanal: "web" });
+    if (data.basarili) {
+      setHata("");
+      setEkran("giris");
+      setEmail(kayitForm.email);
+      setSifre("");
+      alert("✅ Hesabınız oluşturuldu! Şimdi giriş yapabilirsiniz.");
+    } else {
+      setHata(data.hata || "Kayıt başarısız");
+    }
+    setYukleniyor(false);
+  };
+
   const WP_NUMARA = "905379681840";
   const TG_BOT = "siragoapp_bot";
+
+  const heroPanel = (
+    <div className="login-hero">
+      <div className="login-hero-glow g1" />
+      <div className="login-hero-glow g2" />
+      <div className="login-hero-logo">
+        <img src={logoIcon} alt="SıraGO" />
+        <span className="brand-name">SıraGO</span>
+      </div>
+      <div className="login-hero-slogan">
+        <h1>Gelmeyen müşteriye <span>son.</span><br/>İşinize odaklanın.</h1>
+        <p>WhatsApp ve Telegram üzerinden akıllı randevu yönetimi. Müşterileriniz 7/24 randevu alsın, siz işinize bakın.</p>
+      </div>
+      <div className="login-hero-stats">
+        <div className="hs-item"><div className="hs-val">500+</div><div className="hs-label">Aktif İşletme</div></div>
+        <div className="hs-item"><div className="hs-val">50K+</div><div className="hs-label">Randevu / Ay</div></div>
+        <div className="hs-item"><div className="hs-val">%95</div><div className="hs-label">Memnuniyet</div></div>
+      </div>
+      <div className="login-hero-features">
+        <div className="feat-chip">WhatsApp Bot</div>
+        <div className="feat-chip">Otomatik Hatırlatma</div>
+        <div className="feat-chip">Kapora Sistemi</div>
+        <div className="feat-chip">Kara Liste</div>
+        <div className="feat-chip">Anlık Analitik</div>
+      </div>
+    </div>
+  );
 
   if (ekran === "kayit") {
     return (
       <div className="login-page">
-        <div className="login-card" style={{ width: 420, padding: "36px 32px" }}>
-          <div className="login-logo">
-            <img src={logoIcon} alt="SıraGO" />
-            <div>
-              <div className="brand-name">SıraGO</div>
-              <div className="brand-sub">Ücretsiz Hesap Oluştur</div>
-            </div>
-          </div>
+        {heroPanel}
+        <div className="login-form-panel">
+          <div className="login-card">
+            <div className="login-title">Hesap Oluştur</div>
+            <div className="login-subtitle">Ücretsiz deneyin, kredi kartı gerekmez</div>
 
-          <div style={{ textAlign: "center", marginBottom: 24 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>Nasıl kayıt olmak istersiniz?</div>
-            <div style={{ fontSize: 13, color: "var(--dim)" }}>Botumuz size adım adım rehberlik edecek</div>
-          </div>
+            <form onSubmit={kayitOl}>
+              <div className="form-group">
+                <label className="form-label">İşletme Adı</label>
+                <input type="text" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} onChange={e => setKayitForm(p => ({ ...p, isletmeAdi: e.target.value }))} className="input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">E-posta</label>
+                <input type="email" placeholder="ornek@email.com" value={kayitForm.email} onChange={e => setKayitForm(p => ({ ...p, email: e.target.value }))} className="input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Şifre</label>
+                <input type="password" placeholder="En az 6 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Şifre Tekrar</label>
+                <input type="password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} className="input" />
+              </div>
+              {hata && <div className="alert alert-error">{hata}</div>}
+              <button type="submit" disabled={yukleniyor} className="login-btn-primary">
+                {yukleniyor ? "Hesap oluşturuluyor..." : "Ücretsiz Hesap Oluştur"}
+              </button>
+            </form>
 
-          {/* WhatsApp ile Kayıt */}
-          <a href={`https://wa.me/${WP_NUMARA}?text=${encodeURIComponent("kayıt")}`} target="_blank" rel="noopener noreferrer"
-            style={{
-              display: "flex", alignItems: "center", gap: 14, padding: "16px 20px",
-              background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.25)",
-              borderRadius: 14, cursor: "pointer", textDecoration: "none", marginBottom: 12,
-              transition: "all .2s"
-            }}
-            onMouseOver={e => { e.currentTarget.style.background = "rgba(37,211,102,0.15)"; e.currentTarget.style.borderColor = "rgba(37,211,102,0.5)"; }}
-            onMouseOut={e => { e.currentTarget.style.background = "rgba(37,211,102,0.08)"; e.currentTarget.style.borderColor = "rgba(37,211,102,0.25)"; }}
-          >
-            <div style={{
-              width: 52, height: 52, borderRadius: 14,
-              background: "linear-gradient(135deg, #25d366, #128c7e)",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#25d366" }}>WhatsApp ile Kayıt Ol</div>
-              <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>WhatsApp üzerinden hızlı kayıt</div>
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#25d366" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}><polyline points="9 18 15 12 9 6"/></svg>
-          </a>
+            <div className="login-divider"><span>veya hızlı kayıt</span></div>
 
-          {/* Telegram ile Kayıt */}
-          <a href={`https://t.me/${TG_BOT}?start=kayit`} target="_blank" rel="noopener noreferrer"
-            style={{
-              display: "flex", alignItems: "center", gap: 14, padding: "16px 20px",
-              background: "rgba(0,136,204,0.08)", border: "1px solid rgba(0,136,204,0.25)",
-              borderRadius: 14, cursor: "pointer", textDecoration: "none", marginBottom: 20,
-              transition: "all .2s"
-            }}
-            onMouseOver={e => { e.currentTarget.style.background = "rgba(0,136,204,0.15)"; e.currentTarget.style.borderColor = "rgba(0,136,204,0.5)"; }}
-            onMouseOut={e => { e.currentTarget.style.background = "rgba(0,136,204,0.08)"; e.currentTarget.style.borderColor = "rgba(0,136,204,0.25)"; }}
-          >
-            <div style={{
-              width: 52, height: 52, borderRadius: 14,
-              background: "linear-gradient(135deg, #0088cc, #0077b5)",
-              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.48-.428-.012-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#0088cc" }}>Telegram ile Kayıt Ol</div>
-              <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>Telegram üzerinden hızlı kayıt</div>
-            </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0088cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "auto" }}><polyline points="9 18 15 12 9 6"/></svg>
-          </a>
+            <a href={`https://wa.me/${WP_NUMARA}?text=${encodeURIComponent("kayıt")}`} target="_blank" rel="noopener noreferrer" className="login-alt-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              WhatsApp ile Kayıt Ol
+            </a>
+            <a href={`https://t.me/${TG_BOT}?start=kayit`} target="_blank" rel="noopener noreferrer" className="login-alt-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#0088cc"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.48-.428-.012-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              Telegram ile Kayıt Ol
+            </a>
 
-          {/* Nasıl çalışır bilgi kutusu */}
-          <div style={{
-            background: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.15)",
-            borderRadius: 12, padding: "14px 16px", marginBottom: 20
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#8b5cf6", marginBottom: 8 }}>📌 Nasıl Çalışır?</div>
-            <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.6 }}>
-              1. WhatsApp veya Telegram'ı seçin<br/>
-              2. Botumuz size işletme adı, e-posta ve şifre soracak<br/>
-              3. 30 saniyede hesabınız hazır!<br/>
-              4. Bu sayfadan giriş yapın ve kullanmaya başlayın 🚀
+            <div className="login-toggle">
+              <span>Zaten hesabınız var mı? </span>
+              <button onClick={() => { setEkran("giris"); setHata(""); }}>Giriş Yap</button>
             </div>
-          </div>
-
-          <div style={{ textAlign: "center" }}>
-            <span style={{ fontSize: 13, color: "var(--dim)" }}>Zaten hesabınız var mı? </span>
-            <button onClick={() => setEkran("giris")} style={{
-              background: "none", border: "none", color: "var(--primary)", cursor: "pointer",
-              fontSize: 13, fontWeight: 700, textDecoration: "underline"
-            }}>Giriş Yap</button>
           </div>
         </div>
       </div>
@@ -161,34 +168,29 @@ function Login({ onLogin }) {
 
   return (
     <div className="login-page">
-      <div className="login-card">
-        <div className="login-logo">
-          <img src={logoIcon} alt="SıraGO" />
-          <div>
-            <div className="brand-name">SıraGO</div>
-            <div className="brand-sub">İşletme Yönetim Paneli</div>
+      {heroPanel}
+      <div className="login-form-panel">
+        <div className="login-card">
+          <div className="login-title">Hoş Geldiniz</div>
+          <div className="login-subtitle">Panele erişmek için giriş yapın</div>
+          <form onSubmit={giris}>
+            <div className="form-group">
+              <label className="form-label">E-posta</label>
+              <input type="email" placeholder="ornek@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Şifre</label>
+              <input type="password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
+            </div>
+            {hata && <div className="alert alert-error">{hata}</div>}
+            <button type="submit" disabled={yukleniyor} className="login-btn-primary">
+              {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
+            </button>
+          </form>
+          <div className="login-toggle">
+            <span>Hesabınız yok mu? </span>
+            <button onClick={() => { setEkran("kayit"); setHata(""); }}>Ücretsiz Kayıt Ol</button>
           </div>
-        </div>
-        <form onSubmit={giris}>
-          <div className="form-group">
-            <label className="form-label">E-posta</label>
-            <input type="email" placeholder="ornek@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Şifre</label>
-            <input type="password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
-          </div>
-          {hata && <div className="alert alert-error">{hata}</div>}
-          <button type="submit" disabled={yukleniyor} className="btn btn-primary btn-block btn-lg mt-8">
-            {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
-          </button>
-        </form>
-        <div style={{ textAlign: "center", marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
-          <span style={{ fontSize: 13, color: "var(--dim)" }}>Hesabınız yok mu? </span>
-          <button onClick={() => setEkran("kayit")} style={{
-            background: "none", border: "none", color: "var(--primary)", cursor: "pointer",
-            fontSize: 13, fontWeight: 700, textDecoration: "underline"
-          }}>Kayıt Ol</button>
         </div>
       </div>
     </div>
@@ -5177,8 +5179,8 @@ export default function App() {
   }, []);
 
   if (yukleniyor) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f7" }}>
-      <div style={{ color: "#160527", fontSize: 20, fontWeight: 600 }}>📅 RandevuGO yükleniyor...</div>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f" }}>
+      <div style={{ color: "rgba(255,255,255,.6)", fontSize: 18, fontWeight: 600 }}>SıraGO yükleniyor...</div>
     </div>
   );
 
