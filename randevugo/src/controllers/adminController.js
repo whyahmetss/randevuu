@@ -113,9 +113,21 @@ class AdminController {
 
   async calisanlariGetir(req, res) {
     try {
-      const result = await pool.query(
-        'SELECT * FROM calisanlar WHERE isletme_id = $1 ORDER BY id', [req.kullanici.isletme_id]
-      );
+      const isletmeId = req.kullanici.isletme_id;
+      const buAy = new Date().toISOString().slice(0, 7);
+      const result = await pool.query(`
+        SELECT c.*,
+          COALESCE(p.ay_randevu, 0)::int as ay_randevu,
+          COALESCE(p.ay_ciro, 0)::int as ay_ciro
+        FROM calisanlar c
+        LEFT JOIN LATERAL (
+          SELECT COUNT(r.id) as ay_randevu, COALESCE(SUM(h.fiyat),0) as ay_ciro
+          FROM randevular r LEFT JOIN hizmetler h ON h.id = r.hizmet_id
+          WHERE r.calisan_id = c.id AND r.isletme_id = $1 AND r.durum != 'iptal'
+            AND to_char(r.tarih, 'YYYY-MM') = $2
+        ) p ON true
+        WHERE c.isletme_id = $1 ORDER BY c.id
+      `, [isletmeId, buAy]);
       res.json({ calisanlar: result.rows });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -1112,6 +1124,42 @@ class AdminController {
     }
   }
 
+  // ==================== DASHBOARD EKSTRA ====================
+
+  async dashboardEkstra(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const bugun = new Date().toISOString().slice(0, 10);
+
+      // Günün en çok kazandıran hizmeti
+      const topHizmet = (await pool.query(`
+        SELECT h.isim, COUNT(r.id)::int as adet, COALESCE(SUM(h.fiyat),0)::int as toplam_ciro
+        FROM randevular r JOIN hizmetler h ON h.id = r.hizmet_id
+        WHERE r.isletme_id=$1 AND r.tarih=$2 AND r.durum != 'iptal'
+        GROUP BY h.isim ORDER BY toplam_ciro DESC LIMIT 1
+      `, [isletmeId, bugun])).rows[0] || null;
+
+      // Günün en çok randevu alan çalışanı
+      const topCalisan = (await pool.query(`
+        SELECT c.isim, COUNT(r.id)::int as adet
+        FROM randevular r JOIN calisanlar c ON c.id = r.calisan_id
+        WHERE r.isletme_id=$1 AND r.tarih=$2 AND r.durum != 'iptal'
+        GROUP BY c.isim ORDER BY adet DESC LIMIT 1
+      `, [isletmeId, bugun])).rows[0] || null;
+
+      // Paket bitiş bilgisi
+      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      let paketKalanGun = null;
+      if (isletme?.paket_bitis_tarihi) {
+        paketKalanGun = Math.ceil((new Date(isletme.paket_bitis_tarihi) - Date.now()) / 86400000);
+      }
+
+      res.json({ topHizmet, topCalisan, paketKalanGun, paket: isletme?.paket });
+    } catch (error) {
+      res.json({ topHizmet: null, topCalisan: null, paketKalanGun: null });
+    }
+  }
+
   // ==================== GRAFİK İSTATİSTİK ====================
 
   async grafikVerileri(req, res) {
@@ -1936,6 +1984,39 @@ class AdminController {
     }
   }
 
+  async zombiTopluMesaj(req, res) {
+    try {
+      const { isletme_ids, mesaj, kanal } = req.body;
+      if (!isletme_ids?.length || !mesaj) return res.status(400).json({ hata: 'İşletme listesi ve mesaj gerekli' });
+
+      const isletmeler = (await pool.query(
+        'SELECT id, isim, telefon, telegram_token FROM isletmeler WHERE id = ANY($1::int[])',
+        [isletme_ids]
+      )).rows;
+
+      let basarili = 0, basarisiz = 0;
+
+      for (const isl of isletmeler) {
+        try {
+          if ((kanal === 'whatsapp' || kanal === 'hepsi') && isl.telefon) {
+            const satisBot = require('../services/satisBot');
+            if (satisBot.sock && satisBot.durum === 'bagli') {
+              const tel = isl.telefon.replace(/^\+/, '');
+              const jid = `${tel}@s.whatsapp.net`;
+              await satisBot.sock.sendMessage(jid, { text: mesaj });
+              basarili++;
+              await new Promise(r => setTimeout(r, 1500));
+            } else { basarisiz++; }
+          }
+        } catch (e) { basarisiz++; }
+      }
+
+      res.json({ mesaj: `${basarili} işletmeye mesaj gönderildi`, basarili, basarisiz, toplam: isletmeler.length });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   // ==================== REFERANS (Affiliate) SİSTEMİ ====================
 
   async referanslarListele(req, res) {
@@ -1975,34 +2056,16 @@ class AdminController {
       const { referans_kodu, yeni_isletme_id } = req.body;
       const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referans_kodu])).rows[0];
       if (!ref) return res.status(404).json({ hata: 'Geçersiz referans kodu' });
-      // Davet sayısını artır
+      // Davet sayısını artır + referans bağlantısını kaydet (ödül ilk ödeme anında verilecek)
       await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
-      // Yeni işletmeye referans bilgisini kaydet
       await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, yeni_isletme_id]);
 
-      // Min davet sayısına ulaştıysa bedava gün ver
-      const guncelRef = (await pool.query("SELECT * FROM referanslar WHERE id = $1", [ref.id])).rows[0];
-      const minDavet = guncelRef.min_davet || 1;
-      const bedavaGun = guncelRef.bedava_gun || 30;
-      let bedavaVerildi = false;
+      await this.auditLogYaz(null, 'referans_kullanildi', `Kod: ${referans_kodu}, sahip: ${ref.sahip_isletme_id}, yeni: ${yeni_isletme_id}`, 'referanslar', ref.id);
 
-      if (guncelRef.toplam_davet >= minDavet && guncelRef.toplam_davet % minDavet === 0) {
-        // Her min_davet'e ulaştığında bedava gün ekle
-        const yeniKazanilan = (guncelRef.kazanilan_ay || 0) + 1;
-        await pool.query("UPDATE referanslar SET kazanilan_ay = $1 WHERE id = $2", [yeniKazanilan, ref.id]);
-        bedavaVerildi = true;
-      }
-
-      await this.auditLogYaz(null, 'referans_kullanildi', `Kod: ${referans_kodu}, sahip: ${ref.sahip_isletme_id}, yeni: ${yeni_isletme_id}, davet: ${guncelRef.toplam_davet}/${minDavet}`, 'referanslar', ref.id);
-
-      const kalanDavet = minDavet - (guncelRef.toplam_davet % minDavet);
       res.json({
-        mesaj: bedavaVerildi
-          ? `Referans uygulandı! ${minDavet} davet tamamlandı — işletmeye ${bedavaGun} gün bedava hak eklendi!`
-          : `Referans uygulandı! Bedava hak için ${kalanDavet} davet daha gerekli.`,
+        mesaj: `Referans kaydedildi! Ödül, davet edilen işletme ilk ödemesini yaptığında verilecek.`,
         sahip_isletme_id: ref.sahip_isletme_id,
-        bedava_verildi: bedavaVerildi,
-        bedava_gun: bedavaGun
+        bedava_verildi: false
       });
     } catch (error) {
       res.status(500).json({ hata: error.message });

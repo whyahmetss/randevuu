@@ -38,6 +38,7 @@ router.get('/musteriler', authMiddleware, odemeKontrol, (req, res) => adminContr
 
 router.get('/istatistikler', authMiddleware, (req, res) => adminController.istatistikler(req, res));
 router.get('/grafik-verileri', authMiddleware, (req, res) => adminController.grafikVerileri(req, res));
+router.get('/dashboard-ekstra', authMiddleware, (req, res) => adminController.dashboardEkstra(req, res));
 
 router.get('/ayarlar', authMiddleware, (req, res) => adminController.isletmeAyarlari(req, res));
 router.put('/ayarlar', authMiddleware, (req, res) => adminController.isletmeGuncelle(req, res));
@@ -145,6 +146,7 @@ router.delete('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req,
 
 // ==================== ZOMBİ MÜŞTERİ TAKİBİ ====================
 router.get('/admin/zombiler', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiMusteriler(req, res));
+router.post('/admin/zombiler/mesaj', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiTopluMesaj(req, res));
 
 // ==================== REFERANS (Affiliate) SİSTEMİ ====================
 router.get('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res) => adminController.referanslarListele(req, res));

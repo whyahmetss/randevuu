@@ -468,9 +468,14 @@ function CalisanlarSayfasi({ paketDurum }) {
       ) : calisanlar.map(c => (
         <div key={c.id} className="list-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span className="list-item-name">{c.isim}</span>
-              {c.telefon && <span className="list-item-sub" style={{ marginLeft: 12, display: "inline" }}>📞 {c.telefon}</span>}
+              {c.telefon && <span className="list-item-sub" style={{ display: "inline" }}>📞 {c.telefon}</span>}
+              {(c.ay_randevu > 0) && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 10px", borderRadius: 8, background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontSize: 10, fontWeight: 700 }}>
+                  ⭐ {c.ay_randevu} randevu · {c.ay_ciro}₺
+                </span>
+              )}
             </div>
             <div className="row gap-8">
               <span className="tag" style={{ background: (c.aktif === false) ? "var(--red-s)" : "rgba(16,185,129,.12)", color: (c.aktif === false) ? "var(--red)" : "var(--green)" }}>
@@ -762,6 +767,7 @@ function Dashboard() {
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false);
   const [paketModal, setPaketModal] = useState(false);
   const [grafikVeri, setGrafikVeri] = useState(null);
+  const [dashEkstra, setDashEkstra] = useState(null);
   const [odemeBilgi, setOdemeBilgi] = useState(null);
   const [havaleNotu, setHavaleNotu] = useState("");
   const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
@@ -791,6 +797,7 @@ function Dashboard() {
     verileriYukle();
     api.get("/paket").then(d => { if (d.paket) setPaketDurum(d); });
     api.get("/grafik-verileri").then(d => { if (!d.hata) setGrafikVeri(d); }).catch(() => {});
+    api.get("/dashboard-ekstra").then(d => { if (!d.hata) setDashEkstra(d); }).catch(() => {});
     api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); }).catch(() => {});
     api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
     api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
@@ -1301,6 +1308,34 @@ function Dashboard() {
                 </div>
               </div>
 
+              {/* ── ROW 3.5: Günün İstatistikleri ── */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 22px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(84,224,151,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>💰</div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, marginBottom: 2 }}>Günün En Çok Kazandıran Hizmeti</div>
+                    {dashEkstra?.topHizmet ? (
+                      <>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>{dashEkstra.topHizmet.isim}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{dashEkstra.topHizmet.adet} randevu · {dashEkstra.topHizmet.toplam_ciro}₺</div>
+                      </>
+                    ) : <div style={{ fontSize: 13, color: "var(--dim)" }}>Bugün henüz randevu yok</div>}
+                  </div>
+                </div>
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 22px", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(139,92,246,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>⭐</div>
+                  <div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, marginBottom: 2 }}>Günün En Çok Randevu Alan Çalışanı</div>
+                    {dashEkstra?.topCalisan ? (
+                      <>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>{dashEkstra.topCalisan.isim}</div>
+                        <div style={{ fontSize: 11, color: "var(--muted)" }}>{dashEkstra.topCalisan.adet} randevu bugün</div>
+                      </>
+                    ) : <div style={{ fontSize: 13, color: "var(--dim)" }}>Bugün henüz randevu yok</div>}
+                  </div>
+                </div>
+              </div>
+
               {/* ── ROW 4: Gelir Trendi + Hizmet Dağılımı ── */}
               {grafikVeri && (
                 <div className="dash-sub-grid" style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20, marginBottom: 20 }}>
@@ -1395,57 +1430,81 @@ function Dashboard() {
                 )}
               </div>
 
-              {/* ── ROW 6: Ödeme Durumu ── */}
+              {/* ── ROW 6: Paket & Ödeme Durumu ── */}
               {odemeBilgi && (
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", borderLeft: `4px solid ${odemeBilgi.odeme?.durum === 'odendi' ? '#2cb872' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '#f59e0b' : '#ef4444'}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ fontSize: 20 }}>💳</span>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Ödeme Durumu</div>
-                        <div style={{ fontSize: 11, color: "var(--dim)" }}>{odemeBilgi.donem}</div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Paket & Ödeme Durumu</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)" }}>{odemeBilgi.donem} · {dashEkstra?.paket || odemeBilgi.paket || ''}</div>
                       </div>
                     </div>
-                    <span className={`tag ${odemeBilgi.odeme?.durum === 'odendi' ? 'tag-green' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'tag-amber' : 'tag-red'}`} style={{ padding: "4px 14px", fontSize: 12 }}>
-                      {odemeBilgi.odeme?.durum === 'odendi' ? '✅ Ödendi' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '⏳ Onay Bekliyor' : '❌ Ödenmedi'}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {dashEkstra?.paketKalanGun != null && (
+                        <div style={{ padding: "6px 14px", borderRadius: 10, background: dashEkstra.paketKalanGun > 7 ? "rgba(84,224,151,.08)" : dashEkstra.paketKalanGun > 0 ? "rgba(245,158,11,.08)" : "rgba(239,68,68,.08)", display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontSize: 18 }}>{dashEkstra.paketKalanGun > 7 ? "✅" : dashEkstra.paketKalanGun > 0 ? "⚠️" : "🔴"}</span>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: dashEkstra.paketKalanGun > 7 ? "#2cb872" : dashEkstra.paketKalanGun > 0 ? "#f59e0b" : "#ef4444" }}>
+                              {dashEkstra.paketKalanGun > 0 ? `${dashEkstra.paketKalanGun} gün kaldı` : "Süre doldu"}
+                            </div>
+                            <div style={{ fontSize: 10, color: "var(--dim)" }}>Paket bitiş</div>
+                          </div>
+                        </div>
+                      )}
+                      <span className={`tag ${odemeBilgi.odeme?.durum === 'odendi' ? 'tag-green' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'tag-amber' : 'tag-red'}`} style={{ padding: "4px 14px", fontSize: 12 }}>
+                        {odemeBilgi.odeme?.durum === 'odendi' ? '✅ Ödendi' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '⏳ Onay Bekliyor' : '❌ Ödenmedi'}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Ödenmemiş → Tek tıkla uzat + havale */}
                   {(!odemeBilgi.odeme || odemeBilgi.odeme.durum === 'bekliyor') && (
-                    <div className="odeme-panel">
-                      <div className="odeme-tutar">{odemeBilgi.tutar}₺ <span className="odeme-paket">{odemeBilgi.paket} paket</span></div>
-                      <div className="banka-bilgi">
-                        <div><strong>Banka:</strong> {odemeBilgi.banka?.banka_adi}</div>
-                        <div><strong>IBAN:</strong> {odemeBilgi.banka?.iban}</div>
-                        <div><strong>Hesap Sahibi:</strong> {odemeBilgi.banka?.hesap_sahibi}</div>
-                        <div><strong>Açıklama:</strong> <span className="ref-kod">{odemeBilgi.banka?.aciklama}</span></div>
+                    <div>
+                      <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                        <button onClick={() => {
+                          const token = localStorage.getItem("randevugo_token");
+                          const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
+                          window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
+                        }} style={{ flex: 1, padding: "14px 20px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#54E097,#2cb872)", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                          🚀 Tek Tıkla Paketini Uzat — {odemeBilgi.tutar}₺
+                        </button>
                       </div>
-                      <div className="ref-uyari">⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutmayın!</div>
-                      <div className="row row-wrap gap-8 mt-12">
+                      <details style={{ background: "var(--surface2)", borderRadius: 12, padding: "12px 16px" }}>
+                        <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--dim)" }}>🏦 Havale/EFT ile ödemek istiyorum</summary>
+                        <div style={{ marginTop: 10 }} className="banka-bilgi">
+                          <div><strong>Banka:</strong> {odemeBilgi.banka?.banka_adi}</div>
+                          <div><strong>IBAN:</strong> {odemeBilgi.banka?.iban}</div>
+                          <div><strong>Hesap Sahibi:</strong> {odemeBilgi.banka?.hesap_sahibi}</div>
+                          <div><strong>Açıklama:</strong> <span className="ref-kod">{odemeBilgi.banka?.aciklama}</span></div>
+                        </div>
+                        <div className="ref-uyari" style={{ marginTop: 8 }}>⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutmayın!</div>
                         <button onClick={async () => {
                           setOdemeYukleniyor(true);
                           const d = await api.post("/odeme/havale", { dekont_notu: "" });
                           if (!d.hata) { api.get("/odeme/durum").then(d2 => { if (!d2.hata) setOdemeBilgi(d2); }); }
                           setOdemeYukleniyor(false);
-                        }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm">
+                        }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm" style={{ marginTop: 10 }}>
                           {odemeYukleniyor ? "Gönderiliyor..." : "📤 Havale Bildirimi Gönder"}
                         </button>
-                        <button onClick={() => {
-                          const token = localStorage.getItem("randevugo_token");
-                          const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
-                          window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
-                        }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "var(--gradient-accent)", color: "#fff", fontWeight: 700, border: "none" }}>
-                          🔒 Kredi Kartı ile Öde
-                        </button>
-                      </div>
+                      </details>
                     </div>
                   )}
                   {odemeBilgi.odeme?.durum === 'havale_bekliyor' && (
                     <div className="alert alert-amber mt-12">Havale bildiriminiz alındı. SuperAdmin onayı bekleniyor.</div>
                   )}
                   {odemeBilgi.odeme?.durum === 'odendi' && (
-                    <div style={{ background: "rgba(84,224,151,.06)", border: "1px solid rgba(84,224,151,.15)", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
-                      <span style={{ fontSize: 20 }}>🎉</span>
-                      <div style={{ fontSize: 13, color: "#2cb872", fontWeight: 600 }}>Bu dönem ödemesi tamamlandı. Teşekkürler!</div>
+                    <div style={{ background: "rgba(84,224,151,.06)", border: "1px solid rgba(84,224,151,.15)", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 20 }}>🎉</span>
+                        <div style={{ fontSize: 13, color: "#2cb872", fontWeight: 600 }}>Bu dönem ödemesi tamamlandı. Teşekkürler!</div>
+                      </div>
+                      {dashEkstra?.paket && dashEkstra.paket !== 'premium' && (
+                        <button onClick={() => setPaketModal(true)} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#8b5cf6,#6d28d9)", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                          ⬆️ Paketini Yükselt
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1864,6 +1923,10 @@ function SuperAdminPanel({ kullanici }) {
   const [duzenlePaket, setDuzenlePaket] = useState(null);
   // Zombi Müşteriler
   const [zombiler, setZombiler] = useState([]);
+  const [zombiSecili, setZombiSecili] = useState([]);
+  const [zombiMesajModal, setZombiMesajModal] = useState(false);
+  const [zombiMesajMetni, setZombiMesajMetni] = useState('');
+  const [zombiKanal, setZombiKanal] = useState('whatsapp');
   // Referans Sistemi
   const [referanslar, setReferanslar] = useState([]);
   // Duyurular
@@ -3177,7 +3240,15 @@ function SuperAdminPanel({ kullanici }) {
           const pasif30 = zombiler.filter(z => z.zombi_durum === 'pasif_30gun');
           const durumRenk = { bot_yok: "#ef4444", randevu_yok: "#f59e0b", pasif_30gun: "#3b82f6" };
           const durumLabel = { bot_yok: "🚫 Bot Yok & Randevu Yok", randevu_yok: "📭 Hiç Randevu Almamış", pasif_30gun: "😴 30+ Gün Randevu Yok" };
-          const durumAciklama = { bot_yok: "Bot bağlamamış ve hiç randevusu yok", randevu_yok: "Bot bağlı ama hiç randevu almamış", pasif_30gun: "Son 30 gündür randevu almamış" };
+          const tumunuSec = () => { if (zombiSecili.length === zombiler.length) setZombiSecili([]); else setZombiSecili(zombiler.map(z => z.id)); };
+          const zombiMesajGonder = async () => {
+            if (!zombiMesajMetni.trim() || zombiSecili.length === 0) return;
+            try {
+              const d = await api.post("/admin/zombiler/mesaj", { isletme_ids: zombiSecili, mesaj: zombiMesajMetni, kanal: zombiKanal });
+              alert(d.mesaj || 'Gönderildi');
+              setZombiMesajModal(false); setZombiMesajMetni(''); setZombiSecili([]);
+            } catch(e) { alert('Hata: ' + (e.message || 'Gönderilemedi')); }
+          };
           return (
           <>
             <div className="page-header">
@@ -3192,6 +3263,21 @@ function SuperAdminPanel({ kullanici }) {
               <div className="stat-card" style={{"--card-accent":"#64748b"}}><div className="sc-icon">🧟</div><div className="sc-label">Toplam Zombi</div><div className="sc-val">{zombiler.length}</div></div>
             </div>
 
+            {/* Aksiyon Bar */}
+            {zombiler.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, padding: "10px 16px", background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border)" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+                  <input type="checkbox" checked={zombiSecili.length === zombiler.length && zombiler.length > 0} onChange={tumunuSec} style={{ accentColor: "#8b5cf6", width: 16, height: 16 }} />
+                  Tümünü Seç ({zombiSecili.length}/{zombiler.length})
+                </label>
+                <div style={{ flex: 1 }} />
+                <button onClick={() => { if (zombiSecili.length === 0) return alert('Önce işletme seçin'); setZombiMesajModal(true); }}
+                  style={{ padding: "8px 16px", borderRadius: 10, background: zombiSecili.length > 0 ? "linear-gradient(135deg,#8b5cf6,#6d28d9)" : "#64748b40", color: zombiSecili.length > 0 ? "#fff" : "var(--dim)", border: "none", fontWeight: 700, fontSize: 13, cursor: zombiSecili.length > 0 ? "pointer" : "default" }}>
+                  📨 Seçilenlere Mesaj Gönder ({zombiSecili.length})
+                </button>
+              </div>
+            )}
+
             {zombiler.length === 0 ? (
               <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}>
                 <div style={{ fontSize: 48, marginBottom: 8 }}>🎉</div>
@@ -3203,16 +3289,19 @@ function SuperAdminPanel({ kullanici }) {
                 {zombiler.map(z => {
                   const renk = durumRenk[z.zombi_durum] || "#64748b";
                   const gunOnce = z.olusturma_tarihi ? Math.floor((new Date() - new Date(z.olusturma_tarihi)) / 86400000) : 0;
+                  const secili = zombiSecili.includes(z.id);
                   return (
-                    <div key={z.id} onClick={() => isletmeDetayYukle(z.id)} style={{ background: "var(--surface)", borderRadius: 14, padding: "14px 18px", border: `1px solid ${renk}20`, cursor: "pointer", transition: "all .15s" }}>
+                    <div key={z.id} style={{ background: secili ? "rgba(139,92,246,.06)" : "var(--surface)", borderRadius: 14, padding: "14px 18px", border: `1px solid ${secili ? "#8b5cf6" : renk + "20"}`, cursor: "pointer", transition: "all .15s" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        {/* Checkbox */}
+                        <input type="checkbox" checked={secili} onChange={() => { if (secili) setZombiSecili(zombiSecili.filter(id => id !== z.id)); else setZombiSecili([...zombiSecili, z.id]); }} onClick={e => e.stopPropagation()} style={{ accentColor: "#8b5cf6", width: 16, height: 16, flexShrink: 0 }} />
                         {/* Avatar */}
-                        <div style={{ width: 40, height: 40, borderRadius: 10, background: `${renk}12`, display: "flex", alignItems: "center", justifyContent: "center", color: renk, fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
+                        <div onClick={() => isletmeDetayYukle(z.id)} style={{ width: 40, height: 40, borderRadius: 10, background: `${renk}12`, display: "flex", alignItems: "center", justifyContent: "center", color: renk, fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
                           {(z.isim || "?")[0]}
                         </div>
 
                         {/* Bilgi */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div onClick={() => isletmeDetayYukle(z.id)} style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                             <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{z.isim}</span>
                             <span style={{ padding: "2px 8px", borderRadius: 6, background: `${renk}12`, color: renk, fontSize: 10, fontWeight: 700 }}>{durumLabel[z.zombi_durum]}</span>
@@ -3249,6 +3338,31 @@ function SuperAdminPanel({ kullanici }) {
                 • Bot bağlı ve randevusu olan işletmeler burada <strong>gösterilmez</strong>
               </div>
             </div>
+
+            {/* Toplu Mesaj Modal */}
+            {zombiMesajModal && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setZombiMesajModal(false)}>
+                <div onClick={e => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 20, padding: 28, width: "100%", maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,.3)" }}>
+                  <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 800, color: "var(--text)" }}>📨 Toplu Mesaj Gönder</h3>
+                  <p style={{ fontSize: 13, color: "var(--dim)", marginBottom: 16 }}>{zombiSecili.length} işletmeye mesaj gönderilecek</p>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 6, display: "block" }}>Kanal</label>
+                    <select value={zombiKanal} onChange={e => setZombiKanal(e.target.value)} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14 }}>
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="hepsi">WhatsApp + Telegram</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 6, display: "block" }}>Mesaj Metni</label>
+                    <textarea value={zombiMesajMetni} onChange={e => setZombiMesajMetni(e.target.value)} rows={5} placeholder="Merhaba, SıraGO olarak sizinle tekrar iletişime geçmek istedik..." style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 14, resize: "vertical", fontFamily: "inherit" }} />
+                  </div>
+                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                    <button onClick={() => setZombiMesajModal(false)} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--text)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>İptal</button>
+                    <button onClick={zombiMesajGonder} disabled={!zombiMesajMetni.trim()} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: zombiMesajMetni.trim() ? "linear-gradient(135deg,#8b5cf6,#6d28d9)" : "#64748b40", color: zombiMesajMetni.trim() ? "#fff" : "var(--dim)", fontWeight: 700, fontSize: 13, cursor: zombiMesajMetni.trim() ? "pointer" : "default" }}>Gönder</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
           );
         })()}

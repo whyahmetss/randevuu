@@ -867,9 +867,9 @@ class SatisBot extends EventEmitter {
       }
     }
 
-    // Gelen mesajı kaydet
+    // Gelen mesajı kaydet + takip sekansını durdur (ai_devrede)
     await pool.query(
-      "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, son_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $2",
+      "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, son_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul'), durum = CASE WHEN durum = 'bekliyor' THEN 'ai_devrede' ELSE durum END WHERE id = $2",
       [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, konusma.id]
     );
 
@@ -935,7 +935,7 @@ class SatisBot extends EventEmitter {
         await this.sock.sendMessage(remoteJid, { text: fallback.mesaj });
         await pool.query(
           "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
-          [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${fallback.mesaj}`, fallback.durum || konusma.durum, konusma.id]
+          [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${fallback.mesaj}`, fallback.durum || 'ai_devrede', konusma.id]
         );
       }
       return;
@@ -961,7 +961,7 @@ class SatisBot extends EventEmitter {
       // Konuşma kaydını güncelle
       await pool.query(
         "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
-        [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${aiCevap.mesaj}`, aiCevap.durum || konusma.durum, konusma.id]
+        [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${aiCevap.mesaj}`, aiCevap.durum || 'ai_devrede', konusma.id]
       );
 
       // Lead durumunu güncelle

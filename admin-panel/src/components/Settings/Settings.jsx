@@ -38,13 +38,27 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
     );
   }
 
+  const cardIcon = (emoji, color) => (
+    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}14`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{emoji}</div>
+  );
+  const cardHeader = (emoji, title, color = "#8b5cf6") => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      {cardIcon(emoji, color)}
+      <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text)" }}>{title}</h3>
+    </div>
+  );
+
   return (
     <div className="settings-wrap">
       {kaydedildi && (
         <div className="alert alert-success mb-20">✓ Ayarlar kaydedildi</div>
       )}
+
+      {/* 2 sütunlu grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
       <div className="settings-card">
-        <h3>İşletme Bilgileri</h3>
+        {cardHeader("🏢", "İşletme Bilgileri", "#3b82f6")}
         <div className="form-grid" style={{ gap: 16 }}>
           {[
             { label: "İşletme Adı", key: "isim" },
@@ -58,7 +72,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </div>
       </div>
       <div className="settings-card">
-        <h3>Çalışma Saatleri</h3>
+        {cardHeader("🕐", "Çalışma Saatleri", "#10b981")}
         <div className="form-grid" style={{ gap: 16 }}>
           <div>
             <label className="form-label">Açılış Saati</label>
@@ -71,7 +85,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </div>
       </div>
       <div className="settings-card">
-        <h3>Mola / Kapalı Saatler</h3>
+        {cardHeader("☕", "Mola / Kapalı Saatler", "#f59e0b")}
         <div style={{ color: "var(--dim)", fontSize: 12 }} className="mb-16">Bu saatlerde randevu alınamaz (yemek arası, özel işler, vs.)</div>
         {(ayarlar.mola_saatleri || []).map((mola, idx) => (
           <div key={idx} className="mola-row">
@@ -105,7 +119,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </button>
       </div>
       <div className="settings-card mb-24">
-        <h3 style={{ margin: "0 0 16px" }}>Kapalı Günler</h3>
+        {cardHeader("📅", "Kapalı Günler", "#ef4444")}
         <div className="row row-wrap gap-8">
           {[["0","Pazar"],["1","Pazartesi"],["2","Salı"],["3","Çarşamba"],["4","Perşembe"],["5","Cuma"],["6","Cumartesi"]].map(([v, l]) => {
             const kapalilar = String(ayarlar.kapali_gunler || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -123,7 +137,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         <div style={{ color: "var(--dim)", fontSize: 12 }} className="mt-10">Seçilen günlerde randevu alınamaz</div>
       </div>
       <div className="settings-card">
-        <h3>Kapora / Ön Ödeme</h3>
+        {cardHeader("💳", "Kapora / Ön Ödeme", "#10b981")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 16 }}>Aktif edildiğinde, kapora oranı belirlenmiş hizmetler için müşteriden ön ödeme istenir. Ödeme Shopier üzerinden alınır.</div>
         <div className="row gap-12" style={{ alignItems: "center" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
@@ -142,7 +156,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ── BOT KONUŞMA STİLİ ── */}
       <div className="settings-card">
-        <h3>Bot Konuşma Stili</h3>
+        {cardHeader("🤖", "Bot Konuşma Stili", "#8b5cf6")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Botun müşterilerle nasıl konuşacağını belirler (DeepSeek cevapları buna göre şekillenir)</div>
         <div className="row gap-8 row-wrap">
           {[['samimi', 'Samimi'], ['resmi', 'Resmi'], ['kisa', 'Kısa']].map(([val, label]) => (
@@ -156,7 +170,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ── RANDEVU MODU ── */}
       <div className="settings-card">
-        <h3>Randevu Modu</h3>
+        {cardHeader("📋", "Randevu Modu", "#3b82f6")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Randevuların nasıl planlanacağını belirler</div>
         <select value={ayarlar.randevu_modu || 'sirali'} onChange={e => setAyarlar({...ayarlar, randevu_modu: e.target.value})} className="input" style={{ maxWidth: 300 }}>
           <option value="sirali">Sıralı (arka arkaya slot)</option>
@@ -167,7 +181,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ── ÇALIŞAN SEÇİMİ ── */}
       <div className="settings-card">
-        <h3>Çalışan Seçim Modu</h3>
+        {cardHeader("👥", "Çalışan Seçim Modu", "#6366f1")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Müşteri randevu alırken çalışan nasıl belirlenir</div>
         <select value={ayarlar.calisan_secim_modu || 'musteri'} onChange={e => setAyarlar({...ayarlar, calisan_secim_modu: e.target.value})} className="input" style={{ maxWidth: 300 }}>
           <option value="musteri">Müşteri Seçer</option>
@@ -178,7 +192,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ── RANDEVU ONAY MODU ── */}
       <div className="settings-card">
-        <h3>Randevu Onay Modu</h3>
+        {cardHeader("✅", "Randevu Onay Modu", "#10b981")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Randevular otomatik mi onaylansın yoksa siz mi onaylayacaksınız</div>
         <div className="form-grid" style={{ gap: 16 }}>
           <div>
@@ -199,7 +213,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ── İPTAL SINIRI ── */}
       <div className="settings-card">
-        <h3>İptal Sınırı</h3>
+        {cardHeader("🚫", "İptal Sınırı", "#ef4444")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Müşteri randevuya en az kaç saat kala iptal edebilir (0 = sınır yok)</div>
         <input type="number" min="0" max="72" value={ayarlar.iptal_sinir_saat || 0} onChange={e => setAyarlar({...ayarlar, iptal_sinir_saat: parseInt(e.target.value) || 0})} className="input" style={{ maxWidth: 120 }} />
         <span style={{ marginLeft: 8, color: "var(--dim)", fontSize: 13 }}>saat</span>
@@ -207,7 +221,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ── MESAİ DIŞI DAVRANIŞ ── */}
       <div className="settings-card">
-        <h3>Mesai Dışı Davranış</h3>
+        {cardHeader("🌙", "Mesai Dışı Davranış", "#64748b")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Çalışma saatleri dışında gelen mesajlara bot nasıl tepki versin</div>
         <select value={ayarlar.mesai_disi_mod || 'kapali_mesaj'} onChange={e => setAyarlar({...ayarlar, mesai_disi_mod: e.target.value})} className="input" style={{ maxWidth: 300 }}>
           <option value="kapali_mesaj">Kapalı Mesajı Gönder</option>
@@ -223,9 +237,11 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         )}
       </div>
 
-      {/* ── KARA LİSTE ── */}
-      <div className="settings-card">
-        <h3>Kara Liste</h3>
+      </div>{/* grid kapanış */}
+
+      {/* ── KARA LİSTE — tam genişlik ── */}
+      <div className="settings-card" style={{ marginTop: 16 }}>
+        {cardHeader("🛡️", "Kara Liste", "#ef4444")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Engellenen numaralar bota mesaj atsa bile cevap almaz</div>
         <div className="row gap-8 mb-12" style={{ alignItems: "center" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
@@ -277,7 +293,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ── ÇOKLU DİL ── */}
       <div className="settings-card">
-        <h3>Bot Dilleri</h3>
+        {cardHeader("🌐", "Bot Dilleri", "#0ea5e9")}
         <div style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Bot hangi dillerde cevap verebilsin</div>
         <div className="row gap-8 row-wrap">
           {[['tr', 'Türkçe'], ['en', 'English'], ['ar', 'العربية']].map(([kod, label]) => {
@@ -296,7 +312,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </div>
       </div>
 
-      <button onClick={kaydet} className="btn btn-primary btn-lg">
+      <button onClick={kaydet} className="btn btn-primary btn-lg" style={{ marginTop: 16 }}>
         Kaydet
       </button>
     </div>

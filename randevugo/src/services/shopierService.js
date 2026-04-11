@@ -180,6 +180,39 @@ class ShopierService {
         );
       }
       console.log(`✅ Shopier ödeme onaylandı: işletme=${isletmeId}, sipariş=#${siparisId}, tutar=${tutar}₺`);
+
+      // Paket bitiş tarihini +30 gün yenile ve aktif yap
+      await pool.query(
+        "UPDATE isletmeler SET paket_bitis_tarihi = NOW() + INTERVAL '30 days', aktif = true WHERE id = $1",
+        [isletmeId]
+      );
+
+      // Referans ödülü: ilk ödeme yapan davetli işletme ise, referans sahibine kazanilan_ay +1
+      try {
+        const refIsletme = (await pool.query(
+          "SELECT referans_ile_gelen, referans_odeme_tetiklendi FROM isletmeler WHERE id = $1",
+          [isletmeId]
+        )).rows[0];
+        if (refIsletme && refIsletme.referans_ile_gelen && !refIsletme.referans_odeme_tetiklendi) {
+          const sahipId = refIsletme.referans_ile_gelen;
+          await pool.query(
+            "UPDATE referanslar SET kazanilan_ay = kazanilan_ay + 1 WHERE sahip_isletme_id = $1",
+            [sahipId]
+          );
+          await pool.query(
+            "UPDATE isletmeler SET referans_odeme_tetiklendi = true WHERE id = $1",
+            [isletmeId]
+          );
+          // Sahip işletmenin paket süresine de +30 gün ekle
+          await pool.query(
+            "UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + INTERVAL '30 days' WHERE id = $1",
+            [sahipId]
+          );
+          console.log(`🎁 Referans ödülü verildi: sahip=${sahipId}, ödeme yapan=${isletmeId}`);
+        }
+      } catch (refErr) {
+        console.error('⚠️ Referans ödül hatası:', refErr.message);
+      }
     } else {
       // Eşleştirilemeyen sipariş
       await pool.query(
