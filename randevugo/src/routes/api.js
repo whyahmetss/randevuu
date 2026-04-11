@@ -113,6 +113,10 @@ router.post('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, 
 router.delete('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraSil(req, res));
 router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraDurumGuncelle(req, res));
 
+// ==================== MÜŞTERİ AKTİVİTE & BİLDİRİM MERKEZİ ====================
+router.get('/admin/musteri-aktivite', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriAktivite(req, res));
+router.get('/admin/bildirimler', authMiddleware, superAdminMiddleware, (req, res) => adminController.bildirimMerkezi(req, res));
+
 // ==================== AUDIT LOG ====================
 router.get('/admin/audit-log', authMiddleware, superAdminMiddleware, (req, res) => adminController.auditLogListele(req, res));
 

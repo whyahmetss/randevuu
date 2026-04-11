@@ -1997,6 +1997,255 @@ class AdminController {
       });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
+  // ==================== MÜŞTERİ AKTİVİTE HARİTASI ====================
+
+  async musteriAktivite(req, res) {
+    try {
+      const buAy = new Date().toISOString().slice(0, 7);
+      const gecenAyDate = new Date(); gecenAyDate.setMonth(gecenAyDate.getMonth() - 1);
+      const gecenAy = gecenAyDate.toISOString().slice(0, 7);
+
+      // Her işletmenin aktivite verileri
+      const isletmeler = (await pool.query(`
+        SELECT i.id, i.isim, i.kategori, i.paket, i.aktif, i.olusturma_tarihi, i.ilce,
+          (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= date_trunc('month', CURRENT_DATE)) as bu_ay_randevu,
+          (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= date_trunc('month', CURRENT_DATE) - interval '1 month' AND r.tarih < date_trunc('month', CURRENT_DATE)) as gecen_ay_randevu,
+          (SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id) as toplam_musteri,
+          (SELECT COUNT(*) FROM hizmetler h WHERE h.isletme_id = i.id) as hizmet_sayisi,
+          (SELECT COUNT(*) FROM calisanlar c WHERE c.isletme_id = i.id) as calisan_sayisi,
+          (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id) as toplam_randevu
+        FROM isletmeler i ORDER BY bu_ay_randevu DESC
+      `)).rows;
+
+      // Bot kullanım durumu
+      let botKullanim = {};
+      try {
+        botKullanim = (await pool.query(`
+          SELECT isletme_id, COUNT(*) as mesaj_sayisi 
+          FROM bot_mesajlar 
+          WHERE olusturma_tarihi >= date_trunc('month', CURRENT_DATE) 
+          GROUP BY isletme_id
+        `)).rows.reduce((acc, r) => { acc[r.isletme_id] = parseInt(r.mesaj_sayisi); return acc; }, {});
+      } catch(e) { /* tablo yoksa boş */ }
+
+      // Ödeme durumları
+      let odemeDurumlari = {};
+      try {
+        odemeDurumlari = (await pool.query(`
+          SELECT isletme_id, durum FROM odemeler WHERE donem = $1
+        `, [buAy])).rows.reduce((acc, r) => { acc[r.isletme_id] = r.durum; return acc; }, {});
+      } catch(e) {}
+
+      // Son giriş tarihleri
+      let sonGirisler = {};
+      try {
+        sonGirisler = (await pool.query(`
+          SELECT isletme_id, MAX(olusturma_tarihi) as son_giris FROM audit_log WHERE islem = 'giris' GROUP BY isletme_id
+        `)).rows.reduce((acc, r) => { acc[r.isletme_id] = r.son_giris; return acc; }, {});
+      } catch(e) { /* tablo yoksa boş */ }
+
+      const aktiviteler = isletmeler.map(i => {
+        const buAyR = parseInt(i.bu_ay_randevu) || 0;
+        const gecenAyR = parseInt(i.gecen_ay_randevu) || 0;
+        const buyume = gecenAyR > 0 ? Math.round((buAyR - gecenAyR) / gecenAyR * 100) : (buAyR > 0 ? 100 : 0);
+        const botMesaj = botKullanim[i.id] || 0;
+        
+        // Aktivite skoru: randevu(40%) + müşteri(20%) + bot(20%) + hizmet(10%) + çalışan(10%)
+        const skor = Math.min(100, Math.round(
+          Math.min(buAyR * 4, 40) + 
+          Math.min(parseInt(i.toplam_musteri) * 2, 20) + 
+          Math.min(botMesaj * 0.5, 20) + 
+          Math.min(parseInt(i.hizmet_sayisi) * 5, 10) + 
+          Math.min(parseInt(i.calisan_sayisi) * 5, 10)
+        ));
+
+        return {
+          id: i.id,
+          isim: i.isim,
+          kategori: i.kategori,
+          paket: i.paket,
+          aktif: i.aktif,
+          ilce: i.ilce,
+          olusturma_tarihi: i.olusturma_tarihi,
+          bu_ay_randevu: buAyR,
+          gecen_ay_randevu: gecenAyR,
+          randevu_buyume: buyume,
+          toplam_randevu: parseInt(i.toplam_randevu) || 0,
+          toplam_musteri: parseInt(i.toplam_musteri) || 0,
+          hizmet_sayisi: parseInt(i.hizmet_sayisi) || 0,
+          calisan_sayisi: parseInt(i.calisan_sayisi) || 0,
+          bot_mesaj: botMesaj,
+          odeme_durumu: odemeDurumlari[i.id] || 'odenmedi',
+          son_giris: sonGirisler[i.id] || null,
+          aktivite_skoru: skor
+        };
+      });
+
+      // Genel istatistikler
+      const toplamRandevu = aktiviteler.reduce((s, a) => s + a.bu_ay_randevu, 0);
+      const toplamMusteri = aktiviteler.reduce((s, a) => s + a.toplam_musteri, 0);
+      const ortSkor = aktiviteler.length > 0 ? Math.round(aktiviteler.reduce((s, a) => s + a.aktivite_skoru, 0) / aktiviteler.length) : 0;
+      const aktifSayi = aktiviteler.filter(a => a.aktivite_skoru > 20).length;
+      const pasifSayi = aktiviteler.filter(a => a.aktivite_skoru <= 20).length;
+
+      res.json({
+        aktiviteler,
+        ozet: { toplamRandevu, toplamMusteri, ortSkor, aktifSayi, pasifSayi, toplam: aktiviteler.length }
+      });
+    } catch (error) {
+      console.error('Müşteri aktivite hatası:', error);
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== BİLDİRİM MERKEZİ ====================
+
+  async bildirimMerkezi(req, res) {
+    try {
+      const buAy = new Date().toISOString().slice(0, 7);
+      const bugun = new Date().toISOString().slice(0, 10);
+      const bildirimler = [];
+
+      // 1. Ödeme gecikmeleri
+      const odemeyenler = (await pool.query(`
+        SELECT i.id, i.isim, i.paket, i.olusturma_tarihi
+        FROM isletmeler i
+        WHERE i.aktif = true
+          AND NOT EXISTS (SELECT 1 FROM odemeler o WHERE o.isletme_id = i.id AND o.donem = $1 AND o.durum = 'odendi')
+      `, [buAy])).rows;
+
+      for (const i of odemeyenler) {
+        const gunFark = Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000);
+        if (gunFark > 7) {
+          bildirimler.push({
+            tip: 'odeme_gecikme',
+            oncelik: 'yuksek',
+            baslik: `${i.isim} ödeme yapmadı`,
+            mesaj: `${buAy} dönemi için ödeme yapılmadı. Paket: ${i.paket}`,
+            tarih: new Date().toISOString(),
+            isletme_id: i.id,
+            ikon: '💰'
+          });
+        }
+      }
+
+      // 2. Deneme süresi dolacak işletmeler (kalan <= 2 gün)
+      const denemeSuresiDolanlar = (await pool.query(`
+        SELECT id, isim, olusturma_tarihi FROM isletmeler WHERE aktif = true
+      `)).rows.filter(i => {
+        const gun = Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000);
+        return gun >= 5 && gun <= 7;
+      });
+
+      for (const i of denemeSuresiDolanlar) {
+        const kalan = 7 - Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000);
+        bildirimler.push({
+          tip: 'deneme_bitiyor',
+          oncelik: 'orta',
+          baslik: `${i.isim} deneme süresi bitiyor`,
+          mesaj: `${kalan} gün kaldı. Ödeme yapılmazsa erişim kısıtlanacak.`,
+          tarih: i.olusturma_tarihi,
+          isletme_id: i.id,
+          ikon: '⏰'
+        });
+      }
+
+      // 3. Yeni kayıtlar (son 7 gün)
+      const yeniKayitlar = (await pool.query(`
+        SELECT id, isim, kategori, olusturma_tarihi FROM isletmeler 
+        WHERE olusturma_tarihi >= NOW() - INTERVAL '7 days' ORDER BY olusturma_tarihi DESC
+      `)).rows;
+
+      for (const i of yeniKayitlar) {
+        bildirimler.push({
+          tip: 'yeni_kayit',
+          oncelik: 'dusuk',
+          baslik: `Yeni işletme: ${i.isim}`,
+          mesaj: `${i.kategori} kategorisinde yeni kayıt.`,
+          tarih: i.olusturma_tarihi,
+          isletme_id: i.id,
+          ikon: '🆕'
+        });
+      }
+
+      // 4. Havale bekleyenler
+      const havaleBekleyenler = (await pool.query(`
+        SELECT o.id, o.isletme_id, o.tutar, o.donem, i.isim
+        FROM odemeler o JOIN isletmeler i ON i.id = o.isletme_id
+        WHERE o.durum = 'havale_bekliyor' ORDER BY o.olusturma_tarihi DESC
+      `)).rows;
+
+      for (const h of havaleBekleyenler) {
+        bildirimler.push({
+          tip: 'havale_onay',
+          oncelik: 'yuksek',
+          baslik: `${h.isim} havale onay bekliyor`,
+          mesaj: `${h.tutar}₺ havale bildirimi - ${h.donem} dönemi`,
+          tarih: new Date().toISOString(),
+          isletme_id: h.isletme_id,
+          odeme_id: h.id,
+          ikon: '🏦'
+        });
+      }
+
+      // 5. Destek talepleri (açık olanlar)
+      let acikDestekler = [];
+      try {
+        acikDestekler = (await pool.query(`
+          SELECT d.id, d.baslik, d.olusturma_tarihi, i.isim
+          FROM destek_talepleri d LEFT JOIN isletmeler i ON i.id = d.isletme_id
+          WHERE d.durum = 'acik' ORDER BY d.olusturma_tarihi DESC LIMIT 10
+        `)).rows;
+      } catch(e) {}
+
+      for (const d of acikDestekler) {
+        bildirimler.push({
+          tip: 'destek',
+          oncelik: 'orta',
+          baslik: `Destek: ${d.baslik}`,
+          mesaj: `${d.isim || 'Bilinmeyen'} yardım bekliyor.`,
+          tarih: d.olusturma_tarihi,
+          ikon: '🎫'
+        });
+      }
+
+      // 6. Pasif işletmeler (bu ay 0 randevu)
+      const pasifler = (await pool.query(`
+        SELECT i.id, i.isim FROM isletmeler i WHERE i.aktif = true
+          AND NOT EXISTS (SELECT 1 FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= date_trunc('month', CURRENT_DATE))
+          AND i.olusturma_tarihi < NOW() - INTERVAL '7 days'
+      `)).rows;
+
+      for (const p of pasifler) {
+        bildirimler.push({
+          tip: 'pasif_isletme',
+          oncelik: 'dusuk',
+          baslik: `${p.isim} pasif görünüyor`,
+          mesaj: 'Bu ay hiç randevu oluşturmadı.',
+          tarih: new Date().toISOString(),
+          isletme_id: p.id,
+          ikon: '😴'
+        });
+      }
+
+      // Önceliğe göre sırala
+      const oncelikSira = { yuksek: 0, orta: 1, dusuk: 2 };
+      bildirimler.sort((a, b) => (oncelikSira[a.oncelik] || 2) - (oncelikSira[b.oncelik] || 2));
+
+      // Özet
+      const ozet = {
+        toplam: bildirimler.length,
+        yuksek: bildirimler.filter(b => b.oncelik === 'yuksek').length,
+        orta: bildirimler.filter(b => b.oncelik === 'orta').length,
+        dusuk: bildirimler.filter(b => b.oncelik === 'dusuk').length
+      };
+
+      res.json({ bildirimler, ozet });
+    } catch (error) {
+      console.error('Bildirim merkezi hatası:', error);
+      res.status(500).json({ hata: error.message });
+    }
+  }
 }
 
 module.exports = new AdminController();

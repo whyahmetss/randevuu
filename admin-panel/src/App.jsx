@@ -1999,6 +1999,19 @@ function SuperAdminPanel({ kullanici }) {
   const [satisBotKonusmalar, setSatisBotKonusmalar] = useState([]);
   const [satisBotYukleniyor, setSatisBotYukleniyor] = useState(false);
   const [wpYokListe, setWpYokListe] = useState([]);
+  // Müşteri Aktivite
+  const [aktiviteVeri, setAktiviteVeri] = useState(null);
+  const [aktiviteFiltre, setAktiviteFiltre] = useState("hepsi");
+  // Bildirim Merkezi
+  const [bildirimVeri, setBildirimVeri] = useState(null);
+  const [bildirimFiltre, setBildirimFiltre] = useState("hepsi");
+
+  const aktiviteYukle = async () => {
+    try { const d = await api.get("/admin/musteri-aktivite"); setAktiviteVeri(d); } catch(e) { console.log("Aktivite yükleme hatası:", e); }
+  };
+  const bildirimleriYukle = async () => {
+    try { const d = await api.get("/admin/bildirimler"); setBildirimVeri(d); } catch(e) { console.log("Bildirim yükleme hatası:", e); }
+  };
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
@@ -2101,6 +2114,8 @@ function SuperAdminPanel({ kullanici }) {
     if (sayfa === "zombiler") zombileriYukle();
     if (sayfa === "referanslar") referanslariYukle();
     if (sayfa === "duyurular") duyurulariYukle();
+    if (sayfa === "aktivite") aktiviteYukle();
+    if (sayfa === "bildirimler") bildirimleriYukle();
   }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak, auditFiltre, destekFiltre]);
 
   const isletmeEkle = async (e) => {
@@ -2159,13 +2174,17 @@ function SuperAdminPanel({ kullanici }) {
     duyurular: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
     auditLog: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
     sistemDurum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+    aktivite: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+    bildirimler: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><circle cx="18" cy="3" r="3" fill="currentColor"/></svg>,
   };
 
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
 
   const menuItems = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
+    { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
     { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
+    { id: "aktivite", icon: SVGA.aktivite, label: "Aktivite" },
     { id: "odemeler", icon: SVGA.odemeler, label: "Ödemeler" },
     { id: "destek", icon: SVGA.destek, label: "Destek" },
     { id: "paketler", icon: SVGA.paketler, label: "Paketler" },
@@ -3117,6 +3136,192 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               );
             })}
+          </>
+        )}
+
+        {/* MÜŞTERİ AKTİVİTE HARİTASI */}
+        {sayfa === "aktivite" && (
+          <>
+            <div className="page-header">
+              <h1>📊 Müşteri Aktivite Haritası</h1>
+              <button onClick={aktiviteYukle} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6" }}>🔄 Yenile</button>
+            </div>
+
+            {!aktiviteVeri ? (
+              <div className="list-empty"><p>Yükleniyor...</p></div>
+            ) : (
+              <>
+                {/* Özet Kartları */}
+                <div className="row row-wrap gap-12 mb-24">
+                  <StatCard icon="📈" baslik="Ort. Aktivite Skoru" deger={`%${aktiviteVeri.ozet.ortSkor}`} renk="#3b82f6" />
+                  <StatCard icon="✅" baslik="Aktif İşletme" deger={aktiviteVeri.ozet.aktifSayi} renk="#10b981" />
+                  <StatCard icon="😴" baslik="Pasif İşletme" deger={aktiviteVeri.ozet.pasifSayi} renk="#ef4444" />
+                  <StatCard icon="📅" baslik="Bu Ay Randevu" deger={aktiviteVeri.ozet.toplamRandevu} renk="#8b5cf6" />
+                  <StatCard icon="👥" baslik="Toplam Müşteri" deger={aktiviteVeri.ozet.toplamMusteri} renk="#f59e0b" />
+                </div>
+
+                {/* Filtre */}
+                <div className="row gap-8 mb-16">
+                  {[["hepsi","Tümü"],["aktif","Aktif (Skor>20)"],["pasif","Pasif (Skor≤20)"],["odenmedi","Ödenmemiş"]].map(([k,l]) => (
+                    <button key={k} onClick={() => setAktiviteFiltre(k)} className="btn btn-sm"
+                      style={{ background: aktiviteFiltre === k ? "rgba(59,130,246,.15)" : "var(--bg)", color: aktiviteFiltre === k ? "#3b82f6" : "var(--muted)", fontWeight: aktiviteFiltre === k ? 700 : 500, border: "none" }}>{l}</button>
+                  ))}
+                </div>
+
+                {/* İşletme Listesi */}
+                {aktiviteVeri.aktiviteler
+                  .filter(a => {
+                    if (aktiviteFiltre === "aktif") return a.aktivite_skoru > 20;
+                    if (aktiviteFiltre === "pasif") return a.aktivite_skoru <= 20;
+                    if (aktiviteFiltre === "odenmedi") return a.odeme_durumu !== "odendi";
+                    return true;
+                  })
+                  .map(a => {
+                    const skorRenk = a.aktivite_skoru >= 60 ? "#10b981" : a.aktivite_skoru >= 30 ? "#f59e0b" : "#ef4444";
+                    const kategoriR = { berber: "#3b82f6", kuafor: "#8b5cf6", disci: "#10b981", guzellik: "#f59e0b", veteriner: "#ef4444", diyetisyen: "#06b6d4" };
+                    const odemeR = { odendi: "#10b981", odenmedi: "#ef4444", havale_bekliyor: "#818cf8", bekliyor: "#f59e0b" };
+                    return (
+                      <div key={a.id} className="card mb-12" style={{ padding: "18px 20px" }}>
+                        <div className="row row-between row-wrap gap-12 mb-10">
+                          <div className="row gap-12" style={{ alignItems: "center" }}>
+                            <div style={{
+                              width: 44, height: 44, borderRadius: 12,
+                              background: `${skorRenk}15`, display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 18, fontWeight: 800, color: skorRenk, flexShrink: 0
+                            }}>{a.aktivite_skoru}</div>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>{a.isim}</div>
+                              <div className="row gap-6" style={{ marginTop: 3 }}>
+                                <span className="tag-xs" style={{ background: `${kategoriR[a.kategori] || "#64748b"}15`, color: kategoriR[a.kategori] || "#64748b" }}>{a.kategori}</span>
+                                <span className="tag-xs" style={{ background: `${odemeR[a.odeme_durumu] || "#ef4444"}15`, color: odemeR[a.odeme_durumu] || "#ef4444" }}>
+                                  {a.odeme_durumu === "odendi" ? "✓ Ödendi" : a.odeme_durumu === "havale_bekliyor" ? "🏦 Havale" : "✕ Ödenmedi"}
+                                </span>
+                                {a.ilce && <span style={{ fontSize: 11, color: "var(--dim)" }}>📍 {a.ilce}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 11, color: "var(--dim)" }}>Aktivite Skoru</div>
+                            <div style={{ width: 100, height: 6, borderRadius: 3, background: "var(--bg)", marginTop: 4 }}>
+                              <div style={{ width: `${a.aktivite_skoru}%`, height: "100%", borderRadius: 3, background: skorRenk, transition: "width .3s" }} />
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
+                          <div style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 14px" }}>
+                            <div style={{ fontSize: 10, color: "var(--dim)", marginBottom: 2 }}>Bu Ay Randevu</div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>
+                              {a.bu_ay_randevu}
+                              {a.randevu_buyume !== 0 && <span style={{ fontSize: 11, color: a.randevu_buyume > 0 ? "#10b981" : "#ef4444", marginLeft: 6 }}>{a.randevu_buyume > 0 ? "↑" : "↓"}{Math.abs(a.randevu_buyume)}%</span>}
+                            </div>
+                          </div>
+                          <div style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 14px" }}>
+                            <div style={{ fontSize: 10, color: "var(--dim)", marginBottom: 2 }}>Toplam Müşteri</div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>{a.toplam_musteri}</div>
+                          </div>
+                          <div style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 14px" }}>
+                            <div style={{ fontSize: 10, color: "var(--dim)", marginBottom: 2 }}>Bot Mesajı</div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>{a.bot_mesaj}</div>
+                          </div>
+                          <div style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 14px" }}>
+                            <div style={{ fontSize: 10, color: "var(--dim)", marginBottom: 2 }}>Hizmet / Çalışan</div>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>{a.hizmet_sayisi} / {a.calisan_sayisi}</div>
+                          </div>
+                          <div style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 14px" }}>
+                            <div style={{ fontSize: 10, color: "var(--dim)", marginBottom: 2 }}>Son Giriş</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{a.son_giris ? new Date(a.son_giris).toLocaleDateString("tr-TR") : "—"}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </>
+            )}
+          </>
+        )}
+
+        {/* BİLDİRİM MERKEZİ */}
+        {sayfa === "bildirimler" && (
+          <>
+            <div className="page-header">
+              <h1>🔔 Bildirim Merkezi</h1>
+              <button onClick={bildirimleriYukle} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6" }}>🔄 Yenile</button>
+            </div>
+
+            {!bildirimVeri ? (
+              <div className="list-empty"><p>Yükleniyor...</p></div>
+            ) : (
+              <>
+                {/* Özet Kartları */}
+                <div className="row row-wrap gap-12 mb-24">
+                  <StatCard icon="📬" baslik="Toplam" deger={bildirimVeri.ozet.toplam} renk="#3b82f6" />
+                  <StatCard icon="🔴" baslik="Yüksek Öncelik" deger={bildirimVeri.ozet.yuksek} renk="#ef4444" />
+                  <StatCard icon="🟡" baslik="Orta Öncelik" deger={bildirimVeri.ozet.orta} renk="#f59e0b" />
+                  <StatCard icon="🟢" baslik="Düşük Öncelik" deger={bildirimVeri.ozet.dusuk} renk="#10b981" />
+                </div>
+
+                {/* Filtre */}
+                <div className="row gap-8 mb-16">
+                  {[["hepsi","Tümü"],["yuksek","🔴 Yüksek"],["orta","🟡 Orta"],["dusuk","🟢 Düşük"]].map(([k,l]) => (
+                    <button key={k} onClick={() => setBildirimFiltre(k)} className="btn btn-sm"
+                      style={{ background: bildirimFiltre === k ? "rgba(59,130,246,.15)" : "var(--bg)", color: bildirimFiltre === k ? "#3b82f6" : "var(--muted)", fontWeight: bildirimFiltre === k ? 700 : 500, border: "none" }}>{l}</button>
+                  ))}
+                </div>
+
+                {/* Bildirim Listesi */}
+                {bildirimVeri.bildirimler.length === 0 ? (
+                  <div className="list-empty"><p>Bildirim yok, her şey yolunda! 🎉</p></div>
+                ) : bildirimVeri.bildirimler
+                  .filter(b => bildirimFiltre === "hepsi" || b.oncelik === bildirimFiltre)
+                  .map((b, idx) => {
+                    const oncelikRenk = { yuksek: "#ef4444", orta: "#f59e0b", dusuk: "#10b981" };
+                    const tipRenk = {
+                      odeme_gecikme: "#ef4444", deneme_bitiyor: "#f59e0b", yeni_kayit: "#3b82f6",
+                      havale_onay: "#818cf8", destek: "#8b5cf6", pasif_isletme: "#64748b"
+                    };
+                    return (
+                      <div key={idx} className="list-item list-item-left" style={{
+                        borderLeftColor: oncelikRenk[b.oncelik] || "#64748b", marginBottom: 8,
+                        background: b.oncelik === "yuksek" ? "rgba(239,68,68,.03)" : "var(--surface)"
+                      }}>
+                        <div className="row row-between row-wrap gap-8">
+                          <div className="row gap-10" style={{ alignItems: "center" }}>
+                            <span style={{ fontSize: 22 }}>{b.ikon}</span>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{b.baslik}</div>
+                              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{b.mesaj}</div>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <span className="tag-xs" style={{
+                              background: `${tipRenk[b.tip] || "#64748b"}15`,
+                              color: tipRenk[b.tip] || "#64748b", fontWeight: 600
+                            }}>
+                              {b.tip === "odeme_gecikme" ? "Ödeme" : b.tip === "deneme_bitiyor" ? "Deneme" : b.tip === "yeni_kayit" ? "Yeni Kayıt" : b.tip === "havale_onay" ? "Havale" : b.tip === "destek" ? "Destek" : b.tip === "pasif_isletme" ? "Pasif" : b.tip}
+                            </span>
+                            {b.tarih && <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 4 }}>{new Date(b.tarih).toLocaleDateString("tr-TR")}</div>}
+                          </div>
+                        </div>
+                        {/* Aksiyon butonları */}
+                        <div className="row gap-6 mt-8">
+                          {b.tip === "odeme_gecikme" && b.isletme_id && (
+                            <button onClick={() => { setSayfa("odemeler"); }} className="btn btn-sm" style={{ background: "rgba(239,68,68,.08)", color: "#ef4444", border: "none", fontSize: 11 }}>Ödemeye Git →</button>
+                          )}
+                          {b.tip === "havale_onay" && (
+                            <button onClick={() => { setSayfa("odemeler"); }} className="btn btn-sm" style={{ background: "rgba(129,140,248,.08)", color: "#818cf8", border: "none", fontSize: 11 }}>Onaylamaya Git →</button>
+                          )}
+                          {b.tip === "destek" && (
+                            <button onClick={() => { setSayfa("destek"); }} className="btn btn-sm" style={{ background: "rgba(139,92,246,.08)", color: "#8b5cf6", border: "none", fontSize: 11 }}>Destek'e Git →</button>
+                          )}
+                          {b.tip === "pasif_isletme" && b.isletme_id && (
+                            <button onClick={() => { setSayfa("aktivite"); }} className="btn btn-sm" style={{ background: "rgba(100,116,139,.08)", color: "#64748b", border: "none", fontSize: 11 }}>Aktiviteye Git →</button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </>
+            )}
           </>
         )}
 
