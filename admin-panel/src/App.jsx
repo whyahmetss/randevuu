@@ -1862,6 +1862,67 @@ function Dashboard() {
         </div>
       )}
 
+      {/* ── ÖDEME DUVARI ── */}
+      {odemeGerekli && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: "rgba(22,5,39,.7)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 20
+        }}>
+          <div style={{
+            background: "var(--surface)", borderRadius: 20, padding: "36px 32px",
+            maxWidth: 440, width: "100%", textAlign: "center",
+            boxShadow: "0 24px 64px rgba(22,5,39,.25)",
+            animation: "fadeIn .25s ease"
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Ödeme Gerekli</h2>
+            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 20 }}>
+              Bu ay için ödemeniz bulunmamaktadır. Paneli kullanmaya devam etmek için lütfen ödeme yapın.
+            </p>
+            <div style={{
+              background: "rgba(239,68,68,.05)", border: "1px solid rgba(239,68,68,.15)",
+              borderRadius: 12, padding: "14px 18px", marginBottom: 20, textAlign: "left"
+            }}>
+              <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, marginBottom: 6 }}>⚠️ Kısıtlanan Özellikler:</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.8 }}>
+                Randevular, Hizmetler, Çalışanlar, Müşteriler, Bot İşlemleri, Kampanyalar ve diğer tüm panel özellikleri
+              </div>
+            </div>
+            <div style={{
+              background: "rgba(84,224,151,.05)", border: "1px solid rgba(84,224,151,.15)",
+              borderRadius: 12, padding: "14px 18px", marginBottom: 20, textAlign: "left"
+            }}>
+              <div style={{ fontSize: 12, color: "#2cb872", fontWeight: 600, marginBottom: 6 }}>✅ Erişilebilir:</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.8 }}>
+                Dashboard istatistikleri, Ayarlar, Ödeme sayfası, Destek
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={() => { setOdemeGerekli(false); setSayfa("anasayfa"); }} style={{
+                padding: "12px 24px", borderRadius: 12, border: "1px solid var(--border)",
+                background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit"
+              }}>Dashboard'a Dön</button>
+              <button onClick={() => {
+                const token = localStorage.getItem("randevugo_token");
+                const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
+                window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
+              }} style={{
+                padding: "12px 24px", borderRadius: 12, border: "none",
+                background: "var(--gradient-accent)", color: "#fff", fontSize: 13, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+                boxShadow: "0 4px 16px rgba(254,87,150,.3)"
+              }}>💳 Hemen Öde</button>
+            </div>
+            <div style={{ marginTop: 16, fontSize: 11, color: "var(--dim)" }}>
+              İlk 7 gün ücretsiz deneme süresi dahildir
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -3764,68 +3825,6 @@ function SuperAdminPanel({ kullanici }) {
         )}
 
       </div>
-
-      {/* ── ÖDEME DUVARI ── */}
-      {odemeGerekli && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
-          background: "rgba(22,5,39,.7)", backdropFilter: "blur(8px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          padding: 20
-        }}>
-          <div style={{
-            background: "var(--surface)", borderRadius: 20, padding: "36px 32px",
-            maxWidth: 440, width: "100%", textAlign: "center",
-            boxShadow: "0 24px 64px rgba(22,5,39,.25)",
-            animation: "fadeIn .25s ease"
-          }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Ödeme Gerekli</h2>
-            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 20 }}>
-              Bu ay için ödemeniz bulunmamaktadır. Paneli kullanmaya devam etmek için lütfen ödeme yapın.
-            </p>
-            <div style={{
-              background: "rgba(239,68,68,.05)", border: "1px solid rgba(239,68,68,.15)",
-              borderRadius: 12, padding: "14px 18px", marginBottom: 20, textAlign: "left"
-            }}>
-              <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, marginBottom: 6 }}>⚠️ Kısıtlanan Özellikler:</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.8 }}>
-                Randevular, Hizmetler, Çalışanlar, Müşteriler, Bot İşlemleri, Kampanyalar ve diğer tüm panel özellikleri
-              </div>
-            </div>
-            <div style={{
-              background: "rgba(84,224,151,.05)", border: "1px solid rgba(84,224,151,.15)",
-              borderRadius: 12, padding: "14px 18px", marginBottom: 20, textAlign: "left"
-            }}>
-              <div style={{ fontSize: 12, color: "#2cb872", fontWeight: 600, marginBottom: 6 }}>✅ Erişilebilir:</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.8 }}>
-                Dashboard istatistikleri, Ayarlar, Ödeme sayfası, Destek
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <button onClick={() => { setOdemeGerekli(false); setSayfa("anasayfa"); }} style={{
-                padding: "12px 24px", borderRadius: 12, border: "1px solid var(--border)",
-                background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600,
-                cursor: "pointer", fontFamily: "inherit"
-              }}>Dashboard'a Dön</button>
-              <button onClick={() => {
-                const token = localStorage.getItem("randevugo_token");
-                const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
-                window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
-              }} style={{
-                padding: "12px 24px", borderRadius: 12, border: "none",
-                background: "var(--gradient-accent)", color: "#fff", fontSize: 13, fontWeight: 700,
-                cursor: "pointer", fontFamily: "inherit",
-                boxShadow: "0 4px 16px rgba(254,87,150,.3)"
-              }}>💳 Hemen Öde</button>
-            </div>
-            <div style={{ marginTop: 16, fontSize: 11, color: "var(--dim)" }}>
-              İlk 7 gün ücretsiz deneme süresi dahildir
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
