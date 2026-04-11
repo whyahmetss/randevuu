@@ -3271,43 +3271,87 @@ function SuperAdminPanel({ kullanici }) {
         )}
 
         {/* ZOMBİ MÜŞTERİLER */}
-        {sayfa === "zombiler" && (
+        {sayfa === "zombiler" && (() => {
+          const botYok = zombiler.filter(z => z.zombi_durum === 'bot_yok');
+          const randevuYok = zombiler.filter(z => z.zombi_durum === 'randevu_yok');
+          const pasif30 = zombiler.filter(z => z.zombi_durum === 'pasif_30gun');
+          const durumRenk = { bot_yok: "#ef4444", randevu_yok: "#f59e0b", pasif_30gun: "#3b82f6" };
+          const durumLabel = { bot_yok: "🚫 Bot Yok & Randevu Yok", randevu_yok: "📭 Hiç Randevu Almamış", pasif_30gun: "😴 30+ Gün Randevu Yok" };
+          const durumAciklama = { bot_yok: "Bot bağlamamış ve hiç randevusu yok", randevu_yok: "Bot bağlı ama hiç randevu almamış", pasif_30gun: "Son 30 gündür randevu almamış" };
+          return (
           <>
             <div className="page-header">
               <h1>🧟 Zombi Müşteri Takibi</h1>
-              <p>Kayıt olup botu bağlamayan veya hiç randevu almayan müşteriler</p>
+              <p>Aktif işletmeler arasında ilgi göstermeyenler — bot bağlamamış veya hiç randevu almamış</p>
             </div>
+
             <div className="stats-grid" style={{ marginBottom: 16 }}>
-              <div className="stat-card" style={{"--card-accent":"#ef4444"}}><div className="sc-icon">🚫</div><div className="sc-label">Bot Bağlamayan</div><div className="sc-val">{zombiler.filter(z => z.zombi_durum === 'bot_yok').length}</div></div>
-              <div className="stat-card amber"><div className="sc-icon">📭</div><div className="sc-label">Hiç Randevu Yok</div><div className="sc-val">{zombiler.filter(z => z.zombi_durum === 'randevu_yok').length}</div></div>
-              <div className="stat-card blue"><div className="sc-icon">😴</div><div className="sc-label">30+ Gün Pasif</div><div className="sc-val">{zombiler.filter(z => z.zombi_durum === 'pasif').length}</div></div>
-              <div className="stat-card green"><div className="sc-icon">🧟</div><div className="sc-label">Toplam Zombi</div><div className="sc-val">{zombiler.length}</div></div>
+              <div className="stat-card" style={{"--card-accent":"#ef4444"}}><div className="sc-icon">🚫</div><div className="sc-label">Bot Yok & Randevu Yok</div><div className="sc-val">{botYok.length}</div></div>
+              <div className="stat-card amber"><div className="sc-icon">📭</div><div className="sc-label">Hiç Randevu Almamış</div><div className="sc-val">{randevuYok.length}</div></div>
+              <div className="stat-card blue"><div className="sc-icon">😴</div><div className="sc-label">30+ Gün Pasif</div><div className="sc-val">{pasif30.length}</div></div>
+              <div className="stat-card" style={{"--card-accent":"#64748b"}}><div className="sc-icon">🧟</div><div className="sc-label">Toplam Zombi</div><div className="sc-val">{zombiler.length}</div></div>
             </div>
+
             {zombiler.length === 0 ? (
-              <div className="list-empty"><p>Zombi müşteri yok! Herkes aktif 🎉</p></div>
-            ) : zombiler.map(z => {
-              const durumRenk = { bot_yok: "#ef4444", randevu_yok: "#f59e0b", pasif: "#3b82f6" };
-              const durumLabel = { bot_yok: "🚫 Bot Bağlanmamış", randevu_yok: "📭 Hiç Randevu Yok", pasif: "😴 30+ Gün Pasif" };
-              return (
-                <div key={z.id} className="list-item" style={{ padding: "12px 16px" }}>
-                  <div className="row row-between row-wrap gap-8">
-                    <div className="row row-wrap gap-8">
-                      <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{z.isim}</span>
-                      <span style={{ color: "var(--dim)", fontSize: 12 }}>📞 {z.telefon}</span>
-                      <span className="tag" style={{ background: (durumRenk[z.zombi_durum]||"#64748b") + "22", color: durumRenk[z.zombi_durum]||"#64748b", fontWeight: 700, fontSize: 11 }}>{durumLabel[z.zombi_durum] || z.zombi_durum}</span>
-                      <span style={{ color: "var(--dim)", fontSize: 11 }}>{z.kategori} · {z.paket}</span>
-                      <span style={{ color: "var(--dim)", fontSize: 11 }}>Kayıt: {new Date(z.olusturma_tarihi).toLocaleDateString("tr-TR")}</span>
+              <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>🎉</div>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Zombi müşteri yok!</div>
+                <p style={{ fontSize: 13 }}>Tüm aktif işletmeler bot bağlamış ve randevu alıyor</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {zombiler.map(z => {
+                  const renk = durumRenk[z.zombi_durum] || "#64748b";
+                  const gunOnce = z.olusturma_tarihi ? Math.floor((new Date() - new Date(z.olusturma_tarihi)) / 86400000) : 0;
+                  return (
+                    <div key={z.id} onClick={() => isletmeDetayYukle(z.id)} style={{ background: "var(--surface)", borderRadius: 14, padding: "14px 18px", border: `1px solid ${renk}20`, cursor: "pointer", transition: "all .15s" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        {/* Avatar */}
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: `${renk}12`, display: "flex", alignItems: "center", justifyContent: "center", color: renk, fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
+                          {(z.isim || "?")[0]}
+                        </div>
+
+                        {/* Bilgi */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{z.isim}</span>
+                            <span style={{ padding: "2px 8px", borderRadius: 6, background: `${renk}12`, color: renk, fontSize: 10, fontWeight: 700 }}>{durumLabel[z.zombi_durum]}</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, color: "var(--dim)", flexWrap: "wrap" }}>
+                            <span>📞 {z.telefon}</span>
+                            <span>{z.kategori} · {z.paket}</span>
+                            <span>Kayıt: {z.olusturma_tarihi ? new Date(z.olusturma_tarihi).toLocaleDateString("tr-TR") : "—"} ({gunOnce} gün önce)</span>
+                            <span>📅 {parseInt(z.randevu_sayisi) || 0} randevu</span>
+                            {z.son_randevu && <span>Son: {new Date(z.son_randevu).toLocaleDateString("tr-TR")}</span>}
+                          </div>
+                        </div>
+
+                        {/* Bot durumu */}
+                        <div style={{ flexShrink: 0, textAlign: "center" }}>
+                          <div style={{ padding: "4px 10px", borderRadius: 8, background: z.bot_bagli ? "rgba(16,185,129,.08)" : "rgba(239,68,68,.08)", color: z.bot_bagli ? "#10b981" : "#ef4444", fontSize: 11, fontWeight: 700 }}>
+                            {z.bot_bagli ? "✓ Bot Bağlı" : "✗ Bot Yok"}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="row gap-6">
-                      <span style={{ color: "var(--dim)", fontSize: 12 }}>📅 {z.randevu_sayisi} randevu</span>
-                      {z.son_randevu && <span style={{ color: "var(--dim)", fontSize: 11 }}>Son: {new Date(z.son_randevu).toLocaleDateString("tr-TR")}</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Bilgi */}
+            <div style={{ marginTop: 16, background: "rgba(59,130,246,.04)", borderRadius: 12, padding: "14px 18px", border: "1px solid rgba(59,130,246,.1)" }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: "#3b82f6", marginBottom: 6 }}>💡 Zombi Müşteri Nedir?</div>
+              <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.6 }}>
+                • <strong style={{ color: "var(--text)" }}>Bot Yok & Randevu Yok:</strong> Bot bağlamamış ve hiç randevusu yok — muhtemelen kayıt olup terk etmiş<br/>
+                • <strong style={{ color: "var(--text)" }}>Hiç Randevu Almamış:</strong> Bot bağlamış ama hiç randevu gelmemiş — setup yapmamış olabilir<br/>
+                • <strong style={{ color: "var(--text)" }}>30+ Gün Pasif:</strong> Daha önce aktifti ama son 30 gündür randevu almamış — ilgiyi kaybetmiş olabilir<br/>
+                • Bot bağlı ve randevusu olan işletmeler burada <strong>gösterilmez</strong>
+              </div>
+            </div>
           </>
-        )}
+          );
+        })()}
 
         {/* REFERANS (Affiliate) SİSTEMİ */}
         {sayfa === "referanslar" && (

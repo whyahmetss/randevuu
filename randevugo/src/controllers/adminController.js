@@ -1878,29 +1878,43 @@ class AdminController {
 
   async zombiMusteriler(req, res) {
     try {
-      // Kayıt olup bot bağlamayan veya hiç randevu almayan işletmeler
+      // Bot bağlı mı kontrol: wa_auth_keys tablosunda kayıt varsa bot bağlanmış demektir
+      let botBagliIds = [];
+      try {
+        const botRows = (await pool.query("SELECT DISTINCT isletme_id FROM wa_auth_keys WHERE isletme_id < 999999")).rows;
+        botBagliIds = botRows.map(r => r.isletme_id);
+      } catch(e) {}
+
       const result = await pool.query(`
         SELECT i.id, i.isim, i.telefon, i.kategori, i.paket, i.olusturma_tarihi,
           i.bot_aktif, i.telegram_token, i.whatsapp_no,
-          COUNT(r.id) as randevu_sayisi,
-          MAX(r.tarih) as son_randevu,
-          CASE
-            WHEN i.telegram_token IS NULL AND i.whatsapp_no IS NULL THEN 'bot_yok'
-            WHEN COUNT(r.id) = 0 THEN 'randevu_yok'
-            WHEN MAX(r.tarih) < CURRENT_DATE - INTERVAL '30 days' THEN 'pasif'
-            ELSE 'aktif'
-          END as zombi_durum
+          COUNT(r.id)::int as randevu_sayisi,
+          MAX(r.tarih) as son_randevu
         FROM isletmeler i
         LEFT JOIN randevular r ON r.isletme_id = i.id
         WHERE i.aktif = true
         GROUP BY i.id
-        HAVING (i.telegram_token IS NULL AND i.whatsapp_no IS NULL)
-          OR COUNT(r.id) = 0
-          OR MAX(r.tarih) < CURRENT_DATE - INTERVAL '30 days'
-        ORDER BY COUNT(r.id), i.olusturma_tarihi DESC
+        ORDER BY i.olusturma_tarihi DESC
       `);
-      res.json({ zombiler: result.rows });
+
+      // Zombi durumunu hesapla
+      const zombiler = result.rows.map(i => {
+        const botBagli = botBagliIds.includes(i.id) || !!i.telegram_token || !!i.whatsapp_no;
+        const randevuSayisi = parseInt(i.randevu_sayisi) || 0;
+        const sonRandevu = i.son_randevu ? new Date(i.son_randevu) : null;
+        const gunFarki = sonRandevu ? Math.floor((new Date() - sonRandevu) / 86400000) : null;
+
+        let zombi_durum = null;
+        if (!botBagli && randevuSayisi === 0) zombi_durum = 'bot_yok';
+        else if (randevuSayisi === 0) zombi_durum = 'randevu_yok';
+        else if (gunFarki !== null && gunFarki > 30) zombi_durum = 'pasif_30gun';
+
+        return { ...i, bot_bagli: botBagli, zombi_durum };
+      }).filter(i => i.zombi_durum !== null);
+
+      res.json({ zombiler });
     } catch (error) {
+      console.error('Zombi müşteri hatası:', error.message);
       res.json({ zombiler: [] });
     }
   }
