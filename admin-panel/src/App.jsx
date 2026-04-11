@@ -764,6 +764,7 @@ function Dashboard() {
   const [testTelefon] = useState("05531112233");
   const [testYukleniyor, setTestYukleniyor] = useState(false);
   const [randevuTarih, setRandevuTarih] = useState(() => { const d = new Date(); return d.toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" }); });
+  const [randevuGorunum, setRandevuGorunum] = useState("liste");
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false);
   const [paketModal, setPaketModal] = useState(false);
   const [grafikVeri, setGrafikVeri] = useState(null);
@@ -1530,6 +1531,45 @@ function Dashboard() {
             const durumSayac = { onaylandi: 0, bekliyor: 0, tamamlandi: 0, gelmedi: 0, iptal: 0, kapora_bekliyor: 0 };
             randevular.forEach(r => { if (durumSayac[r.durum] !== undefined) durumSayac[r.durum]++; else durumSayac.bekliyor++; });
 
+            const bitmisDurum = ['iptal', 'tamamlandi', 'gelmedi'];
+            const onayBekle = (r) => r.durum === 'bekliyor' || r.durum === 'onay_bekliyor';
+            const timeoutDk = ayarlar?.onay_timeout_dk || 30;
+
+            const kalanSure = (r) => {
+              if (!onayBekle(r) || !r.olusturma_tarihi) return null;
+              const bitis = new Date(r.olusturma_tarihi).getTime() + timeoutDk * 60000;
+              const kalan = Math.max(0, bitis - Date.now());
+              if (kalan <= 0) return "0:00";
+              const dk = Math.floor(kalan / 60000);
+              const sn = Math.floor((kalan % 60000) / 1000);
+              return `${dk}:${String(sn).padStart(2, "0")}`;
+            };
+
+            const waLink = (tel) => {
+              if (!tel) return null;
+              const clean = tel.replace(/[^0-9]/g, "");
+              return `https://wa.me/${clean}`;
+            };
+
+            const durumDegistir = async (r, yeniDurum) => {
+              if (yeniDurum === 'gelmedi') {
+                const onay = confirm(`"${r.musteri_isim || 'Müşteri'}" gelmedi olarak işaretlensin mi?\n\nBu işlem kara liste ihlal sayısını artırır.`);
+                if (!onay) return;
+                const sonuc = await api.put(`/randevular/${r.id}/durum`, { durum: yeniDurum });
+                if (sonuc?.noShow) {
+                  const ns = sonuc.noShow;
+                  if (ns.engellendi) {
+                    alert(`🚫 ${r.musteri_isim || 'Müşteri'} engellendi!\n\n${ns.ihlalSayisi}. ihlal — otomatik kara listeye eklendi.`);
+                  } else if (ns.otomatikAktif) {
+                    alert(`⚠️ ${r.musteri_isim || 'Müşteri'}: ${ns.ihlalSayisi}/${ns.sinir} ihlal.\n\n${ns.sinir - ns.ihlalSayisi} ihlal daha → otomatik engel.`);
+                  }
+                }
+              } else {
+                await api.put(`/randevular/${r.id}/durum`, { durum: yeniDurum });
+              }
+              verileriYukle();
+            };
+
             const tabBtn = (label, emoji, tarihVal, tabId) => (
               <button key={tabId}
                 onClick={() => { setRandevuTarih(tarihVal); verileriYukle(tarihVal); }}
@@ -1543,9 +1583,71 @@ function Dashboard() {
               </button>
             );
 
+            /* ── Timeline Render ── */
+            const renderTimeline = () => {
+              const baslangic = parseInt((ayarlar?.calisma_baslangic || "09:00").split(":")[0]);
+              const bitis = parseInt((ayarlar?.calisma_bitis || "19:00").split(":")[0]);
+              const saatler = [];
+              for (let h = baslangic; h <= bitis; h++) saatler.push(h);
+              const molalar = (ayarlar?.mola_saatleri || []);
+
+              const saatToMin = (s) => { const [h, m] = (s || "0:0").split(":").map(Number); return h * 60 + (m || 0); };
+              const slotYukseklik = 60; // px per hour
+
+              return (
+                <div style={{ position: "relative", paddingLeft: 70, minHeight: saatler.length * slotYukseklik }}>
+                  {/* Saat çizgisi */}
+                  <div style={{ position: "absolute", left: 64, top: 0, bottom: 0, width: 2, background: "var(--border)" }} />
+                  {saatler.map((h, i) => (
+                    <div key={h} style={{ position: "absolute", top: i * slotYukseklik, left: 0, right: 0, height: slotYukseklik }}>
+                      <div style={{ position: "absolute", left: 0, width: 56, textAlign: "right", fontSize: 12, fontWeight: 700, color: "var(--dim)", top: -6 }}>
+                        {String(h).padStart(2, "0")}:00
+                      </div>
+                      <div style={{ position: "absolute", left: 66, right: 0, top: 0, borderTop: "1px dashed var(--border)" }} />
+                    </div>
+                  ))}
+                  {/* Mola blokları */}
+                  {molalar.map((m, i) => {
+                    const mTop = (saatToMin(m.baslangic) - baslangic * 60) / 60 * slotYukseklik;
+                    const mH = (saatToMin(m.bitis) - saatToMin(m.baslangic)) / 60 * slotYukseklik;
+                    if (mH <= 0) return null;
+                    return (
+                      <div key={`mola-${i}`} className="tl-mola" style={{ position: "absolute", left: 74, right: 0, top: mTop, height: mH, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "var(--dim)", fontWeight: 600 }}>
+                        ☕ {m.isim || "Mola"}
+                      </div>
+                    );
+                  })}
+                  {/* Randevu blokları */}
+                  {randevular.map(r => {
+                    const rMin = saatToMin(r.saat);
+                    const rEnd = r.bitis_saati ? saatToMin(r.bitis_saati) : rMin + 30;
+                    const top = (rMin - baslangic * 60) / 60 * slotYukseklik;
+                    const h = Math.max(28, (rEnd - rMin) / 60 * slotYukseklik - 4);
+                    const renk = DR[r.durum] || "#f59e0b";
+                    return (
+                      <div key={r.id} style={{
+                        position: "absolute", left: 74, right: 0, top, height: h,
+                        background: `${renk}18`, borderLeft: `3px solid ${renk}`,
+                        borderRadius: 10, padding: "6px 12px", fontSize: 12, overflow: "hidden",
+                        display: "flex", alignItems: "center", gap: 10,
+                        opacity: bitmisDurum.includes(r.durum) ? 0.5 : 1,
+                      }}>
+                        <span style={{ fontWeight: 800, color: renk }}>{r.saat?.slice(0, 5)}</span>
+                        <span style={{ fontWeight: 600, color: "var(--text)" }}>{r.musteri_isim || "İsimsiz"}</span>
+                        {r.hizmet_isim && <span style={{ color: "var(--dim)" }}>· {r.hizmet_isim}</span>}
+                        <span style={{ marginLeft: "auto", background: `${renk}30`, color: renk, padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+                          {DL[r.durum] || "Bekliyor"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            };
+
             return (
             <>
-              {/* Hızlı tarih sekmeleri */}
+              {/* Hızlı tarih sekmeleri + görünüm toggle */}
               <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
                 {tabBtn("Dün", "⏪", dun, "dun")}
                 {tabBtn("Bugün", "📅", bugun, "bugun")}
@@ -1563,6 +1665,15 @@ function Dashboard() {
                   padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer",
                   background: "rgba(84,224,151,0.12)", color: "#2cb872", fontSize: 13, fontWeight: 600
                 }}>↻ Yenile</button>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "var(--surface)", borderRadius: 10, border: "1px solid var(--border)", padding: 3 }}>
+                  {[["liste", "☰"], ["timeline", "🕐"]].map(([mod, ico]) => (
+                    <button key={mod} onClick={() => setRandevuGorunum(mod)} style={{
+                      padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 14,
+                      background: randevuGorunum === mod ? "var(--primary)" : "transparent",
+                      color: randevuGorunum === mod ? "#fff" : "var(--dim)", fontWeight: 600, transition: "all .15s"
+                    }}>{ico}</button>
+                  ))}
+                </div>
               </div>
 
               {/* Tarih başlığı ve randevu sayısı */}
@@ -1605,80 +1716,125 @@ function Dashboard() {
                 </div>
               )}
 
-              {/* Randevu listesi */}
-              {randevular.length === 0 ? (
+              {/* ── Timeline Görünümü ── */}
+              {randevuGorunum === "timeline" && randevular.length > 0 && (
+                <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+                  {renderTimeline()}
+                </div>
+              )}
+
+              {/* ── Liste Görünümü ── */}
+              {randevuGorunum === "liste" && (
+                <>
+                  {randevular.length === 0 ? (
+                    <div className="card text-center" style={{ padding: "60px 20px" }}>
+                      <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                      <div style={{ color: "var(--text)", fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Randevu bulunamadı</div>
+                      <div style={{ color: "var(--dim)", fontSize: 13 }}>{tarihLabel(randevuTarih)} için randevu yok</div>
+                    </div>
+                  ) : randevular.map(r => {
+                    const durumRenk = DR[r.durum] || "#f59e0b";
+                    const bitmis = bitmisDurum.includes(r.durum);
+                    const bekle = onayBekle(r);
+                    const kalan = kalanSure(r);
+                    const kalanDk = kalan ? parseInt(kalan.split(":")[0]) : 999;
+
+                    return (
+                    <div key={r.id}
+                      className={bekle ? "randevu-onay-bekle" : ""}
+                      style={{
+                        background: "var(--surface)", borderRadius: 14, padding: "14px 18px",
+                        marginBottom: 8, border: "1px solid var(--border)",
+                        borderLeft: `4px solid ${durumRenk}`,
+                        opacity: bitmis ? 0.55 : 1,
+                        transition: "all .2s",
+                      }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        {/* Saat — büyük */}
+                        <div style={{
+                          color: durumRenk, fontWeight: 900, fontSize: 22, minWidth: 52,
+                          textAlign: "center", lineHeight: 1, flexShrink: 0
+                        }}>
+                          {r.saat?.slice(0, 5)}
+                        </div>
+
+                        {/* Bilgiler */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{r.musteri_isim || "İsimsiz"}</span>
+                            {/* WhatsApp butonu */}
+                            {r.musteri_telefon && (
+                              <a href={waLink(r.musteri_telefon)} target="_blank" rel="noopener noreferrer"
+                                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: 6, background: "rgba(37,211,102,.12)", flexShrink: 0 }}
+                                title="WhatsApp'ta yaz">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                              </a>
+                            )}
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 12, color: "var(--dim)" }}>
+                            <span>📞 {r.musteri_telefon}</span>
+                            {r.hizmet_isim && <span>✂️ {r.hizmet_isim}{r.fiyat ? ` · ${Number(r.fiyat).toLocaleString("tr-TR")}₺` : ""}</span>}
+                            {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
+                            {r.kapora_durumu && r.kapora_durumu !== 'yok' && (
+                              <span style={{ color: r.kapora_durumu === 'odendi' ? '#2cb872' : '#f59e0b', fontWeight: 600 }}>
+                                💳 {r.kapora_durumu === 'odendi' ? `Ödendi (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)` : `Bekliyor (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Durum badge (sağ üst) + countdown */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                          <div style={{
+                            background: durumRenk + "20", color: durumRenk,
+                            padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800,
+                            whiteSpace: "nowrap", letterSpacing: "0.3px"
+                          }}>
+                            {DL[r.durum] || "Bekliyor"}
+                          </div>
+                          {bekle && kalan && (
+                            <div style={{
+                              fontSize: 11, fontWeight: 700, fontFamily: "monospace",
+                              color: kalanDk < 5 ? "#ef4444" : kalanDk < 15 ? "#f59e0b" : "var(--dim)"
+                            }}>
+                              ⏳ {kalan}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Aksiyon butonları — sadece aktif durumlar için */}
+                      {!bitmis && (
+                        <div style={{ display: "flex", gap: 6, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
+                          {[["onaylandi","✅ Onayla"], ["tamamlandi","✔️ Tamam"], ["gelmedi","❌ Gelmedi"], ["iptal","🚫 İptal"]].map(([d, l]) => (
+                            <button key={d}
+                              onClick={() => durumDegistir(r, d)}
+                              style={{
+                                padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+                                fontSize: 11, fontWeight: 700, transition: "all .15s",
+                                background: r.durum === d ? DR[d] + "18" : "var(--surface2)",
+                                color: r.durum === d ? DR[d] : "var(--dim)",
+                                outline: r.durum === d ? `1px solid ${DR[d]}40` : "1px solid var(--border)"
+                              }}>
+                              {l}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Boş durum (timeline modunda da) */}
+              {randevuGorunum === "timeline" && randevular.length === 0 && (
                 <div className="card text-center" style={{ padding: "60px 20px" }}>
                   <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
                   <div style={{ color: "var(--text)", fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Randevu bulunamadı</div>
                   <div style={{ color: "var(--dim)", fontSize: 13 }}>{tarihLabel(randevuTarih)} için randevu yok</div>
                 </div>
-              ) : randevular.map((r, idx) => {
-                const durumRenk = DR[r.durum] || "#f59e0b";
-                return (
-                <div key={r.id} style={{
-                  background: "var(--surface)", borderRadius: 14, padding: "16px 20px",
-                  marginBottom: 10, border: "1px solid var(--border)",
-                  borderLeft: `4px solid ${durumRenk}`,
-                  transition: "transform .15s, box-shadow .15s"
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    {/* Saat badge */}
-                    <div style={{
-                      background: `linear-gradient(135deg, ${durumRenk}30, ${durumRenk}10)`,
-                      color: durumRenk, fontWeight: 800, fontSize: 16,
-                      width: 60, height: 60, borderRadius: 14,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0
-                    }}>
-                      {r.saat?.slice(0, 5)}
-                    </div>
-
-                    {/* Bilgiler */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 4 }}>
-                        {r.musteri_isim || "İsimsiz"}
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: 13, color: "var(--dim)" }}>
-                        <span>📞 {r.musteri_telefon}</span>
-                        {r.hizmet_isim && <span>✂️ {r.hizmet_isim}{r.fiyat ? ` · ${Number(r.fiyat).toLocaleString("tr-TR")}₺` : ""}</span>}
-                        {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
-                        {r.kapora_durumu && r.kapora_durumu !== 'yok' && (
-                          <span style={{ color: r.kapora_durumu === 'odendi' ? 'var(--green)' : 'var(--amber)', fontWeight: 600 }}>
-                            💳 {r.kapora_durumu === 'odendi' ? `Kapora ödendi (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)` : `Kapora bekliyor (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Durum butonu (mevcut durum) */}
-                    <div style={{
-                      background: durumRenk + "20", color: durumRenk,
-                      padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700,
-                      whiteSpace: "nowrap"
-                    }}>
-                      {DL[r.durum] || "Bekliyor"}
-                    </div>
-                  </div>
-
-                  {/* Aksiyon butonları */}
-                  <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
-                    {[["onaylandi","✅ Onayla"], ["tamamlandi","✔️ Tamam"], ["gelmedi","❌ Gelmedi"], ["iptal","🚫 İptal"]].map(([d, l]) => (
-                      <button key={d}
-                        onClick={async () => { await api.put(`/randevular/${r.id}/durum`, { durum: d }); verileriYukle(); }}
-                        style={{
-                          padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
-                          fontSize: 12, fontWeight: 600, transition: "all .15s",
-                          background: r.durum === d ? DR[d] + "18" : "var(--surface2)",
-                          color: r.durum === d ? DR[d] : "var(--dim)",
-                          outline: r.durum === d ? `1px solid ${DR[d]}40` : "1px solid var(--border)"
-                        }}>
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                );
-              })}
+              )}
             </>
             );
           })()}

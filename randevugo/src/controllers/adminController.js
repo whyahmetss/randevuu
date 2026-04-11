@@ -43,12 +43,37 @@ class AdminController {
     try {
       const { id } = req.params;
       const { durum } = req.body;
+      const isletmeId = req.kullanici.isletme_id;
       const result = await pool.query(
         'UPDATE randevular SET durum = $1 WHERE id = $2 AND isletme_id = $3 RETURNING *',
-        [durum, id, req.kullanici.isletme_id]
+        [durum, id, isletmeId]
       );
       await this.auditLogYaz(req.kullanici, `randevu_${durum}`, `Randevu #${id} durumu: ${durum}`, 'randevular', parseInt(id), req.ip);
-      res.json({ randevu: result.rows[0] });
+
+      let noShow = null;
+      if (durum === 'gelmedi' && result.rows[0]) {
+        const randevu = result.rows[0];
+        const musteri = (await pool.query('SELECT telefon FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
+        if (musteri) {
+          await randevuService.noShowKaydet(isletmeId, musteri.telefon);
+          const kl = (await pool.query(
+            'SELECT ihlal_sayisi, aktif FROM kara_liste WHERE isletme_id=$1 AND telefon=$2',
+            [isletmeId, musteri.telefon]
+          )).rows[0];
+          const isletme = (await pool.query(
+            'SELECT kara_liste_otomatik, kara_liste_ihlal_sinir FROM isletmeler WHERE id=$1',
+            [isletmeId]
+          )).rows[0];
+          noShow = {
+            ihlalSayisi: kl?.ihlal_sayisi || 1,
+            sinir: isletme?.kara_liste_ihlal_sinir || 3,
+            engellendi: kl?.aktif || false,
+            otomatikAktif: isletme?.kara_liste_otomatik || false
+          };
+        }
+      }
+
+      res.json({ randevu: result.rows[0], noShow });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
