@@ -1376,42 +1376,52 @@ class AdminController {
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
       // Admin kullanıcı
-      const kullanici = (await pool.query('SELECT id, email, rol, aktif, olusturma_tarihi FROM admin_kullanicilar WHERE isletme_id = $1', [id])).rows;
+      let kullanici = [];
+      try { kullanici = (await pool.query('SELECT id, email, rol, aktif, olusturma_tarihi FROM admin_kullanicilar WHERE isletme_id = $1', [id])).rows; } catch(e) { console.error('Detay kullanici hatası:', e.message); }
 
       // Çalışanlar
-      const calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id = $1 ORDER BY id', [id])).rows;
+      let calisanlar = [];
+      try { calisanlar = (await pool.query('SELECT * FROM calisanlar WHERE isletme_id = $1 ORDER BY id', [id])).rows; } catch(e) { console.error('Detay calisanlar hatası:', e.message); }
 
       // Hizmetler
-      const hizmetler = (await pool.query('SELECT * FROM hizmetler WHERE isletme_id = $1 ORDER BY id', [id])).rows;
+      let hizmetler = [];
+      try { hizmetler = (await pool.query('SELECT * FROM hizmetler WHERE isletme_id = $1 ORDER BY id', [id])).rows; } catch(e) { console.error('Detay hizmetler hatası:', e.message); }
 
       // Müşteriler
-      const musteriSayi = (await pool.query('SELECT COUNT(*) as sayi FROM musteriler WHERE isletme_id = $1', [id])).rows[0];
+      let musteriSayisi = 0;
+      try { musteriSayisi = parseInt((await pool.query('SELECT COUNT(*) as sayi FROM musteriler WHERE isletme_id = $1', [id])).rows[0]?.sayi) || 0; } catch(e) { console.error('Detay musteri hatası:', e.message); }
 
       // Randevu istatistikleri
-      const randevuStats = (await pool.query(`
-        SELECT 
-          COUNT(*) as toplam,
-          COUNT(*) FILTER (WHERE tarih >= date_trunc('month', CURRENT_DATE)) as bu_ay,
-          COUNT(*) FILTER (WHERE durum = 'onaylandi') as onaylanan,
-          COUNT(*) FILTER (WHERE durum = 'bekliyor') as bekleyen,
-          COUNT(*) FILTER (WHERE durum = 'iptal') as iptal
-        FROM randevular WHERE isletme_id = $1
-      `, [id])).rows[0];
+      let randevuStats = { toplam: 0, bu_ay: 0, onaylanan: 0, bekleyen: 0, iptal: 0 };
+      try {
+        const rs = (await pool.query(`
+          SELECT 
+            COUNT(*) as toplam,
+            COUNT(*) FILTER (WHERE tarih >= date_trunc('month', CURRENT_DATE)) as bu_ay,
+            COUNT(*) FILTER (WHERE durum = 'onaylandi') as onaylanan,
+            COUNT(*) FILTER (WHERE durum = 'bekliyor') as bekleyen,
+            COUNT(*) FILTER (WHERE durum = 'iptal') as iptal
+          FROM randevular WHERE isletme_id = $1
+        `, [id])).rows[0];
+        randevuStats = {
+          toplam: parseInt(rs.toplam) || 0,
+          bu_ay: parseInt(rs.bu_ay) || 0,
+          onaylanan: parseInt(rs.onaylanan) || 0,
+          bekleyen: parseInt(rs.bekleyen) || 0,
+          iptal: parseInt(rs.iptal) || 0
+        };
+      } catch(e) { console.error('Detay randevu hatası:', e.message); }
 
       // Ödeme geçmişi
-      const odemeler = (await pool.query(
-        'SELECT * FROM odemeler WHERE isletme_id = $1 ORDER BY donem DESC LIMIT 12', [id]
-      )).rows;
+      let odemeler = [];
+      try { odemeler = (await pool.query('SELECT * FROM odemeler WHERE isletme_id = $1 ORDER BY donem DESC LIMIT 12', [id])).rows; } catch(e) {}
 
       // Bot durumu
       let botDurum = null;
-      try {
-        const bot = (await pool.query('SELECT * FROM bot_ayarlar WHERE isletme_id = $1', [id])).rows[0];
-        botDurum = bot || null;
-      } catch(e) {}
+      try { botDurum = (await pool.query('SELECT * FROM bot_ayarlar WHERE isletme_id = $1', [id])).rows[0] || null; } catch(e) {}
 
       // Deneme süresi hesaplama
-      const olusturmaGun = Math.floor((new Date() - new Date(isletme.olusturma_tarihi)) / 86400000);
+      const olusturmaGun = isletme.olusturma_tarihi ? Math.floor((new Date() - new Date(isletme.olusturma_tarihi)) / 86400000) : 0;
       const denemeSuresiKalan = Math.max(0, 7 - olusturmaGun);
 
       // Son 30 gün günlük randevu sayısı
@@ -1426,16 +1436,16 @@ class AdminController {
 
       // Ayarlar
       let ayarlar = null;
-      try {
-        ayarlar = (await pool.query('SELECT * FROM isletme_ayarlar WHERE isletme_id = $1', [id])).rows[0];
-      } catch(e) {}
+      try { ayarlar = (await pool.query('SELECT * FROM isletme_ayarlar WHERE isletme_id = $1', [id])).rows[0]; } catch(e) {}
+
+      console.log(`📋 İşletme detay yüklendi: id=${id}, calisanlar=${calisanlar.length}, hizmetler=${hizmetler.length}, musteri=${musteriSayisi}, randevu_toplam=${randevuStats.toplam}`);
 
       res.json({
         isletme,
         kullanici,
         calisanlar,
         hizmetler,
-        musteri_sayisi: parseInt(musteriSayi.sayi),
+        musteri_sayisi: musteriSayisi,
         randevu_stats: randevuStats,
         odemeler,
         bot_durum: botDurum,

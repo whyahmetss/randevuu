@@ -4318,9 +4318,9 @@ function SuperAdminPanel({ kullanici }) {
                     {/* Quick Stats */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 20 }}>
                       {[
-                        { icon: "👥", label: "Müşteri", val: d.musteri_sayisi || 0, color: "#3b82f6" },
-                        { icon: "📅", label: "Randevu (Toplam)", val: d.randevu_stats?.toplam || 0, color: "#8b5cf6" },
-                        { icon: "📆", label: "Bu Ay Randevu", val: d.randevu_stats?.bu_ay || 0, color: "#10b981" },
+                        { icon: "👥", label: "Müşteri", val: parseInt(d.musteri_sayisi) || 0, color: "#3b82f6" },
+                        { icon: "📅", label: "Randevu (Toplam)", val: parseInt(d.randevu_stats?.toplam) || 0, color: "#8b5cf6" },
+                        { icon: "📆", label: "Bu Ay Randevu", val: parseInt(d.randevu_stats?.bu_ay) || 0, color: "#10b981" },
                         { icon: "👨‍💼", label: "Çalışan", val: (d.calisanlar || []).length, color: "#f59e0b" },
                         { icon: "🛠️", label: "Hizmet", val: (d.hizmetler || []).length, color: "#e11d48" },
                         { icon: "📅", label: "Kayıt Günü", val: `${d.olusturma_gun || 0}. gün`, color: "#64748b" }
@@ -4340,7 +4340,7 @@ function SuperAdminPanel({ kullanici }) {
                         <div><span style={{ color: "var(--dim)" }}>Telefon:</span> <strong style={{ color: "var(--text)" }}>{isl.telefon || "—"}</strong></div>
                         <div><span style={{ color: "var(--dim)" }}>Email:</span> <strong style={{ color: "var(--text)" }}>{(d.kullanici || [])[0]?.email || "—"}</strong></div>
                         <div><span style={{ color: "var(--dim)" }}>Adres:</span> <strong style={{ color: "var(--text)" }}>{isl.adres || "—"}</strong></div>
-                        <div><span style={{ color: "var(--dim)" }}>Sektör:</span> <strong style={{ color: "var(--text)" }}>{isl.sektor || "—"}</strong></div>
+                        <div><span style={{ color: "var(--dim)" }}>Kategori:</span> <strong style={{ color: "var(--text)" }}>{isl.kategori || "—"}</strong></div>
                         <div><span style={{ color: "var(--dim)" }}>Kayıt:</span> <strong style={{ color: "var(--text)" }}>{isl.olusturma_tarihi ? new Date(isl.olusturma_tarihi).toLocaleDateString("tr-TR") : "—"}</strong></div>
                         <div><span style={{ color: "var(--dim)" }}>Slug:</span> <strong style={{ color: "var(--text)" }}>{isl.slug || "—"}</strong></div>
                         <div><span style={{ color: "var(--dim)" }}>Paket:</span> <strong style={{ color: paketRenk[isl.paket] || "var(--text)" }}>{(isl.paket || "—").toUpperCase()}</strong></div>
@@ -4354,7 +4354,7 @@ function SuperAdminPanel({ kullanici }) {
                         <div>
                           <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>🧪 Deneme Süresi</div>
                           <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>
-                            {d.deneme_suresi_kalan > 0 ? `${d.deneme_suresi_kalan} gün kaldı` : `Deneme süresi bitmiş (${d.olusturma_gun} gün önce kayıt)`}
+                            {d.deneme_suresi_kalan > 0 ? `${d.deneme_suresi_kalan} gün kaldı` : `Deneme süresi bitmiş (${d.olusturma_gun || 0} gün önce kayıt)`}
                           </div>
                         </div>
                         <div className="row gap-4">
