@@ -2227,16 +2227,28 @@ class AdminController {
       const gecenAy = gecenAyDate.toISOString().slice(0, 7);
 
       // Her işletmenin aktivite verileri
-      const isletmeler = (await pool.query(`
-        SELECT i.id, i.isim, i.kategori, i.paket, i.aktif, i.olusturma_tarihi, i.ilce,
-          (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= date_trunc('month', CURRENT_DATE)) as bu_ay_randevu,
-          (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= date_trunc('month', CURRENT_DATE) - interval '1 month' AND r.tarih < date_trunc('month', CURRENT_DATE)) as gecen_ay_randevu,
-          (SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id) as toplam_musteri,
-          (SELECT COUNT(*) FROM hizmetler h WHERE h.isletme_id = i.id) as hizmet_sayisi,
-          (SELECT COUNT(*) FROM calisanlar c WHERE c.isletme_id = i.id) as calisan_sayisi,
-          (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id) as toplam_randevu
-        FROM isletmeler i ORDER BY bu_ay_randevu DESC
-      `)).rows;
+      let isletmeler = [];
+      try {
+        // Önce basit query ile işletmeleri al
+        const isletmeRows = (await pool.query('SELECT * FROM isletmeler ORDER BY id')).rows;
+        
+        // Her işletme için ayrı ayrı istatistikleri topla
+        for (const i of isletmeRows) {
+          let buAyR = 0, gecenAyR = 0, toplamR = 0, toplamM = 0, hizmetS = 0, calisanS = 0;
+          try { buAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { gecenAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE) - interval '1 month' AND tarih < date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { toplamR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { toplamM = parseInt((await pool.query("SELECT COUNT(*) as c FROM musteriler WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { hizmetS = parseInt((await pool.query("SELECT COUNT(*) as c FROM hizmetler WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { calisanS = parseInt((await pool.query("SELECT COUNT(*) as c FROM calisanlar WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          
+          isletmeler.push({
+            id: i.id, isim: i.isim, kategori: i.kategori || '', paket: i.paket, aktif: i.aktif, olusturma_tarihi: i.olusturma_tarihi, ilce: i.ilce || '',
+            bu_ay_randevu: buAyR, gecen_ay_randevu: gecenAyR, toplam_musteri: toplamM, hizmet_sayisi: hizmetS, calisan_sayisi: calisanS, toplam_randevu: toplamR
+          });
+        }
+        isletmeler.sort((a, b) => b.bu_ay_randevu - a.bu_ay_randevu);
+      } catch(e) { console.error('Aktivite ana sorgu hatası:', e.message); }
 
       // Bot kullanım durumu
       let botKullanim = {};

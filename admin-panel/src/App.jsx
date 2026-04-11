@@ -2029,7 +2029,7 @@ function SuperAdminPanel({ kullanici }) {
   };
 
   const aktiviteYukle = async () => {
-    try { const d = await api.get("/admin/musteri-aktivite"); setAktiviteVeri(d); } catch(e) { console.log("Aktivite yükleme hatası:", e); }
+    try { const d = await api.get("/admin/musteri-aktivite"); if(d && d.ozet) setAktiviteVeri(d); else console.log("Aktivite verisi eksik:", d); } catch(e) { console.log("Aktivite yükleme hatası:", e); }
   };
   const bildirimleriYukle = async () => {
     try { const d = await api.get("/admin/bildirimler"); setBildirimVeri(d); } catch(e) { console.log("Bildirim yükleme hatası:", e); }
@@ -3383,17 +3383,17 @@ function SuperAdminPanel({ kullanici }) {
               <button onClick={aktiviteYukle} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6" }}>🔄 Yenile</button>
             </div>
 
-            {!aktiviteVeri ? (
+            {!aktiviteVeri || !aktiviteVeri.ozet ? (
               <div className="list-empty"><p>Yükleniyor...</p></div>
             ) : (
               <>
                 {/* Özet Kartları */}
                 <div className="row row-wrap gap-12 mb-24">
-                  <StatCard icon="📈" baslik="Ort. Aktivite Skoru" deger={`%${aktiviteVeri.ozet.ortSkor}`} renk="#3b82f6" />
-                  <StatCard icon="✅" baslik="Aktif İşletme" deger={aktiviteVeri.ozet.aktifSayi} renk="#10b981" />
-                  <StatCard icon="😴" baslik="Pasif İşletme" deger={aktiviteVeri.ozet.pasifSayi} renk="#ef4444" />
-                  <StatCard icon="📅" baslik="Bu Ay Randevu" deger={aktiviteVeri.ozet.toplamRandevu} renk="#8b5cf6" />
-                  <StatCard icon="👥" baslik="Toplam Müşteri" deger={aktiviteVeri.ozet.toplamMusteri} renk="#f59e0b" />
+                  <StatCard icon="📈" baslik="Ort. Aktivite Skoru" deger={`%${aktiviteVeri.ozet?.ortSkor || 0}`} renk="#3b82f6" />
+                  <StatCard icon="✅" baslik="Aktif İşletme" deger={aktiviteVeri.ozet?.aktifSayi || 0} renk="#10b981" />
+                  <StatCard icon="😴" baslik="Pasif İşletme" deger={aktiviteVeri.ozet?.pasifSayi || 0} renk="#ef4444" />
+                  <StatCard icon="📅" baslik="Bu Ay Randevu" deger={aktiviteVeri.ozet?.toplamRandevu || 0} renk="#8b5cf6" />
+                  <StatCard icon="👥" baslik="Toplam Müşteri" deger={aktiviteVeri.ozet?.toplamMusteri || 0} renk="#f59e0b" />
                 </div>
 
                 {/* Filtre */}
