@@ -10,8 +10,9 @@ class RandevuService {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (!isletme) return [];
 
-    // Gün kontrolü (0=Pazar, 6=Cumartesi)
-    const gun = new Date(tarih).getDay();
+    // Gün kontrolü (0=Pazar, 6=Cumartesi) — timezone-safe
+    const [yil, ay, gn] = tarih.split('-').map(Number);
+    const gun = new Date(yil, ay - 1, gn).getDay();
 
     // Çalışan varsa, çalışanın kapalı günlerini de kontrol et
     let calisan = null;
@@ -24,8 +25,8 @@ class RandevuService {
     }
 
     // İşletme kapalı günleri
-    const kapaliGunler = (isletme.kapali_gunler || '').split(',').map(Number);
-    if (kapaliGunler.includes(gun)) return [];
+    const kapaliGunler = (isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number);
+    if (kapaliGunler.length > 0 && kapaliGunler.includes(gun)) return [];
 
     // Hizmet süresi: seçilen hizmetin süresi veya işletme varsayılanı
     let hizmetSureDk = isletme.randevu_suresi_dk || 30;
@@ -38,8 +39,8 @@ class RandevuService {
     const TAMPON_DK = 5;
 
     // Çalışma saatleri: çalışanın kendi mesaisi varsa onu kullan, yoksa işletme varsayılanı
-    const baslangic = (calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : isletme.calisma_baslangic;
-    const bitis = (calisan && calisan.calisma_bitis) ? calisan.calisma_bitis : isletme.calisma_bitis;
+    const baslangic = (calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : (isletme.calisma_baslangic || '09:00');
+    const bitis = (calisan && calisan.calisma_bitis) ? calisan.calisma_bitis : (isletme.calisma_bitis || '19:00');
 
     // Mevcut randevuları al (iptal ve gelmedi hariç — onay_bekliyor dahil, slotu kilitler)
     let randevuQuery = 'SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum NOT IN ($3, $4)';

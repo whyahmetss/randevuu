@@ -333,7 +333,7 @@ class WhatsAppWebService extends EventEmitter {
       const [bitH, bitM] = bitSaat.split(':').map(Number);
       const basDk = basH * 60 + basM;
       const bitDk = bitH * 60 + bitM;
-      const bugunKapali = (isletme.kapali_gunler || '').split(',').map(Number).includes(simdi.getDay());
+      const bugunKapali = (isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number).includes(simdi.getDay());
       const mesaiDisi = simdiDk < basDk || simdiDk > bitDk || bugunKapali;
 
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
