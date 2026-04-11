@@ -3823,367 +3823,291 @@ function SuperAdminPanel({ kullanici }) {
         {/* ═══════ SATIŞ BOT ═══════ */}
         {sayfa === "satisBot" && (
           <>
-            <h1 style={{ fontSize: 24 }} className="mb-8">💬 Satış Bot — WhatsApp Otomatik Pazarlama</h1>
-            <p style={{ color: "var(--dim)", fontSize: 13 }} className="mb-24">Avcı Bot'tan gelen lead'lere otomatik WhatsApp mesajı gönder, cevaplara AI ile satış yap.</p>
-
-            {/* Durum + Kontroller */}
-            <div className="row row-wrap gap-12 mb-24">
-              <div className="card" style={{ flex: "1 1 300px", padding: 20 }}>
-                <h3 className="mb-12" style={{ fontSize: 15 }}>🔌 Bot Durumu</h3>
-                <div className="row row-wrap gap-8 mb-12">
-                  <span className="tag" style={{
-                    background: satisBotDurum?.durum === 'bagli' ? 'rgba(16,185,129,.15)' : satisBotDurum?.durum === 'qr_bekleniyor' ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)',
-                    color: satisBotDurum?.durum === 'bagli' ? '#10b981' : satisBotDurum?.durum === 'qr_bekleniyor' ? '#f59e0b' : '#ef4444',
-                    fontWeight: 700, fontSize: 13
-                  }}>
-                    {satisBotDurum?.durum === 'bagli' ? '✅ Bağlı' : satisBotDurum?.durum === 'qr_bekleniyor' ? '📱 QR Bekliyor' : satisBotDurum?.durum === 'baslatiyor' ? '⏳ Başlatılıyor...' : '❌ Kapalı'}
-                  </span>
-                  {satisBotDurum?.aktif && <span className="tag" style={{ background: 'rgba(16,185,129,.15)', color: '#10b981', fontWeight: 700 }}>🚀 Gönderim Aktif</span>}
-                  {satisBotDurum?.gunlukGonderim > 0 && <span style={{ color: "var(--dim)", fontSize: 12 }}>Bugün: {satisBotDurum.gunlukGonderim}/50</span>}
+            {/* Hero Header */}
+            <div style={{ background: "linear-gradient(135deg, rgba(37,211,102,.08) 0%, rgba(59,130,246,.06) 50%, rgba(139,92,246,.04) 100%)", borderRadius: 20, padding: "28px 32px", marginBottom: 24, border: "1px solid rgba(37,211,102,.12)" }}>
+              <div className="row row-between row-wrap gap-12">
+                <div>
+                  <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text)", margin: 0, letterSpacing: "-0.5px" }}>💬 Satış Bot</h1>
+                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 6 }}>WhatsApp otomatik pazarlama — lead'lere mesaj gönder, AI ile satış yap</p>
                 </div>
                 <div className="row gap-8">
+                  <button onClick={satisBotYukle} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontWeight: 600, fontSize: 12 }}>🔄 Yenile</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Ana Grid: Bot Durumu + QR + İstatistikler */}
+            <div style={{ display: "grid", gridTemplateColumns: satisBotDurum?.durum === 'qr_bekleniyor' ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 24 }}>
+              {/* Bot Durumu Kartı */}
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)" }}>
+                <div className="row gap-10 mb-16" style={{ alignItems: "center" }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: satisBotDurum?.durum === 'bagli' ? "linear-gradient(135deg, #10b981, #059669)" : satisBotDurum?.durum === 'qr_bekleniyor' ? "linear-gradient(135deg, #f59e0b, #d97706)" : "linear-gradient(135deg, #ef4444, #dc2626)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 22, filter: "brightness(10)" }}>{satisBotDurum?.durum === 'bagli' ? '✅' : satisBotDurum?.durum === 'qr_bekleniyor' ? '📱' : '⏹️'}</span>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Bot Durumu</div>
+                    <div style={{ fontSize: 12, color: satisBotDurum?.durum === 'bagli' ? "#10b981" : satisBotDurum?.durum === 'qr_bekleniyor' ? "#f59e0b" : "#ef4444", fontWeight: 600 }}>
+                      {satisBotDurum?.durum === 'bagli' ? '● Bağlı & Çalışıyor' : satisBotDurum?.durum === 'qr_bekleniyor' ? '● QR Kod Bekliyor' : satisBotDurum?.durum === 'baslatiyor' ? '● Başlatılıyor...' : '● Kapalı'}
+                    </div>
+                  </div>
+                  {satisBotDurum?.aktif && <span style={{ marginLeft: "auto", padding: "4px 12px", borderRadius: 20, background: "rgba(16,185,129,.1)", color: "#10b981", fontSize: 11, fontWeight: 700 }}>🚀 Gönderim Aktif</span>}
+                </div>
+                <div className="row gap-8" style={{ flexWrap: "wrap" }}>
                   {(!satisBotDurum || satisBotDurum.durum === 'kapali' || satisBotDurum.durum === 'hata' || satisBotDurum.durum === 'baslatiyor') && (
-                    <button onClick={async () => { setSatisBotYukleniyor(true); await api.post("/admin/satis-bot/baslat"); setTimeout(satisBotYukle, 3000); setSatisBotYukleniyor(false); }}
-                      className="btn btn-sm" style={{ background: "var(--green)", color: "#fff", fontWeight: 700 }} disabled={satisBotYukleniyor}>
-                      {satisBotYukleniyor ? '⏳...' : '▶️ Botu Başlat'}
-                    </button>
+                    <button onClick={async () => { setSatisBotYukleniyor(true); await api.post("/admin/satis-bot/baslat"); setTimeout(satisBotYukle, 3000); setSatisBotYukleniyor(false); }} disabled={satisBotYukleniyor} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #10b981, #059669)", color: "#fff", fontWeight: 700, fontSize: 13, boxShadow: "0 4px 14px rgba(16,185,129,.3)" }}>{satisBotYukleniyor ? '⏳ Başlatılıyor...' : '▶️ Botu Başlat'}</button>
                   )}
                   {satisBotDurum?.durum === 'bagli' && !satisBotDurum?.aktif && (
-                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }}
-                      className="btn btn-sm" style={{ background: "#10b981", color: "#fff", fontWeight: 700 }}>
-                      🚀 Gönderimi Başlat
-                    </button>
+                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #25d366, #128c7e)", color: "#fff", fontWeight: 700, fontSize: 13, boxShadow: "0 4px 14px rgba(37,211,102,.3)" }}>🚀 Gönderimi Başlat</button>
                   )}
                   {satisBotDurum?.aktif && (
-                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }}
-                      className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", fontWeight: 700 }}>
-                      ⏸️ Gönderimi Durdur
-                    </button>
+                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(245,158,11,.1)", color: "#f59e0b", fontWeight: 700, fontSize: 13 }}>⏸️ Gönderimi Durdur</button>
                   )}
                   {satisBotDurum?.durum !== 'kapali' && satisBotDurum && (
-                    <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }}
-                      className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>
-                      ⏹️ Botu Kapat
-                    </button>
+                    <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(239,68,68,.08)", color: "#ef4444", fontWeight: 600, fontSize: 13 }}>⏹️ Botu Kapat</button>
                   )}
-                  <button onClick={satisBotYukle} className="btn btn-ghost btn-sm">🔄 Yenile</button>
                 </div>
+                {/* Günlük ilerleme */}
+                {satisBotDurum?.gunlukGonderim > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div className="row row-between" style={{ fontSize: 11, color: "var(--dim)", marginBottom: 4 }}>
+                      <span>Bugün gönderilen</span>
+                      <span style={{ fontWeight: 700 }}>{satisBotDurum.gunlukGonderim}/{satisBotDurum?.ayarlar?.gunlukLimit || 50}</span>
+                    </div>
+                    <div style={{ height: 6, background: "var(--bg)", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min((satisBotDurum.gunlukGonderim / (satisBotDurum?.ayarlar?.gunlukLimit || 50)) * 100, 100)}%`, background: "linear-gradient(90deg, #25d366, #10b981)", borderRadius: 3, transition: "width .3s" }} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* QR Kod */}
               {satisBotDurum?.durum === 'qr_bekleniyor' && satisBotDurum?.qrBase64 && (
-                <div className="card" style={{ flex: "0 0 auto", padding: 20, textAlign: "center" }}>
-                  <h3 className="mb-8" style={{ fontSize: 14 }}>📱 QR Kodu Tara</h3>
-                  <img src={satisBotDurum.qrBase64} alt="QR" style={{ width: 200, height: 200, borderRadius: 10 }} />
-                  <p style={{ color: "var(--dim)", fontSize: 11, marginTop: 8 }}>SıraGO satış numarasıyla WhatsApp'ı açıp bu QR'ı tara</p>
-                  <button onClick={satisBotYukle} className="btn btn-ghost btn-sm mt-8">🔄 QR Yenile</button>
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", textAlign: "center" }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>📱 QR Kodu Tara</div>
+                  <img src={satisBotDurum.qrBase64} alt="QR" style={{ width: 200, height: 200, borderRadius: 12, border: "4px solid var(--bg)" }} />
+                  <p style={{ color: "var(--dim)", fontSize: 11, marginTop: 10 }}>Satış numarasıyla WhatsApp aç → QR tara</p>
+                  <button onClick={satisBotYukle} style={{ marginTop: 8, padding: "6px 16px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "var(--bg)", color: "var(--dim)", fontSize: 12 }}>🔄 Yenile</button>
                 </div>
               )}
             </div>
 
-            {/* Ayarlar */}
+            {/* İstatistikler */}
+            {satisBotDurum?.istatistikler && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
+                {[
+                  { icon: "📤", label: "Gönderilen", val: satisBotDurum.istatistikler.gonderilen, color: "#3b82f6", bg: "linear-gradient(135deg, rgba(59,130,246,.08), rgba(59,130,246,.02))" },
+                  { icon: "⏳", label: "Cevap Bekliyor", val: satisBotDurum.istatistikler.bekleyen, color: "#f59e0b", bg: "linear-gradient(135deg, rgba(245,158,11,.08), rgba(245,158,11,.02))" },
+                  { icon: "✅", label: "Olumlu", val: satisBotDurum.istatistikler.olumlu, color: "#10b981", bg: "linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.02))" },
+                  { icon: "❌", label: "Olumsuz", val: satisBotDurum.istatistikler.olumsuz, color: "#ef4444", bg: "linear-gradient(135deg, rgba(239,68,68,.08), rgba(239,68,68,.02))" },
+                  { icon: "📵", label: "WP Yok", val: satisBotDurum.istatistikler.wp_yok, color: "#64748b", bg: "linear-gradient(135deg, rgba(100,116,139,.08), rgba(100,116,139,.02))" }
+                ].map((s, i) => (
+                  <div key={i} style={{ background: s.bg, border: `1px solid ${s.color}15`, borderRadius: 14, padding: "16px", position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", top: -6, right: -6, fontSize: 40, opacity: 0.06 }}>{s.icon}</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>{s.label}</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.val}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Ayarlar Kartı */}
             {satisBotDurum?.ayarlar && (
-              <div className="card mb-24" style={{ padding: 20 }}>
-                <h3 className="mb-12" style={{ fontSize: 15 }}>⚙️ Bot Ayarları</h3>
-                <div className="row row-wrap gap-16">
-                  <div style={{ flex: "1 1 140px" }}>
-                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Mesai Başlangıç</label>
-                    <select value={satisBotDurum.ayarlar.mesaiBaslangic} onChange={async (e) => {
-                      await api.put("/admin/satis-bot/ayarlar", { mesaiBaslangic: parseInt(e.target.value) }); satisBotYukle();
-                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
+                <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139,92,246,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>⚙️</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Bot Ayarları</div>
+                  <button onClick={async () => { await api.put("/admin/satis-bot/ayarlar", { tatil: !satisBotDurum.ayarlar.tatil }); satisBotYukle(); }} style={{ marginLeft: "auto", padding: "6px 16px", borderRadius: 20, border: "none", cursor: "pointer", background: satisBotDurum.ayarlar.tatil ? "rgba(239,68,68,.1)" : "rgba(16,185,129,.1)", color: satisBotDurum.ayarlar.tatil ? "#ef4444" : "#10b981", fontWeight: 700, fontSize: 12 }}>{satisBotDurum.ayarlar.tatil ? "🏖️ TATİL MODU" : "✅ Mesai Aktif"}</button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
+                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Mesai Başlangıç</label>
+                    <select value={satisBotDurum.ayarlar.mesaiBaslangic} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { mesaiBaslangic: parseInt(e.target.value) }); satisBotYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 }}>
                       {[7,8,9,10,11,12].map(s => <option key={s} value={s}>{s}:00</option>)}
                     </select>
                   </div>
-                  <div style={{ flex: "1 1 140px" }}>
-                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Mesai Bitiş</label>
-                    <select value={satisBotDurum.ayarlar.mesaiBitis} onChange={async (e) => {
-                      await api.put("/admin/satis-bot/ayarlar", { mesaiBitis: parseInt(e.target.value) }); satisBotYukle();
-                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
+                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
+                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Mesai Bitiş</label>
+                    <select value={satisBotDurum.ayarlar.mesaiBitis} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { mesaiBitis: parseInt(e.target.value) }); satisBotYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 }}>
                       {[17,18,19,20,21,22].map(s => <option key={s} value={s}>{s}:00</option>)}
                     </select>
                   </div>
-                  <div style={{ flex: "1 1 140px" }}>
-                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Günlük Limit</label>
-                    <select value={satisBotDurum.ayarlar.gunlukLimit} onChange={async (e) => {
-                      await api.put("/admin/satis-bot/ayarlar", { gunlukLimit: parseInt(e.target.value) }); satisBotYukle();
-                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
+                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
+                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Günlük Limit</label>
+                    <select value={satisBotDurum.ayarlar.gunlukLimit} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { gunlukLimit: parseInt(e.target.value) }); satisBotYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 700 }}>
                       {[10,20,30,40,50,75,100].map(s => <option key={s} value={s}>{s} mesaj</option>)}
                     </select>
                   </div>
-                  <div style={{ flex: "1 1 140px" }}>
-                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Mesaj Aralığı (dk)</label>
-                    <div className="row gap-6">
-                      <select value={satisBotDurum.ayarlar.minBekleme} onChange={async (e) => {
-                        await api.put("/admin/satis-bot/ayarlar", { minBekleme: parseInt(e.target.value) }); satisBotYukle();
-                      }} className="input" style={{ padding: "6px 10px", fontSize: 13, flex: 1 }}>
-                        {[1,2,3,5,8,10,15].map(s => <option key={s} value={s}>min {s}</option>)}
+                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14 }}>
+                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>Mesaj Aralığı (dk)</label>
+                    <div className="row gap-4">
+                      <select value={satisBotDurum.ayarlar.minBekleme} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { minBekleme: parseInt(e.target.value) }); satisBotYukle(); }} style={{ flex: 1, padding: "8px 6px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 700 }}>
+                        {[1,2,3,5,8,10,15].map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <select value={satisBotDurum.ayarlar.maxBekleme} onChange={async (e) => {
-                        await api.put("/admin/satis-bot/ayarlar", { maxBekleme: parseInt(e.target.value) }); satisBotYukle();
-                      }} className="input" style={{ padding: "6px 10px", fontSize: 13, flex: 1 }}>
-                        {[5,8,10,15,20,25,30].map(s => <option key={s} value={s}>max {s}</option>)}
+                      <span style={{ color: "var(--dim)", fontSize: 11, alignSelf: "center" }}>—</span>
+                      <select value={satisBotDurum.ayarlar.maxBekleme} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { maxBekleme: parseInt(e.target.value) }); satisBotYukle(); }} style={{ flex: 1, padding: "8px 6px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 700 }}>
+                        {[5,8,10,15,20,25,30].map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                   </div>
-                  <div style={{ flex: "1 1 140px", display: "flex", alignItems: "flex-end" }}>
-                    <button onClick={async () => {
-                      await api.put("/admin/satis-bot/ayarlar", { tatil: !satisBotDurum.ayarlar.tatil }); satisBotYukle();
-                    }} className="btn btn-sm" style={{
-                      background: satisBotDurum.ayarlar.tatil ? "rgba(239,68,68,.15)" : "rgba(16,185,129,.15)",
-                      color: satisBotDurum.ayarlar.tatil ? "#ef4444" : "#10b981",
-                      fontWeight: 700, width: "100%"
-                    }}>
-                      {satisBotDurum.ayarlar.tatil ? "🏖️ TATİL — Gönderim Durduruldu" : "✅ Mesai Aktif"}
-                    </button>
-                  </div>
-                </div>
-                <div className="row row-wrap gap-16 mt-16" style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
-                  <div style={{ flex: "1 1 300px" }}>
-                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>🎯 Hedef Kategori (bot sadece bu kategoriye yazar)</label>
-                    <select value={satisBotDurum.ayarlar.hedefKategori || ''} onChange={async (e) => {
-                      await api.put("/admin/satis-bot/ayarlar", { hedefKategori: e.target.value }); satisBotYukle();
-                    }} className="input" style={{ padding: "6px 10px", fontSize: 13 }}>
-                      <option value="">Tüm Kategoriler</option>
-                      {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k =>
-                        <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>
-                      )}
-                    </select>
-                  </div>
-                  {satisBotDurum.ayarlar.hedefKategori && (
-                    <div style={{ flex: "0 0 auto", display: "flex", alignItems: "flex-end" }}>
-                      <span className="tag" style={{ background: "rgba(139,92,246,.15)", color: "#8b5cf6", fontWeight: 700, fontSize: 13 }}>
-                        🎯 Bugün: {satisBotDurum.ayarlar.hedefKategori}
-                      </span>
+                  <div style={{ background: "var(--bg)", borderRadius: 12, padding: 14, gridColumn: "1 / -1" }}>
+                    <label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 }}>🎯 Hedef Kategori</label>
+                    <div className="row gap-8" style={{ alignItems: "center" }}>
+                      <select value={satisBotDurum.ayarlar.hedefKategori || ''} onChange={async (e) => { await api.put("/admin/satis-bot/ayarlar", { hedefKategori: e.target.value }); satisBotYukle(); }} style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600 }}>
+                        <option value="">Tüm Kategoriler</option>
+                        {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>)}
+                      </select>
+                      {satisBotDurum.ayarlar.hedefKategori && <span style={{ padding: "4px 12px", borderRadius: 20, background: "rgba(139,92,246,.1)", color: "#8b5cf6", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>🎯 {satisBotDurum.ayarlar.hedefKategori}</span>}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* İstatistikler */}
-            {satisBotDurum?.istatistikler && (
-              <div className="row row-wrap gap-12 mb-24">
-                <StatCard icon="📤" baslik="Gönderilen" deger={satisBotDurum.istatistikler.gonderilen} renk="#3b82f6" />
-                <StatCard icon="⏳" baslik="Cevap Bekliyor" deger={satisBotDurum.istatistikler.bekleyen} renk="#f59e0b" />
-                <StatCard icon="✅" baslik="Olumlu" deger={satisBotDurum.istatistikler.olumlu} renk="#10b981" />
-                <StatCard icon="❌" baslik="Olumsuz" deger={satisBotDurum.istatistikler.olumsuz} renk="#ef4444" />
-                <StatCard icon="📵" baslik="WP Yok" deger={satisBotDurum.istatistikler.wp_yok} renk="#64748b" />
-              </div>
-            )}
-
-            {/* Konuşmalar */}
-            <h3 className="mb-12" style={{ fontSize: 16 }}>💬 Son Konuşmalar</h3>
-            {satisBotKonusmalar.length === 0 ? (
-              <div className="list-empty"><p>Henüz konuşma yok. Botu başlat ve gönderimi aktif et! 🚀</p></div>
-            ) : satisBotKonusmalar.map(k => {
-              const durumRenk = { bekliyor: "#f59e0b", olumlu: "#10b981", olumsuz: "#ef4444" };
-              const durumLabel = { bekliyor: "⏳ Cevap Bekliyor", olumlu: "✅ Olumlu", olumsuz: "❌ Olumsuz" };
-              return (
-                <div key={k.id} className="list-item list-item-left" style={{ borderLeftColor: durumRenk[k.durum] || "#64748b", flexDirection: "column", alignItems: "stretch" }}>
-                  <div className="row row-between row-wrap gap-8 mb-4">
-                    <div className="row row-wrap gap-8">
-                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 14 }}>{k.isletme_adi}</span>
-                      <span className="tag-xs" style={{ background: (durumRenk[k.durum] || "#64748b") + "22", color: durumRenk[k.durum] || "#64748b", fontWeight: 600 }}>
-                        {durumLabel[k.durum] || k.durum}
-                      </span>
-                      {k.kategori && <span style={{ color: "var(--dim)", fontSize: 11 }}>🏷️ {k.kategori}</span>}
-                    </div>
-                    <span style={{ color: "var(--dim)", fontSize: 11 }}>
-                      {k.olusturma_tarihi ? new Date(k.olusturma_tarihi).toLocaleString('tr-TR') : ''}
-                    </span>
-                  </div>
-                  <div style={{ background: "rgba(59,130,246,.06)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
-                    <strong style={{ color: "var(--blue)" }}>📤 Gönderilen:</strong> {k.gonderilen_mesaj?.slice(0, 150)}...
-                  </div>
-                  {k.gelen_mesajlar && (
-                    <div style={{ background: "rgba(16,185,129,.06)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--text)", whiteSpace: "pre-wrap" }}>
-                      <strong style={{ color: "var(--green)" }}>💬 Konuşma:</strong>
-                      {k.gelen_mesajlar}
-                    </div>
-                  )}
-                  <div className="row gap-6 mt-4">
-                    <span style={{ color: "var(--dim)", fontSize: 11 }}>📞 +{k.telefon}</span>
-                    <a href={`https://wa.me/${k.telefon}`} target="_blank" rel="noreferrer" className="btn btn-sm"
-                      style={{ background: "rgba(37,211,102,.15)", color: "#25d366", border: "none", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>
-                      💬 WA'da Aç
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* 📵 WP Yok — Manuel Ara Listesi */}
-            {wpYokListe.length > 0 && (
-              <>
-                <h3 className="mb-12 mt-24" style={{ fontSize: 16 }}>📵 WhatsApp'ı Olmayan İşletmeler ({wpYokListe.length})</h3>
-                <p style={{ color: "var(--dim)", fontSize: 12, marginBottom: 12 }}>Bu işletmelerin WP'si yok — telefon ile kendin ara!</p>
-                <div className="card mb-24" style={{ padding: 0, overflow: "hidden" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                    <thead>
-                      <tr style={{ background: "rgba(100,116,139,.08)", textAlign: "left" }}>
-                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>İşletme</th>
-                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>Telefon</th>
-                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>Kategori</th>
-                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>Skor</th>
-                        <th style={{ padding: "10px 14px", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>İşlem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {wpYokListe.map(m => (
-                        <tr key={m.id} style={{ borderTop: "1px solid var(--border)" }}>
-                          <td style={{ padding: "10px 14px", fontWeight: 600, color: "var(--text)" }}>{m.isletme_adi}</td>
-                          <td style={{ padding: "10px 14px" }}>
-                            <a href={`tel:${m.telefon}`} style={{ color: "var(--blue)", textDecoration: "none", fontWeight: 600 }}>📞 {m.telefon}</a>
-                          </td>
-                          <td style={{ padding: "10px 14px", color: "var(--dim)" }}>{m.kategori}</td>
-                          <td style={{ padding: "10px 14px", color: "var(--amber)", fontWeight: 700 }}>{m.skor}</td>
-                          <td style={{ padding: "10px 14px" }}>
-                            <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); satisBotYukle(); }}
-                              className="btn btn-sm" style={{ background: "rgba(139,92,246,.12)", color: "#8b5cf6", border: "none", fontWeight: 600, fontSize: 11 }}>
-                              ✅ Arandı
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-
-            {/* 📱 NUMARA YÖNETİMİ + SAĞLIK */}
-            <div className="card mt-24" style={{ padding: 20 }}>
-              <div className="row row-between row-wrap gap-8 mb-16">
+            {/* Son Konuşmalar — Kompakt WhatsApp Tarzı */}
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
+              <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(37,211,102,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💬</div>
                 <div>
-                  <h3 style={{ fontSize: 16, marginBottom: 4 }}>📱 Numara Yönetimi & Sağlık</h3>
-                  <p style={{ color: "var(--dim)", fontSize: 12 }}>Birden fazla numara ekle, banlanınca diğerine geç. Tek numaraya güvenme!</p>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Son Konuşmalar</div>
+                  <div style={{ fontSize: 11, color: "var(--dim)" }}>{satisBotKonusmalar.length} konuşma</div>
                 </div>
-                <button onClick={() => setNumaraFormAcik(!numaraFormAcik)} className="btn btn-sm" style={{ background: "rgba(139,92,246,.15)", color: "#8b5cf6", fontWeight: 700 }}>
-                  + Numara Ekle
-                </button>
               </div>
-
-              {numaraFormAcik && (
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  await api.post("/admin/satis-bot/numaralar", yeniNumara);
-                  setYeniNumara({ isim: "", telefon: "" });
-                  setNumaraFormAcik(false);
-                  numaralariYukle();
-                }} className="row row-wrap gap-12 mb-16" style={{ background: "var(--bg)", borderRadius: 10, padding: 16, alignItems: "flex-end" }}>
-                  <div>
-                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>İsim / Etiket</label>
-                    <input value={yeniNumara.isim} onChange={e => setYeniNumara({...yeniNumara, isim: e.target.value})} placeholder="Satış 1" className="input" style={{ width: 150 }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, color: "var(--dim)", display: "block", marginBottom: 4 }}>Telefon Numarası</label>
-                    <input value={yeniNumara.telefon} onChange={e => setYeniNumara({...yeniNumara, telefon: e.target.value})} placeholder="905551234567" className="input" style={{ width: 180 }} />
-                  </div>
-                  <button type="submit" className="btn btn-sm" style={{ background: "#8b5cf6", color: "#fff", fontWeight: 700 }}>Kaydet</button>
-                  <button type="button" onClick={() => setNumaraFormAcik(false)} className="btn btn-ghost btn-sm">İptal</button>
-                </form>
-              )}
-
-              {/* Aktif numara (bot bağlı) */}
-              {satisBotDurum?.durum === 'bagli' && (
-                <div className="row row-wrap gap-8 mb-12" style={{ background: "rgba(16,185,129,.06)", borderRadius: 10, padding: "12px 16px", border: "1px solid rgba(16,185,129,.15)" }}>
-                  <span style={{ fontSize: 14 }}>✅</span>
-                  <span style={{ color: "#10b981", fontWeight: 700, fontSize: 14 }}>Aktif Numara</span>
-                  <span style={{ color: "var(--text)", fontSize: 13 }}>— Bot şu an bu numarayla bağlı</span>
-                  {satisBotDurum?.gunlukGonderim > 0 && (
-                    <span className="tag" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", fontWeight: 600, fontSize: 11, marginLeft: "auto" }}>
-                      Bugün {satisBotDurum.gunlukGonderim}/50 mesaj
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Numara listesi */}
-              {numaralar.length === 0 ? (
-                <div style={{ color: "var(--dim)", fontSize: 13, padding: "16px 0", textAlign: "center" }}>
-                  Henüz kayıtlı numara yok. Yedek numaralar ekleyerek ban riskini azalt!
-                </div>
+              {satisBotKonusmalar.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px 0", color: "var(--dim)" }}><div style={{ fontSize: 40, marginBottom: 8 }}>🚀</div><p style={{ fontSize: 13 }}>Henüz konuşma yok. Botu başlat!</p></div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {numaralar.map(n => {
-                    const durumRenk = { aktif: "#10b981", bekliyor: "#f59e0b", banli: "#ef4444", dinleniyor: "#3b82f6" };
-                    const durumLabel = { aktif: "✅ Aktif", bekliyor: "⏳ Bekliyor", banli: "🚫 Banlı", dinleniyor: "😴 Dinleniyor" };
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {satisBotKonusmalar.map(k => {
+                    const dRenk = { bekliyor: "#f59e0b", olumlu: "#10b981", olumsuz: "#ef4444" };
+                    const dIcon = { bekliyor: "⏳", olumlu: "✅", olumsuz: "❌" };
                     return (
-                      <div key={n.id} className="row row-between row-wrap gap-8" style={{
-                        background: n.durum === 'banli' ? "rgba(239,68,68,.04)" : "var(--bg)",
-                        borderRadius: 10, padding: "12px 16px",
-                        border: n.durum === 'banli' ? "1px solid rgba(239,68,68,.15)" : "1px solid var(--border)"
-                      }}>
-                        <div className="row row-wrap gap-8">
-                          <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{n.isim}</span>
-                          <span style={{ color: "var(--dim)", fontSize: 13 }}>📞 {n.telefon || "—"}</span>
-                          <span className="tag" style={{ background: (durumRenk[n.durum] || "#64748b") + "22", color: durumRenk[n.durum] || "#64748b", fontWeight: 700, fontSize: 11 }}>
-                            {durumLabel[n.durum] || n.durum}
-                          </span>
-                          {n.gonderim_sayisi > 0 && <span style={{ color: "var(--dim)", fontSize: 11 }}>📤 {n.gonderim_sayisi} mesaj</span>}
-                          {n.ban_tarihi && <span style={{ color: "#ef4444", fontSize: 11 }}>Ban: {new Date(n.ban_tarihi).toLocaleDateString("tr-TR")}</span>}
-                          {n.ban_notu && <span style={{ color: "var(--dim)", fontSize: 11 }}>({n.ban_notu})</span>}
+                      <div key={k.id} className="row gap-12" style={{ padding: "12px 14px", borderRadius: 12, background: "var(--bg)", alignItems: "center", cursor: "pointer", transition: "all .15s" }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 20, background: `${dRenk[k.durum] || "#64748b"}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{dIcon[k.durum] || "💬"}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="row row-between gap-8">
+                            <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.isletme_adi}</span>
+                            <span style={{ fontSize: 10, color: "var(--dim)", whiteSpace: "nowrap", flexShrink: 0 }}>{k.olusturma_tarihi ? new Date(k.olusturma_tarihi).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.gelen_mesajlar ? `💬 ${k.gelen_mesajlar.slice(0, 60)}...` : `📤 ${(k.gonderilen_mesaj || '').slice(0, 60)}...`}</div>
                         </div>
-                        <div className="row gap-6">
-                          {n.durum !== 'aktif' && n.durum !== 'banli' && (
-                            <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'aktif' }); numaralariYukle(); }}
-                              className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "#10b981", border: "none", fontWeight: 600, fontSize: 11 }}>
-                              Aktif Et
-                            </button>
-                          )}
-                          {n.durum === 'aktif' && (
-                            <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'dinleniyor' }); numaralariYukle(); }}
-                              className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", border: "none", fontWeight: 600, fontSize: 11 }}>
-                              Dinlendir
-                            </button>
-                          )}
-                          <button onClick={async () => {
-                            const notu = prompt("Ban notu (opsiyonel):");
-                            await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'banli', ban_notu: notu || 'WhatsApp ban' });
-                            numaralariYukle();
-                          }} className="btn btn-sm" style={{ background: "rgba(239,68,68,.08)", color: "#ef4444", border: "none", fontWeight: 600, fontSize: 11 }}>
-                            🚫 Ban
-                          </button>
-                          <button onClick={async () => {
-                            if (confirm(`"${n.isim}" numarasını silmek istediğinize emin misiniz?`)) {
-                              await api.del(`/admin/satis-bot/numaralar/${n.id}`);
-                              numaralariYukle();
-                            }
-                          }} className="btn btn-sm" style={{ background: "rgba(239,68,68,.06)", color: "var(--red)", border: "none", fontSize: 11 }}>
-                            Sil
-                          </button>
+                        <div className="row gap-4" style={{ flexShrink: 0 }}>
+                          {k.kategori && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontSize: 10, fontWeight: 600 }}>{k.kategori}</span>}
+                          <a href={`https://wa.me/${k.telefon}`} target="_blank" rel="noreferrer" style={{ padding: "6px 12px", borderRadius: 8, background: "linear-gradient(135deg, #25d366, #128c7e)", color: "#fff", fontWeight: 700, fontSize: 11, textDecoration: "none", display: "flex", alignItems: "center", gap: 4, boxShadow: "0 2px 8px rgba(37,211,102,.25)" }}>💬 WA</a>
                         </div>
                       </div>
                     );
                   })}
                 </div>
               )}
-
-              {/* Numara sağlığı önerileri */}
-              <div style={{ marginTop: 16, background: "rgba(139,92,246,.04)", borderRadius: 10, padding: "14px 16px", border: "1px solid rgba(139,92,246,.1)" }}>
-                <h4 style={{ color: "#8b5cf6", fontSize: 13, marginBottom: 8 }}>💡 Numara Rotasyonu Önerileri</h4>
-                <ul style={{ color: "var(--dim)", fontSize: 12, margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-                  <li>En az <strong>3 numara</strong> kayıtlı tut — biri banlanınca diğeri devreye girer</li>
-                  <li>Her numarayı <strong>2-3 gün</strong> kullandıktan sonra <strong>"Dinlendir"</strong> durumuna al</li>
-                  <li>Banlanmış numarayı <strong>2-4 hafta</strong> dinlendirdikten sonra tekrar dene</li>
-                  <li>Günlük limiti <strong>30'un altında</strong> tut — düşük limit = düşük ban riski</li>
-                  <li>Yeni numara eklemeden önce <strong>1-2 gün</strong> normal kullan (kişisel mesajlar at)</li>
-                </ul>
-              </div>
             </div>
 
-            {/* Anti-ban bilgi kutusu */}
-            <div className="card mt-24" style={{ padding: 16, background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.15)" }}>
-              <h4 style={{ color: "#f59e0b", fontSize: 13, marginBottom: 8 }}>⚠️ Anti-Ban Koruması Aktif</h4>
-              <ul style={{ color: "var(--dim)", fontSize: 12, margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-                <li>Her mesaj arasında <strong>{satisBotDurum?.ayarlar?.minBekleme || 8}-{satisBotDurum?.ayarlar?.maxBekleme || 15} dakika</strong> rastgele bekleme</li>
-                <li>Günlük maksimum <strong>{satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj</strong> limiti</li>
-                <li>Mesai saatleri: <strong>{satisBotDurum?.ayarlar?.mesaiBaslangic || "09"}:00 - {satisBotDurum?.ayarlar?.mesaiBitis || "19"}:00</strong></li>
-                <li>Her kategoriye <strong>3 farklı mesaj varyasyonu</strong></li>
-                <li>Gönderim öncesi <strong>"yazıyor..."</strong> simülasyonu</li>
-                <li>Numara WhatsApp'ta yoksa <strong>atlanır</strong></li>
-                <li><strong>{numaralar.length} numara</strong> kayıtlı · {numaralar.filter(n => n.durum === 'aktif').length} aktif · {numaralar.filter(n => n.durum === 'banli').length} banlı</li>
-              </ul>
+            {/* WP Yok — Manuel Ara */}
+            {wpYokListe.length > 0 && (
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
+                <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(100,116,139,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📵</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>WP Yok — Manuel Ara ({wpYokListe.length})</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)" }}>Bu işletmelerin WP'si yok — telefonla kendin ara</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {wpYokListe.map(m => (
+                    <div key={m.id} className="row gap-12" style={{ padding: "10px 14px", borderRadius: 10, background: "var(--bg)", alignItems: "center" }}>
+                      <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", flex: 1 }}>{m.isletme_adi}</span>
+                      <span style={{ fontSize: 11, color: "var(--dim)" }}>{m.kategori}</span>
+                      <span style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700 }}>Skor: {m.skor}</span>
+                      <a href={`tel:${m.telefon}`} style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(59,130,246,.08)", color: "#3b82f6", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>📞 {m.telefon}</a>
+                      <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); satisBotYukle(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontWeight: 600, fontSize: 11 }}>✅ Arandı</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Numara Yönetimi */}
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
+              <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139,92,246,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📱</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)" }}>Numara Yönetimi</div>
+                  <div style={{ fontSize: 11, color: "var(--dim)" }}>{numaralar.length} numara · {numaralar.filter(n => n.durum === 'aktif').length} aktif · {numaralar.filter(n => n.durum === 'banli').length} banlı</div>
+                </div>
+                <button onClick={() => setNumaraFormAcik(!numaraFormAcik)} style={{ padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, fontSize: 12, boxShadow: "0 2px 8px rgba(139,92,246,.25)" }}>+ Numara Ekle</button>
+              </div>
+
+              {numaraFormAcik && (
+                <form onSubmit={async (e) => { e.preventDefault(); await api.post("/admin/satis-bot/numaralar", yeniNumara); setYeniNumara({ isim: "", telefon: "" }); setNumaraFormAcik(false); numaralariYukle(); }} style={{ display: "flex", gap: 10, background: "var(--bg)", borderRadius: 12, padding: 14, marginBottom: 14, alignItems: "flex-end", flexWrap: "wrap" }}>
+                  <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>İsim</label><input value={yeniNumara.isim} onChange={e => setYeniNumara({...yeniNumara, isim: e.target.value})} placeholder="Satış 1" style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, width: 140 }} /></div>
+                  <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Telefon</label><input value={yeniNumara.telefon} onChange={e => setYeniNumara({...yeniNumara, telefon: e.target.value})} placeholder="905551234567" style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, width: 170 }} /></div>
+                  <button type="submit" style={{ padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", background: "#8b5cf6", color: "#fff", fontWeight: 700, fontSize: 12 }}>Kaydet</button>
+                  <button type="button" onClick={() => setNumaraFormAcik(false)} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontSize: 12 }}>İptal</button>
+                </form>
+              )}
+
+              {/* Aktif numara banner */}
+              {satisBotDurum?.durum === 'bagli' && (
+                <div className="row gap-8 mb-12" style={{ padding: "10px 16px", borderRadius: 10, background: "rgba(16,185,129,.04)", border: "1px solid rgba(16,185,129,.12)", alignItems: "center" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 4, background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
+                  <span style={{ color: "#10b981", fontWeight: 700, fontSize: 13 }}>Bot bu numarayla bağlı</span>
+                  {satisBotDurum?.gunlukGonderim > 0 && <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--dim)" }}>Bugün {satisBotDurum.gunlukGonderim} mesaj</span>}
+                </div>
+              )}
+
+              {/* Numara listesi */}
+              {numaralar.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 20, color: "var(--dim)", fontSize: 13 }}>Henüz numara yok. Yedek numaralar ekle!</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {numaralar.map(n => {
+                    const nRenk = { aktif: "#10b981", bekliyor: "#f59e0b", banli: "#ef4444", dinleniyor: "#3b82f6" };
+                    const nLabel = { aktif: "Aktif", bekliyor: "Bekliyor", banli: "Banlı", dinleniyor: "Dinleniyor" };
+                    return (
+                      <div key={n.id} className="row gap-10" style={{ padding: "12px 14px", borderRadius: 10, background: n.durum === 'banli' ? "rgba(239,68,68,.03)" : "var(--bg)", border: `1px solid ${n.durum === 'banli' ? "rgba(239,68,68,.12)" : "var(--border)"}`, alignItems: "center" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 4, background: nRenk[n.durum] || "#64748b", flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="row gap-6" style={{ alignItems: "center" }}>
+                            <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{n.isim}</span>
+                            <span style={{ fontSize: 12, color: "var(--dim)" }}>{n.telefon || "—"}</span>
+                            <span style={{ padding: "1px 8px", borderRadius: 6, background: `${nRenk[n.durum] || "#64748b"}15`, color: nRenk[n.durum] || "#64748b", fontSize: 10, fontWeight: 700 }}>{nLabel[n.durum] || n.durum}</span>
+                            {n.gonderim_sayisi > 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>{n.gonderim_sayisi} msj</span>}
+                            {n.ban_tarihi && <span style={{ fontSize: 10, color: "#ef4444" }}>Ban: {new Date(n.ban_tarihi).toLocaleDateString("tr-TR")}</span>}
+                          </div>
+                        </div>
+                        <div className="row gap-4" style={{ flexShrink: 0 }}>
+                          {n.durum !== 'aktif' && n.durum !== 'banli' && <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'aktif' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(16,185,129,.08)", color: "#10b981", fontWeight: 600, fontSize: 11 }}>Aktif</button>}
+                          {n.durum === 'aktif' && <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'dinleniyor' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(59,130,246,.08)", color: "#3b82f6", fontWeight: 600, fontSize: 11 }}>Dinlendir</button>}
+                          <button onClick={async () => { const notu = prompt("Ban notu:"); await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'banli', ban_notu: notu || 'WP ban' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.06)", color: "#ef4444", fontSize: 11 }}>Ban</button>
+                          <button onClick={async () => { if (confirm(`"${n.isim}" sil?`)) { await api.del(`/admin/satis-bot/numaralar/${n.id}`); numaralariYukle(); }}} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.04)", color: "var(--dim)", fontSize: 11 }}>✕</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Anti-Ban & İpuçları */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div style={{ background: "linear-gradient(135deg, rgba(245,158,11,.04), rgba(245,158,11,.01))", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(245,158,11,.12)" }}>
+                <div className="row gap-6 mb-8" style={{ alignItems: "center" }}><span style={{ fontSize: 16 }}>🛡️</span><span style={{ fontWeight: 700, fontSize: 14, color: "#f59e0b" }}>Anti-Ban Koruması</span></div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--dim)" }}>
+                  <span>• {satisBotDurum?.ayarlar?.minBekleme || 8}-{satisBotDurum?.ayarlar?.maxBekleme || 15} dk rastgele bekleme</span>
+                  <span>• Günlük max {satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj</span>
+                  <span>• Mesai: {satisBotDurum?.ayarlar?.mesaiBaslangic || 9}:00 — {satisBotDurum?.ayarlar?.mesaiBitis || 19}:00</span>
+                  <span>• "Yazıyor..." simülasyonu</span>
+                  <span>• 3 farklı mesaj varyasyonu</span>
+                </div>
+              </div>
+              <div style={{ background: "linear-gradient(135deg, rgba(139,92,246,.04), rgba(139,92,246,.01))", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(139,92,246,.12)" }}>
+                <div className="row gap-6 mb-8" style={{ alignItems: "center" }}><span style={{ fontSize: 16 }}>💡</span><span style={{ fontWeight: 700, fontSize: 14, color: "#8b5cf6" }}>Numara İpuçları</span></div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--dim)" }}>
+                  <span>• En az 3 numara kayıtlı tut</span>
+                  <span>• 2-3 günde bir numarayı dinlendir</span>
+                  <span>• Banlı numarayı 2-4 hafta dinlendir</span>
+                  <span>• Günlük limiti 30 altında tut</span>
+                  <span>• Yeni numarayı 1-2 gün normal kullan</span>
+                </div>
+              </div>
             </div>
           </>
         )}
