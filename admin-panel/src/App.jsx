@@ -25,6 +25,11 @@ const api = {
       localStorage.removeItem("randevugo_token");
       window.location.reload();
     }
+    if (res.status === 402) {
+      window.dispatchEvent(new CustomEvent("odeme-gerekli"));
+      const data = await res.json();
+      return { ...data, _odemeGerekli: true };
+    }
     return res.json();
   },
 
@@ -73,7 +78,7 @@ function Login({ onLogin }) {
           </div>
 
           <div style={{ textAlign: "center", marginBottom: 24 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 6 }}>Nasıl kayıt olmak istersiniz?</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>Nasıl kayıt olmak istersiniz?</div>
             <div style={{ fontSize: 13, color: "var(--dim)" }}>Botumuz size adım adım rehberlik edecek</div>
           </div>
 
@@ -759,7 +764,16 @@ function Dashboard() {
   const [odemeBilgi, setOdemeBilgi] = useState(null);
   const [havaleNotu, setHavaleNotu] = useState("");
   const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
+  const [dashCalisanlar, setDashCalisanlar] = useState([]);
+  const [calisanPopover, setCalisanPopover] = useState(null);
+  const [odemeGerekli, setOdemeGerekli] = useState(false);
   const chatRef = useRef(null);
+
+  useEffect(() => {
+    const handler = () => setOdemeGerekli(true);
+    window.addEventListener("odeme-gerekli", handler);
+    return () => window.removeEventListener("odeme-gerekli", handler);
+  }, []);
 
   const verileriYukle = useCallback(async (tarih) => {
     const t = tarih || randevuTarih;
@@ -776,6 +790,8 @@ function Dashboard() {
     api.get("/paket").then(d => { if (d.paket) setPaketDurum(d); });
     api.get("/grafik-verileri").then(d => { if (!d.hata) setGrafikVeri(d); }).catch(() => {});
     api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); }).catch(() => {});
+    api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
+    api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
     // Shopier callback sonrası bildirim
     const params = new URLSearchParams(window.location.search);
     if (params.get('odeme') === 'basarili') {
@@ -797,13 +813,14 @@ function Dashboard() {
     if (sayfa === "musteriler") musterileriYukle();
     if (sayfa === "ayarlar") ayarlariYukle();
     if (sayfa === "randevular") verileriYukle();
+    if (sayfa === "anasayfa") api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
   }, [sayfa]);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [testCevaplar]);
 
-  const DR = { onaylandi: "#10b981", bekliyor: "#f59e0b", iptal: "#ef4444", tamamlandi: "#3b82f6", gelmedi: "#6b7280", kapora_bekliyor: "#f59e0b" };
+  const DR = { onaylandi: "#2cb872", bekliyor: "#f59e0b", iptal: "#ef4444", tamamlandi: "#3b82f6", gelmedi: "#6b7280", kapora_bekliyor: "#f59e0b" };
   const DL = { onaylandi: "Onaylı ✓", bekliyor: "Bekliyor", iptal: "İptal", tamamlandi: "Tamamlandı", gelmedi: "Gelmedi", kapora_bekliyor: "💳 Kapora Bekleniyor" };
 
   const botTest = async () => {
@@ -931,129 +948,458 @@ function Dashboard() {
 
       {/* ── Main ── */}
       <div className="main-wrap">
-        <div className="top-bar">
-          <h1>{sayfaBaslik[sayfa]}</h1>
-          <div className="date">
-            {new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+        <div className="top-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", margin: 0 }}>{sayfaBaslik[sayfa]}</h1>
+            {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {/* Çalışan Avatarları + Ekip Dropdown */}
+            {dashCalisanlar.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", position: "relative" }}
+                onClick={() => setCalisanPopover(calisanPopover ? null : "ekip")}>
+                {dashCalisanlar.slice(0, 4).map((c, i) => (
+                  <div key={c.id} style={{
+                    width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--surface)",
+                    background: ["#54E097","#FE5796","#14F5D6","#8b5cf6","#f59e0b"][i % 5],
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 12, fontWeight: 700, color: "#fff",
+                    marginLeft: i > 0 ? -8 : 0, zIndex: 5 - i, cursor: "pointer",
+                    transition: "transform .2s"
+                  }} onMouseOver={e => e.currentTarget.style.transform = "scale(1.12)"}
+                     onMouseOut={e => e.currentTarget.style.transform = "none"}>
+                    {c.isim?.charAt(0)?.toUpperCase()}
+                  </div>
+                ))}
+                {dashCalisanlar.length > 4 && (
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--surface)",
+                    background: "var(--surface3)", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, fontWeight: 700, color: "var(--muted)", marginLeft: -8, zIndex: 0, cursor: "pointer"
+                  }}>+{dashCalisanlar.length - 4}</div>
+                )}
+
+                {/* Ekip Dropdown */}
+                {calisanPopover === "ekip" && (
+                  <>
+                    <div onClick={e => { e.stopPropagation(); setCalisanPopover(null); }} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 49 }} />
+                    <div onClick={e => e.stopPropagation()} style={{
+                      position: "absolute", top: 44, right: 0, zIndex: 50,
+                      background: "var(--surface)", border: "1px solid var(--border)",
+                      borderRadius: 16, width: 300, maxHeight: 420, overflow: "hidden",
+                      boxShadow: "0 16px 48px rgba(22,5,39,.14), 0 2px 8px rgba(22,5,39,.06)",
+                      animation: "fadeIn .18s ease", display: "flex", flexDirection: "column"
+                    }}>
+                      {/* Başlık */}
+                      <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>Ekip</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 1 }}>{dashCalisanlar.length} çalışan</div>
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); setCalisanPopover(null); setSayfa("calisanlar"); }} style={{
+                          padding: "5px 12px", borderRadius: 8, border: "1px solid var(--border)",
+                          background: "var(--surface)", color: "var(--muted)", fontSize: 11, fontWeight: 600,
+                          cursor: "pointer", fontFamily: "inherit"
+                        }}>Yönet →</button>
+                      </div>
+                      {/* Liste */}
+                      <div style={{ overflowY: "auto", padding: "8px 10px", flex: 1 }}>
+                        {dashCalisanlar.map((c, i) => {
+                          const renk = ["#54E097","#FE5796","#14F5D6","#8b5cf6","#f59e0b"][i % 5];
+                          return (
+                            <div key={c.id} style={{
+                              display: "flex", alignItems: "center", gap: 12, padding: "10px 8px",
+                              borderRadius: 10, cursor: "default", transition: "background .15s"
+                            }} onMouseOver={e => e.currentTarget.style.background = "var(--bg)"}
+                               onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                              <div style={{
+                                width: 36, height: 36, borderRadius: 10, background: renk, flexShrink: 0,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: 14, fontWeight: 800, color: "#fff"
+                              }}>{c.isim?.charAt(0)?.toUpperCase()}</div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.isim}</div>
+                                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 1 }}>
+                                  {c.uzmanlik || (c.calisma_baslangic ? `${c.calisma_baslangic?.slice(0,5)} – ${c.calisma_bitis?.slice(0,5)}` : "Çalışan")}
+                                </div>
+                              </div>
+                              {c.telefon && (
+                                <div style={{ fontSize: 11, color: "var(--muted)", flexShrink: 0 }}>{c.telefon?.slice(-4)}</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {/* Kullanıcı Profil */}
+            {ayarlar && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px",
+                background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
+                cursor: "pointer"
+              }} onClick={() => setSayfa("ayarlar")}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 13, fontWeight: 800, color: "#fff"
+                }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>{ayarlar.isim}</div>
+                  <div style={{ fontSize: 10, color: "var(--dim)" }}>{ayarlar.kategori || "İşletme"}</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
-          {sayfa === "anasayfa" && (
+          {sayfa === "anasayfa" && (() => {
+            const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
+            const haftaRandevu = stats?.hafta?.toplam_randevu || 0;
+            const toplamMusteri = stats?.toplam_musteri || 0;
+            const limitR = paketDurum?.paket_bilgi?.aylik_randevu_limit || 100;
+            const kulR = paketDurum?.kullanim?.randevu || 0;
+            const pctR = limitR >= 9999 ? Math.min(kulR, 50) : Math.min(100, Math.round(kulR / limitR * 100));
+            return (
             <>
-              {/* Stat Cards */}
-              <div className="stats-grid">
-                {[
-                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, label: "Bugün Randevu", val: stats?.bugun?.toplam_randevu || 0, cls: "green" },
-                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>, label: "Bu Hafta", val: stats?.hafta?.toplam_randevu || 0, cls: "blue" },
-                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, label: "Toplam Müşteri", val: stats?.toplam_musteri || 0, cls: "amber" },
-                  { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: "Bugün Müsait Saat", val: stats?.bugun_musait_saat || 0, cls: "purple" },
-                ].map(c => (
-                  <div key={c.label} className={`stat-card ${c.cls}`}>
-                    <div className="sc-icon">{c.icon}</div>
-                    <div className="sc-label">{c.label}</div>
-                    <div className="sc-val">{c.val}</div>
+              {/* ── ROW 1: Stat Cards (Optivue style) ── */}
+              <div className="dash-stats-row" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
+                {/* Bugün Randevu */}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, marginBottom: 6 }}>Bugün Randevu</div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                        <span style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", letterSpacing: "-.5px" }}>{bugunRandevu}</span>
+                        {stats?.bugun?.onaylanan > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: "#2cb872", background: "rgba(84,224,151,.1)", padding: "2px 8px", borderRadius: 6 }}>✓ {stats.bugun.onaylanan} onaylı</span>}
+                      </div>
+                    </div>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(84,224,151,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📅</div>
                   </div>
-                ))}
-              </div>
-
-              {/* Bugünün randevuları */}
-              <div className="card">
-                <div className="card-header">
-                  <h3>Bugünün Randevuları</h3>
-                  <button onClick={() => setSayfa("randevular")} className="btn btn-ghost btn-sm">Tümünü Gör →</button>
+                  <div style={{ height: 4, borderRadius: 2, background: "var(--surface3)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 2, background: "#54E097", width: `${Math.min(100, bugunRandevu * 10)}%`, transition: "width .4s" }} />
+                  </div>
                 </div>
-                {!stats ? (
-                  <div className="text-center" style={{ color: "var(--dim)", padding: 30 }}>Yükleniyor...</div>
-                ) : randevular.length === 0 ? (
-                  <div className="text-center" style={{ padding: "30px 0" }}>
-                    <div style={{ fontSize: 36 }} className="mb-8">📭</div>
-                    <div style={{ color: "var(--dim)", fontSize: 14 }}>Bugün için randevu yok</div>
-                  </div>
-                ) : randevular.map(r => (
-                  <div key={r.id} className="row" style={{ padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-                    <div className="time-avatar"><span>{r.saat?.slice(0, 5)}</span></div>
-                    <div className="flex-1">
-                      <div style={{ fontWeight: 600, fontSize: 14 }} className="mb-2">{r.musteri_isim}</div>
-                      <div style={{ color: "var(--dim)", fontSize: 12 }}>{r.hizmet_isim}{r.calisan_isim ? ` · ${r.calisan_isim}` : ""}</div>
+
+                {/* Bu Hafta */}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, marginBottom: 6 }}>Bu Hafta Toplam</div>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                        <span style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", letterSpacing: "-.5px" }}>{haftaRandevu}</span>
+                        {stats?.hafta?.onaylanan > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: "#0bb8a0", background: "rgba(20,245,214,.1)", padding: "2px 8px", borderRadius: 6 }}>✓ {stats.hafta.onaylanan}</span>}
+                      </div>
                     </div>
-                    <span className="tag" style={{ background: (DR[r.durum] || "#64748b") + "20", color: DR[r.durum] || "#64748b" }}>
-                      {DL[r.durum] || r.durum}
-                    </span>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(20,245,214,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
                   </div>
-                ))}
+                  <div style={{ height: 4, borderRadius: 2, background: "var(--surface3)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 2, background: "#14F5D6", width: `${Math.min(100, haftaRandevu * 3)}%`, transition: "width .4s" }} />
+                  </div>
+                </div>
+
+                {/* Müşteri Memnuniyeti / Paket Kullanım */}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, marginBottom: 6 }}>Aylık Randevu Kullanım</div>
+                      <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 4 }}>Paket kapasitesi takibi</div>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", background: "var(--surface3)", padding: "3px 10px", borderRadius: 8 }}>Aylık</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--dim)", marginBottom: 4 }}>
+                        <span>Kullanılan</span>
+                        <span style={{ fontWeight: 600 }}>{kulR}/{limitR >= 9999 ? "∞" : limitR}</span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: "var(--surface3)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 3, background: pctR > 80 ? "#ef4444" : pctR > 60 ? "#f59e0b" : "#54E097", width: `${pctR}%`, transition: "width .4s" }} />
+                      </div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--dim)", marginBottom: 4 }}>
+                        <span>Müşteri</span>
+                        <span style={{ fontWeight: 600 }}>{toplamMusteri}</span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: "var(--surface3)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 3, background: "#FE5796", width: `${Math.min(100, toplamMusteri * 2)}%`, transition: "width .4s" }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Grafikler */}
+              {/* ── ROW 2: Gelir Kartları (Optivue orta sıra) ── */}
               {grafikVeri && (
-                <div className="chart-grid">
-                  <div className="card">
-                    <h3 className="card-title mb-16">Son 7 Gün - Randevular</h3>
-                    <div className="chart-container">
-                      <Bar data={{
-                        labels: (grafikVeri.haftalik || []).map(h => { const d = new Date(h.tarih); return d.toLocaleDateString("tr-TR", { weekday: "short", day: "numeric" }); }),
-                        datasets: [
-                          { label: "Toplam", data: (grafikVeri.haftalik || []).map(h => parseInt(h.sayi)), backgroundColor: "rgba(139,92,246,.5)", hoverBackgroundColor: "rgba(139,92,246,.7)", borderRadius: 8, borderSkipped: false },
-                          { label: "Onaylanan", data: (grafikVeri.haftalik || []).map(h => parseInt(h.onaylanan)), backgroundColor: "rgba(16,185,129,.5)", hoverBackgroundColor: "rgba(16,185,129,.7)", borderRadius: 8, borderSkipped: false },
-                        ]
-                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8892b0", font: { size: 11 } } } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
+                <div className="dash-mid-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+                  {/* Bekleyen Randevular */}
+                  {(() => {
+                    const bekleyen = randevular.filter(r => r.durum === "bekliyor").length;
+                    return (
+                      <div style={{ background: bekleyen > 0 ? "rgba(245,158,11,.04)" : "var(--surface)", borderRadius: 16, padding: "18px 22px", border: `1px solid ${bekleyen > 0 ? "rgba(245,158,11,.15)" : "var(--border)"}`, cursor: "pointer" }} onClick={() => setSayfa("randevular")}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                          <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>Bekleyen Onay</div>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: bekleyen > 0 ? "rgba(245,158,11,.1)" : "var(--surface3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⏳</div>
+                        </div>
+                        <div style={{ fontSize: 28, fontWeight: 800, color: bekleyen > 0 ? "#d97706" : "var(--text)", letterSpacing: "-.5px" }}>{bekleyen}</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>{bekleyen > 0 ? "Onay bekleyen randevu var" : "Tüm randevular onaylı"}</div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Aylık gelir özet */}
+                  {(() => {
+                    const aylikGelirler = (grafikVeri.aylikGelir || []).map(g => parseFloat(g.gelir));
+                    const toplamAylik = aylikGelirler.reduce((a, b) => a + b, 0);
+                    return (
+                      <div style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 22px", border: "1px solid var(--border)" }}>
+                        <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500, marginBottom: 4 }}>Bu Ay Gelir</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: "var(--text)", letterSpacing: "-.5px" }}>₺{toplamAylik.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+                          <span style={{ fontSize: 11, color: "#2cb872", fontWeight: 600 }}>📈</span>
+                          <span style={{ fontSize: 11, color: "var(--dim)" }}>{aylikGelirler.length} gün verisi</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Günlük gelirler mini */}
+                  {(() => {
+                    const son3 = (grafikVeri.aylikGelir || []).slice(-3);
+                    return (
+                      <div style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 22px", border: "1px solid var(--border)" }}>
+                        <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500, marginBottom: 10 }}>Son 3 Gün Gelir</div>
+                        {son3.map((g, i) => {
+                          const d = new Date(g.tarih);
+                          return (
+                            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: i < son3.length - 1 ? "1px solid var(--border)" : "none" }}>
+                              <span style={{ fontSize: 12, color: "var(--dim)" }}>{d.getDate()}/{d.getMonth()+1}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>₺{parseFloat(g.gelir).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* ── ROW 3: Ana grafik (sol) + Bot Test Widget (sağ, Optivue Smart Insights tarzı) ── */}
+              <div className="dash-main-grid" style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20, marginBottom: 20 }}>
+                {/* Haftalık Randevu Analizi */}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Randevu Analizi</div>
+                      <div style={{ fontSize: 11, color: "var(--dim)" }}>Toplam randevular ve onaylananlar haftalık</div>
                     </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", background: "var(--surface3)", padding: "4px 12px", borderRadius: 8 }}>Aylık</span>
+                  </div>
+                  {grafikVeri && (
+                    <div style={{ position: "relative", height: 220 }}>
+                      <Bar data={{
+                        labels: (grafikVeri.haftalik || []).map(h => { const d = new Date(h.tarih); return d.toLocaleDateString("tr-TR", { weekday: "short" }); }),
+                        datasets: [
+                          { label: "Toplam", data: (grafikVeri.haftalik || []).map(h => parseInt(h.sayi)), backgroundColor: "rgba(84,224,151,.45)", hoverBackgroundColor: "rgba(84,224,151,.7)", borderRadius: 8, borderSkipped: false },
+                          { label: "Onaylanan", data: (grafikVeri.haftalik || []).map(h => parseInt(h.onaylanan)), backgroundColor: "rgba(84,224,151,.2)", hoverBackgroundColor: "rgba(84,224,151,.4)", borderRadius: 8, borderSkipped: false },
+                        ]
+                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#6b7280", font: { size: 11 }, usePointStyle: true, pointStyle: "circle", padding: 16 } } }, scales: { x: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { color: "rgba(22,5,39,.04)" } } } }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Bot Test — Smart Insights tarzı koyu gradient kart */}
+                <div style={{
+                  background: "linear-gradient(145deg, #160527 0%, #1e0f38 40%, #2a1650 70%, #1a0d30 100%)",
+                  borderRadius: 16, padding: "22px 22px 18px", position: "relative", overflow: "hidden",
+                  display: "flex", flexDirection: "column"
+                }}>
+                  {/* Dekoratif elementler */}
+                  <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: "rgba(84,224,151,.06)" }} />
+                  <div style={{ position: "absolute", bottom: 30, right: -10, width: 80, height: 80, borderRadius: "50%", background: "rgba(254,87,150,.04)" }} />
+                  <div style={{ position: "absolute", top: 40, right: 30, width: 40, height: 40, borderRadius: "50%", background: "rgba(20,245,214,.05)" }} />
+
+                  {/* Header */}
+                  <div style={{ position: "relative", zIndex: 1, marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: "rgba(84,224,151,.7)", fontWeight: 600, letterSpacing: ".5px" }}>Botunuzu Test Edin</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(84,224,151,.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ fontSize: 14 }}>🤖</span>
+                      </div>
+                      <span style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>Bot Test</span>
+                    </div>
+                    <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, lineHeight: 1.4 }}>Botunuzu test edin, müşteri gibi mesaj gönderin</div>
                   </div>
 
-                  <div className="card">
-                    <h3 className="card-title mb-16">Aylık Gelir (₺)</h3>
-                    <div className="chart-container">
+                  {/* Chat area */}
+                  <div ref={chatRef} style={{
+                    flex: 1, minHeight: 120, maxHeight: 180, overflowY: "auto",
+                    background: "rgba(255,255,255,.04)", borderRadius: 12, padding: 10,
+                    marginBottom: 10, display: "flex", flexDirection: "column", gap: 6,
+                    position: "relative", zIndex: 1
+                  }}>
+                    {testCevaplar.length === 0 ? (
+                      <div style={{ textAlign: "center", padding: "20px 0", color: "rgba(255,255,255,.25)", fontSize: 11 }}>
+                        Bir mesaj göndererek botu test edin
+                      </div>
+                    ) : testCevaplar.map((m, i) => (
+                      <div key={i} style={{
+                        alignSelf: m.yon === "giden" ? "flex-end" : "flex-start",
+                        background: m.yon === "giden" ? "rgba(84,224,151,.2)" : "rgba(255,255,255,.08)",
+                        color: m.yon === "giden" ? "#54E097" : "rgba(255,255,255,.8)",
+                        padding: "6px 12px", borderRadius: 10, fontSize: 12, maxWidth: "85%",
+                        lineHeight: 1.4
+                      }}>
+                        {m.mesaj}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Input */}
+                  <div style={{ display: "flex", gap: 6, position: "relative", zIndex: 1 }}>
+                    <input
+                      value={testMesaj}
+                      onChange={e => setTestMesaj(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && botTest()}
+                      placeholder="Mesaj yazın..."
+                      style={{
+                        flex: 1, padding: "10px 14px", borderRadius: 10,
+                        background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)",
+                        color: "#fff", fontSize: 12, outline: "none", fontFamily: "inherit"
+                      }}
+                    />
+                    <button onClick={botTest} disabled={testYukleniyor} style={{
+                      padding: "10px 16px", borderRadius: 10, border: "none",
+                      background: "rgba(84,224,151,.2)", color: "#54E097",
+                      fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+                      transition: "all .2s"
+                    }}>
+                      {testYukleniyor ? "..." : "➤"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── ROW 4: Gelir Trendi + Hizmet Dağılımı ── */}
+              {grafikVeri && (
+                <div className="dash-sub-grid" style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20, marginBottom: 20 }}>
+                  {/* Aylık Gelir Line */}
+                  <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Gelir Trendi</div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "var(--dim)" }}>Bu ay</span>
+                    </div>
+                    <div style={{ position: "relative", height: 180 }}>
                       <Line data={{
                         labels: (grafikVeri.aylikGelir || []).map(g => { const d = new Date(g.tarih); return `${d.getDate()}/${d.getMonth()+1}`; }),
                         datasets: [{
                           label: "Gelir (₺)", data: (grafikVeri.aylikGelir || []).map(g => parseFloat(g.gelir)),
-                          borderColor: "#10b981", backgroundColor: "rgba(16,185,129,.08)", fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: "#10b981", pointBorderColor: "transparent", borderWidth: 2.5,
+                          borderColor: "#54E097", backgroundColor: "rgba(84,224,151,.06)", fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: "#54E097", pointBorderColor: "#fff", pointBorderWidth: 2, borderWidth: 2.5,
                         }]
-                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8892b0", font: { size: 11 } } } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 }, callback: v => v + "₺" }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
+                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#9ca3af", font: { size: 10 }, callback: v => v + "₺" }, grid: { color: "rgba(22,5,39,.04)" } } } }} />
                     </div>
                   </div>
 
-                  <div className="card">
-                    <h3 className="card-title mb-16">Hizmet Dağılımı</h3>
-                    <div className="chart-container-sm">
+                  {/* Hizmet Dağılımı */}
+                  <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)" }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 16 }}>Hizmet Dağılımı</div>
+                    <div style={{ position: "relative", height: 200 }}>
                       <Doughnut data={{
                         labels: (grafikVeri.hizmetDagilimi || []).map(h => h.isim),
                         datasets: [{ data: (grafikVeri.hizmetDagilimi || []).map(h => parseInt(h.sayi)),
-                          backgroundColor: ["#10b981","#8b5cf6","#a78bfa","#34d399","#6366f1","#c4b5fd","#059669","#7c3aed"],
-                          borderWidth: 0, borderRadius: 4, hoverOffset: 6,
+                          backgroundColor: ["#54E097","#FE5796","#14F5D6","#8b5cf6","#3dd485","#ff8ab5","#0bb8a0","#a78bfa"],
+                          borderWidth: 0, borderRadius: 4, hoverOffset: 6, spacing: 2,
                         }]
-                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { color: "#8892b0", font: { size: 11 }, padding: 12 } } } }} />
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <h3 className="card-title mb-16">Saat Dağılımı</h3>
-                    <div className="chart-container">
-                      <Bar data={{
-                        labels: (grafikVeri.saatDagilimi || []).map(s => s.saat?.slice(0,5)),
-                        datasets: [{ label: "Randevu", data: (grafikVeri.saatDagilimi || []).map(s => parseInt(s.sayi)),
-                          backgroundColor: "rgba(139,92,246,.4)", hoverBackgroundColor: "rgba(139,92,246,.65)", borderRadius: 8, borderSkipped: false,
-                        }]
-                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#5a6380", font: { size: 9 } }, grid: { display: false } }, y: { ticks: { color: "#5a6380", font: { size: 10 } }, grid: { color: "rgba(255,255,255,.04)" } } } }} />
+                      }} options={{ responsive: true, maintainAspectRatio: false, cutout: "65%", plugins: { legend: { position: "bottom", labels: { color: "#6b7280", font: { size: 10 }, usePointStyle: true, pointStyle: "circle", padding: 8 } } } }} />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Ödeme Durumu */}
+              {/* ── ROW 5: Bugünün Randevuları (tam genişlik) ── */}
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", marginBottom: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 20 }}>📋</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Bugünün Randevuları</div>
+                      <div style={{ fontSize: 11, color: "var(--dim)" }}>{randevular.length} randevu planlandı</div>
+                    </div>
+                  </div>
+                  <button onClick={() => setSayfa("randevular")} style={{
+                    padding: "6px 16px", borderRadius: 10, border: "1px solid var(--border)",
+                    background: "var(--surface)", color: "var(--text)", fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit"
+                  }}>Tümünü Gör →</button>
+                </div>
+                {!stats ? (
+                  <div style={{ color: "var(--dim)", padding: 24, textAlign: "center" }}>Yükleniyor...</div>
+                ) : randevular.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "28px 16px", background: "var(--surface2)", borderRadius: 12 }}>
+                    <div style={{ fontSize: 36, marginBottom: 6 }}>🎉</div>
+                    <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 600 }}>Bugün boş</div>
+                    <div style={{ color: "var(--dim)", fontSize: 12, marginTop: 2 }}>Randevu yok, keyfinize bakın!</div>
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+                    {randevular.slice(0, 8).map(r => (
+                      <div key={r.id} style={{
+                        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
+                        background: "var(--surface2)", borderRadius: 12, border: "1px solid var(--border)",
+                        transition: "all .15s"
+                      }}
+                      onMouseOver={e => e.currentTarget.style.borderColor = DR[r.durum] || "var(--border)"}
+                      onMouseOut={e => e.currentTarget.style.borderColor = "var(--border)"}>
+                        <div style={{
+                          width: 42, height: 42, borderRadius: 10,
+                          background: `${DR[r.durum] || "#9ca3af"}12`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontWeight: 800, fontSize: 13, color: DR[r.durum] || "#9ca3af", flexShrink: 0
+                        }}>{r.saat?.slice(0, 5)}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.musteri_isim || "İsimsiz"}</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{r.hizmet_isim}</div>
+                        </div>
+                        <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: `${DR[r.durum] || "#9ca3af"}12`, color: DR[r.durum] || "#9ca3af", whiteSpace: "nowrap" }}>{DL[r.durum] || r.durum}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {randevular.length > 8 && (
+                  <button onClick={() => setSayfa("randevular")} style={{
+                    width: "100%", padding: "10px", marginTop: 12, textAlign: "center",
+                    background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10,
+                    color: "var(--primary)", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit"
+                  }}>+{randevular.length - 8} randevu daha</button>
+                )}
+              </div>
+
+              {/* ── ROW 6: Ödeme Durumu ── */}
               {odemeBilgi && (
-                <div className="card">
-                  <div className="card-header">
-                    <h3>Ödeme Durumu - {odemeBilgi.donem}</h3>
-                    <span className={`tag ${odemeBilgi.odeme?.durum === 'odendi' ? 'tag-green' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'tag-amber' : 'tag-red'}`}>
-                      {odemeBilgi.odeme?.durum === 'odendi' ? 'Ödendi' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'Havale Onay Bekliyor' : 'Ödenmedi'}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", borderLeft: `4px solid ${odemeBilgi.odeme?.durum === 'odendi' ? '#2cb872' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '#f59e0b' : '#ef4444'}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 20 }}>💳</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Ödeme Durumu</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)" }}>{odemeBilgi.donem}</div>
+                      </div>
+                    </div>
+                    <span className={`tag ${odemeBilgi.odeme?.durum === 'odendi' ? 'tag-green' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'tag-amber' : 'tag-red'}`} style={{ padding: "4px 14px", fontSize: 12 }}>
+                      {odemeBilgi.odeme?.durum === 'odendi' ? '✅ Ödendi' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '⏳ Onay Bekliyor' : '❌ Ödenmedi'}
                     </span>
                   </div>
                   {(!odemeBilgi.odeme || odemeBilgi.odeme.durum === 'bekliyor') && (
                     <div className="odeme-panel">
                       <div className="odeme-tutar">{odemeBilgi.tutar}₺ <span className="odeme-paket">{odemeBilgi.paket} paket</span></div>
-
                       <div className="banka-bilgi">
                         <div><strong>Banka:</strong> {odemeBilgi.banka?.banka_adi}</div>
                         <div><strong>IBAN:</strong> {odemeBilgi.banka?.iban}</div>
@@ -1068,13 +1414,13 @@ function Dashboard() {
                           if (!d.hata) { api.get("/odeme/durum").then(d2 => { if (!d2.hata) setOdemeBilgi(d2); }); }
                           setOdemeYukleniyor(false);
                         }} disabled={odemeYukleniyor} className="btn btn-primary btn-sm">
-                          {odemeYukleniyor ? "Gönderiliyor..." : "Havale Bildirimi Gönder"}
+                          {odemeYukleniyor ? "Gönderiliyor..." : "📤 Havale Bildirimi Gönder"}
                         </button>
                         <button onClick={() => {
                           const token = localStorage.getItem("randevugo_token");
                           const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
                           window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
-                        }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "#51cbb0", color: "#fff", fontWeight: 700 }}>
+                        }} disabled={odemeYukleniyor} className="btn btn-sm" style={{ background: "var(--gradient-accent)", color: "#fff", fontWeight: 700, border: "none" }}>
                           🔒 Kredi Kartı ile Öde
                         </button>
                       </div>
@@ -1084,12 +1430,16 @@ function Dashboard() {
                     <div className="alert alert-amber mt-12">Havale bildiriminiz alındı. SuperAdmin onayı bekleniyor.</div>
                   )}
                   {odemeBilgi.odeme?.durum === 'odendi' && (
-                    <div className="alert alert-success mt-12">Bu dönem ödemesi tamamlandı. Teşekkürler!</div>
+                    <div style={{ background: "rgba(84,224,151,.06)", border: "1px solid rgba(84,224,151,.15)", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+                      <span style={{ fontSize: 20 }}>🎉</span>
+                      <div style={{ fontSize: 13, color: "#2cb872", fontWeight: 600 }}>Bu dönem ödemesi tamamlandı. Teşekkürler!</div>
+                    </div>
                   )}
                 </div>
               )}
             </>
-          )}
+            );
+          })()}
 
           {/* ── RANDEVULAR ── */}
           {sayfa === "randevular" && (() => {
@@ -1113,7 +1463,7 @@ function Dashboard() {
                 onClick={() => { setRandevuTarih(tarihVal); verileriYukle(tarihVal); }}
                 style={{
                   padding: "10px 20px", borderRadius: 12, border: "none", cursor: "pointer", fontSize: 14, fontWeight: 600,
-                  background: aktifTab === tabId ? "var(--primary)" : "rgba(255,255,255,0.06)",
+                  background: aktifTab === tabId ? "var(--primary)" : "var(--surface)",
                   color: aktifTab === tabId ? "#fff" : "var(--dim)",
                   transition: "all .2s"
                 }}>
@@ -1133,20 +1483,20 @@ function Dashboard() {
                   onChange={e => { setRandevuTarih(e.target.value); verileriYukle(e.target.value); }}
                   style={{
                     padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)",
-                    background: aktifTab === "ozel" ? "var(--primary)" : "rgba(255,255,255,0.08)",
-                    color: "#fff", fontSize: 14, cursor: "pointer", outline: "none",
-                    colorScheme: "dark"
+                    background: aktifTab === "ozel" ? "var(--primary)" : "var(--surface)",
+                    color: aktifTab === "ozel" ? "#fff" : "var(--text)", fontSize: 14, cursor: "pointer", outline: "none",
+                    colorScheme: "light"
                   }} />
                 <button onClick={() => verileriYukle()} style={{
                   padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer",
-                  background: "rgba(16,185,129,0.15)", color: "#10b981", fontSize: 13, fontWeight: 600
+                  background: "rgba(84,224,151,0.12)", color: "#2cb872", fontSize: 13, fontWeight: 600
                 }}>↻ Yenile</button>
               </div>
 
               {/* Tarih başlığı ve randevu sayısı */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", textTransform: "capitalize" }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", textTransform: "capitalize" }}>
                     {aktifTab === "bugun" ? "📅 Bugünün Randevuları" : aktifTab === "dun" ? "⏪ Dünün Randevuları" : aktifTab === "yarin" ? "⏩ Yarının Randevuları" : "📅 Randevular"}
                   </div>
                   <div style={{ color: "var(--dim)", fontSize: 13, marginTop: 2 }}>{tarihLabel(randevuTarih)}</div>
@@ -1163,7 +1513,7 @@ function Dashboard() {
               {randevular.length > 0 && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 20 }}>
                   {[
-                    { key: "onaylandi", label: "Onaylı", emoji: "✅", color: "#10b981" },
+                    { key: "onaylandi", label: "Onaylı", emoji: "✅", color: "#2cb872" },
                     { key: "bekliyor", label: "Bekliyor", emoji: "⏳", color: "#f59e0b" },
                     { key: "tamamlandi", label: "Tamamlandı", emoji: "✔️", color: "#3b82f6" },
                     { key: "gelmedi", label: "Gelmedi", emoji: "❌", color: "#6b7280" },
@@ -1187,14 +1537,14 @@ function Dashboard() {
               {randevular.length === 0 ? (
                 <div className="card text-center" style={{ padding: "60px 20px" }}>
                   <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
-                  <div style={{ color: "#fff", fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Randevu bulunamadı</div>
+                  <div style={{ color: "var(--text)", fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Randevu bulunamadı</div>
                   <div style={{ color: "var(--dim)", fontSize: 13 }}>{tarihLabel(randevuTarih)} için randevu yok</div>
                 </div>
               ) : randevular.map((r, idx) => {
                 const durumRenk = DR[r.durum] || "#f59e0b";
                 return (
                 <div key={r.id} style={{
-                  background: "var(--card)", borderRadius: 14, padding: "16px 20px",
+                  background: "var(--surface)", borderRadius: 14, padding: "16px 20px",
                   marginBottom: 10, border: "1px solid var(--border)",
                   borderLeft: `4px solid ${durumRenk}`,
                   transition: "transform .15s, box-shadow .15s"
@@ -1213,7 +1563,7 @@ function Dashboard() {
 
                     {/* Bilgiler */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: "#fff", marginBottom: 4 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)", marginBottom: 4 }}>
                         {r.musteri_isim || "İsimsiz"}
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", fontSize: 13, color: "var(--dim)" }}>
@@ -1246,7 +1596,7 @@ function Dashboard() {
                         style={{
                           padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
                           fontSize: 12, fontWeight: 600, transition: "all .15s",
-                          background: r.durum === d ? DR[d] + "30" : "rgba(255,255,255,0.04)",
+                          background: r.durum === d ? DR[d] + "18" : "var(--surface2)",
                           color: r.durum === d ? DR[d] : "var(--dim)",
                           outline: r.durum === d ? `1px solid ${DR[d]}40` : "1px solid var(--border)"
                         }}>
@@ -1467,30 +1817,41 @@ function Dashboard() {
             </div>
             <div className="price-grid-modal">
               {[
-                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["1 çalışan", "5 hizmete kadar", "Aylık 100 randevu", "WhatsApp / Telegram bot", "Temel destek"] },
-                { key: "profesyonel", isim: "Profesyonel", fiyat: 599, renk: "#3b82f6", ozellikler: ["5 çalışana kadar", "20 hizmete kadar", "Aylık 500 randevu", "WhatsApp / Telegram bot", "Randevu hatırlatmaları", "Öncelikli destek"] },
-                { key: "premium", isim: "Premium", fiyat: 999, renk: "#f59e0b", ozellikler: ["Sınırsız çalışan", "Sınırsız hizmet", "Sınırsız randevu", "WhatsApp / Telegram bot", "Randevu hatırlatmaları", "Gelişmiş istatistikler", "7/24 VIP destek"] },
+                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["1 Çalışan", "200 Randevu/Ay", "Otomatik Hatırlatma", "Temel Analitik", "WhatsApp Bot"], ozellikYok: ["Telegram Desteği", "Çok Dilli Destek"] },
+                { key: "profesyonel", isim: "Profesyonel", fiyat: 999, renk: "#3b82f6", ozellikler: ["3 Çalışan", "Sınırsız Randevu", "Telegram Desteği", "Gelişmiş Analitik", "Google Calendar Sync", "5 Dil Desteği"], ozellikYok: [] },
+                { key: "kurumsal", isim: "Kurumsal", fiyat: null, renk: "#f59e0b", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "Özel API Entegrasyonu", "Özel Eğitim & Onboarding", "SLA Garantisi", "12+ Dil Desteği"], ozellikYok: [] },
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
                   <div key={p.key} className={`price-item${aktif ? ' active' : ''}`} style={{ background: aktif ? `${p.renk}10` : "var(--bg)", borderColor: aktif ? p.renk : undefined, color: p.renk }}>
                     {aktif && <div className="price-tag" style={{ background: p.renk }}>MEVCUT</div>}
-                    {p.key === "profesyonel" && !aktif && <div className="price-tag" style={{ background: "var(--blue)" }}>POPÜLER</div>}
+                    {p.key === "profesyonel" && !aktif && <div className="price-tag" style={{ background: "var(--blue)" }}>EN POPÜLER</div>}
                     <div className="p-name" style={{ color: p.renk }}>{p.isim}</div>
-                    <div className="p-price">{p.fiyat}₺<span>/ay</span></div>
+                    <div className="p-price">{p.fiyat ? `${p.fiyat}₺` : "Özel"}<span>{p.fiyat ? "/ay" : ""}</span></div>
                     <div className="p-divider">
                       {p.ozellikler.map((o, i) => (
                         <div key={i} className="price-feature"><span style={{ color: p.renk }}>✓</span> {o}</div>
                       ))}
+                      {(p.ozellikYok || []).map((o, i) => (
+                        <div key={`yok-${i}`} className="price-feature" style={{ opacity: .4, textDecoration: "line-through" }}><span style={{ color: "var(--red)" }}>✕</span> {o}</div>
+                      ))}
                     </div>
-                    {!aktif && (
+                    {!aktif && p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
                         const token = localStorage.getItem("randevugo_token");
                         const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
                         window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}&paket=${p.key}`, "_blank");
                         setPaketModal(false);
                       }}>
-                        {p.key === "baslangic" ? "Geç" : "Yükselt"}
+                        {p.key === "baslangic" ? "Başla" : "Yükselt"}
+                      </button>
+                    )}
+                    {!aktif && !p.fiyat && (
+                      <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
+                        window.open("https://sırago.com/#iletisim", "_blank");
+                        setPaketModal(false);
+                      }}>
+                        Bizimle Görüşün
                       </button>
                     )}
                   </div>
@@ -2107,7 +2468,7 @@ function SuperAdminPanel({ kullanici }) {
             </div>
 
             <div className="row row-wrap gap-16 mb-24">
-              <StatCard icon="💰" baslik="Toplam Gelir" deger={toplamGelir.toFixed(0) + " ₺"} renk="#10b981" />
+              <StatCard icon="💰" baslik="Toplam Gelir" deger={toplamGelir.toFixed(0) + " ₺"} renk="#2cb872" />
               <StatCard icon="📅" baslik="Bu Ay Gelir" deger={buAyGelir.toFixed(0) + " ₺"} renk="#3b82f6" />
               <StatCard icon="✅" baslik="Bu Ay Ödeyen" deger={buAyOdeyenler.length} renk="#8b5cf6" />
               <StatCard icon="⏳" baslik="Bu Ay Ödemeyenler" deger={buAyOdemeyenler.length} renk="#ef4444" />
@@ -3403,6 +3764,68 @@ function SuperAdminPanel({ kullanici }) {
         )}
 
       </div>
+
+      {/* ── ÖDEME DUVARI ── */}
+      {odemeGerekli && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: "rgba(22,5,39,.7)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 20
+        }}>
+          <div style={{
+            background: "var(--surface)", borderRadius: 20, padding: "36px 32px",
+            maxWidth: 440, width: "100%", textAlign: "center",
+            boxShadow: "0 24px 64px rgba(22,5,39,.25)",
+            animation: "fadeIn .25s ease"
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>Ödeme Gerekli</h2>
+            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 20 }}>
+              Bu ay için ödemeniz bulunmamaktadır. Paneli kullanmaya devam etmek için lütfen ödeme yapın.
+            </p>
+            <div style={{
+              background: "rgba(239,68,68,.05)", border: "1px solid rgba(239,68,68,.15)",
+              borderRadius: 12, padding: "14px 18px", marginBottom: 20, textAlign: "left"
+            }}>
+              <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, marginBottom: 6 }}>⚠️ Kısıtlanan Özellikler:</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.8 }}>
+                Randevular, Hizmetler, Çalışanlar, Müşteriler, Bot İşlemleri, Kampanyalar ve diğer tüm panel özellikleri
+              </div>
+            </div>
+            <div style={{
+              background: "rgba(84,224,151,.05)", border: "1px solid rgba(84,224,151,.15)",
+              borderRadius: 12, padding: "14px 18px", marginBottom: 20, textAlign: "left"
+            }}>
+              <div style={{ fontSize: 12, color: "#2cb872", fontWeight: 600, marginBottom: 6 }}>✅ Erişilebilir:</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.8 }}>
+                Dashboard istatistikleri, Ayarlar, Ödeme sayfası, Destek
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <button onClick={() => { setOdemeGerekli(false); setSayfa("anasayfa"); }} style={{
+                padding: "12px 24px", borderRadius: 12, border: "1px solid var(--border)",
+                background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit"
+              }}>Dashboard'a Dön</button>
+              <button onClick={() => {
+                const token = localStorage.getItem("randevugo_token");
+                const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
+                window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
+              }} style={{
+                padding: "12px 24px", borderRadius: 12, border: "none",
+                background: "var(--gradient-accent)", color: "#fff", fontSize: 13, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+                boxShadow: "0 4px 16px rgba(254,87,150,.3)"
+              }}>💳 Hemen Öde</button>
+            </div>
+            <div style={{ marginTop: 16, fontSize: 11, color: "var(--dim)" }}>
+              İlk 7 gün ücretsiz deneme süresi dahildir
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -3425,8 +3848,8 @@ export default function App() {
   }, []);
 
   if (yukleniyor) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0f172a" }}>
-      <div style={{ color: "#fff", fontSize: 20 }}>📅 RandevuGO yükleniyor...</div>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f7" }}>
+      <div style={{ color: "#160527", fontSize: 20, fontWeight: 600 }}>📅 RandevuGO yükleniyor...</div>
     </div>
   );
 

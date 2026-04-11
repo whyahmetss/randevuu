@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
 
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1] || req.query.token;
@@ -20,4 +21,39 @@ const superAdminMiddleware = (req, res, next) => {
   next();
 };
 
-module.exports = { authMiddleware, superAdminMiddleware };
+const odemeKontrol = async (req, res, next) => {
+  try {
+    if (req.kullanici.rol === 'superadmin') return next();
+
+    const isletmeId = req.kullanici.isletme_id;
+    if (!isletmeId) return next();
+
+    // İşletme oluşturulma tarihini kontrol et — ilk 7 gün ücretsiz
+    const isletme = (await pool.query('SELECT olusturma_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    if (isletme) {
+      const olusturma = new Date(isletme.olusturma_tarihi);
+      const simdi = new Date();
+      const gunFark = Math.floor((simdi - olusturma) / (1000 * 60 * 60 * 24));
+      if (gunFark <= 7) return next(); // İlk 7 gün deneme süresi
+    }
+
+    const buAy = new Date().toISOString().slice(0, 7);
+    const odeme = (await pool.query(
+      "SELECT durum FROM odemeler WHERE isletme_id = $1 AND donem = $2 ORDER BY olusturma_tarihi DESC LIMIT 1",
+      [isletmeId, buAy]
+    )).rows[0];
+
+    if (odeme && odeme.durum === 'odendi') return next();
+
+    return res.status(402).json({
+      hata: 'Ödeme gerekli',
+      mesaj: 'Bu ay için ödemeniz bulunmamaktadır. Paneli kullanmaya devam etmek için lütfen ödeme yapın.',
+      odeme_durumu: odeme?.durum || 'yok'
+    });
+  } catch (err) {
+    console.error('❌ Ödeme kontrol hatası:', err.message);
+    next(); // Hata durumunda engelleme
+  }
+};
+
+module.exports = { authMiddleware, superAdminMiddleware, odemeKontrol };

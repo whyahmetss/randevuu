@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, superAdminMiddleware } = require('../middleware/auth');
+const { authMiddleware, superAdminMiddleware, odemeKontrol } = require('../middleware/auth');
 const authController = require('../controllers/authController');
 const adminController = require('../controllers/adminController');
 const botController = require('../controllers/botController');
@@ -18,23 +18,23 @@ router.post('/webhook/whatsapp', (req, res) => botController.gelenMesaj(req, res
 router.post('/bot/test', (req, res) => botController.testMesaj(req, res));
 
 // ==================== ADMIN PANEL ====================
-router.get('/randevular', authMiddleware, (req, res) => adminController.randevulariGetir(req, res));
-router.put('/randevular/:id/durum', authMiddleware, (req, res) => adminController.randevuDurumGuncelle(req, res));
+router.get('/randevular', authMiddleware, odemeKontrol, (req, res) => adminController.randevulariGetir(req, res));
+router.put('/randevular/:id/durum', authMiddleware, odemeKontrol, (req, res) => adminController.randevuDurumGuncelle(req, res));
 
-router.get('/hizmetler', authMiddleware, (req, res) => adminController.hizmetleriGetir(req, res));
-router.post('/hizmetler', authMiddleware, (req, res) => adminController.hizmetEkle(req, res));
-router.put('/hizmetler/:id', authMiddleware, (req, res) => adminController.hizmetGuncelle(req, res));
-router.delete('/hizmetler/:id', authMiddleware, (req, res) => adminController.hizmetSil(req, res));
+router.get('/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetleriGetir(req, res));
+router.post('/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetEkle(req, res));
+router.put('/hizmetler/:id', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetGuncelle(req, res));
+router.delete('/hizmetler/:id', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetSil(req, res));
 
-router.get('/calisanlar', authMiddleware, (req, res) => adminController.calisanlariGetir(req, res));
-router.post('/calisanlar', authMiddleware, (req, res) => adminController.calisanEkle(req, res));
-router.put('/calisanlar/:id', authMiddleware, (req, res) => adminController.calisanGuncelle(req, res));
-router.delete('/calisanlar/:id', authMiddleware, (req, res) => adminController.calisanSil(req, res));
-router.get('/calisanlar/:id/hizmetler', authMiddleware, (req, res) => adminController.calisanHizmetleriGetir(req, res));
-router.put('/calisanlar/:id/hizmetler', authMiddleware, (req, res) => adminController.calisanHizmetleriGuncelle(req, res));
-router.put('/kapora', authMiddleware, (req, res) => adminController.kaporaToggle(req, res));
+router.get('/calisanlar', authMiddleware, odemeKontrol, (req, res) => adminController.calisanlariGetir(req, res));
+router.post('/calisanlar', authMiddleware, odemeKontrol, (req, res) => adminController.calisanEkle(req, res));
+router.put('/calisanlar/:id', authMiddleware, odemeKontrol, (req, res) => adminController.calisanGuncelle(req, res));
+router.delete('/calisanlar/:id', authMiddleware, odemeKontrol, (req, res) => adminController.calisanSil(req, res));
+router.get('/calisanlar/:id/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.calisanHizmetleriGetir(req, res));
+router.put('/calisanlar/:id/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.calisanHizmetleriGuncelle(req, res));
+router.put('/kapora', authMiddleware, odemeKontrol, (req, res) => adminController.kaporaToggle(req, res));
 
-router.get('/musteriler', authMiddleware, (req, res) => adminController.musterileriGetir(req, res));
+router.get('/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.musterileriGetir(req, res));
 
 router.get('/istatistikler', authMiddleware, (req, res) => adminController.istatistikler(req, res));
 router.get('/grafik-verileri', authMiddleware, (req, res) => adminController.grafikVerileri(req, res));
@@ -43,26 +43,26 @@ router.get('/ayarlar', authMiddleware, (req, res) => adminController.isletmeAyar
 router.put('/ayarlar', authMiddleware, (req, res) => adminController.isletmeGuncelle(req, res));
 router.get('/paket', authMiddleware, (req, res) => adminController.paketBilgisi(req, res));
 router.get('/bot/durum', authMiddleware, (req, res) => adminController.botDurum(req, res));
-router.put('/bot/ayarlar', authMiddleware, (req, res) => adminController.botAyarlarGuncelle(req, res));
-router.post('/bot/telegram/bagla', authMiddleware, (req, res) => adminController.telegramBagla(req, res));
-router.post('/bot/telegram/ayir', authMiddleware, (req, res) => adminController.telegramAyir(req, res));
-router.post('/bot/whatsapp/bagla', authMiddleware, (req, res) => adminController.whatsappBagla(req, res));
-router.get('/bot/wp/durum', authMiddleware, (req, res) => adminController.wpWebDurum(req, res));
-router.post('/bot/wp/baslat', authMiddleware, (req, res) => adminController.wpWebBaslat(req, res));
-router.post('/bot/wp/ayir', authMiddleware, (req, res) => adminController.wpWebAyir(req, res));
-router.get('/bot/wp/sse', authMiddleware, (req, res) => adminController.wpWebSse(req, res));
+router.put('/bot/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.botAyarlarGuncelle(req, res));
+router.post('/bot/telegram/bagla', authMiddleware, odemeKontrol, (req, res) => adminController.telegramBagla(req, res));
+router.post('/bot/telegram/ayir', authMiddleware, odemeKontrol, (req, res) => adminController.telegramAyir(req, res));
+router.post('/bot/whatsapp/bagla', authMiddleware, odemeKontrol, (req, res) => adminController.whatsappBagla(req, res));
+router.get('/bot/wp/durum', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebDurum(req, res));
+router.post('/bot/wp/baslat', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebBaslat(req, res));
+router.post('/bot/wp/ayir', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebAyir(req, res));
+router.get('/bot/wp/sse', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebSse(req, res));
 
 // ==================== KAMPANYALAR ====================
-router.get('/kampanyalar', authMiddleware, (req, res) => adminController.kampanyalariGetir(req, res));
-router.post('/kampanyalar', authMiddleware, (req, res) => adminController.kampanyaEkle(req, res));
-router.post('/kampanyalar/:id/gonder', authMiddleware, (req, res) => adminController.kampanyaGonder(req, res));
-router.delete('/kampanyalar/:id', authMiddleware, (req, res) => adminController.kampanyaSil(req, res));
+router.get('/kampanyalar', authMiddleware, odemeKontrol, (req, res) => adminController.kampanyalariGetir(req, res));
+router.post('/kampanyalar', authMiddleware, odemeKontrol, (req, res) => adminController.kampanyaEkle(req, res));
+router.post('/kampanyalar/:id/gonder', authMiddleware, odemeKontrol, (req, res) => adminController.kampanyaGonder(req, res));
+router.delete('/kampanyalar/:id', authMiddleware, odemeKontrol, (req, res) => adminController.kampanyaSil(req, res));
 
 // ==================== MEMNUNIYET ====================
-router.get('/memnuniyetler', authMiddleware, (req, res) => adminController.memnuniyetleriGetir(req, res));
+router.get('/memnuniyetler', authMiddleware, odemeKontrol, (req, res) => adminController.memnuniyetleriGetir(req, res));
 
 // ==================== BEKLEME LİSTESİ ====================
-router.get('/bekleme-listesi', authMiddleware, (req, res) => adminController.beklemeListesiGetir(req, res));
+router.get('/bekleme-listesi', authMiddleware, odemeKontrol, (req, res) => adminController.beklemeListesiGetir(req, res));
 
 // ==================== SUPER ADMIN ====================
 router.get('/admin/isletmeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.tumIsletmeler(req, res));
@@ -147,23 +147,23 @@ router.delete('/admin/duyurular/:id', authMiddleware, superAdminMiddleware, (req
 router.get('/duyurular', authMiddleware, (req, res) => adminController.aktifDuyurular(req, res));
 
 // ==================== VERİ DIŞA AKTARMA (Export) ====================
-router.get('/export/musteriler', authMiddleware, (req, res) => adminController.exportMusteriler(req, res));
+router.get('/export/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.exportMusteriler(req, res));
 
 // ==================== ETİKETLEME (Mini-CRM) — Premium ====================
-router.get('/etiketler', authMiddleware, (req, res) => adminController.etiketleriGetir(req, res));
-router.post('/etiketler', authMiddleware, (req, res) => adminController.etiketEkle(req, res));
-router.put('/etiketler/:id', authMiddleware, (req, res) => adminController.etiketGuncelle(req, res));
-router.delete('/etiketler/:id', authMiddleware, (req, res) => adminController.etiketSil(req, res));
-router.post('/etiketler/ata', authMiddleware, (req, res) => adminController.musteriEtiketAta(req, res));
-router.post('/etiketler/kaldir', authMiddleware, (req, res) => adminController.musteriEtiketKaldir(req, res));
-router.get('/etiketler/musteri/:telefon', authMiddleware, (req, res) => adminController.musteriEtiketleri(req, res));
-router.get('/etiketler/:etiketId/musteriler', authMiddleware, (req, res) => adminController.etiketliMusteriler(req, res));
-router.post('/etiketler/toplu-ata', authMiddleware, (req, res) => adminController.topluEtiketAta(req, res));
+router.get('/etiketler', authMiddleware, odemeKontrol, (req, res) => adminController.etiketleriGetir(req, res));
+router.post('/etiketler', authMiddleware, odemeKontrol, (req, res) => adminController.etiketEkle(req, res));
+router.put('/etiketler/:id', authMiddleware, odemeKontrol, (req, res) => adminController.etiketGuncelle(req, res));
+router.delete('/etiketler/:id', authMiddleware, odemeKontrol, (req, res) => adminController.etiketSil(req, res));
+router.post('/etiketler/ata', authMiddleware, odemeKontrol, (req, res) => adminController.musteriEtiketAta(req, res));
+router.post('/etiketler/kaldir', authMiddleware, odemeKontrol, (req, res) => adminController.musteriEtiketKaldir(req, res));
+router.get('/etiketler/musteri/:telefon', authMiddleware, odemeKontrol, (req, res) => adminController.musteriEtiketleri(req, res));
+router.get('/etiketler/:etiketId/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.etiketliMusteriler(req, res));
+router.post('/etiketler/toplu-ata', authMiddleware, odemeKontrol, (req, res) => adminController.topluEtiketAta(req, res));
 
 // ==================== GOOGLE YORUM FEEDBACK — Premium ====================
-router.get('/google-yorum/ayarlar', authMiddleware, (req, res) => adminController.googleYorumAyarlar(req, res));
-router.put('/google-yorum/ayarlar', authMiddleware, (req, res) => adminController.googleYorumAyarGuncelle(req, res));
-router.get('/google-yorum/talepler', authMiddleware, (req, res) => adminController.googleYorumTalepleri(req, res));
+router.get('/google-yorum/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumAyarlar(req, res));
+router.put('/google-yorum/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumAyarGuncelle(req, res));
+router.get('/google-yorum/talepler', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumTalepleri(req, res));
 
 // ==================== PREMİUM ÖZELLİK DURUMU ====================
 router.get('/premium/durum', authMiddleware, (req, res) => adminController.premiumOzellikDurumu(req, res));
