@@ -3129,22 +3129,42 @@ function SuperAdminPanel({ kullanici }) {
               </form>
             )}
 
-            {paketTanimlar.length === 0 ? (
-              <div className="card-dark" style={{ padding: 20, textAlign: "center" }}>
-                <p style={{ color: "var(--dim)", marginBottom: 12 }}>Henüz DB'de paket tanımı yok. Mevcut paketler config dosyasından okunuyor.</p>
-                <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                  {Object.entries({baslangic:{isim:"Başlangıç",fiyat:299}, profesyonel:{isim:"Profesyonel",fiyat:599}, premium:{isim:"Premium",fiyat:999}}).map(([kod,p]) => (
-                    <button key={kod} onClick={async () => {
-                      const PAKET_DEFAULTS = {baslangic:{calisan_limit:1,hizmet_limit:5,aylik_randevu_limit:100,bot_aktif:true,hatirlatma:false,istatistik:false,export_aktif:false},profesyonel:{calisan_limit:5,hizmet_limit:20,aylik_randevu_limit:500,bot_aktif:true,hatirlatma:true,istatistik:false,export_aktif:false},premium:{calisan_limit:999,hizmet_limit:999,aylik_randevu_limit:99999,bot_aktif:true,hatirlatma:true,istatistik:true,export_aktif:true}};
-                      await api.post("/admin/paketler", { kod, isim: p.isim, fiyat: p.fiyat, ...PAKET_DEFAULTS[kod], sira: kod==='baslangic'?1:kod==='profesyonel'?2:3 });
-                      paketleriYukle();
-                    }} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", fontWeight: 700 }}>
-                      {p.isim} ({p.fiyat}₺) DB'ye Aktar
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : paketTanimlar.map(p => (
+            {(() => {
+              const PLAN_DEFS = {
+                baslangic: { isim: "Başlangıç", fiyat: 299, calisan_limit: 1, hizmet_limit: 5, aylik_randevu_limit: 200, bot_aktif: true, hatirlatma: true, istatistik: false, export_aktif: false, ozellikler: "1 Çalışan\n200 Randevu/Ay\nOtomatik Hatırlatma\nTemel Analitik", sira: 1 },
+                profesyonel: { isim: "Profesyonel", fiyat: 999, calisan_limit: 3, hizmet_limit: 20, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "3 Çalışan\nSınırsız Randevu\nTelegram Desteği\nGelişmiş Analitik\nGoogle Calendar Sync\n5 Dil Desteği", sira: 2 },
+                kurumsal: { isim: "Kurumsal", fiyat: 0, calisan_limit: 999, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "Sınırsız Çalışan\nSınırsız Randevu\nÖzel API Entegrasyonu\nÖzel Eğitim & Onboarding\nSLA Garantisi\n12+ Dil Desteği", sira: 3 }
+              };
+              const mevcutKodlar = paketTanimlar.map(p => p.kod);
+              const eksikler = Object.entries(PLAN_DEFS).filter(([kod]) => !mevcutKodlar.includes(kod));
+
+              return (
+                <>
+                  {eksikler.length > 0 && (
+                    <div className="card mb-16" style={{ padding: "16px 20px", background: "rgba(59,130,246,.05)", border: "1px solid rgba(59,130,246,.15)" }}>
+                      <div style={{ fontSize: 13, color: "#3b82f6", fontWeight: 600, marginBottom: 10 }}>📦 Landing page'deki {eksikler.length} paket henüz DB'de tanımlı değil:</div>
+                      <div className="row gap-8" style={{ flexWrap: "wrap" }}>
+                        {eksikler.map(([kod, p]) => (
+                          <button key={kod} onClick={async () => {
+                            await api.post("/admin/paketler", { kod, ...p });
+                            paketleriYukle();
+                          }} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", fontWeight: 700 }}>
+                            {p.isim} {p.fiyat > 0 ? `(${p.fiyat}₺)` : "(Özel Fiyat)"} → DB'ye Aktar
+                          </button>
+                        ))}
+                        <button onClick={async () => {
+                          for (const [kod, p] of eksikler) { await api.post("/admin/paketler", { kod, ...p }); }
+                          paketleriYukle();
+                        }} className="btn btn-sm" style={{ background: "#3b82f6", color: "#fff", fontWeight: 700 }}>
+                          🚀 Tümünü Aktar ({eksikler.length} paket)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {paketTanimlar.length === 0 ? (
+                    <div className="list-empty"><p>Henüz DB'de paket tanımı yok. Yukarıdan aktar veya yeni paket tanımla.</p></div>
+                  ) : paketTanimlar.map(p => (
               <div key={p.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
                 <div className="row row-between row-wrap gap-8">
                   <div className="row row-wrap gap-8">
@@ -3166,7 +3186,10 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
                 {p.ozellikler && <div style={{ fontSize: 12, color: "var(--dim)" }}>{p.ozellikler}</div>}
               </div>
-            ))}
+                  ))}
+                </>
+              );
+            })()}
           </>
         )}
 
