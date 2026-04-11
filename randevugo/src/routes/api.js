@@ -147,6 +147,7 @@ router.get('/admin/zombiler', authMiddleware, superAdminMiddleware, (req, res) =
 router.get('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res) => adminController.referanslarListele(req, res));
 router.post('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res) => adminController.referansOlustur(req, res));
 router.put('/admin/referanslar/:id/bedava-ay', authMiddleware, superAdminMiddleware, (req, res) => adminController.referansBedavaAyGuncelle(req, res));
+router.delete('/admin/referanslar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.referansSil(req, res));
 router.post('/referans/kullan', (req, res) => adminController.referansKullan(req, res));
 
 // ==================== GLOBAL DUYURULAR ====================

@@ -1948,6 +1948,14 @@ class AdminController {
     }
   }
 
+  async referansSil(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      await pool.query("DELETE FROM referanslar WHERE id = $1", [id]);
+      res.json({ mesaj: 'Referans silindi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
   // ==================== GLOBAL DUYURU MODÜLÜ ====================
 
   async duyurulariGetir(req, res) {
