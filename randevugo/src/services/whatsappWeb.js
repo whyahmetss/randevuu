@@ -5,6 +5,7 @@ const EventEmitter = require('events');
 const pino = require('pino');
 const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
+const botMesajlar = require('../utils/botMesajlar');
 
 // Türkçe karakter normalize + Levenshtein mesafe (yazım hatası toleransı)
 function trNormalize(str) {
@@ -339,7 +340,7 @@ class WhatsAppWebService extends EventEmitter {
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
         if (isletme.mesai_disi_mod === 'sessiz') return;
         if (isletme.mesai_disi_mod === 'kapali_mesaj') {
-          const mesaj = isletme.mesai_disi_mesaj || `Şu an kapalıyız. 🕐 Çalışma saatlerimiz: ${basSaat} - ${bitSaat}. Açıldığımızda size dönüş yapacağız.`;
+          const mesaj = isletme.mesai_disi_mesaj || botMesajlar.get(isletme, 'mesaiDisi', { basSaat, bitSaat });
           return { metin: mesaj, butonlar: null };
         }
       }
@@ -416,7 +417,7 @@ class WhatsAppWebService extends EventEmitter {
         if (idx >= 0 && idx < hizmetler.length) {
           const h = hizmetler[idx];
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: h.id });
-          return `✅ *${h.isim}* seçildi\n\n⏱ Süre: ${h.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(h.fiyat)} TL\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`;
+          return botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: h.isim, sureDk: h.sure_dk, fiyat: this.fiyatFormat(h.fiyat) });
         }
         return cevap;
       }
@@ -431,12 +432,10 @@ class WhatsAppWebService extends EventEmitter {
         }
         if (tarih) {
           const saatler = await randevuService.musaitSaatleriGetir(isletmeId, tarih, botDurum.secilen_calisan_id, botDurum.secilen_hizmet_id);
-          if (!saatler.length) return `${this.tarihFormat(tarih)} tarihinde müsait saat yok.\n\n*1.* Bugün\n*2.* Yarın\n*0.* Ana Menü`;
+          if (!saatler.length) return botMesajlar.get(isletme, 'saatYok', { tarihStr: this.tarihFormat(tarih) });
           await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: tarih });
           const saatFmtAi = saatler.map(s => String(s).substring(0,5));
-          let r = `📅 *${this.tarihFormat(tarih)}* müsait saatler:\n\n`;
-          saatFmtAi.forEach((s, i) => { r += `*${i+1}.* ${s}\n`; });
-          return r + `\nNumara yazarak seçin:`;
+          return botMesajlar.get(isletme, 'saatListesi', { tarihStr: this.tarihFormat(tarih), saatler: saatFmtAi });
         }
         return cevap;
       }
@@ -450,14 +449,7 @@ class WhatsAppWebService extends EventEmitter {
         if (saat && saatler.includes(saat)) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: saat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
-          let ozetAi = `📋 *Randevu Özeti*\n\n`;
-          ozetAi += `🏥 ${isletme.isim}\n`;
-          if (hz) ozetAi += `✂️ ${hz.isim}\n`;
-          ozetAi += `📅 ${this.tarihFormat(gd.secilen_tarih)}\n`;
-          ozetAi += `🕐 ${this.saatFormat(saat)}\n`;
-          if (hz) ozetAi += `💰 ${this.fiyatFormat(hz.fiyat)} TL\n`;
-          ozetAi += `\nHer şey doğru mu?\n\n*1.* ✅ Onayla\n*2.* ❌ İptal`;
-          return ozetAi;
+          return botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: this.saatFormat(saat), fiyat: hz ? this.fiyatFormat(hz.fiyat) : null });
         }
         return cevap;
       }
@@ -467,14 +459,7 @@ class WhatsAppWebService extends EventEmitter {
         if (metin === '1' || metin.toLowerCase().includes('evet') || metin.toLowerCase().includes('onayla')) {
           const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
-          let tebrikAi = `✅ *Randevunuz Oluşturuldu!*\n\n`;
-          tebrikAi += `🏥 ${isletme.isim}\n`;
-          if (sonuc.hizmet) tebrikAi += `✂️ ${sonuc.hizmet.isim}\n`;
-          tebrikAi += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
-          tebrikAi += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
-          tebrikAi += `\n⏰ Randevunuzdan 1 saat önce hatırlatma alacaksınız.\n\nGörüşmek üzere! 😊`;
-          tebrikAi += `\n\n_Powered by SıraGO — sırago.com_`;
-          return tebrikAi;
+          return botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -482,7 +467,7 @@ class WhatsAppWebService extends EventEmitter {
 
       case 'iptal':
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
-        return { metin: cevap + '\n\nRandevu almak için *1* yazın.', butonlar: null };
+        return { metin: cevap + '\n\n' + botMesajlar.get(isletme, 'randevuAlIcin'), butonlar: null };
 
       default:
         return cevap;
@@ -507,15 +492,11 @@ class WhatsAppWebService extends EventEmitter {
       const randevuService = require('./randevu');
       const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
       if (!randevular.length) {
-        return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak için *1* yazın.`, butonlar: null };
+        return { metin: botMesajlar.get(isletme, 'randevuYok'), butonlar: null };
       }
       await this.durumGuncelle(musteriTelefon, isletmeId, 'randevu_iptal_secim');
-      let txt = `❌ *Randevu İptali*\n\nHangi randevuyu iptal etmek istiyorsunuz?\n\n`;
-      randevular.forEach((r, i) => {
-        txt += `*${i+1}.* ${r.hizmet_isim || 'Randevu'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${String(r.saat).substring(0,5)}\n\n`;
-      });
-      txt += `*0.* Vazgeç`;
-      return { metin: txt, butonlar: null };
+      const rList = randevular.map(r => ({ ...r, tarihStr: this.tarihFormat(r.tarih), saatStr: String(r.saat).substring(0,5) }));
+      return { metin: botMesajlar.get(isletme, 'iptalListesi', { randevular: rList }), butonlar: null };
     }
 
     // Randevu alma intent — hangi aşamada olursa olsun direkt hizmet listesine at
@@ -539,13 +520,13 @@ class WhatsAppWebService extends EventEmitter {
       }
       if (oncekiAsama === 'tarih_secimi') {
         await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
-        return { metin: `📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+        return { metin: botMesajlar.get(isletme, 'tarihSec'), butonlar: null };
       }
       if (oncekiAsama === 'saat_secimi') {
         const gdGeri = (await pool.query('SELECT secilen_tarih, secilen_calisan_id, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
         if (gdGeri?.secilen_tarih) return await this._tarihSecildi(gdGeri.secilen_tarih, musteriTelefon, isletmeId, isletme, hizmetler);
         await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
-        return { metin: `📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+        return { metin: botMesajlar.get(isletme, 'tarihSec'), butonlar: null };
       }
     }
 
@@ -562,7 +543,7 @@ class WhatsAppWebService extends EventEmitter {
           const ilce = isletme.ilce || '';
           const tel = isletme.telefon || '';
           const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adres + ' ' + ilce + ' ' + sehir)}`;
-          return { metin: `📍 *Adresimiz*\n\n${isletme.isim}\n📍 ${adres}${ilce ? ', ' + ilce : ''}${sehir ? ', ' + sehir : ''}\n${tel ? '📞 ' + tel + '\n' : ''}\n🗺 Google Maps: ${mapsLink}\n\nRandevu almak için *1* yazın.`, butonlar: null };
+          return { metin: botMesajlar.get(isletme, 'konum', { isletmeAd: isletme.isim, adres, sehir, ilce, telefon: tel, mapsLink }), butonlar: null };
         }
         // Çalışma saatleri
         if (metinKucuk === 'saatler' || metinKucuk.includes('çalışma saat') || metin === '5') {
@@ -571,10 +552,7 @@ class WhatsAppWebService extends EventEmitter {
           const kapaliGunler = isletme.kapali_gunler || '';
           const gunIsimleri = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
           const kapaliList = kapaliGunler.split(',').filter(g => g.trim()).map(g => gunIsimleri[parseInt(g.trim())] || g.trim());
-          let txt = `🕐 *Çalışma Saatlerimiz*\n\n✅ Açık: ${bas} - ${bit}\n`;
-          if (kapaliList.length > 0) txt += `❌ Kapalı: ${kapaliList.join(', ')}\n`;
-          txt += `\n⏱ Süre: ${isletme.randevu_suresi_dk || 30} dk seans\n\nRandevu almak için *1* yazın.`;
-          return { metin: txt, butonlar: null };
+          return { metin: botMesajlar.get(isletme, 'calismaSaatleri', { basSaat: bas, bitSaat: bit, kapaliGunler: kapaliList.length > 0 ? kapaliList.join(', ') : null, sureDk: isletme.randevu_suresi_dk || 30 }), butonlar: null };
         }
         if (randevuAl) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'hizmet_secimi');
@@ -583,33 +561,24 @@ class WhatsAppWebService extends EventEmitter {
         if (randevularim) {
           const randevuService = require('./randevu');
           const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
-          if (randevular.length === 0) return { metin: `Aktif randevunuz bulunmuyor.\n\nRandevu almak için *1* yazın.`, butonlar: null };
-          let metin2 = `📋 *Randevularınız*\n\n`;
-          randevular.slice(0, 3).forEach((r, i) => {
-            const saatStr = String(r.saat).substring(0, 5);
-            metin2 += `*${i+1}.* ${r.hizmet_isim || 'Hizmet'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${saatStr}\n\n`;
-          });
-          metin2 += `*0.* Ana Menü`;
-          return { metin: metin2, butonlar: null };
+          if (randevular.length === 0) return { metin: botMesajlar.get(isletme, 'randevuYok'), butonlar: null };
+          const rListRm = randevular.slice(0, 3).map(r => ({ ...r, tarihStr: this.tarihFormat(r.tarih), saatStr: String(r.saat).substring(0, 5) }));
+          return { metin: botMesajlar.get(isletme, 'randevularim', { randevular: rListRm }), butonlar: null };
         }
         if (randevuIptal) {
           const randevuService = require('./randevu');
           const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
           if (!randevular.length) {
-            return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak için *1* yazın.`, butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'randevuYok'), butonlar: null };
           }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'randevu_iptal_secim');
-          let txt = `❌ *Randevu İptali*\n\nHangi randevuyu iptal etmek istiyorsunuz?\n\n`;
-          randevular.forEach((r, i) => {
-            txt += `*${i+1}.* ${r.hizmet_isim || 'Randevu'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${String(r.saat).substring(0,5)}\n\n`;
-          });
-          txt += `*0.* Vazgeç`;
-          return { metin: txt, butonlar: null };
+          const rListIp = randevular.map(r => ({ ...r, tarihStr: this.tarihFormat(r.tarih), saatStr: String(r.saat).substring(0,5) }));
+          return { metin: botMesajlar.get(isletme, 'iptalListesi', { randevular: rListIp }), butonlar: null };
         }
         // Bilinmeyen mesaj → DeepSeek
         const deepseekFb = require('./deepseek');
         const aiCevap = await deepseekFb.serbetCevap(metin, isletme, hizmetler, 'whatsapp');
-        if (aiCevap) return { metin: aiCevap + '\n\nRandevu almak için *1* yazın.', butonlar: null };
+        if (aiCevap) return { metin: aiCevap + '\n\n' + botMesajlar.get(isletme, 'randevuAlIcin'), butonlar: null };
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
       }
 
@@ -635,28 +604,24 @@ class WhatsAppWebService extends EventEmitter {
           if (calisanlar.length > 1 && secimModu === 'musteri') {
             // Müşteri seçer modu → listeyi göster
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
-            let txt = `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\n👤 Çalışan seçin:\n\n`;
-            calisanlar.forEach((c, i) => { txt += `*${i+1}.* ${c.isim}\n`; });
-            return { metin: txt, butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'calisanSec', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), calisanlar }), butonlar: null };
           } else if (calisanlar.length > 1 && secimModu === 'otomatik') {
             // Otomatik dağıtım → ardışık blok bazında en boş çalışanı seç
             const bugun = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
             const enBos = await randevuService.enBosCalisan(isletmeId, bugun, secilenHizmet.id);
             const secilenCalisan = enBos || calisanlar[0];
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: secilenCalisan.id });
-            return { metin: `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n👤 Çalışan: ${secilenCalisan.isim}\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), calisanAd: secilenCalisan.isim }), butonlar: null };
           } else if (calisanlar.length >= 1 && (secimModu === 'tek' || calisanlar.length === 1)) {
-            // Tek çalışan veya 'tek' modu → ilk çalışanı ata
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: calisanlar[0].id });
-            return { metin: `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n👤 Çalışan: ${calisanlar[0].isim}\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), calisanAd: calisanlar[0].isim }), butonlar: null };
           } else {
-            // Çalışan yok → null bırak, direkt tarih seçimine geç
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id });
-            return { metin: `✅ *${secilenHizmet.isim}* seçildi\n\n⏱ Süre: ${secilenHizmet.sure_dk} dk\n💰 Ücret: ${this.fiyatFormat(secilenHizmet.fiyat)} TL\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat) }), butonlar: null };
           }
         }
         // Hizmet bulunamadı — direkt listeyi tekrar göster
-        return { metin: `❌ Anlayamadım. Lütfen hizmet numarası veya adı yazın:\n\n${hizmetler.map((h,i) => `*${i+1}.* ${h.isim} - ${h.sure_dk}dk - ${this.fiyatFormat(h.fiyat)} TL`).join('\n')}\n\nNumara yazarak seçin:`, butonlar: null };
+        return { metin: botMesajlar.get(isletme, 'hizmetBulunamadi', { hizmetler, fiyatFormat: this.fiyatFormat }), butonlar: null };
       }
 
       case 'calisan_secimi': {
@@ -675,7 +640,7 @@ class WhatsAppWebService extends EventEmitter {
         }
         if (secilenCalisan) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_calisan_id: secilenCalisan.id });
-          return { metin: `👤 *${secilenCalisan.isim}* seçildi\n\n📅 Hangi gün istersiniz?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+          return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenCalisan.isim, calisanAd: secilenCalisan.isim }), butonlar: null };
         }
         let txt = `👤 Çalışan seçin:\n\n`;
         calisanlarQ.forEach((c, i) => { txt += `*${i+1}.* ${c.isim}\n`; });
@@ -689,7 +654,7 @@ class WhatsAppWebService extends EventEmitter {
           secilenTarih = yarinTarih();
         } else if (metin === '3' || metinKucuk.includes('başka') || metinKucuk.includes('bu hafta')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'hafta_gun_secimi');
-          return this.haftaSecenekleri();
+          return this.haftaSecenekleri(isletme);
         } else if (metinKucuk === '0' || metinKucuk.includes('ana menü')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
           return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -699,7 +664,7 @@ class WhatsAppWebService extends EventEmitter {
         if (secilenTarih) {
           return await this._tarihSecildi(secilenTarih, musteriTelefon, isletmeId, isletme, hizmetler);
         }
-        return { metin: `Tarihi anlayamadım.\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`, butonlar: null };
+        return { metin: botMesajlar.get(isletme, 'tarihSec'), butonlar: null };
       }
 
       case 'hafta_gun_secimi': {
@@ -721,7 +686,7 @@ class WhatsAppWebService extends EventEmitter {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi');
           return await this._tarihSecildi(secilenTarih, musteriTelefon, isletmeId, isletme, hizmetler);
         }
-        return this.haftaSecenekleri();
+        return this.haftaSecenekleri(isletme);
       }
 
       case 'saat_secimi': {
@@ -740,7 +705,7 @@ class WhatsAppWebService extends EventEmitter {
         }
         if (metinKucuk.includes('bu hafta') || metinKucuk.includes('başka gün') || metinKucuk.includes('baska gun')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'hafta_gun_secimi');
-          return this.haftaSecenekleri();
+          return this.haftaSecenekleri(isletme);
         }
         const randevuService = require('./randevu');
         const guncelDurum = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
@@ -847,16 +812,7 @@ class WhatsAppWebService extends EventEmitter {
             return { metin: bekle, butonlar: null };
           }
 
-          let tebrik = `✅ *Randevunuz Oluşturuldu!*\n\n`;
-          tebrik += `🏥 ${isletme.isim}\n`;
-          if (sonuc.hizmet) tebrik += `✂️ ${sonuc.hizmet.isim}\n`;
-          if (clOnay) tebrik += `👤 ${clOnay.isim}\n`;
-          tebrik += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
-          tebrik += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
-          tebrik += `\n⏰ Randevunuzdan 1 gün ve 1 saat önce hatırlatma alacaksınız.`;
-          tebrik += `\nGörüşmek üzere! 😊`;
-          tebrik += `\n\n📅 Yeni randevu için *1* yazın.`;
-          tebrik += `\n\n_Powered by SıraGO — sırago.com_`;
+          const tebrik = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, calisanAd: clOnay?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
           return { metin: tebrik, butonlar: null };
         } else if (metinKucuk !== '2' && !metinKucuk.includes('iptal') && !metinKucuk.includes('hayır') && metin.length > 1) {
           // Musteri not yazdi - onaylayip notu kaydet
@@ -866,7 +822,7 @@ class WhatsAppWebService extends EventEmitter {
             await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc.randevu.id]);
           }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
-          return { metin: `✅ *Randevunuz oluşturuldu!*\n\n💬 Notunuz: "${metin}"\n\nGörüşmek üzere! 😊\n\n_Powered by SıraGO — sırago.com_`, butonlar: null };
+          return { metin: botMesajlar.get(isletme, 'randevuNotKaydedildi', { not: metin }), butonlar: null };
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -882,7 +838,7 @@ class WhatsAppWebService extends EventEmitter {
         const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
         if (!randevular.length) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
-          return { metin: `Aktif randevunuz bulunmuyor.\n\n📅 Randevu almak için *1* yazın.`, butonlar: null };
+          return { metin: botMesajlar.get(isletme, 'randevuYok'), butonlar: null };
         }
         const secimIdx = parseInt(metin) - 1;
         let secilenRandevu = null;
@@ -914,15 +870,11 @@ class WhatsAppWebService extends EventEmitter {
             } catch (e) { /* tarih parse hatası — devam et */ }
           }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'iptal_onay', { iptal_randevu_id: secilenRandevu.id });
-          return { metin: `❌ *Bu randevuyu iptal etmek istediğinize emin misiniz?*\n\n✂️ ${secilenRandevu.hizmet_isim || 'Randevu'}\n📅 ${this.tarihFormat(secilenRandevu.tarih)}\n🕐 ${String(secilenRandevu.saat).substring(0,5)}\n\n*1.* ✅ Evet, iptal et\n*2.* ↩️ Geri dön`, butonlar: null };
+          return { metin: botMesajlar.get(isletme, 'iptalOnay', { hizmetAd: secilenRandevu.hizmet_isim || 'Randevu', tarihStr: this.tarihFormat(secilenRandevu.tarih), saatStr: String(secilenRandevu.saat).substring(0,5) }), butonlar: null };
         }
         // Anlaşılamadı, listeyi tekrar göster
-        let txt = `Anlayamadım. Numara yazarak seçin:\n\n`;
-        randevular.forEach((r, i) => {
-          txt += `*${i+1}.* ${r.hizmet_isim || 'Randevu'}\n     📅 ${this.tarihFormat(r.tarih)} - 🕐 ${String(r.saat).substring(0,5)}\n\n`;
-        });
-        txt += `*0.* Vazgeç`;
-        return { metin: txt, butonlar: null };
+        const rListRetry = randevular.map(r => ({ ...r, tarihStr: this.tarihFormat(r.tarih), saatStr: String(r.saat).substring(0,5) }));
+        return { metin: botMesajlar.get(isletme, 'iptalListesi', { randevular: rListRetry }), butonlar: null };
       }
 
       case 'iptal_onay': {
@@ -933,7 +885,7 @@ class WhatsAppWebService extends EventEmitter {
             await randevuService.randevuIptal(gd.iptal_randevu_id);
           }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
-          return { metin: `✅ Randevunuz başarıyla iptal edildi.\n\n📅 Yeni randevu için *1* yazın.`, butonlar: null };
+          return { metin: botMesajlar.get(isletme, 'iptalBasarili', { hizmetAd: 'Randevu' }), butonlar: null };
         }
         // Geri dön veya vazgeç
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
@@ -946,7 +898,6 @@ class WhatsAppWebService extends EventEmitter {
   }
 
   async anaMenu(isletme, musteriTelefon, isletmeId, hizmetler) {
-    // Musteri ismini DB'den al (pushName kaydedilmis olmali)
     let musteriAd = '';
     try {
       const mRes = await pool.query('SELECT isim FROM musteriler WHERE telefon=$1', [musteriTelefon]);
@@ -955,32 +906,25 @@ class WhatsAppWebService extends EventEmitter {
       }
     } catch(e) {}
 
-    const selamIsim = musteriAd ? ` ${musteriAd}` : '';
-    const msg = `Merhaba${selamIsim}! 👋\n*${isletme.isim}*'e hoş geldiniz.\n\nSize nasıl yardımcı olabilirim?\n\n*1.* 📅 Randevu Al\n*2.* 📋 Randevularım\n*3.* ❌ Randevu İptal\n\nNumara yazarak seçin:`;
-
+    const msg = botMesajlar.get(isletme, 'anaMenu', { musteriAd, isletmeAd: isletme.isim });
     return { metin: msg, butonlar: null };
   }
 
   hizmetListesi(isletme, hizmetler) {
-    let metin = `✂️ *${isletme.isim} - Hizmetlerimiz*\n\n`;
-    hizmetler.forEach((h, i) => {
-      metin += `*${i+1}.* ${h.isim} - ${h.sure_dk}dk - ${this.fiyatFormat(h.fiyat)} TL\n`;
-    });
-    metin += `\nNumara yazarak seçin:`;
+    const metin = botMesajlar.get(isletme, 'hizmetListesi', { isletmeAd: isletme.isim, hizmetler, fiyatFormat: this.fiyatFormat });
     return { metin, butonlar: null };
   }
 
-  haftaSecenekleri() {
+  haftaSecenekleri(isletme) {
     const gunler = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
     const aylar = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
-    let cevap = `📅 *Gün Seçin:*\n\n`;
+    const gunLabels = [];
     for (let i = 0; i < 7; i++) {
       const t = new Date(); t.setDate(t.getDate() + i);
-      const label = `${t.getDate()} ${aylar[t.getMonth()]} ${gunler[t.getDay()]}`;
-      cevap += `*${i+1}.* ${label}\n`;
+      gunLabels.push(`${t.getDate()} ${aylar[t.getMonth()]} ${gunler[t.getDay()]}`);
     }
-    cevap += `\nNumara yazarak seçin:`;
-    return { metin: cevap, butonlar: null };
+    const metin = botMesajlar.get(isletme || {}, 'gunSec', { gunler: gunLabels });
+    return { metin, butonlar: null };
   }
 
   _tarihParse(metin, metinKucuk) {
@@ -1026,17 +970,14 @@ class WhatsAppWebService extends EventEmitter {
     if (saatler.length === 0) {
       try { await pool.query('INSERT INTO bekleme_listesi (musteri_telefon, isletme_id, hizmet_id, istenen_tarih) VALUES ($1,$2,$3,$4)',
         [musteriTelefon, isletmeId, gdTarih?.secilen_hizmet_id || null, secilenTarih]); } catch(e) {}
-      return { metin: `${this.tarihFormat(secilenTarih)} tarihinde müsait saat yok.\n\n📋 Bekleme listesine eklendiniz.\n\n*1.* Bugün\n*2.* Yarın\n*3.* Başka Gün`, butonlar: null };
+      return { metin: botMesajlar.get(isletme, 'saatYok', { tarihStr: this.tarihFormat(secilenTarih) }), butonlar: null };
     }
     await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: secilenTarih });
     const saatFmt = saatler.map(s => String(s).substring(0,5));
 
     // Az saat varsa direkt listele, çoksa zaman dilimi sor
     if (saatFmt.length <= 6) {
-      let txt = `📅 *${this.tarihFormat(secilenTarih)}* müsait saatler:\n\n`;
-      saatFmt.forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
-      txt += `\nNumara veya saat yazın _(örn: 14:30)_:`;
-      return { metin: txt, butonlar: null };
+      return { metin: botMesajlar.get(isletme, 'saatListesi', { tarihStr: this.tarihFormat(secilenTarih), saatler: saatFmt }), butonlar: null };
     }
 
     // Çok saat var → zaman dilimi sorusu
@@ -1073,14 +1014,11 @@ class WhatsAppWebService extends EventEmitter {
   async _ozetOlustur(isletme, guncelDurum, secilenSaat) {
     const hz = guncelDurum.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [guncelDurum.secilen_hizmet_id])).rows[0] : null;
     const cl = guncelDurum.secilen_calisan_id ? (await pool.query('SELECT * FROM calisanlar WHERE id=$1', [guncelDurum.secilen_calisan_id])).rows[0] : null;
-    let ozet = `📋 *Randevu Özeti*\n\n`;
-    ozet += `🏥 ${isletme.isim}\n`;
-    if (hz) ozet += `✂️ ${hz.isim}\n`;
-    if (cl) ozet += `👤 ${cl.isim}\n`;
-    ozet += `📅 ${this.tarihFormat(guncelDurum.secilen_tarih)}\n`;
-    ozet += `🕐 ${secilenSaat}\n`;
-    if (hz) ozet += `💰 ${this.fiyatFormat(hz.fiyat)} TL\n`;
-    ozet += `\nHer şey doğru mu?\n\n*1.* ✅ Onayla\n*2.* ❌ İptal\n\n💬 Not eklemek için yazabilirsiniz.`;
+    const ozet = botMesajlar.get(isletme, 'randevuOzet', {
+      isletmeAd: isletme.isim, hizmetAd: hz?.isim, calisanAd: cl?.isim,
+      tarihStr: this.tarihFormat(guncelDurum.secilen_tarih), saatStr: secilenSaat,
+      fiyat: hz ? this.fiyatFormat(hz.fiyat) : null
+    });
     return { metin: ozet, butonlar: null };
   }
 

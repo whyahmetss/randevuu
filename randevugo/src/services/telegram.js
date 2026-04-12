@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const pool = require('../config/db');
 const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
+const botMesajlar = require('../utils/botMesajlar');
 
 class TelegramService {
   constructor() {
@@ -129,7 +130,7 @@ class TelegramService {
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
         if (isletme.mesai_disi_mod === 'sessiz') return;
         if (isletme.mesai_disi_mod === 'kapali_mesaj') {
-          const mesaj = isletme.mesai_disi_mesaj || `Şu an kapalıyız. 🕐 Çalışma saatlerimiz: ${basSaat} - ${bitSaat}. Açıldığımızda size dönüş yapacağız.`;
+          const mesaj = isletme.mesai_disi_mesaj || botMesajlar.get(isletme, 'mesaiDisi', { basSaat, bitSaat });
           await bot.sendMessage(chatId, mesaj, { parse_mode: 'Markdown' });
           return;
         }
@@ -332,7 +333,7 @@ class TelegramService {
           const randevular = await randevuService.musteriRandevulari(musteriTelefon, isletmeId);
           if (randevular.length === 0) {
             await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
-              `Henüz aktif randevunuz bulunmuyor.\nHemen yeni bir randevu oluşturabilirsiniz!`,
+              botMesajlar.get(isletme, 'randevuYok'),
               [[{ text: '📅 Randevu Al', callback_data: '1' }],
                [{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
           } else {
@@ -557,14 +558,7 @@ class TelegramService {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
           const clOzet = gd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gd.secilen_calisan_id])).rows[0] : null;
-          const ozet = `📋 *Randevu Özeti*\n\n` +
-            `🏥  ${isletme.isim}\n` +
-            `${hz ? `${hz.emoji ? hz.emoji + '  ' : ''}${hz.isim}\n` : ''}` +
-            `${clOzet ? `👤  ${clOzet.isim}\n` : ''}` +
-            `📅  ${this.tarihFormat(gd.secilen_tarih)}\n` +
-            `🕐  ${secilenSaat}\n` +
-            `${hz ? `💰  ₺${hz.fiyat}\n` : ''}` +
-            `\nHer şey doğru mu?`;
+          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, calisanAd: clOzet?.isim, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: secilenSaat, fiyat: hz ? hz.fiyat : null });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, ozet,
             [[{ text: '✅ Onayla', callback_data: 'evet' }],
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],
@@ -623,13 +617,7 @@ class TelegramService {
               }
             }
 
-            let tebrik = `✅ *Randevunuz Oluşturuldu!*\n\n` +
-              `🏥  ${isletme.isim}\n` +
-              `${sonuc.hizmet ? `${sonuc.hizmet.emoji ? sonuc.hizmet.emoji + '  ' : ''}${sonuc.hizmet.isim}\n` : ''}` +
-              `${clTg ? `👤  ${clTg.isim}\n` : ''}` +
-              `📅  ${this.tarihFormat(sd.secilen_tarih)}\n` +
-              `🕐  ${String(sd.secilen_saat).substring(0,5)}\n\n` +
-              `⏰ Randevunuzdan 1 gün ve 1 saat önce hatırlatma alacaksınız.`;
+            let tebrik = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, calisanAd: clTg?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: String(sd.secilen_saat).substring(0,5) });
 
             // Cross-sell: farklı bir hizmet öner
             const digerHizmetler = hizmetler.filter(h => h.id !== sd.secilen_hizmet_id);
@@ -685,7 +673,7 @@ class TelegramService {
           const gdn = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           const hzn = gdn.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gdn.secilen_hizmet_id])).rows[0] : null;
           const clOzet2 = gdn.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gdn.secilen_calisan_id])).rows[0] : null;
-          const ozet = `📋 *Randevu Özeti*\n\n🏥  ${isletme.isim}\n${hzn ? `${hzn.emoji ? hzn.emoji + '  ' : ''}${hzn.isim}\n` : ''}${clOzet2 ? `👤  ${clOzet2.isim}\n` : ''}📅  ${this.tarihFormat(gdn.secilen_tarih)}\n🕐  ${gdn.secilen_saat}\n${hzn ? `💰  ₺${hzn.fiyat}\n` : ''}\nHer şey doğru mu?`;
+          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hzn?.isim, calisanAd: clOzet2?.isim, tarihStr: this.tarihFormat(gdn.secilen_tarih), saatStr: gdn.secilen_saat, fiyat: hzn ? hzn.fiyat : null });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, ozet,
             [[{ text: '✅ Onayla', callback_data: 'evet' }],
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],
@@ -896,9 +884,9 @@ class TelegramService {
         deepseek.kisiselKarsilama(musteriIsim, gecmisRandevu, yaklasanRandevu, isletme, hizmetler || [], 'telegram'),
         new Promise(resolve => setTimeout(() => resolve(null), 4000))
       ]);
-      msg = kisiselMsg || `*${isletme.isim}*'e hoş geldiniz! 👋\n\nSize nasıl yardımcı olabilirim?`;
+      msg = kisiselMsg || botMesajlar.get(isletme, 'anaMenu', { musteriAd: musteriIsim && musteriIsim !== musteriTelefon ? musteriIsim : '', isletmeAd: isletme.isim });
     } catch(e) {
-      msg = `*${isletme.isim}*'e hoş geldiniz! 👋\n\nSize nasıl yardımcı olabilirim?`;
+      msg = botMesajlar.get(isletme, 'anaMenu', { musteriAd: '', isletmeAd: isletme.isim });
     }
 
     const butonlar = [
@@ -917,7 +905,7 @@ class TelegramService {
   }
 
   async hizmetListesiGonder(bot, chatId, isletmeId, musteriTelefon, isletme, hizmetler) {
-    const msg = `📋 *Hizmetlerimiz*\n\nSize en uygun hizmeti seçin:`;
+    const msg = botMesajlar.get(isletme, 'hizmetListesi', { isletmeAd: isletme.isim, hizmetler, fiyatFormat: (v) => v });
     // Tek sütun butonlar, fiyat etiketli — kesilmez
     const butonlar = hizmetler.map((h, i) => [
       { text: `${h.emoji ? h.emoji + ' ' : ''}${h.isim} • ${h.sure_dk}dk • ₺${h.fiyat}`, callback_data: `hz_${i}` }
