@@ -995,6 +995,10 @@
 
         <form id="form" class="flex flex-col sm:flex-row items-center gap-3 max-w-lg mx-auto mb-8">
           <div class="relative flex-1 w-full">
+            <span class="iconify absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" data-icon="mdi:account-outline"></span>
+            <input type="text" id="fname" placeholder="Adınız" class="w-full pl-12 pr-5 py-4 bg-white/[.07] border border-white/[.1] rounded-2xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-wa-500/50 focus:bg-white/[.1] transition-all duration-300">
+          </div>
+          <div class="relative flex-1 w-full">
             <span class="iconify absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" data-icon="mdi:phone-outline"></span>
             <input type="tel" id="phone" placeholder="5XX XXX XX XX" class="w-full pl-12 pr-5 py-4 bg-white/[.07] border border-white/[.1] rounded-2xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-wa-500/50 focus:bg-white/[.1] transition-all duration-300">
           </div>
@@ -1171,13 +1175,24 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// === FORM ===
-document.getElementById('form').addEventListener('submit',e=>{
+document.getElementById('form').addEventListener('submit',async e=>{
   e.preventDefault();
+  const isim=document.getElementById('fname').value.trim();
   const p=document.getElementById('phone').value.replace(/\D/g,'');
+  if(!isim){showToast('Lütfen adınızı girin.');return;}
   if(p.length<10){showToast('Lütfen geçerli bir telefon numarası girin.');return;}
-  showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');
-  document.getElementById('phone').value='';
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.disabled=true;btn.textContent='Gönderiliyor...';
+  try{
+    const res=await fetch('https://randevugo-api.onrender.com/api/iletisim',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({isim,telefon:p,kaynak:'landing'})
+    });
+    const d=await res.json();
+    if(res.ok){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('fname').value='';document.getElementById('phone').value='';}
+    else{showToast(d.hata||'Bir hata oluştu.');}
+  }catch(err){showToast('Bağlantı hatası, lütfen tekrar deneyin.');}
+  btn.disabled=false;btn.innerHTML='<span class="iconify text-lg" data-icon="mdi:send"></span> Başla';
 });
 
 // === SMOOTH SCROLL ===

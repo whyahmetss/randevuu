@@ -76,10 +76,14 @@ const PORT = process.env.PORT || 3000;
       id SERIAL PRIMARY KEY,
       isim VARCHAR(255),
       email VARCHAR(255),
+      telefon VARCHAR(20),
       mesaj TEXT,
+      kaynak VARCHAR(50) DEFAULT 'web',
       okundu BOOLEAN DEFAULT false,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
+    await pool.query(`ALTER TABLE iletisim_mesajlari ADD COLUMN IF NOT EXISTS telefon VARCHAR(20)`);
+    await pool.query(`ALTER TABLE iletisim_mesajlari ADD COLUMN IF NOT EXISTS kaynak VARCHAR(50) DEFAULT 'web'`);
     // Satış Bot tablosu
     await pool.query(`CREATE TABLE IF NOT EXISTS satis_konusmalar (
       id SERIAL PRIMARY KEY,

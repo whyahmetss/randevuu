@@ -1133,16 +1133,16 @@ class AdminController {
 
   async iletisimGonder(req, res) {
     try {
-      const { isim, email, mesaj } = req.body;
-      if (!isim || !email || !mesaj) return res.status(400).json({ hata: 'Tüm alanları doldurun.' });
-      if (mesaj.length > 2000) return res.status(400).json({ hata: 'Mesaj çok uzun (max 2000 karakter).' });
+      const { isim, email, telefon, mesaj, kaynak } = req.body;
+      if (!isim && !telefon) return res.status(400).json({ hata: 'İsim veya telefon zorunlu.' });
+      if (mesaj && mesaj.length > 2000) return res.status(400).json({ hata: 'Mesaj çok uzun (max 2000 karakter).' });
 
       await pool.query(
-        'INSERT INTO iletisim_mesajlari (isim, email, mesaj) VALUES ($1, $2, $3)',
-        [isim.slice(0, 255), email.slice(0, 255), mesaj.slice(0, 2000)]
+        'INSERT INTO iletisim_mesajlari (isim, email, telefon, mesaj, kaynak) VALUES ($1, $2, $3, $4, $5)',
+        [(isim || '').slice(0, 255), (email || '').slice(0, 255), (telefon || '').slice(0, 20), (mesaj || 'Landing page başvuru').slice(0, 2000), kaynak || 'web']
       );
 
-      console.log(`📩 Yeni iletişim mesajı: ${isim} (${email})`);
+      console.log(`📩 Yeni iletişim mesajı: ${isim || telefon} (${email || telefon}) [${kaynak || 'web'}]`);
       res.json({ mesaj: 'Mesajınız başarıyla gönderildi.' });
     } catch (error) {
       res.status(500).json({ hata: error.message });

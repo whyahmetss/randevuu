@@ -771,6 +771,9 @@ function Dashboard() {
   const [fKaydedildi, setFKaydedildi] = useState(false);
   const [hakedisForm, setHakedisForm] = useState({ iban: "", ad_soyad: "" });
   const [hakedisAcik, setHakedisAcik] = useState(false);
+  const [destekTaleplerim, setDestekTaleplerim] = useState([]);
+  const [destekFormAcik, setDestekFormAcik] = useState(false);
+  const [yeniDestek, setYeniDestek] = useState({ konu: "", mesaj: "", oncelik: "normal" });
   const chatRef = useRef(null);
 
   useEffect(() => {
@@ -816,6 +819,21 @@ function Dashboard() {
 
   const finansYukle = async () => { setFinansYukleniyor(true); try { const d = await api.get("/finans/ozet"); setFinansVeri(d); } catch(e) {} setFinansYukleniyor(false); };
 
+  const destekYukleIsletme = async () => {
+    try { const d = await api.get("/destek"); setDestekTaleplerim(d.talepler || []); } catch(e) {}
+  };
+
+  const destekGonder = async (e) => {
+    e.preventDefault();
+    if (!yeniDestek.konu || !yeniDestek.mesaj) return;
+    try {
+      await api.post("/destek", yeniDestek);
+      setYeniDestek({ konu: "", mesaj: "", oncelik: "normal" });
+      setDestekFormAcik(false);
+      destekYukleIsletme();
+    } catch(e) {}
+  };
+
   useEffect(() => {
     if (finansVeri?.ayarlar) {
       const ay = finansVeri.ayarlar;
@@ -829,6 +847,7 @@ function Dashboard() {
     if (sayfa === "ayarlar") ayarlariYukle();
     if (sayfa === "randevular") verileriYukle();
     if (sayfa === "finans") finansYukle();
+    if (sayfa === "destek") destekYukleIsletme();
     if (sayfa === "anasayfa") api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
   }, [sayfa]);
 
@@ -860,7 +879,7 @@ function Dashboard() {
 
   const cikisYap = () => { localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", destek: "Destek", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -883,6 +902,7 @@ function Dashboard() {
     { id: "finans", icon: SVG.finans, label: "Finans" },
     { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
     { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
+    { id: "destek", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, label: "Destek" },
     { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
   ];
 
@@ -2149,6 +2169,69 @@ function Dashboard() {
             <Settings ayarlar={ayarlar} setAyarlar={setAyarlar} paketDurum={paketDurum} api={api} />
           )}
 
+          {/* ── DESTEK ── */}
+          {sayfa === "destek" && (
+            <>
+              <div className="ph-row">
+                <div>
+                  <h1>Destek</h1>
+                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 4 }}>Sorunlarınızı bize iletin, en kısa sürede yanıtlayalım.</p>
+                </div>
+                <button onClick={() => setDestekFormAcik(!destekFormAcik)} className="btn btn-sm" style={{ background: "var(--gradient)", color: "#fff", fontWeight: 700 }}>
+                  {destekFormAcik ? "İptal" : "+ Yeni Talep"}
+                </button>
+              </div>
+
+              {destekFormAcik && (
+                <form onSubmit={destekGonder} className="card-dark mb-16" style={{ padding: 20 }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Yeni Destek Talebi</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <input value={yeniDestek.konu} onChange={e => setYeniDestek({...yeniDestek, konu: e.target.value})} placeholder="Konu başlığı..." className="input" required />
+                    <textarea value={yeniDestek.mesaj} onChange={e => setYeniDestek({...yeniDestek, mesaj: e.target.value})} placeholder="Sorununuzu detaylı açıklayın..." className="input" style={{ minHeight: 100, resize: "vertical" }} required />
+                    <div className="row gap-8">
+                      <select value={yeniDestek.oncelik} onChange={e => setYeniDestek({...yeniDestek, oncelik: e.target.value})} className="input" style={{ maxWidth: 180 }}>
+                        <option value="dusuk">Düşük</option>
+                        <option value="normal">Normal</option>
+                        <option value="yuksek">Yüksek</option>
+                        <option value="acil">Acil</option>
+                      </select>
+                      <button type="submit" className="btn btn-sm" style={{ background: "var(--gradient)", color: "#fff", fontWeight: 700 }}>Gönder</button>
+                    </div>
+                  </div>
+                </form>
+              )}
+
+              {destekTaleplerim.length === 0 ? (
+                <div className="list-empty"><p>Henüz destek talebiniz yok.</p></div>
+              ) : destekTaleplerim.map(t => {
+                const oncelikRenk = { acil: "#ef4444", yuksek: "#f59e0b", normal: "#3b82f6", dusuk: "#64748b" };
+                const durumRenk = { acik: "#f59e0b", yanitlandi: "#3b82f6", cozuldu: "#10b981", kapali: "#64748b" };
+                const durumLabel = { acik: "Açık", yanitlandi: "Yanıtlandı", cozuldu: "Çözüldü", kapali: "Kapalı" };
+                return (
+                  <div key={t.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
+                    <div className="row row-between row-wrap gap-8">
+                      <div className="row row-wrap gap-8">
+                        <span className="tag" style={{ background: (oncelikRenk[t.oncelik]||"#64748b") + "22", color: oncelikRenk[t.oncelik]||"#64748b", fontWeight: 700, fontSize: 11 }}>{t.oncelik}</span>
+                        <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{t.konu}</span>
+                      </div>
+                      <div className="row gap-8">
+                        <span className="tag" style={{ background: (durumRenk[t.durum]||"#64748b") + "22", color: durumRenk[t.durum]||"#64748b", fontWeight: 700, fontSize: 11 }}>{durumLabel[t.durum] || t.durum}</span>
+                        <span style={{ color: "var(--dim)", fontSize: 11 }}>{new Date(t.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                      </div>
+                    </div>
+                    <div style={{ color: "var(--muted)", fontSize: 13, background: "var(--bg)", padding: "10px 14px", borderRadius: 8 }}>{t.mesaj}</div>
+                    {t.admin_yanit && (
+                      <div style={{ background: "rgba(16,185,129,.05)", border: "1px solid rgba(16,185,129,.12)", borderRadius: 8, padding: "10px 14px" }}>
+                        <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, marginBottom: 4 }}>Admin Yanıtı {t.admin_yanit_tarihi ? `(${new Date(t.admin_yanit_tarihi).toLocaleString("tr-TR")})` : ""}</div>
+                        <div style={{ color: "var(--text)", fontSize: 13 }}>{t.admin_yanit}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
+
         </div>
       </div>
 
@@ -2193,10 +2276,10 @@ function Dashboard() {
                     )}
                     {!aktif && !p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        window.open("https://sırago.com/#iletisim", "_blank");
+                        window.open("https://wa.me/905379681840?text=Merhaba%2C%20Kurumsal%20paket%20hakk%C4%B1nda%20bilgi%20almak%20istiyorum.", "_blank");
                         setPaketModal(false);
                       }}>
-                        Bizimle Görüşün
+                        WhatsApp ile Görüşün
                       </button>
                     )}
                   </div>
@@ -3350,8 +3433,10 @@ function SuperAdminPanel({ kullanici }) {
               <div key={m.id} className="list-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 10, borderLeft: m.okundu ? "3px solid var(--border)" : "3px solid #818cf8" }}>
                 <div className="row row-between row-wrap gap-8">
                   <div className="row row-wrap gap-8">
-                    <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{m.isim}</span>
-                    <a href={"mailto:" + m.email} style={{ color: "#818cf8", fontSize: 13 }}>{m.email}</a>
+                    <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{m.isim || "—"}</span>
+                    {m.email && <a href={"mailto:" + m.email} style={{ color: "#818cf8", fontSize: 13 }}>{m.email}</a>}
+                    {m.telefon && <a href={"tel:" + m.telefon} style={{ color: "#10b981", fontSize: 13 }}>📞 {m.telefon}</a>}
+                    {m.kaynak && <span className="tag" style={{ background: "rgba(99,102,241,.1)", color: "#6366f1", fontSize: 10 }}>{m.kaynak}</span>}
                   </div>
                   <div className="row gap-8">
                     <span style={{ color: "var(--dim)", fontSize: 12 }}>{new Date(m.olusturma_tarihi).toLocaleString("tr-TR")}</span>
@@ -3366,7 +3451,8 @@ function SuperAdminPanel({ kullanici }) {
                     {m.okundu ? "Okunmadı İşaretle" : "Okundu İşaretle"}
                   </button>
                   <button onClick={async () => { if (confirm("Bu mesajı silmek istediğinize emin misiniz?")) { await api.del("/admin/iletisim/" + m.id); iletisimYukle(); } }} className="btn btn-sm" style={{ background: "rgba(239,68,68,.1)", color: "var(--red)", border: "none" }}>Sil</button>
-                  <a href={"mailto:" + m.email} className="btn btn-sm" style={{ background: "rgba(129,140,248,.12)", color: "#818cf8", border: "none", textDecoration: "none" }}>Yanıtla</a>
+                  {m.email && <a href={"mailto:" + m.email} className="btn btn-sm" style={{ background: "rgba(129,140,248,.12)", color: "#818cf8", border: "none", textDecoration: "none" }}>Mail</a>}
+                  {m.telefon && <a href={"https://wa.me/90" + m.telefon} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "rgba(37,211,102,.12)", color: "#25d366", border: "none", textDecoration: "none" }}>WhatsApp</a>}
                 </div>
               </div>
             ))}
