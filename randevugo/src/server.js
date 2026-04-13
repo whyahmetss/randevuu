@@ -277,6 +277,149 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarili INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarisiz INTEGER DEFAULT 0`);
 
+    // ─── ONLINE RANDEVU LİNKİ ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE`);
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kaynak VARCHAR(30) DEFAULT 'bot'`);
+
+    // ─── KASA TAKİBİ (Adisyon) ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS kasa_hareketleri (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      tip VARCHAR(10) NOT NULL,
+      tutar DECIMAL(10,2) NOT NULL,
+      aciklama VARCHAR(300),
+      kategori VARCHAR(50) DEFAULT 'diger',
+      odeme_yontemi VARCHAR(30) DEFAULT 'nakit',
+      randevu_id INTEGER REFERENCES randevular(id) ON DELETE SET NULL,
+      tarih DATE DEFAULT CURRENT_DATE,
+      olusturan_id INTEGER,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_kasa_isletme_tarih ON kasa_hareketleri(isletme_id, tarih)`);
+
+    // ─── PRİM HESAPLAMA ───
+    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS prim_yuzdesi INTEGER DEFAULT 10`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS prim_odemeleri (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      calisan_id INTEGER NOT NULL REFERENCES calisanlar(id) ON DELETE CASCADE,
+      donem VARCHAR(7) NOT NULL,
+      toplam_ciro DECIMAL(10,2) DEFAULT 0,
+      prim_yuzdesi INTEGER DEFAULT 10,
+      prim_tutari DECIMAL(10,2) DEFAULT 0,
+      durum VARCHAR(20) DEFAULT 'bekliyor',
+      odeme_tarihi TIMESTAMP,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── SMS HATIRLATMA (NetGSM) ───
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS sms_hatirlatma_gonderildi BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_kullanici_adi VARCHAR(100)`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_sifre VARCHAR(100)`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_baslik VARCHAR(20)`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_hatirlatma_dk INTEGER DEFAULT 60`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_onay_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS sms_log (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      telefon VARCHAR(20) NOT NULL,
+      mesaj TEXT,
+      tip VARCHAR(30) DEFAULT 'hatirlatma',
+      durum VARCHAR(20) DEFAULT 'gonderildi',
+      netgsm_id VARCHAR(50),
+      tarih TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── OTOMATİK GECE RAPORU ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_saat VARCHAR(5) DEFAULT '22:00'`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_kanal VARCHAR(20) DEFAULT 'whatsapp'`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_telefon VARCHAR(20)`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS gece_rapor_log (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      tarih DATE DEFAULT CURRENT_DATE,
+      kanal VARCHAR(20) DEFAULT 'whatsapp',
+      rapor_icerik TEXT,
+      durum VARCHAR(20) DEFAULT 'gonderildi',
+      gonderim_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── YORUM AVCISI (Google Review) ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_avcisi_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_maps_link VARCHAR(500)`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_gecikme_dk INTEGER DEFAULT 60`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_mesaj_sablonu TEXT`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS yorum_talepleri (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      randevu_id INTEGER REFERENCES randevular(id) ON DELETE SET NULL,
+      musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
+      telefon VARCHAR(20),
+      gonderim_zamani TIMESTAMP NOT NULL,
+      durum VARCHAR(20) DEFAULT 'bekliyor',
+      gonderim_tarihi TIMESTAMP,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── KAYIP MÜŞTERİ KURTARMA (Win-back) ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_gun_esik INTEGER DEFAULT 45`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_indirim INTEGER DEFAULT 10`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_mesaj_sablonu TEXT`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS winback_log (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
+      telefon VARCHAR(20),
+      son_randevu_tarihi DATE,
+      gun_sayisi INTEGER,
+      durum VARCHAR(20) DEFAULT 'gonderildi',
+      kurtarildi BOOLEAN DEFAULT false,
+      kurtarma_tarihi TIMESTAMP,
+      gonderim_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── SADAKAT PUAN SİSTEMİ ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sadakat_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS puan_oran_tl INTEGER DEFAULT 1`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS puan_oran_puan INTEGER DEFAULT 1`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS odul_esik INTEGER DEFAULT 1000`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS odul_hizmet_id INTEGER`);
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS puan_bakiye INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS toplam_kazanilan_puan INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS toplam_harcanan_puan INTEGER DEFAULT 0`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS puan_hareketleri (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
+      randevu_id INTEGER REFERENCES randevular(id) ON DELETE SET NULL,
+      tip VARCHAR(20) NOT NULL,
+      puan INTEGER NOT NULL,
+      aciklama TEXT,
+      tarih TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ─── REFERANS AĞI ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_puan_davet INTEGER DEFAULT 200`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_puan_davetli INTEGER DEFAULT 100`);
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(10)`);
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS referans_ile_gelen BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS davet_eden_id INTEGER`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS referans_log (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      davet_eden_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
+      davetli_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
+      davetli_telefon VARCHAR(20),
+      referans_kodu VARCHAR(10),
+      durum VARCHAR(20) DEFAULT 'bekliyor',
+      puan_verildi BOOLEAN DEFAULT false,
+      tarih TIMESTAMP DEFAULT NOW()
+    )`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
 
     // Dosya tabanlı migration'ları çalıştır
@@ -343,6 +486,8 @@ app.listen(PORT, () => {
   // Hatırlatma cron job'ını başlat (production'da sadece ENABLE_CRON=true ise)
   if (process.env.ENABLE_CRON !== 'false') {
     hatirlatmaService.baslat();
+    // Gece raporu servisi
+    try { const geceRaporu = require('./services/geceRaporu'); geceRaporu.baslat(); } catch (e) { console.error('Gece raporu başlatma hatası:', e.message); }
   }
 
   // Google Yorum Feedback cron (Premium)

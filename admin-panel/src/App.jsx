@@ -4,6 +4,12 @@ import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoIcon from "./assets/logo1.png";
 import logoFull from "./assets/logo2.png";
 import Settings from "./components/Settings/Settings";
+import Kasa from "./components/Kasa/Kasa";
+import SmsAyarlari from "./components/Settings/SmsAyarlari";
+import GeceRaporu from "./components/Settings/GeceRaporu";
+import YorumAvcisi from "./components/Settings/YorumAvcisi";
+import Winback from "./components/Winback/Winback";
+import Sadakat from "./components/Sadakat/Sadakat";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -783,6 +789,7 @@ function Dashboard() {
   const [havaleNotu, setHavaleNotu] = useState("");
   const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
   const [dashCalisanlar, setDashCalisanlar] = useState([]);
+  const [yorumIstat, setYorumIstat] = useState(null);
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [profilPopover, setProfilPopover] = useState(false);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
@@ -824,6 +831,7 @@ function Dashboard() {
     api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); }).catch(() => {});
     api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
     api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
+    api.get("/yorum-avcisi/istatistik").then(d => { if (!d?.hata) setYorumIstat(d); }).catch(() => {});
     api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
     // Shopier callback sonrası bildirim
     const params = new URLSearchParams(window.location.search);
@@ -903,7 +911,7 @@ function Dashboard() {
 
   const cikisYap = () => { localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", destek: "Destek", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", destek: "Destek", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -915,6 +923,7 @@ function Dashboard() {
     bottest: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
     ayarlar: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
     finans: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>,
+    winback: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>,
   };
 
   const menuItems = [
@@ -923,6 +932,12 @@ function Dashboard() {
     { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler" },
     { id: "calisanlar", icon: SVG.calisanlar, label: "Çalışanlar" },
     { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+    { id: "kasa", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, label: "Kasa" },
+    { id: "sms", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>, label: "SMS" },
+    { id: "geceraporu", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>, label: "Gece Raporu" },
+    { id: "yorumavcisi", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: "Yorum Avcısı" },
+    { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri" },
+    { id: "sadakat", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>, label: "Sadakat" },
     { id: "finans", icon: SVG.finans, label: "Finans" },
     { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
     { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
@@ -1077,7 +1092,7 @@ function Dashboard() {
                       <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>Ekip</div>
-                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 1 }}>{dashCalisanlar.length} çalışan</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{dashCalisanlar.length} çalışan</div>
                         </div>
                         <button onClick={e => { e.stopPropagation(); setCalisanPopover(null); setSayfa("calisanlar"); }} style={{
                           padding: "5px 12px", borderRadius: 8, border: "1px solid var(--border)",
@@ -1102,7 +1117,7 @@ function Dashboard() {
                               }}>{c.isim?.charAt(0)?.toUpperCase()}</div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.isim}</div>
-                                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 1 }}>
+                                <div style={{ fontSize: 11, color: "var(--dim)" }}>
                                   {c.uzmanlik || (c.calisma_baslangic ? `${c.calisma_baslangic?.slice(0,5)} – ${c.calisma_bitis?.slice(0,5)}` : "Çalışan")}
                                 </div>
                               </div>
@@ -1200,8 +1215,14 @@ function Dashboard() {
                 {/* Duyurular */}
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: "16px 18px", border: "1px solid var(--border)", overflow: "hidden" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>📢 Duyurular</div>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(59,130,246,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🔔</div>
+                    <div>
+                      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>📢 Duyurular</div>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(59,130,246,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🔔</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{duyurular.length} duyuru</div>
+                      <button onClick={() => setSayfa("duyurular")} style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "var(--surface)", color: "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Tümünü Gör</button>
+                    </div>
                   </div>
                   {duyurular.length === 0 ? (
                     <div style={{ fontSize: 12, color: "var(--dim)", textAlign: "center", padding: "10px 0" }}>Yeni duyuru yok</div>
@@ -1248,7 +1269,7 @@ function Dashboard() {
                       <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500, marginBottom: 6 }}>Aylık Randevu Kullanım</div>
                       <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 4 }}>Paket kapasitesi takibi</div>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", background: "var(--surface3)", padding: "3px 10px", borderRadius: 8 }}>Aylık</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--dim)" }}>Aylık</span>
                   </div>
                   <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                     <div style={{ flex: 1 }}>
@@ -1275,7 +1296,7 @@ function Dashboard() {
 
               {/* ── ROW 2: Gelir Kartları (Optivue orta sıra) ── */}
               {grafikVeri && (
-                <div className="dash-mid-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+                <div className="dash-mid-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
                   {/* Bekleyen Randevular */}
                   {(() => {
                     const bekleyen = randevular.filter(r => r.durum === "bekliyor").length;
@@ -1325,6 +1346,16 @@ function Dashboard() {
                       </div>
                     );
                   })()}
+
+                  {/* Yorum Talepleri */}
+                  <div style={{ background: "var(--surface)", borderRadius: 16, padding: "18px 22px", border: "1px solid var(--border)", cursor: "pointer" }} onClick={() => setSayfa("yorumavcisi")}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 500 }}>Yorum Talepleri</div>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(245,158,11,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⭐</div>
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", letterSpacing: "-.5px" }}>{yorumIstat?.gonderilen || 0}</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Bu ay gönderilen</div>
+                  </div>
                 </div>
               )}
 
@@ -1337,7 +1368,7 @@ function Dashboard() {
                       <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Randevu Analizi</div>
                       <div style={{ fontSize: 11, color: "var(--dim)" }}>Toplam randevular ve onaylananlar haftalık</div>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", background: "var(--surface3)", padding: "4px 12px", borderRadius: 8 }}>Aylık</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>Aylık</span>
                   </div>
                   {grafikVeri && (
                     <div style={{ position: "relative", height: 220 }}>
@@ -1452,7 +1483,7 @@ function Dashboard() {
                       opacity: testYukleniyor ? .5 : 1, flexShrink: 0
                     }}>
                       {testYukleniyor
-                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
                         : <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                       }
                     </button>
@@ -2207,7 +2238,7 @@ function Dashboard() {
                         </div>
                         <div>
                           <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", display: "block", marginBottom: 4 }}>IBAN</label>
-                          <input value={hakedisForm.iban} onChange={e => setHakedisForm(p => ({ ...p, iban: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontFamily: "inherit", letterSpacing: 1 }} placeholder="TR00 0000 0000 0000 0000 0000 00" />
+                          <input value={hakedisForm.iban} onChange={e => setHakedisForm(p => ({ ...p, iban: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontFamily: "inherit", letterSpacing: 1 }} placeholder="TR00 0000 0000 0000 0000 00" />
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
@@ -2287,6 +2318,36 @@ function Dashboard() {
               </>
             );
           })()}
+
+          {/* ── SMS ── */}
+          {sayfa === "sms" && (
+            <SmsAyarlari api={api} />
+          )}
+
+          {/* ── GECE RAPORU ── */}
+          {sayfa === "geceraporu" && (
+            <GeceRaporu api={api} />
+          )}
+
+          {/* ── YORUM AVCISI ── */}
+          {sayfa === "yorumavcisi" && (
+            <YorumAvcisi api={api} />
+          )}
+
+          {/* ── KAYIP MÜŞTERİ ── */}
+          {sayfa === "winback" && (
+            <Winback api={api} />
+          )}
+
+          {/* ── SADAKAT ── */}
+          {sayfa === "sadakat" && (
+            <Sadakat api={api} />
+          )}
+
+          {/* ── KASA ── */}
+          {sayfa === "kasa" && (
+            <Kasa api={api} />
+          )}
 
           {/* ── AYARLAR ── */}
           {sayfa === "ayarlar" && (

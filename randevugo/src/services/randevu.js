@@ -217,6 +217,9 @@ class RandevuService {
        durum, kaporaDurumu, kapora.tutar]
     )).rows[0];
 
+    // Win-back kurtarma takibi
+    try { const winback = require('./winback'); await winback.kurtarmaKontrol(isletmeId, musteri.id); } catch (e) { /* skip */ }
+
     return { randevu, musteri, hizmet, kapora, manuelOnay };
   }
 

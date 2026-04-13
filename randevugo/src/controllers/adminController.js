@@ -50,6 +50,53 @@ class AdminController {
       );
       await this.auditLogYaz(req.kullanici, `randevu_${durum}`, `Randevu #${id} durumu: ${durum}`, 'randevular', parseInt(id), req.ip);
 
+      // Randevu tamamlandığında otomatik kasa gelir kaydı oluştur
+      if (durum === 'tamamlandi' && result.rows[0]) {
+        try {
+          const randevu = result.rows[0];
+          const hizmet = randevu.hizmet_id ? (await pool.query('SELECT isim, fiyat FROM hizmetler WHERE id=$1', [randevu.hizmet_id])).rows[0] : null;
+          if (hizmet && parseFloat(hizmet.fiyat) > 0) {
+            // Daha önce bu randevu için kayıt var mı kontrol et
+            const mevcut = (await pool.query('SELECT id FROM kasa_hareketleri WHERE randevu_id=$1 AND isletme_id=$2', [randevu.id, isletmeId])).rows[0];
+            if (!mevcut) {
+              await pool.query(
+                `INSERT INTO kasa_hareketleri (isletme_id, tip, tutar, aciklama, kategori, odeme_yontemi, randevu_id, tarih, olusturan_id)
+                 VALUES ($1, 'gelir', $2, $3, 'hizmet', 'nakit', $4, $5, $6)`,
+                [isletmeId, hizmet.fiyat, `${hizmet.isim} (Randevu #${randevu.id})`, randevu.id, randevu.tarih, req.kullanici.id]
+              );
+            }
+          }
+        } catch (e) { console.error('Otomatik adisyon hatası:', e.message); }
+
+        // Sadakat Puan: puan ekle + bildirim
+        try {
+          const sadakatPuan = require('../services/sadakatPuan');
+          const kazanilan = await sadakatPuan.puanEkle(isletmeId, randevu.musteri_id, randevu.id);
+          if (kazanilan) {
+            const musteriP = (await pool.query('SELECT puan_bakiye FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
+            const isletmeP = (await pool.query('SELECT odul_esik FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+            const bildirim = sadakatPuan.puanBildirimMesaji(kazanilan, musteriP?.puan_bakiye || 0, isletmeP?.odul_esik || 1000);
+            const mTel = (await pool.query('SELECT telefon FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
+            if (mTel?.telefon) {
+              try {
+                const whatsappWeb = require('../services/whatsappWeb');
+                const waDurum = whatsappWeb.getDurum(isletmeId);
+                if (waDurum?.durum === 'bagli') await whatsappWeb.mesajGonder(isletmeId, mTel.telefon, bildirim);
+              } catch (e) { /* skip */ }
+            }
+          }
+        } catch (e) { console.error('Sadakat puan hatası:', e.message); }
+
+        // Yorum Avcısı: talebi oluştur
+        try {
+          const musteri = (await pool.query('SELECT id, telefon FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
+          if (musteri) {
+            const yorumAvcisi = require('../services/yorumAvcisi');
+            await yorumAvcisi.talepOlustur(isletmeId, randevu.id, musteri.id, musteri.telefon);
+          }
+        } catch (e) { console.error('Yorum avcısı hatası:', e.message); }
+      }
+
       let noShow = null;
       if (durum === 'gelmedi' && result.rows[0]) {
         const randevu = result.rows[0];
@@ -528,7 +575,7 @@ class AdminController {
         'isim','adres','calisma_baslangic','calisma_bitis','randevu_suresi_dk','kapali_gunler','mola_saatleri',
         'kategori','bot_konusma_stili','randevu_modu','hatirlatma_saat','calisan_secim_modu',
         'randevu_onay_modu','onay_timeout_dk','iptal_sinir_saat','mesai_disi_mod','mesai_disi_mesaj',
-        'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir'
+        'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug'
       ];
       const jsonAlanlar = ['mola_saatleri'];
       const setClauses = [];
@@ -2910,6 +2957,496 @@ class AdminController {
       }
 
       res.json({ mesaj: `Talep ${durum}` });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+  // ==================== SADAKAT PUAN SİSTEMİ ====================
+
+  async sadakatAyarlariGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query(
+        'SELECT sadakat_aktif, puan_oran_tl, puan_oran_puan, odul_esik, odul_hizmet_id FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+      const hizmetler = (await pool.query('SELECT id, isim FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [isletmeId])).rows;
+      res.json({ ayarlar: isletme || {}, hizmetler });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async sadakatAyarlariGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { sadakat_aktif, puan_oran_tl, puan_oran_puan, odul_esik, odul_hizmet_id } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET sadakat_aktif=$1, puan_oran_tl=$2, puan_oran_puan=$3, odul_esik=$4, odul_hizmet_id=$5 WHERE id=$6`,
+        [!!sadakat_aktif, puan_oran_tl || 1, puan_oran_puan || 1, odul_esik || 1000, odul_hizmet_id || null, isletmeId]
+      );
+      res.json({ mesaj: 'Sadakat ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async puanRaporu(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = await pool.query(`
+        SELECT m.id, m.isim, m.telefon, m.puan_bakiye, m.toplam_kazanilan_puan, m.toplam_harcanan_puan
+        FROM musteriler m WHERE m.isletme_id=$1 AND m.toplam_kazanilan_puan > 0
+        ORDER BY m.puan_bakiye DESC
+      `, [isletmeId]);
+      const toplam = (await pool.query(
+        `SELECT SUM(CASE WHEN tip='kazanc' THEN puan ELSE 0 END) as kazanilan, SUM(CASE WHEN tip='harcama' THEN ABS(puan) ELSE 0 END) as harcanan FROM puan_hareketleri WHERE isletme_id=$1`,
+        [isletmeId]
+      )).rows[0];
+      res.json({ musteriler: result.rows, istatistik: { kazanilan: parseInt(toplam?.kazanilan || 0), harcanan: parseInt(toplam?.harcanan || 0) } });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async puanKullan(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { musteri_id, puan, aciklama } = req.body;
+      if (!musteri_id || !puan) return res.status(400).json({ hata: 'Müşteri ve puan gerekli' });
+      const sadakatPuan = require('../services/sadakatPuan');
+      const sonuc = await sadakatPuan.puanHarca(isletmeId, musteri_id, puan, aciklama);
+      if (sonuc.hata) return res.status(400).json({ hata: sonuc.hata });
+      res.json({ mesaj: 'Puan kullanıldı' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async puanGecmisi(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { musteri_id } = req.query;
+      const where = musteri_id ? 'AND ph.musteri_id = $2' : '';
+      const params = musteri_id ? [isletmeId, musteri_id] : [isletmeId];
+      const result = await pool.query(`
+        SELECT ph.*, m.isim as musteri_isim FROM puan_hareketleri ph
+        LEFT JOIN musteriler m ON ph.musteri_id = m.id
+        WHERE ph.isletme_id=$1 ${where} ORDER BY ph.tarih DESC LIMIT 100
+      `, params);
+      res.json({ hareketler: result.rows });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== KAYIP MÜŞTERİ KURTARMA ====================
+
+  async winbackAyarlariGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query(
+        'SELECT winback_aktif, winback_gun_esik, winback_indirim, winback_mesaj_sablonu FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+      res.json({ ayarlar: isletme || {} });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async winbackAyarlariGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { winback_aktif, winback_gun_esik, winback_indirim, winback_mesaj_sablonu } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET winback_aktif=$1, winback_gun_esik=$2, winback_indirim=$3, winback_mesaj_sablonu=$4 WHERE id=$5`,
+        [!!winback_aktif, winback_gun_esik || 45, winback_indirim || 10, winback_mesaj_sablonu || null, isletmeId]
+      );
+      res.json({ mesaj: 'Win-back ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async kayipMusteriler(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { gun = 30 } = req.query;
+      const result = await pool.query(`
+        SELECT m.id, m.isim, m.telefon, MAX(r.tarih) as son_tarih,
+          CURRENT_DATE - MAX(r.tarih)::date as gun_sayisi,
+          COUNT(r.id) as toplam_randevu,
+          (SELECT MAX(wl.gonderim_tarihi) FROM winback_log wl WHERE wl.musteri_id = m.id AND wl.isletme_id = $1) as son_mesaj
+        FROM musteriler m
+        JOIN randevular r ON r.musteri_id = m.id AND r.isletme_id = $1 AND r.durum = 'tamamlandi'
+        WHERE m.isletme_id = $1
+        GROUP BY m.id, m.isim, m.telefon
+        HAVING CURRENT_DATE - MAX(r.tarih)::date >= $2
+        ORDER BY gun_sayisi DESC
+      `, [isletmeId, parseInt(gun)]);
+      res.json({ musteriler: result.rows });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async winbackManuelGonder(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { musteri_id } = req.body;
+      if (!musteri_id) return res.status(400).json({ hata: 'Müşteri ID gerekli' });
+
+      const musteri = (await pool.query(`
+        SELECT m.id, m.isim, m.telefon, MAX(r.tarih) as son_tarih,
+          CURRENT_DATE - MAX(r.tarih)::date as gun_sayisi
+        FROM musteriler m
+        JOIN randevular r ON r.musteri_id = m.id AND r.isletme_id = $1 AND r.durum = 'tamamlandi'
+        WHERE m.id = $2 AND m.isletme_id = $1
+        GROUP BY m.id, m.isim, m.telefon
+      `, [isletmeId, musteri_id])).rows[0];
+
+      if (!musteri) return res.status(404).json({ hata: 'Müşteri bulunamadı' });
+
+      const isletme = (await pool.query(
+        'SELECT isim, winback_indirim, winback_mesaj_sablonu, telegram_token FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+
+      const winback = require('../services/winback');
+      await winback.mesajGonder({ id: isletmeId, ...isletme }, musteri);
+      res.json({ mesaj: 'Win-back mesajı gönderildi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async winbackLog(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = await pool.query(`
+        SELECT wl.*, m.isim as musteri_isim FROM winback_log wl
+        LEFT JOIN musteriler m ON wl.musteri_id = m.id
+        WHERE wl.isletme_id=$1 ORDER BY wl.gonderim_tarihi DESC LIMIT 100
+      `, [isletmeId]);
+      const kurtarilan = (await pool.query(
+        'SELECT COUNT(*) as sayi FROM winback_log WHERE isletme_id=$1 AND kurtarildi=true',
+        [isletmeId]
+      )).rows[0];
+      res.json({ loglar: result.rows, kurtarilan_sayisi: parseInt(kurtarilan.sayi) });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== YORUM AVCISI ====================
+
+  async yorumAyarlariGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query(
+        'SELECT yorum_avcisi_aktif, google_maps_link, yorum_gecikme_dk, yorum_mesaj_sablonu FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+      res.json({ ayarlar: isletme || {} });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async yorumAyarlariGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { yorum_avcisi_aktif, google_maps_link, yorum_gecikme_dk, yorum_mesaj_sablonu } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET yorum_avcisi_aktif=$1, google_maps_link=$2, yorum_gecikme_dk=$3, yorum_mesaj_sablonu=$4 WHERE id=$5`,
+        [!!yorum_avcisi_aktif, google_maps_link || null, yorum_gecikme_dk || 60, yorum_mesaj_sablonu || null, isletmeId]
+      );
+      res.json({ mesaj: 'Yorum avcısı ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async yorumLogGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = await pool.query(`
+        SELECT yt.*, m.isim as musteri_isim FROM yorum_talepleri yt
+        LEFT JOIN musteriler m ON yt.musteri_id = m.id
+        WHERE yt.isletme_id=$1 ORDER BY yt.olusturma_tarihi DESC LIMIT 100
+      `, [isletmeId]);
+      res.json({ talepler: result.rows });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async yorumIstatistik(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const buAy = new Date().toISOString().slice(0, 7);
+      const stat = (await pool.query(`
+        SELECT
+          COUNT(*) as toplam,
+          COUNT(*) FILTER (WHERE durum = 'gonderildi') as gonderilen,
+          COUNT(*) FILTER (WHERE durum = 'bekliyor') as bekleyen
+        FROM yorum_talepleri WHERE isletme_id=$1 AND TO_CHAR(olusturma_tarihi, 'YYYY-MM') = $2
+      `, [isletmeId, buAy])).rows[0];
+      res.json({
+        toplam: parseInt(stat.toplam),
+        gonderilen: parseInt(stat.gonderilen),
+        bekleyen: parseInt(stat.bekleyen)
+      });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== GECE RAPORU ====================
+
+  async geceRaporuAyarlari(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query(
+        'SELECT gece_raporu_aktif, gece_raporu_saat, gece_raporu_kanal, gece_raporu_telefon FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+      res.json({ ayarlar: isletme || {} });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async geceRaporuGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { gece_raporu_aktif, gece_raporu_saat, gece_raporu_kanal, gece_raporu_telefon } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET gece_raporu_aktif=$1, gece_raporu_saat=$2, gece_raporu_kanal=$3, gece_raporu_telefon=$4 WHERE id=$5`,
+        [!!gece_raporu_aktif, gece_raporu_saat || '22:00', gece_raporu_kanal || 'whatsapp', gece_raporu_telefon || null, isletmeId]
+      );
+      res.json({ mesaj: 'Gece raporu ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async geceRaporuLog(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = await pool.query(
+        'SELECT * FROM gece_rapor_log WHERE isletme_id=$1 ORDER BY gonderim_tarihi DESC LIMIT 30',
+        [isletmeId]
+      );
+      res.json({ loglar: result.rows });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async geceRaporuOnizle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const geceRaporu = require('../services/geceRaporu');
+      const mesaj = await geceRaporu.raporOlustur(isletmeId);
+      res.json({ rapor: mesaj });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== SMS (NetGSM) ====================
+
+  async smsAyarlariGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query(
+        'SELECT sms_aktif, netgsm_kullanici_adi, netgsm_sifre, netgsm_baslik, sms_hatirlatma_dk, sms_onay_aktif FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+      res.json({ ayarlar: isletme || {} });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async smsAyarlariGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { sms_aktif, netgsm_kullanici_adi, netgsm_sifre, netgsm_baslik, sms_hatirlatma_dk, sms_onay_aktif } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET sms_aktif=$1, netgsm_kullanici_adi=$2, netgsm_sifre=$3, netgsm_baslik=$4, sms_hatirlatma_dk=$5, sms_onay_aktif=$6 WHERE id=$7`,
+        [!!sms_aktif, netgsm_kullanici_adi || null, netgsm_sifre || null, netgsm_baslik || null, sms_hatirlatma_dk || 60, !!sms_onay_aktif, isletmeId]
+      );
+      res.json({ mesaj: 'SMS ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async smsLogGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = await pool.query(
+        'SELECT * FROM sms_log WHERE isletme_id=$1 ORDER BY tarih DESC LIMIT 100',
+        [isletmeId]
+      );
+      res.json({ loglar: result.rows });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async smsTestGonder(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { telefon } = req.body;
+      if (!telefon) return res.status(400).json({ hata: 'Telefon gerekli' });
+      const netgsm = require('../services/netgsm');
+      const sonuc = await netgsm.smsGonder(isletmeId, telefon, 'SıraGO test mesajı. SMS entegrasyonunuz aktif!', 'test');
+      res.json(sonuc);
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async smsBakiye(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const netgsm = require('../services/netgsm');
+      const sonuc = await netgsm.bakiyeSorgula(isletmeId);
+      res.json(sonuc);
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== PRİM HESAPLAMA ====================
+
+  async primRaporu(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { donem } = req.query; // YYYY-MM
+      const ayDonem = donem || new Date().toISOString().slice(0, 7);
+      const [yil, ay] = ayDonem.split('-').map(Number);
+      const baslangic = `${ayDonem}-01`;
+      const bitis = new Date(yil, ay, 0).toISOString().slice(0, 10); // ayın son günü
+
+      const result = await pool.query(`
+        SELECT c.id, c.isim, c.prim_yuzdesi,
+          COUNT(r.id) as toplam_randevu,
+          COALESCE(SUM(h.fiyat), 0) as toplam_ciro
+        FROM calisanlar c
+        LEFT JOIN randevular r ON r.calisan_id = c.id AND r.isletme_id = $1 
+          AND r.durum = 'tamamlandi' AND r.tarih BETWEEN $2 AND $3
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        WHERE c.isletme_id = $1 AND (c.aktif IS NULL OR c.aktif = true)
+        GROUP BY c.id, c.isim, c.prim_yuzdesi
+        ORDER BY toplam_ciro DESC
+      `, [isletmeId, baslangic, bitis]);
+
+      // Mevcut prim ödemeleri
+      const odemeler = (await pool.query(
+        'SELECT * FROM prim_odemeleri WHERE isletme_id=$1 AND donem=$2',
+        [isletmeId, ayDonem]
+      )).rows;
+
+      const rapor = result.rows.map(c => {
+        const ciro = parseFloat(c.toplam_ciro);
+        const oran = c.prim_yuzdesi || 10;
+        const primTutar = Math.round(ciro * oran / 100);
+        const odeme = odemeler.find(o => o.calisan_id === c.id);
+        return {
+          calisan_id: c.id,
+          isim: c.isim,
+          prim_yuzdesi: oran,
+          toplam_randevu: parseInt(c.toplam_randevu),
+          toplam_ciro: ciro,
+          prim_tutari: primTutar,
+          durum: odeme?.durum || 'bekliyor',
+          odeme_id: odeme?.id || null
+        };
+      });
+
+      const toplamPrim = rapor.reduce((t, r) => t + r.prim_tutari, 0);
+      const bekleyenPrim = rapor.filter(r => r.durum === 'bekliyor').reduce((t, r) => t + r.prim_tutari, 0);
+
+      res.json({ rapor, donem: ayDonem, toplamPrim, bekleyenPrim });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async primOde(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { calisan_id, donem, toplam_ciro, prim_yuzdesi, prim_tutari } = req.body;
+      if (!calisan_id || !donem) return res.status(400).json({ hata: 'Eksik bilgi' });
+
+      // Mevcut kayıt varsa güncelle yoksa oluştur
+      const mevcut = (await pool.query(
+        'SELECT id FROM prim_odemeleri WHERE isletme_id=$1 AND calisan_id=$2 AND donem=$3',
+        [isletmeId, calisan_id, donem]
+      )).rows[0];
+
+      if (mevcut) {
+        await pool.query(
+          "UPDATE prim_odemeleri SET durum='odendi', odeme_tarihi=NOW(), toplam_ciro=$1, prim_yuzdesi=$2, prim_tutari=$3 WHERE id=$4",
+          [toplam_ciro, prim_yuzdesi, prim_tutari, mevcut.id]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO prim_odemeleri (isletme_id, calisan_id, donem, toplam_ciro, prim_yuzdesi, prim_tutari, durum, odeme_tarihi)
+           VALUES ($1, $2, $3, $4, $5, $6, 'odendi', NOW())`,
+          [isletmeId, calisan_id, donem, toplam_ciro, prim_yuzdesi, prim_tutari]
+        );
+      }
+
+      res.json({ mesaj: 'Prim ödendi olarak işaretlendi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== KASA TAKİBİ ====================
+
+  async kasaListesi(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { baslangic, bitis, tip } = req.query;
+      let query = 'SELECT * FROM kasa_hareketleri WHERE isletme_id=$1';
+      const params = [isletmeId];
+      let idx = 2;
+      if (baslangic) { query += ` AND tarih >= $${idx}`; params.push(baslangic); idx++; }
+      if (bitis) { query += ` AND tarih <= $${idx}`; params.push(bitis); idx++; }
+      if (tip && (tip === 'gelir' || tip === 'gider')) { query += ` AND tip = $${idx}`; params.push(tip); idx++; }
+      query += ' ORDER BY tarih DESC, olusturma_tarihi DESC';
+      const result = await pool.query(query, params);
+      res.json({ hareketler: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async kasaEkle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { tip, tutar, aciklama, kategori, odeme_yontemi, tarih } = req.body;
+      if (!tip || !tutar) return res.status(400).json({ hata: 'Tip ve tutar gerekli' });
+      const result = await pool.query(
+        `INSERT INTO kasa_hareketleri (isletme_id, tip, tutar, aciklama, kategori, odeme_yontemi, tarih, olusturan_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [isletmeId, tip, tutar, aciklama || '', kategori || 'diger', odeme_yontemi || 'nakit', tarih || new Date().toISOString().slice(0,10), req.kullanici.id]
+      );
+      res.json({ hareket: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async kasaSil(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      await pool.query('DELETE FROM kasa_hareketleri WHERE id=$1 AND isletme_id=$2', [req.params.id, isletmeId]);
+      res.json({ mesaj: 'Silindi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async kasaOzet(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const bugun = new Date().toISOString().slice(0, 10);
+      // Bugün
+      const bugunOzet = (await pool.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN tip='gelir' THEN tutar ELSE 0 END), 0) as gunluk_gelir,
+          COALESCE(SUM(CASE WHEN tip='gider' THEN tutar ELSE 0 END), 0) as gunluk_gider
+        FROM kasa_hareketleri WHERE isletme_id=$1 AND tarih=$2
+      `, [isletmeId, bugun])).rows[0];
+      // Bu hafta (Pazartesi'den bugüne)
+      const haftaOzet = (await pool.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN tip='gelir' THEN tutar ELSE 0 END), 0) as haftalik_gelir,
+          COALESCE(SUM(CASE WHEN tip='gider' THEN tutar ELSE 0 END), 0) as haftalik_gider
+        FROM kasa_hareketleri WHERE isletme_id=$1 AND tarih >= date_trunc('week', CURRENT_DATE)
+      `, [isletmeId])).rows[0];
+      // Bu ay
+      const ayOzet = (await pool.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN tip='gelir' THEN tutar ELSE 0 END), 0) as aylik_gelir,
+          COALESCE(SUM(CASE WHEN tip='gider' THEN tutar ELSE 0 END), 0) as aylik_gider
+        FROM kasa_hareketleri WHERE isletme_id=$1 AND tarih >= date_trunc('month', CURRENT_DATE)
+      `, [isletmeId])).rows[0];
+      // Son 7 gün günlük dağılım (grafik için)
+      const gunlukGrafik = (await pool.query(`
+        SELECT tarih, tip, SUM(tutar) as toplam
+        FROM kasa_hareketleri WHERE isletme_id=$1 AND tarih >= CURRENT_DATE - INTERVAL '6 days'
+        GROUP BY tarih, tip ORDER BY tarih
+      `, [isletmeId])).rows;
+
+      res.json({
+        bugun: { gelir: parseFloat(bugunOzet.gunluk_gelir), gider: parseFloat(bugunOzet.gunluk_gider) },
+        hafta: { gelir: parseFloat(haftaOzet.haftalik_gelir), gider: parseFloat(haftaOzet.haftalik_gider) },
+        ay: { gelir: parseFloat(ayOzet.aylik_gelir), gider: parseFloat(ayOzet.aylik_gider) },
+        gunlukGrafik
+      });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

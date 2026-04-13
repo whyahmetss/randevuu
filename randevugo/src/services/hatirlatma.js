@@ -13,9 +13,18 @@ class HatirlatmaService {
       await this.beklemeListesiBildirim();
       await this.onayTimeoutKontrol();
       await this.kaporaTimeoutKontrol();
+      // SMS Hatırlatma (NetGSM)
+      try { const netgsm = require('./netgsm'); await netgsm.hatirlatmaSmsGonder(); } catch (e) { /* skip */ }
+      // Yorum Avcısı
+      try { const yorumAvcisi = require('./yorumAvcisi'); await yorumAvcisi.yorumTalepleriniGonder(); } catch (e) { /* skip */ }
     });
 
     console.log('⏰ Hatırlatma servisi başlatıldı — Akıllı Teyit Zinciri aktif (her 5 dk)');
+
+    // Win-back: Günlük sabah 10:00'da kayıp müşterileri tara
+    cron.schedule('0 10 * * *', async () => {
+      try { const winback = require('./winback'); await winback.kayipMusterileriTara(); } catch (e) { /* skip */ }
+    });
   }
 
   // ═══════════════════════════════════════════════════════

@@ -5,6 +5,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [karaListe, setKaraListe] = useState([]);
   const [yeniKaraTelefon, setYeniKaraTelefon] = useState('');
   const [yeniKaraSebep, setYeniKaraSebep] = useState('manuel');
+  const [slugKopyalandi, setSlugKopyalandi] = useState(false);
 
   useEffect(() => {
     api.get("/kara-liste").then(r => { if (r?.karaListe) setKaraListe(r.karaListe); });
@@ -261,6 +262,58 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                 className="input" rows={2} placeholder="Şu an kapalıyız. Çalışma saatlerimiz: ..." style={{ width: '100%', resize: 'vertical', fontSize: 12 }} />
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ═══════════════  ROW 3.5: Online Randevu Linki  ═══════════════ */}
+      <div style={{ ...S.card, marginBottom: 16 }}>
+        <CardHead emoji="🔗" title="Online Randevu Linki" color="#10b981" desc="Müşterileriniz bu link ile doğrudan randevu alabilir" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Slug (URL Kısaltması)</label>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 13, color: "var(--dim)", whiteSpace: "nowrap" }}>{window.location.origin}/book/</span>
+              <input
+                value={ayarlar.slug || ""}
+                onChange={e => setAyarlar({...ayarlar, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '').slice(0, 50)})}
+                className="input"
+                placeholder="isletme-adi"
+                style={{ flex: 1, fontWeight: 700 }}
+              />
+            </div>
+            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Sadece küçük harf, rakam ve tire (-) kullanabilirsiniz</div>
+          </div>
+          {ayarlar.slug && (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{
+                flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,.06)",
+                border: "1px solid rgba(16,185,129,.15)", fontSize: 13, fontWeight: 600,
+                color: "#10b981", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+              }}>
+                {window.location.origin}/book/{ayarlar.slug}
+              </div>
+              <button onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/book/${ayarlar.slug}`);
+                setSlugKopyalandi(true);
+                setTimeout(() => setSlugKopyalandi(false), 2000);
+              }} style={{
+                padding: "10px 18px", borderRadius: 10, border: "none",
+                background: slugKopyalandi ? "#10b981" : "rgba(16,185,129,.1)",
+                color: slugKopyalandi ? "#fff" : "#10b981",
+                fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
+                transition: "all .2s", fontFamily: "inherit",
+              }}>
+                {slugKopyalandi ? "Kopyalandı!" : "Kopyala"}
+              </button>
+              <a href={`${window.location.origin}/book/${ayarlar.slug}`} target="_blank" rel="noopener noreferrer" style={{
+                padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)",
+                background: "var(--surface)", color: "var(--text)",
+                fontWeight: 700, fontSize: 12, cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap",
+              }}>
+                Önizle
+              </a>
+            </div>
+          )}
         </div>
       </div>
 

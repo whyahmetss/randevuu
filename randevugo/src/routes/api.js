@@ -4,6 +4,7 @@ const { authMiddleware, superAdminMiddleware, odemeKontrol } = require('../middl
 const authController = require('../controllers/authController');
 const adminController = require('../controllers/adminController');
 const botController = require('../controllers/botController');
+const bookingController = require('../controllers/bookingController');
 
 // ==================== AUTH ====================
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
@@ -190,5 +191,55 @@ router.get('/google-yorum/talepler', authMiddleware, odemeKontrol, (req, res) =>
 
 // ==================== PREMİUM ÖZELLİK DURUMU ====================
 router.get('/premium/durum', authMiddleware, (req, res) => adminController.premiumOzellikDurumu(req, res));
+
+// ==================== SADAKAT PUAN SİSTEMİ ====================
+router.get('/sadakat/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.sadakatAyarlariGetir(req, res));
+router.put('/sadakat/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.sadakatAyarlariGuncelle(req, res));
+router.get('/sadakat/rapor', authMiddleware, odemeKontrol, (req, res) => adminController.puanRaporu(req, res));
+router.post('/sadakat/kullan', authMiddleware, odemeKontrol, (req, res) => adminController.puanKullan(req, res));
+router.get('/sadakat/gecmis', authMiddleware, odemeKontrol, (req, res) => adminController.puanGecmisi(req, res));
+
+// ==================== KAYIP MÜŞTERİ KURTARMA ====================
+router.get('/winback/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.winbackAyarlariGetir(req, res));
+router.put('/winback/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.winbackAyarlariGuncelle(req, res));
+router.get('/winback/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.kayipMusteriler(req, res));
+router.post('/winback/gonder', authMiddleware, odemeKontrol, (req, res) => adminController.winbackManuelGonder(req, res));
+router.get('/winback/log', authMiddleware, odemeKontrol, (req, res) => adminController.winbackLog(req, res));
+
+// ==================== YORUM AVCISI ====================
+router.get('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.yorumAyarlariGetir(req, res));
+router.put('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.yorumAyarlariGuncelle(req, res));
+router.get('/yorum-avcisi/log', authMiddleware, odemeKontrol, (req, res) => adminController.yorumLogGetir(req, res));
+router.get('/yorum-avcisi/istatistik', authMiddleware, odemeKontrol, (req, res) => adminController.yorumIstatistik(req, res));
+
+// ==================== GECE RAPORU ====================
+router.get('/gece-raporu/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuAyarlari(req, res));
+router.put('/gece-raporu/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuGuncelle(req, res));
+router.get('/gece-raporu/log', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuLog(req, res));
+router.get('/gece-raporu/onizle', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuOnizle(req, res));
+
+// ==================== SMS (NetGSM) ====================
+router.get('/sms/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.smsAyarlariGetir(req, res));
+router.put('/sms/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.smsAyarlariGuncelle(req, res));
+router.get('/sms/log', authMiddleware, odemeKontrol, (req, res) => adminController.smsLogGetir(req, res));
+router.post('/sms/test', authMiddleware, odemeKontrol, (req, res) => adminController.smsTestGonder(req, res));
+router.get('/sms/bakiye', authMiddleware, odemeKontrol, (req, res) => adminController.smsBakiye(req, res));
+
+// ==================== PRİM HESAPLAMA ====================
+router.get('/prim/rapor', authMiddleware, odemeKontrol, (req, res) => adminController.primRaporu(req, res));
+router.post('/prim/ode', authMiddleware, odemeKontrol, (req, res) => adminController.primOde(req, res));
+
+// ==================== KASA TAKİBİ ====================
+router.get('/kasa', authMiddleware, odemeKontrol, (req, res) => adminController.kasaListesi(req, res));
+router.post('/kasa', authMiddleware, odemeKontrol, (req, res) => adminController.kasaEkle(req, res));
+router.delete('/kasa/:id', authMiddleware, odemeKontrol, (req, res) => adminController.kasaSil(req, res));
+router.get('/kasa/ozet', authMiddleware, odemeKontrol, (req, res) => adminController.kasaOzet(req, res));
+
+// ==================== ONLINE RANDEVU (Public) ====================
+router.get('/book/:slug', (req, res) => bookingController.isletmeBilgileri(req, res));
+router.get('/book/:slug/hizmetler', (req, res) => bookingController.hizmetleriGetir(req, res));
+router.get('/book/:slug/calisanlar', (req, res) => bookingController.calisanlariGetir(req, res));
+router.get('/book/:slug/saatler', (req, res) => bookingController.musaitSaatler(req, res));
+router.post('/book/:slug/randevu', (req, res) => bookingController.randevuOlustur(req, res));
 
 module.exports = router;

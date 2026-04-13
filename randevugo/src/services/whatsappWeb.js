@@ -537,6 +537,20 @@ class WhatsAppWebService extends EventEmitter {
       return this.hizmetListesi(isletme, hizmetler);
     }
 
+    // Puan sorgulama intent
+    if (metinKucuk.includes('puan') || metinKucuk.includes('puanım') || metinKucuk.includes('puanim') || metinKucuk.includes('sadakat')) {
+      try {
+        const sadakatPuan = require('./sadakatPuan');
+        const puan = await sadakatPuan.puanSorgula(isletmeId, musteriTelefon);
+        if (puan) {
+          let msg = `🎯 *Sadakat Puan Bilginiz*\n\n⭐ Mevcut bakiye: *${puan.bakiye} puan*\n📊 Toplam kazanılan: *${puan.toplam} puan*`;
+          if (puan.kalan > 0) msg += `\n🎁 Ödüle *${puan.kalan} puan* kaldı!`;
+          else msg += `\n🎉 *Ödül hakkınız var!* Bir sonraki randevunuzda kullanabilirsiniz.`;
+          return { metin: msg, butonlar: null };
+        }
+      } catch (e) { /* sadakat aktif değilse skip */ }
+    }
+
     // Geri / değiştir intent — adım geri al
     if ((metinKucuk === 'geri' || metinKucuk === 'değiştir' || metinKucuk === 'degistir') && !['ana_menu', 'baslangic'].includes(botDurum.asama)) {
       const geriMap = { 'onay': 'saat_secimi', 'saat_secimi': 'tarih_secimi', 'tarih_secimi': 'hizmet_secimi', 'calisan_secimi': 'hizmet_secimi', 'hizmet_secimi': 'ana_menu' };
