@@ -2736,21 +2736,6 @@ function SuperAdminPanel({ kullanici }) {
   };
 
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
-  const acikDestekSayi = destekTalepler.filter(t => t.durum === 'acik').length;
-  const yuksekBildirimSayi = bildirimVeri?.ozet?.yuksek || 0;
-
-  const badgeSayilari = {
-    odemeler: buAyOdemeyenler.length,
-    destek: acikDestekSayi,
-    iletisim: okunmamisSayi,
-    bildirimler: yuksekBildirimSayi,
-  };
-  const badgeRenkleri = {
-    odemeler: "#ef4444",
-    destek: "#f59e0b",
-    iletisim: "#818cf8",
-    bildirimler: "#ef4444",
-  };
 
   const menuItems = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
@@ -2782,6 +2767,21 @@ function SuperAdminPanel({ kullanici }) {
   const buAyOdemeyenler = isletmeler.filter(i => i.aktif && !odemeler.find(o => o.isletme_id == i.id && o.donem === buAy && o.durum === "odendi"));
   const toplamGelir = odemeler.filter(o => o.durum === "odendi").reduce((s, o) => s + parseFloat(o.tutar || 0), 0);
   const buAyGelir = buAyOdeyenler.reduce((s, o) => s + parseFloat(o.tutar || 0), 0);
+
+  const acikDestekSayi = destekTalepler.filter(t => t.durum === 'acik').length;
+  const yuksekBildirimSayi = bildirimVeri?.ozet?.yuksek || 0;
+  const badgeSayilari = {
+    odemeler: buAyOdemeyenler.length,
+    destek: acikDestekSayi,
+    iletisim: okunmamisSayi,
+    bildirimler: yuksekBildirimSayi,
+  };
+  const badgeRenkleri = {
+    odemeler: "#ef4444",
+    destek: "#f59e0b",
+    iletisim: "#818cf8",
+    bildirimler: "#ef4444",
+  };
 
   const filtreliIsletmeler = isletmeler.filter(i => {
     if (isletmeFiltre === "aktif") return i.aktif;
