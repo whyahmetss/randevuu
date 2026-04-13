@@ -995,6 +995,25 @@ function Dashboard() {
                 </div>
               );
             })}
+            {dashEkstra?.paketKalanGun != null && (() => {
+              const kalan = dashEkstra.paketKalanGun;
+              const toplam = 30;
+              const pctB = Math.max(0, Math.min(100, Math.round(kalan / toplam * 100)));
+              const renk = kalan > 10 ? 'var(--green)' : kalan > 3 ? '#f59e0b' : 'var(--red)';
+              return (
+                <div>
+                  <div className="pw-bar-label">
+                    <span>Paket süresi</span>
+                    <span style={{ color: kalan <= 3 ? 'var(--red)' : kalan <= 10 ? '#f59e0b' : 'var(--dim)' }}>
+                      {kalan > 0 ? `${kalan} gün kaldı` : 'Süre doldu'}
+                    </span>
+                  </div>
+                  <div className="pw-bar-track">
+                    <div className="pw-bar-fill" style={{ width: `${pctB}%`, background: renk }} />
+                  </div>
+                </div>
+              );
+            })()}
             {paketDurum.paket !== 'premium' && (
               <div className="pw-upgrade" onClick={() => setPaketModal(true)}>
                 <span>Paketi Yükselt</span>
