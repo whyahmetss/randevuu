@@ -1358,41 +1358,32 @@ function Dashboard() {
                   display: "flex", flexDirection: "column",
                   border: "1px solid var(--border)", boxShadow: "0 2px 16px rgba(0,0,0,.04)"
                 }}>
-                  {/* Halka görsel alanı — arka plan gradient ile yumuşak geçiş */}
-                  <div style={{
-                    position: "relative", height: 150, display: "flex", alignItems: "center", justifyContent: "center",
-                    background: "radial-gradient(ellipse at center, rgba(16,185,129,.08) 0%, transparent 70%)"
-                  }}>
-                    {/* Dış halka — conic gradient */}
+                  {/* Halka görsel alanı */}
+                  <div style={{ position: "relative", height: 150, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {/* Dış halka — ince teal çember */}
                     <div style={{
-                      width: 110, height: 110, borderRadius: "50%",
-                      background: "conic-gradient(from 0deg, #2dd4bf, #a78bfa, #38bdf8, #10b981, #2dd4bf)",
-                      padding: 3, animation: "glowSpin 8s linear infinite",
-                      boxShadow: "0 0 30px rgba(45,212,191,.15)"
-                    }}>
-                      <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {/* İç halka */}
-                        <div style={{
-                          width: 70, height: 70, borderRadius: "50%",
-                          background: "conic-gradient(from 180deg, #38bdf8, #2dd4bf, #a78bfa, #38bdf8)",
-                          padding: 2, animation: "glowSpin 5s linear infinite reverse"
-                        }}>
-                          <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            {/* Merkez parlayan nokta */}
-                            <div style={{
-                              width: 20, height: 20, borderRadius: "50%",
-                              background: "radial-gradient(circle, #2dd4bf 0%, rgba(45,212,191,.3) 60%, transparent 100%)",
-                              boxShadow: "0 0 15px rgba(45,212,191,.4), 0 0 30px rgba(45,212,191,.15)",
-                              animation: "pulse 3s ease-in-out infinite"
-                            }} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      position: "absolute", width: 110, height: 110, borderRadius: "50%",
+                      border: "2px solid #2dd4bf",
+                      animation: "glowSpin 10s linear infinite",
+                      boxShadow: "0 0 20px rgba(45,212,191,.1)"
+                    }} />
+                    {/* İç halka — ince mor çember, biraz sola kaymış */}
+                    <div style={{
+                      position: "absolute", width: 80, height: 80, borderRadius: "50%",
+                      border: "2px solid #a78bfa", marginLeft: -12, marginTop: 8,
+                      animation: "glowSpin 7s linear infinite reverse",
+                      boxShadow: "0 0 15px rgba(167,139,250,.08)"
+                    }} />
+                    {/* Merkez glow nokta */}
+                    <div style={{
+                      position: "absolute", width: 16, height: 16, borderRadius: "50%",
+                      background: "radial-gradient(circle, rgba(45,212,191,.8) 0%, rgba(45,212,191,.2) 60%, transparent 100%)",
+                      boxShadow: "0 0 12px rgba(45,212,191,.4), 0 0 24px rgba(45,212,191,.15)",
+                      marginLeft: -6, marginTop: 4, animation: "pulse 3s ease-in-out infinite"
+                    }} />
                     {/* Dekoratif noktalar */}
-                    <div style={{ position: "absolute", top: 20, left: 25, width: 8, height: 8, borderRadius: "50%", background: "#2dd4bf", opacity: .25 }} />
-                    <div style={{ position: "absolute", bottom: 25, right: 25, width: 6, height: 6, borderRadius: "50%", background: "#a78bfa", opacity: .2 }} />
-                    <div style={{ position: "absolute", top: 40, right: 20, width: 5, height: 5, borderRadius: "50%", background: "#38bdf8", opacity: .2 }} />
+                    <div style={{ position: "absolute", top: 22, left: 30, width: 8, height: 8, borderRadius: "50%", background: "#2dd4bf", opacity: .2 }} />
+                    <div style={{ position: "absolute", bottom: 30, right: 35, width: 5, height: 5, borderRadius: "50%", background: "#a78bfa", opacity: .15 }} />
                   </div>
 
                   {/* Başlık */}
