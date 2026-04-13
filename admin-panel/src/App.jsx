@@ -26,6 +26,17 @@ const api = {
       localStorage.removeItem("randevugo_token");
       window.location.reload();
     }
+    if (res.status === 403) {
+      const data = await res.json();
+      if (data.pasif) {
+        alert("İşletmeniz pasif duruma alınmıştır. Lütfen destek ile iletişime geçin.");
+        this.token = null;
+        localStorage.removeItem("randevugo_token");
+        window.location.reload();
+        return data;
+      }
+      return data;
+    }
     if (res.status === 402) {
       window.dispatchEvent(new CustomEvent("odeme-gerekli"));
       const data = await res.json();

@@ -1,13 +1,24 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1] || req.query.token;
   if (!token) return res.status(401).json({ hata: 'Token bulunamadı' });
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'randevugo-default-secret-key-2024');
     req.kullanici = decoded;
+
+    // Pasif işletme kontrolü (SuperAdmin hariç)
+    if (decoded.rol !== 'superadmin' && decoded.isletme_id) {
+      try {
+        const isletme = (await pool.query('SELECT aktif FROM isletmeler WHERE id = $1', [decoded.isletme_id])).rows[0];
+        if (isletme && !isletme.aktif) {
+          return res.status(403).json({ hata: 'İşletme pasif', mesaj: 'İşletmeniz pasif durumda. Lütfen destek ile iletişime geçin.', pasif: true });
+        }
+      } catch (e) { /* DB hatası durumunda engelleme */ }
+    }
+
     next();
   } catch (err) {
     return res.status(401).json({ hata: 'Geçersiz token' });
