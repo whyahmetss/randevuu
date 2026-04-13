@@ -10,6 +10,14 @@ class RandevuService {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (!isletme) return [];
 
+    // tarih parametresi Date objesi olabilir (PostgreSQL), string'e çevir
+    if (tarih instanceof Date) {
+      tarih = tarih.toISOString().slice(0, 10);
+    } else if (tarih && typeof tarih !== 'string') {
+      tarih = String(tarih);
+    }
+    if (!tarih) return [];
+
     // Gün kontrolü (0=Pazar, 6=Cumartesi) — timezone-safe
     const [yil, ay, gn] = tarih.split('-').map(Number);
     const gun = new Date(yil, ay - 1, gn).getDay();
