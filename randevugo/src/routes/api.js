@@ -126,16 +126,6 @@ router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddlewar
 router.get('/admin/musteri-aktivite', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriAktivite(req, res));
 router.get('/admin/bildirimler', authMiddleware, superAdminMiddleware, (req, res) => adminController.bildirimMerkezi(req, res));
 
-// ==================== GEÇİCİ TEST (SİLİNECEK) ====================
-router.post('/admin/bot-durum-sifirla', authMiddleware, superAdminMiddleware, async (req, res) => {
-  try {
-    const { isletme_id } = req.body;
-    const pool = require('../config/db');
-    await pool.query('UPDATE bot_durum SET secilen_dil = NULL, asama = $1 WHERE isletme_id = $2', ['baslangic', isletme_id || 12]);
-    res.json({ mesaj: `İşletme ${isletme_id || 12} bot durumları sıfırlandı` });
-  } catch(e) { res.status(500).json({ hata: e.message }); }
-});
-
 // ==================== AUDIT LOG ====================
 router.get('/admin/audit-log', authMiddleware, superAdminMiddleware, (req, res) => adminController.auditLogListele(req, res));
 
