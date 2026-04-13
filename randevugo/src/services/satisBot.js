@@ -748,53 +748,113 @@ class SatisBot extends EventEmitter {
 
       case 'onay': {
         if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla')) {
-          const k = this.konusmalar[telefon].kayit;
-          try {
-            const bcrypt = require('bcryptjs');
-            // İşletme oluştur
-            // Telefonu +90XXXXXXXXXX formatına çevir
-            let telFormatli = telefon;
-            if (telFormatli.startsWith('90')) telFormatli = '+' + telFormatli;
-            else if (!telFormatli.startsWith('+')) telFormatli = '+90' + telFormatli;
-            // Aynı telefon varsa farklı yap (timestamp ekle)
-            const telMevcut = (await pool.query('SELECT id FROM isletmeler WHERE telefon = $1', [telFormatli])).rows[0];
-            if (telMevcut) telFormatli = telFormatli + '_' + Date.now();
-            const isletme = (await pool.query(
-              `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi) 
-               VALUES ($1, $2, 'genel', true, 'baslangic', NOW()) RETURNING *`,
-              [k.isletmeAdi, telFormatli]
-            )).rows[0];
-
-            // Admin kullanıcı oluştur
-            const hashSifre = await bcrypt.hash(k.sifre, 10);
-            await pool.query(
-              `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) 
-               VALUES ($1, $2, $3, 'admin', $4, true)`,
-              [k.isletmeAdi, k.email, hashSifre, isletme.id]
-            );
-
-            console.log(`🎉 Bot kayıt tamamlandı: ${k.isletmeAdi} (${k.email}) - isletme_id: ${isletme.id} - kanal: WhatsApp`);
-
-            delete this.konusmalar[telefon].kayit;
-            await mesajGonder(
-              `🎉 *Tebrikler! Hesabınız oluşturuldu!*\n\n` +
-              `🏪 İşletme: *${k.isletmeAdi}*\n` +
-              `📧 E-posta: *${k.email}*\n\n` +
-              `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
-              `🔗 *admin.sırago.com*\n\n` +
-              `E-posta ve şifrenizle giriş yapın. İlk ay tamamen ücretsiz! 🚀\n\n` +
-              `Yardıma ihtiyacınız olursa bize yazın 💪`
-            );
-          } catch (err) {
-            console.error('❌ Bot kayıt hatası:', err.message);
-            await mesajGonder(`❌ Kayıt sırasında bir hata oluştu: ${err.message}\n\nTekrar denemek için *kayıt* yazın.`);
-            delete this.konusmalar[telefon].kayit;
-          }
+          // Onaylandı — referans kodu adımına geç
+          this.konusmalar[telefon].kayit.adim = 'referans_kodu';
+          await mesajGonder(
+            `✅ Bilgiler onaylandı!\n\n` +
+            `🎟️ *Referans kodunuz* var mı?\n\n` +
+            `Varsa kodu yazın, yoksa *hayır* yazın veya *0* yazarak atlayın.`
+          );
           return true;
         }
-        // İptal
-        delete this.konusmalar[telefon].kayit;
-        await mesajGonder(`❌ Kayıt işlemi iptal edildi.\n\nTekrar denemek için *kayıt* yazın.`);
+        // Sadece "2" veya açıkça iptal/vazgeç yazıldığında iptal et
+        if (metin === '2' || metinKucuk === 'iptal' || metinKucuk === 'vazgeç' || metinKucuk === 'vazgec') {
+          delete this.konusmalar[telefon].kayit;
+          await mesajGonder(`❌ Kayıt işlemi iptal edildi.\n\nTekrar denemek için *kayıt* yazın.`);
+          return true;
+        }
+        // Referans kodum var gibi şeyler yazarsa da referans adımına yönlendir
+        if (metinKucuk.includes('ref') || metinKucuk.includes('kod')) {
+          this.konusmalar[telefon].kayit.adim = 'referans_kodu';
+          await mesajGonder(
+            `🎟️ Harika! Referans kodunuzu yazın:`
+          );
+          return true;
+        }
+        // Tanınmayan cevap — tekrar onay iste
+        await mesajGonder(
+          `Lütfen bir seçenek belirleyin:\n\n` +
+          `*1.* ✅ Onayla ve hesabı oluştur\n` +
+          `*2.* ❌ İptal et`
+        );
+        return true;
+      }
+
+      case 'referans_kodu': {
+        // Referans kodu atla
+        const atlaCevaplari = ['hayır', 'hayir', 'yok', 'atla', '0', 'geç', 'gec', 'pas'];
+        let referansKodu = null;
+
+        if (!atlaCevaplari.includes(metinKucuk)) {
+          // Referans kodunu doğrula
+          const kodDenemesi = metin.trim().toUpperCase();
+          const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [kodDenemesi])).rows[0];
+          if (!ref) {
+            await mesajGonder(
+              `⚠️ *${kodDenemesi}* geçerli bir referans kodu değil.\n\n` +
+              `Tekrar deneyin veya atlamak için *hayır* yazın:`
+            );
+            return true;
+          }
+          referansKodu = kodDenemesi;
+        }
+
+        // Hesabı oluştur
+        const k = this.konusmalar[telefon].kayit;
+        try {
+          const bcrypt = require('bcryptjs');
+          // Telefonu +90XXXXXXXXXX formatına çevir
+          let telFormatli = telefon;
+          if (telFormatli.startsWith('90')) telFormatli = '+' + telFormatli;
+          else if (!telFormatli.startsWith('+')) telFormatli = '+90' + telFormatli;
+          // Aynı telefon varsa farklı yap (timestamp ekle)
+          const telMevcut = (await pool.query('SELECT id FROM isletmeler WHERE telefon = $1', [telFormatli])).rows[0];
+          if (telMevcut) telFormatli = telFormatli + '_' + Date.now();
+          const isletme = (await pool.query(
+            `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi) 
+             VALUES ($1, $2, 'genel', true, 'baslangic', NOW()) RETURNING *`,
+            [k.isletmeAdi, telFormatli]
+          )).rows[0];
+
+          // Admin kullanıcı oluştur
+          const hashSifre = await bcrypt.hash(k.sifre, 10);
+          await pool.query(
+            `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) 
+             VALUES ($1, $2, $3, 'admin', $4, true)`,
+            [k.isletmeAdi, k.email, hashSifre, isletme.id]
+          );
+
+          // Referans kodu varsa kaydet
+          let referansMesaj = '';
+          if (referansKodu) {
+            try {
+              const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referansKodu])).rows[0];
+              if (ref) {
+                await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
+                await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, isletme.id]);
+                referansMesaj = `\n🎟️ Referans kodu *${referansKodu}* uygulandı!`;
+                console.log(`🤝 Referans kaydedildi: ${referansKodu}, yeni: ${isletme.id}, sahip: ${ref.sahip_isletme_id}`);
+              }
+            } catch(e) { console.error('Referans uygulama hatası:', e.message); }
+          }
+
+          console.log(`🎉 Bot kayıt tamamlandı: ${k.isletmeAdi} (${k.email}) - isletme_id: ${isletme.id} - kanal: WhatsApp${referansKodu ? ' - ref: ' + referansKodu : ''}`);
+
+          delete this.konusmalar[telefon].kayit;
+          await mesajGonder(
+            `🎉 *Tebrikler! Hesabınız oluşturuldu!*\n\n` +
+            `🏪 İşletme: *${k.isletmeAdi}*\n` +
+            `📧 E-posta: *${k.email}*${referansMesaj}\n\n` +
+            `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
+            `🔗 *admin.sırago.com*\n\n` +
+            `E-posta ve şifrenizle giriş yapın. İlk ay tamamen ücretsiz! 🚀\n\n` +
+            `Yardıma ihtiyacınız olursa bize yazın 💪`
+          );
+        } catch (err) {
+          console.error('❌ Bot kayıt hatası:', err.message);
+          await mesajGonder(`❌ Kayıt sırasında bir hata oluştu: ${err.message}\n\nTekrar denemek için *kayıt* yazın.`);
+          delete this.konusmalar[telefon].kayit;
+        }
         return true;
       }
     }
