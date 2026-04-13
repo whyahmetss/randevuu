@@ -774,6 +774,8 @@ function Dashboard() {
   const [destekTaleplerim, setDestekTaleplerim] = useState([]);
   const [destekFormAcik, setDestekFormAcik] = useState(false);
   const [yeniDestek, setYeniDestek] = useState({ konu: "", mesaj: "", oncelik: "normal" });
+  const [destekSecili, setDestekSecili] = useState(null);
+  const [destekFiltre2, setDestekFiltre2] = useState("hepsi");
   const chatRef = useRef(null);
 
   useEffect(() => {
@@ -2170,67 +2172,150 @@ function Dashboard() {
           )}
 
           {/* ── DESTEK ── */}
-          {sayfa === "destek" && (
-            <>
-              <div className="ph-row">
-                <div>
-                  <h1>Destek</h1>
-                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 4 }}>Sorunlarınızı bize iletin, en kısa sürede yanıtlayalım.</p>
+          {sayfa === "destek" && (() => {
+            const oncelikRenk = { acil: "#ef4444", yuksek: "#f59e0b", normal: "#3b82f6", dusuk: "#64748b" };
+            const durumRenk = { acik: "#f59e0b", yanitlandi: "#3b82f6", cozuldu: "#10b981", kapali: "#64748b" };
+            const durumLabel = { acik: "Açık", yanitlandi: "Yanıtlandı", cozuldu: "Çözüldü", kapali: "Kapalı" };
+            const durumIcon = { acik: "🟡", yanitlandi: "💬", cozuldu: "✅", kapali: "🔒" };
+            const seciliTalep = destekTaleplerim.find(t => t.id === destekSecili);
+            return (
+            <div style={{ display: "flex", gap: 0, height: "calc(100vh - 80px)", background: "var(--bg)", borderRadius: 16, overflow: "hidden", border: "1px solid var(--border)" }}>
+              {/* Sol Panel — Talep Listesi */}
+              <div style={{ width: 320, minWidth: 280, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", background: "var(--surface)" }}>
+                <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>Destek</h2>
+                    <button onClick={() => { setDestekFormAcik(true); setDestekSecili(null); }} style={{ background: "var(--primary)", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ Yeni</button>
+                  </div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {[["hepsi","Tümü"],["acik","Açık"],["yanitlandi","Yanıtlı"]].map(([v,l]) => (
+                      <button key={v} onClick={() => setDestekFiltre2(v)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer", background: destekFiltre2 === v ? "var(--primary)" : "var(--bg)", color: destekFiltre2 === v ? "#fff" : "var(--muted)" }}>{l}</button>
+                    ))}
+                  </div>
                 </div>
-                <button onClick={() => setDestekFormAcik(!destekFormAcik)} className="btn btn-sm" style={{ background: "var(--gradient)", color: "#fff", fontWeight: 700 }}>
-                  {destekFormAcik ? "İptal" : "+ Yeni Talep"}
-                </button>
+                <div style={{ flex: 1, overflowY: "auto" }}>
+                  {destekTaleplerim.filter(t => destekFiltre2 === "hepsi" ? true : destekFiltre2 === "acik" ? t.durum === "acik" : t.durum === "yanitlandi").length === 0 && (
+                    <div style={{ padding: 30, textAlign: "center", color: "var(--dim)", fontSize: 13 }}>Talep yok</div>
+                  )}
+                  {destekTaleplerim.filter(t => destekFiltre2 === "hepsi" ? true : destekFiltre2 === "acik" ? t.durum === "acik" : t.durum === "yanitlandi").map(t => (
+                    <div key={t.id} onClick={() => { setDestekSecili(t.id); setDestekFormAcik(false); }} style={{
+                      padding: "14px 16px", cursor: "pointer", borderBottom: "1px solid var(--border)",
+                      background: destekSecili === t.id ? "rgba(99,102,241,.08)" : "transparent",
+                      borderLeft: destekSecili === t.id ? "3px solid var(--primary)" : "3px solid transparent",
+                      transition: "all .15s"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>#{t.id} {t.konu}</span>
+                        <span style={{ fontSize: 10, color: "var(--dim)", whiteSpace: "nowrap", marginLeft: 8 }}>{new Date(t.olusturma_tarihi).toLocaleDateString("tr-TR")}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                        <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: (oncelikRenk[t.oncelik]||"#64748b") + "18", color: oncelikRenk[t.oncelik]||"#64748b", fontWeight: 700 }}>{t.oncelik}</span>
+                        <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: (durumRenk[t.durum]||"#64748b") + "18", color: durumRenk[t.durum]||"#64748b", fontWeight: 700 }}>{durumIcon[t.durum]} {durumLabel[t.durum]}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.mesaj?.slice(0,60)}{t.mesaj?.length > 60 ? "..." : ""}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {destekFormAcik && (
-                <form onSubmit={destekGonder} className="card-dark mb-16" style={{ padding: 20 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Yeni Destek Talebi</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <input value={yeniDestek.konu} onChange={e => setYeniDestek({...yeniDestek, konu: e.target.value})} placeholder="Konu başlığı..." className="input" required />
-                    <textarea value={yeniDestek.mesaj} onChange={e => setYeniDestek({...yeniDestek, mesaj: e.target.value})} placeholder="Sorununuzu detaylı açıklayın..." className="input" style={{ minHeight: 100, resize: "vertical" }} required />
-                    <div className="row gap-8">
-                      <select value={yeniDestek.oncelik} onChange={e => setYeniDestek({...yeniDestek, oncelik: e.target.value})} className="input" style={{ maxWidth: 180 }}>
-                        <option value="dusuk">Düşük</option>
-                        <option value="normal">Normal</option>
-                        <option value="yuksek">Yüksek</option>
-                        <option value="acil">Acil</option>
-                      </select>
-                      <button type="submit" className="btn btn-sm" style={{ background: "var(--gradient)", color: "#fff", fontWeight: 700 }}>Gönder</button>
-                    </div>
+              {/* Sağ Panel — Detay / Chat / Yeni Form */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+                {destekFormAcik ? (
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+                    <form onSubmit={destekGonder} style={{ width: "100%", maxWidth: 500, background: "var(--surface)", borderRadius: 16, padding: 28, border: "1px solid var(--border)" }}>
+                      <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4, color: "var(--text)" }}>Yeni Destek Talebi</h3>
+                      <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 20 }}>Sorununuzu detaylı açıklayın, en kısa sürede dönüş yapacağız.</p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 4, display: "block" }}>Konu</label>
+                          <input value={yeniDestek.konu} onChange={e => setYeniDestek({...yeniDestek, konu: e.target.value})} placeholder="Sorunun kısa başlığı..." className="input" required style={{ width: "100%" }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 4, display: "block" }}>Açıklama</label>
+                          <textarea value={yeniDestek.mesaj} onChange={e => setYeniDestek({...yeniDestek, mesaj: e.target.value})} placeholder="Sorununuzu olabildiğince detaylı açıklayın..." className="input" style={{ minHeight: 120, resize: "vertical", width: "100%" }} required />
+                        </div>
+                        <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", marginBottom: 4, display: "block" }}>Öncelik</label>
+                            <select value={yeniDestek.oncelik} onChange={e => setYeniDestek({...yeniDestek, oncelik: e.target.value})} className="input" style={{ width: "100%" }}>
+                              <option value="dusuk">🟢 Düşük</option>
+                              <option value="normal">🔵 Normal</option>
+                              <option value="yuksek">🟡 Yüksek</option>
+                              <option value="acil">🔴 Acil</option>
+                            </select>
+                          </div>
+                          <button type="submit" style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "var(--primary)", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>Gönder</button>
+                          <button type="button" onClick={() => setDestekFormAcik(false)} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>İptal</button>
+                        </div>
+                      </div>
+                    </form>
                   </div>
-                </form>
-              )}
+                ) : seciliTalep ? (
+                  <>
+                    {/* Header */}
+                    <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>#{seciliTalep.id} {seciliTalep.konu}</span>
+                          <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, background: (durumRenk[seciliTalep.durum]||"#64748b") + "18", color: durumRenk[seciliTalep.durum]||"#64748b", fontWeight: 700 }}>{durumIcon[seciliTalep.durum]} {durumLabel[seciliTalep.durum]}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>
+                          <span style={{ padding: "1px 6px", borderRadius: 4, background: (oncelikRenk[seciliTalep.oncelik]||"#64748b") + "15", color: oncelikRenk[seciliTalep.oncelik], fontWeight: 600, fontSize: 10 }}>{seciliTalep.oncelik}</span>
+                          <span style={{ marginLeft: 8 }}>Oluşturulma: {new Date(seciliTalep.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                        </div>
+                      </div>
+                    </div>
 
-              {destekTaleplerim.length === 0 ? (
-                <div className="list-empty"><p>Henüz destek talebiniz yok.</p></div>
-              ) : destekTaleplerim.map(t => {
-                const oncelikRenk = { acil: "#ef4444", yuksek: "#f59e0b", normal: "#3b82f6", dusuk: "#64748b" };
-                const durumRenk = { acik: "#f59e0b", yanitlandi: "#3b82f6", cozuldu: "#10b981", kapali: "#64748b" };
-                const durumLabel = { acik: "Açık", yanitlandi: "Yanıtlandı", cozuldu: "Çözüldü", kapali: "Kapalı" };
-                return (
-                  <div key={t.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
-                    <div className="row row-between row-wrap gap-8">
-                      <div className="row row-wrap gap-8">
-                        <span className="tag" style={{ background: (oncelikRenk[t.oncelik]||"#64748b") + "22", color: oncelikRenk[t.oncelik]||"#64748b", fontWeight: 700, fontSize: 11 }}>{t.oncelik}</span>
-                        <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{t.konu}</span>
+                    {/* Chat area */}
+                    <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+                      {/* Müşteri mesajı */}
+                      <div style={{ display: "flex", gap: 10, maxWidth: "80%" }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>S</div>
+                        <div>
+                          <div style={{ fontSize: 11, color: "var(--dim)", marginBottom: 4 }}>Siz · {new Date(seciliTalep.olusturma_tarihi).toLocaleString("tr-TR")}</div>
+                          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "4px 14px 14px 14px", padding: "10px 14px", fontSize: 13, color: "var(--text)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{seciliTalep.mesaj}</div>
+                        </div>
                       </div>
-                      <div className="row gap-8">
-                        <span className="tag" style={{ background: (durumRenk[t.durum]||"#64748b") + "22", color: durumRenk[t.durum]||"#64748b", fontWeight: 700, fontSize: 11 }}>{durumLabel[t.durum] || t.durum}</span>
-                        <span style={{ color: "var(--dim)", fontSize: 11 }}>{new Date(t.olusturma_tarihi).toLocaleString("tr-TR")}</span>
-                      </div>
+
+                      {/* Admin yanıtı */}
+                      {seciliTalep.admin_yanit && (
+                        <div style={{ display: "flex", gap: 10, maxWidth: "80%", alignSelf: "flex-end", flexDirection: "row-reverse" }}>
+                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>SA</div>
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 11, color: "var(--dim)", marginBottom: 4 }}>SıraGO Destek · {seciliTalep.admin_yanit_tarihi ? new Date(seciliTalep.admin_yanit_tarihi).toLocaleString("tr-TR") : ""}</div>
+                            <div style={{ background: "rgba(16,185,129,.08)", border: "1px solid rgba(16,185,129,.15)", borderRadius: "14px 4px 14px 14px", padding: "10px 14px", fontSize: 13, color: "var(--text)", lineHeight: 1.6, whiteSpace: "pre-wrap", textAlign: "left" }}>{seciliTalep.admin_yanit}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Durum bilgisi */}
+                      {(seciliTalep.durum === "cozuldu" || seciliTalep.durum === "kapali") && (
+                        <div style={{ textAlign: "center", padding: "10px 0" }}>
+                          <span style={{ fontSize: 11, color: "var(--dim)", background: "var(--surface)", padding: "4px 12px", borderRadius: 8, border: "1px solid var(--border)" }}>
+                            {seciliTalep.durum === "cozuldu" ? "✅ Bu talep çözüldü olarak işaretlendi" : "🔒 Bu talep kapatıldı"}
+                          </span>
+                        </div>
+                      )}
+
+                      {!seciliTalep.admin_yanit && seciliTalep.durum === "acik" && (
+                        <div style={{ textAlign: "center", padding: "20px 0" }}>
+                          <div style={{ fontSize: 13, color: "var(--dim)" }}>⏳ Yanıt bekleniyor...</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Genellikle 24 saat içinde dönüş yapılır.</div>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ color: "var(--muted)", fontSize: 13, background: "var(--bg)", padding: "10px 14px", borderRadius: 8 }}>{t.mesaj}</div>
-                    {t.admin_yanit && (
-                      <div style={{ background: "rgba(16,185,129,.05)", border: "1px solid rgba(16,185,129,.12)", borderRadius: 8, padding: "10px 14px" }}>
-                        <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, marginBottom: 4 }}>Admin Yanıtı {t.admin_yanit_tarihi ? `(${new Date(t.admin_yanit_tarihi).toLocaleString("tr-TR")})` : ""}</div>
-                        <div style={{ color: "var(--text)", fontSize: 13 }}>{t.admin_yanit}</div>
-                      </div>
-                    )}
+                  </>
+                ) : (
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, color: "var(--dim)" }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <div style={{ fontSize: 15, fontWeight: 600 }}>Destek Merkezi</div>
+                    <div style={{ fontSize: 12 }}>Bir talep seçin veya yeni talep oluşturun</div>
                   </div>
-                );
-              })}
-            </>
-          )}
+                )}
+              </div>
+            </div>
+            );
+          })()}
 
         </div>
       </div>
@@ -3566,65 +3651,123 @@ function SuperAdminPanel({ kullanici }) {
         )}
 
         {/* DESTEK TALEPLERİ */}
-        {sayfa === "destek" && (
-          <>
-            <div className="page-header">
-              <h1>🎫 Destek Talepleri</h1>
-              <p>Müşterilerden gelen destek talepleri</p>
-            </div>
-            <div className="filter-bar mb-16">
-              {[["hepsi","Tümü"],["acik","Açık"],["yanitlandi","Yanıtlandı"],["cozuldu","Çözüldü"],["kapali","Kapalı"]].map(([v,l]) => (
-                <button key={v} onClick={() => setDestekFiltre(v)} className={`pill pill-sm${destekFiltre === v ? ' active' : ''}`}>{l}</button>
-              ))}
-            </div>
-            {destekTalepler.length === 0 ? (
-              <div className="list-empty"><p>Destek talebi yok.</p></div>
-            ) : destekTalepler.map(t => {
-              const oncelikRenk = { acil: "#ef4444", yuksek: "#f59e0b", normal: "#3b82f6", dusuk: "#64748b" };
-              const durumRenk = { acik: "#f59e0b", yanitlandi: "#3b82f6", cozuldu: "#10b981", kapali: "#64748b" };
-              return (
-                <div key={t.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
-                  <div className="row row-between row-wrap gap-8">
-                    <div className="row row-wrap gap-8">
-                      <span className="tag" style={{ background: (oncelikRenk[t.oncelik]||"#64748b") + "22", color: oncelikRenk[t.oncelik]||"#64748b", fontWeight: 700, fontSize: 11 }}>{t.oncelik}</span>
-                      <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{t.konu}</span>
-                      {t.isletme_isim && <span style={{ color: "var(--dim)", fontSize: 12 }}>🏢 {t.isletme_isim}</span>}
+        {sayfa === "destek" && (() => {
+          const oncelikRenk = { acil: "#ef4444", yuksek: "#f59e0b", normal: "#3b82f6", dusuk: "#64748b" };
+          const durumRenk = { acik: "#f59e0b", yanitlandi: "#3b82f6", cozuldu: "#10b981", kapali: "#64748b" };
+          const durumLabel = { acik: "Açık", yanitlandi: "Yanıtlandı", cozuldu: "Çözüldü", kapali: "Kapalı" };
+          const durumIcon = { acik: "🟡", yanitlandi: "💬", cozuldu: "✅", kapali: "🔒" };
+          const filtrelenmis = destekTalepler.filter(t => destekFiltre === "hepsi" ? true : t.durum === destekFiltre);
+          const secili = destekTalepler.find(t => t.id === destekYanitAcik);
+          return (
+          <div style={{ display: "flex", gap: 0, height: "calc(100vh - 80px)", background: "var(--bg)", borderRadius: 16, overflow: "hidden", border: "1px solid var(--border)" }}>
+            {/* Sol Panel — Talep Listesi */}
+            <div style={{ width: 360, minWidth: 300, borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", background: "var(--surface)" }}>
+              <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>Destek Talepleri</h2>
+                  <button onClick={destekYukle} style={{ background: "rgba(59,130,246,.1)", color: "#3b82f6", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Yenile</button>
+                </div>
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {[["hepsi","Tümü"],["acik","Açık"],["yanitlandi","Yanıtlı"],["cozuldu","Çözüldü"],["kapali","Kapalı"]].map(([v,l]) => (
+                    <button key={v} onClick={() => setDestekFiltre(v)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", fontSize: 11, fontWeight: 600, cursor: "pointer", background: destekFiltre === v ? "var(--primary)" : "var(--bg)", color: destekFiltre === v ? "#fff" : "var(--muted)" }}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                {filtrelenmis.length === 0 && (
+                  <div style={{ padding: 30, textAlign: "center", color: "var(--dim)", fontSize: 13 }}>Talep yok</div>
+                )}
+                {filtrelenmis.map(t => (
+                  <div key={t.id} onClick={() => { setDestekYanitAcik(t.id); setDestekYanitMetin(t.admin_yanit || ""); }} style={{
+                    padding: "14px 16px", cursor: "pointer", borderBottom: "1px solid var(--border)",
+                    background: destekYanitAcik === t.id ? "rgba(99,102,241,.08)" : "transparent",
+                    borderLeft: destekYanitAcik === t.id ? "3px solid var(--primary)" : "3px solid transparent",
+                    transition: "all .15s"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>#{t.id} {t.konu}</span>
+                      <span style={{ fontSize: 10, color: "var(--dim)", whiteSpace: "nowrap", marginLeft: 8 }}>{new Date(t.olusturma_tarihi).toLocaleDateString("tr-TR")}</span>
                     </div>
-                    <div className="row gap-8">
-                      <span className="tag" style={{ background: (durumRenk[t.durum]||"#64748b") + "22", color: durumRenk[t.durum]||"#64748b", fontWeight: 700, fontSize: 11 }}>{t.durum}</span>
-                      <span style={{ color: "var(--dim)", fontSize: 11 }}>{new Date(t.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: (oncelikRenk[t.oncelik]||"#64748b") + "18", color: oncelikRenk[t.oncelik]||"#64748b", fontWeight: 700 }}>{t.oncelik}</span>
+                      <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: (durumRenk[t.durum]||"#64748b") + "18", color: durumRenk[t.durum]||"#64748b", fontWeight: 700 }}>{durumIcon[t.durum]} {durumLabel[t.durum]}</span>
+                      {t.isletme_isim && <span style={{ fontSize: 10, color: "var(--dim)" }}>🏢 {t.isletme_isim}</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.mesaj?.slice(0,60)}{t.mesaj?.length > 60 ? "..." : ""}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sağ Panel — Detay & Chat & Yanıt */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+              {secili ? (
+                <>
+                  {/* Header */}
+                  <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border)", background: "var(--surface)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>#{secili.id} {secili.konu}</span>
+                        <span style={{ fontSize: 10, padding: "3px 8px", borderRadius: 6, background: (durumRenk[secili.durum]||"#64748b") + "18", color: durumRenk[secili.durum]||"#64748b", fontWeight: 700 }}>{durumIcon[secili.durum]} {durumLabel[secili.durum]}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ padding: "1px 6px", borderRadius: 4, background: (oncelikRenk[secili.oncelik]||"#64748b") + "15", color: oncelikRenk[secili.oncelik], fontWeight: 600, fontSize: 10 }}>{secili.oncelik}</span>
+                        {secili.isletme_isim && <span>🏢 {secili.isletme_isim}</span>}
+                        <span>{new Date(secili.olusturma_tarihi).toLocaleString("tr-TR")}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {secili.durum !== 'cozuldu' && <button onClick={async () => { await api.put(`/admin/destek/${secili.id}`, { durum: 'cozuldu' }); destekYukle(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "rgba(16,185,129,.12)", color: "#10b981", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✓ Çözüldü</button>}
+                      {secili.durum !== 'kapali' && <button onClick={async () => { await api.put(`/admin/destek/${secili.id}`, { durum: 'kapali' }); destekYukle(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: "rgba(100,116,139,.12)", color: "#64748b", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Kapat</button>}
                     </div>
                   </div>
-                  <div style={{ color: "var(--muted)", fontSize: 13, background: "var(--bg)", padding: "10px 14px", borderRadius: 8 }}>{t.mesaj}</div>
-                  {t.admin_yanit && (
-                    <div style={{ background: "rgba(16,185,129,.05)", border: "1px solid rgba(16,185,129,.12)", borderRadius: 8, padding: "10px 14px" }}>
-                      <div style={{ fontSize: 11, color: "#10b981", fontWeight: 700, marginBottom: 4 }}>Admin Yanıtı ({t.admin_yanit_tarihi ? new Date(t.admin_yanit_tarihi).toLocaleString("tr-TR") : ""})</div>
-                      <div style={{ color: "var(--text)", fontSize: 13 }}>{t.admin_yanit}</div>
-                    </div>
-                  )}
-                  <div className="row gap-6">
-                    {destekYanitAcik === t.id ? (
-                      <div className="row gap-8" style={{ flex: 1 }}>
-                        <input value={destekYanitMetin} onChange={e => setDestekYanitMetin(e.target.value)} placeholder="Yanıtınızı yazın..." className="input" style={{ flex: 1 }} />
-                        <button onClick={async () => {
-                          await api.put(`/admin/destek/${t.id}`, { admin_yanit: destekYanitMetin, durum: 'yanitlandi' });
-                          setDestekYanitAcik(null); setDestekYanitMetin(""); destekYukle();
-                        }} className="btn btn-sm" style={{ background: "#10b981", color: "#fff", fontWeight: 700 }}>Gönder</button>
-                        <button onClick={() => setDestekYanitAcik(null)} className="btn btn-ghost btn-sm">İptal</button>
+
+                  {/* Chat area */}
+                  <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+                    {/* Müşteri mesajı */}
+                    <div style={{ display: "flex", gap: 10, maxWidth: "80%" }}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{(secili.isletme_isim || "M")[0].toUpperCase()}</div>
+                      <div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginBottom: 4 }}>{secili.isletme_isim || "Müşteri"} · {new Date(secili.olusturma_tarihi).toLocaleString("tr-TR")}</div>
+                        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "4px 14px 14px 14px", padding: "10px 14px", fontSize: 13, color: "var(--text)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{secili.mesaj}</div>
                       </div>
-                    ) : (
-                      <>
-                        <button onClick={() => { setDestekYanitAcik(t.id); setDestekYanitMetin(t.admin_yanit || ""); }} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6", border: "none", fontWeight: 600 }}>💬 Yanıtla</button>
-                        {t.durum !== 'cozuldu' && <button onClick={async () => { await api.put(`/admin/destek/${t.id}`, { durum: 'cozuldu' }); destekYukle(); }} className="btn btn-sm" style={{ background: "rgba(16,185,129,.12)", color: "#10b981", border: "none", fontWeight: 600 }}>✓ Çözüldü</button>}
-                        {t.durum !== 'kapali' && <button onClick={async () => { await api.put(`/admin/destek/${t.id}`, { durum: 'kapali' }); destekYukle(); }} className="btn btn-sm" style={{ background: "rgba(100,116,139,.12)", color: "#64748b", border: "none" }}>Kapat</button>}
-                      </>
+                    </div>
+
+                    {/* Admin yanıtı */}
+                    {secili.admin_yanit && (
+                      <div style={{ display: "flex", gap: 10, maxWidth: "80%", alignSelf: "flex-end", flexDirection: "row-reverse" }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>SA</div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 11, color: "var(--dim)", marginBottom: 4 }}>SıraGO Destek · {secili.admin_yanit_tarihi ? new Date(secili.admin_yanit_tarihi).toLocaleString("tr-TR") : ""}</div>
+                          <div style={{ background: "rgba(16,185,129,.08)", border: "1px solid rgba(16,185,129,.15)", borderRadius: "14px 4px 14px 14px", padding: "10px 14px", fontSize: 13, color: "var(--text)", lineHeight: 1.6, whiteSpace: "pre-wrap", textAlign: "left" }}>{secili.admin_yanit}</div>
+                        </div>
+                      </div>
                     )}
                   </div>
+
+                  {/* Yanıt input */}
+                  <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <textarea value={destekYanitMetin} onChange={e => setDestekYanitMetin(e.target.value)} placeholder="Yanıtınızı yazın..." style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, fontFamily: "inherit", resize: "none", minHeight: 42, maxHeight: 120 }} />
+                      <button onClick={async () => {
+                        if (!destekYanitMetin.trim()) return;
+                        await api.put(`/admin/destek/${secili.id}`, { admin_yanit: destekYanitMetin, durum: 'yanitlandi' });
+                        setDestekYanitMetin(""); destekYukle();
+                      }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#10b981", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", alignSelf: "flex-end" }}>Yanıtla</button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, color: "var(--dim)" }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Destek Merkezi</div>
+                  <div style={{ fontSize: 12 }}>Bir talep seçerek görüntüleyin ve yanıtlayın</div>
                 </div>
-              );
-            })}
-          </>
-        )}
+              )}
+            </div>
+          </div>
+          );
+        })()}
 
         {/* DİNAMİK PAKETLER */}
         {sayfa === "paketler" && (
