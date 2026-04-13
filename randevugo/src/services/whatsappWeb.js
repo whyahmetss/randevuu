@@ -401,6 +401,21 @@ class WhatsAppWebService extends EventEmitter {
       )).rows[0];
     }
 
+    // ═══ DİL ALGILAMA VE KAYDETME ═══
+    const botMesajlar = require('../utils/botMesajlar');
+    const algilananDil = botMesajlar.dilAlgila(metin);
+    if (algilananDil && algilananDil !== botDurum.secilen_dil) {
+      const desteklenen = Array.isArray(isletme.bot_diller) ? isletme.bot_diller : 
+        (typeof isletme.bot_diller === 'string' ? isletme.bot_diller.split(',').map(d => d.trim()) : ['tr']);
+      if (desteklenen.includes(algilananDil)) {
+        await pool.query('UPDATE bot_durum SET secilen_dil=$1 WHERE musteri_telefon=$2 AND isletme_id=$3', [algilananDil, musteriTelefon, isletmeId]);
+        botDurum.secilen_dil = algilananDil;
+        console.log(`🌐 Dil değişti: ${algilananDil} (müşteri: ${musteriTelefon})`);
+      }
+    }
+    // İsletme objesine müşterinin dil tercihini ekle — tüm botMesajlar.get() çağrıları otomatik kullanır
+    isletme._musteriDil = botDurum.secilen_dil || null;
+
     const hizmetler = (await pool.query(
       'SELECT * FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId]
     )).rows;

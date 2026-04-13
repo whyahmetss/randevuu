@@ -444,16 +444,26 @@ const ar = {
 const DILLER = { tr, en, ar };
 
 /**
- * Basit dil algılama — müşteri mesajından dili tespit et
+ * Gelişmiş dil algılama — müşteri mesajından dili tespit et
  */
 function dilAlgila(metin) {
   if (!metin) return null;
-  const m = metin.toLowerCase();
-  // Arapça karakterler
+  const m = metin.toLowerCase().trim();
+  // Arapça karakterler (kesin)
   if (/[\u0600-\u06FF]/.test(m)) return 'ar';
-  // İngilizce yaygın kelimeler
-  const enWords = ['hi', 'hello', 'book', 'appointment', 'cancel', 'yes', 'no', 'today', 'tomorrow', 'thanks', 'thank'];
-  if (enWords.some(w => m === w || m.startsWith(w + ' '))) return 'en';
+  // Açık dil talebi
+  if (/\btürkçe\b|\bturkce\b/.test(m)) return 'tr';
+  if (/\benglish\b|\bingilizce\b/.test(m)) return 'en';
+  if (/\barapça\b|\barabic\b|\bعربي\b/.test(m)) return 'ar';
+  // İngilizce yaygın kelimeler/cümleler
+  const enWords = ['hi', 'hello', 'hey', 'book', 'appointment', 'cancel', 'yes', 'no', 'today', 'tomorrow', 'thanks', 'thank', 'please', 'okay', 'ok', 'good', 'morning', 'evening', 'help', 'want', 'need', 'what', 'when', 'how', 'where', 'which', 'my'];
+  if (enWords.some(w => m === w || m.startsWith(w + ' ') || m.endsWith(' ' + w))) return 'en';
+  // Türkçe karakterler (ğ, ü, ş, ı, ö, ç) — çok Türkçe karakter varsa
+  const trChars = (m.match(/[ğüşıöç]/g) || []).length;
+  if (trChars >= 1) return 'tr';
+  // Türkçe yaygın kelimeler
+  const trWords = ['merhaba', 'selam', 'randevu', 'iptal', 'evet', 'hayır', 'hayir', 'bugün', 'bugun', 'yarın', 'yarin', 'tamam', 'teşekkür', 'tesekkur', 'lütfen', 'lutfen', 'nasıl', 'nasil', 'istiyorum', 'yardım', 'yardim'];
+  if (trWords.some(w => m === w || m.includes(w))) return 'tr';
   return null;
 }
 
@@ -473,22 +483,32 @@ function varsayilanDil(isletme) {
  * @param {string} key - Mesaj anahtarı (anaMenu, hizmetListesi, ...)
  * @param {object} params - Mesaja özel parametreler
  * @param {string} musteriMesaj - Müşterinin yazdığı mesaj (dil algılama için)
+ * @param {string} kaydedilenDil - DB'de kayıtlı dil tercihi (bot_durum.secilen_dil)
  * @returns {string} Formatlanmış mesaj
  */
-function get(isletme, key, params = {}, musteriMesaj = null) {
+function get(isletme, key, params = {}, musteriMesaj = null, kaydedilenDil = null) {
   // Stil belirle
   const stilKey = isletme.bot_konusma_stili || 'samimi';
   const stil = STILLER[stilKey] || STILLER.samimi;
 
-  // Dil belirle: müşteri mesajından algıla veya işletme varsayılanı
+  // İşletmenin desteklediği diller
+  const desteklenen = Array.isArray(isletme.bot_diller) ? isletme.bot_diller : 
+    (typeof isletme.bot_diller === 'string' ? isletme.bot_diller.split(',').map(d => d.trim()) : ['tr']);
+
+  // Dil öncelik sırası: isletme._musteriDil (bot_durum'dan set edilir) > kaydedilenDil > varsayılan
   let dil = varsayilanDil(isletme);
+
+  // 1. isletme._musteriDil varsa (mesajIsle'de set edilir) onu kullan
+  const dbDil = isletme._musteriDil || kaydedilenDil;
+  if (dbDil && desteklenen.includes(dbDil)) {
+    dil = dbDil;
+  }
+
+  // 2. Müşteri mesajından yeni dil algılanırsa override et
   if (musteriMesaj) {
     const algilanan = dilAlgila(musteriMesaj);
-    if (algilanan) {
-      // İşletme bu dili destekliyor mu?
-      const desteklenen = Array.isArray(isletme.bot_diller) ? isletme.bot_diller : 
-        (typeof isletme.bot_diller === 'string' ? isletme.bot_diller.split(',').map(d => d.trim()) : ['tr']);
-      if (desteklenen.includes(algilanan)) dil = algilanan;
+    if (algilanan && desteklenen.includes(algilanan)) {
+      dil = algilanan;
     }
   }
 

@@ -108,6 +108,8 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE bot_durum ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
     await pool.query(`ALTER TABLE sohbet_gecmisi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
     await pool.query(`ALTER TABLE bekleme_listesi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
+    // Dil tercihi kalıcılığı
+    await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_dil VARCHAR(5)`);
 
     // ─── KAPORA SİSTEMİ ───
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS kapora_yuzdesi INTEGER DEFAULT 0`);
