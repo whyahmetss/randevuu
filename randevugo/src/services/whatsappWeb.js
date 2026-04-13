@@ -721,20 +721,20 @@ class WhatsAppWebService extends EventEmitter {
       }
 
       case 'saat_secimi': {
-        if (metinKucuk === '0' || metinKucuk.includes('ana menü')) {
+        if (metinKucuk === '0' || metinKucuk.includes('ana menü') || metinKucuk.includes('main menu') || metinKucuk.includes('الرئيسية')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
           return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
         }
         // Context switch: kullanıcı saat seçiminde tarih değiştirmek istiyor
-        if (metinKucuk.includes('bugün') || metinKucuk.includes('bugun')) {
+        if (metinKucuk.includes('bugün') || metinKucuk.includes('bugun') || metinKucuk.includes('today') || metinKucuk.includes('اليوم')) {
           const yeniTarih = bugunTarih();
           return await this._tarihSecildi(yeniTarih, musteriTelefon, isletmeId, isletme, hizmetler);
         }
-        if (metinKucuk.includes('yarın') || metinKucuk.includes('yarin')) {
+        if (metinKucuk.includes('yarın') || metinKucuk.includes('yarin') || metinKucuk.includes('tomorrow') || metinKucuk.includes('غدا')) {
           const yeniTarih = yarinTarih();
           return await this._tarihSecildi(yeniTarih, musteriTelefon, isletmeId, isletme, hizmetler);
         }
-        if (metinKucuk.includes('bu hafta') || metinKucuk.includes('başka gün') || metinKucuk.includes('baska gun')) {
+        if (metinKucuk.includes('bu hafta') || metinKucuk.includes('başka gün') || metinKucuk.includes('baska gun') || metinKucuk.includes('this week') || metinKucuk.includes('هذا الأسبوع')) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'hafta_gun_secimi');
           return this.haftaSecenekleri(isletme);
         }
@@ -747,10 +747,10 @@ class WhatsAppWebService extends EventEmitter {
         // Zaman dilimi seçimi (sabah/öğle/akşam) — sadece çok saat varsa
         if (saatFmt.length > 6) {
           const dilimler = { '1': 'sabah', '2': 'ogle', '3': 'aksam', '4': 'hepsi' };
-          const dilimAlias = { 'sabah': 'sabah', 'öğle': 'ogle', 'ogle': 'ogle', 'akşam': 'aksam', 'aksam': 'aksam', 'tümü': 'hepsi', 'hepsi': 'hepsi' };
+          const dilimAlias = { 'sabah': 'sabah', 'öğle': 'ogle', 'ogle': 'ogle', 'akşam': 'aksam', 'aksam': 'aksam', 'tümü': 'hepsi', 'hepsi': 'hepsi', 'morning': 'sabah', 'afternoon': 'ogle', 'evening': 'aksam', 'all': 'hepsi', 'show all': 'hepsi', 'صباح': 'sabah', 'ظهر': 'ogle', 'مساء': 'aksam' };
           let secDilim = dilimler[metin] || dilimAlias[metinKucuk];
           if (secDilim) {
-            const sonuc = this._saatDilimiListele(saatFmt, secDilim === 'hepsi' ? null : secDilim, tarihStr);
+            const sonuc = this._saatDilimiListele(saatFmt, secDilim === 'hepsi' ? null : secDilim, tarihStr, isletme);
             return { metin: sonuc.metin, butonlar: null };
           }
         }
@@ -767,9 +767,7 @@ class WhatsAppWebService extends EventEmitter {
           // Dolu — akıllı öneri
           const alternatifler = this._enYakinAlternatif(saatFmt, giris);
           if (alternatifler.length > 0) {
-            let txt = `⏰ *${giris}* dolu.\n\nEn yakın müsait saatler:\n\n`;
-            alternatifler.forEach((a, i) => { txt += `*${i+1}.* ${a.saat}\n`; });
-            txt += `\nNumara veya başka saat yazın:`;
+            const txt = botMesajlar.get(isletme, 'saatDolu', { saat: giris, alternatifler: alternatifler.map(a => a.saat) });
             return { metin: txt, butonlar: null };
           }
         }
@@ -784,15 +782,13 @@ class WhatsAppWebService extends EventEmitter {
           return await this._ozetOlustur(isletme, guncelDurum, secilenSaat);
         }
         // Anlaşılamadı
-        let txt = `Anlayamadım. Saat yazın _(örn: 14:30)_ veya numara seçin:\n\n`;
-        saatFmt.slice(0, 6).forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
-        if (saatFmt.length > 6) txt += `\n_...ve ${saatFmt.length - 6} saat daha_\n*1.* 🌅 Sabah  *2.* ☀️ Öğle  *3.* 🌙 Akşam`;
+        const txt = botMesajlar.get(isletme, 'saatAnlasilamadi', { saatler: saatFmt.slice(0, 6), fazla: saatFmt.length > 6 ? saatFmt.length - 6 : 0 });
         return { metin: txt, butonlar: null };
       }
 
       case 'onay': {
         const randevuService = require('./randevu');
-        if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla')) {
+        if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla') || metinKucuk.includes('yes') || metinKucuk.includes('confirm') || metinKucuk.includes('نعم') || metinKucuk.includes('تأكيد')) {
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
@@ -1016,29 +1012,26 @@ class WhatsAppWebService extends EventEmitter {
     const ogle = saatFmt.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; });
     const aksam = saatFmt.filter(s => parseInt(s.split(':')[0]) >= 17);
 
-    let txt = `📅 *${this.tarihFormat(secilenTarih)}* — ${saatFmt.length} müsait saat var.\n\nHangi zaman dilimini tercih edersiniz?\n\n`;
-    if (sabah.length) txt += `*1.* 🌅 Sabah _(${sabah[0]} - ${sabah[sabah.length-1]})_ — ${sabah.length} saat\n`;
-    if (ogle.length) txt += `*2.* ☀️ Öğle _(${ogle[0]} - ${ogle[ogle.length-1]})_ — ${ogle.length} saat\n`;
-    if (aksam.length) txt += `*3.* 🌙 Akşam _(${aksam[0]} - ${aksam[aksam.length-1]})_ — ${aksam.length} saat\n`;
-    txt += `*4.* 📋 Tümünü Göster\n`;
-    txt += `\nYa da direkt saat yazın _(örn: 14:30)_:`;
+    const txt = botMesajlar.get(isletme, 'zamanDilimiSor', {
+      tarihStr: this.tarihFormat(secilenTarih), toplamSaat: saatFmt.length,
+      sabah: sabah.length ? `${sabah[0]} - ${sabah[sabah.length-1]}` : null, sabahSayi: sabah.length,
+      ogle: ogle.length ? `${ogle[0]} - ${ogle[ogle.length-1]}` : null, ogleSayi: ogle.length,
+      aksam: aksam.length ? `${aksam[0]} - ${aksam[aksam.length-1]}` : null, aksamSayi: aksam.length,
+    });
     return { metin: txt, butonlar: null };
   }
 
-  _saatDilimiListele(saatFmt, dilim, tarihStr) {
+  _saatDilimiListele(saatFmt, dilim, tarihStr, isletme) {
     let filtreli;
     if (dilim === 'sabah') filtreli = saatFmt.filter(s => parseInt(s.split(':')[0]) < 12);
     else if (dilim === 'ogle') filtreli = saatFmt.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; });
     else if (dilim === 'aksam') filtreli = saatFmt.filter(s => parseInt(s.split(':')[0]) >= 17);
     else filtreli = saatFmt;
 
-    const dilimEmoji = { sabah: '� Sabah', ogle: '☀️ Öğle', aksam: '�� Akşam' };
-    let txt = `📅 *${tarihStr}*`;
-    if (dilimEmoji[dilim]) txt += ` — ${dilimEmoji[dilim]}`;
-    txt += `\n\n`;
-    filtreli.forEach((s, i) => { txt += `*${i+1}.* ${s}\n`; });
-    if (!filtreli.length) txt += `Bu zaman diliminde müsait saat yok.\n`;
-    txt += `\nNumara veya saat yazın _(örn: 14:30)_:`;
+    const dilimAdiMap = { sabah: '🌅 Sabah', ogle: '☀️ Öğle', aksam: '🌙 Akşam' };
+    const txt = isletme ? botMesajlar.get(isletme, 'zamanDilimiListele', {
+      tarihStr, dilimAdi: dilimAdiMap[dilim] || null, saatler: filtreli, bos: !filtreli.length
+    }) : `📅 *${tarihStr}*\n\n`;
     return { metin: txt, butonlar: null, filtreli };
   }
 

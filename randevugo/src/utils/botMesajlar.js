@@ -175,6 +175,40 @@ const tr = {
   },
 
   randevuAlIcin: (s) => `Randevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`,
+
+  zamanDilimiSor: (s, p) => {
+    let txt = `📅 *${p.tarihStr}* — ${p.toplamSaat} müsait saat var.\n\nHangi zaman dilimini tercih edersiniz?\n\n`;
+    if (p.sabah) txt += `*1.* 🌅 Sabah _(${p.sabah})_ — ${p.sabahSayi} saat\n`;
+    if (p.ogle) txt += `*2.* ☀️ Öğle _(${p.ogle})_ — ${p.ogleSayi} saat\n`;
+    if (p.aksam) txt += `*3.* 🌙 Akşam _(${p.aksam})_ — ${p.aksamSayi} saat\n`;
+    txt += `*4.* 📋 Tümünü Göster\n`;
+    txt += `\nYa da direkt saat yazın _(örn: 14:30)_:`;
+    return txt;
+  },
+
+  zamanDilimiListele: (s, p) => {
+    let txt = `📅 *${p.tarihStr}*`;
+    if (p.dilimAdi) txt += ` — ${p.dilimAdi}`;
+    txt += `\n\n`;
+    if (p.saatler) p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
+    if (p.bos) txt += `Bu zaman diliminde müsait saat yok.\n`;
+    txt += `\nNumara veya saat yazın _(örn: 14:30)_:`;
+    return txt;
+  },
+
+  saatDolu: (s, p) => {
+    let txt = `⏰ *${p.saat}* dolu.\n\nEn yakın müsait saatler:\n\n`;
+    p.alternatifler.forEach((a, i) => { txt += `*${i+1}.* ${a}\n`; });
+    txt += `\nNumara veya başka saat yazın:`;
+    return txt;
+  },
+
+  saatAnlasilamadi: (s, p) => {
+    let txt = `Anlayamadım. Saat yazın _(örn: 14:30)_ veya numara seçin:\n\n`;
+    p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
+    if (p.fazla) txt += `\n_...ve ${p.fazla} saat daha_\n*1.* 🌅 Sabah  *2.* ☀️ Öğle  *3.* 🌙 Akşam`;
+    return txt;
+  },
 };
 
 // ═══════════════════════════════════════════
@@ -312,6 +346,40 @@ const en = {
   },
 
   randevuAlIcin: (s) => `Type *1* to book.`,
+
+  zamanDilimiSor: (s, p) => {
+    let txt = `📅 *${p.tarihStr}* — ${p.toplamSaat} available slots.\n\nWhich time period do you prefer?\n\n`;
+    if (p.sabah) txt += `*1.* 🌅 Morning _(${p.sabah})_ — ${p.sabahSayi} slots\n`;
+    if (p.ogle) txt += `*2.* ☀️ Afternoon _(${p.ogle})_ — ${p.ogleSayi} slots\n`;
+    if (p.aksam) txt += `*3.* 🌙 Evening _(${p.aksam})_ — ${p.aksamSayi} slots\n`;
+    txt += `*4.* 📋 Show All\n`;
+    txt += `\nOr type a time directly _(e.g. 14:30)_:`;
+    return txt;
+  },
+
+  zamanDilimiListele: (s, p) => {
+    let txt = `📅 *${p.tarihStr}*`;
+    if (p.dilimAdi) txt += ` — ${p.dilimAdi}`;
+    txt += `\n\n`;
+    if (p.saatler) p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
+    if (p.bos) txt += `No available slots in this time period.\n`;
+    txt += `\nType a number or time _(e.g. 14:30)_:`;
+    return txt;
+  },
+
+  saatDolu: (s, p) => {
+    let txt = `⏰ *${p.saat}* is taken.\n\nNearest available times:\n\n`;
+    p.alternatifler.forEach((a, i) => { txt += `*${i+1}.* ${a}\n`; });
+    txt += `\nType a number or another time:`;
+    return txt;
+  },
+
+  saatAnlasilamadi: (s, p) => {
+    let txt = `Couldn't understand. Type a time _(e.g. 14:30)_ or select a number:\n\n`;
+    p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
+    if (p.fazla) txt += `\n_...and ${p.fazla} more_\n*1.* 🌅 Morning  *2.* ☀️ Afternoon  *3.* 🌙 Evening`;
+    return txt;
+  },
 };
 
 // ═══════════════════════════════════════════
@@ -439,6 +507,40 @@ const ar = {
   mesaiDisi: (s, p) => `نحن مغلقون حالياً. ${s.emoji ? '🕐 ' : ''}ساعات العمل: ${p.basSaat} - ${p.bitSaat}. سنعود إليكم عند الافتتاح.`,
 
   randevuAlIcin: (s) => `اكتب *1* للحجز.`,
+
+  zamanDilimiSor: (s, p) => {
+    let txt = `📅 *${p.tarihStr}* — ${p.toplamSaat} مواعيد متاحة.\n\nأي فترة تفضل؟\n\n`;
+    if (p.sabah) txt += `*1.* 🌅 صباح _(${p.sabah})_ — ${p.sabahSayi}\n`;
+    if (p.ogle) txt += `*2.* ☀️ ظهر _(${p.ogle})_ — ${p.ogleSayi}\n`;
+    if (p.aksam) txt += `*3.* 🌙 مساء _(${p.aksam})_ — ${p.aksamSayi}\n`;
+    txt += `*4.* 📋 عرض الكل\n`;
+    txt += `\nأو اكتب الوقت مباشرة _(مثال: 14:30)_:`;
+    return txt;
+  },
+
+  zamanDilimiListele: (s, p) => {
+    let txt = `📅 *${p.tarihStr}*`;
+    if (p.dilimAdi) txt += ` — ${p.dilimAdi}`;
+    txt += `\n\n`;
+    if (p.saatler) p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
+    if (p.bos) txt += `لا توجد مواعيد في هذه الفترة.\n`;
+    txt += `\nاكتب رقماً أو وقتاً _(مثال: 14:30)_:`;
+    return txt;
+  },
+
+  saatDolu: (s, p) => {
+    let txt = `⏰ *${p.saat}* محجوز.\n\nأقرب المواعيد المتاحة:\n\n`;
+    p.alternatifler.forEach((a, i) => { txt += `*${i+1}.* ${a}\n`; });
+    txt += `\nاكتب رقماً أو وقتاً آخر:`;
+    return txt;
+  },
+
+  saatAnlasilamadi: (s, p) => {
+    let txt = `لم أفهم. اكتب وقتاً _(مثال: 14:30)_ أو اختر رقماً:\n\n`;
+    p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
+    if (p.fazla) txt += `\n_...و ${p.fazla} مواعيد أخرى_\n*1.* 🌅 صباح  *2.* ☀️ ظهر  *3.* 🌙 مساء`;
+    return txt;
+  },
 };
 
 const DILLER = { tr, en, ar };
