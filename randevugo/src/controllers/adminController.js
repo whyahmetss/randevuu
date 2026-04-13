@@ -1175,11 +1175,19 @@ class AdminController {
       // Paket bitiş bilgisi
       const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       let paketKalanGun = null;
+      let paketBitisTarihi = null;
       if (isletme?.paket_bitis_tarihi) {
+        paketBitisTarihi = isletme.paket_bitis_tarihi;
         paketKalanGun = Math.ceil((new Date(isletme.paket_bitis_tarihi) - Date.now()) / 86400000);
+      } else {
+        // paket_bitis_tarihi yoksa bu ayın sonunu hesapla
+        const simdi = new Date();
+        const aySonu = new Date(simdi.getFullYear(), simdi.getMonth() + 1, 0, 23, 59, 59);
+        paketKalanGun = Math.ceil((aySonu - simdi) / 86400000);
+        paketBitisTarihi = aySonu.toISOString().slice(0, 10);
       }
 
-      res.json({ topHizmet, topCalisan, paketKalanGun, paket: isletme?.paket });
+      res.json({ topHizmet, topCalisan, paketKalanGun, paketBitisTarihi, paket: isletme?.paket });
     } catch (error) {
       res.json({ topHizmet: null, topCalisan: null, paketKalanGun: null });
     }
