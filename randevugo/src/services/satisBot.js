@@ -120,7 +120,34 @@ class SatisBot extends EventEmitter {
   ayarGuncelle(yeniAyarlar) {
     this.ayarlar = { ...this.ayarlar, ...yeniAyarlar };
     console.log('⚙️ Satış Bot ayarları güncellendi:', this.ayarlar);
+    this._ayarlariKaydet();
     return this.ayarlar;
+  }
+
+  async _ayarlariKaydet() {
+    try {
+      await pool.query(`
+        INSERT INTO satis_bot_ayarlar (id, ayarlar) VALUES (1, $1)
+        ON CONFLICT (id) DO UPDATE SET ayarlar = $1, guncelleme_tarihi = NOW()
+      `, [JSON.stringify(this.ayarlar)]);
+    } catch(e) { console.log('⚠️ Satış Bot ayar kaydetme hatası:', e.message); }
+  }
+
+  async _ayarlariYukle() {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS satis_bot_ayarlar (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          ayarlar JSONB NOT NULL DEFAULT '{}',
+          guncelleme_tarihi TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      const row = (await pool.query('SELECT ayarlar FROM satis_bot_ayarlar WHERE id=1')).rows[0];
+      if (row?.ayarlar) {
+        this.ayarlar = { ...this.ayarlar, ...row.ayarlar };
+        console.log('✅ Satış Bot ayarları DB\'den yüklendi');
+      }
+    } catch(e) { console.log('⚠️ Satış Bot ayar yükleme hatası:', e.message); }
   }
 
   // ═══════════════════════════════════════════════════
@@ -131,6 +158,9 @@ class SatisBot extends EventEmitter {
       console.log(`🔄 Satış Bot başlatma isteği geldi, mevcut durum: ${this.durum}`);
       return;
     }
+
+    // DB'den ayarları yükle
+    await this._ayarlariYukle();
 
     // Bekleyen reconnect timer varsa iptal et
     if (this._reconnectTimer) {
@@ -426,7 +456,12 @@ class SatisBot extends EventEmitter {
     }
   }
 
-  getDurum() {
+  async getDurum() {
+    // DB'den ayarları yükle (ilk çağrıda)
+    if (!this._ayarlarYuklendi) {
+      await this._ayarlariYukle();
+      this._ayarlarYuklendi = true;
+    }
     // Gerçek socket durumunu kontrol et
     if (this.durum === 'bagli' && (!this.sock || !this.sock.user)) {
       console.log('⚠️ getDurum: durum bagli ama socket yok/user yok, kapali yapılıyor');

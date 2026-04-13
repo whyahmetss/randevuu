@@ -1247,13 +1247,13 @@ class AdminController {
       // Zaten bağlıysa tekrar başlatma — sadece durumu döndür
       if (satisBot.durum === 'bagli' && satisBot.sock?.user) {
         console.log('✅ Satış Bot zaten bağlı, yeniden başlatma atlanıyor.');
-        return res.json({ mesaj: 'Satış botu zaten bağlı', ...satisBot.getDurum() });
+        return res.json({ mesaj: 'Satış botu zaten bağlı', ...(await satisBot.getDurum()) });
       }
 
       // Bağlanma sürecindeyse bekle
       if (satisBot.durum === 'baslatiyor' || satisBot.durum === 'qr_bekleniyor') {
         console.log('⏳ Satış Bot zaten başlatılıyor/QR bekliyor.');
-        return res.json({ mesaj: 'Satış botu başlatılıyor', ...satisBot.getDurum() });
+        return res.json({ mesaj: 'Satış botu başlatılıyor', ...(await satisBot.getDurum()) });
       }
 
       // Gerçekten kapalıysa başlat
@@ -1265,7 +1265,7 @@ class AdminController {
       satisBot.baslat();
       // 2sn bekle ki QR event'i gelsin
       await new Promise(r => setTimeout(r, 2000));
-      const durum = satisBot.getDurum();
+      const durum = await satisBot.getDurum();
       console.log('📱 Satış Bot başlatma sonrası durum:', durum.durum, 'QR var mı:', !!durum.qrBase64);
       res.json({ mesaj: 'Satış botu başlatıldı', ...durum });
     } catch (error) {
@@ -1287,7 +1287,7 @@ class AdminController {
   async satisBotDurum(req, res) {
     try {
       const satisBot = require('../services/satisBot');
-      const durum = satisBot.getDurum();
+      const durum = await satisBot.getDurum();
       let istatistikler = { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, gunluk_gonderim: 0, gunluk_limit: 50 };
       try {
         istatistikler = await satisBot.istatistikler();
