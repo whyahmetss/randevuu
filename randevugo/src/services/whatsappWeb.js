@@ -306,8 +306,24 @@ class WhatsAppWebService extends EventEmitter {
     if (remoteJid.endsWith('@s.whatsapp.net')) {
       musteriTelefon = remoteJid.replace('@s.whatsapp.net', '');
     } else if (remoteJid.endsWith('@lid')) {
-      // LID formatında telefon numarası yok, pushName + lid kullan
-      musteriTelefon = remoteJid.replace('@lid', '');
+      // LID formatında gerçek numara yok — remoteJidAlt'tan al
+      const altJid = msg.key.remoteJidAlt;
+      if (altJid && altJid.endsWith('@s.whatsapp.net')) {
+        musteriTelefon = altJid.replace('@s.whatsapp.net', '');
+      } else {
+        // Alt JID yoksa store'dan dene
+        try {
+          const sock = this.connections.get(isletmeId)?.sock;
+          if (sock?.store) {
+            const contact = sock.store.contacts?.[remoteJid];
+            if (contact?.id?.endsWith('@s.whatsapp.net')) {
+              musteriTelefon = contact.id.replace('@s.whatsapp.net', '');
+            }
+          }
+        } catch(e) {}
+        // Hala bulunamadıysa LID'yi kullan
+        if (!musteriTelefon) musteriTelefon = remoteJid.replace('@lid', '');
+      }
     } else {
       musteriTelefon = remoteJid.replace('@c.us', '');
     }
