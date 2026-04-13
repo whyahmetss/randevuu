@@ -1358,29 +1358,48 @@ function Dashboard() {
                   display: "flex", flexDirection: "column",
                   border: "1px solid var(--border)", boxShadow: "0 2px 16px rgba(0,0,0,.04)"
                 }}>
-                  {/* Halka görsel alanı */}
-                  <div style={{ position: "relative", height: 150, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {/* Dış halka — teal */}
-                    <div style={{
-                      position: "absolute", width: 110, height: 110, borderRadius: "50%",
-                      border: "3px solid #2dd4bf", boxShadow: "0 0 20px rgba(45,212,191,.12), 0 4px 12px rgba(45,212,191,.06)"
-                    }} />
-                    {/* İç halka — mor, biraz sola yukarı offset */}
-                    <div style={{
-                      position: "absolute", width: 75, height: 75, borderRadius: "50%",
-                      border: "2.5px solid #a78bfa", top: 18, left: "calc(50% - 48px)",
-                      boxShadow: "0 0 14px rgba(167,139,250,.1)"
-                    }} />
-                    {/* Merkez glow */}
-                    <div style={{
-                      position: "absolute", width: 14, height: 14, borderRadius: "50%",
-                      background: "radial-gradient(circle, rgba(45,212,191,.9) 0%, rgba(45,212,191,.2) 60%, transparent 100%)",
-                      boxShadow: "0 0 12px rgba(45,212,191,.5), 0 0 25px rgba(45,212,191,.15)",
-                      top: 52, left: "calc(50% - 14px)", animation: "pulse 3s ease-in-out infinite"
-                    }} />
-                    {/* Noktalar */}
-                    <div style={{ position: "absolute", top: 20, left: 28, width: 7, height: 7, borderRadius: "50%", background: "#2dd4bf", opacity: .2 }} />
-                    <div style={{ position: "absolute", bottom: 32, right: 35, width: 5, height: 5, borderRadius: "50%", background: "#a78bfa", opacity: .15 }} />
+                  {/* Halka görsel alanı — SVG 3D torus */}
+                  <div style={{ position: "relative", height: 160, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.9"/>
+                          <stop offset="30%" stopColor="#14b8a6" stopOpacity="0.7"/>
+                          <stop offset="60%" stopColor="#0d9488" stopOpacity="0.4"/>
+                          <stop offset="100%" stopColor="#5eead4" stopOpacity="0.8"/>
+                        </linearGradient>
+                        <linearGradient id="purpleGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.8"/>
+                          <stop offset="40%" stopColor="#a78bfa" stopOpacity="0.6"/>
+                          <stop offset="70%" stopColor="#8b5cf6" stopOpacity="0.3"/>
+                          <stop offset="100%" stopColor="#a78bfa" stopOpacity="0.7"/>
+                        </linearGradient>
+                        <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.9"/>
+                          <stop offset="50%" stopColor="#2dd4bf" stopOpacity="0.3"/>
+                          <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0"/>
+                        </radialGradient>
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="3" result="blur"/>
+                          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                        <filter id="softGlow">
+                          <feGaussianBlur stdDeviation="6" result="blur"/>
+                          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                      </defs>
+                      {/* Dış halka — eğik elips (3D perspektif) */}
+                      <ellipse cx="105" cy="72" rx="58" ry="52" stroke="url(#tealGrad)" strokeWidth="4" fill="none" filter="url(#glow)" transform="rotate(-8 105 72)"/>
+                      {/* İç halka — offset, farklı açı */}
+                      <ellipse cx="92" cy="68" rx="38" ry="34" stroke="url(#purpleGrad)" strokeWidth="3" fill="none" filter="url(#glow)" transform="rotate(5 92 68)"/>
+                      {/* Merkez parlayan nokta */}
+                      <circle cx="95" cy="70" r="10" fill="url(#coreGlow)" filter="url(#softGlow)"/>
+                      <circle cx="95" cy="70" r="4" fill="#2dd4bf" opacity="0.8"/>
+                      {/* Dekoratif noktalar */}
+                      <circle cx="25" cy="22" r="4" fill="#2dd4bf" opacity="0.2"/>
+                      <circle cx="175" cy="110" r="3" fill="#a78bfa" opacity="0.15"/>
+                      <circle cx="170" cy="35" r="2.5" fill="#38bdf8" opacity="0.15"/>
+                    </svg>
                   </div>
 
                   {/* Başlık */}
