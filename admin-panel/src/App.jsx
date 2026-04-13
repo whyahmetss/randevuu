@@ -784,6 +784,7 @@ function Dashboard() {
   const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
   const [dashCalisanlar, setDashCalisanlar] = useState([]);
   const [calisanPopover, setCalisanPopover] = useState(null);
+  const [profilPopover, setProfilPopover] = useState(false);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
   const [finansVeri, setFinansVeri] = useState(null);
@@ -1098,20 +1099,65 @@ function Dashboard() {
             )}
             {/* Kullanıcı Profil */}
             {ayarlar && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px",
-                background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
-                cursor: "pointer"
-              }} onClick={() => setSayfa("ayarlar")}>
+              <div style={{ position: "relative" }}>
                 <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, fontWeight: 800, color: "#fff"
-                }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>{ayarlar.isim}</div>
-                  <div style={{ fontSize: 10, color: "var(--dim)" }}>{ayarlar.kategori || "İşletme"}</div>
+                  display: "flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px",
+                  background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
+                  cursor: "pointer"
+                }} onClick={() => setProfilPopover(!profilPopover)}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, fontWeight: 800, color: "#fff"
+                  }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>{ayarlar.isim}</div>
+                    <div style={{ fontSize: 10, color: "var(--dim)" }}>{ayarlar.kategori || "İşletme"}</div>
+                  </div>
                 </div>
+                {profilPopover && (
+                  <>
+                    <div onClick={() => setProfilPopover(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 49 }} />
+                    <div style={{
+                      position: "absolute", top: 44, right: 0, zIndex: 50,
+                      background: "var(--surface)", border: "1px solid var(--border)",
+                      borderRadius: 14, padding: 16, minWidth: 220,
+                      boxShadow: "0 8px 32px rgba(0,0,0,.15)"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                        <div style={{
+                          width: 40, height: 40, borderRadius: 12,
+                          background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 16, fontWeight: 800, color: "#fff"
+                        }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{ayarlar.isim}</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{ayarlar.kategori || "İşletme"}</div>
+                        </div>
+                      </div>
+                      {paketDurum && (
+                        <div style={{
+                          padding: "8px 12px", borderRadius: 10,
+                          background: "var(--bg)", marginBottom: 12,
+                          display: "flex", alignItems: "center", justifyContent: "space-between"
+                        }}>
+                          <span style={{ fontSize: 11, color: "var(--muted)" }}>Paket</span>
+                          <span className={`badge ${paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
+                        </div>
+                      )}
+                      <button onClick={() => { setProfilPopover(false); setSayfa("ayarlar"); }} style={{
+                        width: "100%", padding: "8px 0", borderRadius: 10, border: "1px solid var(--border)",
+                        background: "var(--bg)", color: "var(--text)", fontSize: 12, fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                      }}>⚙️ Ayarlar</button>
+                      <button onClick={() => { setProfilPopover(false); cikisYap(); }} style={{
+                        width: "100%", padding: "8px 0", borderRadius: 10, border: "none",
+                        background: "rgba(239,68,68,.08)", color: "#ef4444", fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                      }}>🚪 Çıkış Yap</button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
