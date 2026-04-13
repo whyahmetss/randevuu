@@ -1269,12 +1269,19 @@ function showToast(msg){
 }
 
 // === FORM ===
-document.getElementById('form').addEventListener('submit',e=>{
+document.getElementById('form').addEventListener('submit',async e=>{
   e.preventDefault();
   const p=document.getElementById('phone').value.replace(/\D/g,'');
   if(p.length<10){showToast('Lütfen geçerli bir telefon numarası girin.');return;}
-  showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');
-  document.getElementById('phone').value='';
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.disabled=true;btn.style.opacity='0.7';
+  try{
+    const res=await fetch('/api/iletisim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefon:p,kaynak:'landing'})});
+    const d=await res.json();
+    if(res.ok){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('phone').value='';}
+    else{showToast(d.hata||'Bir hata oluştu.');}
+  }catch(err){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('phone').value='';}
+  btn.disabled=false;btn.style.opacity='1';
 });
 
 // === SMOOTH SCROLL ===
