@@ -1181,25 +1181,14 @@ class AdminController {
       let paketDurumTipi = null; // 'deneme' | 'paket' | 'odeme'
 
       if (isletme) {
-        // 1) Deneme süresi varsa
-        if (isletme.deneme_bitis_tarihi) {
-          const kalan = Math.ceil((new Date(isletme.deneme_bitis_tarihi) - Date.now()) / 86400000);
-          // Deneme hâlâ devam ediyorsa veya yeni bittiyse göster
-          if (kalan >= -3) {
-            paketBitisTarihi = new Date(isletme.deneme_bitis_tarihi).toISOString().slice(0, 10);
-            paketKalanGun = kalan;
-            paketDurumTipi = 'deneme';
-          }
-        }
-
-        // 2) Paket bitiş tarihi varsa (deneme bitmişse veya yoksa)
-        if (!paketDurumTipi && isletme.paket_bitis_tarihi) {
+        // 1) paket_bitis_tarihi elle set edilmişse en öncelikli
+        if (isletme.paket_bitis_tarihi) {
           paketBitisTarihi = new Date(isletme.paket_bitis_tarihi).toISOString().slice(0, 10);
           paketKalanGun = Math.ceil((new Date(isletme.paket_bitis_tarihi) - Date.now()) / 86400000);
           paketDurumTipi = 'paket';
         }
 
-        // 3) Hiçbiri yoksa son ödeme tarihinden +30 gün
+        // 2) Ödeme yapılmışsa → son ödeme tarihinden +30 gün
         if (!paketDurumTipi) {
           const sonOdeme = (await pool.query(
             "SELECT olusturma_tarihi FROM odemeler WHERE isletme_id=$1 AND durum='odendi' ORDER BY olusturma_tarihi DESC LIMIT 1",
@@ -1210,8 +1199,15 @@ class AdminController {
             bitis.setDate(bitis.getDate() + 30);
             paketBitisTarihi = bitis.toISOString().slice(0, 10);
             paketKalanGun = Math.ceil((bitis - Date.now()) / 86400000);
-            paketDurumTipi = 'odeme';
+            paketDurumTipi = 'paket';
           }
+        }
+
+        // 3) Hiçbir ödeme yoksa → deneme süresi
+        if (!paketDurumTipi && isletme.deneme_bitis_tarihi) {
+          paketBitisTarihi = new Date(isletme.deneme_bitis_tarihi).toISOString().slice(0, 10);
+          paketKalanGun = Math.ceil((new Date(isletme.deneme_bitis_tarihi) - Date.now()) / 86400000);
+          paketDurumTipi = 'deneme';
         }
       }
 
