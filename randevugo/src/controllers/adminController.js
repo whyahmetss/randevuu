@@ -2,7 +2,7 @@ const pool = require('../config/db');
 const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
-const PAKETLER = require('../config/paketler');
+const { paketGetir, paketleriYukle, paketCacheTemizle } = require('../config/paketler');
 const avciBot = require('../services/avciBot');
 const iyzicoService = require('../services/iyzicoService');
 const shopierService = require('../services/shopierService');
@@ -96,7 +96,7 @@ class AdminController {
     try {
       const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
-      const paket = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
+      const paket = await paketGetir(isletme?.paket);
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       if (parseInt(mevcut.sayi) >= paket.hizmet_limit) {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
@@ -163,7 +163,7 @@ class AdminController {
     try {
       const { isim, telefon, uzmanlik, calisma_baslangic, calisma_bitis, kapali_gunler, mola_saatleri } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
-      const paket = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
+      const paket = await paketGetir(isletme?.paket);
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       if (parseInt(mevcut.sayi) >= paket.calisan_limit) {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.calisan_limit} çalışan ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
@@ -493,7 +493,7 @@ class AdminController {
     try {
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
       const paketAdi = isletme?.paket || 'baslangic';
-      const paket = PAKETLER[paketAdi] || PAKETLER.baslangic;
+      const paket = await paketGetir(paketAdi);
       const calisanSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       const hizmetSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       const buAyBasi = new Date(); buAyBasi.setDate(1);
@@ -954,7 +954,7 @@ class AdminController {
       const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
-      const paketBilgi = PAKETLER[isletme.paket] || PAKETLER.baslangic;
+      const paketBilgi = await paketGetir(isletme.paket);
       const buAy = new Date().toISOString().slice(0, 7);
 
       // Referans kodu üret (isletme_id + dönem bazlı, sabit)
@@ -996,7 +996,7 @@ class AdminController {
       )).rows[0];
 
       const isletme = (await pool.query('SELECT paket, isim FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
-      const paketBilgi = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
+      const paketBilgi = await paketGetir(isletme?.paket);
 
       // Rastgele ödeme referans kodu üret (her istek için sabit kalması için isletme_id + dönem bazlı)
       const hash = Buffer.from(`${isletmeId}-${buAy}`).toString('base64').replace(/[^A-Z0-9]/gi, '').slice(0, 3).toUpperCase();
@@ -1030,7 +1030,7 @@ class AdminController {
 
       // Seçilen paket (query param veya mevcut paket)
       const secilenPaket = req.query.paket || isletme.paket || 'baslangic';
-      const paketBilgi = PAKETLER[secilenPaket] || PAKETLER.baslangic;
+      const paketBilgi = await paketGetir(secilenPaket);
       const buAy = new Date().toISOString().slice(0, 7);
       const refKod = `SRGO-${isletmeId}`;
       const paketLabel = paketBilgi.isim || secilenPaket;
@@ -1934,6 +1934,7 @@ class AdminController {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
         [kod, isim, fiyat, calisan_limit||1, hizmet_limit||5, aylik_randevu_limit||100, bot_aktif!==false, !!hatirlatma, !!istatistik, !!export_aktif, ozellikler||'', sira||0]
       );
+      paketCacheTemizle();
       await this.auditLogYaz(req.kullanici, 'paket_eklendi', `${isim} (${fiyat}₺)`, 'paket_tanimlari', result.rows[0].id);
       res.json({ paket: result.rows[0] });
     } catch (error) {
@@ -1949,6 +1950,7 @@ class AdminController {
          bot_aktif=$6, hatirlatma=$7, istatistik=$8, export_aktif=$9, ozellikler=$10, aktif=$11, sira=$12 WHERE id=$13`,
         [isim, fiyat, calisan_limit, hizmet_limit, aylik_randevu_limit, bot_aktif, hatirlatma, istatistik, export_aktif, ozellikler||'', aktif!==false, sira||0, req.params.id]
       );
+      paketCacheTemizle();
       res.json({ mesaj: 'Güncellendi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -1958,6 +1960,7 @@ class AdminController {
   async paketTanimiSil(req, res) {
     try {
       await pool.query("DELETE FROM paket_tanimlari WHERE id = $1", [req.params.id]);
+      paketCacheTemizle();
       res.json({ mesaj: 'Silindi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -2189,10 +2192,11 @@ class AdminController {
   async exportMusteriler(req, res) {
     try {
       const isletmeId = req.kullanici.isletme_id;
-      // Paket kontrolü — sadece premium
+      // Paket kontrolü — export_aktif flag'i kontrol et
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      if (isletme?.paket !== 'premium') {
-        return res.status(403).json({ hata: 'Excel dışa aktarma sadece Premium pakette kullanılabilir. Paketinizi yükseltin!' });
+      const paketBilgi = await paketGetir(isletme?.paket);
+      if (!paketBilgi.export_aktif) {
+        return res.status(403).json({ hata: `Excel dışa aktarma ${paketBilgi.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       }
       const musteriler = (await pool.query(`
         SELECT m.isim, m.telefon, COUNT(r.id) as randevu_sayisi, MAX(r.tarih) as son_randevu,
@@ -2379,15 +2383,18 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket, google_maps_url, google_yorum_aktif FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      const premium = isletme?.paket === 'premium';
+      const paketBilgi = await paketGetir(isletme?.paket);
       res.json({
-        premium,
+        premium: !!paketBilgi.export_aktif && !!paketBilgi.istatistik,
         paket: isletme?.paket || 'baslangic',
+        paket_bilgi: paketBilgi,
         ozellikler: {
-          toplu_kampanya: premium,
-          google_yorum: premium,
-          musteri_etiketleme: premium,
-          excel_export: premium,
+          toplu_kampanya: !!paketBilgi.export_aktif,
+          google_yorum: !!paketBilgi.istatistik,
+          musteri_etiketleme: !!paketBilgi.export_aktif,
+          excel_export: !!paketBilgi.export_aktif,
+          hatirlatma: !!paketBilgi.hatirlatma,
+          istatistik: !!paketBilgi.istatistik,
         },
         google_maps_url: isletme?.google_maps_url,
         google_yorum_aktif: isletme?.google_yorum_aktif

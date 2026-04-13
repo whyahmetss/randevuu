@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
-const PAKETLER = require('../config/paketler');
+const { paketGetir } = require('../config/paketler');
 
 class OdemeService {
   async aylikOdemeleriOlustur() {
@@ -19,7 +19,7 @@ class OdemeService {
       )).rows;
 
       if (mevcut.length === 0) {
-        const paket = PAKETLER[isletme.paket] || PAKETLER.baslangic;
+        const paket = await paketGetir(isletme.paket);
         await pool.query(
           `INSERT INTO odemeler (isletme_id, tutar, donem, durum) VALUES ($1, $2, $3, 'bekliyor')`,
           [isletme.id, paket.fiyat, buAy]

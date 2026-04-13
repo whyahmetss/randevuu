@@ -1,6 +1,6 @@
 const Iyzipay = require('iyzipay');
 const pool = require('../config/db');
-const PAKETLER = require('../config/paketler');
+const { paketGetir } = require('../config/paketler');
 
 class IyzicoService {
   constructor() {
@@ -21,7 +21,7 @@ class IyzicoService {
   async checkoutBaslat(isletmeId, paket) {
     if (!this.iyzipay) throw new Error('iyzico yapılandırılmamış. Lütfen havale ile ödeme yapın.');
 
-    const paketBilgi = PAKETLER[paket];
+    const paketBilgi = await paketGetir(paket);
     if (!paketBilgi) throw new Error('Geçersiz paket');
 
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
