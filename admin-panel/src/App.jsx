@@ -1352,86 +1352,79 @@ function Dashboard() {
                   )}
                 </div>
 
-                {/* Bot Test — Smart AI Insights birebir replika */}
+                {/* Bot Test — Smart AI Insights (açık tema, 3D halka) */}
                 <div style={{
-                  background: "linear-gradient(135deg, #0d3d3d 0%, #0a4a4f 25%, #0e5a5a 50%, #064040 75%, #0a3535 100%)",
+                  background: "linear-gradient(160deg, #f0fdf9 0%, #e6f7f2 30%, #dff5ef 60%, #ecfdf5 100%)",
                   borderRadius: 20, position: "relative", overflow: "hidden",
-                  display: "flex", flexDirection: "column"
+                  display: "flex", flexDirection: "column",
+                  border: "1px solid rgba(16,185,129,.12)",
+                  boxShadow: "0 2px 20px rgba(0,0,0,.06)"
                 }}>
-                  {/* ─── ÜSTTE: Parlayan Halka Alanı ─── */}
-                  <div style={{ position: "relative", height: 170, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {/* Büyük dış halka */}
+                  {/* ─── Üst: 3D Halka Görsel Alanı ─── */}
+                  <div style={{
+                    position: "relative", height: 160, display: "flex", alignItems: "center", justifyContent: "center",
+                    background: "linear-gradient(180deg, rgba(15,23,42,.88) 0%, rgba(15,23,42,.92) 60%, rgba(15,23,42,.85) 100%)",
+                    borderRadius: "20px 20px 0 0"
+                  }}>
+                    {/* Arka plan teal glow */}
+                    <div style={{ position: "absolute", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(45,212,191,.12) 0%, transparent 65%)", filter: "blur(20px)" }} />
+                    {/* 3D Dış halka — kalın gradient border efekti */}
                     <div style={{
-                      position: "absolute", width: 150, height: 150, borderRadius: "50%",
-                      border: "2.5px solid rgba(45,212,191,.25)",
-                      boxShadow: "0 0 30px rgba(45,212,191,.15), inset 0 0 30px rgba(45,212,191,.08)",
-                      animation: "glowSpin 10s linear infinite"
-                    }} />
+                      position: "absolute", width: 120, height: 120, borderRadius: "50%",
+                      background: "conic-gradient(from 0deg, rgba(45,212,191,.5), rgba(16,185,129,.15), rgba(6,182,212,.4), rgba(45,212,191,.1), rgba(139,92,246,.3), rgba(45,212,191,.5))",
+                      padding: 3, animation: "glowSpin 6s linear infinite",
+                      boxShadow: "0 0 30px rgba(45,212,191,.2), 0 0 60px rgba(45,212,191,.08)"
+                    }}>
+                      <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "rgba(15,23,42,.95)" }} />
+                    </div>
                     {/* Orta halka */}
                     <div style={{
-                      position: "absolute", width: 115, height: 115, borderRadius: "50%",
-                      border: "2px solid rgba(16,185,129,.3)",
-                      boxShadow: "0 0 25px rgba(16,185,129,.2), inset 0 0 25px rgba(16,185,129,.1)",
-                      animation: "glowSpin 7s linear infinite reverse"
-                    }} />
-                    {/* İç halka */}
-                    <div style={{
-                      position: "absolute", width: 80, height: 80, borderRadius: "50%",
-                      border: "1.5px solid rgba(56,189,248,.2)",
-                      boxShadow: "0 0 20px rgba(56,189,248,.12)",
-                      animation: "glowSpin 5s linear infinite"
-                    }} />
-                    {/* Merkez parlayan top */}
-                    <div style={{
-                      position: "absolute", width: 40, height: 40, borderRadius: "50%",
-                      background: "radial-gradient(circle, rgba(45,212,191,.6) 0%, rgba(16,185,129,.3) 50%, transparent 80%)",
-                      boxShadow: "0 0 40px rgba(45,212,191,.4), 0 0 80px rgba(16,185,129,.2)",
-                      animation: "pulse 2.5s ease-in-out infinite"
-                    }} />
-                    {/* Yüzde badge */}
-                    <div style={{
-                      position: "absolute", top: 18, right: 30, padding: "4px 10px", borderRadius: 20,
-                      background: "rgba(16,185,129,.2)", border: "1px solid rgba(16,185,129,.3)",
-                      backdropFilter: "blur(10px)"
+                      position: "absolute", width: 85, height: 85, borderRadius: "50%",
+                      background: "conic-gradient(from 180deg, rgba(6,182,212,.4), rgba(45,212,191,.1), rgba(16,185,129,.3), rgba(139,92,246,.2), rgba(6,182,212,.4))",
+                      padding: 2, animation: "glowSpin 4s linear infinite reverse"
                     }}>
-                      <span style={{ color: "#6ee7b7", fontSize: 11, fontWeight: 700 }}>⚡ +47% Verimlilik</span>
+                      <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "rgba(15,23,42,.9)" }} />
                     </div>
-                    {/* Sol üst küçük dekoratif toplar */}
-                    <div style={{ position: "absolute", top: 25, left: 25, width: 10, height: 10, borderRadius: "50%", background: "rgba(45,212,191,.3)", boxShadow: "0 0 10px rgba(45,212,191,.3)", animation: "pulse 3s ease-in-out infinite" }} />
-                    <div style={{ position: "absolute", bottom: 30, left: 40, width: 6, height: 6, borderRadius: "50%", background: "rgba(139,92,246,.4)", boxShadow: "0 0 8px rgba(139,92,246,.3)", animation: "pulse 4s ease-in-out infinite 1s" }} />
-                    <div style={{ position: "absolute", top: 50, right: 20, width: 8, height: 8, borderRadius: "50%", background: "rgba(56,189,248,.3)", boxShadow: "0 0 10px rgba(56,189,248,.3)", animation: "pulse 3.5s ease-in-out infinite .5s" }} />
-                    {/* Büyük arka plan glow */}
-                    <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(45,212,191,.08) 0%, transparent 70%)", filter: "blur(30px)" }} />
+                    {/* İç parlayan core */}
+                    <div style={{
+                      position: "absolute", width: 30, height: 30, borderRadius: "50%",
+                      background: "radial-gradient(circle, rgba(45,212,191,.7) 0%, rgba(16,185,129,.3) 50%, transparent 80%)",
+                      boxShadow: "0 0 25px rgba(45,212,191,.5), 0 0 50px rgba(45,212,191,.2)",
+                      animation: "pulse 3s ease-in-out infinite"
+                    }} />
+                    {/* Dekoratif noktalar */}
+                    <div style={{ position: "absolute", top: 22, left: 22, width: 8, height: 8, borderRadius: "50%", background: "rgba(45,212,191,.35)", boxShadow: "0 0 8px rgba(45,212,191,.3)", animation: "pulse 3s ease-in-out infinite" }} />
+                    <div style={{ position: "absolute", bottom: 25, right: 30, width: 6, height: 6, borderRadius: "50%", background: "rgba(139,92,246,.35)", boxShadow: "0 0 6px rgba(139,92,246,.3)", animation: "pulse 4s ease-in-out infinite 1s" }} />
+                    <div style={{ position: "absolute", top: 45, right: 18, width: 5, height: 5, borderRadius: "50%", background: "rgba(6,182,212,.4)", boxShadow: "0 0 6px rgba(6,182,212,.3)", animation: "pulse 3.5s ease-in-out infinite .5s" }} />
                   </div>
 
-                  {/* ─── ALT: Başlık + Chat + Input ─── */}
-                  <div style={{ position: "relative", zIndex: 1, padding: "0 22px 4px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
-                      <span style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>Smart AI Bot</span>
+                  {/* ─── Alt: Başlık + Chat + Input (açık tema) ─── */}
+                  <div style={{ position: "relative", zIndex: 1, padding: "16px 20px 4px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                      <span style={{ color: "#0f172a", fontWeight: 800, fontSize: 15 }}>Smart AI Bot</span>
                     </div>
-                    <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, lineHeight: 1.4, marginBottom: 12 }}>
+                    <div style={{ color: "#64748b", fontSize: 11, lineHeight: 1.4, marginBottom: 10 }}>
                       Mesaj gönderin, botunuzun performansını test edin
                     </div>
                   </div>
 
                   {/* Chat area */}
                   <div ref={chatRef} style={{
-                    flex: 1, minHeight: 100, maxHeight: 150, overflowY: "auto",
-                    background: "rgba(0,0,0,.2)", margin: "0 12px", borderRadius: 14,
-                    padding: "10px 14px", display: "flex", flexDirection: "column", gap: 8,
-                    position: "relative", zIndex: 1
+                    flex: 1, minHeight: 80, maxHeight: 130, overflowY: "auto",
+                    background: "rgba(15,23,42,.04)", margin: "0 12px", borderRadius: 12,
+                    padding: "10px 14px", display: "flex", flexDirection: "column", gap: 6,
+                    position: "relative", zIndex: 1, border: "1px solid rgba(0,0,0,.05)"
                   }}>
                     {testCevaplar.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "24px 0", color: "rgba(255,255,255,.2)", fontSize: 11 }}>
+                      <div style={{ textAlign: "center", padding: "18px 0", color: "#94a3b8", fontSize: 11 }}>
                         Bir mesaj göndererek botu test edin
                       </div>
                     ) : testCevaplar.map((m, i) => (
                       <div key={i} style={{
                         alignSelf: m.yon === "giden" ? "flex-end" : "flex-start",
-                        background: m.yon === "giden" ? "rgba(45,212,191,.2)" : "rgba(255,255,255,.06)",
-                        border: m.yon === "giden" ? "1px solid rgba(45,212,191,.2)" : "1px solid rgba(255,255,255,.05)",
-                        color: m.yon === "giden" ? "#a7f3d0" : "rgba(255,255,255,.7)",
+                        background: m.yon === "giden" ? "#10b981" : "#f1f5f9",
+                        color: m.yon === "giden" ? "#fff" : "#334155",
                         padding: "7px 12px", borderRadius: m.yon === "giden" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
                         fontSize: 12, maxWidth: "85%", lineHeight: 1.4
                       }}>
@@ -1441,27 +1434,29 @@ function Dashboard() {
                   </div>
 
                   {/* Input */}
-                  <div style={{ display: "flex", gap: 8, position: "relative", zIndex: 1, padding: "12px 16px 16px" }}>
+                  <div style={{ display: "flex", gap: 8, position: "relative", zIndex: 1, padding: "10px 14px 14px" }}>
                     <input
                       value={testMesaj}
                       onChange={e => setTestMesaj(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && botTest()}
                       placeholder="Mesaj yazın..."
                       style={{
-                        flex: 1, padding: "11px 16px", borderRadius: 12,
-                        background: "rgba(0,0,0,.25)", border: "1px solid rgba(255,255,255,.08)",
-                        color: "#fff", fontSize: 12, outline: "none", fontFamily: "inherit"
+                        flex: 1, padding: "10px 14px", borderRadius: 10,
+                        background: "#fff", border: "1px solid #e2e8f0",
+                        color: "#0f172a", fontSize: 12, outline: "none", fontFamily: "inherit"
                       }}
                     />
                     <button onClick={botTest} disabled={testYukleniyor} style={{
-                      width: 44, height: 44, borderRadius: 12, border: "none",
-                      background: "linear-gradient(135deg, #10b981, #2dd4bf)",
-                      color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer",
+                      width: 40, height: 40, borderRadius: 10, border: "none",
+                      background: "#10b981", color: "#fff", cursor: "pointer",
                       fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center",
-                      boxShadow: "0 4px 20px rgba(16,185,129,.35)",
+                      boxShadow: "0 2px 10px rgba(16,185,129,.3)",
                       opacity: testYukleniyor ? .5 : 1, flexShrink: 0
                     }}>
-                      {testYukleniyor ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>}
+                      {testYukleniyor
+                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
+                        : <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                      }
                     </button>
                   </div>
                 </div>
