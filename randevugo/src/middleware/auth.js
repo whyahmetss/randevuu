@@ -32,9 +32,11 @@ const odemeKontrol = async (req, res, next) => {
     const isletme = (await pool.query('SELECT olusturma_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (isletme) {
       const olusturma = new Date(isletme.olusturma_tarihi);
+      olusturma.setHours(0, 0, 0, 0);
       const simdi = new Date();
-      const gunFark = Math.floor((simdi - olusturma) / (1000 * 60 * 60 * 24));
-      if (gunFark <= 7) return next(); // İlk 7 gün deneme süresi
+      simdi.setHours(0, 0, 0, 0);
+      const gunFark = Math.round((simdi - olusturma) / (1000 * 60 * 60 * 24));
+      if (gunFark < 7) return next(); // İlk 7 gün deneme süresi (gün 0-6)
     }
 
     const buAy = new Date().toISOString().slice(0, 7);
