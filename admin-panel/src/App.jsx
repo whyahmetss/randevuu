@@ -1407,11 +1407,11 @@ function Dashboard() {
                   {/* ─── ALT: Başlık + Chat + Input ─── */}
                   <div style={{ position: "relative", zIndex: 1, padding: "0 22px 4px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                      <span style={{ fontSize: 20 }}>🤖</span>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
                       <span style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>Smart AI Bot</span>
                     </div>
                     <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, lineHeight: 1.4, marginBottom: 12 }}>
-                      Müşteri gibi mesaj gönderin, AI botunuzun gücünü test edin
+                      Mesaj gönderin, botunuzun performansını test edin
                     </div>
                   </div>
 
@@ -1461,7 +1461,7 @@ function Dashboard() {
                       boxShadow: "0 4px 20px rgba(16,185,129,.35)",
                       opacity: testYukleniyor ? .5 : 1, flexShrink: 0
                     }}>
-                      {testYukleniyor ? "⟳" : "➤"}
+                      {testYukleniyor ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>}
                     </button>
                   </div>
                 </div>
