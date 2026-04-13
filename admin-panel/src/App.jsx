@@ -997,13 +997,15 @@ function Dashboard() {
             })}
             {dashEkstra?.paketKalanGun != null && (() => {
               const kalan = dashEkstra.paketKalanGun;
+              const tip = dashEkstra.paketDurumTipi;
               const toplam = 30;
-              const pctB = Math.max(0, Math.min(100, Math.round(kalan / toplam * 100)));
+              const pctB = Math.max(0, Math.min(100, Math.round(Math.max(0, kalan) / toplam * 100)));
               const renk = kalan > 10 ? 'var(--green)' : kalan > 3 ? '#f59e0b' : 'var(--red)';
+              const label = tip === 'deneme' ? 'Deneme süresi' : `${paketDurum?.paket_bilgi?.isim || paketDurum?.paket || 'Paket'} süresi`;
               return (
                 <div>
                   <div className="pw-bar-label">
-                    <span>Paket süresi</span>
+                    <span>{label}</span>
                     <span style={{ color: kalan <= 3 ? 'var(--red)' : kalan <= 10 ? '#f59e0b' : 'var(--dim)' }}>
                       {kalan > 0 ? `${kalan} gün kaldı` : 'Süre doldu'}
                     </span>

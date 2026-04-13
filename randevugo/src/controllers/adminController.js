@@ -594,7 +594,7 @@ class AdminController {
 
   async isletmeGuncelleAdmin(req, res) {
     try {
-      const { aktif, paket, isim, adres, ilce, kategori } = req.body;
+      const { aktif, paket, isim, adres, ilce, kategori, deneme_bitis_tarihi, paket_bitis_tarihi } = req.body;
       const fields = [];
       const values = [];
       let idx = 1;
@@ -604,6 +604,8 @@ class AdminController {
       if (adres !== undefined) { fields.push(`adres=$${idx++}`); values.push(adres); }
       if (ilce !== undefined) { fields.push(`ilce=$${idx++}`); values.push(ilce); }
       if (kategori !== undefined) { fields.push(`kategori=$${idx++}`); values.push(kategori); }
+      if (deneme_bitis_tarihi !== undefined) { fields.push(`deneme_bitis_tarihi=$${idx++}`); values.push(deneme_bitis_tarihi || null); }
+      if (paket_bitis_tarihi !== undefined) { fields.push(`paket_bitis_tarihi=$${idx++}`); values.push(paket_bitis_tarihi || null); }
       values.push(req.params.id);
       const result = await pool.query(
         `UPDATE isletmeler SET ${fields.join(', ')} WHERE id=$${idx} RETURNING *`,
@@ -1173,28 +1175,47 @@ class AdminController {
       `, [isletmeId, bugun])).rows[0] || null;
 
       // Paket bitiş bilgisi
-      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi, olusturma_tarihi FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       let paketKalanGun = null;
       let paketBitisTarihi = null;
-      if (isletme?.paket_bitis_tarihi) {
-        paketBitisTarihi = isletme.paket_bitis_tarihi;
-        paketKalanGun = Math.ceil((new Date(isletme.paket_bitis_tarihi) - Date.now()) / 86400000);
-      } else {
-        // paket_bitis_tarihi yoksa: son ödeme tarihinden +30 gün, yoksa oluşturma tarihinden +30 gün
-        const sonOdeme = (await pool.query(
-          "SELECT olusturma_tarihi FROM odemeler WHERE isletme_id=$1 AND durum='odendi' ORDER BY olusturma_tarihi DESC LIMIT 1",
-          [isletmeId]
-        )).rows[0];
-        const baslangic = sonOdeme?.olusturma_tarihi || isletme?.olusturma_tarihi;
-        if (baslangic) {
-          const bitis = new Date(baslangic);
-          bitis.setDate(bitis.getDate() + 30);
-          paketBitisTarihi = bitis.toISOString().slice(0, 10);
-          paketKalanGun = Math.ceil((bitis - Date.now()) / 86400000);
+      let paketDurumTipi = null; // 'deneme' | 'paket' | 'odeme'
+
+      if (isletme) {
+        // 1) Deneme süresi varsa
+        if (isletme.deneme_bitis_tarihi) {
+          const kalan = Math.ceil((new Date(isletme.deneme_bitis_tarihi) - Date.now()) / 86400000);
+          // Deneme hâlâ devam ediyorsa veya yeni bittiyse göster
+          if (kalan >= -3) {
+            paketBitisTarihi = new Date(isletme.deneme_bitis_tarihi).toISOString().slice(0, 10);
+            paketKalanGun = kalan;
+            paketDurumTipi = 'deneme';
+          }
+        }
+
+        // 2) Paket bitiş tarihi varsa (deneme bitmişse veya yoksa)
+        if (!paketDurumTipi && isletme.paket_bitis_tarihi) {
+          paketBitisTarihi = new Date(isletme.paket_bitis_tarihi).toISOString().slice(0, 10);
+          paketKalanGun = Math.ceil((new Date(isletme.paket_bitis_tarihi) - Date.now()) / 86400000);
+          paketDurumTipi = 'paket';
+        }
+
+        // 3) Hiçbiri yoksa son ödeme tarihinden +30 gün
+        if (!paketDurumTipi) {
+          const sonOdeme = (await pool.query(
+            "SELECT olusturma_tarihi FROM odemeler WHERE isletme_id=$1 AND durum='odendi' ORDER BY olusturma_tarihi DESC LIMIT 1",
+            [isletmeId]
+          )).rows[0];
+          if (sonOdeme?.olusturma_tarihi) {
+            const bitis = new Date(sonOdeme.olusturma_tarihi);
+            bitis.setDate(bitis.getDate() + 30);
+            paketBitisTarihi = bitis.toISOString().slice(0, 10);
+            paketKalanGun = Math.ceil((bitis - Date.now()) / 86400000);
+            paketDurumTipi = 'odeme';
+          }
         }
       }
 
-      res.json({ topHizmet, topCalisan, paketKalanGun, paketBitisTarihi, paket: isletme?.paket });
+      res.json({ topHizmet, topCalisan, paketKalanGun, paketBitisTarihi, paketDurumTipi, paket: isletme?.paket });
     } catch (error) {
       res.json({ topHizmet: null, topCalisan: null, paketKalanGun: null });
     }

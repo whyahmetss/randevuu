@@ -39,15 +39,13 @@ const odemeKontrol = async (req, res, next) => {
     const isletmeId = req.kullanici.isletme_id;
     if (!isletmeId) return next();
 
-    // İşletme oluşturulma tarihini kontrol et — ilk 7 gün ücretsiz
-    const isletme = (await pool.query('SELECT olusturma_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    // Deneme süresi kontrolü — deneme_bitis_tarihi'ne bak
+    const isletme = (await pool.query('SELECT deneme_bitis_tarihi, paket_bitis_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (isletme) {
-      const olusturma = new Date(isletme.olusturma_tarihi);
-      olusturma.setHours(0, 0, 0, 0);
-      const simdi = new Date();
-      simdi.setHours(0, 0, 0, 0);
-      const gunFark = Math.round((simdi - olusturma) / (1000 * 60 * 60 * 24));
-      if (gunFark < 7) return next(); // İlk 7 gün deneme süresi (gün 0-6)
+      // Deneme süresi devam ediyorsa geç
+      if (isletme.deneme_bitis_tarihi && new Date(isletme.deneme_bitis_tarihi) > new Date()) return next();
+      // Paket bitiş tarihi varsa ve hâlâ geçerliyse geç
+      if (isletme.paket_bitis_tarihi && new Date(isletme.paket_bitis_tarihi) > new Date()) return next();
     }
 
     const buAy = new Date().toISOString().slice(0, 7);
