@@ -2582,6 +2582,9 @@ function SuperAdminPanel({ kullanici }) {
     isletmeleriYukle();
     odemeleriYukle();
     saasMetrikleriYukle();
+    destekYukle();
+    iletisimYukle();
+    bildirimleriYukle();
   }, []);
 
   const avciListeYukle = async () => {
@@ -2722,6 +2725,21 @@ function SuperAdminPanel({ kullanici }) {
   };
 
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
+  const acikDestekSayi = destekTalepler.filter(t => t.durum === 'acik').length;
+  const yuksekBildirimSayi = bildirimVeri?.ozet?.yuksek || 0;
+
+  const badgeSayilari = {
+    odemeler: buAyOdemeyenler.length,
+    destek: acikDestekSayi,
+    iletisim: okunmamisSayi,
+    bildirimler: yuksekBildirimSayi,
+  };
+  const badgeRenkleri = {
+    odemeler: "#ef4444",
+    destek: "#f59e0b",
+    iletisim: "#818cf8",
+    bildirimler: "#ef4444",
+  };
 
   const menuItems = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
@@ -2800,10 +2818,8 @@ function SuperAdminPanel({ kullanici }) {
             <div key={m.id} onClick={() => { setSayfa(m.id); setMobileOpen(false); }} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
               <span className="nav-icon">{m.icon}</span>
               <span>{m.label}</span>
-              {m.id === 'odemeler' && buAyOdemeyenler.length > 0
-                ? <span className="nav-badge">{buAyOdemeyenler.length}</span>
-                : m.id === 'iletisim' && okunmamisSayi > 0
-                ? <span className="nav-badge" style={{ background: "#818cf8" }}>{okunmamisSayi}</span>
+              {badgeSayilari[m.id] > 0
+                ? <span className="nav-badge" style={{ background: badgeRenkleri[m.id] || "#ef4444" }}>{badgeSayilari[m.id]}</span>
                 : sayfa === m.id && <div className="active-dot" />}
             </div>
           ))}
