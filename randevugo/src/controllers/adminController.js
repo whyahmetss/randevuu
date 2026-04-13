@@ -1173,18 +1173,25 @@ class AdminController {
       `, [isletmeId, bugun])).rows[0] || null;
 
       // Paket bitiş bilgisi
-      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi, olusturma_tarihi FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       let paketKalanGun = null;
       let paketBitisTarihi = null;
       if (isletme?.paket_bitis_tarihi) {
         paketBitisTarihi = isletme.paket_bitis_tarihi;
         paketKalanGun = Math.ceil((new Date(isletme.paket_bitis_tarihi) - Date.now()) / 86400000);
       } else {
-        // paket_bitis_tarihi yoksa bu ayın sonunu hesapla
-        const simdi = new Date();
-        const aySonu = new Date(simdi.getFullYear(), simdi.getMonth() + 1, 0, 23, 59, 59);
-        paketKalanGun = Math.ceil((aySonu - simdi) / 86400000);
-        paketBitisTarihi = aySonu.toISOString().slice(0, 10);
+        // paket_bitis_tarihi yoksa: son ödeme tarihinden +30 gün, yoksa oluşturma tarihinden +30 gün
+        const sonOdeme = (await pool.query(
+          "SELECT olusturma_tarihi FROM odemeler WHERE isletme_id=$1 AND durum='odendi' ORDER BY olusturma_tarihi DESC LIMIT 1",
+          [isletmeId]
+        )).rows[0];
+        const baslangic = sonOdeme?.olusturma_tarihi || isletme?.olusturma_tarihi;
+        if (baslangic) {
+          const bitis = new Date(baslangic);
+          bitis.setDate(bitis.getDate() + 30);
+          paketBitisTarihi = bitis.toISOString().slice(0, 10);
+          paketKalanGun = Math.ceil((bitis - Date.now()) / 86400000);
+        }
       }
 
       res.json({ topHizmet, topCalisan, paketKalanGun, paketBitisTarihi, paket: isletme?.paket });
