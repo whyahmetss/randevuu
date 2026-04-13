@@ -448,7 +448,7 @@ class WhatsAppWebService extends EventEmitter {
         if (idx >= 0 && idx < hizmetler.length) {
           const h = hizmetler[idx];
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: h.id });
-          return botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: h.isim, sureDk: h.sure_dk, fiyat: this.fiyatFormat(h.fiyat) });
+          return botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: h.isim, _hizmetEN: h.isim_en, _hizmetAR: h.isim_ar, sureDk: h.sure_dk, fiyat: this.fiyatFormat(h.fiyat) });
         }
         return cevap;
       }
@@ -480,7 +480,7 @@ class WhatsAppWebService extends EventEmitter {
         if (saat && saatler.includes(saat)) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: saat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
-          return botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: this.saatFormat(saat), fiyat: hz ? this.fiyatFormat(hz.fiyat) : null });
+          return botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: this.saatFormat(saat), fiyat: hz ? this.fiyatFormat(hz.fiyat) : null });
         }
         return cevap;
       }
@@ -490,7 +490,7 @@ class WhatsAppWebService extends EventEmitter {
         if (metin === '1' || metin.toLowerCase().includes('evet') || metin.toLowerCase().includes('onayla')) {
           const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
-          return botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
+          return botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -839,7 +839,7 @@ class WhatsAppWebService extends EventEmitter {
             return { metin: bekle, butonlar: null };
           }
 
-          const tebrik = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, calisanAd: clOnay?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
+          const tebrik = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, calisanAd: clOnay?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
           return { metin: tebrik, butonlar: null };
         } else if (metinKucuk !== '2' && !metinKucuk.includes('iptal') && !metinKucuk.includes('hayır') && metin.length > 1) {
           // Musteri not yazdi - onaylayip notu kaydet
@@ -1039,7 +1039,7 @@ class WhatsAppWebService extends EventEmitter {
     const hz = guncelDurum.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [guncelDurum.secilen_hizmet_id])).rows[0] : null;
     const cl = guncelDurum.secilen_calisan_id ? (await pool.query('SELECT * FROM calisanlar WHERE id=$1', [guncelDurum.secilen_calisan_id])).rows[0] : null;
     const ozet = botMesajlar.get(isletme, 'randevuOzet', {
-      isletmeAd: isletme.isim, hizmetAd: hz?.isim, calisanAd: cl?.isim,
+      isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, calisanAd: cl?.isim,
       tarihStr: this.tarihFormat(guncelDurum.secilen_tarih), saatStr: secilenSaat,
       fiyat: hz ? this.fiyatFormat(hz.fiyat) : null
     });

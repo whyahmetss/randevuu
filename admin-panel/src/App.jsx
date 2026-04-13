@@ -198,15 +198,15 @@ function Login({ onLogin }) {
 // ==================== HİZMETLER SAYFASI ====================
 function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   const [formAcik, setFormAcik] = useState(false);
-  const [form, setForm] = useState({ isim: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0" });
+  const [form, setForm] = useState({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0" });
   const [hata, setHata] = useState("");
 
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api.post("/hizmetler", { isim: form.isim, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0 });
+    const res = await api.post("/hizmetler", { isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0 });
     if (res.hata) { setHata(res.hata); return; }
-    setForm({ isim: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0" });
+    setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0" });
     setFormAcik(false);
     yukle();
   };
@@ -250,6 +250,14 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               </div>
             </div>
             <div>
+              <label className="form-label">🇬🇧 English Name</label>
+              <input placeholder="Haircut" value={form.isim_en} onChange={e => setForm({...form, isim_en: e.target.value})} className="input" />
+            </div>
+            <div>
+              <label className="form-label">🇸🇦 اسم الخدمة</label>
+              <input placeholder="قص شعر" value={form.isim_ar} onChange={e => setForm({...form, isim_ar: e.target.value})} className="input" />
+            </div>
+            <div>
               <label className="form-label">Süre (dakika)</label>
               <input type="number" placeholder="30" value={form.sure_dk} onChange={e => setForm({...form, sure_dk: e.target.value})} className="input" />
             </div>
@@ -277,6 +285,8 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
           <div className="row gap-12">
             <div>
               <span className="list-item-name">{h.emoji ? `${h.emoji} ` : ''}{h.isim}</span>
+              {h.isim_en && <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 11 }}>🇬🇧{h.isim_en}</span>}
+              {h.isim_ar && <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 11 }}>🇸🇦{h.isim_ar}</span>}
               {!h.aktif && <span style={{ color: "var(--red)", marginLeft: 8, fontSize: 12 }}>(Pasif)</span>}
             </div>
             <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>

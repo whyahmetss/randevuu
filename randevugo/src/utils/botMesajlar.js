@@ -614,6 +614,19 @@ function get(isletme, key, params = {}, musteriMesaj = null, kaydedilenDil = nul
     }
   }
 
+  // Hizmet isimlerini dile göre çevir (isim_en, isim_ar varsa)
+  if (dil !== 'tr' && params.hizmetler && Array.isArray(params.hizmetler)) {
+    params.hizmetler = params.hizmetler.map(h => ({
+      ...h,
+      isim: (dil === 'en' && h.isim_en) ? h.isim_en : (dil === 'ar' && h.isim_ar) ? h.isim_ar : h.isim
+    }));
+  }
+  if (dil !== 'tr' && params.hizmetAd) {
+    // Tek hizmet adı (özet, seçim vs.) — _hizmetCevirileri objesinden bak
+    if (params._hizmetEN && dil === 'en') params.hizmetAd = params._hizmetEN;
+    if (params._hizmetAR && dil === 'ar') params.hizmetAd = params._hizmetAR;
+  }
+
   const dilMesajlar = DILLER[dil] || DILLER.tr;
   const fn = dilMesajlar[key];
   if (!fn) return DILLER.tr[key] ? DILLER.tr[key](stil, params) : '';

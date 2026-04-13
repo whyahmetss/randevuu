@@ -94,7 +94,7 @@ class AdminController {
 
   async hizmetEkle(req, res) {
     try {
-      const { isim, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi } = req.body;
+      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
       const paket = PAKETLER[isletme?.paket] || PAKETLER.baslangic;
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
@@ -102,8 +102,8 @@ class AdminController {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
       }
       const result = await pool.query(
-        'INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [req.kullanici.isletme_id, isim, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0]
+        'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+        [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
@@ -114,10 +114,10 @@ class AdminController {
   async hizmetGuncelle(req, res) {
     try {
       const { id } = req.params;
-      const { isim, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi } = req.body;
+      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi } = req.body;
       const result = await pool.query(
-        'UPDATE hizmetler SET isim=$1, sure_dk=$2, fiyat=$3, aciklama=$4, aktif=$5, emoji=$6, kapora_yuzdesi=$7 WHERE id=$8 AND isletme_id=$9 RETURNING *',
-        [isim, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, id, req.kullanici.isletme_id]
+        'UPDATE hizmetler SET isim=$1, isim_en=$2, isim_ar=$3, sure_dk=$4, fiyat=$5, aciklama=$6, aktif=$7, emoji=$8, kapora_yuzdesi=$9 WHERE id=$10 AND isletme_id=$11 RETURNING *',
+        [isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, id, req.kullanici.isletme_id]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
