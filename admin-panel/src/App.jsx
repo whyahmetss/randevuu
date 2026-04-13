@@ -1352,49 +1352,69 @@ function Dashboard() {
                   )}
                 </div>
 
-                {/* Bot Test — Smart Insights tarzı koyu gradient kart */}
+                {/* Bot Test — Smart AI Insights tarzı premium kart */}
                 <div style={{
-                  background: "linear-gradient(145deg, #160527 0%, #1e0f38 40%, #2a1650 70%, #1a0d30 100%)",
-                  borderRadius: 16, padding: "22px 22px 18px", position: "relative", overflow: "hidden",
-                  display: "flex", flexDirection: "column"
+                  background: "linear-gradient(160deg, #0a0e1a 0%, #0d1529 30%, #111d3a 60%, #0f1628 100%)",
+                  borderRadius: 20, padding: 0, position: "relative", overflow: "hidden",
+                  display: "flex", flexDirection: "column", border: "1px solid rgba(56,189,248,.08)"
                 }}>
-                  {/* Dekoratif elementler */}
-                  <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: "rgba(84,224,151,.06)" }} />
-                  <div style={{ position: "absolute", bottom: 30, right: -10, width: 80, height: 80, borderRadius: "50%", background: "rgba(254,87,150,.04)" }} />
-                  <div style={{ position: "absolute", top: 40, right: 30, width: 40, height: 40, borderRadius: "50%", background: "rgba(20,245,214,.05)" }} />
+                  {/* Animated glow orb */}
+                  <div style={{ position: "absolute", top: -30, right: -30, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle, rgba(16,185,129,.15) 0%, rgba(56,189,248,.08) 50%, transparent 70%)", filter: "blur(20px)", animation: "pulse 4s ease-in-out infinite" }} />
+                  <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "radial-gradient(circle, rgba(139,92,246,.12) 0%, transparent 70%)", filter: "blur(15px)" }} />
+                  <div style={{ position: "absolute", top: "50%", right: 20, width: 60, height: 60, borderRadius: "50%", background: "radial-gradient(circle, rgba(6,182,212,.08) 0%, transparent 70%)", filter: "blur(10px)" }} />
 
                   {/* Header */}
-                  <div style={{ position: "relative", zIndex: 1, marginBottom: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: "rgba(84,224,151,.7)", fontWeight: 600, letterSpacing: ".5px" }}>Botunuzu Test Edin</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(84,224,151,.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ fontSize: 14 }}>🤖</span>
+                  <div style={{ position: "relative", zIndex: 1, padding: "20px 22px 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 12,
+                          background: "linear-gradient(135deg, rgba(16,185,129,.2), rgba(56,189,248,.15))",
+                          border: "1px solid rgba(16,185,129,.2)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          backdropFilter: "blur(10px)"
+                        }}>
+                          <span style={{ fontSize: 18 }}>🤖</span>
+                        </div>
+                        <div>
+                          <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>AI Bot Test</div>
+                          <div style={{ color: "rgba(16,185,129,.6)", fontSize: 10, fontWeight: 600, letterSpacing: ".5px" }}>CANLI SİMÜLASYON</div>
+                        </div>
                       </div>
-                      <span style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>Bot Test</span>
+                      <div style={{
+                        padding: "4px 10px", borderRadius: 20,
+                        background: "rgba(16,185,129,.1)", border: "1px solid rgba(16,185,129,.2)",
+                        display: "flex", alignItems: "center", gap: 5
+                      }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px rgba(16,185,129,.6)" }} />
+                        <span style={{ color: "#10b981", fontSize: 10, fontWeight: 700 }}>Aktif</span>
+                      </div>
                     </div>
-                    <div style={{ color: "rgba(255,255,255,.4)", fontSize: 11, lineHeight: 1.4 }}>Botunuzu test edin, müşteri gibi mesaj gönderin</div>
+                    <div style={{ color: "rgba(255,255,255,.35)", fontSize: 11, lineHeight: 1.4, marginBottom: 12 }}>Müşteri gibi mesaj gönderin, botunuzun nasıl yanıt verdiğini görün</div>
                   </div>
 
-                  {/* Chat area */}
+                  {/* Chat area — glassmorphism */}
                   <div ref={chatRef} style={{
-                    flex: 1, minHeight: 120, maxHeight: 180, overflowY: "auto",
-                    background: "rgba(255,255,255,.04)", borderRadius: 12, padding: 10,
-                    marginBottom: 10, display: "flex", flexDirection: "column", gap: 6,
-                    position: "relative", zIndex: 1
+                    flex: 1, minHeight: 130, maxHeight: 180, overflowY: "auto",
+                    background: "rgba(255,255,255,.02)", borderTop: "1px solid rgba(255,255,255,.05)",
+                    borderBottom: "1px solid rgba(255,255,255,.05)",
+                    padding: "10px 16px", display: "flex", flexDirection: "column", gap: 8,
+                    position: "relative", zIndex: 1, margin: "0 6px"
                   }}>
                     {testCevaplar.length === 0 ? (
-                      <div style={{ textAlign: "center", padding: "20px 0", color: "rgba(255,255,255,.25)", fontSize: 11 }}>
-                        Bir mesaj göndererek botu test edin
+                      <div style={{ textAlign: "center", padding: "28px 0", color: "rgba(255,255,255,.2)", fontSize: 11, fontStyle: "italic" }}>
+                        💬 Bir mesaj göndererek botu test edin
                       </div>
                     ) : testCevaplar.map((m, i) => (
                       <div key={i} style={{
                         alignSelf: m.yon === "giden" ? "flex-end" : "flex-start",
-                        background: m.yon === "giden" ? "rgba(84,224,151,.2)" : "rgba(255,255,255,.08)",
-                        color: m.yon === "giden" ? "#54E097" : "rgba(255,255,255,.8)",
-                        padding: "6px 12px", borderRadius: 10, fontSize: 12, maxWidth: "85%",
-                        lineHeight: 1.4
+                        background: m.yon === "giden"
+                          ? "linear-gradient(135deg, rgba(16,185,129,.25), rgba(56,189,248,.15))"
+                          : "rgba(255,255,255,.06)",
+                        border: m.yon === "giden" ? "1px solid rgba(16,185,129,.2)" : "1px solid rgba(255,255,255,.06)",
+                        color: m.yon === "giden" ? "#a7f3d0" : "rgba(255,255,255,.75)",
+                        padding: "8px 14px", borderRadius: m.yon === "giden" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                        fontSize: 12, maxWidth: "85%", lineHeight: 1.5, backdropFilter: "blur(10px)"
                       }}>
                         {m.mesaj}
                       </div>
@@ -1402,25 +1422,29 @@ function Dashboard() {
                   </div>
 
                   {/* Input */}
-                  <div style={{ display: "flex", gap: 6, position: "relative", zIndex: 1 }}>
+                  <div style={{ display: "flex", gap: 8, position: "relative", zIndex: 1, padding: "14px 18px 16px" }}>
                     <input
                       value={testMesaj}
                       onChange={e => setTestMesaj(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && botTest()}
                       placeholder="Mesaj yazın..."
                       style={{
-                        flex: 1, padding: "10px 14px", borderRadius: 10,
-                        background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)",
-                        color: "#fff", fontSize: 12, outline: "none", fontFamily: "inherit"
+                        flex: 1, padding: "11px 16px", borderRadius: 12,
+                        background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)",
+                        color: "#fff", fontSize: 12, outline: "none", fontFamily: "inherit",
+                        transition: "border .2s"
                       }}
+                      onFocus={e => e.target.style.borderColor = "rgba(16,185,129,.3)"}
+                      onBlur={e => e.target.style.borderColor = "rgba(255,255,255,.08)"}
                     />
                     <button onClick={botTest} disabled={testYukleniyor} style={{
-                      padding: "10px 16px", borderRadius: 10, border: "none",
-                      background: "rgba(84,224,151,.2)", color: "#54E097",
-                      fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-                      transition: "all .2s"
+                      padding: "11px 18px", borderRadius: 12, border: "none",
+                      background: "linear-gradient(135deg, #10b981, #06b6d4)",
+                      color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer",
+                      fontFamily: "inherit", transition: "all .2s", boxShadow: "0 4px 15px rgba(16,185,129,.3)",
+                      opacity: testYukleniyor ? .6 : 1
                     }}>
-                      {testYukleniyor ? "..." : "➤"}
+                      {testYukleniyor ? "⟳" : "➤"}
                     </button>
                   </div>
                 </div>
