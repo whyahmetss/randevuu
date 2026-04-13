@@ -12,6 +12,7 @@ class HatirlatmaService {
       await this.sessizOnay();            // 3 saat sonra otomatik tamamla
       await this.beklemeListesiBildirim();
       await this.onayTimeoutKontrol();
+      await this.kaporaTimeoutKontrol();
     });
 
     console.log('⏰ Hatırlatma servisi başlatıldı — Akıllı Teyit Zinciri aktif (her 5 dk)');
@@ -259,6 +260,38 @@ class HatirlatmaService {
         console.log(`⏳ Onay timeout: ${r.musteri_isim} - ${r.isletme_isim} - ${saat}`);
       }
     } catch (e) { console.error('❌ Onay timeout hatası:', e.message); }
+  }
+
+  // Kapora timeout — 5 dakika içinde ödeme yapılmazsa randevuyu iptal et
+  async kaporaTimeoutKontrol() {
+    try {
+      const result = await pool.query(`
+        SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
+               h.isim as hizmet_isim, i.isim as isletme_isim,
+               i.telegram_token, i.id as isletme_id,
+               r.kapora_shopier_urun_id
+        FROM randevular r
+        JOIN musteriler m ON r.musteri_id = m.id
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        JOIN isletmeler i ON r.isletme_id = i.id
+        WHERE r.durum = 'kapora_bekliyor'
+        AND r.olusturma_tarihi < NOW() - INTERVAL '5 minutes'
+      `);
+      for (const r of result.rows) {
+        await pool.query("UPDATE randevular SET durum='iptal', kapora_durumu='iptal' WHERE id=$1", [r.id]);
+        const saat = String(r.saat).substring(0, 5);
+        const mesaj = `⏳ *Kapora süresi doldu*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}📅 ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\n💳 Kapora ödemesi 5 dakika içinde tamamlanmadığı için randevunuz iptal edildi.\n\n📅 Yeni randevu için *1* yazın.`;
+        await this.mesajGonder(r, mesaj);
+        console.log(`💳⏳ Kapora timeout: ${r.musteri_isim} - ${r.isletme_isim} - ${saat}`);
+        // Shopier ürününü sil
+        if (r.kapora_shopier_urun_id) {
+          try {
+            const shopierService = require('./shopierService');
+            await shopierService.urunSil(r.kapora_shopier_urun_id);
+          } catch(e) {}
+        }
+      }
+    } catch (e) { console.error('❌ Kapora timeout hatası:', e.message); }
   }
 
   tarihFormat(tarih) {
