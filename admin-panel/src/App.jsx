@@ -1359,45 +1359,28 @@ function Dashboard() {
                   border: "1px solid var(--border)", boxShadow: "0 2px 16px rgba(0,0,0,.04)"
                 }}>
                   {/* Halka görsel alanı */}
-                  <div style={{ position: "relative", height: 160, display: "flex", alignItems: "center", justifyContent: "center", perspective: 400 }}>
-                    {/* Arka plan glow */}
-                    <div style={{ position: "absolute", width: 160, height: 160, borderRadius: "50%", background: "radial-gradient(circle, rgba(45,212,191,.08) 0%, transparent 60%)", filter: "blur(10px)" }} />
-                    {/* Ana 3D halka — kalın, gradient, eğik */}
+                  <div style={{ position: "relative", height: 150, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {/* Dış halka — teal */}
                     <div style={{
-                      width: 120, height: 120, borderRadius: "50%",
-                      border: "8px solid transparent",
-                      borderImage: "linear-gradient(135deg, #2dd4bf, #14b8a6, #0d9488, #5eead4, #2dd4bf) 1",
-                      borderImageSlice: 1,
-                      background: "linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(135deg, #2dd4bf, #14b8a6, #0d9488, #5eead4, #2dd4bf) border-box",
-                      borderColor: "transparent",
-                      transform: "rotateX(20deg) rotateZ(-5deg)",
-                      boxShadow: "0 8px 25px rgba(45,212,191,.15), 0 2px 10px rgba(0,0,0,.06), inset 0 -3px 8px rgba(45,212,191,.08)",
-                      animation: "glowSpin 12s linear infinite",
-                      position: "relative"
-                    }}>
-                      {/* İç halka — mor */}
-                      <div style={{
-                        position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%) rotateZ(10deg)",
-                        width: 72, height: 72, borderRadius: "50%",
-                        background: "linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(135deg, #a78bfa, #8b5cf6, #7c3aed, #c4b5fd, #a78bfa) border-box",
-                        border: "5px solid transparent",
-                        boxShadow: "0 4px 15px rgba(139,92,246,.12), inset 0 -2px 6px rgba(139,92,246,.06)",
-                        animation: "glowSpin 8s linear infinite reverse"
-                      }}>
-                        {/* Merkez parlayan core */}
-                        <div style={{
-                          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
-                          width: 18, height: 18, borderRadius: "50%",
-                          background: "radial-gradient(circle, rgba(45,212,191,.9) 0%, rgba(45,212,191,.3) 50%, transparent 100%)",
-                          boxShadow: "0 0 15px rgba(45,212,191,.5), 0 0 30px rgba(45,212,191,.2)",
-                          animation: "pulse 2.5s ease-in-out infinite"
-                        }} />
-                      </div>
-                    </div>
-                    {/* Dekoratif noktalar */}
-                    <div style={{ position: "absolute", top: 18, left: 28, width: 8, height: 8, borderRadius: "50%", background: "#2dd4bf", opacity: .2, boxShadow: "0 0 6px rgba(45,212,191,.2)" }} />
-                    <div style={{ position: "absolute", bottom: 28, right: 32, width: 5, height: 5, borderRadius: "50%", background: "#a78bfa", opacity: .18, boxShadow: "0 0 5px rgba(139,92,246,.15)" }} />
-                    <div style={{ position: "absolute", top: 50, right: 22, width: 4, height: 4, borderRadius: "50%", background: "#38bdf8", opacity: .15 }} />
+                      position: "absolute", width: 110, height: 110, borderRadius: "50%",
+                      border: "3px solid #2dd4bf", boxShadow: "0 0 20px rgba(45,212,191,.12), 0 4px 12px rgba(45,212,191,.06)"
+                    }} />
+                    {/* İç halka — mor, biraz sola yukarı offset */}
+                    <div style={{
+                      position: "absolute", width: 75, height: 75, borderRadius: "50%",
+                      border: "2.5px solid #a78bfa", top: 18, left: "calc(50% - 48px)",
+                      boxShadow: "0 0 14px rgba(167,139,250,.1)"
+                    }} />
+                    {/* Merkez glow */}
+                    <div style={{
+                      position: "absolute", width: 14, height: 14, borderRadius: "50%",
+                      background: "radial-gradient(circle, rgba(45,212,191,.9) 0%, rgba(45,212,191,.2) 60%, transparent 100%)",
+                      boxShadow: "0 0 12px rgba(45,212,191,.5), 0 0 25px rgba(45,212,191,.15)",
+                      top: 52, left: "calc(50% - 14px)", animation: "pulse 3s ease-in-out infinite"
+                    }} />
+                    {/* Noktalar */}
+                    <div style={{ position: "absolute", top: 20, left: 28, width: 7, height: 7, borderRadius: "50%", background: "#2dd4bf", opacity: .2 }} />
+                    <div style={{ position: "absolute", bottom: 32, right: 35, width: 5, height: 5, borderRadius: "50%", background: "#a78bfa", opacity: .15 }} />
                   </div>
 
                   {/* Başlık */}
