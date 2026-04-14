@@ -934,12 +934,20 @@ class AdminController {
       const allowedDurumlar = ['odendi', 'bekliyor', 'gecikti', 'basarisiz', 'havale_bekliyor', 'odeme_bekliyor'];
       if (!durum || !allowedDurumlar.includes(durum)) return res.status(400).json({ hata: 'Geçersiz durum' });
       const result = await pool.query(
-        `UPDATE odemeler SET durum = $1, odeme_tarihi = CASE WHEN $1 = 'odendi' THEN NOW() ELSE NULL END WHERE id = $2 RETURNING *`,
+        `UPDATE odemeler SET durum = $1, odeme_tarihi = CASE WHEN $1 = 'odendi' THEN NOW() ELSE odeme_tarihi END WHERE id = $2 RETURNING *`,
         [durum, req.params.id]
       );
-      await this.auditLogYaz(req.kullanici, `odeme_${durum}`, `Ödeme #${req.params.id} durumu: ${durum}`, 'odemeler', parseInt(req.params.id), req.ip);
+      if (durum === 'odendi' && result.rows[0]) {
+        const odeme = result.rows[0];
+        await pool.query(
+          "UPDATE isletmeler SET paket_bitis_tarihi = NOW() + INTERVAL '30 days' WHERE id = $1",
+          [odeme.isletme_id]
+        );
+      }
+      try { await this.auditLogYaz(req.kullanici, `odeme_${durum}`, `Ödeme #${req.params.id} durumu: ${durum}`, 'odemeler', parseInt(req.params.id), req.ip); } catch(e) {}
       res.json({ odeme: result.rows[0] });
     } catch (error) {
+      console.error('❌ odemeGuncelle hatası:', error);
       res.status(500).json({ hata: error.message });
     }
   }
