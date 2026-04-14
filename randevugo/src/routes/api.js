@@ -5,6 +5,7 @@ const authController = require('../controllers/authController');
 const adminController = require('../controllers/adminController');
 const botController = require('../controllers/botController');
 const bookingController = require('../controllers/bookingController');
+const { numaraRateLimit, payloadDogrula } = require('../middleware/webhookGuard');
 
 // ==================== AUTH ====================
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
@@ -15,7 +16,7 @@ router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim
 router.post('/iletisim', (req, res) => adminController.iletisimGonder(req, res));
 
 // ==================== WHATSAPP WEBHOOK ====================
-router.post('/webhook/whatsapp', (req, res) => botController.gelenMesaj(req, res));
+router.post('/webhook/whatsapp', numaraRateLimit, payloadDogrula, (req, res) => botController.gelenMesaj(req, res));
 router.post('/bot/test', authMiddleware, (req, res) => botController.testMesaj(req, res));
 
 // ==================== ADMIN PANEL ====================

@@ -67,6 +67,24 @@ class BotController {
       const bugun = new Date().toISOString().split('T')[0];
       const musaitSaatler = await randevuService.musaitSaatleriGetir(isletme.id, botDurum.secilen_tarih || bugun);
 
+      // ─── HIZLI KOMUT BYPASS: Basit menü komutlarında AI'a gitmeden state machine kullan ───
+      // Sayısal seçim (1,2,3...), onay (evet, onayla), tarih kısayolları (bugün, yarın)
+      // Bu komutlar bot zaten bir aşamadayken AI'a sormaya gerek kalmadan lokal işlenebilir.
+      const basitKomut = /^[1-9]\d{0,1}$/.test(mesaj) ||                     // Sayısal: 1-99
+        /^(evet|hayır|onayla|onaylıyorum|iptal)$/i.test(mesaj.split(',')[0].trim()) ||
+        /^(bugün|yarın|yarın|today|tomorrow)$/i.test(mesaj.trim()) ||
+        (botDurum.asama === 'onay' && /evet/i.test(mesaj));                   // Onay aşamasında "evet" içeren her mesaj
+
+      const aktifAsama = botDurum.asama && botDurum.asama !== 'baslangic';
+
+      if (basitKomut && aktifAsama) {
+        console.log(`⚡ Hızlı bypass: "${mesaj}" → state machine (asama: ${botDurum.asama})`);
+        const whatsappWebService = require('../services/whatsappWeb');
+        const cevapSm = await whatsappWebService.akisIsle(mesaj, botDurum, isletme, hizmetler, musteriTelefon.replace('whatsapp:', ''), isletme.id);
+        if (cevapSm) await this.cevapGonder(musteriTelefon, isletme.id, cevapSm);
+        return res.status(200).send('OK');
+      }
+
       // DeepSeek'e sor (API key yoksa null döner)
       const aiCevap = await deepseekService.mesajAnla(mesaj, isletme, botDurum, musaitSaatler, hizmetler);
 
