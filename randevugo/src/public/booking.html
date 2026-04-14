@@ -179,7 +179,7 @@
             <div class="card-price">${h.fiyat ? h.fiyat+'₺' : ''}</div>
           </div>`;
         });
-        if(s.seciliHizmet) html += `<button class="btn-primary" onclick="adim(2)">Devam Et</button>`;
+        if(s.seciliHizmet) html += `<button class="btn-primary" onclick="hizmetSonrasi()">Devam Et</button>`;
       }
 
       // Step 2: Çalışan seç
@@ -298,25 +298,26 @@
 
     async function init() {
       const data = await api(`/book/${slug}`);
-      if(data.hata) {
+      if(data.hata || !data.isletme) {
         document.getElementById('app').innerHTML = `<div style="text-align:center;padding:60px 0"><h2 style="margin-bottom:8px">İşletme Bulunamadı</h2><p style="color:var(--muted)">Bu adres aktif değil veya yanlış bir bağlantı.</p></div>`;
         return;
       }
-      state.isletme = data;
+      state.isletme = data.isletme;
       
       const hData = await api(`/book/${slug}/hizmetler`);
       state.hizmetler = hData.hizmetler || [];
-      
-      const cData = await api(`/book/${slug}/calisanlar`);
-      state.calisanlar = cData.calisanlar || [];
       
       document.title = `${state.isletme.isim} - Online Randevu`;
       render();
     }
 
-    function secHizmet(id) {
+    async function secHizmet(id) {
       state.seciliHizmet = state.hizmetler.find(h => h.id === id);
       state.hata = '';
+      // Çalışanları hizmet seçildikten sonra yükle
+      const cData = await api(`/book/${slug}/calisanlar?hizmetId=${id}`);
+      state.calisanlar = cData.calisanlar || [];
+      state.otomatikCalisan = cData.otomatik || false;
       render();
     }
     function secCalisan(id) {
@@ -332,7 +333,7 @@
       state.hata = '';
       render();
       
-      const params = `?tarih=${tarih}&hizmet_id=${state.seciliHizmet.id}${state.seciliCalisan ? '&calisan_id='+state.seciliCalisan.id : ''}`;
+      const params = `?tarih=${tarih}&hizmetId=${state.seciliHizmet.id}${state.seciliCalisan ? '&calisanId='+state.seciliCalisan.id : ''}`;
       const data = await api(`/book/${slug}/saatler${params}`);
       state.saatler = data.saatler || [];
       state.yukleniyor = false;
@@ -351,6 +352,19 @@
       window.scrollTo(0, 0);
     }
 
+    function hizmetSonrasi() {
+      // Çalışan otomatik seçim modundaysa veya tek çalışan varsa 3. adıma atla
+      if(state.otomatikCalisan || state.calisanlar.length === 0) {
+        state.seciliCalisan = null;
+        adim(3);
+      } else if(state.calisanlar.length === 1) {
+        state.seciliCalisan = state.calisanlar[0];
+        adim(3);
+      } else {
+        adim(2);
+      }
+    }
+
     async function randevuOlustur() {
       state.yukleniyor = true;
       state.hata = '';
@@ -358,13 +372,12 @@
 
       const tel = state.musteriTel.replace(/\s/g,'').replace(/^0/,'90');
       const body = {
-        musteri_telefon: tel,
-        musteri_isim: state.musteriAd,
-        hizmet_id: state.seciliHizmet.id,
-        calisan_id: state.seciliCalisan?.id,
+        musteriTelefon: tel,
+        musteriIsim: state.musteriAd,
+        hizmetId: state.seciliHizmet.id,
+        calisanId: state.seciliCalisan?.id || null,
         tarih: state.seciliTarih,
-        saat: state.seciliSaat,
-        not_text: state.musteriNot || undefined
+        saat: state.seciliSaat
       };
 
       const data = await apiPost(`/book/${slug}/randevu`, body);
