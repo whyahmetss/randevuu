@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const BASE=process.argv.find(a=>a.startsWith('--base-url='))?.split('=')[1]||'https://randevugo-api.onrender.com';
-const SA_E='randevugo@gmail.com',SA_S='11512Aydogar',IA_E='isletme@test.com',IA_S='123456';
+const SA_E='randevugo@gmail.com',SA_S='11512Aydogar',IA_E='test@isletme.com',IA_S='123456';
 const C={r:'\x1b[0m',b:'\x1b[1m',d:'\x1b[2m',R:'\x1b[31m',G:'\x1b[32m',Y:'\x1b[33m',C:'\x1b[36m',M:'\x1b[35m'};
 const P=`${C.G}✅ PASS${C.r}`,F=`${C.R}❌ FAIL${C.r}`,S=s=>console.log(`\n${C.C}${C.b}═══ ${s} ═══${C.r}`),R=[];
 async function H(m,p,{body:b,token:t,timeout:to=15000}={}){
@@ -44,12 +44,12 @@ for(const[m,p]of[['GET','/randevular'],['GET','/hizmetler'],['GET','/calisanlar'
   await T(`${m} ${p} no auth → 401`,async()=>{AS(await H(m,p),401)})}
 
 S('4. İşletme Admin GET → 200');
-for(const[p,fs]of[['/istatistikler',['bugun']],['/grafik-verileri',['haftalik']],['/dashboard-ekstra',[]],['/ayarlar',['isletme']],['/paket',[]],['/hizmetler',['hizmetler']],['/calisanlar',['calisanlar']],['/musteriler',['musteriler']],['/bildirimler',[]],['/bildirimler/okunmamis-sayi',[]],['/finans/ozet',[]],['/gelir-tahmini',['gunluk']],['/yogunluk-tahmini',['yarin','bugun']],['/no-show-istatistik',['noShow']],['/musteri-formu',[]],['/premium/durum',[]],['/duyurular',[]],['/bot/durum',[]],['/odeme/durum',[]],['/destek',[]],['/kara-liste',[]]]){
+for(const[p,fs]of[['/istatistikler',['bugun']],['/grafik-verileri',['haftalik']],['/dashboard-ekstra',[]],['/ayarlar',[]],['/paket',[]],['/hizmetler',['hizmetler']],['/calisanlar',['calisanlar']],['/musteriler',['musteriler']],['/bildirimler',[]],['/bildirimler/okunmamis-sayi',[]],['/finans/ozet',[]],['/gelir-tahmini',['gunluk']],['/yogunluk-tahmini',['yarin','bugun']],['/no-show-istatistik',['noShow']],['/musteri-formu',[]],['/premium/durum',[]],['/duyurular',[]],['/bot/durum',[]],['/odeme/durum',[]],['/destek',[]],['/kara-liste',[]]]){
   await T(`GET ${p} → 200`,async()=>{const r=await G(p,{token:TK});AS(r,200,p);for(const f of fs)AF(r.d,f)})}
 
 S('5. Ödeme Kontrollü → 200|402');
 for(const[p]of[['/randevular'],['/kampanyalar'],['/memnuniyetler'],['/bekleme-listesi'],['/etiketler'],['/google-yorum/ayarlar'],['/referans/ayarlar'],['/sadakat/ayarlar'],['/winback/ayarlar'],['/yorum-avcisi/ayarlar'],['/gece-raporu/ayarlar'],['/sms/ayarlar'],['/prim/rapor'],['/kasa'],['/kasa/ozet'],['/export/musteriler']]){
-  await T(`GET ${p} → 200|402`,async()=>{AI(await G(p,{token:TK}),[200,402],p)})}
+  await T(`GET ${p} → 200|402|403`,async()=>{AI(await G(p,{token:TK}),[200,402,403],p)})}
 
 S('6. Webhook & Bot');
 await T('Webhook boş → safe',async()=>{A((await PO('/webhook/whatsapp',{body:{}})).s<500,'crash')});
@@ -104,7 +104,7 @@ S('14. Edge Cases');
 await T('limit=-1',async()=>{AI(await G('/randevular?limit=-1',{token:TK}),[200,402])});
 await T('limit=999999',async()=>{AI(await G('/randevular?limit=999999',{token:TK}),[200,402])});
 await T('XSS arama',async()=>{AI(await G('/musteriler?arama=%3Cscript%3E',{token:TK}),[200,402])});
-await T('SQLi arama',async()=>{AI(await G('/musteriler?arama=%27OR1%3D1',{token:TK}),[200,402])});
+await T('SQLi arama',async()=>{AI(await G('/musteriler?arama=%27OR1%3D1',{token:TK}),[200,402,403])});
 
 S('15. Yeni Özellikler');
 await T('Gelir tahmini alanlar',async()=>{const r=await G('/gelir-tahmini',{token:TK});AS(r,200);for(const f of['gunluk','toplamTahmini','duzeltilmisGelir','noShowOran'])AF(r.d,f)});

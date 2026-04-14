@@ -4337,8 +4337,9 @@ class AdminController {
       const { isletme_id, arama, segment } = req.query;
 
       let sorgu = `
-        SELECT m.id, m.isim, m.telefon, m.isletme_id, m.olusturma_tarihi, m.notlar,
-          m.puan, m.referans_kodu,
+        SELECT m.id, m.isim, m.telefon, m.olusturma_tarihi, m.notlar,
+          COALESCE(m.puan_bakiye, 0) as puan, m.referans_kodu,
+          (SELECT r2.isletme_id FROM randevular r2 WHERE r2.musteri_id = m.id LIMIT 1) as isletme_id,
           i.isim as isletme_isim, i.kategori, i.paket,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id), 0) as randevu_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id AND r.durum = 'tamamlandi'), 0) as tamamlanan_randevu,
@@ -4346,13 +4347,13 @@ class AdminController {
           (SELECT MAX(r.tarih) FROM randevular r WHERE r.musteri_id = m.id) as son_randevu_tarih,
           (SELECT MIN(r.tarih) FROM randevular r WHERE r.musteri_id = m.id) as ilk_randevu_tarih
         FROM musteriler m
-        LEFT JOIN isletmeler i ON m.isletme_id = i.id
+        LEFT JOIN isletmeler i ON i.id = (SELECT r3.isletme_id FROM randevular r3 WHERE r3.musteri_id = m.id LIMIT 1)
       `;
 
       const params = [];
       const where = [];
 
-      if (isletme_id) { params.push(isletme_id); where.push(`m.isletme_id = $${params.length}`); }
+      if (isletme_id) { params.push(parseInt(isletme_id)); where.push(`EXISTS (SELECT 1 FROM randevular r4 WHERE r4.musteri_id = m.id AND r4.isletme_id = $${params.length})`); }
       if (arama) { params.push(`%${arama}%`); where.push(`(m.isim ILIKE $${params.length} OR m.telefon ILIKE $${params.length})`); }
 
       if (where.length > 0) sorgu += ' WHERE ' + where.join(' AND ');
