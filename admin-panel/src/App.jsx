@@ -2824,7 +2824,7 @@ function SuperAdminPanel({ kullanici }) {
   };
   const sablonSil = async (id) => {
     if (!confirm("Bu şablonu silmek istediğinize emin misiniz?")) return;
-    try { await api.delete(`/admin/satis-bot/sablonlar/${id}`); sablonlariYukle(); } catch (e) { alert("Silme hatası"); }
+    try { await api.del(`/admin/satis-bot/sablonlar/${id}`); sablonlariYukle(); } catch (e) { alert("Silme hatası"); }
   };
 
   useEffect(() => {
