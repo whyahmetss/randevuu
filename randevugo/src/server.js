@@ -543,6 +543,9 @@ app.listen(PORT, () => {
   
   // WhatsApp servisini başlat
   whatsappService.init();
+
+  // Cleanup: test duyurularını sil
+  try { pool.query("DELETE FROM duyurular WHERE baslik ILIKE '%battık%' OR baslik ILIKE '%test%duyuru%'").then(r => { if (r.rowCount > 0) console.log(`🧹 ${r.rowCount} test duyurusu silindi`); }); } catch(e) {}
   
   // Hatırlatma cron job'ını başlat (production'da sadece ENABLE_CRON=true ise)
   if (process.env.ENABLE_CRON !== 'false') {
