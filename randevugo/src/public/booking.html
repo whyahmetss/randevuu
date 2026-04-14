@@ -87,7 +87,7 @@
     const slug = window.location.pathname.split('/book/')[1];
     
     let state = {
-      step: 1, // 1=hizmet, 2=calisan, 3=tarih/saat, 4=bilgi, 5=onay, 6=basarili
+      step: 1,
       isletme: null,
       hizmetler: [],
       calisanlar: [],
@@ -100,7 +100,11 @@
       musteriTel: '',
       musteriNot: '',
       hata: '',
-      yukleniyor: false
+      yukleniyor: false,
+      captchaA: 0,
+      captchaB: 0,
+      captchaCevap: '',
+      sonRandevuZaman: 0
     };
 
     const gunAdlari = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -236,11 +240,16 @@
         html += '<div class="step-title"><span class="num">4</span>Bilgileriniz</div>';
         html += `<div class="input-group">
           <label>Adınız Soyadınız</label>
-          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="Örn: Ahmet Yılmaz" oninput="state.musteriAd=this.value;bilgiKontrol()">
+          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="Örn: Ahmet Yılmaz" oninput="state.musteriAd=this.value;bilgiKontrol()" maxlength="60">
         </div>
         <div class="input-group">
           <label>Telefon Numaranız</label>
-          <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="05XX XXX XX XX" oninput="state.musteriTel=this.value;bilgiKontrol()">
+          <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="05XX XXX XX XX" oninput="state.musteriTel=this.value;bilgiKontrol()" maxlength="15">
+        </div>
+        <div style="position:absolute;left:-9999px"><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
+        <div class="input-group">
+          <label>Doğrulama: ${s.captchaA} + ${s.captchaB} = ?</label>
+          <input type="number" id="captchaInput" placeholder="Sonucu yazın" oninput="state.captchaCevap=this.value;bilgiKontrol()">
         </div>
         <div class="input-group">
           <label>Not (opsiyonel)</label>
@@ -255,7 +264,7 @@
         html += '<div class="step-title"><span class="num">5</span>Randevu Özeti</div>';
         html += `<div class="summary">
           <div class="summary-row"><span>Hizmet</span><span>${s.seciliHizmet?.isim}</span></div>
-          <div class="summary-row"><span>Uzman</span><span>${s.seciliCalisan?.isim}</span></div>
+          ${s.seciliCalisan ? `<div class="summary-row"><span>Uzman</span><span>${s.seciliCalisan.isim}</span></div>` : ''}
           <div class="summary-row"><span>Tarih</span><span>${formatTarih(s.seciliTarih)}</span></div>
           <div class="summary-row"><span>Saat</span><span>${s.seciliSaat}</span></div>
           <div class="summary-row"><span>Süre</span><span>${s.seciliHizmet?.sure_dk} dakika</span></div>
@@ -308,6 +317,7 @@
       state.hizmetler = hData.hizmetler || [];
       
       document.title = `${state.isletme.isim} - Online Randevu`;
+      yeniCaptcha();
       render();
     }
 
@@ -347,15 +357,41 @@
 
     function bilgiKontrol() {
       const btn = document.getElementById('btnOzet');
-      if(btn) btn.disabled = !(state.musteriAd.trim() && state.musteriTel.trim());
+      if(btn) btn.disabled = !(state.musteriAd.trim() && state.musteriTel.trim() && state.captchaCevap);
     }
     function bilgiDevam() {
+      // Honeypot kontrolü
+      const hp = document.getElementById('website');
+      if(hp && hp.value) { state.hata = 'Geçersiz istek.'; render(); return; }
+      
       if(!state.musteriAd.trim() || !state.musteriTel.trim()) {
         state.hata = 'Lütfen ad ve telefon bilgilerinizi girin.';
-        render();
-        return;
+        render(); return;
+      }
+      // Telefon format kontrolü
+      const tel = state.musteriTel.replace(/\s/g,'');
+      if(!/^(05\d{9}|5\d{9}|905\d{9}|\+905\d{9})$/.test(tel)) {
+        state.hata = 'Geçerli bir Türkiye telefon numarası girin (05XX XXX XX XX).';
+        render(); return;
+      }
+      // Captcha kontrolü
+      if(parseInt(state.captchaCevap) !== state.captchaA + state.captchaB) {
+        state.hata = 'Doğrulama sonucu yanlış. Lütfen tekrar deneyin.';
+        yeniCaptcha();
+        render(); return;
+      }
+      // Cooldown kontrolü
+      const simdi = Date.now();
+      if(state.sonRandevuZaman && simdi - state.sonRandevuZaman < 60000) {
+        state.hata = 'Çok hızlı istek gönderiyorsunuz. Lütfen 1 dakika bekleyin.';
+        render(); return;
       }
       adim(5);
+    }
+    function yeniCaptcha() {
+      state.captchaA = Math.floor(Math.random()*9)+1;
+      state.captchaB = Math.floor(Math.random()*9)+1;
+      state.captchaCevap = '';
     }
 
     function adim(step) {
@@ -402,6 +438,7 @@
         return;
       }
       
+      state.sonRandevuZaman = Date.now();
       state.step = 6;
       render();
     }
@@ -417,6 +454,7 @@
       state.musteriTel = '';
       state.musteriNot = '';
       state.hata = '';
+      yeniCaptcha();
       render();
     }
 

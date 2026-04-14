@@ -103,6 +103,22 @@ class BookingController {
       const isletme = (await pool.query('SELECT id, calisan_secim_modu FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
+      // Aynı telefon+tarih+saat ile tekrar randevu kontrolü
+      const mevcutRandevu = (await pool.query(
+        `SELECT id FROM randevular r JOIN musteriler m ON r.musteri_id=m.id 
+         WHERE r.isletme_id=$1 AND m.telefon=$2 AND r.tarih=$3 AND r.saat=$4 AND r.durum != 'iptal'`,
+        [isletme.id, telefonTemiz, tarih, saat]
+      )).rows[0];
+      if (mevcutRandevu) return res.status(400).json({ hata: 'Bu saat için zaten randevunuz bulunuyor.' });
+
+      // Aynı telefondan günlük max 3 randevu
+      const gunlukSayi = parseInt((await pool.query(
+        `SELECT COUNT(*) as c FROM randevular r JOIN musteriler m ON r.musteri_id=m.id 
+         WHERE r.isletme_id=$1 AND m.telefon=$2 AND r.tarih=$3 AND r.durum != 'iptal'`,
+        [isletme.id, telefonTemiz, tarih]
+      )).rows[0]?.c) || 0;
+      if (gunlukSayi >= 3) return res.status(400).json({ hata: 'Aynı gün için en fazla 3 randevu alabilirsiniz.' });
+
       // Çalışan otomatik seçim
       let secilenCalisanId = calisanId ? parseInt(calisanId) : null;
       if (!secilenCalisanId) {
