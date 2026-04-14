@@ -162,9 +162,9 @@ class ShopierService {
     const buAy = new Date().toISOString().slice(0, 7);
 
     if (isletmeId) {
-      // Mevcut bekleyen ödemeyi güncelle
+      // Mevcut ödeme kaydını güncelle veya yeni kayıt oluştur
       const mevcut = (await pool.query(
-        "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum != 'odendi'",
+        "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2",
         [isletmeId, buAy]
       )).rows[0];
 
@@ -175,7 +175,9 @@ class ShopierService {
         );
       } else {
         await pool.query(
-          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id) VALUES ($1, $2, $3, 'odendi', 'shopier', NOW(), $4)",
+          `INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id) VALUES ($1, $2, $3, 'odendi', 'shopier', NOW(), $4)
+           ON CONFLICT (isletme_id, donem) WHERE isletme_id IS NOT NULL 
+           DO UPDATE SET durum = 'odendi', odeme_yontemi = 'shopier', odeme_tarihi = NOW(), shopier_siparis_id = EXCLUDED.shopier_siparis_id`,
           [isletmeId, tutar, buAy, siparisId]
         );
       }

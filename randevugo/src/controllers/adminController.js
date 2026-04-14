@@ -857,9 +857,14 @@ class AdminController {
   async odemeEkle(req, res) {
     try {
       const { isletme_id, tutar, donem, durum } = req.body;
+      const donemVal = donem || bugunTarih().slice(0, 7);
+      const durumVal = durum || 'bekliyor';
       const result = await pool.query(
-        `INSERT INTO odemeler (isletme_id, tutar, donem, durum) VALUES ($1, $2, $3, $4) RETURNING *`,
-        [isletme_id, tutar, donem || bugunTarih().slice(0, 7), durum || 'bekliyor']
+        `INSERT INTO odemeler (isletme_id, tutar, donem, durum) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (isletme_id, donem) WHERE isletme_id IS NOT NULL 
+         DO UPDATE SET tutar = EXCLUDED.tutar, durum = EXCLUDED.durum
+         RETURNING *`,
+        [isletme_id, tutar, donemVal, durumVal]
       );
       res.json({ odeme: result.rows[0] });
     } catch (error) {
@@ -1019,13 +1024,17 @@ class AdminController {
       const hash = Buffer.from(`${isletmeId}-${buAy}`).toString('base64').replace(/[^A-Z0-9]/gi, '').slice(0, 3).toUpperCase();
       const refKod = `SRGO-${isletmeId}${hash}`;
 
-      // Mevcut bekleyen ödeme var mı?
+      // Mevcut ödeme kaydı var mı? (herhangi bir durumda)
       const mevcut = (await pool.query(
-        "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum IN ('bekliyor','havale_bekliyor')",
+        "SELECT id, durum FROM odemeler WHERE isletme_id = $1 AND donem = $2",
         [isletmeId, buAy]
       )).rows[0];
 
       if (mevcut) {
+        // Zaten ödendi ise tekrar havale gönderme
+        if (mevcut.durum === 'odendi') {
+          return res.json({ mesaj: 'Bu dönem ödemesi zaten tamamlanmış.' });
+        }
         await pool.query(
           "UPDATE odemeler SET durum = 'havale_bekliyor', odeme_yontemi = 'havale', havale_dekont = $1, referans_kodu = $2 WHERE id = $3",
           [dekont_notu || '', refKod, mevcut.id]
@@ -1102,7 +1111,7 @@ class AdminController {
 
       // Bekleyen ödeme kaydı oluştur (shopier_urun_id ile eşleştirme için)
       const mevcut = (await pool.query(
-        "SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 AND durum IN ('bekliyor','odeme_bekliyor')",
+        "SELECT id, durum FROM odemeler WHERE isletme_id = $1 AND donem = $2",
         [isletmeId, buAy]
       )).rows[0];
 

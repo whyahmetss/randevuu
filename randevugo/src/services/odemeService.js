@@ -3,6 +3,47 @@ const pool = require('../config/db');
 const { paketGetir } = require('../config/paketler');
 
 class OdemeService {
+  // Startup'ta mükerrer kayıtları temizle
+  async mukerrerTemizle() {
+    try {
+      // Her isletme_id + donem için en son kaydı tut, diğerlerini sil
+      // Öncelik: odendi > havale_bekliyor > odeme_bekliyor > bekliyor > gecikti
+      const dupResult = await pool.query(`
+        DELETE FROM odemeler WHERE id IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER (
+              PARTITION BY isletme_id, donem 
+              ORDER BY 
+                CASE durum 
+                  WHEN 'odendi' THEN 1 
+                  WHEN 'havale_bekliyor' THEN 2 
+                  WHEN 'odeme_bekliyor' THEN 3 
+                  WHEN 'bekliyor' THEN 4 
+                  WHEN 'gecikti' THEN 5 
+                  ELSE 6 
+                END,
+                odeme_tarihi DESC NULLS LAST,
+                id DESC
+            ) as rn
+            FROM odemeler
+            WHERE isletme_id IS NOT NULL
+          ) sub WHERE rn > 1
+        )
+      `);
+      if (dupResult.rowCount > 0) {
+        console.log(`🧹 ${dupResult.rowCount} mükerrer ödeme kaydı temizlendi`);
+      }
+
+      // UNIQUE constraint ekle (yoksa)
+      await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_odemeler_isletme_donem 
+        ON odemeler (isletme_id, donem) WHERE isletme_id IS NOT NULL
+      `).catch(() => {});
+    } catch(e) {
+      console.log('Mükerrer temizleme hatası:', e.message);
+    }
+  }
+
   async aylikOdemeleriOlustur() {
     const buAy = new Date().toISOString().slice(0, 7);
     console.log(`💰 Aylık ödeme kontrol: ${buAy}`);
@@ -20,12 +61,18 @@ class OdemeService {
 
       if (mevcut.length === 0) {
         const paket = await paketGetir(isletme.paket);
-        await pool.query(
-          `INSERT INTO odemeler (isletme_id, tutar, donem, durum) VALUES ($1, $2, $3, 'bekliyor')`,
-          [isletme.id, paket.fiyat, buAy]
-        );
-        olusturulan++;
-        console.log(`  ✅ ${isletme.isim} → ${paket.fiyat}₺ bekliyor`);
+        try {
+          await pool.query(
+            `INSERT INTO odemeler (isletme_id, tutar, donem, durum) VALUES ($1, $2, $3, 'bekliyor')
+             ON CONFLICT (isletme_id, donem) WHERE isletme_id IS NOT NULL DO NOTHING`,
+            [isletme.id, paket.fiyat, buAy]
+          );
+          olusturulan++;
+          console.log(`  ✅ ${isletme.isim} → ${paket.fiyat}₺ bekliyor`);
+        } catch(e) {
+          // UNIQUE constraint yakalama — zaten kayıt var
+          if (!e.message.includes('duplicate') && !e.message.includes('unique')) throw e;
+        }
       }
     }
 
@@ -98,11 +145,14 @@ class OdemeService {
       }
     });
 
-    // Sunucu başlarken bu ayın kayıtlarını kontrol et, eksik varsa oluştur
-    setTimeout(() => {
-      this.aylikOdemeleriOlustur().catch(err =>
-        console.error('❌ Başlangıç ödeme kontrolü hatası:', err)
-      );
+    // Sunucu başlarken mükerrer kayıtları temizle, sonra bu ayın kayıtlarını kontrol et
+    setTimeout(async () => {
+      try {
+        await this.mukerrerTemizle();
+        await this.aylikOdemeleriOlustur();
+      } catch(err) {
+        console.error('❌ Başlangıç ödeme kontrolü hatası:', err);
+      }
     }, 3000);
 
     console.log('💰 Ödeme servisi başlatıldı (aylık ödeme + günlük paket bitiş kontrolü)');
