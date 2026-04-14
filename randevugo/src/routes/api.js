@@ -293,10 +293,11 @@ router.put('/musteri-formu', authMiddleware, (req, res) => adminController.muste
 router.put('/google-maps-reserve', authMiddleware, (req, res) => adminController.googleMapsReserveGuncelle(req, res));
 
 // ==================== ONLINE RANDEVU (Public) ====================
-router.get('/book/:slug', (req, res) => bookingController.isletmeBilgileri(req, res));
-router.get('/book/:slug/hizmetler', (req, res) => bookingController.hizmetleriGetir(req, res));
-router.get('/book/:slug/calisanlar', (req, res) => bookingController.calisanlariGetir(req, res));
-router.get('/book/:slug/saatler', (req, res) => bookingController.musaitSaatler(req, res));
+const noCache = (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); };
+router.get('/book/:slug', noCache, (req, res) => bookingController.isletmeBilgileri(req, res));
+router.get('/book/:slug/hizmetler', noCache, (req, res) => bookingController.hizmetleriGetir(req, res));
+router.get('/book/:slug/calisanlar', noCache, (req, res) => bookingController.calisanlariGetir(req, res));
+router.get('/book/:slug/saatler', noCache, (req, res) => bookingController.musaitSaatler(req, res));
 router.post('/book/:slug/randevu', (req, res) => bookingController.randevuOlustur(req, res));
 
 module.exports = router;

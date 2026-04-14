@@ -112,7 +112,7 @@
 
     async function api(endpoint) {
       try {
-        const r = await fetch(API + endpoint);
+        const r = await fetch(API + endpoint, { cache: 'no-store' });
         return await r.json();
       } catch(e) { return { hata: 'Bağlantı hatası' }; }
     }
