@@ -708,8 +708,8 @@ class SatisBot extends EventEmitter {
 
     const metinKucuk = metin.toLowerCase().trim();
 
-    // Vazgeç kontrolü
-    if (metinKucuk === '0' || metinKucuk === 'iptal' || metinKucuk === 'vazgeç' || metinKucuk === 'vazgec') {
+    // Vazgeç kontrolü (sadece açıkça iptal/vazgeç yazarsa)
+    if (metinKucuk === 'iptal' || metinKucuk === 'vazgeç' || metinKucuk === 'vazgec') {
       delete this.konusmalar[telefon].kayit;
       await mesajGonder(`❌ Kayıt işlemi iptal edildi.\n\nTekrar denemek için *kayıt* yazın.`);
       return true;
@@ -773,7 +773,7 @@ class SatisBot extends EventEmitter {
           await mesajGonder(
             `✅ Bilgiler onaylandı!\n\n` +
             `🎟️ *Referans kodunuz* var mı?\n\n` +
-            `Varsa kodu yazın, yoksa *hayır* yazın veya *0* yazarak atlayın.`
+            `Varsa kodu yazın, yoksa *hayır* yazın.`
           );
           return true;
         }
@@ -802,7 +802,7 @@ class SatisBot extends EventEmitter {
 
       case 'referans_kodu': {
         // Referans kodu atla
-        const atlaCevaplari = ['hayır', 'hayir', 'yok', 'atla', '0', 'geç', 'gec', 'pas'];
+        const atlaCevaplari = ['hayır', 'hayir', 'yok', 'atla', 'geç', 'gec', 'pas'];
         let referansKodu = null;
 
         if (!atlaCevaplari.includes(metinKucuk)) {
@@ -935,8 +935,7 @@ class SatisBot extends EventEmitter {
         `🎉 *SıraGO'ya Hoş Geldiniz!*\n\n` +
         `Hemen ücretsiz hesabınızı oluşturalım 🚀\n\n` +
         `Adım 1/3\n` +
-        `🏪 *İşletmenizin adını* yazın:\n\n` +
-        `_(İptal etmek için 0 yazın)_`
+        `🏪 *İşletmenizin adını* yazın:`
       });
       return;
     }
