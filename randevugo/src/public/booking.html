@@ -1,480 +1,559 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Online Randevu Al</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    :root{--bg:#f8fafc;--surface:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#6366f1;--primary-light:#eef2ff;--green:#10b981;--red:#ef4444;--radius:14px;--shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04)}
-    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-    .booking-container{max-width:480px;margin:0 auto;padding:24px 16px 80px}
-    .brand-bar{text-align:center;padding:16px 0 24px;border-bottom:1px solid var(--border);margin-bottom:24px}
-    .brand-bar h1{font-size:22px;font-weight:800;letter-spacing:-.5px}
-    .brand-bar p{font-size:13px;color:var(--muted);margin-top:4px}
-    .brand-bar .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700;background:var(--primary-light);color:var(--primary);margin-top:8px}
+    :root{
+      --bg:#f0f2f5;--surface:#fff;--surface2:#f8f9fb;--border:#e4e7ec;--border-light:#f0f2f5;
+      --text:#1a1d26;--text2:#3d4152;--muted:#8b919e;
+      --primary:#5b5ff6;--primary-dark:#4a4ee0;--primary-light:#ededff;--primary-glow:rgba(91,95,246,.12);
+      --green:#22c55e;--green-light:#dcfce7;--red:#ef4444;--red-light:#fef2f2;
+      --radius:16px;--radius-sm:12px;--radius-xs:8px;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.04);--shadow:0 2px 8px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.08);--shadow-lg:0 8px 32px rgba(0,0,0,.1)
+    }
+    body{font-family:'Poppins',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+      background-image:radial-gradient(ellipse at 20% 0%,rgba(91,95,246,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(34,197,94,.04) 0%,transparent 50%)}
+    [dir="rtl"]{direction:rtl;text-align:right}
+    [dir="rtl"] .card{flex-direction:row-reverse}
+    [dir="rtl"] .card-price{margin-left:0;margin-right:auto}
+    [dir="rtl"] .step-title{flex-direction:row-reverse}
+    [dir="rtl"] .summary-row{flex-direction:row-reverse}
+    [dir="rtl"] .btn-back{flex-direction:row-reverse}
+    [dir="rtl"] .date-scroll{direction:rtl}
+    [dir="rtl"] .lang-select{left:16px;right:auto}
 
-    .step-indicator{display:flex;gap:6px;margin-bottom:24px}
-    .step-dot{flex:1;height:4px;border-radius:99px;background:var(--border);transition:background .3s}
-    .step-dot.active{background:var(--primary)}
+    .booking-container{max-width:460px;margin:0 auto;padding:20px 16px 60px;position:relative}
+
+    .lang-select{position:absolute;top:20px;right:16px;display:flex;gap:4px;z-index:10}
+    .lang-btn{width:36px;height:28px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);cursor:pointer;font-size:11px;font-weight:600;color:var(--muted);transition:all .2s;display:flex;align-items:center;justify-content:center;font-family:inherit}
+    .lang-btn:hover{border-color:var(--primary);color:var(--primary)}
+    .lang-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--shadow-sm)}
+
+    .brand-bar{text-align:center;padding:32px 0 24px}
+    .brand-bar h1{font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--text)}
+    .brand-bar .subtitle{font-size:13px;color:var(--muted);margin-top:4px;font-weight:400}
+    .brand-bar .badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:99px;font-size:11px;font-weight:600;background:var(--primary-light);color:var(--primary);margin-top:10px;letter-spacing:.2px}
+    .brand-bar .badge svg{width:12px;height:12px}
+    .divider{height:1px;background:var(--border-light);margin-bottom:24px}
+
+    .step-indicator{display:flex;gap:6px;margin-bottom:28px;padding:0 4px}
+    .step-dot{flex:1;height:4px;border-radius:99px;background:var(--border);transition:all .4s ease}
+    .step-dot.active{background:linear-gradient(135deg,var(--primary),var(--primary-dark));box-shadow:0 0 8px var(--primary-glow)}
     .step-dot.done{background:var(--green)}
 
-    .step-title{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-    .step-title .num{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+    .step-title{font-size:16px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px;color:var(--text)}
+    .step-title .num{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;box-shadow:0 2px 8px var(--primary-glow);flex-shrink:0}
 
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
-    .card:hover{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-light)}
-    .card.selected{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 2px rgba(99,102,241,.2)}
-    .card-icon{width:40px;height:40px;border-radius:10px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-    .card-info h3{font-size:14px;font-weight:600}
-    .card-info p{font-size:12px;color:var(--muted);margin-top:2px}
-    .card-price{margin-left:auto;font-size:14px;font-weight:700;color:var(--primary);white-space:nowrap}
+    .card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .25s ease;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-sm)}
+    .card:hover{border-color:var(--primary);box-shadow:var(--shadow),0 0 0 3px var(--primary-glow);transform:translateY(-1px)}
+    .card.selected{border-color:var(--primary);background:var(--primary-light);box-shadow:0 0 0 3px var(--primary-glow)}
+    .card-icon{width:44px;height:44px;border-radius:var(--radius-sm);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:1px solid var(--border-light)}
+    .card.selected .card-icon{background:var(--primary-glow);border-color:transparent}
+    .card-info{flex:1;min-width:0}
+    .card-info h3{font-size:14px;font-weight:600;color:var(--text)}
+    .card-info p{font-size:12px;color:var(--muted);margin-top:2px;font-weight:400}
+    .card-price{font-size:15px;font-weight:700;color:var(--primary);white-space:nowrap}
+    .card-duration{font-size:11px;color:var(--muted);font-weight:500;margin-top:1px}
 
-    .time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .time-btn{padding:10px 4px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s}
-    .time-btn:hover{border-color:var(--primary);background:var(--primary-light)}
-    .time-btn.selected{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
+    .time-btn{padding:12px 4px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;box-shadow:var(--shadow-sm);font-family:inherit;color:var(--text2)}
+    .time-btn:hover{border-color:var(--primary);background:var(--primary-light);transform:translateY(-1px)}
+    .time-btn.selected{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;box-shadow:0 2px 8px var(--primary-glow)}
 
-    .date-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:16px;-webkit-overflow-scrolling:touch}
+    .date-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
     .date-scroll::-webkit-scrollbar{display:none}
-    .date-btn{min-width:64px;padding:10px 8px;border:1px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;text-align:center;transition:all .2s;flex-shrink:0}
-    .date-btn:hover{border-color:var(--primary)}
-    .date-btn.selected{background:var(--primary);color:#fff;border-color:var(--primary)}
-    .date-btn .day-name{font-size:11px;font-weight:500;opacity:.7}
-    .date-btn .day-num{font-size:18px;font-weight:700;margin:2px 0}
+    .date-btn{min-width:68px;padding:12px 8px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:pointer;text-align:center;transition:all .2s;flex-shrink:0;box-shadow:var(--shadow-sm)}
+    .date-btn:hover{border-color:var(--primary);transform:translateY(-1px)}
+    .date-btn.selected{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-color:transparent;box-shadow:0 2px 12px var(--primary-glow)}
+    .date-btn .day-name{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.65}
+    .date-btn .day-num{font-size:20px;font-weight:800;margin:3px 0 1px}
     .date-btn .month{font-size:10px;font-weight:500;opacity:.7}
 
-    .input-group{margin-bottom:14px}
-    .input-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
-    .input-group input,.input-group textarea{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;outline:none;transition:border .2s}
-    .input-group input:focus,.input-group textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
-    .input-group textarea{resize:vertical;min-height:60px}
+    .input-group{margin-bottom:16px}
+    .input-group label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;letter-spacing:.2px}
+    .input-group input,.input-group textarea{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;outline:none;transition:all .25s;background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+    .input-group input:focus,.input-group textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+    .input-group input::placeholder,.input-group textarea::placeholder{color:var(--muted);font-weight:400}
+    .input-group textarea{resize:vertical;min-height:64px}
 
-    .btn-primary{width:100%;padding:14px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .2s;margin-top:8px}
-    .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
-    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
-    .btn-back{background:none;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;gap:6px;font-family:inherit}
+    .btn-primary{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .25s;margin-top:12px;box-shadow:0 4px 12px var(--primary-glow);letter-spacing:.2px}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--primary-glow)}
+    .btn-primary:active{transform:translateY(0)}
+    .btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 
-    .summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
-    .summary-row{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid #f1f5f9}
+    .btn-back{background:var(--surface);border:1.5px solid var(--border);color:var(--text2);padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:18px;display:inline-flex;align-items:center;gap:6px;font-family:inherit;transition:all .2s;box-shadow:var(--shadow-sm)}
+    .btn-back:hover{border-color:var(--primary);color:var(--primary)}
+
+    .summary{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:16px;box-shadow:var(--shadow)}
+    .summary-row{display:flex;justify-content:space-between;padding:10px 0;font-size:13px;border-bottom:1px solid var(--border-light)}
     .summary-row:last-child{border:none}
-    .summary-row span:first-child{color:var(--muted)}
-    .summary-row span:last-child{font-weight:600}
+    .summary-row span:first-child{color:var(--muted);font-weight:500}
+    .summary-row span:last-child{font-weight:600;color:var(--text)}
 
-    .success-screen{text-align:center;padding:40px 0}
-    .success-icon{width:72px;height:72px;border-radius:50%;background:rgba(16,185,129,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:36px}
-    .success-screen h2{font-size:22px;font-weight:800;margin-bottom:8px}
-    .success-screen p{font-size:14px;color:var(--muted);line-height:1.6}
+    .success-screen{text-align:center;padding:48px 0}
+    .success-icon{width:80px;height:80px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 4px 16px rgba(34,197,94,.15)}
+    .success-icon svg{width:40px;height:40px;color:var(--green)}
+    .success-screen h2{font-size:22px;font-weight:800;margin-bottom:8px;color:var(--text)}
+    .success-screen p{font-size:14px;color:var(--muted);line-height:1.7}
 
-    .loading{text-align:center;padding:60px 0;color:var(--muted);font-size:14px}
-    .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 12px}
+    .loading{text-align:center;padding:60px 0;color:var(--muted);font-size:14px;font-weight:500}
+    .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 14px}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    .error-msg{background:#fef2f2;border:1px solid #fecaca;color:var(--red);padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:16px;font-weight:500}
+    .error-msg{background:var(--red-light);border:1px solid #fecaca;color:var(--red);padding:13px 18px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:18px;font-weight:500;display:flex;align-items:center;gap:8px}
+    .error-msg::before{content:'⚠';font-size:16px;flex-shrink:0}
 
-    @media(max-width:400px){.time-grid{grid-template-columns:repeat(3,1fr)}}
+    .footer{text-align:center;padding:36px 0 16px;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:.3px}
+    .footer a{color:var(--primary);font-weight:600;text-decoration:none;transition:opacity .2s}
+    .footer a:hover{opacity:.7}
+
+    .empty-state{text-align:center;padding:32px 0;color:var(--muted);font-size:13px;font-weight:500}
+    .empty-state svg{width:48px;height:48px;color:var(--border);margin-bottom:12px}
+
+    @media(max-width:400px){
+      .time-grid{grid-template-columns:repeat(3,1fr)}
+      .booking-container{padding:16px 12px 48px}
+      .brand-bar h1{font-size:20px}
+    }
   </style>
 </head>
 <body>
   <div class="booking-container" id="app">
-    <div class="loading"><div class="spinner"></div>Yükleniyor...</div>
+    <div class="loading"><div class="spinner"></div></div>
   </div>
 
   <script>
     const API = '/api';
     const slug = window.location.pathname.split('/book/')[1];
-    
-    let state = {
-      step: 1,
-      isletme: null,
-      hizmetler: [],
-      calisanlar: [],
-      saatler: [],
-      seciliHizmet: null,
-      seciliCalisan: null,
-      seciliTarih: null,
-      seciliSaat: null,
-      musteriAd: '',
-      musteriTel: '',
-      musteriNot: '',
-      hata: '',
-      yukleniyor: false,
-      captchaA: 0,
-      captchaB: 0,
-      captchaCevap: '',
-      sonRandevuZaman: 0
+
+    /* ─── i18n ─── */
+    const T = {
+      tr: {
+        online_booking: 'Online Randevu',
+        step1_title: 'Hizmet Seçin',
+        step2_title: 'Uzman Seçin',
+        step3_title: 'Tarih & Saat',
+        step4_title: 'Bilgileriniz',
+        step5_title: 'Randevu Özeti',
+        continue: 'Devam Et',
+        back: 'Geri',
+        no_services: 'Henüz hizmet tanımlanmamış.',
+        any_expert: 'Farketmez',
+        any_expert_desc: 'Uygun olan uzmana ata',
+        today: 'Bugün',
+        loading_hours: 'Saatler yükleniyor...',
+        no_hours: 'Bu tarihte müsait saat bulunmuyor.',
+        name_label: 'Adınız Soyadınız',
+        name_placeholder: 'Örn: Ahmet Yılmaz',
+        phone_label: 'Telefon Numaranız',
+        phone_placeholder: '05XX XXX XX XX',
+        captcha_label: 'Doğrulama',
+        captcha_placeholder: 'Sonucu yazın',
+        note_label: 'Not (opsiyonel)',
+        note_placeholder: 'Özel bir isteğiniz varsa yazabilirsiniz',
+        view_summary: 'Özeti Gör',
+        service: 'Hizmet',
+        expert: 'Uzman',
+        date: 'Tarih',
+        time: 'Saat',
+        duration: 'Süre',
+        price: 'Ücret',
+        full_name: 'Ad Soyad',
+        phone: 'Telefon',
+        note: 'Not',
+        confirm: 'Randevuyu Onayla',
+        submitting: 'Gönderiliyor...',
+        success_title: 'Randevunuz Oluşturuldu!',
+        success_msg: 'randevunuz başarıyla oluşturuldu.',
+        success_notify: 'Onay mesajınız kısa süre içinde gönderilecektir.',
+        new_booking: 'Yeni Randevu Al',
+        not_found_title: 'İşletme Bulunamadı',
+        not_found_desc: 'Bu adres aktif değil veya yanlış bir bağlantı.',
+        err_name_phone: 'Lütfen ad ve telefon bilgilerinizi girin.',
+        err_phone_format: 'Geçerli bir Türkiye telefon numarası girin (05XX XXX XX XX).',
+        err_captcha: 'Doğrulama sonucu yanlış. Lütfen tekrar deneyin.',
+        err_cooldown: 'Çok hızlı istek gönderiyorsunuz. Lütfen 1 dakika bekleyin.',
+        err_invalid: 'Geçersiz istek.',
+        minutes: 'dakika',
+        for_text: 'için',
+        at_date: 'tarihinde saat',
+        days: ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],
+        months: ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']
+      },
+      en: {
+        online_booking: 'Online Booking',
+        step1_title: 'Select Service',
+        step2_title: 'Select Expert',
+        step3_title: 'Date & Time',
+        step4_title: 'Your Info',
+        step5_title: 'Booking Summary',
+        continue: 'Continue',
+        back: 'Back',
+        no_services: 'No services available yet.',
+        any_expert: 'Any Available',
+        any_expert_desc: 'Assign to available expert',
+        today: 'Today',
+        loading_hours: 'Loading available times...',
+        no_hours: 'No available times on this date.',
+        name_label: 'Full Name',
+        name_placeholder: 'e.g. John Doe',
+        phone_label: 'Phone Number',
+        phone_placeholder: '05XX XXX XX XX',
+        captcha_label: 'Verification',
+        captcha_placeholder: 'Enter the result',
+        note_label: 'Note (optional)',
+        note_placeholder: 'Any special requests',
+        view_summary: 'View Summary',
+        service: 'Service',
+        expert: 'Expert',
+        date: 'Date',
+        time: 'Time',
+        duration: 'Duration',
+        price: 'Price',
+        full_name: 'Full Name',
+        phone: 'Phone',
+        note: 'Note',
+        confirm: 'Confirm Booking',
+        submitting: 'Submitting...',
+        success_title: 'Booking Confirmed!',
+        success_msg: 'your appointment has been successfully created.',
+        success_notify: 'You will receive a confirmation message shortly.',
+        new_booking: 'New Booking',
+        not_found_title: 'Business Not Found',
+        not_found_desc: 'This address is not active or is an invalid link.',
+        err_name_phone: 'Please enter your name and phone number.',
+        err_phone_format: 'Enter a valid Turkey phone number (05XX XXX XX XX).',
+        err_captcha: 'Verification answer is wrong. Please try again.',
+        err_cooldown: 'Too many requests. Please wait 1 minute.',
+        err_invalid: 'Invalid request.',
+        minutes: 'minutes',
+        for_text: 'for',
+        at_date: 'on',
+        days: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        months: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+      },
+      ar: {
+        online_booking: 'حجز موعد',
+        step1_title: 'اختر الخدمة',
+        step2_title: 'اختر المختص',
+        step3_title: 'التاريخ والوقت',
+        step4_title: 'معلوماتك',
+        step5_title: 'ملخص الحجز',
+        continue: 'متابعة',
+        back: 'رجوع',
+        no_services: 'لا توجد خدمات متاحة حالياً.',
+        any_expert: 'أي مختص',
+        any_expert_desc: 'تعيين تلقائي للمختص المتاح',
+        today: 'اليوم',
+        loading_hours: 'جاري تحميل الأوقات...',
+        no_hours: 'لا توجد أوقات متاحة في هذا التاريخ.',
+        name_label: 'الاسم الكامل',
+        name_placeholder: 'مثال: أحمد محمد',
+        phone_label: 'رقم الهاتف',
+        phone_placeholder: '05XX XXX XX XX',
+        captcha_label: 'التحقق',
+        captcha_placeholder: 'أدخل الناتج',
+        note_label: 'ملاحظة (اختياري)',
+        note_placeholder: 'أي طلبات خاصة',
+        view_summary: 'عرض الملخص',
+        service: 'الخدمة',
+        expert: 'المختص',
+        date: 'التاريخ',
+        time: 'الوقت',
+        duration: 'المدة',
+        price: 'السعر',
+        full_name: 'الاسم',
+        phone: 'الهاتف',
+        note: 'ملاحظة',
+        confirm: 'تأكيد الحجز',
+        submitting: 'جاري الإرسال...',
+        success_title: 'تم تأكيد الحجز!',
+        success_msg: 'تم إنشاء موعدك بنجاح.',
+        success_notify: 'ستتلقى رسالة تأكيد قريباً.',
+        new_booking: 'حجز جديد',
+        not_found_title: 'لم يتم العثور على المنشأة',
+        not_found_desc: 'هذا العنوان غير نشط أو رابط غير صالح.',
+        err_name_phone: 'يرجى إدخال الاسم ورقم الهاتف.',
+        err_phone_format: 'أدخل رقم هاتف تركي صالح (05XX XXX XX XX).',
+        err_captcha: 'إجابة التحقق خاطئة. حاول مرة أخرى.',
+        err_cooldown: 'طلبات كثيرة. يرجى الانتظار دقيقة واحدة.',
+        err_invalid: 'طلب غير صالح.',
+        minutes: 'دقيقة',
+        for_text: 'لـ',
+        at_date: 'بتاريخ',
+        days: ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت'],
+        months: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+      }
     };
 
-    const gunAdlari = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
-    const ayAdlari = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    let lang = localStorage.getItem('booking_lang') || 'tr';
+    function t(key) { return (T[lang] && T[lang][key]) || T.tr[key] || key; }
+    function setLang(l) {
+      lang = l;
+      localStorage.setItem('booking_lang', l);
+      document.documentElement.lang = l;
+      document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+      render();
+    }
+
+    let state = {
+      step: 1, isletme: null, hizmetler: [], calisanlar: [], saatler: [],
+      seciliHizmet: null, seciliCalisan: null, seciliTarih: null, seciliSaat: null,
+      musteriAd: '', musteriTel: '', musteriNot: '', hata: '', yukleniyor: false,
+      captchaA: 0, captchaB: 0, captchaCevap: '', sonRandevuZaman: 0,
+      otomatikCalisan: false, calisanSecildi: false
+    };
 
     async function api(endpoint) {
-      try {
-        const r = await fetch(API + endpoint, { cache: 'no-store' });
-        return await r.json();
-      } catch(e) { return { hata: 'Bağlantı hatası' }; }
+      try { const r = await fetch(API + endpoint, {cache:'no-store'}); return await r.json(); }
+      catch(e) { return {hata:'Connection error'}; }
     }
     async function apiPost(endpoint, body) {
       try {
-        const r = await fetch(API + endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), cache:'no-store' });
+        const r = await fetch(API + endpoint, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});
         const text = await r.text();
-        let data;
-        try { data = JSON.parse(text); } catch(pe) { return { hata: 'Sunucu hatası: ' + text.substring(0,100) }; }
-        if(!r.ok && !data.hata) data.hata = 'Sunucu hatası (' + r.status + ')';
+        let data; try { data = JSON.parse(text); } catch(pe) { return {hata: text.substring(0,120)}; }
+        if(!r.ok && !data.hata) data.hata = 'Error (' + r.status + ')';
         return data;
-      } catch(e) { return { hata: 'Bağlantı hatası: ' + e.message }; }
+      } catch(e) { return {hata: e.message}; }
     }
 
     function yaklasTarihler() {
-      const tarihler = [];
-      const bugun = new Date();
-      for(let i=0; i<14; i++) {
-        const d = new Date(bugun);
-        d.setDate(bugun.getDate() + i);
-        tarihler.push({
-          tarih: d.toISOString().slice(0,10),
-          gun: gunAdlari[d.getDay()],
-          gunNum: d.getDate(),
-          ay: ayAdlari[d.getMonth()],
-          bugun: i===0
-        });
+      const arr = [], bugun = new Date();
+      for(let i=0;i<14;i++){
+        const d = new Date(bugun); d.setDate(bugun.getDate()+i);
+        arr.push({tarih:d.toISOString().slice(0,10), gun:t('days')[d.getDay()], gunNum:d.getDate(), ay:t('months')[d.getMonth()], bugun:i===0});
       }
-      return tarihler;
+      return arr;
     }
+
+    function formatTarih(str) {
+      if(!str) return '';
+      const d = new Date(str+'T00:00:00');
+      return `${d.getDate()} ${t('months')[d.getMonth()]} ${d.getFullYear()}, ${t('days')[d.getDay()]}`;
+    }
+
+    const svgCheck = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+    const svgCal = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
 
     function render() {
       const app = document.getElementById('app');
       const s = state;
+      if(!s.isletme) { app.innerHTML = `<div class="loading"><div class="spinner"></div></div>`; return; }
 
-      if(!s.isletme) {
-        app.innerHTML = '<div class="loading"><div class="spinner"></div>Yükleniyor...</div>';
-        return;
-      }
+      let h = '';
 
-      let html = '';
-      
-      // Brand bar
-      html += `<div class="brand-bar">
-        <h1>${s.isletme.isim || 'Online Randevu'}</h1>
-        ${s.isletme.adres ? `<p>${s.isletme.adres}</p>` : ''}
-        <div class="badge">Online Randevu</div>
+      // Language selector
+      h += `<div class="lang-select">
+        <button class="lang-btn ${lang==='tr'?'active':''}" onclick="setLang('tr')">TR</button>
+        <button class="lang-btn ${lang==='en'?'active':''}" onclick="setLang('en')">EN</button>
+        <button class="lang-btn ${lang==='ar'?'active':''}" onclick="setLang('ar')">AR</button>
       </div>`;
+
+      // Brand
+      h += `<div class="brand-bar">
+        <h1>${s.isletme.isim||t('online_booking')}</h1>
+        ${s.isletme.adres?`<div class="subtitle">${s.isletme.adres}${s.isletme.ilce?' · '+s.isletme.ilce:''}</div>`:''}
+        <div class="badge">${svgCal} ${t('online_booking')}</div>
+      </div><div class="divider"></div>`;
 
       // Steps
-      html += '<div class="step-indicator">';
-      for(let i=1; i<=5; i++) {
-        html += `<div class="step-dot ${s.step > i ? 'done' : ''} ${s.step === i ? 'active' : ''}"></div>`;
-      }
-      html += '</div>';
+      h += '<div class="step-indicator">';
+      for(let i=1;i<=5;i++) h += `<div class="step-dot ${s.step>i?'done':''} ${s.step===i?'active':''}"></div>`;
+      h += '</div>';
 
-      if(s.hata) html += `<div class="error-msg">${s.hata}</div>`;
+      if(s.hata) h += `<div class="error-msg">${s.hata}</div>`;
 
-      // Step 1: Hizmet seç
-      if(s.step === 1) {
-        html += '<div class="step-title"><span class="num">1</span>Hizmet Seçin</div>';
-        if(!s.hizmetler.length) {
-          html += '<p style="color:var(--muted);text-align:center;padding:20px 0">Henüz hizmet tanımlanmamış.</p>';
-        }
-        s.hizmetler.forEach(h => {
-          html += `<div class="card ${s.seciliHizmet?.id===h.id?'selected':''}" onclick="secHizmet(${h.id})">
-            <div class="card-icon">${h.emoji||'💇'}</div>
+      // Step 1
+      if(s.step===1) {
+        h += `<div class="step-title"><span class="num">1</span>${t('step1_title')}</div>`;
+        if(!s.hizmetler.length) h += `<div class="empty-state">${t('no_services')}</div>`;
+        s.hizmetler.forEach(hi => {
+          h += `<div class="card ${s.seciliHizmet?.id===hi.id?'selected':''}" onclick="secHizmet(${hi.id})">
+            <div class="card-icon">${hi.emoji||'✂️'}</div>
             <div class="card-info">
-              <h3>${h.isim}</h3>
-              <p>${h.sure_dk} dk</p>
+              <h3>${hi.isim}</h3>
+              <p>${hi.sure_dk} ${t('minutes')}</p>
             </div>
-            <div class="card-price">${h.fiyat ? h.fiyat+'₺' : ''}</div>
+            ${hi.fiyat?`<div><div class="card-price">${hi.fiyat}₺</div></div>`:''}
           </div>`;
         });
-        if(s.seciliHizmet) html += `<button class="btn-primary" onclick="hizmetSonrasi()">Devam Et</button>`;
+        if(s.seciliHizmet) h += `<button class="btn-primary" onclick="hizmetSonrasi()">${t('continue')}</button>`;
       }
 
-      // Step 2: Çalışan seç
-      else if(s.step === 2) {
-        html += `<button class="btn-back" onclick="adim(1)">← Geri</button>`;
-        html += '<div class="step-title"><span class="num">2</span>Uzman Seçin</div>';
-        // Farketmez seçeneği
-        html += `<div class="card ${s.seciliCalisan===null&&s.calisanSecildi?'selected':''}" onclick="secCalisanFarketmez()">
+      // Step 2
+      else if(s.step===2) {
+        h += `<button class="btn-back" onclick="adim(1)">← ${t('back')}</button>`;
+        h += `<div class="step-title"><span class="num">2</span>${t('step2_title')}</div>`;
+        h += `<div class="card ${s.seciliCalisan===null&&s.calisanSecildi?'selected':''}" onclick="secCalisanFarketmez()">
           <div class="card-icon">🔄</div>
-          <div class="card-info">
-            <h3>Farketmez</h3>
-            <p>Uygun olan uzmana ata</p>
-          </div>
+          <div class="card-info"><h3>${t('any_expert')}</h3><p>${t('any_expert_desc')}</p></div>
         </div>`;
         s.calisanlar.forEach(c => {
-          html += `<div class="card ${s.seciliCalisan?.id===c.id?'selected':''}" onclick="secCalisan(${c.id})">
+          h += `<div class="card ${s.seciliCalisan?.id===c.id?'selected':''}" onclick="secCalisan(${c.id})">
             <div class="card-icon">👤</div>
-            <div class="card-info">
-              <h3>${c.isim}</h3>
-              ${c.uzmanlik ? `<p>${c.uzmanlik}</p>` : ''}
-            </div>
+            <div class="card-info"><h3>${c.isim}</h3></div>
           </div>`;
         });
-        if(s.seciliCalisan !== undefined && s.calisanSecildi) html += `<button class="btn-primary" onclick="adim(3)">Devam Et</button>`;
+        if(s.calisanSecildi) h += `<button class="btn-primary" onclick="adim(3)">${t('continue')}</button>`;
       }
 
-      // Step 3: Tarih ve saat
-      else if(s.step === 3) {
-        html += `<button class="btn-back" onclick="adim(2)">← Geri</button>`;
-        html += '<div class="step-title"><span class="num">3</span>Tarih & Saat</div>';
-        
+      // Step 3
+      else if(s.step===3) {
+        h += `<button class="btn-back" onclick="geriTarih()">← ${t('back')}</button>`;
+        h += `<div class="step-title"><span class="num">3</span>${t('step3_title')}</div>`;
         const tarihler = yaklasTarihler();
-        html += '<div class="date-scroll">';
-        tarihler.forEach(t => {
-          html += `<div class="date-btn ${s.seciliTarih===t.tarih?'selected':''}" onclick="secTarih('${t.tarih}')">
-            <div class="day-name">${t.bugun?'Bugün':t.gun}</div>
-            <div class="day-num">${t.gunNum}</div>
-            <div class="month">${t.ay}</div>
+        h += '<div class="date-scroll">';
+        tarihler.forEach(tt => {
+          h += `<div class="date-btn ${s.seciliTarih===tt.tarih?'selected':''}" onclick="secTarih('${tt.tarih}')">
+            <div class="day-name">${tt.bugun?t('today'):tt.gun}</div>
+            <div class="day-num">${tt.gunNum}</div>
+            <div class="month">${tt.ay}</div>
           </div>`;
         });
-        html += '</div>';
-
+        h += '</div>';
         if(s.seciliTarih) {
-          if(s.yukleniyor) {
-            html += '<div class="loading"><div class="spinner"></div>Saatler yükleniyor...</div>';
-          } else if(!s.saatler.length) {
-            html += '<p style="color:var(--muted);text-align:center;padding:20px 0">Bu tarihte müsait saat bulunmuyor.</p>';
-          } else {
-            html += '<div class="time-grid">';
-            s.saatler.forEach(saat => {
-              html += `<div class="time-btn ${s.seciliSaat===saat?'selected':''}" onclick="secSaat('${saat}')">${saat}</div>`;
-            });
-            html += '</div>';
+          if(s.yukleniyor) h += `<div class="loading"><div class="spinner"></div>${t('loading_hours')}</div>`;
+          else if(!s.saatler.length) h += `<div class="empty-state">${t('no_hours')}</div>`;
+          else {
+            h += '<div class="time-grid">';
+            s.saatler.forEach(sa => { h += `<div class="time-btn ${s.seciliSaat===sa?'selected':''}" onclick="secSaat('${sa}')">${sa}</div>`; });
+            h += '</div>';
           }
         }
-        if(s.seciliSaat) html += `<button class="btn-primary" onclick="adim(4)">Devam Et</button>`;
+        if(s.seciliSaat) h += `<button class="btn-primary" onclick="adim(4)">${t('continue')}</button>`;
       }
 
-      // Step 4: Kişisel bilgiler
-      else if(s.step === 4) {
-        html += `<button class="btn-back" onclick="adim(3)">← Geri</button>`;
-        html += '<div class="step-title"><span class="num">4</span>Bilgileriniz</div>';
-        html += `<div class="input-group">
-          <label>Adınız Soyadınız</label>
-          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="Örn: Ahmet Yılmaz" oninput="state.musteriAd=this.value;bilgiKontrol()" maxlength="60">
-        </div>
-        <div class="input-group">
-          <label>Telefon Numaranız</label>
-          <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="05XX XXX XX XX" oninput="state.musteriTel=this.value;bilgiKontrol()" maxlength="15">
-        </div>
-        <div style="position:absolute;left:-9999px"><input type="text" id="website" tabindex="-1" autocomplete="off"></div>
-        <div class="input-group">
-          <label>Doğrulama: ${s.captchaA} + ${s.captchaB} = ?</label>
-          <input type="number" id="captchaInput" placeholder="Sonucu yazın" oninput="state.captchaCevap=this.value;bilgiKontrol()">
-        </div>
-        <div class="input-group">
-          <label>Not (opsiyonel)</label>
-          <textarea id="musteriNot" placeholder="Özel bir isteğiniz varsa yazabilirsiniz" oninput="state.musteriNot=this.value">${s.musteriNot}</textarea>
+      // Step 4
+      else if(s.step===4) {
+        h += `<button class="btn-back" onclick="adim(3)">← ${t('back')}</button>`;
+        h += `<div class="step-title"><span class="num">4</span>${t('step4_title')}</div>`;
+        h += `<div class="input-group"><label>${t('name_label')}</label>
+          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="${t('name_placeholder')}" oninput="state.musteriAd=this.value;bilgiKontrol()" maxlength="60"></div>`;
+        h += `<div class="input-group"><label>${t('phone_label')}</label>
+          <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="${t('phone_placeholder')}" oninput="state.musteriTel=this.value;bilgiKontrol()" maxlength="15"></div>`;
+        h += `<div style="position:absolute;left:-9999px"><input type="text" id="website" tabindex="-1" autocomplete="off"></div>`;
+        h += `<div class="input-group"><label>${t('captcha_label')}: ${s.captchaA} + ${s.captchaB} = ?</label>
+          <input type="number" id="captchaInput" placeholder="${t('captcha_placeholder')}" oninput="state.captchaCevap=this.value;bilgiKontrol()"></div>`;
+        h += `<div class="input-group"><label>${t('note_label')}</label>
+          <textarea id="musteriNot" placeholder="${t('note_placeholder')}" oninput="state.musteriNot=this.value">${s.musteriNot}</textarea></div>`;
+        h += `<button class="btn-primary" id="btnOzet" onclick="bilgiDevam()">${t('view_summary')}</button>`;
+      }
+
+      // Step 5
+      else if(s.step===5) {
+        h += `<button class="btn-back" onclick="adim(4)">← ${t('back')}</button>`;
+        h += `<div class="step-title"><span class="num">5</span>${t('step5_title')}</div>`;
+        h += `<div class="summary">
+          <div class="summary-row"><span>${t('service')}</span><span>${s.seciliHizmet?.isim}</span></div>
+          ${s.seciliCalisan?`<div class="summary-row"><span>${t('expert')}</span><span>${s.seciliCalisan.isim}</span></div>`:''}
+          <div class="summary-row"><span>${t('date')}</span><span>${formatTarih(s.seciliTarih)}</span></div>
+          <div class="summary-row"><span>${t('time')}</span><span>${s.seciliSaat}</span></div>
+          <div class="summary-row"><span>${t('duration')}</span><span>${s.seciliHizmet?.sure_dk} ${t('minutes')}</span></div>
+          ${s.seciliHizmet?.fiyat?`<div class="summary-row"><span>${t('price')}</span><span>${s.seciliHizmet.fiyat}₺</span></div>`:''}
+          <div class="summary-row"><span>${t('full_name')}</span><span>${s.musteriAd}</span></div>
+          <div class="summary-row"><span>${t('phone')}</span><span>${s.musteriTel}</span></div>
+          ${s.musteriNot?`<div class="summary-row"><span>${t('note')}</span><span>${s.musteriNot}</span></div>`:''}
         </div>`;
-        html += `<button class="btn-primary" id="btnOzet" onclick="bilgiDevam()">Özeti Gör</button>`;
+        h += `<button class="btn-primary" onclick="randevuOlustur()" ${s.yukleniyor?'disabled':''}>${s.yukleniyor?t('submitting'):t('confirm')}</button>`;
       }
 
-      // Step 5: Onay
-      else if(s.step === 5) {
-        html += `<button class="btn-back" onclick="adim(4)">← Geri</button>`;
-        html += '<div class="step-title"><span class="num">5</span>Randevu Özeti</div>';
-        html += `<div class="summary">
-          <div class="summary-row"><span>Hizmet</span><span>${s.seciliHizmet?.isim}</span></div>
-          ${s.seciliCalisan ? `<div class="summary-row"><span>Uzman</span><span>${s.seciliCalisan.isim}</span></div>` : ''}
-          <div class="summary-row"><span>Tarih</span><span>${formatTarih(s.seciliTarih)}</span></div>
-          <div class="summary-row"><span>Saat</span><span>${s.seciliSaat}</span></div>
-          <div class="summary-row"><span>Süre</span><span>${s.seciliHizmet?.sure_dk} dakika</span></div>
-          ${s.seciliHizmet?.fiyat ? `<div class="summary-row"><span>Ücret</span><span>${s.seciliHizmet.fiyat}₺</span></div>` : ''}
-          <div class="summary-row"><span>Ad Soyad</span><span>${s.musteriAd}</span></div>
-          <div class="summary-row"><span>Telefon</span><span>${s.musteriTel}</span></div>
-          ${s.musteriNot ? `<div class="summary-row"><span>Not</span><span>${s.musteriNot}</span></div>` : ''}
-        </div>`;
-        html += `<button class="btn-primary" onclick="randevuOlustur()" ${s.yukleniyor?'disabled':''}>${s.yukleniyor?'Gönderiliyor...':'Randevuyu Onayla'}</button>`;
-      }
-
-      // Step 6: Başarılı
-      else if(s.step === 6) {
-        html += `<div class="success-screen">
-          <div class="success-icon">✅</div>
-          <h2>Randevunuz Oluşturuldu!</h2>
+      // Step 6
+      else if(s.step===6) {
+        h += `<div class="success-screen">
+          <div class="success-icon">${svgCheck}</div>
+          <h2>${t('success_title')}</h2>
           <p>
-            <strong>${s.seciliHizmet?.isim}</strong> için<br>
-            <strong>${formatTarih(s.seciliTarih)}</strong> tarihinde saat <strong>${s.seciliSaat}</strong>'de<br>
-            randevunuz başarıyla oluşturuldu.<br><br>
-            Onay mesajınız kısa süre içinde gönderilecektir.
+            <strong>${s.seciliHizmet?.isim}</strong> ${t('for_text')}<br>
+            <strong>${formatTarih(s.seciliTarih)}</strong> ${t('at_date')} <strong>${s.seciliSaat}</strong><br>
+            ${t('success_msg')}<br><br>
+            ${t('success_notify')}
           </p>
-          <button class="btn-primary" onclick="yeniRandevu()" style="margin-top:24px">Yeni Randevu Al</button>
+          <button class="btn-primary" onclick="yeniRandevu()" style="margin-top:28px">${t('new_booking')}</button>
         </div>`;
       }
 
-      // Footer
-      html += `<div style="text-align:center;padding:32px 0 16px;font-size:11px;color:var(--muted)">
-        Powered by <a href="https://xn--srago-n4a.com" style="color:var(--primary);font-weight:600">SıraGO</a>
-      </div>`;
-
-      app.innerHTML = html;
+      h += `<div class="footer">Powered by <a href="https://xn--srago-n4a.com" target="_blank">SıraGO</a></div>`;
+      app.innerHTML = h;
     }
 
-    function formatTarih(tarihStr) {
-      if(!tarihStr) return '';
-      const d = new Date(tarihStr + 'T00:00:00');
-      return `${d.getDate()} ${ayAdlari[d.getMonth()]} ${d.getFullYear()}, ${gunAdlari[d.getDay()]}`;
-    }
-
+    /* ─── actions ─── */
     async function init() {
       const data = await api(`/book/${slug}`);
-      if(data.hata || !data.isletme) {
-        document.getElementById('app').innerHTML = `<div style="text-align:center;padding:60px 0"><h2 style="margin-bottom:8px">İşletme Bulunamadı</h2><p style="color:var(--muted)">Bu adres aktif değil veya yanlış bir bağlantı.</p></div>`;
+      if(data.hata||!data.isletme) {
+        document.getElementById('app').innerHTML = `<div style="text-align:center;padding:60px 0"><h2 style="margin-bottom:8px">${t('not_found_title')}</h2><p style="color:var(--muted)">${t('not_found_desc')}</p></div>`;
         return;
       }
       state.isletme = data.isletme;
-      
       const hData = await api(`/book/${slug}/hizmetler`);
       state.hizmetler = hData.hizmetler || [];
-      
-      document.title = `${state.isletme.isim} - Online Randevu`;
-      yeniCaptcha();
-      render();
+      document.title = `${state.isletme.isim} - ${t('online_booking')}`;
+      yeniCaptcha(); render();
     }
 
     async function secHizmet(id) {
-      state.seciliHizmet = state.hizmetler.find(h => h.id === id);
+      state.seciliHizmet = state.hizmetler.find(x=>x.id===id);
       state.hata = '';
-      // Çalışanları hizmet seçildikten sonra yükle
       const cData = await api(`/book/${slug}/calisanlar?hizmetId=${id}`);
-      state.calisanlar = cData.calisanlar || [];
-      state.otomatikCalisan = cData.otomatik || false;
+      state.calisanlar = cData.calisanlar||[];
+      state.otomatikCalisan = cData.otomatik||false;
+      state.calisanSecildi = false;
       render();
     }
-    function secCalisan(id) {
-      state.seciliCalisan = state.calisanlar.find(c => c.id === id);
-      state.calisanSecildi = true;
-      state.hata = '';
-      render();
-    }
-    function secCalisanFarketmez() {
-      state.seciliCalisan = null;
-      state.calisanSecildi = true;
-      state.hata = '';
-      render();
-    }
+    function secCalisan(id) { state.seciliCalisan = state.calisanlar.find(c=>c.id===id); state.calisanSecildi=true; state.hata=''; render(); }
+    function secCalisanFarketmez() { state.seciliCalisan=null; state.calisanSecildi=true; state.hata=''; render(); }
+
     async function secTarih(tarih) {
-      state.seciliTarih = tarih;
-      state.seciliSaat = null;
-      state.saatler = [];
-      state.yukleniyor = true;
-      state.hata = '';
-      render();
-      
-      const params = `?tarih=${tarih}&hizmetId=${state.seciliHizmet.id}${state.seciliCalisan ? '&calisanId='+state.seciliCalisan.id : ''}`;
+      state.seciliTarih=tarih; state.seciliSaat=null; state.saatler=[]; state.yukleniyor=true; state.hata=''; render();
+      const params = `?tarih=${tarih}&hizmetId=${state.seciliHizmet.id}${state.seciliCalisan?'&calisanId='+state.seciliCalisan.id:''}`;
       const data = await api(`/book/${slug}/saatler${params}`);
-      state.saatler = data.saatler || [];
-      state.yukleniyor = false;
-      render();
+      state.saatler = data.saatler||[]; state.yukleniyor=false; render();
     }
-    function secSaat(saat) {
-      state.seciliSaat = saat;
-      state.hata = '';
-      render();
+    function secSaat(s) { state.seciliSaat=s; state.hata=''; render(); }
+
+    function adim(step) { state.step=step; state.hata=''; render(); window.scrollTo(0,0); }
+    function geriTarih() { state.otomatikCalisan||state.calisanlar.length<=1 ? adim(1) : adim(2); }
+
+    function hizmetSonrasi() {
+      if(state.otomatikCalisan||state.calisanlar.length===0) { state.seciliCalisan=null; adim(3); }
+      else if(state.calisanlar.length===1) { state.seciliCalisan=state.calisanlar[0]; adim(3); }
+      else adim(2);
     }
 
     function bilgiKontrol() {
       const btn = document.getElementById('btnOzet');
-      if(btn) btn.disabled = !(state.musteriAd.trim() && state.musteriTel.trim() && state.captchaCevap);
+      if(btn) btn.disabled = !(state.musteriAd.trim()&&state.musteriTel.trim()&&state.captchaCevap);
     }
     function bilgiDevam() {
-      // Honeypot kontrolü
       const hp = document.getElementById('website');
-      if(hp && hp.value) { state.hata = 'Geçersiz istek.'; render(); return; }
-      
-      if(!state.musteriAd.trim() || !state.musteriTel.trim()) {
-        state.hata = 'Lütfen ad ve telefon bilgilerinizi girin.';
-        render(); return;
-      }
-      // Telefon format kontrolü
+      if(hp&&hp.value) { state.hata=t('err_invalid'); render(); return; }
+      if(!state.musteriAd.trim()||!state.musteriTel.trim()) { state.hata=t('err_name_phone'); render(); return; }
       const tel = state.musteriTel.replace(/\s/g,'');
-      if(!/^(05\d{9}|5\d{9}|905\d{9}|\+905\d{9})$/.test(tel)) {
-        state.hata = 'Geçerli bir Türkiye telefon numarası girin (05XX XXX XX XX).';
-        render(); return;
-      }
-      // Captcha kontrolü
-      if(parseInt(state.captchaCevap) !== state.captchaA + state.captchaB) {
-        state.hata = 'Doğrulama sonucu yanlış. Lütfen tekrar deneyin.';
-        yeniCaptcha();
-        render(); return;
-      }
-      // Cooldown kontrolü
-      const simdi = Date.now();
-      if(state.sonRandevuZaman && simdi - state.sonRandevuZaman < 60000) {
-        state.hata = 'Çok hızlı istek gönderiyorsunuz. Lütfen 1 dakika bekleyin.';
-        render(); return;
-      }
+      if(!/^(05\d{9}|5\d{9}|905\d{9}|\+905\d{9})$/.test(tel)) { state.hata=t('err_phone_format'); render(); return; }
+      if(parseInt(state.captchaCevap)!==state.captchaA+state.captchaB) { state.hata=t('err_captcha'); yeniCaptcha(); render(); return; }
+      if(state.sonRandevuZaman&&Date.now()-state.sonRandevuZaman<60000) { state.hata=t('err_cooldown'); render(); return; }
       adim(5);
     }
-    function yeniCaptcha() {
-      state.captchaA = Math.floor(Math.random()*9)+1;
-      state.captchaB = Math.floor(Math.random()*9)+1;
-      state.captchaCevap = '';
-    }
-
-    function adim(step) {
-      state.step = step;
-      state.hata = '';
-      render();
-      window.scrollTo(0, 0);
-    }
-
-    function hizmetSonrasi() {
-      // Çalışan otomatik seçim modundaysa veya tek çalışan varsa 3. adıma atla
-      if(state.otomatikCalisan || state.calisanlar.length === 0) {
-        state.seciliCalisan = null;
-        adim(3);
-      } else if(state.calisanlar.length === 1) {
-        state.seciliCalisan = state.calisanlar[0];
-        adim(3);
-      } else {
-        adim(2);
-      }
-    }
+    function yeniCaptcha() { state.captchaA=Math.floor(Math.random()*9)+1; state.captchaB=Math.floor(Math.random()*9)+1; state.captchaCevap=''; }
 
     async function randevuOlustur() {
-      state.yukleniyor = true;
-      state.hata = '';
-      render();
-
+      state.yukleniyor=true; state.hata=''; render();
       const tel = state.musteriTel.replace(/\s/g,'').replace(/^0/,'90');
-      const body = {
-        musteriTelefon: tel,
-        musteriIsim: state.musteriAd,
-        hizmetId: state.seciliHizmet.id,
-        calisanId: state.seciliCalisan?.id || null,
-        tarih: state.seciliTarih,
-        saat: state.seciliSaat
-      };
-
+      const body = {musteriTelefon:tel, musteriIsim:state.musteriAd, hizmetId:state.seciliHizmet.id, calisanId:state.seciliCalisan?.id||null, tarih:state.seciliTarih, saat:state.seciliSaat};
       const data = await apiPost(`/book/${slug}/randevu`, body);
-      state.yukleniyor = false;
-
-      if(data.hata) {
-        state.hata = data.hata;
-        render();
-        return;
-      }
-      
-      state.sonRandevuZaman = Date.now();
-      state.step = 6;
-      render();
+      state.yukleniyor=false;
+      if(data.hata) { state.hata=data.hata; render(); return; }
+      state.sonRandevuZaman=Date.now(); state.step=6; render();
     }
 
     function yeniRandevu() {
-      state.step = 1;
-      state.seciliHizmet = null;
-      state.seciliCalisan = null;
-      state.seciliTarih = null;
-      state.seciliSaat = null;
-      state.saatler = [];
-      state.musteriAd = '';
-      state.musteriTel = '';
-      state.musteriNot = '';
-      state.hata = '';
-      yeniCaptcha();
-      render();
+      Object.assign(state, {step:1,seciliHizmet:null,seciliCalisan:null,seciliTarih:null,seciliSaat:null,saatler:[],musteriAd:'',musteriTel:'',musteriNot:'',hata:'',calisanSecildi:false});
+      yeniCaptcha(); render();
     }
 
     init();
