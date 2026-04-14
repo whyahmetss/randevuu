@@ -676,17 +676,22 @@ class AdminController {
     const id = req.params.id;
     try {
       const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id=$1', [id])).rows[0];
-      // Bağımlı tabloları sırayla temizle
-      await pool.query('DELETE FROM destek_talepleri WHERE isletme_id = $1', [id]).catch(() => {});
+      // Bağımlı tabloları sırayla temizle (her biri catch ile — tablo yoksa sessizce geç)
+      // Etiket atamaları (özel sorgu — etiket tablosuna bağlı)
+      await pool.query('DELETE FROM musteri_etiket_atamalari WHERE etiket_id IN (SELECT id FROM musteri_etiketler WHERE isletme_id = $1)', [id]).catch(() => {});
+      // Standart tablolar
+      const silTablolari = [
+        'isletme_bildirimleri', 'zombi_aksiyonlar', 'wa_auth_keys', 'destek_talepleri',
+        'sohbet_gecmisi', 'bot_durum', 'bekleme_listesi',
+        'kasa_hareketleri', 'prim_odemeleri', 'sms_log', 'gece_rapor_log',
+        'yorum_talepleri', 'winback_log', 'puan_hareketleri', 'referans_log',
+        'google_yorum_talepleri', 'musteri_etiketler', 'audit_log',
+        'odemeler', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'admin_kullanicilar'
+      ];
+      for (const t of silTablolari) {
+        await pool.query(`DELETE FROM ${t} WHERE isletme_id = $1`, [id]).catch(() => {});
+      }
       await pool.query('DELETE FROM referanslar WHERE sahip_isletme_id = $1', [id]).catch(() => {});
-      await pool.query('DELETE FROM sohbet_gecmisi WHERE isletme_id = $1', [id]);
-      await pool.query('DELETE FROM bot_durum WHERE isletme_id = $1', [id]);
-      await pool.query('DELETE FROM bekleme_listesi WHERE isletme_id = $1', [id]);
-      await pool.query('DELETE FROM randevular WHERE isletme_id = $1', [id]);
-      await pool.query('DELETE FROM hizmetler WHERE isletme_id = $1', [id]);
-      await pool.query('DELETE FROM calisanlar WHERE isletme_id = $1', [id]);
-      await pool.query('DELETE FROM admin_kullanicilar WHERE isletme_id = $1', [id]);
-      await pool.query('DELETE FROM odemeler WHERE isletme_id = $1', [id]).catch(() => {});
       await pool.query('DELETE FROM isletmeler WHERE id = $1', [id]);
       await this.auditLogYaz(req.kullanici, 'isletme_silindi', `${isletme?.isim || id} silindi (tüm verileriyle)`, 'isletmeler', parseInt(id), req.ip);
       res.json({ mesaj: 'İşletme ve tüm verileri silindi' });
