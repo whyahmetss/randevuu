@@ -193,6 +193,17 @@
         err_captcha: 'Doğrulama sonucu yanlış. Lütfen tekrar deneyin.',
         err_cooldown: 'Çok hızlı istek gönderiyorsunuz. Lütfen 1 dakika bekleyin.',
         err_invalid: 'Geçersiz istek.',
+        otp_send: 'Kod Gönder',
+        otp_sending: 'Gönderiliyor...',
+        otp_resend: 'Tekrar Gönder',
+        otp_label: 'WhatsApp Doğrulama Kodu',
+        otp_placeholder: '6 haneli kodu girin',
+        otp_verify: 'Doğrula',
+        otp_verifying: 'Doğrulanıyor...',
+        otp_sent: 'WhatsApp üzerinden doğrulama kodu gönderildi.',
+        otp_verified: 'Numara doğrulandı ✓',
+        otp_bypass: 'Doğrulama atlandı (WhatsApp bağlantısı yok)',
+        otp_info: 'Telefon numaranıza WhatsApp üzerinden 6 haneli doğrulama kodu gönderilecektir.',
         minutes: 'dakika',
         for_text: 'için',
         at_date: 'tarihinde saat',
@@ -245,6 +256,17 @@
         err_captcha: 'Verification answer is wrong. Please try again.',
         err_cooldown: 'Too many requests. Please wait 1 minute.',
         err_invalid: 'Invalid request.',
+        otp_send: 'Send Code',
+        otp_sending: 'Sending...',
+        otp_resend: 'Resend',
+        otp_label: 'WhatsApp Verification Code',
+        otp_placeholder: 'Enter 6-digit code',
+        otp_verify: 'Verify',
+        otp_verifying: 'Verifying...',
+        otp_sent: 'Verification code sent via WhatsApp.',
+        otp_verified: 'Number verified ✓',
+        otp_bypass: 'Verification skipped (WhatsApp not connected)',
+        otp_info: 'A 6-digit verification code will be sent to your phone via WhatsApp.',
         minutes: 'minutes',
         for_text: 'for',
         at_date: 'on',
@@ -297,6 +319,17 @@
         err_captcha: 'إجابة التحقق خاطئة. حاول مرة أخرى.',
         err_cooldown: 'طلبات كثيرة. يرجى الانتظار دقيقة واحدة.',
         err_invalid: 'طلب غير صالح.',
+        otp_send: 'إرسال الرمز',
+        otp_sending: 'جاري الإرسال...',
+        otp_resend: 'إعادة الإرسال',
+        otp_label: 'رمز التحقق عبر واتساب',
+        otp_placeholder: 'أدخل الرمز المكون من 6 أرقام',
+        otp_verify: 'تحقق',
+        otp_verifying: 'جاري التحقق...',
+        otp_sent: 'تم إرسال رمز التحقق عبر واتساب.',
+        otp_verified: 'تم التحقق من الرقم ✓',
+        otp_bypass: 'تم تخطي التحقق (واتساب غير متصل)',
+        otp_info: 'سيتم إرسال رمز تحقق مكون من 6 أرقام إلى هاتفك عبر واتساب.',
         minutes: 'دقيقة',
         for_text: 'لـ',
         at_date: 'بتاريخ',
@@ -320,7 +353,8 @@
       seciliHizmet: null, seciliCalisan: null, seciliTarih: null, seciliSaat: null,
       musteriAd: '', musteriTel: '', musteriNot: '', hata: '', yukleniyor: false,
       captchaA: 0, captchaB: 0, captchaCevap: '', sonRandevuZaman: 0,
-      otomatikCalisan: false, calisanSecildi: false
+      otomatikCalisan: false, calisanSecildi: false,
+      otpGonderildi: false, otpDogrulandi: false, otpKod: '', otpYukleniyor: false, otpBypass: false, otpMesaj: ''
     };
 
     async function api(endpoint) {
@@ -461,20 +495,47 @@
         if(s.seciliSaat) h += `<button class="btn-go" onclick="adim(4)">${t('continue')}</button>`;
       }
 
-      // Step 4 — Bilgiler
+      // Step 4 — Bilgiler + WhatsApp OTP
       else if(s.step===4) {
         h += `<button class="btn-back" onclick="adim(3)">${svgBack} ${t('back')}</button>`;
         h += `<div class="step-header"><span class="step-num">4</span><span class="step-label">${t('step4_title')}</span></div>`;
         h += `<div class="fg"><label>${t('name_label')}</label>
-          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="${t('name_placeholder')}" oninput="state.musteriAd=this.value;bilgiKontrol()" maxlength="60"></div>`;
+          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="${t('name_placeholder')}" oninput="state.musteriAd=this.value" maxlength="60"></div>`;
         h += `<div class="fg"><label>${t('phone_label')}</label>
-          <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="${t('phone_placeholder')}" oninput="state.musteriTel=this.value;bilgiKontrol()" maxlength="15"></div>`;
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="${t('phone_placeholder')}" oninput="state.musteriTel=this.value;state.otpGonderildi=false;state.otpDogrulandi=false;state.otpBypass=false;state.otpMesaj='';render()" maxlength="15" style="flex:1" ${s.otpDogrulandi?'disabled':''}>
+            ${!s.otpDogrulandi?`<button class="btn-go" style="width:auto;min-width:110px;margin:0;padding:12px 16px;font-size:12px" onclick="otpGonder()" ${s.otpYukleniyor?'disabled':''}>${s.otpYukleniyor?t('otp_sending'):(s.otpGonderildi?t('otp_resend'):t('otp_send'))}</button>`:''}
+          </div>
+        </div>`;
+
+        // OTP doğrulandıysa yeşil badge
+        if(s.otpDogrulandi) {
+          h += `<div style="display:flex;align-items:center;gap:6px;color:var(--green);font-size:12px;font-weight:600;margin:-8px 0 14px;padding:8px 12px;background:var(--green-glow);border-radius:var(--radius-xs)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M20 6L9 17l-5-5"/></svg>
+            ${s.otpBypass?t('otp_bypass'):t('otp_verified')}
+          </div>`;
+        }
+
+        // OTP gönderildiyse ama doğrulanmadıysa → kod giriş alanı
+        if(s.otpGonderildi && !s.otpDogrulandi) {
+          h += `<div style="font-size:11px;color:var(--green);margin:-4px 0 12px;font-weight:500">✓ ${s.otpMesaj||t('otp_sent')}</div>`;
+          h += `<div class="fg"><label>${t('otp_label')}</label>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="otpInput" value="${s.otpKod}" placeholder="${t('otp_placeholder')}" oninput="state.otpKod=this.value" maxlength="6" style="flex:1;letter-spacing:8px;text-align:center;font-size:18px;font-weight:700">
+              <button class="btn-go" style="width:auto;min-width:100px;margin:0;padding:12px 16px;font-size:12px" onclick="otpDogrula()" ${s.otpYukleniyor?'disabled':''}>${s.otpYukleniyor?t('otp_verifying'):t('otp_verify')}</button>
+            </div>
+          </div>`;
+        }
+
+        // Henüz hiçbir OTP işlemi yapılmadıysa bilgi metni
+        if(!s.otpGonderildi && !s.otpDogrulandi) {
+          h += `<div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">${t('otp_info')}</div>`;
+        }
+
         h += `<div style="position:absolute;left:-9999px"><input type="text" id="website" tabindex="-1" autocomplete="off"></div>`;
-        h += `<div class="fg"><label>${t('captcha_label')}: ${s.captchaA} + ${s.captchaB} = ?</label>
-          <input type="number" id="captchaInput" placeholder="${t('captcha_placeholder')}" oninput="state.captchaCevap=this.value;bilgiKontrol()"></div>`;
         h += `<div class="fg"><label>${t('note_label')}</label>
           <textarea id="musteriNot" placeholder="${t('note_placeholder')}" oninput="state.musteriNot=this.value">${s.musteriNot}</textarea></div>`;
-        h += `<button class="btn-go" id="btnOzet" onclick="bilgiDevam()">${t('view_summary')}</button>`;
+        h += `<button class="btn-go" id="btnOzet" onclick="bilgiDevam()" ${!s.otpDogrulandi||!s.musteriAd.trim()?'disabled':''}>${t('view_summary')}</button>`;
       }
 
       // Step 5 — Özet
@@ -559,18 +620,61 @@
 
     function bilgiKontrol() {
       const btn = document.getElementById('btnOzet');
-      if(btn) btn.disabled = !(state.musteriAd.trim()&&state.musteriTel.trim()&&state.captchaCevap);
+      if(btn) btn.disabled = !(state.musteriAd.trim() && state.otpDogrulandi);
     }
+
+    function telTemizle(tel) {
+      return tel.replace(/\s/g,'').replace(/^\+/, '');
+    }
+
+    function telGecerliMi() {
+      const tel = state.musteriTel.replace(/\s/g,'');
+      return /^(05\d{9}|5\d{9}|905\d{9}|\+905\d{9})$/.test(tel);
+    }
+
+    async function otpGonder() {
+      if(!state.musteriTel.trim()) { state.hata=t('err_name_phone'); render(); return; }
+      if(!telGecerliMi()) { state.hata=t('err_phone_format'); render(); return; }
+      state.otpYukleniyor=true; state.hata=''; render();
+
+      const tel = telTemizle(state.musteriTel);
+      const data = await apiPost(`/book/${slug}/otp-gonder`, {telefon: tel});
+      state.otpYukleniyor=false;
+
+      if(data.hata) { state.hata=data.hata; render(); return; }
+      if(data.bypass) {
+        // WA bağlı değil — doğrudan doğrulanmış say
+        state.otpDogrulandi=true; state.otpBypass=true; state.otpGonderildi=false;
+        render(); return;
+      }
+      state.otpGonderildi=true; state.otpMesaj=t('otp_sent');
+      render();
+    }
+
+    async function otpDogrula() {
+      if(!state.otpKod.trim()||state.otpKod.length<6) { state.hata=t('err_captcha'); render(); return; }
+      state.otpYukleniyor=true; state.hata=''; render();
+
+      const tel = telTemizle(state.musteriTel);
+      const data = await apiPost(`/book/${slug}/otp-dogrula`, {telefon: tel, kod: state.otpKod.trim()});
+      state.otpYukleniyor=false;
+
+      if(data.hata) { state.hata=data.hata; render(); return; }
+      if(data.dogrulandi) {
+        state.otpDogrulandi=true; state.hata='';
+        render(); return;
+      }
+    }
+
     function bilgiDevam() {
       const hp = document.getElementById('website');
       if(hp&&hp.value) { state.hata=t('err_invalid'); render(); return; }
-      if(!state.musteriAd.trim()||!state.musteriTel.trim()) { state.hata=t('err_name_phone'); render(); return; }
-      const tel = state.musteriTel.replace(/\s/g,'');
-      if(!/^(05\d{9}|5\d{9}|905\d{9}|\+905\d{9})$/.test(tel)) { state.hata=t('err_phone_format'); render(); return; }
-      if(parseInt(state.captchaCevap)!==state.captchaA+state.captchaB) { state.hata=t('err_captcha'); yeniCaptcha(); render(); return; }
+      if(!state.musteriAd.trim()) { state.hata=t('err_name_phone'); render(); return; }
+      if(!state.otpDogrulandi) { state.hata=t('err_phone_format'); render(); return; }
       if(state.sonRandevuZaman&&Date.now()-state.sonRandevuZaman<60000) { state.hata=t('err_cooldown'); render(); return; }
       adim(5);
     }
+
     function yeniCaptcha() { state.captchaA=Math.floor(Math.random()*9)+1; state.captchaB=Math.floor(Math.random()*9)+1; state.captchaCevap=''; }
 
     async function randevuOlustur() {
@@ -584,7 +688,8 @@
     }
 
     function yeniRandevu() {
-      Object.assign(state, {step:1,seciliHizmet:null,seciliCalisan:null,seciliTarih:null,seciliSaat:null,saatler:[],musteriAd:'',musteriTel:'',musteriNot:'',hata:'',calisanSecildi:false});
+      Object.assign(state, {step:1,seciliHizmet:null,seciliCalisan:null,seciliTarih:null,seciliSaat:null,saatler:[],musteriAd:'',musteriTel:'',musteriNot:'',hata:'',calisanSecildi:false,
+        otpGonderildi:false,otpDogrulandi:false,otpKod:'',otpYukleniyor:false,otpBypass:false,otpMesaj:''});
       yeniCaptcha(); render();
     }
 

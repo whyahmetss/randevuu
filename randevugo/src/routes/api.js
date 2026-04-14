@@ -299,5 +299,7 @@ router.get('/book/:slug/hizmetler', noCache, (req, res) => bookingController.hiz
 router.get('/book/:slug/calisanlar', noCache, (req, res) => bookingController.calisanlariGetir(req, res));
 router.get('/book/:slug/saatler', noCache, (req, res) => bookingController.musaitSaatler(req, res));
 router.post('/book/:slug/randevu', (req, res) => bookingController.randevuOlustur(req, res));
+router.post('/book/:slug/otp-gonder', (req, res) => bookingController.otpGonder(req, res));
+router.post('/book/:slug/otp-dogrula', (req, res) => bookingController.otpDogrula(req, res));
 
 module.exports = router;

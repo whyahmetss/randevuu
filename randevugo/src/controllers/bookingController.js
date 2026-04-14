@@ -1,6 +1,20 @@
 const pool = require('../config/db');
 const randevuService = require('../services/randevu');
 
+/* ─── In-memory OTP store ─── */
+const otpStore = new Map(); // key: "isletmeId:telefon" → { kod, olusturma, deneme }
+const OTP_TTL = 5 * 60 * 1000; // 5 dakika
+const OTP_COOLDOWN = 60 * 1000; // 60 saniye - aynı numaraya tekrar gönderim
+const OTP_MAX_DENEME = 5; // max yanlış deneme
+
+// Periyodik temizlik (10dk'da bir)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of otpStore) {
+    if (now - val.olusturma > OTP_TTL) otpStore.delete(key);
+  }
+}, 10 * 60 * 1000);
+
 class BookingController {
 
   // GET /api/book/:slug — İşletme bilgilerini getir (public)
@@ -178,6 +192,111 @@ class BookingController {
         return res.status(403).json({ hata: 'Bu işletmenin aylık randevu kapasitesi dolmuştur. Lütfen daha sonra tekrar deneyin.', limit_asimi: true });
       }
       res.status(500).json({ hata: 'Randevu oluşturulamadı: ' + error.message });
+    }
+  }
+  // POST /api/book/:slug/otp-gonder — WhatsApp OTP gönder
+  async otpGonder(req, res) {
+    try {
+      const { slug } = req.params;
+      const { telefon } = req.body;
+      if (!telefon) return res.status(400).json({ hata: 'Telefon numarası gerekli' });
+
+      const telefonTemiz = String(telefon).replace(/[^\d]/g, '');
+      if (telefonTemiz.length < 10 || telefonTemiz.length > 15) return res.status(400).json({ hata: 'Geçersiz telefon numarası' });
+
+      const isletme = (await pool.query('SELECT id, isim FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      const storeKey = `${isletme.id}:${telefonTemiz}`;
+      const mevcut = otpStore.get(storeKey);
+
+      // Cooldown kontrolü
+      if (mevcut && Date.now() - mevcut.olusturma < OTP_COOLDOWN) {
+        const kalan = Math.ceil((OTP_COOLDOWN - (Date.now() - mevcut.olusturma)) / 1000);
+        return res.status(429).json({ hata: `Lütfen ${kalan} saniye bekleyin.`, cooldown: kalan });
+      }
+
+      // 6 haneli kod üret
+      const kod = String(Math.floor(100000 + Math.random() * 900000));
+
+      // Store'a kaydet
+      otpStore.set(storeKey, { kod, olusturma: Date.now(), deneme: 0 });
+
+      // WhatsApp ile gönder
+      const whatsappWeb = require('../services/whatsappWeb');
+      const waDurum = whatsappWeb.getDurum(isletme.id);
+
+      if (waDurum?.durum !== 'bagli') {
+        // WA bağlı değilse — OTP'yi bypass et, doğrudan doğrulanmış say
+        otpStore.set(storeKey, { kod: '000000', olusturma: Date.now(), deneme: 0, bypass: true });
+        return res.json({ basarili: true, bypass: true, mesaj: 'WhatsApp bağlı değil, doğrulama atlandı.' });
+      }
+
+      // Numara formatı: 90XXXXXXXXXX veya XXXXXXXXXX → JID
+      let jidTel = telefonTemiz;
+      if (jidTel.startsWith('0')) jidTel = '90' + jidTel.substring(1);
+      if (!jidTel.startsWith('90') && jidTel.length === 10) jidTel = '90' + jidTel;
+
+      const mesaj = `🔐 *SıraGO Doğrulama Kodu*\n\n*${isletme.isim}* üzerinden online randevu almak için doğrulama kodunuz:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesajı siz talep etmediyseniz lütfen dikkate almayın._`;
+
+      await whatsappWeb.mesajGonder(isletme.id, `${jidTel}@s.whatsapp.net`, mesaj);
+
+      console.log(`📤 OTP gönderildi: ${telefonTemiz} → ${isletme.isim} (${kod})`);
+      res.json({ basarili: true });
+    } catch (error) {
+      console.error('❌ OTP gönderme hatası:', error.message);
+      res.status(500).json({ hata: 'Doğrulama kodu gönderilemedi' });
+    }
+  }
+
+  // POST /api/book/:slug/otp-dogrula — OTP doğrula
+  async otpDogrula(req, res) {
+    try {
+      const { slug } = req.params;
+      const { telefon, kod } = req.body;
+      if (!telefon || !kod) return res.status(400).json({ hata: 'Telefon ve kod gerekli' });
+
+      const telefonTemiz = String(telefon).replace(/[^\d]/g, '');
+
+      const isletme = (await pool.query('SELECT id FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      const storeKey = `${isletme.id}:${telefonTemiz}`;
+      const kayit = otpStore.get(storeKey);
+
+      if (!kayit) return res.status(400).json({ hata: 'Doğrulama kodu bulunamadı. Lütfen tekrar gönderin.' });
+
+      // TTL kontrolü
+      if (Date.now() - kayit.olusturma > OTP_TTL) {
+        otpStore.delete(storeKey);
+        return res.status(400).json({ hata: 'Kodun süresi dolmuş. Lütfen yeni kod isteyin.', sureDoldu: true });
+      }
+
+      // Bypass modu (WA bağlı değilken)
+      if (kayit.bypass) {
+        otpStore.delete(storeKey);
+        return res.json({ basarili: true, dogrulandi: true });
+      }
+
+      // Max deneme kontrolü
+      if (kayit.deneme >= OTP_MAX_DENEME) {
+        otpStore.delete(storeKey);
+        return res.status(429).json({ hata: 'Çok fazla yanlış deneme. Lütfen yeni kod isteyin.' });
+      }
+
+      // Kod kontrolü
+      if (String(kod).trim() !== kayit.kod) {
+        kayit.deneme++;
+        return res.status(400).json({ hata: 'Doğrulama kodu yanlış.', kalanDeneme: OTP_MAX_DENEME - kayit.deneme });
+      }
+
+      // Başarılı doğrulama
+      otpStore.delete(storeKey);
+      console.log(`✅ OTP doğrulandı: ${telefonTemiz}`);
+      res.json({ basarili: true, dogrulandi: true });
+    } catch (error) {
+      console.error('❌ OTP doğrulama hatası:', error.message);
+      res.status(500).json({ hata: 'Doğrulama hatası' });
     }
   }
 }
