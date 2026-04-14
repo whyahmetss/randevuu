@@ -202,9 +202,9 @@ router.post('/etiketler/toplu-ata', authMiddleware, odemeKontrol, (req, res) => 
 
 // ==================== İŞLETME BİLDİRİMLERİ ====================
 router.get('/bildirimler', authMiddleware, (req, res) => adminController.bildirimlerGetir(req, res));
-router.put('/bildirimler/:id/okundu', authMiddleware, (req, res) => adminController.bildirimOkundu(req, res));
-router.put('/bildirimler/tumunu-oku', authMiddleware, (req, res) => adminController.bildirimTumunuOku(req, res));
 router.get('/bildirimler/okunmamis-sayi', authMiddleware, (req, res) => adminController.bildirimOkunmamisSayi(req, res));
+router.put('/bildirimler/tumunu-oku', authMiddleware, (req, res) => adminController.bildirimTumunuOku(req, res));
+router.put('/bildirimler/:id/okundu', authMiddleware, (req, res) => adminController.bildirimOkundu(req, res));
 router.put('/bildirim-tercihleri', authMiddleware, (req, res) => adminController.bildirimTercihGuncelle(req, res));
 
 // ==================== FİNANS & CÜZDAN ====================
