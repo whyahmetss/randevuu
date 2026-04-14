@@ -1179,10 +1179,16 @@ class AdminController {
         [isletmeId, buAy]
       )).rows[0];
 
-      if (mevcut) {
+      if (mevcut && ['odendi', 'havale_bekliyor'].includes(mevcut.durum)) {
+        // Mevcut ödeme odendi veya havale bekliyor — dokunma, ayrı kayıt oluştur
         await pool.query(
-          "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1, shopier_urun_id = $2 WHERE id = $3",
-          [refKod, urun.id, mevcut.id]
+          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu, shopier_urun_id) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4, $5)",
+          [isletmeId, paketBilgi.fiyat, buAy, refKod, urun.id]
+        );
+      } else if (mevcut) {
+        await pool.query(
+          "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1, shopier_urun_id = $2, tutar = $3 WHERE id = $4",
+          [refKod, urun.id, paketBilgi.fiyat, mevcut.id]
         );
       } else {
         await pool.query(
