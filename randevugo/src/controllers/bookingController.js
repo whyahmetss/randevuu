@@ -107,7 +107,7 @@ class BookingController {
 
       // Aynı telefon+tarih+saat ile tekrar randevu kontrolü
       const mevcutRandevu = (await pool.query(
-        `SELECT id FROM randevular r JOIN musteriler m ON r.musteri_id=m.id 
+        `SELECT r.id FROM randevular r JOIN musteriler m ON r.musteri_id=m.id 
          WHERE r.isletme_id=$1 AND m.telefon=$2 AND r.tarih=$3 AND r.saat=$4 AND r.durum != 'iptal'`,
         [isletme.id, telefonTemiz, tarih, saat]
       )).rows[0];
