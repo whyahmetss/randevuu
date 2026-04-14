@@ -123,6 +123,25 @@ router.post('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, 
 router.delete('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraSil(req, res));
 router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraDurumGuncelle(req, res));
 
+// ==================== API DASHBOARD ====================
+router.get('/admin/api-dashboard', authMiddleware, superAdminMiddleware, (req, res) => adminController.apiDashboard(req, res));
+
+// ==================== İŞLETME KARŞILAŞTIRMA RAPORU ====================
+router.get('/admin/karsilastirma', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeKarsilastirma(req, res));
+
+// ==================== MÜŞTERİ SEGMENTASYONU ====================
+router.get('/admin/segmentasyon', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriSegmentasyon(req, res));
+
+// ==================== İŞLETME ONBOARDING ====================
+router.get('/admin/onboarding', authMiddleware, superAdminMiddleware, (req, res) => adminController.onboardingDurum(req, res));
+
+// ==================== SATIŞ BOT ŞABLONLARI ====================
+router.get('/admin/satis-bot/sablonlar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisSablonlariGetir(req, res));
+router.post('/admin/satis-bot/sablonlar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisSablonEkle(req, res));
+router.put('/admin/satis-bot/sablonlar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisSablonGuncelle(req, res));
+router.delete('/admin/satis-bot/sablonlar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisSablonSil(req, res));
+router.get('/admin/satis-bot/sablonlar/performans', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisSablonPerformans(req, res));
+
 // ==================== MÜŞTERİ AKTİVİTE & BİLDİRİM MERKEZİ ====================
 router.get('/admin/musteri-aktivite', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriAktivite(req, res));
 router.get('/admin/bildirimler', authMiddleware, superAdminMiddleware, (req, res) => adminController.bildirimMerkezi(req, res));
@@ -148,6 +167,10 @@ router.delete('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req,
 // ==================== ZOMBİ MÜŞTERİ TAKİBİ ====================
 router.get('/admin/zombiler', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiMusteriler(req, res));
 router.post('/admin/zombiler/mesaj', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiTopluMesaj(req, res));
+router.get('/admin/zombiler/otomatik-aksiyon', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiOtomatikAksiyon(req, res));
+router.post('/admin/zombiler/aksiyon-uygula', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiAksiyonUygula(req, res));
+router.post('/admin/zombiler/toplu-aksiyon', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiTopluAksiyon(req, res));
+router.get('/admin/zombiler/aksiyon-gecmisi', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiAksiyonGecmisi(req, res));
 
 // ==================== REFERANS (Affiliate) SİSTEMİ ====================
 router.get('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res) => adminController.referanslarListele(req, res));
@@ -192,6 +215,11 @@ router.get('/google-yorum/talepler', authMiddleware, odemeKontrol, (req, res) =>
 // ==================== PREMİUM ÖZELLİK DURUMU ====================
 router.get('/premium/durum', authMiddleware, (req, res) => adminController.premiumOzellikDurumu(req, res));
 
+// ==================== REFERANS AĞI ====================
+router.get('/referans/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.referansAyarlariGetir(req, res));
+router.put('/referans/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.referansAyarlariGuncelle(req, res));
+router.get('/referans/rapor', authMiddleware, odemeKontrol, (req, res) => adminController.referansRaporu(req, res));
+
 // ==================== SADAKAT PUAN SİSTEMİ ====================
 router.get('/sadakat/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.sadakatAyarlariGetir(req, res));
 router.put('/sadakat/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.sadakatAyarlariGuncelle(req, res));
@@ -234,6 +262,14 @@ router.get('/kasa', authMiddleware, odemeKontrol, (req, res) => adminController.
 router.post('/kasa', authMiddleware, odemeKontrol, (req, res) => adminController.kasaEkle(req, res));
 router.delete('/kasa/:id', authMiddleware, odemeKontrol, (req, res) => adminController.kasaSil(req, res));
 router.get('/kasa/ozet', authMiddleware, odemeKontrol, (req, res) => adminController.kasaOzet(req, res));
+
+// ==================== MÜŞTERİ CRM ====================
+router.get('/admin/musteri-crm', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriCRM(req, res));
+router.get('/admin/musteri-crm/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriDetay(req, res));
+
+// ==================== QR KOD ====================
+router.get('/admin/qr-kod', authMiddleware, superAdminMiddleware, (req, res) => adminController.adminQrKodOlustur(req, res));
+router.get('/qr-kod', authMiddleware, (req, res) => adminController.qrKodOlustur(req, res));
 
 // ==================== ONLINE RANDEVU (Public) ====================
 router.get('/book/:slug', (req, res) => bookingController.isletmeBilgileri(req, res));

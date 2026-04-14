@@ -420,6 +420,60 @@ const PORT = process.env.PORT || 3000;
       tarih TIMESTAMP DEFAULT NOW()
     )`);
 
+    // ─── SATIŞ BOT ŞABLONLAR ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS satis_bot_sablonlar (
+      id SERIAL PRIMARY KEY,
+      isim VARCHAR(100) NOT NULL,
+      mesaj TEXT NOT NULL,
+      kategori VARCHAR(50) DEFAULT 'genel',
+      aktif BOOLEAN DEFAULT true,
+      gonderim_modu VARCHAR(20) DEFAULT 'rastgele',
+      gonderilen INTEGER DEFAULT 0,
+      cevap_gelen INTEGER DEFAULT 0,
+      olumlu INTEGER DEFAULT 0,
+      olumsuz INTEGER DEFAULT 0,
+      olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
+    )`);
+    await pool.query(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS sablon_id INTEGER`);
+
+    // Varsayılan şablonları ekle (yoksa)
+    const mevcutSablon = (await pool.query('SELECT COUNT(*) as c FROM satis_bot_sablonlar')).rows[0];
+    if (parseInt(mevcutSablon.c) === 0) {
+      await pool.query(`INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES
+        ('Soru Soran', 'Selam {isletme_sahibi} bey, Google''da {isletme_adi}''yi gördüm puanınız çok güzel 👍 Müşterileriniz randevu için sizi arıyor mu yoksa direkt geliyor mu?', 'genel'),
+        ('Değer Öneren', 'Merhaba {isletme_sahibi} bey, {kategori} işletmelerine WhatsApp''tan otomatik randevu sistemi kuruyoruz. Müşteriniz size WhatsApp''tan yazıyor, bot otomatik randevu veriyor. 2 hafta ücretsiz. İlgilenir misiniz?', 'genel'),
+        ('Rakip Müşterisi', 'Selam {isletme_sahibi} bey, şu an randevu sistemi kullanıyorsunuz değil mi? Biz aynı sistemi WhatsApp bot + AI ile yapıyoruz, müşteriniz uygulama indirmeden randevu alıyor. İlk 3 ay ücretsiz geçiş yapabilirsiniz. 5dk demo göstereyim mi?', 'genel')
+      `);
+    }
+
+    // ─── İŞLETME ONBOARDING ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_adim INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_tamamlandi BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_profil BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_hizmet BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_calisan BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_bot BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_randevu BOOLEAN DEFAULT false`);
+
+    // ─── ZOMBİ OTOMATİK AKSİYON ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS zombi_aksiyonlar (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      aksiyon_tipi VARCHAR(30) NOT NULL,
+      mesaj TEXT,
+      durum VARCHAR(20) DEFAULT 'bekliyor',
+      sonuc TEXT,
+      olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul'),
+      uygulama_tarihi TIMESTAMP
+    )`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_gonderildi BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_tarihi TIMESTAMP`);
+
+    // ─── DİNAMİK SÜRE + TAMPON ───
+    await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS tampon_dk INTEGER DEFAULT 0`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS varsayilan_tampon_dk INTEGER DEFAULT 5`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slot_aralik_dk INTEGER DEFAULT 30`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
 
     // Dosya tabanlı migration'ları çalıştır

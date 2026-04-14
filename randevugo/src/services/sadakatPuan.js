@@ -54,6 +54,24 @@ class SadakatPuanService {
     }
   }
 
+  // Direkt puan ekleme (referans, bonus vb.)
+  async puanEkle2(isletmeId, musteriId, puan, aciklama) {
+    try {
+      await pool.query(
+        'INSERT INTO puan_hareketleri (isletme_id, musteri_id, tip, puan, aciklama) VALUES ($1, $2, $3, $4, $5)',
+        [isletmeId, musteriId, 'kazanc', puan, aciklama]
+      );
+      await pool.query(
+        'UPDATE musteriler SET puan_bakiye = puan_bakiye + $1, toplam_kazanilan_puan = toplam_kazanilan_puan + $1 WHERE id = $2',
+        [puan, musteriId]
+      );
+      return puan;
+    } catch (e) {
+      console.error('Direkt puan ekleme hatası:', e.message);
+      return 0;
+    }
+  }
+
   // Puan harca (ödül kullan)
   async puanHarca(isletmeId, musteriId, puan, aciklama) {
     try {

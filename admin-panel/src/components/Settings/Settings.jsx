@@ -187,6 +187,33 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </div>
       </div>
 
+      {/* Tampon & Slot Ayarları */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={S.card}>
+          <CardHead emoji="⏳" title="Varsayılan Tampon Süre" color="#8b5cf6" desc="Randevular arası hazırlık/temizlik süresi" />
+          <select value={ayarlar.varsayilan_tampon_dk || 5} onChange={e => setAyarlar({...ayarlar, varsayilan_tampon_dk: parseInt(e.target.value)})} className="input" style={{ width: "100%" }}>
+            <option value={0}>Tampon yok (0 dk)</option>
+            <option value={5}>5 dakika</option>
+            <option value={10}>10 dakika</option>
+            <option value={15}>15 dakika</option>
+            <option value={20}>20 dakika</option>
+            <option value={30}>30 dakika</option>
+          </select>
+          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Hizmet bazlı tampon ayarlanmamışsa bu değer kullanılır</div>
+        </div>
+        <div style={S.card}>
+          <CardHead emoji="🔲" title="Slot Aralığı" color="#06b6d4" desc="Randevu saatleri arasındaki temel aralık" />
+          <select value={ayarlar.slot_aralik_dk || 30} onChange={e => setAyarlar({...ayarlar, slot_aralik_dk: parseInt(e.target.value)})} className="input" style={{ width: "100%" }}>
+            <option value={10}>10 dakika</option>
+            <option value={15}>15 dakika</option>
+            <option value={20}>20 dakika</option>
+            <option value={30}>30 dakika</option>
+            <option value={60}>60 dakika</option>
+          </select>
+          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Müşteriye sunulan saat seçenekleri bu aralıkta oluşturulur</div>
+        </div>
+      </div>
+
       {/* ═══════════════  ROW 2: Randevu Ayarları (3 kart)  ═══════════════ */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }} className="settings-grid-3">
         {/* Randevu Modu */}
