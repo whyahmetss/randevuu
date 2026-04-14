@@ -3458,12 +3458,9 @@ function SuperAdminPanel({ kullanici }) {
                         const res = await api.post(`/admin/impersonate/${i.id}`);
                         if (res.hata) { alert("Hata: " + res.hata); return; }
                         if (res.token) {
-                          const yeniSekme = window.open("", "_blank");
-                          yeniSekme.document.write(`<html><body><script>
-                            localStorage.setItem("randevugo_token","${res.token}");
-                            localStorage.setItem("randevugo_impersonated","true");
-                            window.location.href = window.location.origin;
-                          <\/script></body></html>`);
+                          localStorage.setItem("randevugo_impersonate_token", res.token);
+                          const yeniSekme = window.open(window.location.origin + "?impersonate=1", "_blank");
+                          if (!yeniSekme) alert("Pop-up engellendi. Lütfen pop-up'lara izin verin.");
                         }
                       } catch (e) { alert("Hata: " + e.message); }
                     }} title="Müşteri olarak giriş" style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontWeight: 700, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>👤 Giriş</button>
@@ -6687,6 +6684,18 @@ export default function App() {
   const [yukleniyor, setYukleniyor] = useState(true);
 
   useEffect(() => {
+    // Impersonate desteği: ?impersonate=1 ile gelen sekme
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("impersonate") === "1") {
+      const impToken = localStorage.getItem("randevugo_impersonate_token");
+      if (impToken) {
+        localStorage.setItem("randevugo_token", impToken);
+        localStorage.setItem("randevugo_impersonated", "true");
+        localStorage.removeItem("randevugo_impersonate_token");
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+
     const token = localStorage.getItem("randevugo_token");
     if (token) {
       api.token = token;

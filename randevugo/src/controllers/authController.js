@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const jwtSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
 
 class AuthController {
   async giris(req, res) {
@@ -12,7 +13,6 @@ class AuthController {
         return res.status(401).json({ hata: 'Email veya şifre hatalı' });
       }
 
-      const jwtSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
       const token = jwt.sign(
         { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id },
         jwtSecret,
@@ -22,7 +22,7 @@ class AuthController {
       res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id } });
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);
-      res.status(500).json({ hata: error.message });
+      res.status(500).json({ hata: 'Sunucu hatası oluştu' });
     }
   }
 
@@ -79,14 +79,14 @@ class AuthController {
       });
     } catch (error) {
       console.error('❌ Bot kayıt hatası:', error.message);
-      res.status(500).json({ hata: error.message });
+      res.status(500).json({ hata: 'Kayıt sırasında bir hata oluştu' });
     }
   }
 
   async profilim(req, res) {
     try {
       const kullanici = (await pool.query(
-        'SELECT ak.*, i.isim as isletme_isim FROM admin_kullanicilar ak LEFT JOIN isletmeler i ON ak.isletme_id = i.id WHERE ak.id = $1',
+        'SELECT ak.id, ak.isim, ak.email, ak.rol, ak.isletme_id, ak.aktif, ak.olusturma_tarihi, i.isim as isletme_isim FROM admin_kullanicilar ak LEFT JOIN isletmeler i ON ak.isletme_id = i.id WHERE ak.id = $1',
         [req.kullanici.id]
       )).rows[0];
       res.json({ kullanici });

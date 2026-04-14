@@ -870,9 +870,10 @@ class AdminController {
   async odemeGuncelle(req, res) {
     try {
       const { durum } = req.body;
-      const odeme_tarihi = durum === 'odendi' ? 'NOW()' : 'NULL';
+      const allowedDurumlar = ['odendi', 'bekliyor', 'gecikti', 'basarisiz', 'havale_bekliyor', 'odeme_bekliyor'];
+      if (!durum || !allowedDurumlar.includes(durum)) return res.status(400).json({ hata: 'Geçersiz durum' });
       const result = await pool.query(
-        `UPDATE odemeler SET durum = $1, odeme_tarihi = ${odeme_tarihi} WHERE id = $2 RETURNING *`,
+        `UPDATE odemeler SET durum = $1, odeme_tarihi = CASE WHEN $1 = 'odendi' THEN NOW() ELSE NULL END WHERE id = $2 RETURNING *`,
         [durum, req.params.id]
       );
       await this.auditLogYaz(req.kullanici, `odeme_${durum}`, `Ödeme #${req.params.id} durumu: ${durum}`, 'odemeler', parseInt(req.params.id), req.ip);
@@ -1133,12 +1134,18 @@ class AdminController {
       const signature = req.headers['shopier-signature'] || '';
       const rawBody = req.rawBody || JSON.stringify(req.body);
 
-      if (shopierService.webhookToken) {
+      if (!shopierService.webhookToken) {
+        console.warn('⚠️ SHOPIER_WEBHOOK_TOKEN tanımlı değil! Webhook doğrulama atlanıyor — GÜVENLİK RİSKİ');
+      }
+      if (shopierService.webhookToken && signature) {
         const gecerli = shopierService.webhookDogrula(rawBody, signature);
         if (!gecerli) {
           console.log('❌ Shopier webhook signature geçersiz');
           return res.status(401).send('Invalid signature');
         }
+      } else if (shopierService.webhookToken && !signature) {
+        console.log('❌ Shopier webhook: signature header eksik');
+        return res.status(401).send('Missing signature');
       }
 
       const order = req.body;
@@ -1816,19 +1823,21 @@ class AdminController {
     try {
       const isletmeId = parseInt(req.params.id);
       const jwt = require('jsonwebtoken');
+      const impersonateSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
       
       // İşletme admin kullanıcısını bul
       const kullanici = (await pool.query(
-        "SELECT * FROM admin_kullanicilar WHERE isletme_id = $1 AND aktif = true ORDER BY id LIMIT 1",
+        "SELECT id, email, rol, isletme_id FROM admin_kullanicilar WHERE isletme_id = $1 AND aktif = true ORDER BY id LIMIT 1",
         [isletmeId]
       )).rows[0];
 
       if (!kullanici) return res.status(404).json({ hata: 'Bu işletme için admin kullanıcı bulunamadı' });
 
-      const jwtSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
+      await this.auditLogYaz(req.kullanici, 'impersonate', `SuperAdmin ${req.kullanici.email} → İşletme #${isletmeId} (${kullanici.email}) impersonate`, 'admin_kullanicilar', kullanici.id, req.ip);
+
       const token = jwt.sign(
         { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, impersonated: true, impersonator: req.kullanici.email },
-        jwtSecret,
+        impersonateSecret,
         { expiresIn: '2h' }
       );
 
@@ -3746,12 +3755,12 @@ class AdminController {
 
   async apiDashboard(req, res) {
     try {
-      // Tablo sayıları
-      const tablolar = ['isletmeler', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'odemeler', 'sohbet_gecmisi', 'destek_talepleri'];
+      // Tablo sayıları (whitelist — sadece bilinen tablo adları)
+      const SAFE_TABLOLAR = new Set(['isletmeler', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'odemeler', 'sohbet_gecmisi', 'destek_talepleri']);
       const tabloSayilari = {};
-      for (const tablo of tablolar) {
+      for (const tablo of SAFE_TABLOLAR) {
         try {
-          const r = await pool.query(`SELECT COUNT(*) as c FROM ${tablo}`);
+          const r = await pool.query(`SELECT COUNT(*) as c FROM "${tablo}"`);
           tabloSayilari[tablo] = parseInt(r.rows[0].c) || 0;
         } catch (e) { tabloSayilari[tablo] = 0; }
       }

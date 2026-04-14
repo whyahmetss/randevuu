@@ -257,11 +257,13 @@ class BotController {
   }
 
   async durumGuncelle(musteriTelefon, isletmeId, asama, ekstra = {}) {
+    const IZINLI_KOLONLAR = new Set(['secilen_hizmet_id', 'secilen_tarih', 'secilen_saat', 'secilen_calisan_id']);
     const fields = ['asama = $3', 'son_aktivite = NOW()'];
     const values = [musteriTelefon, isletmeId, asama];
     let paramIndex = 4;
 
     for (const [key, value] of Object.entries(ekstra)) {
+      if (!IZINLI_KOLONLAR.has(key)) continue;
       fields.push(`${key} = $${paramIndex}`);
       values.push(value);
       paramIndex++;

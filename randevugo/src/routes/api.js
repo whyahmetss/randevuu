@@ -16,7 +16,7 @@ router.post('/iletisim', (req, res) => adminController.iletisimGonder(req, res))
 
 // ==================== WHATSAPP WEBHOOK ====================
 router.post('/webhook/whatsapp', (req, res) => botController.gelenMesaj(req, res));
-router.post('/bot/test', (req, res) => botController.testMesaj(req, res));
+router.post('/bot/test', authMiddleware, (req, res) => botController.testMesaj(req, res));
 
 // ==================== ADMIN PANEL ====================
 router.get('/randevular', authMiddleware, odemeKontrol, (req, res) => adminController.randevulariGetir(req, res));

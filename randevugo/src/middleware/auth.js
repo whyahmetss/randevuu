@@ -1,12 +1,16 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) console.warn('⚠️ CRITICAL: JWT_SECRET env variable tanımlı değil! Varsayılan secret kullanılıyor. Production ortamında mutlaka güçlü bir secret ayarlayın.');
+const jwtSecret = JWT_SECRET || 'randevugo-default-secret-key-2024';
+
 const authMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1] || req.query.token;
   if (!token) return res.status(401).json({ hata: 'Token bulunamadı' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'randevugo-default-secret-key-2024');
+    const decoded = jwt.verify(token, jwtSecret);
     req.kullanici = decoded;
 
     // Pasif işletme kontrolü (SuperAdmin hariç)
@@ -67,4 +71,4 @@ const odemeKontrol = async (req, res, next) => {
   }
 };
 
-module.exports = { authMiddleware, superAdminMiddleware, odemeKontrol };
+module.exports = { authMiddleware, superAdminMiddleware, odemeKontrol, jwtSecret };

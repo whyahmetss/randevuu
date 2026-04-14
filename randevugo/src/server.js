@@ -497,7 +497,7 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(null, true); // Geliştirme kolaylığı için şimdilik hepsini kabul et
+    else callback(new Error('CORS policy: Origin not allowed'));
   },
   credentials: true
 }));
@@ -505,6 +505,9 @@ app.use(cors({
 // Rate limiting
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } });
+const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { hata: 'Çok fazla istek. Lütfen bekleyin.' } });
+const bookingLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: { hata: 'Çok fazla randevu isteği.' } });
+const webhookLimiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 100, message: 'Too many requests' });
 
 app.use(express.json({
   limit: '10mb',
@@ -513,8 +516,12 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true })); // Twilio webhook için
 app.use(express.static(require('path').join(__dirname, 'public')));
 
-// API Routes
+// API Routes — stricter rate limits for public endpoints
 app.use('/api/auth', authLimiter);
+app.use('/api/iletisim', publicFormLimiter);
+app.use('/api/referans/kullan', publicFormLimiter);
+app.use('/api/book', bookingLimiter);
+app.use('/api/webhook', webhookLimiter);
 app.use('/api', apiLimiter, apiRoutes);
 
 // Health check for Render
