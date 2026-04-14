@@ -806,6 +806,9 @@ function Dashboard() {
   const [profilPopover, setProfilPopover] = useState(false);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
+  const [bildirimler, setBildirimler] = useState([]);
+  const [bildirimSayi, setBildirimSayi] = useState(0);
+  const [bildirimPopover, setBildirimPopover] = useState(false);
   const [finansVeri, setFinansVeri] = useState(null);
   const [finansYukleniyor, setFinansYukleniyor] = useState(false);
   const [fAyar, setFAyar] = useState({ kapora_aktif: false, kapora_alt_siniri: "0", kapora_orani: "20", kapora_iptal_saati: "2" });
@@ -850,6 +853,9 @@ function Dashboard() {
     api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
     api.get("/yorum-avcisi/istatistik").then(d => { if (!d?.hata) setYorumIstat(d); }).catch(() => {});
     api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
+    // Bildirimler
+    api.get("/bildirimler?limit=5").then(d => setBildirimler(d.bildirimler || [])).catch(() => {});
+    api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
     // Shopier callback sonrası bildirim
     const params = new URLSearchParams(window.location.search);
     if (params.get('odeme') === 'basarili') {
@@ -861,6 +867,14 @@ function Dashboard() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [verileriYukle]);
+
+  // Bildirim sayısını periyodik olarak güncelle
+  useEffect(() => {
+    const interval = setInterval(() => {
+      api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const hizmetleriYukle = async () => { const d = await api.get("/hizmetler"); setHizmetler(d.hizmetler || []); };
   const musterileriYukle = async () => { const d = await api.get("/musteriler"); setMusteriler(d.musteriler || []); };
@@ -1158,6 +1172,60 @@ function Dashboard() {
                 )}
               </div>
             )}
+            {/* Bildirim Zil İkonu */}
+            <div style={{ position: "relative" }}>
+              <div onClick={() => { setBildirimPopover(!bildirimPopover); if (!bildirimPopover) { api.get("/bildirimler?limit=5").then(d => setBildirimler(d.bildirimler || [])).catch(() => {}); } }}
+                style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                {bildirimSayi > 0 && (
+                  <div style={{ position: "absolute", top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, background: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 4px", border: "2px solid var(--surface)" }}>
+                    {bildirimSayi > 99 ? "99+" : bildirimSayi}
+                  </div>
+                )}
+              </div>
+              {bildirimPopover && (
+                <>
+                  <div onClick={() => setBildirimPopover(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 49 }} />
+                  <div style={{ position: "absolute", top: 44, right: 0, zIndex: 50, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, width: 340, maxHeight: 420, overflow: "hidden", boxShadow: "0 16px 48px rgba(22,5,39,.14)", animation: "fadeIn .18s ease" }}>
+                    <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>Bildirimler</div>
+                      {bildirimSayi > 0 && (
+                        <button onClick={async (e) => { e.stopPropagation(); await api.put("/bildirimler/tumunu-oku"); setBildirimSayi(0); setBildirimler(prev => prev.map(b => ({ ...b, okundu: true }))); }}
+                          style={{ padding: "4px 10px", borderRadius: 6, border: "none", background: "rgba(16,185,129,.1)", color: "#10b981", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Tümünü Oku</button>
+                      )}
+                    </div>
+                    <div style={{ overflowY: "auto", maxHeight: 300 }}>
+                      {bildirimler.length === 0 ? (
+                        <div style={{ padding: 24, textAlign: "center", color: "var(--dim)", fontSize: 13 }}>Bildirim yok</div>
+                      ) : bildirimler.map(b => (
+                        <div key={b.id} onClick={async () => { if (!b.okundu) { await api.put(`/bildirimler/${b.id}/okundu`); setBildirimSayi(s => Math.max(0, s - 1)); setBildirimler(prev => prev.map(x => x.id === b.id ? { ...x, okundu: true } : x)); } }}
+                          style={{ padding: "12px 16px", borderBottom: "1px solid var(--bg)", cursor: "pointer", background: b.okundu ? "transparent" : "rgba(59,130,246,.04)", transition: "background .15s" }}
+                          onMouseOver={e => e.currentTarget.style.background = "var(--bg)"} onMouseOut={e => e.currentTarget.style.background = b.okundu ? "transparent" : "rgba(59,130,246,.04)"}>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                            <div style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>
+                              {b.tip === "zombi" ? "⚠️" : b.tip === "randevu" ? "📅" : b.tip === "odeme" ? "💰" : "🔔"}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: b.okundu ? 500 : 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.baslik}</div>
+                              <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.mesaj}</div>
+                              <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4 }}>{new Date(b.olusturma_tarihi).toLocaleString("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                            </div>
+                            {!b.okundu && <div style={{ width: 8, height: 8, borderRadius: 4, background: "#3b82f6", flexShrink: 0, marginTop: 6 }} />}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {bildirimler.length > 0 && (
+                      <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", textAlign: "center" }}>
+                        <button onClick={() => { setBildirimPopover(false); api.get("/bildirimler?limit=50").then(d => setBildirimler(d.bildirimler || [])).catch(() => {}); }}
+                          style={{ background: "none", border: "none", color: "var(--primary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Tümünü Gör</button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Kullanıcı Profil */}
             {ayarlar && (
               <div style={{ position: "relative" }}>
