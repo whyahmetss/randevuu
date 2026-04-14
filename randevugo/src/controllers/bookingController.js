@@ -227,9 +227,8 @@ class BookingController {
       const waDurum = whatsappWeb.getDurum(isletme.id);
 
       if (waDurum?.durum !== 'bagli') {
-        // WA bağlı değilse — OTP'yi bypass et, doğrudan doğrulanmış say
-        otpStore.set(storeKey, { kod: '000000', olusturma: Date.now(), deneme: 0, bypass: true });
-        return res.json({ basarili: true, bypass: true, mesaj: 'WhatsApp bağlı değil, doğrulama atlandı.' });
+        // WA bağlı değilse — OTP gönderilemez, frontend captcha moduna düşsün
+        return res.json({ basarili: false, waBagli: false });
       }
 
       // Numara formatı: 90XXXXXXXXXX veya XXXXXXXXXX → JID
