@@ -2334,6 +2334,10 @@ class AdminController {
         [isletme_id]
       );
 
+      // İşletme paneline bildirim oluştur (3 kanal: panel + WA + SMS)
+      const tipLabels = { bot_uyari: 'Bot Bağlama Hatırlatması', reaktivasyon: 'Kayıp Müşteri Uyarısı', yardim_teklif: 'Kurulum Desteği', hesap_dondur: 'Hesap Durumu' };
+      await this.bildirimOlustur(isletme_id, 'zombi', tipLabels[aksiyon_tipi] || 'Zombi Uyarısı', mesaj || 'Detaylar için panelinizi kontrol edin.');
+
       res.json({ mesaj: 'Aksiyon uygulandı', sonuc });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -4298,6 +4302,124 @@ class AdminController {
         isletmeIsim: isletme.isim,
         slug
       });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== İŞLETME BİLDİRİMLERİ ====================
+
+  // Bildirim oluştur (yardımcı fonksiyon — diğer fonksiyonlardan çağrılır)
+  async bildirimOlustur(isletmeId, tip, baslik, mesaj, link = null) {
+    try {
+      // Panel bildirimi oluştur
+      await pool.query(
+        `INSERT INTO isletme_bildirimleri (isletme_id, tip, baslik, mesaj, link) VALUES ($1, $2, $3, $4, $5)`,
+        [isletmeId, tip, baslik, mesaj || '', link]
+      );
+
+      // İşletme bildirim tercihlerini kontrol et
+      const isletme = (await pool.query(
+        'SELECT isim, telefon, bildirim_whatsapp, bildirim_sms FROM isletmeler WHERE id = $1', [isletmeId]
+      )).rows[0];
+      if (!isletme) return;
+
+      // WhatsApp bildirimi
+      if (isletme.bildirim_whatsapp && isletme.telefon) {
+        try {
+          const wpService = require('../services/whatsappWeb');
+          const tel = isletme.telefon.replace(/^\+/, '').replace(/^0/, '90');
+          const jid = `${tel}@s.whatsapp.net`;
+          await wpService.mesajGonder(isletmeId, jid, `🔔 *SıraGO Bildirim*\n\n*${baslik}*\n${mesaj || ''}\n\n👉 admin.sırago.com`);
+        } catch(e) { /* WA gönderilemezse geç */ }
+      }
+
+      // SMS bildirimi
+      if (isletme.bildirim_sms && isletme.telefon) {
+        try {
+          const netgsm = require('../services/netgsm');
+          const kisa = `SıraGO: ${baslik}`.slice(0, 160);
+          await netgsm.smsGonder(isletme.telefon, kisa, isletmeId);
+        } catch(e) { /* SMS gönderilemezse geç */ }
+      }
+    } catch(e) {
+      console.error('Bildirim oluşturma hatası:', e.message);
+    }
+  }
+
+  // İşletmenin bildirimlerini getir
+  async bildirimlerGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { limit = 50, offset = 0 } = req.query;
+      const result = await pool.query(
+        `SELECT * FROM isletme_bildirimleri WHERE isletme_id = $1 ORDER BY olusturma_tarihi DESC LIMIT $2 OFFSET $3`,
+        [isletmeId, parseInt(limit), parseInt(offset)]
+      );
+      const toplam = (await pool.query(
+        'SELECT COUNT(*) as c FROM isletme_bildirimleri WHERE isletme_id = $1', [isletmeId]
+      )).rows[0];
+      res.json({ bildirimler: result.rows, toplam: parseInt(toplam.c) });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Okunmamış bildirim sayısı
+  async bildirimOkunmamisSayi(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = (await pool.query(
+        'SELECT COUNT(*) as c FROM isletme_bildirimleri WHERE isletme_id = $1 AND okundu = false', [isletmeId]
+      )).rows[0];
+      res.json({ sayi: parseInt(result.c) });
+    } catch (error) {
+      res.json({ sayi: 0 });
+    }
+  }
+
+  // Bildirim okundu işaretle
+  async bildirimOkundu(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      await pool.query(
+        'UPDATE isletme_bildirimleri SET okundu = true WHERE id = $1 AND isletme_id = $2',
+        [req.params.id, isletmeId]
+      );
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Tüm bildirimleri okundu işaretle
+  async bildirimTumunuOku(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      await pool.query(
+        'UPDATE isletme_bildirimleri SET okundu = true WHERE isletme_id = $1 AND okundu = false',
+        [isletmeId]
+      );
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Bildirim tercihlerini güncelle
+  async bildirimTercihGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { bildirim_panel, bildirim_whatsapp, bildirim_sms } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET 
+          bildirim_panel = COALESCE($1, bildirim_panel),
+          bildirim_whatsapp = COALESCE($2, bildirim_whatsapp),
+          bildirim_sms = COALESCE($3, bildirim_sms)
+        WHERE id = $4`,
+        [bildirim_panel, bildirim_whatsapp, bildirim_sms, isletmeId]
+      );
+      res.json({ ok: true });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

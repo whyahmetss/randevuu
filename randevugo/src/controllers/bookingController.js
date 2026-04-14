@@ -133,6 +133,16 @@ class BookingController {
       // Kaynağı online olarak güncelle
       await pool.query("UPDATE randevular SET kaynak='online' WHERE id=$1", [sonuc.randevu.id]);
 
+      // İşletmeye bildirim gönder
+      try {
+        const adminController = require('./adminController');
+        await adminController.bildirimOlustur(
+          isletme.id, 'randevu',
+          'Yeni Online Randevu',
+          `${musteriIsim || 'Müşteri'} — ${tarih} ${saat} saatine online randevu aldı.`
+        );
+      } catch(e) {}
+
       res.json({
         basarili: true,
         randevu: {

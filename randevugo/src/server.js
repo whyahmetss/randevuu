@@ -469,6 +469,23 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_gonderildi BOOLEAN DEFAULT false`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_tarihi TIMESTAMP`);
 
+    // ─── İŞLETME BİLDİRİMLERİ ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS isletme_bildirimleri (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      tip VARCHAR(30) NOT NULL,
+      baslik VARCHAR(255) NOT NULL,
+      mesaj TEXT,
+      okundu BOOLEAN DEFAULT false,
+      link VARCHAR(255),
+      olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_bildirim_isletme ON isletme_bildirimleri(isletme_id, okundu)`);
+    // Bildirim tercihleri
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_panel BOOLEAN DEFAULT true`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_whatsapp BOOLEAN DEFAULT true`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_sms BOOLEAN DEFAULT false`);
+
     // ─── DİNAMİK SÜRE + TAMPON ───
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS tampon_dk INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS varsayilan_tampon_dk INTEGER DEFAULT 5`);
