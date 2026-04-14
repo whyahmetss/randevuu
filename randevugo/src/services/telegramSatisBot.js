@@ -225,8 +225,8 @@ class TelegramSatisBot {
 
       // İşletme oluştur
       const isletme = (await pool.query(
-        `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi) 
-         VALUES ($1, $2, 'genel', true, 'baslangic', NOW()) RETURNING *`,
+        `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
+         VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + INTERVAL '14 days') RETURNING *`,
         [k.isletmeAdi, telFormatli]
       )).rows[0];
 

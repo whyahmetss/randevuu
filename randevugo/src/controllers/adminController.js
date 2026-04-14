@@ -680,7 +680,7 @@ class AdminController {
       const { isim, telefon, adres, ilce, kategori, email, sifre } = req.body;
       
       const isletme = (await pool.query(
-        `INSERT INTO isletmeler (isim, telefon, adres, ilce, kategori) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        `INSERT INTO isletmeler (isim, telefon, adres, ilce, kategori, olusturma_tarihi, deneme_bitis_tarihi) VALUES ($1, $2, $3, $4, $5, NOW(), NOW() + INTERVAL '14 days') RETURNING *`,
         [isim, telefon, adres, ilce, kategori]
       )).rows[0];
 
