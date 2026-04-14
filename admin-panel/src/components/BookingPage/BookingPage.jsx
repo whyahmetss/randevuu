@@ -438,7 +438,7 @@ export default function BookingPage({ slug }) {
 
         {/* Branding footer */}
         <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: 12 }}>
-          <a href="https://sirago.com" target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none' }}>
+          <a href="https://sırago.com" target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none' }}>
             SıraGO ile randevu alın
           </a>
         </div>

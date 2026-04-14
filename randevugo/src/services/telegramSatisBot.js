@@ -96,7 +96,7 @@ class TelegramSatisBot {
         reply_markup: {
           inline_keyboard: [
             [{ text: '🚀 Ücretsiz Hesap Oluştur', callback_data: 'kayit_baslat' }],
-            [{ text: '📖 Daha Fazla Bilgi', url: 'https://sirago.com' }]
+            [{ text: '📖 Daha Fazla Bilgi', url: 'https://sırago.com' }]
           ]
         }
       }

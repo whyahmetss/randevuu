@@ -2227,7 +2227,7 @@ class AdminController {
           aksiyonlar.push({
             isletme_id: i.id, isletme_isim: i.isim, telefon: i.telefon, paket: i.paket,
             aksiyon_tipi: 'bot_uyari',
-            mesaj: `Merhaba ${i.isim} 🙂\n\nSıraGO hesabınız açıldı ama henüz WhatsApp botunuzu bağlamadınız.\n\nBotu bağlamadan müşterileriniz randevu alamaz. 2 dakikada bağlayabilirsiniz!\n\n👉 Panel: sirago.com/admin`,
+            mesaj: `Merhaba ${i.isim} 🙂\n\nSıraGO hesabınız açıldı ama henüz WhatsApp botunuzu bağlamadınız.\n\nBotu bağlamadan müşterileriniz randevu alamaz. 2 dakikada bağlayabilirsiniz!\n\n👉 Panel: admin.sırago.com`,
             oneri: 'WhatsApp bot bağlama hatırlatması gönder',
             zombi_durum: 'bot_yok'
           });
@@ -2249,7 +2249,7 @@ class AdminController {
           aksiyonlar.push({
             isletme_id: i.id, isletme_isim: i.isim, telefon: i.telefon, paket: i.paket,
             aksiyon_tipi: 'reaktivasyon',
-            mesaj: `Merhaba ${i.isim} 🙂\n\nSon ${gunFarki} gündür SıraGO'da randevu almadığınızı fark ettik.\n\nSisteminiz hâlâ aktif! Müşterileriniz online randevu alabilir.\n\nSorun yaşıyorsanız bize yazın, hemen yardımcı olalım 🙏\n\n👉 sirago.com/admin`,
+            mesaj: `Merhaba ${i.isim} 🙂\n\nSon ${gunFarki} gündür SıraGO'da randevu almadığınızı fark ettik.\n\nSisteminiz hâlâ aktif! Müşterileriniz online randevu alabilir.\n\nSorun yaşıyorsanız bize yazın, hemen yardımcı olalım 🙏\n\n👉 admin.sırago.com`,
             oneri: 'Reaktivasyon mesajı gönder',
             zombi_durum: 'pasif_30gun'
           });
@@ -4203,7 +4203,7 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://sirago.com/book/${slug}`;
+        hedefUrl = `https://sırago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
@@ -4246,7 +4246,7 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://sirago.com/book/${slug}`;
+        hedefUrl = `https://sırago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
