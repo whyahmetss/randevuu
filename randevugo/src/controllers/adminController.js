@@ -4114,7 +4114,7 @@ class AdminController {
     try {
       const result = await pool.query(`
         SELECT i.id, i.isim, i.telefon, i.kategori, i.paket, i.olusturma_tarihi,
-          COALESCE((SELECT SUM(o.tutar) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
+          COALESCE((SELECT SUM(o.tutar::numeric) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id), 0) as randevu_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= CURRENT_DATE - INTERVAL '30 days'), 0) as aylik_randevu,
           COALESCE((SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id), 0) as musteri_sayisi,
@@ -4124,7 +4124,7 @@ class AdminController {
           COALESCE((SELECT AVG(CASE WHEN r.durum = 'tamamlandi' THEN 1.0 ELSE 0.0 END) FROM randevular r WHERE r.isletme_id = i.id), 0) as tamamlanma_orani
         FROM isletmeler i
         WHERE i.aktif = true
-        ORDER BY toplam_gelir DESC
+        ORDER BY 7 DESC
       `);
 
       let botBagliIds = [];
@@ -4177,14 +4177,14 @@ class AdminController {
     try {
       const result = await pool.query(`
         SELECT i.id, i.isim, i.telefon, i.kategori, i.paket, i.aktif, i.olusturma_tarihi,
-          COALESCE((SELECT SUM(o.tutar) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
+          COALESCE((SELECT SUM(o.tutar::numeric) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
           COALESCE((SELECT COUNT(*) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as odeme_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id), 0) as randevu_sayisi,
           COALESCE((SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id), 0) as musteri_sayisi,
           (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id) as son_randevu
         FROM isletmeler i
         WHERE i.aktif = true
-        ORDER BY toplam_gelir DESC
+        ORDER BY 8 DESC
       `);
 
       let botBagliIds = [];
