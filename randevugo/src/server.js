@@ -533,6 +533,11 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true })); // Twilio webhook için
 app.use(express.static(require('path').join(__dirname, 'public')));
 
+// Health check for Render (must be before apiLimiter)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // API Routes — stricter rate limits for public endpoints
 app.use('/api/auth', authLimiter);
 app.use('/api/iletisim', publicFormLimiter);
@@ -540,11 +545,6 @@ app.use('/api/referans/kullan', publicFormLimiter);
 app.use('/api/book', bookingLimiter);
 app.use('/api/webhook', webhookLimiter);
 app.use('/api', apiLimiter, apiRoutes);
-
-// Health check for Render
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Ana sayfa - Landing page
 app.get('/', (req, res) => {

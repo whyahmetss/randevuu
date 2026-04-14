@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const BASE_URL = process.argv.find(a=>a.startsWith('--base-url='))?.split('=')[1]||process.env.TEST_BASE_URL||'http://localhost:3000';
+const BASE_URL = process.argv.find(a=>a.startsWith('--base-url='))?.split('=')[1]||process.env.TEST_BASE_URL||'https://randevugo-api.onrender.com';
 const LOGIN_EMAIL = process.argv.find(a=>a.startsWith('--email='))?.split('=')[1]||process.env.TEST_EMAIL||'admin@randevugo.com';
 const LOGIN_SIFRE = process.argv.find(a=>a.startsWith('--sifre='))?.split('=')[1]||process.env.TEST_SIFRE||'admin123';
 
