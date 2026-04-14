@@ -546,6 +546,11 @@ app.use('/api/book', bookingLimiter);
 app.use('/api/webhook', webhookLimiter);
 app.use('/api', apiLimiter, apiRoutes);
 
+// Online Booking sayfası — /book/:slug
+app.get('/book/:slug', (req, res) => {
+  res.sendFile(require('path').join(__dirname, 'public', 'booking.html'));
+});
+
 // Ana sayfa - Landing page
 app.get('/', (req, res) => {
   res.sendFile(require('path').join(__dirname, 'public', 'index.html'));
