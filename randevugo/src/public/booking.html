@@ -236,17 +236,17 @@
         html += '<div class="step-title"><span class="num">4</span>Bilgileriniz</div>';
         html += `<div class="input-group">
           <label>Adınız Soyadınız</label>
-          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="Örn: Ahmet Yılmaz" oninput="state.musteriAd=this.value">
+          <input type="text" id="musteriAd" value="${s.musteriAd}" placeholder="Örn: Ahmet Yılmaz" oninput="state.musteriAd=this.value;bilgiKontrol()">
         </div>
         <div class="input-group">
           <label>Telefon Numaranız</label>
-          <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="05XX XXX XX XX" oninput="state.musteriTel=this.value">
+          <input type="tel" id="musteriTel" value="${s.musteriTel}" placeholder="05XX XXX XX XX" oninput="state.musteriTel=this.value;bilgiKontrol()">
         </div>
         <div class="input-group">
           <label>Not (opsiyonel)</label>
           <textarea id="musteriNot" placeholder="Özel bir isteğiniz varsa yazabilirsiniz" oninput="state.musteriNot=this.value">${s.musteriNot}</textarea>
         </div>`;
-        html += `<button class="btn-primary" onclick="adim(5)" ${!s.musteriAd||!s.musteriTel?'disabled':''}>Özeti Gör</button>`;
+        html += `<button class="btn-primary" id="btnOzet" onclick="bilgiDevam()">Özeti Gör</button>`;
       }
 
       // Step 5: Onay
@@ -343,6 +343,19 @@
       state.seciliSaat = saat;
       state.hata = '';
       render();
+    }
+
+    function bilgiKontrol() {
+      const btn = document.getElementById('btnOzet');
+      if(btn) btn.disabled = !(state.musteriAd.trim() && state.musteriTel.trim());
+    }
+    function bilgiDevam() {
+      if(!state.musteriAd.trim() || !state.musteriTel.trim()) {
+        state.hata = 'Lütfen ad ve telefon bilgilerinizi girin.';
+        render();
+        return;
+      }
+      adim(5);
     }
 
     function adim(step) {
