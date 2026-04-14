@@ -1,2 +1,9 @@
 [build]
   publish = "."
+
+# /book/:slug → admin panel'deki BookingPage component'ine redirect
+[[redirects]]
+  from = "/book/*"
+  to = "https://admin.xn--srago-n4a.com/book/:splat"
+  status = 301
+  force = true
