@@ -2383,7 +2383,7 @@ function Dashboard() {
           {sayfa === "qrkod" && (
             <div>
               <div style={{ marginBottom: 20, color: "var(--dim)", fontSize: 13 }}>İşletmeniz için WhatsApp veya Online Randevu QR kodu oluşturun. Yazdırıp işletmenize asabilirsiniz.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+              <div className="grid-2">
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)" }}>
                   <h3 style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", margin: "0 0 16px" }}>QR Tipi Seçin</h3>
                   <div className="row gap-8" style={{ marginBottom: 16 }}>
@@ -5031,7 +5031,7 @@ function SuperAdminPanel({ kullanici }) {
               <p>İşletmeler için WhatsApp veya Online Randevu QR kodu oluştur</p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div className="grid-2">
               {/* Sol: Form */}
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)" }}>
                 <h3 style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", margin: "0 0 16px" }}>⚙️ QR Kod Ayarları</h3>
