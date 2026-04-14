@@ -911,6 +911,7 @@ function Dashboard() {
     if (sayfa === "randevular") verileriYukle();
     if (sayfa === "finans") finansYukle();
     if (sayfa === "destek") destekYukleIsletme();
+    if (sayfa === "bildirimler") api.get("/bildirimler?limit=50").then(d => setBildirimler(d.bildirimler || [])).catch(() => {});
     if (sayfa === "anasayfa") api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
   }, [sayfa]);
 
@@ -948,7 +949,7 @@ function Dashboard() {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", destek: "Destek", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1217,7 +1218,7 @@ function Dashboard() {
                     </div>
                     {bildirimler.length > 0 && (
                       <div style={{ padding: "10px 16px", borderTop: "1px solid var(--border)", textAlign: "center" }}>
-                        <button onClick={() => { setBildirimPopover(false); api.get("/bildirimler?limit=50").then(d => setBildirimler(d.bildirimler || [])).catch(() => {}); }}
+                        <button onClick={() => { setBildirimPopover(false); setSayfa("bildirimler"); }}
                           style={{ background: "none", border: "none", color: "var(--primary)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Tümünü Gör</button>
                       </div>
                     )}
@@ -2495,6 +2496,50 @@ function Dashboard() {
           {/* ── AYARLAR ── */}
           {sayfa === "ayarlar" && (
             <Settings ayarlar={ayarlar} setAyarlar={setAyarlar} paketDurum={paketDurum} api={api} />
+          )}
+
+          {/* ── BİLDİRİMLER ── */}
+          {sayfa === "bildirimler" && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={{ fontSize: 13, color: "var(--dim)" }}>{bildirimler.length} bildirim</div>
+                {bildirimSayi > 0 && (
+                  <button onClick={async () => { await api.put("/bildirimler/tumunu-oku"); setBildirimSayi(0); setBildirimler(prev => prev.map(b => ({ ...b, okundu: true }))); }}
+                    style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "rgba(16,185,129,.1)", color: "#10b981", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                    Tümünü Okundu İşaretle
+                  </button>
+                )}
+              </div>
+              {bildirimler.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 60, color: "var(--dim)" }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🔔</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Henüz bildirim yok</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>Yeni randevular, zombi uyarıları ve sistem bildirimleri burada görünecek</div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {bildirimler.map(b => (
+                    <div key={b.id} onClick={async () => { if (!b.okundu) { await api.put(`/bildirimler/${b.id}/okundu`); setBildirimSayi(s => Math.max(0, s - 1)); setBildirimler(prev => prev.map(x => x.id === b.id ? { ...x, okundu: true } : x)); } }}
+                      style={{ padding: "16px 20px", borderRadius: 14, background: b.okundu ? "var(--surface)" : "rgba(59,130,246,.05)", border: `1px solid ${b.okundu ? "var(--border)" : "rgba(59,130,246,.15)"}`, cursor: "pointer", transition: "all .15s" }}
+                      onMouseOver={e => e.currentTarget.style.background = "var(--bg)"} onMouseOut={e => e.currentTarget.style.background = b.okundu ? "var(--surface)" : "rgba(59,130,246,.05)"}>
+                      <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
+                        <div style={{ fontSize: 24, flexShrink: 0 }}>
+                          {b.tip === "zombi" ? "⚠️" : b.tip === "randevu" ? "📅" : b.tip === "odeme" ? "💰" : b.tip === "sistem" ? "⚙️" : "🔔"}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ fontSize: 14, fontWeight: b.okundu ? 500 : 700, color: "var(--text)" }}>{b.baslik}</div>
+                            {!b.okundu && <div style={{ width: 8, height: 8, borderRadius: 4, background: "#3b82f6", flexShrink: 0 }} />}
+                          </div>
+                          <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 4 }}>{b.mesaj}</div>
+                          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>{new Date(b.olusturma_tarihi).toLocaleString("tr-TR", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* ── DESTEK ── */}

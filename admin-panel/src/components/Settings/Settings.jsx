@@ -450,6 +450,29 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </div>
       </div>
 
+      {/* ═══════════════  Bildirim Tercihleri  ═══════════════ */}
+      <div style={S.card}>
+        <CardHead emoji="🔔" title="Bildirim Tercihleri" color="#f59e0b" desc="Hangi kanallardan bildirim almak istersiniz?" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+          {[
+            { key: 'bildirim_panel', label: 'Panel Bildirimi', desc: 'Zil ikonu + sayaç', varsayilan: true },
+            { key: 'bildirim_whatsapp', label: 'WhatsApp', desc: 'Telefona WhatsApp mesajı', varsayilan: true },
+            { key: 'bildirim_sms', label: 'SMS', desc: 'NetGSM ile SMS (ücretli)', varsayilan: false },
+          ].map(k => (
+            <label key={k.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
+              <input type="checkbox" checked={ayarlar[k.key] !== undefined ? !!ayarlar[k.key] : k.varsayilan} onChange={async (e) => {
+                setAyarlar({ ...ayarlar, [k.key]: e.target.checked });
+                await api.put("/bildirim-tercihleri", { [k.key]: e.target.checked });
+              }} style={{ accentColor: "#f59e0b", width: 18, height: 18 }} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{k.label}</div>
+                <div style={{ fontSize: 11, color: "var(--dim)" }}>{k.desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
       {/* ═══════════════  Kaydet Butonu  ═══════════════ */}
       <button onClick={kaydet} style={{
         width: "100%", padding: "16px", borderRadius: 14, border: "none",
