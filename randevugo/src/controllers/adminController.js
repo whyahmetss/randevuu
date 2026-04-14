@@ -3950,10 +3950,10 @@ class AdminController {
 
         let segment = 'uyuyan';
         if (kayitGun <= 14) segment = 'yeni';
-        else if (toplam >= 1500 && randevu >= 50 && gunFarki <= 7) segment = 'vip';
-        else if (randevu >= 10 && gunFarki <= 14) segment = 'aktif';
-        else if (randevu > 0 && gunFarki > 14 && gunFarki <= 45) segment = 'risk';
-        else if (gunFarki > 45 || (randevu === 0 && kayitGun > 14)) segment = 'uyuyan';
+        else if ((toplam >= 500 && randevu >= 30) || (toplam >= 1000 && randevu >= 10)) segment = 'vip';
+        else if (randevu >= 5 && gunFarki <= 30) segment = 'aktif';
+        else if (randevu > 0 && gunFarki > 30 && gunFarki <= 60) segment = 'risk';
+        else if (gunFarki > 60 || (randevu === 0 && kayitGun > 14)) segment = 'uyuyan';
 
         const obj = { ...i, toplam_gelir: toplam, segment, gun_farki: gunFarki, kayit_gun: kayitGun, bot_bagli: botBagli };
         segmentler[segment].push(obj);
