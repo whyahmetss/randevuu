@@ -156,6 +156,14 @@ body {
   border-radius: 50%;
   background: var(--primary);
 }
+.nav-item.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.nav-item.locked:hover {
+  background: rgba(245, 158, 11, 0.08);
+  color: var(--muted);
+}
 
 .sidebar-footer { padding: 14px 14px 20px; border-top: 1px solid var(--border); }
 

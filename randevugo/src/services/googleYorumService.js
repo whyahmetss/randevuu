@@ -30,7 +30,7 @@ class GoogleYorumService {
         JOIN isletmeler i ON i.id = r.isletme_id
         JOIN musteriler m ON m.id = r.musteri_id
         WHERE r.durum = 'tamamlandi'
-          AND i.paket = 'premium'
+          AND i.paket IN ('profesyonel', 'kurumsal', 'premium')
           AND i.google_yorum_aktif = true
           AND i.google_maps_url IS NOT NULL
           AND i.google_maps_url != ''

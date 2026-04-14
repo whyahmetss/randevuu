@@ -17,11 +17,12 @@ class GeceRaporuService {
       const saat = `${String(simdi.getHours()).padStart(2, '0')}:${String(simdi.getMinutes()).padStart(2, '0')}`;
       const bugun = simdi.toISOString().slice(0, 10);
 
-      // Bu saatte rapor gönderilecek işletmeleri bul
+      // Bu saatte rapor gönderilecek işletmeleri bul (sadece profesyonel+ paketler)
       const isletmeler = (await pool.query(`
         SELECT i.* FROM isletmeler i
         WHERE i.gece_raporu_aktif = true
           AND i.gece_raporu_saat = $1
+          AND i.paket IN ('profesyonel', 'kurumsal', 'premium')
           AND NOT EXISTS (
             SELECT 1 FROM gece_rapor_log g WHERE g.isletme_id = i.id AND g.tarih = $2
           )

@@ -7,7 +7,7 @@ class WinbackService {
     try {
       const isletmeler = (await pool.query(
         `SELECT id, isim, winback_gun_esik, winback_indirim, winback_mesaj_sablonu, telegram_token
-         FROM isletmeler WHERE winback_aktif = true`
+         FROM isletmeler WHERE winback_aktif = true AND paket IN ('profesyonel', 'kurumsal', 'premium')`
       )).rows;
 
       for (const isletme of isletmeler) {

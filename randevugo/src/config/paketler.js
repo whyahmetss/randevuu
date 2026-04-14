@@ -12,6 +12,17 @@ const FALLBACK_PAKETLER = {
     hatirlatma: true,
     istatistik: false,
     export_aktif: false,
+    // ─── Özellik flag'leri ───
+    coklu_dil: false,       // ×
+    kasa: false,             // ×
+    prim: false,             // ×
+    sadakat: false,          // ×
+    winback: false,          // × Kayıp Müşteri
+    yorum_avcisi: false,     // ×
+    gece_raporu: false,      // ×
+    sms_hatirlatma: false,   // ×
+    oncelikli_destek: false, // ×
+    api_erisimi: false,      // ×
     ozellikler: [
       '2 çalışan',
       '500 randevu / ay',
@@ -30,6 +41,17 @@ const FALLBACK_PAKETLER = {
     hatirlatma: true,
     istatistik: true,
     export_aktif: true,
+    // ─── Özellik flag'leri ───
+    coklu_dil: 3,            // ✓ (3 dil)
+    kasa: true,              // ✓
+    prim: true,              // ✓
+    sadakat: true,           // ✓
+    winback: true,           // ✓ Kayıp Müşteri
+    yorum_avcisi: true,      // ✓
+    gece_raporu: true,       // ✓
+    sms_hatirlatma: false,   // ×
+    oncelikli_destek: false, // ×
+    api_erisimi: false,      // ×
     ozellikler: [
       '5 çalışan',
       'Sınırsız randevu',
@@ -51,6 +73,17 @@ const FALLBACK_PAKETLER = {
     hatirlatma: true,
     istatistik: true,
     export_aktif: true,
+    // ─── Özellik flag'leri ───
+    coklu_dil: 99,           // ✓ (12+ dil)
+    kasa: true,              // ✓
+    prim: true,              // ✓
+    sadakat: true,           // ✓
+    winback: true,           // ✓
+    yorum_avcisi: true,      // ✓
+    gece_raporu: true,       // ✓
+    sms_hatirlatma: true,    // ✓
+    oncelikli_destek: true,  // ✓
+    api_erisimi: true,       // ✓
     ozellikler: [
       'Sınırsız çalışan',
       'Sınırsız randevu',
@@ -72,6 +105,9 @@ const FALLBACK_PAKETLER = {
     hatirlatma: true,
     istatistik: true,
     export_aktif: true,
+    coklu_dil: 99, kasa: true, prim: true, sadakat: true, winback: true,
+    yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true,
+    oncelikli_destek: true, api_erisimi: true,
     ozellikler: [
       'Sınırsız çalışan',
       'Sınırsız randevu',
@@ -103,6 +139,7 @@ async function paketleriYukle() {
     if (result.rows.length > 0) {
       const map = {};
       for (const row of result.rows) {
+        const fallback = FALLBACK_PAKETLER[row.kod] || {};
         map[row.kod] = {
           isim: row.isim,
           fiyat: parseFloat(row.fiyat) || 0,
@@ -113,6 +150,16 @@ async function paketleriYukle() {
           hatirlatma: !!row.hatirlatma,
           istatistik: !!row.istatistik,
           export_aktif: !!row.export_aktif,
+          coklu_dil: row.coklu_dil !== undefined ? row.coklu_dil : (fallback.coklu_dil || false),
+          kasa: row.kasa !== undefined ? !!row.kasa : (fallback.kasa || false),
+          prim: row.prim !== undefined ? !!row.prim : (fallback.prim || false),
+          sadakat: row.sadakat !== undefined ? !!row.sadakat : (fallback.sadakat || false),
+          winback: row.winback !== undefined ? !!row.winback : (fallback.winback || false),
+          yorum_avcisi: row.yorum_avcisi !== undefined ? !!row.yorum_avcisi : (fallback.yorum_avcisi || false),
+          gece_raporu: row.gece_raporu !== undefined ? !!row.gece_raporu : (fallback.gece_raporu || false),
+          sms_hatirlatma: row.sms_hatirlatma !== undefined ? !!row.sms_hatirlatma : (fallback.sms_hatirlatma || false),
+          oncelikli_destek: row.oncelikli_destek !== undefined ? !!row.oncelikli_destek : (fallback.oncelikli_destek || false),
+          api_erisimi: row.api_erisimi !== undefined ? !!row.api_erisimi : (fallback.api_erisimi || false),
           ozellikler: row.ozellikler ? row.ozellikler.split('\n').filter(Boolean) : [],
         };
       }

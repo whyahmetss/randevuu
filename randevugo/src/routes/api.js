@@ -6,6 +6,7 @@ const adminController = require('../controllers/adminController');
 const botController = require('../controllers/botController');
 const bookingController = require('../controllers/bookingController');
 const { numaraRateLimit, payloadDogrula } = require('../middleware/webhookGuard');
+const featureGuard = require('../middleware/featureGuard');
 
 // ==================== AUTH ====================
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
@@ -188,7 +189,7 @@ router.delete('/admin/duyurular/:id', authMiddleware, superAdminMiddleware, (req
 router.get('/duyurular', authMiddleware, (req, res) => adminController.aktifDuyurular(req, res));
 
 // ==================== VERİ DIŞA AKTARMA (Export) ====================
-router.get('/export/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.exportMusteriler(req, res));
+router.get('/export/musteriler', authMiddleware, odemeKontrol, featureGuard('export_aktif'), (req, res) => adminController.exportMusteriler(req, res));
 
 // ==================== ETİKETLEME (Mini-CRM) — Premium ====================
 router.get('/etiketler', authMiddleware, odemeKontrol, (req, res) => adminController.etiketleriGetir(req, res));
@@ -215,10 +216,10 @@ router.post('/finans/hakedis', authMiddleware, (req, res) => adminController.hak
 router.get('/admin/hakedis', authMiddleware, superAdminMiddleware, (req, res) => adminController.hakedisListele(req, res));
 router.put('/admin/hakedis/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.hakedisIsle(req, res));
 
-// ==================== GOOGLE YORUM FEEDBACK — Premium ====================
-router.get('/google-yorum/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumAyarlar(req, res));
-router.put('/google-yorum/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumAyarGuncelle(req, res));
-router.get('/google-yorum/talepler', authMiddleware, odemeKontrol, (req, res) => adminController.googleYorumTalepleri(req, res));
+// ==================== GOOGLE YORUM FEEDBACK ====================
+router.get('/google-yorum/ayarlar', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.googleYorumAyarlar(req, res));
+router.put('/google-yorum/ayarlar', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.googleYorumAyarGuncelle(req, res));
+router.get('/google-yorum/talepler', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.googleYorumTalepleri(req, res));
 
 // ==================== PREMİUM ÖZELLİK DURUMU ====================
 router.get('/premium/durum', authMiddleware, (req, res) => adminController.premiumOzellikDurumu(req, res));
@@ -229,47 +230,47 @@ router.put('/referans/ayarlar', authMiddleware, odemeKontrol, (req, res) => admi
 router.get('/referans/rapor', authMiddleware, odemeKontrol, (req, res) => adminController.referansRaporu(req, res));
 
 // ==================== SADAKAT PUAN SİSTEMİ ====================
-router.get('/sadakat/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.sadakatAyarlariGetir(req, res));
-router.put('/sadakat/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.sadakatAyarlariGuncelle(req, res));
-router.get('/sadakat/rapor', authMiddleware, odemeKontrol, (req, res) => adminController.puanRaporu(req, res));
-router.post('/sadakat/kullan', authMiddleware, odemeKontrol, (req, res) => adminController.puanKullan(req, res));
-router.get('/sadakat/gecmis', authMiddleware, odemeKontrol, (req, res) => adminController.puanGecmisi(req, res));
+router.get('/sadakat/ayarlar', authMiddleware, odemeKontrol, featureGuard('sadakat'), (req, res) => adminController.sadakatAyarlariGetir(req, res));
+router.put('/sadakat/ayarlar', authMiddleware, odemeKontrol, featureGuard('sadakat'), (req, res) => adminController.sadakatAyarlariGuncelle(req, res));
+router.get('/sadakat/rapor', authMiddleware, odemeKontrol, featureGuard('sadakat'), (req, res) => adminController.puanRaporu(req, res));
+router.post('/sadakat/kullan', authMiddleware, odemeKontrol, featureGuard('sadakat'), (req, res) => adminController.puanKullan(req, res));
+router.get('/sadakat/gecmis', authMiddleware, odemeKontrol, featureGuard('sadakat'), (req, res) => adminController.puanGecmisi(req, res));
 
 // ==================== KAYIP MÜŞTERİ KURTARMA ====================
-router.get('/winback/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.winbackAyarlariGetir(req, res));
-router.put('/winback/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.winbackAyarlariGuncelle(req, res));
-router.get('/winback/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.kayipMusteriler(req, res));
-router.post('/winback/gonder', authMiddleware, odemeKontrol, (req, res) => adminController.winbackManuelGonder(req, res));
-router.get('/winback/log', authMiddleware, odemeKontrol, (req, res) => adminController.winbackLog(req, res));
+router.get('/winback/ayarlar', authMiddleware, odemeKontrol, featureGuard('winback'), (req, res) => adminController.winbackAyarlariGetir(req, res));
+router.put('/winback/ayarlar', authMiddleware, odemeKontrol, featureGuard('winback'), (req, res) => adminController.winbackAyarlariGuncelle(req, res));
+router.get('/winback/musteriler', authMiddleware, odemeKontrol, featureGuard('winback'), (req, res) => adminController.kayipMusteriler(req, res));
+router.post('/winback/gonder', authMiddleware, odemeKontrol, featureGuard('winback'), (req, res) => adminController.winbackManuelGonder(req, res));
+router.get('/winback/log', authMiddleware, odemeKontrol, featureGuard('winback'), (req, res) => adminController.winbackLog(req, res));
 
 // ==================== YORUM AVCISI ====================
-router.get('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.yorumAyarlariGetir(req, res));
-router.put('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.yorumAyarlariGuncelle(req, res));
-router.get('/yorum-avcisi/log', authMiddleware, odemeKontrol, (req, res) => adminController.yorumLogGetir(req, res));
-router.get('/yorum-avcisi/istatistik', authMiddleware, odemeKontrol, (req, res) => adminController.yorumIstatistik(req, res));
+router.get('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumAyarlariGetir(req, res));
+router.put('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumAyarlariGuncelle(req, res));
+router.get('/yorum-avcisi/log', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumLogGetir(req, res));
+router.get('/yorum-avcisi/istatistik', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumIstatistik(req, res));
 
 // ==================== GECE RAPORU ====================
-router.get('/gece-raporu/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuAyarlari(req, res));
-router.put('/gece-raporu/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuGuncelle(req, res));
-router.get('/gece-raporu/log', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuLog(req, res));
-router.get('/gece-raporu/onizle', authMiddleware, odemeKontrol, (req, res) => adminController.geceRaporuOnizle(req, res));
+router.get('/gece-raporu/ayarlar', authMiddleware, odemeKontrol, featureGuard('gece_raporu'), (req, res) => adminController.geceRaporuAyarlari(req, res));
+router.put('/gece-raporu/ayarlar', authMiddleware, odemeKontrol, featureGuard('gece_raporu'), (req, res) => adminController.geceRaporuGuncelle(req, res));
+router.get('/gece-raporu/log', authMiddleware, odemeKontrol, featureGuard('gece_raporu'), (req, res) => adminController.geceRaporuLog(req, res));
+router.get('/gece-raporu/onizle', authMiddleware, odemeKontrol, featureGuard('gece_raporu'), (req, res) => adminController.geceRaporuOnizle(req, res));
 
 // ==================== SMS (NetGSM) ====================
-router.get('/sms/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.smsAyarlariGetir(req, res));
-router.put('/sms/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.smsAyarlariGuncelle(req, res));
-router.get('/sms/log', authMiddleware, odemeKontrol, (req, res) => adminController.smsLogGetir(req, res));
-router.post('/sms/test', authMiddleware, odemeKontrol, (req, res) => adminController.smsTestGonder(req, res));
-router.get('/sms/bakiye', authMiddleware, odemeKontrol, (req, res) => adminController.smsBakiye(req, res));
+router.get('/sms/ayarlar', authMiddleware, odemeKontrol, featureGuard('sms_hatirlatma'), (req, res) => adminController.smsAyarlariGetir(req, res));
+router.put('/sms/ayarlar', authMiddleware, odemeKontrol, featureGuard('sms_hatirlatma'), (req, res) => adminController.smsAyarlariGuncelle(req, res));
+router.get('/sms/log', authMiddleware, odemeKontrol, featureGuard('sms_hatirlatma'), (req, res) => adminController.smsLogGetir(req, res));
+router.post('/sms/test', authMiddleware, odemeKontrol, featureGuard('sms_hatirlatma'), (req, res) => adminController.smsTestGonder(req, res));
+router.get('/sms/bakiye', authMiddleware, odemeKontrol, featureGuard('sms_hatirlatma'), (req, res) => adminController.smsBakiye(req, res));
 
 // ==================== PRİM HESAPLAMA ====================
-router.get('/prim/rapor', authMiddleware, odemeKontrol, (req, res) => adminController.primRaporu(req, res));
-router.post('/prim/ode', authMiddleware, odemeKontrol, (req, res) => adminController.primOde(req, res));
+router.get('/prim/rapor', authMiddleware, odemeKontrol, featureGuard('prim'), (req, res) => adminController.primRaporu(req, res));
+router.post('/prim/ode', authMiddleware, odemeKontrol, featureGuard('prim'), (req, res) => adminController.primOde(req, res));
 
 // ==================== KASA TAKİBİ ====================
-router.get('/kasa', authMiddleware, odemeKontrol, (req, res) => adminController.kasaListesi(req, res));
-router.post('/kasa', authMiddleware, odemeKontrol, (req, res) => adminController.kasaEkle(req, res));
-router.delete('/kasa/:id', authMiddleware, odemeKontrol, (req, res) => adminController.kasaSil(req, res));
-router.get('/kasa/ozet', authMiddleware, odemeKontrol, (req, res) => adminController.kasaOzet(req, res));
+router.get('/kasa', authMiddleware, odemeKontrol, featureGuard('kasa'), (req, res) => adminController.kasaListesi(req, res));
+router.post('/kasa', authMiddleware, odemeKontrol, featureGuard('kasa'), (req, res) => adminController.kasaEkle(req, res));
+router.delete('/kasa/:id', authMiddleware, odemeKontrol, featureGuard('kasa'), (req, res) => adminController.kasaSil(req, res));
+router.get('/kasa/ozet', authMiddleware, odemeKontrol, featureGuard('kasa'), (req, res) => adminController.kasaOzet(req, res));
 
 // ==================== MÜŞTERİ CRM ====================
 router.get('/admin/musteri-crm', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriCRM(req, res));

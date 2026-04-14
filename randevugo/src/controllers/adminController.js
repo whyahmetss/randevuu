@@ -452,9 +452,10 @@ class AdminController {
       const { id } = req.params;
       const isletmeId = req.kullanici.isletme_id;
 
-      // Premium kontrol
+      // Paket kontrol
       const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      if (isletme?.paket !== 'premium') return res.status(403).json({ hata: 'Toplu kampanya gönderimi Premium pakete özeldir.' });
+      const paketB = await paketGetir(isletme?.paket);
+      if (!paketB.export_aktif) return res.status(403).json({ hata: `Toplu kampanya gönderimi ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
 
       const kampanya = (await pool.query('SELECT * FROM kampanyalar WHERE id=$1 AND isletme_id=$2', [id, isletmeId])).rows[0];
       if (!kampanya) return res.status(404).json({ hata: 'Kampanya bulunamadı' });
@@ -623,6 +624,21 @@ class AdminController {
         }
       }
       if (setClauses.length === 0) return res.json({ isletme: null });
+
+      // ─── Çoklu dil paket kontrolü ───
+      if (req.body.bot_diller !== undefined) {
+        const dilListesi = Array.isArray(req.body.bot_diller) ? req.body.bot_diller :
+          (typeof req.body.bot_diller === 'string' ? req.body.bot_diller.split(',').map(d => d.trim()).filter(Boolean) : ['tr']);
+        const isletmePaket = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
+        const paketB = await paketGetir(isletmePaket?.paket);
+        if (!paketB.coklu_dil && dilListesi.length > 1) {
+          return res.status(403).json({ hata: `Çoklu dil desteği ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true, ozellik: 'coklu_dil' });
+        }
+        if (typeof paketB.coklu_dil === 'number' && dilListesi.length > paketB.coklu_dil) {
+          return res.status(403).json({ hata: `${paketB.isim} paketinde en fazla ${paketB.coklu_dil} dil destekleniyor. Paketinizi yükseltin!`, limit_asimi: true, ozellik: 'coklu_dil' });
+        }
+      }
+
       values.push(req.kullanici.isletme_id);
       const result = await pool.query(
         `UPDATE isletmeler SET ${setClauses.join(', ')} WHERE id=$${idx} RETURNING *`,
@@ -1994,7 +2010,7 @@ class AdminController {
       }
 
       // Paket fiyat bilgisi
-      const paketFiyat = { baslangic: 299, profesyonel: 599, premium: 999 };
+      const paketFiyat = { baslangic: 299, profesyonel: 699, kurumsal: 1499, premium: 1499 };
 
       res.json({
         isletme,
@@ -2779,8 +2795,10 @@ class AdminController {
     }
   }
   // ==================== PREMIUM KONTROL HELPER ====================
-  _premiumKontrol(paket) {
-    return paket === 'premium';
+  async _paketOzellikKontrol(isletmeId, featureKey) {
+    const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    const paket = await paketGetir(isletme?.paket);
+    return { izinVar: !!paket[featureKey], paket };
   }
 
   // ==================== ETİKETLEME (Mini-CRM) ====================
@@ -2800,7 +2818,8 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Müşteri etiketleme Premium pakete özeldir.' });
+      const paketB = await paketGetir(isletme?.paket);
+      if (!paketB.export_aktif) return res.status(403).json({ hata: `Müşteri etiketleme ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       const { isim, renk } = req.body;
       if (!isim) return res.status(400).json({ hata: 'Etiket adı gerekli' });
       const result = await pool.query(
@@ -2834,7 +2853,8 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Premium paket gerekli.' });
+      const paketB = await paketGetir(isletme?.paket);
+      if (!paketB.export_aktif) return res.status(403).json({ hata: `Bu özellik ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       const { musteri_telefon, etiket_id } = req.body;
       if (!musteri_telefon || !etiket_id) return res.status(400).json({ hata: 'Telefon ve etiket ID gerekli' });
       await pool.query(
@@ -2903,7 +2923,8 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT google_maps_url, google_yorum_aktif, paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Google yorum hatırlatma Premium pakete özeldir.' });
+      const paketB = await paketGetir(isletme?.paket);
+      if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       res.json({ google_maps_url: isletme.google_maps_url, google_yorum_aktif: isletme.google_yorum_aktif });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
@@ -2912,7 +2933,8 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      if (!this._premiumKontrol(isletme?.paket)) return res.status(403).json({ hata: 'Premium paket gerekli.' });
+      const paketB = await paketGetir(isletme?.paket);
+      if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       const { google_maps_url, google_yorum_aktif } = req.body;
       await pool.query('UPDATE isletmeler SET google_maps_url=COALESCE($1,google_maps_url), google_yorum_aktif=COALESCE($2,google_yorum_aktif) WHERE id=$3',
         [google_maps_url, google_yorum_aktif, isletmeId]);
@@ -2945,11 +2967,21 @@ class AdminController {
         paket_bilgi: paketBilgi,
         ozellikler: {
           toplu_kampanya: !!paketBilgi.export_aktif,
-          google_yorum: !!paketBilgi.istatistik,
+          google_yorum: !!paketBilgi.yorum_avcisi,
           musteri_etiketleme: !!paketBilgi.export_aktif,
           excel_export: !!paketBilgi.export_aktif,
           hatirlatma: !!paketBilgi.hatirlatma,
           istatistik: !!paketBilgi.istatistik,
+          kasa: !!paketBilgi.kasa,
+          prim: !!paketBilgi.prim,
+          sadakat: !!paketBilgi.sadakat,
+          winback: !!paketBilgi.winback,
+          yorum_avcisi: !!paketBilgi.yorum_avcisi,
+          gece_raporu: !!paketBilgi.gece_raporu,
+          sms_hatirlatma: !!paketBilgi.sms_hatirlatma,
+          oncelikli_destek: !!paketBilgi.oncelikli_destek,
+          api_erisimi: !!paketBilgi.api_erisimi,
+          coklu_dil: paketBilgi.coklu_dil || false,
         },
         google_maps_url: isletme?.google_maps_url,
         google_yorum_aktif: isletme?.google_yorum_aktif

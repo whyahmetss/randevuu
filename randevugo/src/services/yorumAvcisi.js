@@ -56,6 +56,7 @@ class YorumAvcisiService {
         JOIN musteriler m ON yt.musteri_id = m.id
         JOIN isletmeler i ON yt.isletme_id = i.id
         WHERE yt.durum = 'bekliyor' AND yt.gonderim_zamani <= NOW()
+          AND i.paket IN ('profesyonel', 'kurumsal', 'premium')
       `)).rows;
 
       for (const t of talepler) {

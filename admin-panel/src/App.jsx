@@ -43,6 +43,10 @@ const api = {
           window.location.reload();
           return data;
         }
+        if (data.limit_asimi) {
+          window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: data }));
+          return { ...data, _paketYetersiz: true };
+        }
         return data;
       }
       if (res.status === 402) {
@@ -830,7 +834,9 @@ function Dashboard() {
   useEffect(() => {
     const handler = () => setOdemeGerekli(true);
     window.addEventListener("odeme-gerekli", handler);
-    return () => window.removeEventListener("odeme-gerekli", handler);
+    const paketHandler = (e) => { setPaketModal(true); };
+    window.addEventListener("paket-yetersiz", paketHandler);
+    return () => { window.removeEventListener("odeme-gerekli", handler); window.removeEventListener("paket-yetersiz", paketHandler); };
   }, []);
 
   const verileriYukle = useCallback(async (tarih) => {
@@ -970,18 +976,19 @@ function Dashboard() {
     winback: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>,
   };
 
+  // featureKey: paket_bilgi'deki flag adı — yoksa herkese açık
   const menuItems = [
     { id: "anasayfa", icon: SVG.dashboard, label: "Dashboard" },
     { id: "randevular", icon: SVG.randevular, label: "Randevular" },
     { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler" },
     { id: "calisanlar", icon: SVG.calisanlar, label: "Çalışanlar" },
     { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
-    { id: "kasa", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, label: "Kasa" },
-    { id: "sms", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>, label: "SMS" },
-    { id: "geceraporu", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>, label: "Gece Raporu" },
-    { id: "yorumavcisi", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: "Yorum Avcısı" },
-    { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri" },
-    { id: "sadakat", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>, label: "Sadakat" },
+    { id: "kasa", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, label: "Kasa", featureKey: "kasa" },
+    { id: "sms", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>, label: "SMS", featureKey: "sms_hatirlatma" },
+    { id: "geceraporu", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>, label: "Gece Raporu", featureKey: "gece_raporu" },
+    { id: "yorumavcisi", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
+    { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
+    { id: "sadakat", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>, label: "Sadakat", featureKey: "sadakat" },
     { id: "referans", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>, label: "Referans" },
     { id: "finans", icon: SVG.finans, label: "Finans" },
     { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
@@ -990,6 +997,12 @@ function Dashboard() {
     { id: "destek", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, label: "Destek" },
     { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
   ];
+
+  // Özellik paket kontrolü helper
+  const ozellikAcik = (featureKey) => {
+    if (!featureKey || !paketDurum?.paket_bilgi) return true;
+    return !!paketDurum.paket_bilgi[featureKey];
+  };
 
   return (
     <div className="app-shell">
@@ -1022,20 +1035,24 @@ function Dashboard() {
         )}
 
         <nav className="sidebar-nav">
-          {menuItems.map(m => (
-            <div key={m.id} onClick={() => { setSayfa(m.id); setMobileOpen(false); }} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
-              <span className="nav-icon">{m.icon}</span>
-              <span>{m.label}</span>
-              {sayfa === m.id && <div className="active-dot" />}
-            </div>
-          ))}
+          {menuItems.map(m => {
+            const kilitli = m.featureKey && !ozellikAcik(m.featureKey);
+            return (
+              <div key={m.id} onClick={() => { if (kilitli) { setPaketModal(true); } else { setSayfa(m.id); setMobileOpen(false); } }} className={`nav-item${sayfa === m.id ? ' active' : ''}${kilitli ? ' locked' : ''}`} title={kilitli ? 'Bu özellik paketinizde yok — yükseltmek için tıklayın' : ''}>
+                <span className="nav-icon">{m.icon}</span>
+                <span>{m.label}</span>
+                {kilitli && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', opacity: 0.5 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                {!kilitli && sayfa === m.id && <div className="active-dot" />}
+              </div>
+            );
+          })}
         </nav>
 
         {paketDurum && (
           <div className="paket-widget">
             <div className="pw-header">
               <span className="pw-label">Paketiniz</span>
-              <span className={`badge ${paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket}</span>
+              <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
             </div>
             {[
               { label: 'Çalışan', used: paketDurum.kullanim.calisan, limit: paketDurum.paket_bilgi.calisan_limit, renk: 'var(--green)' },
@@ -1077,7 +1094,7 @@ function Dashboard() {
                 </div>
               );
             })()}
-            {paketDurum.paket !== 'premium' && (
+            {!['kurumsal', 'premium'].includes(paketDurum.paket) && (
               <div className="pw-upgrade" onClick={() => setPaketModal(true)}>
                 <span>Paketi Yükselt</span>
               </div>
@@ -1278,7 +1295,7 @@ function Dashboard() {
                           display: "flex", alignItems: "center", justifyContent: "space-between"
                         }}>
                           <span style={{ fontSize: 11, color: "var(--muted)" }}>Paket</span>
-                          <span className={`badge ${paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
+                          <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
                         </div>
                       )}
                       <button onClick={() => { setProfilPopover(false); setSayfa("ayarlar"); }} style={{
@@ -2795,9 +2812,9 @@ function Dashboard() {
             </div>
             <div className="price-grid-modal">
               {[
-                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma", "Temel Analitik"], ozellikYok: ["Kasa Takibi", "Çok Dilli Destek"] },
-                { key: "profesyonel", isim: "Profesyonel", fiyat: 699, renk: "#3b82f6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: [] },
-                { key: "kurumsal", isim: "Kurumsal", fiyat: 1499, renk: "#f59e0b", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "Özel Eğitim & Onboarding", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
+                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
+                { key: "profesyonel", isim: "Profesyonel", fiyat: 699, renk: "#3b82f6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["SMS Hatırlatma", "Öncelikli Destek", "API Erişimi"] },
+                { key: "kurumsal", isim: "Kurumsal", fiyat: 1499, renk: "#f59e0b", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "12+ Dil Desteği", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (

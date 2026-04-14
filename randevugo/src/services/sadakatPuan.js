@@ -6,11 +6,13 @@ class SadakatPuanService {
   async puanEkle(isletmeId, musteriId, randevuId) {
     try {
       const isletme = (await pool.query(
-        'SELECT sadakat_aktif, puan_oran_tl, puan_oran_puan, odul_esik, odul_hizmet_id FROM isletmeler WHERE id=$1',
+        'SELECT sadakat_aktif, puan_oran_tl, puan_oran_puan, odul_esik, odul_hizmet_id, paket FROM isletmeler WHERE id=$1',
         [isletmeId]
       )).rows[0];
 
       if (!isletme?.sadakat_aktif) return null;
+      // Paket kontrolü — sadece profesyonel+ paketlerde aktif
+      if (!['profesyonel', 'kurumsal', 'premium'].includes(isletme.paket)) return null;
 
       // Hizmet fiyatını al
       const randevu = (await pool.query(
