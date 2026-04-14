@@ -28,7 +28,7 @@ export default function Kasa({ api }) {
       api.get('/kasa/ozet')
     ]);
     setHareketler(liste?.hareketler || []);
-    setOzet(oz);
+    setOzet(oz?.bugun ? oz : null);
     setYukleniyor(false);
   };
 

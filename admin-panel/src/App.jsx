@@ -5563,7 +5563,7 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
 
                 {/* İşletme Listesi */}
-                {aktiviteVeri.aktiviteler
+                {(aktiviteVeri.aktiviteler || [])
                   .filter(a => {
                     if (aktiviteFiltre === "aktif") return a.aktivite_skoru > 20;
                     if (aktiviteFiltre === "pasif") return a.aktivite_skoru <= 20;
@@ -5642,7 +5642,7 @@ function SuperAdminPanel({ kullanici }) {
               <button onClick={bildirimleriYukle} className="btn btn-sm" style={{ background: "rgba(59,130,246,.12)", color: "#3b82f6" }}>🔄 Yenile</button>
             </div>
 
-            {!bildirimVeri ? (
+            {!bildirimVeri || !bildirimVeri.ozet ? (
               <div className="list-empty"><p>Yükleniyor...</p></div>
             ) : (
               <>
@@ -5663,9 +5663,9 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
 
                 {/* Bildirim Listesi */}
-                {bildirimVeri.bildirimler.length === 0 ? (
+                {(bildirimVeri.bildirimler || []).length === 0 ? (
                   <div className="list-empty"><p>Bildirim yok, her şey yolunda! 🎉</p></div>
-                ) : bildirimVeri.bildirimler
+                ) : (bildirimVeri.bildirimler || [])
                   .filter(b => bildirimFiltre === "hepsi" || b.oncelik === bildirimFiltre)
                   .map((b, idx) => {
                     const oncelikRenk = { yuksek: "#ef4444", orta: "#f59e0b", dusuk: "#10b981" };
