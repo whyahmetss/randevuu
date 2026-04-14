@@ -832,7 +832,7 @@ class SatisBot extends EventEmitter {
           if (telMevcut) telFormatli = telFormatli + '_' + Date.now();
           const isletme = (await pool.query(
             `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
-             VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + INTERVAL '14 days') RETURNING *`,
+             VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + INTERVAL '7 days') RETURNING *`,
             [k.isletmeAdi, telFormatli]
           )).rows[0];
 

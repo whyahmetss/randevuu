@@ -44,19 +44,13 @@ const odemeKontrol = async (req, res, next) => {
     if (!isletmeId) return next();
 
     // Deneme süresi ve paket bitiş kontrolü
-    const isletme = (await pool.query('SELECT deneme_bitis_tarihi, paket_bitis_tarihi, olusturma_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    const isletme = (await pool.query('SELECT deneme_bitis_tarihi, paket_bitis_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (isletme) {
       const now = new Date();
       // Deneme süresi devam ediyorsa geç
       if (isletme.deneme_bitis_tarihi && new Date(isletme.deneme_bitis_tarihi) > now) return next();
       // Paket bitiş tarihi varsa ve hâlâ geçerliyse geç
       if (isletme.paket_bitis_tarihi && new Date(isletme.paket_bitis_tarihi) > now) return next();
-      // Minimum garanti: olusturma_tarihi + 14 gün (deneme kısa set edilmiş olsa bile)
-      if (isletme.olusturma_tarihi) {
-        const minDenemeBitis = new Date(isletme.olusturma_tarihi);
-        minDenemeBitis.setDate(minDenemeBitis.getDate() + 14);
-        if (minDenemeBitis > now) return next();
-      }
     }
 
     const buAy = new Date().toISOString().slice(0, 7);
