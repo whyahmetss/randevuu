@@ -119,8 +119,10 @@
     async function apiPost(endpoint, body) {
       try {
         const r = await fetch(API + endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-        return await r.json();
-      } catch(e) { return { hata: 'Bağlantı hatası' }; }
+        const data = await r.json();
+        if(!r.ok && !data.hata) data.hata = 'Sunucu hatası (' + r.status + ')';
+        return data;
+      } catch(e) { return { hata: 'Bağlantı hatası. Lütfen tekrar deneyin.' }; }
     }
 
     function yaklasTarihler() {

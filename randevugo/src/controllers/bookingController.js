@@ -173,10 +173,11 @@ class BookingController {
         kapora: sonuc.kapora
       });
     } catch (error) {
+      console.error('❌ Booking randevu oluşturma hatası:', error.message, error.stack);
       if (error.code === 'LIMIT_ASIMI') {
         return res.status(403).json({ hata: 'Bu işletmenin aylık randevu kapasitesi dolmuştur. Lütfen daha sonra tekrar deneyin.', limit_asimi: true });
       }
-      res.status(500).json({ hata: error.message });
+      res.status(500).json({ hata: 'Randevu oluşturulamadı: ' + error.message });
     }
   }
 }
