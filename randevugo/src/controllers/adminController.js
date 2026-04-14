@@ -934,8 +934,8 @@ class AdminController {
       const allowedDurumlar = ['odendi', 'bekliyor', 'gecikti', 'basarisiz', 'havale_bekliyor', 'odeme_bekliyor'];
       if (!durum || !allowedDurumlar.includes(durum)) return res.status(400).json({ hata: 'Geçersiz durum' });
       const result = await pool.query(
-        `UPDATE odemeler SET durum = $1, odeme_tarihi = CASE WHEN $1 = 'odendi' THEN NOW() ELSE odeme_tarihi END WHERE id = $2 RETURNING *`,
-        [durum, req.params.id]
+        `UPDATE odemeler SET durum = $1::varchar, odeme_tarihi = CASE WHEN $2::boolean THEN NOW() ELSE odeme_tarihi END WHERE id = $3 RETURNING *`,
+        [durum, durum === 'odendi', req.params.id]
       );
       if (durum === 'odendi' && result.rows[0]) {
         const odeme = result.rows[0];
