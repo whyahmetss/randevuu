@@ -1551,13 +1551,25 @@ class AdminController {
       const gecenAyChurnSayi = ikiAyOnceOdeyenler.filter(id => !gecenAyOdeyenler.includes(id)).length;
       const gecenAyChurnRate = ikiAyOnceOdeyenler.length > 0 ? ((gecenAyChurnSayi / ikiAyOnceOdeyenler.length) * 100).toFixed(1) : 0;
 
-      // Bu ay referansla gelen işletme sayısı
+      // Referansla gelen işletme sayısı (gerçek kayıtlı referanslar)
       let referanslaGelenSayi = 0;
       try {
         const refResult = (await pool.query(
-          "SELECT COUNT(*) as c FROM referanslar WHERE olusturma_tarihi >= date_trunc('month', CURRENT_DATE)"
+          "SELECT COUNT(*) as c FROM isletmeler WHERE referans_ile_gelen IS NOT NULL AND referans_ile_gelen > 0"
         )).rows[0];
         referanslaGelenSayi = parseInt(refResult?.c) || 0;
+      } catch(e) {}
+
+      // Bu ay ödemeyenler (aktif işletmeler arasında ödeme kaydı 'odendi' olmayanlar)
+      let buAyOdemeyenSayi = 0;
+      try {
+        const odemeyenResult = (await pool.query(`
+          SELECT COUNT(*) as c FROM isletmeler i
+          WHERE i.aktif = true
+            AND NOT EXISTS (SELECT 1 FROM odemeler o WHERE o.isletme_id = i.id AND o.donem = $1 AND o.durum = 'odendi')
+            AND i.olusturma_tarihi < (date_trunc('month', CURRENT_DATE) - interval '7 day')
+        `, [buAy])).rows[0];
+        buAyOdemeyenSayi = parseInt(odemeyenResult?.c) || 0;
       } catch(e) {}
 
       // Deneme süresi biten (önümüzdeki 7 gün)
@@ -1598,6 +1610,7 @@ class AdminController {
         mrrSparkline,
         buAyToplamRandevu,
         referanslaGelenSayi,
+        buAyOdemeyenSayi,
         denemeBitenSayi,
         denemeBitenler
       });

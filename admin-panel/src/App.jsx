@@ -3326,7 +3326,7 @@ function SuperAdminPanel({ kullanici }) {
               <div className="stat-card" style={{ "--card-accent": "#ef4444" }}>
                 <div className="sc-icon">⏳</div>
                 <div className="sc-label">Ödemeyenler</div>
-                <div className="sc-val" style={{ color: buAyOdemeyenler.length > 0 ? "#ef4444" : "#10b981" }}>{buAyOdemeyenler.length}</div>
+                <div className="sc-val" style={{ color: (saasMetrik?.buAyOdemeyenSayi || buAyOdemeyenler.length) > 0 ? "#ef4444" : "#10b981" }}>{saasMetrik?.buAyOdemeyenSayi ?? buAyOdemeyenler.length}</div>
               </div>
               <div className="stat-card blue">
                 <div className="sc-icon">📅</div>
