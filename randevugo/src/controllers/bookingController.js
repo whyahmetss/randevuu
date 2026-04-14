@@ -50,12 +50,14 @@ class BookingController {
       const isletme = (await pool.query('SELECT id, calisan_secim_modu FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
-      // Çalışan seçimi "otomatik" ise çalışan listesi gösterme
-      if (isletme.calisan_secim_modu === 'otomatik') {
+      const calisanlar = await randevuService.uygunCalisanlar(isletme.id, hizmetId ? parseInt(hizmetId) : null);
+      
+      // Tek çalışan veya 0 ise otomatik atama
+      if (calisanlar.length <= 1) {
         return res.json({ calisanlar: [], otomatik: true });
       }
 
-      const calisanlar = await randevuService.uygunCalisanlar(isletme.id, hizmetId ? parseInt(hizmetId) : null);
+      // 2+ çalışan varsa listeyi göster (müşteri seçsin)
       res.json({ calisanlar: calisanlar.map(c => ({ id: c.id, isim: c.isim })) });
     } catch (error) {
       res.status(500).json({ hata: error.message });

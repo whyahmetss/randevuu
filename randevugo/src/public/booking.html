@@ -190,6 +190,14 @@
       else if(s.step === 2) {
         html += `<button class="btn-back" onclick="adim(1)">← Geri</button>`;
         html += '<div class="step-title"><span class="num">2</span>Uzman Seçin</div>';
+        // Farketmez seçeneği
+        html += `<div class="card ${s.seciliCalisan===null&&s.calisanSecildi?'selected':''}" onclick="secCalisanFarketmez()">
+          <div class="card-icon">🔄</div>
+          <div class="card-info">
+            <h3>Farketmez</h3>
+            <p>Uygun olan uzmana ata</p>
+          </div>
+        </div>`;
         s.calisanlar.forEach(c => {
           html += `<div class="card ${s.seciliCalisan?.id===c.id?'selected':''}" onclick="secCalisan(${c.id})">
             <div class="card-icon">👤</div>
@@ -199,7 +207,7 @@
             </div>
           </div>`;
         });
-        if(s.seciliCalisan) html += `<button class="btn-primary" onclick="adim(3)">Devam Et</button>`;
+        if(s.seciliCalisan !== undefined && s.calisanSecildi) html += `<button class="btn-primary" onclick="adim(3)">Devam Et</button>`;
       }
 
       // Step 3: Tarih ve saat
@@ -332,6 +340,13 @@
     }
     function secCalisan(id) {
       state.seciliCalisan = state.calisanlar.find(c => c.id === id);
+      state.calisanSecildi = true;
+      state.hata = '';
+      render();
+    }
+    function secCalisanFarketmez() {
+      state.seciliCalisan = null;
+      state.calisanSecildi = true;
       state.hata = '';
       render();
     }
