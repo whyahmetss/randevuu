@@ -20,36 +20,41 @@ const api = {
   token: localStorage.getItem("randevugo_token"),
 
   async fetch(endpoint, options = {}) {
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        ...options.headers,
-      },
-    });
-    if (res.status === 401) {
-      this.token = null;
-      localStorage.removeItem("randevugo_token");
-      window.location.reload();
-    }
-    if (res.status === 403) {
-      const data = await res.json();
-      if (data.pasif) {
-        alert("İşletmeniz pasif duruma alınmıştır. Lütfen destek ile iletişime geçin.");
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+          ...options.headers,
+        },
+      });
+      if (res.status === 401) {
         this.token = null;
         localStorage.removeItem("randevugo_token");
         window.location.reload();
+      }
+      if (res.status === 403) {
+        const data = await res.json();
+        if (data.pasif) {
+          alert("İşletmeniz pasif duruma alınmıştır. Lütfen destek ile iletişime geçin.");
+          this.token = null;
+          localStorage.removeItem("randevugo_token");
+          window.location.reload();
+          return data;
+        }
         return data;
       }
-      return data;
+      if (res.status === 402) {
+        window.dispatchEvent(new CustomEvent("odeme-gerekli"));
+        const data = await res.json();
+        return { ...data, _odemeGerekli: true };
+      }
+      return res.json();
+    } catch (err) {
+      console.error("API bağlantı hatası:", endpoint, err.message);
+      return { hata: "Sunucuya bağlanılamadı", _networkError: true };
     }
-    if (res.status === 402) {
-      window.dispatchEvent(new CustomEvent("odeme-gerekli"));
-      const data = await res.json();
-      return { ...data, _odemeGerekli: true };
-    }
-    return res.json();
   },
 
   get: (e) => api.fetch(e),
@@ -824,13 +829,15 @@ function Dashboard() {
   }, []);
 
   const verileriYukle = useCallback(async (tarih) => {
-    const t = tarih || randevuTarih;
-    const [s, r] = await Promise.all([
-      api.get("/istatistikler"),
-      api.get(`/randevular?tarih=${t}`),
-    ]);
-    setStats(s);
-    setRandevular(r.randevular || []);
+    try {
+      const t = tarih || randevuTarih;
+      const [s, r] = await Promise.all([
+        api.get("/istatistikler"),
+        api.get(`/randevular?tarih=${t}`),
+      ]);
+      if (s && !s.hata) setStats(s);
+      setRandevular(r?.randevular || []);
+    } catch(e) { console.log("Veri yükleme hatası:", e); }
   }, [randevuTarih]);
 
   useEffect(() => {
@@ -2842,15 +2849,13 @@ function SuperAdminPanel({ kullanici }) {
 
   const isletmeleriYukle = async () => {
     setYukleniyor(true);
-    const d = await api.get("/admin/isletmeler");
-    setIsletmeler(d.isletmeler || []);
+    try { const d = await api.get("/admin/isletmeler"); setIsletmeler(d.isletmeler || []); } catch(e) { console.log("İşletme yükleme hatası:", e); }
     setYukleniyor(false);
   };
 
   const odemeleriYukle = async () => {
     setYukleniyor(true);
-    const d = await api.get("/admin/odemeler");
-    setOdemeler(d.odemeler || []);
+    try { const d = await api.get("/admin/odemeler"); setOdemeler(d.odemeler || []);  } catch(e) { console.log("Ödeme yükleme hatası:", e); }
     setYukleniyor(false);
   };
 
@@ -2892,21 +2897,17 @@ function SuperAdminPanel({ kullanici }) {
   }, []);
 
   const avciListeYukle = async () => {
-    const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&kategori=${avciKategoriFiltre}&siralama=${avciSiralama}&kaynak=${avciKaynak}&limit=100`);
-    setAvciListe(d.potansiyel_musteriler || []);
+    try { const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&kategori=${avciKategoriFiltre}&siralama=${avciSiralama}&kaynak=${avciKaynak}&limit=100`); setAvciListe(d.potansiyel_musteriler || []); } catch(e) { console.log("Avcı liste hatası:", e); }
   };
   const avciStatsYukle = async () => {
-    const d = await api.get("/admin/avci/istatistik");
-    setAvciStats(d);
+    try { const d = await api.get("/admin/avci/istatistik"); setAvciStats(d); } catch(e) { console.log("Avcı stats hatası:", e); }
   };
   const avciGunlukYukle = async () => {
-    const d = await api.get("/admin/avci/gunluk?limit=10");
-    setAvciGunluk(d.gunluk_liste || []);
+    try { const d = await api.get("/admin/avci/gunluk?limit=10"); setAvciGunluk(d.gunluk_liste || []); } catch(e) { console.log("Avcı günlük hatası:", e); }
   };
 
   const iletisimYukle = async () => {
-    const d = await api.get("/admin/iletisim");
-    setIletisimMesajlar(d.mesajlar || []);
+    try { const d = await api.get("/admin/iletisim"); setIletisimMesajlar(d.mesajlar || []); } catch(e) { console.log("İletişim yükleme hatası:", e); }
   };
 
   const auditLogYukle = async () => {
