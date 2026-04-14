@@ -3451,6 +3451,7 @@ function SuperAdminPanel({ kullanici }) {
                       </div>
                     )}
                     <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>ARR: {((saasMetrik?.arr || 0) / 1000).toFixed(0)}K ₺</div>
+                    {saasMetrik?.beklenenGelir > 0 && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 2 }}>Beklenen: {saasMetrik.beklenenGelir.toLocaleString("tr-TR")} ₺</div>}
                   </div>
                   {/* Mini Sparkline */}
                   {saasMetrik?.mrrSparkline && saasMetrik.mrrSparkline.length > 1 && (() => {
@@ -3525,7 +3526,8 @@ function SuperAdminPanel({ kullanici }) {
               <div className="stat-card green">
                 <div className="sc-icon">💰</div>
                 <div className="sc-label">Bu Ay Gelir</div>
-                <div className="sc-val">{(saasMetrik?.buAyGelir ?? buAyGelir ?? 0).toLocaleString("tr-TR")} ₺</div>
+                <div className="sc-val">{(saasMetrik?.buAyGelir ?? 0).toLocaleString("tr-TR")} ₺</div>
+                {saasMetrik?.beklenenGelir > 0 && saasMetrik?.buAyGelir < saasMetrik?.beklenenGelir && <div style={{ fontSize: 11, color: "#f59e0b", marginTop: 4 }}>Beklenen: {saasMetrik.beklenenGelir.toLocaleString("tr-TR")} ₺</div>}
               </div>
               <div className="stat-card amber">
                 <div className="sc-icon">🏢</div>

@@ -1705,35 +1705,40 @@ class AdminController {
       // Aktif işletme sayısı
       const aktifIsletme = (await pool.query("SELECT COUNT(*) as sayi FROM isletmeler WHERE aktif = true")).rows[0];
 
-      // Aktif Aboneler = aktif + (paket_bitis_tarihi geçmemiş VEYA deneme süresinde = son 14 gün içinde kayıt)
-      const aktifAboneler = (await pool.query(`
-        SELECT id, paket FROM isletmeler WHERE aktif = true
-          AND (
-            paket_bitis_tarihi IS NULL
-            OR paket_bitis_tarihi >= CURRENT_DATE
-            OR olusturma_tarihi >= (CURRENT_DATE - interval '14 day')
-          )
-      `)).rows;
-      const aktifAboneSayi = aktifAboneler.length;
+      // Aktif Aboneler = ödeme yapmış (odendi) VEYA deneme süresinde (son 14 gün kayıt, hiç ödeme yok)
+      const odemisIsletmeler = (await pool.query(
+        "SELECT DISTINCT isletme_id FROM odemeler WHERE durum = 'odendi'"
+      )).rows.map(r => r.isletme_id);
 
-      // MRR — Aktif abonelerin paket fiyatlarının toplamı (potansiyel aylık gelir)
-      const paketFiyatlari = {};
-      try {
-        const tumPaketler = await paketleriYukle();
-        for (const [kod, p] of Object.entries(tumPaketler)) {
-          paketFiyatlari[kod] = p.fiyat || 0;
-        }
-      } catch(e) {}
-      let mrr = 0;
-      for (const a of aktifAboneler) {
-        mrr += paketFiyatlari[a.paket] || paketFiyatlari['baslangic'] || 299;
-      }
+      const denemeIsletmeleri = (await pool.query(`
+        SELECT id FROM isletmeler WHERE aktif = true
+          AND olusturma_tarihi >= (CURRENT_DATE - interval '14 day')
+          AND id NOT IN (SELECT DISTINCT isletme_id FROM odemeler WHERE durum = 'odendi' AND isletme_id IS NOT NULL)
+      `)).rows.map(r => r.id);
 
-      // Gerçek bu ay gelir (ödenen)
-      const buAyGelirResult = (await pool.query(
+      const aktifAboneSayi = new Set([...odemisIsletmeler, ...denemeIsletmeleri]).size;
+
+      // MRR — Gerçek bu ay ödenen toplam (sadece odendi)
+      const mrrResult = (await pool.query(
         "SELECT COALESCE(SUM(tutar), 0) as toplam FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [buAy]
       )).rows[0];
-      const buAyGelir = parseFloat(buAyGelirResult.toplam);
+      const mrr = parseFloat(mrrResult.toplam);
+
+      // Beklenen Gelir — aktif abonelerin paket fiyat toplamı
+      let beklenenGelir = 0;
+      try {
+        const tumPaketler = await paketleriYukle();
+        const aktifIsletmePaketler = (await pool.query(
+          "SELECT paket FROM isletmeler WHERE aktif = true"
+        )).rows;
+        for (const a of aktifIsletmePaketler) {
+          const p = tumPaketler[a.paket] || tumPaketler['baslangic'];
+          beklenenGelir += (p?.fiyat || 0);
+        }
+      } catch(e) {}
+
+      // Gerçek bu ay gelir (ödenen) — MRR ile aynı
+      const buAyGelir = mrr;
 
       // Geçen ay MRR (gerçek ödenen)
       const gecenAyMrr = (await pool.query(
@@ -1855,7 +1860,7 @@ class AdminController {
       res.json({
         mrr, mrrGecen, mrrBuyume: parseFloat(mrrBuyume),
         arr,
-        buAyGelir,
+        buAyGelir, beklenenGelir,
         churnSayi, churnRate: parseFloat(churnRate),
         gecenAyChurnRate: parseFloat(gecenAyChurnRate),
         yeniMusteri,
