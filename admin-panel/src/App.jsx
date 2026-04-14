@@ -2795,9 +2795,9 @@ function Dashboard() {
             </div>
             <div className="price-grid-modal">
               {[
-                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["1 Çalışan", "200 Randevu/Ay", "Otomatik Hatırlatma", "Temel Analitik", "WhatsApp Bot"], ozellikYok: ["Telegram Desteği", "Çok Dilli Destek"] },
-                { key: "profesyonel", isim: "Profesyonel", fiyat: 999, renk: "#3b82f6", ozellikler: ["3 Çalışan", "Sınırsız Randevu", "Telegram Desteği", "Gelişmiş Analitik", "Google Calendar Sync", "5 Dil Desteği"], ozellikYok: [] },
-                { key: "kurumsal", isim: "Kurumsal", fiyat: null, renk: "#f59e0b", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "Özel API Entegrasyonu", "Özel Eğitim & Onboarding", "SLA Garantisi", "12+ Dil Desteği"], ozellikYok: [] },
+                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma", "Temel Analitik"], ozellikYok: ["Kasa Takibi", "Çok Dilli Destek"] },
+                { key: "profesyonel", isim: "Profesyonel", fiyat: 699, renk: "#3b82f6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: [] },
+                { key: "kurumsal", isim: "Kurumsal", fiyat: 1499, renk: "#f59e0b", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "Özel Eğitim & Onboarding", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
