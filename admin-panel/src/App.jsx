@@ -813,6 +813,9 @@ function Dashboard() {
   const [destekSecili, setDestekSecili] = useState(null);
   const [destekFiltre2, setDestekFiltre2] = useState("hepsi");
   const chatRef = useRef(null);
+  const [qrType, setQrType] = useState('whatsapp');
+  const [qrData, setQrData] = useState(null);
+  const [qrYukleniyor, setQrYukleniyor] = useState(false);
 
   useEffect(() => {
     const handler = () => setOdemeGerekli(true);
@@ -918,7 +921,13 @@ function Dashboard() {
 
   const cikisYap = () => { localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", destek: "Destek", ayarlar: "Ayarlar" };
+  const qrKodOlustur = async () => {
+    setQrYukleniyor(true);
+    try { const d = await api.get(`/qr-kod?type=${qrType}`); setQrData(d); } catch(e) { alert('Hata: ' + e.message); }
+    setQrYukleniyor(false);
+  };
+
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", destek: "Destek", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -949,6 +958,7 @@ function Dashboard() {
     { id: "finans", icon: SVG.finans, label: "Finans" },
     { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
     { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
+    { id: "qrkod", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="17"/><line x1="14" y1="21" x2="17" y2="21"/></svg>, label: "QR Kod" },
     { id: "destek", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, label: "Destek" },
     { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
   ];
@@ -2360,6 +2370,51 @@ function Dashboard() {
           {/* ── KASA ── */}
           {sayfa === "kasa" && (
             <Kasa api={api} />
+          )}
+
+          {/* ── QR KOD ── */}
+          {sayfa === "qrkod" && (
+            <div>
+              <div style={{ marginBottom: 20, color: "var(--dim)", fontSize: 13 }}>İşletmeniz için WhatsApp veya Online Randevu QR kodu oluşturun. Yazdırıp işletmenize asabilirsiniz.</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)" }}>
+                  <h3 style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", margin: "0 0 16px" }}>QR Tipi Seçin</h3>
+                  <div className="row gap-8" style={{ marginBottom: 16 }}>
+                    {[["whatsapp", "💬 WhatsApp"], ["booking", "📅 Online Randevu"]].map(([k, l]) => (
+                      <button key={k} onClick={() => { setQrType(k); setQrData(null); }} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid " + (qrType === k ? (k === "whatsapp" ? "#10b981" : "#3b82f6") : "var(--border)"), cursor: "pointer", background: qrType === k ? (k === "whatsapp" ? "rgba(16,185,129,.08)" : "rgba(59,130,246,.08)") : "var(--bg)", color: qrType === k ? (k === "whatsapp" ? "#10b981" : "#3b82f6") : "var(--dim)", fontWeight: 700, fontSize: 13 }}>{l}</button>
+                    ))}
+                  </div>
+                  <button onClick={qrKodOlustur} disabled={qrYukleniyor} style={{ width: "100%", padding: 12, borderRadius: 12, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#10b981,#059669)", color: "#fff", fontWeight: 700, fontSize: 14 }}>{qrYukleniyor ? "Oluşturuluyor..." : "🔄 QR Kod Oluştur"}</button>
+                  <div style={{ marginTop: 16, padding: "12px 16px", borderRadius: 10, background: "rgba(59,130,246,.04)", border: "1px solid rgba(59,130,246,.1)" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#3b82f6", marginBottom: 4 }}>💡 Kullanım</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", lineHeight: 1.6 }}>
+                      • <strong>WhatsApp:</strong> Müşteri QR okutarak doğrudan WhatsApp'tan mesaj atar<br/>
+                      • <strong>Online Randevu:</strong> Müşteri QR okutarak web'den randevu alır<br/>
+                      • QR kodu indirip kartvizit, tezgah veya vitrine yapıştırabilirsiniz
+                    </div>
+                  </div>
+                </div>
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                  {qrData ? (
+                    <>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>{qrData.isletmeIsim}</div>
+                      <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 16 }}>{qrData.type === "whatsapp" ? "💬 WhatsApp QR" : "📅 Online Randevu QR"}</div>
+                      <img src={qrData.qr} alt="QR Kod" style={{ width: 280, height: 280, borderRadius: 16, border: "3px solid var(--border)" }} />
+                      <div style={{ marginTop: 12, fontSize: 11, color: "var(--dim)", textAlign: "center", wordBreak: "break-all", maxWidth: 300 }}>{qrData.hedefUrl}</div>
+                      <div className="row gap-8" style={{ marginTop: 16 }}>
+                        <a href={qrData.qr} download={`qr-${qrData.isletmeIsim}-${qrData.type}.png`} style={{ padding: "8px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg,#3b82f6,#2563eb)", color: "#fff", fontWeight: 700, fontSize: 12, textDecoration: "none" }}>📥 İndir</a>
+                        <button onClick={() => { navigator.clipboard.writeText(qrData.hedefUrl); alert("Link kopyalandı!"); }} style={{ padding: "8px 20px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "var(--bg)", color: "var(--text)", fontWeight: 700, fontSize: 12 }}>📋 Linki Kopyala</button>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ textAlign: "center", color: "var(--dim)" }}>
+                      <div style={{ fontSize: 64, marginBottom: 12 }}>📱</div>
+                      <p style={{ fontSize: 13 }}>QR tipi seçip oluşturun</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           {/* ── AYARLAR ── */}
