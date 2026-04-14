@@ -1848,7 +1848,7 @@ function Dashboard() {
                   </div>
 
                   {/* Ödenmemiş → Tek tıkla uzat + havale */}
-                  {(!odemeBilgi.odeme || odemeBilgi.odeme.durum === 'bekliyor') && (
+                  {(!odemeBilgi.odeme || !['odendi', 'havale_bekliyor'].includes(odemeBilgi.odeme.durum)) && (
                     <div>
                       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
                         <button onClick={() => {
