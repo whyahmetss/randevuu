@@ -537,6 +537,31 @@ class WhatsAppWebService extends EventEmitter {
       return this.hizmetListesi(isletme, hizmetler);
     }
 
+    // Referans kodu sorgulama
+    if (metinKucuk.includes('referans') || metinKucuk.includes('davet') || metinKucuk.includes('arkadaş')) {
+      try {
+        const referansServis = require('./referans');
+        const sonuc = await referansServis.kodSorgula(isletmeId, musteriTelefon);
+        if (sonuc) {
+          return { metin: `🤝 *Referans Kodunuz:* ${sonuc.kod}\n\nBu kodu arkadaşlarınızla paylaşın! Arkadaşınız ilk randevusunu aldığında ikiniz de puan kazanırsınız! 🎁\n\n✅ Şimdiye kadar ${sonuc.davetSayisi} kişiyi davet ettiniz.`, butonlar: null };
+        }
+      } catch (e) { /* referans aktif değilse skip */ }
+    }
+
+    // Referans kodu kullanma (6 karakterli büyük harf/rakam)
+    if (/^[A-F0-9]{6}$/.test(metin.trim().toUpperCase())) {
+      try {
+        const referansServis = require('./referans');
+        const sonuc = await referansServis.referansKullan(isletmeId, musteriTelefon, metin.trim());
+        if (sonuc?.basarili) {
+          return { metin: `✅ Referans kodu kullanıldı! ${sonuc.davetEden} sizi davet etti.\n\n🎁 İlk randevunuz tamamlandığında ikiniz de bonus puan kazanacaksınız!`, butonlar: null };
+        }
+        if (sonuc?.hata) {
+          return { metin: `❌ ${sonuc.hata}`, butonlar: null };
+        }
+      } catch (e) { /* skip */ }
+    }
+
     // Puan sorgulama intent
     if (metinKucuk.includes('puan') || metinKucuk.includes('puanım') || metinKucuk.includes('puanim') || metinKucuk.includes('sadakat')) {
       try {

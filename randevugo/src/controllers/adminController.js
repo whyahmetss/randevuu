@@ -6,6 +6,7 @@ const { paketGetir, paketleriYukle, paketCacheTemizle } = require('../config/pak
 const avciBot = require('../services/avciBot');
 const iyzicoService = require('../services/iyzicoService');
 const shopierService = require('../services/shopierService');
+const QRCode = require('qrcode');
 
 class AdminController {
 
@@ -87,6 +88,12 @@ class AdminController {
           }
         } catch (e) { console.error('Sadakat puan hatası:', e.message); }
 
+        // Referans: puan ver
+        try {
+          const mRef = (await pool.query('SELECT telefon FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
+          if (mRef) { const referans = require('../services/referans'); await referans.referansPuanVer(isletmeId, randevu.musteri_id, mRef.telefon); }
+        } catch (e) { /* skip */ }
+
         // Yorum Avcısı: talebi oluştur
         try {
           const musteri = (await pool.query('SELECT id, telefon FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
@@ -141,7 +148,7 @@ class AdminController {
 
   async hizmetEkle(req, res) {
     try {
-      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi } = req.body;
+      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
       const paket = await paketGetir(isletme?.paket);
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
@@ -149,8 +156,8 @@ class AdminController {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
       }
       const result = await pool.query(
-        'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-        [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0]
+        'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+        [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
@@ -161,10 +168,10 @@ class AdminController {
   async hizmetGuncelle(req, res) {
     try {
       const { id } = req.params;
-      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi } = req.body;
+      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi, tampon_dk } = req.body;
       const result = await pool.query(
-        'UPDATE hizmetler SET isim=$1, isim_en=$2, isim_ar=$3, sure_dk=$4, fiyat=$5, aciklama=$6, aktif=$7, emoji=$8, kapora_yuzdesi=$9 WHERE id=$10 AND isletme_id=$11 RETURNING *',
-        [isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, id, req.kullanici.isletme_id]
+        'UPDATE hizmetler SET isim=$1, isim_en=$2, isim_ar=$3, sure_dk=$4, fiyat=$5, aciklama=$6, aktif=$7, emoji=$8, kapora_yuzdesi=$9, tampon_dk=$10 WHERE id=$11 AND isletme_id=$12 RETURNING *',
+        [isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, id, req.kullanici.isletme_id]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
@@ -575,7 +582,8 @@ class AdminController {
         'isim','adres','calisma_baslangic','calisma_bitis','randevu_suresi_dk','kapali_gunler','mola_saatleri',
         'kategori','bot_konusma_stili','randevu_modu','hatirlatma_saat','calisan_secim_modu',
         'randevu_onay_modu','onay_timeout_dk','iptal_sinir_saat','mesai_disi_mod','mesai_disi_mesaj',
-        'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug'
+        'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug',
+        'varsayilan_tampon_dk','slot_aralik_dk'
       ];
       const jsonAlanlar = ['mola_saatleri'];
       const setClauses = [];
@@ -1515,18 +1523,67 @@ class AdminController {
         buAyToplamRandevu = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE tarih >= date_trunc('month', CURRENT_DATE)")).rows[0]?.c) || 0;
       } catch(e) {}
 
+      // Geçen ay ARPU (karşılaştırma için)
+      const gecenAyOdeyenSayi = gecenAyOdeyenler.length;
+      const arpuGecen = gecenAyOdeyenSayi > 0 ? (mrrGecen / gecenAyOdeyenSayi).toFixed(0) : 0;
+      const arpuDegisim = parseFloat(arpuGecen) > 0 ? (((parseFloat(arpu) - parseFloat(arpuGecen)) / parseFloat(arpuGecen)) * 100).toFixed(1) : 0;
+
+      // Geçen ay churn karşılaştırma
+      const ikiAyOnceOdeyenler = (await pool.query(
+        "SELECT DISTINCT isletme_id FROM odemeler WHERE donem = $1 AND durum = 'odendi'", [ikiAyOnce]
+      )).rows.map(r => r.isletme_id);
+      const gecenAyChurnSayi = ikiAyOnceOdeyenler.filter(id => !gecenAyOdeyenler.includes(id)).length;
+      const gecenAyChurnRate = ikiAyOnceOdeyenler.length > 0 ? ((gecenAyChurnSayi / ikiAyOnceOdeyenler.length) * 100).toFixed(1) : 0;
+
+      // Bu ay referansla gelen işletme sayısı
+      let referanslaGelenSayi = 0;
+      try {
+        const refResult = (await pool.query(
+          "SELECT COUNT(*) as c FROM referanslar WHERE olusturma_tarihi >= date_trunc('month', CURRENT_DATE)"
+        )).rows[0];
+        referanslaGelenSayi = parseInt(refResult?.c) || 0;
+      } catch(e) {}
+
+      // Deneme süresi biten (önümüzdeki 7 gün)
+      let denemeBitenSayi = 0;
+      let denemeBitenler = [];
+      try {
+        const dResult = (await pool.query(
+          `SELECT id, isim, telefon, olusturma_tarihi,
+            (olusturma_tarihi + interval '7 day')::date as bitis_tarihi
+          FROM isletmeler 
+          WHERE aktif = true 
+            AND olusturma_tarihi IS NOT NULL
+            AND (olusturma_tarihi + interval '7 day')::date BETWEEN CURRENT_DATE AND (CURRENT_DATE + interval '7 day')
+            AND id NOT IN (SELECT DISTINCT isletme_id FROM odemeler WHERE durum = 'odendi')
+          ORDER BY olusturma_tarihi`
+        )).rows;
+        denemeBitenSayi = dResult.length;
+        denemeBitenler = dResult.slice(0, 10);
+      } catch(e) {}
+
+      // Son 6 ay MRR sparkline verisi
+      const mrrSparkline = gelirTrendi.map(g => g.gelir);
+
       res.json({
         mrr, mrrGecen, mrrBuyume: parseFloat(mrrBuyume),
         arr,
         churnSayi, churnRate: parseFloat(churnRate),
+        gecenAyChurnRate: parseFloat(gecenAyChurnRate),
         yeniMusteri,
         aktifIsletme: parseInt(aktifIsletme.sayi),
         buAyOdeyen: buAyOdeyenler.length,
         arpu: parseFloat(arpu),
+        arpuGecen: parseFloat(arpuGecen),
+        arpuDegisim: parseFloat(arpuDegisim),
         paketDagilimi,
         kategoriDagilimi,
         gelirTrendi,
-        buAyToplamRandevu
+        mrrSparkline,
+        buAyToplamRandevu,
+        referanslaGelenSayi,
+        denemeBitenSayi,
+        denemeBitenler
       });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -2119,6 +2176,183 @@ class AdminController {
       }
 
       res.json({ mesaj: `${basarili} işletmeye mesaj gönderildi`, basarili, basarisiz, toplam: isletmeler.length });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== ZOMBİ OTOMATİK AKSİYON ====================
+
+  async zombiOtomatikAksiyon(req, res) {
+    try {
+      const zombiResult = await pool.query(`
+        SELECT i.id, i.isim, i.telefon, i.paket, i.aktif, i.zombi_uyari_gonderildi,
+          i.olusturma_tarihi,
+          COUNT(r.id) as randevu_sayisi,
+          MAX(r.tarih) as son_randevu
+        FROM isletmeler i
+        LEFT JOIN randevular r ON r.isletme_id = i.id
+        WHERE i.aktif = true
+        GROUP BY i.id
+        ORDER BY i.olusturma_tarihi DESC
+      `);
+
+      let botBagliIds = [];
+      try {
+        const waResult = await pool.query("SELECT DISTINCT isletme_id FROM wa_auth_keys WHERE isletme_id != 999999");
+        botBagliIds = waResult.rows.map(r => r.isletme_id);
+      } catch(e) {}
+
+      const aksiyonlar = [];
+      const simdi = new Date();
+
+      for (const i of zombiResult.rows) {
+        const randevuSayisi = parseInt(i.randevu_sayisi) || 0;
+        const sonRandevu = i.son_randevu ? new Date(i.son_randevu) : null;
+        const gunFarki = sonRandevu ? Math.floor((simdi - sonRandevu) / 86400000) : null;
+        const botBagli = botBagliIds.includes(i.id);
+        const kayitGun = Math.floor((simdi - new Date(i.olusturma_tarihi)) / 86400000);
+
+        // Kural 1: Bot bağlamamış, kayıttan 3+ gün geçmiş → WhatsApp uyarı
+        if (!botBagli && kayitGun >= 3 && !i.zombi_uyari_gonderildi) {
+          aksiyonlar.push({
+            isletme_id: i.id, isletme_isim: i.isim, telefon: i.telefon, paket: i.paket,
+            aksiyon_tipi: 'bot_uyari',
+            mesaj: `Merhaba ${i.isim} 🙂\n\nSıraGO hesabınız açıldı ama henüz WhatsApp botunuzu bağlamadınız.\n\nBotu bağlamadan müşterileriniz randevu alamaz. 2 dakikada bağlayabilirsiniz!\n\n👉 Panel: sirago.com/admin`,
+            oneri: 'WhatsApp bot bağlama hatırlatması gönder',
+            zombi_durum: 'bot_yok'
+          });
+        }
+
+        // Kural 2: Bot bağlı ama hiç randevu yok, kayıttan 7+ gün → Yardım teklifi
+        if (botBagli && randevuSayisi === 0 && kayitGun >= 7 && !i.zombi_uyari_gonderildi) {
+          aksiyonlar.push({
+            isletme_id: i.id, isletme_isim: i.isim, telefon: i.telefon, paket: i.paket,
+            aksiyon_tipi: 'yardim_teklif',
+            mesaj: `Merhaba ${i.isim} 🙂\n\nSisteminiz hazır ama henüz müşterilerinizden randevu almadınız.\n\nSize ücretsiz kurulum desteği verelim! Çalışma saatlerinizi, hizmetlerinizi birlikte ayarlayalım.\n\nBize "yardım" yazmanız yeterli 🙏`,
+            oneri: 'Ücretsiz kurulum desteği teklif et',
+            zombi_durum: 'randevu_yok'
+          });
+        }
+
+        // Kural 3: 30+ gün randevu yok → Reactivation mesajı
+        if (gunFarki !== null && gunFarki > 30) {
+          aksiyonlar.push({
+            isletme_id: i.id, isletme_isim: i.isim, telefon: i.telefon, paket: i.paket,
+            aksiyon_tipi: 'reaktivasyon',
+            mesaj: `Merhaba ${i.isim} 🙂\n\nSon ${gunFarki} gündür SıraGO'da randevu almadığınızı fark ettik.\n\nSisteminiz hâlâ aktif! Müşterileriniz online randevu alabilir.\n\nSorun yaşıyorsanız bize yazın, hemen yardımcı olalım 🙏\n\n👉 sirago.com/admin`,
+            oneri: 'Reaktivasyon mesajı gönder',
+            zombi_durum: 'pasif_30gun'
+          });
+        }
+
+        // Kural 4: 60+ gün → Paket düşürme / hesap dondurma önerisi
+        if (gunFarki !== null && gunFarki > 60) {
+          aksiyonlar.push({
+            isletme_id: i.id, isletme_isim: i.isim, telefon: i.telefon, paket: i.paket,
+            aksiyon_tipi: 'hesap_dondur',
+            mesaj: `Merhaba ${i.isim} 🙂\n\nSon ${gunFarki} gündür sistem kullanılmıyor.\n\nHesabınızı dondurabiliriz — tekrar kullanmak istediğinizde hemen aktifleşir.\n\nYa da size özel indirimli bir paket sunabiliriz. Ne dersiniz?`,
+            oneri: 'Hesap dondurma veya indirimli paket teklifi',
+            zombi_durum: 'pasif_60gun'
+          });
+        }
+      }
+
+      res.json({ aksiyonlar, toplam: aksiyonlar.length });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async zombiAksiyonUygula(req, res) {
+    try {
+      const { isletme_id, aksiyon_tipi, mesaj } = req.body;
+      if (!isletme_id || !aksiyon_tipi) return res.status(400).json({ hata: 'İşletme ve aksiyon tipi gerekli' });
+
+      let sonuc = 'bekliyor';
+
+      // WhatsApp mesaj gönder
+      if (mesaj) {
+        const isletme = (await pool.query('SELECT telefon FROM isletmeler WHERE id = $1', [isletme_id])).rows[0];
+        if (isletme?.telefon) {
+          try {
+            const satisBot = require('../services/satisBot');
+            if (satisBot.sock && satisBot.durum === 'bagli') {
+              const tel = isletme.telefon.replace(/^\+/, '').replace(/^0/, '90');
+              const jid = `${tel}@s.whatsapp.net`;
+              await satisBot.sock.sendMessage(jid, { text: mesaj });
+              sonuc = 'gonderildi';
+            } else {
+              sonuc = 'bot_kapali';
+            }
+          } catch (e) {
+            sonuc = 'hata: ' + e.message;
+          }
+        }
+      }
+
+      // Aksiyon kaydı oluştur
+      await pool.query(
+        'INSERT INTO zombi_aksiyonlar (isletme_id, aksiyon_tipi, mesaj, durum, sonuc, uygulama_tarihi) VALUES ($1, $2, $3, $4, $5, NOW())',
+        [isletme_id, aksiyon_tipi, mesaj, sonuc === 'gonderildi' ? 'tamamlandi' : sonuc, sonuc]
+      );
+
+      // İşletme uyarı durumunu güncelle
+      await pool.query(
+        'UPDATE isletmeler SET zombi_uyari_gonderildi = true, zombi_uyari_tarihi = NOW() WHERE id = $1',
+        [isletme_id]
+      );
+
+      res.json({ mesaj: 'Aksiyon uygulandı', sonuc });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async zombiAksiyonGecmisi(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT za.*, i.isim as isletme_isim 
+        FROM zombi_aksiyonlar za 
+        LEFT JOIN isletmeler i ON za.isletme_id = i.id 
+        ORDER BY za.olusturma_tarihi DESC LIMIT 100
+      `);
+      res.json({ aksiyonlar: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async zombiTopluAksiyon(req, res) {
+    try {
+      const { aksiyonlar } = req.body;
+      if (!aksiyonlar?.length) return res.status(400).json({ hata: 'Aksiyon listesi gerekli' });
+
+      let basarili = 0, basarisiz = 0;
+      const satisBot = require('../services/satisBot');
+
+      for (const a of aksiyonlar) {
+        try {
+          let sonuc = 'bekliyor';
+          if (a.mesaj) {
+            const isletme = (await pool.query('SELECT telefon FROM isletmeler WHERE id = $1', [a.isletme_id])).rows[0];
+            if (isletme?.telefon && satisBot.sock && satisBot.durum === 'bagli') {
+              const tel = isletme.telefon.replace(/^\+/, '').replace(/^0/, '90');
+              await satisBot.sock.sendMessage(`${tel}@s.whatsapp.net`, { text: a.mesaj });
+              sonuc = 'gonderildi';
+              await new Promise(r => setTimeout(r, 2000));
+            }
+          }
+          await pool.query(
+            'INSERT INTO zombi_aksiyonlar (isletme_id, aksiyon_tipi, mesaj, durum, sonuc, uygulama_tarihi) VALUES ($1, $2, $3, $4, $5, NOW())',
+            [a.isletme_id, a.aksiyon_tipi, a.mesaj, sonuc === 'gonderildi' ? 'tamamlandi' : sonuc, sonuc]
+          );
+          await pool.query('UPDATE isletmeler SET zombi_uyari_gonderildi = true, zombi_uyari_tarihi = NOW() WHERE id = $1', [a.isletme_id]);
+          basarili++;
+        } catch (e) { basarisiz++; }
+      }
+
+      res.json({ mesaj: `${basarili} aksiyon uygulandı`, basarili, basarisiz });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
@@ -2961,6 +3195,63 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+  // ==================== REFERANS AĞI ====================
+
+  async referansAyarlariGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query(
+        'SELECT referans_aktif, referans_puan_davet, referans_puan_davetli FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+      res.json({ ayarlar: isletme || {} });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async referansAyarlariGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { referans_aktif, referans_puan_davet, referans_puan_davetli } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET referans_aktif=$1, referans_puan_davet=$2, referans_puan_davetli=$3 WHERE id=$4`,
+        [!!referans_aktif, referans_puan_davet || 200, referans_puan_davetli || 100, isletmeId]
+      );
+      res.json({ mesaj: 'Referans ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async referansRaporu(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const topDavetci = (await pool.query(`
+        SELECT m.id, m.isim, m.telefon, m.referans_kodu,
+          (SELECT COUNT(*) FROM referans_log rl WHERE rl.davet_eden_id = m.id AND rl.isletme_id = $1 AND rl.durum = 'tamamlandi') as basarili,
+          (SELECT COUNT(*) FROM referans_log rl WHERE rl.davet_eden_id = m.id AND rl.isletme_id = $1) as toplam
+        FROM musteriler m WHERE m.isletme_id=$1 AND m.referans_kodu IS NOT NULL
+        ORDER BY basarili DESC
+      `, [isletmeId])).rows;
+
+      const loglar = (await pool.query(`
+        SELECT rl.*, md.isim as davet_eden_isim, mv.isim as davetli_isim
+        FROM referans_log rl
+        LEFT JOIN musteriler md ON rl.davet_eden_id = md.id
+        LEFT JOIN musteriler mv ON rl.davetli_id = mv.id
+        WHERE rl.isletme_id=$1 ORDER BY rl.tarih DESC LIMIT 100
+      `, [isletmeId])).rows;
+
+      const stat = (await pool.query(`
+        SELECT COUNT(*) as toplam, COUNT(*) FILTER (WHERE durum = 'tamamlandi') as basarili
+        FROM referans_log WHERE isletme_id = $1
+      `, [isletmeId])).rows[0];
+
+      res.json({
+        davetciler: topDavetci,
+        loglar,
+        istatistik: { toplam: parseInt(stat.toplam), basarili: parseInt(stat.basarili) }
+      });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
   // ==================== SADAKAT PUAN SİSTEMİ ====================
 
   async sadakatAyarlariGetir(req, res) {
@@ -3446,6 +3737,526 @@ class AdminController {
         hafta: { gelir: parseFloat(haftaOzet.haftalik_gelir), gider: parseFloat(haftaOzet.haftalik_gider) },
         ay: { gelir: parseFloat(ayOzet.aylik_gelir), gider: parseFloat(ayOzet.aylik_gider) },
         gunlukGrafik
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+  // ==================== API DASHBOARD ====================
+
+  async apiDashboard(req, res) {
+    try {
+      // Tablo sayıları
+      const tablolar = ['isletmeler', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'odemeler', 'sohbet_gecmisi', 'destek_talepleri'];
+      const tabloSayilari = {};
+      for (const tablo of tablolar) {
+        try {
+          const r = await pool.query(`SELECT COUNT(*) as c FROM ${tablo}`);
+          tabloSayilari[tablo] = parseInt(r.rows[0].c) || 0;
+        } catch (e) { tabloSayilari[tablo] = 0; }
+      }
+
+      // DB boyutu
+      let dbBoyut = '?';
+      try {
+        const dbResult = await pool.query("SELECT pg_size_pretty(pg_database_size(current_database())) as boyut");
+        dbBoyut = dbResult.rows[0].boyut;
+      } catch(e) {}
+
+      // Aktif bağlantı sayısı
+      let aktiveBaglanti = 0;
+      try {
+        const bagResult = await pool.query("SELECT count(*) as c FROM pg_stat_activity WHERE state = 'active'");
+        aktiveBaglanti = parseInt(bagResult.rows[0].c) || 0;
+      } catch(e) {}
+
+      // Son 24 saat randevu / ödeme aktivitesi
+      let son24SaatRandevu = 0, son24SaatOdeme = 0;
+      try {
+        son24SaatRandevu = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE olusturma_tarihi >= NOW() - INTERVAL '24 hours'")).rows[0].c) || 0;
+      } catch(e) {}
+      try {
+        son24SaatOdeme = parseInt((await pool.query("SELECT COUNT(*) as c FROM odemeler WHERE olusturma_tarihi >= NOW() - INTERVAL '24 hours'")).rows[0].c) || 0;
+      } catch(e) {}
+
+      // Son 7 gün günlük randevu trendi
+      const gunlukTrend = [];
+      for (let i = 6; i >= 0; i--) {
+        try {
+          const r = await pool.query(`SELECT COUNT(*) as c FROM randevular WHERE tarih = CURRENT_DATE - $1`, [i]);
+          const gun = new Date(); gun.setDate(gun.getDate() - i);
+          gunlukTrend.push({ gun: gun.toLocaleDateString("tr-TR", { weekday: "short" }), sayi: parseInt(r.rows[0].c) || 0 });
+        } catch(e) { gunlukTrend.push({ gun: "?", sayi: 0 }); }
+      }
+
+      // WhatsApp bot durumları
+      let botDurumlari = [];
+      try {
+        const botResult = await pool.query("SELECT isletme_id, durum, son_aktivite FROM bot_durum ORDER BY son_aktivite DESC LIMIT 20");
+        botDurumlari = botResult.rows;
+      } catch(e) {}
+
+      // Uptime (process)
+      const uptime = process.uptime();
+      const uptimeStr = `${Math.floor(uptime / 86400)}g ${Math.floor((uptime % 86400) / 3600)}s ${Math.floor((uptime % 3600) / 60)}dk`;
+
+      // Memory usage
+      const mem = process.memoryUsage();
+      const memMB = {
+        rss: Math.round(mem.rss / 1048576),
+        heapTotal: Math.round(mem.heapTotal / 1048576),
+        heapUsed: Math.round(mem.heapUsed / 1048576),
+      };
+
+      res.json({
+        tabloSayilari,
+        dbBoyut,
+        aktiveBaglanti,
+        son24Saat: { randevu: son24SaatRandevu, odeme: son24SaatOdeme },
+        gunlukTrend,
+        botDurumlari,
+        uptime: uptimeStr,
+        memory: memMB,
+        nodeVersion: process.version,
+        platform: process.platform,
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== İŞLETME KARŞILAŞTIRMA RAPORU ====================
+
+  async isletmeKarsilastirma(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT i.id, i.isim, i.telefon, i.kategori, i.paket, i.olusturma_tarihi,
+          COALESCE((SELECT SUM(o.tutar) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
+          COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id), 0) as randevu_sayisi,
+          COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= CURRENT_DATE - INTERVAL '30 days'), 0) as aylik_randevu,
+          COALESCE((SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id), 0) as musteri_sayisi,
+          COALESCE((SELECT COUNT(*) FROM hizmetler h WHERE h.isletme_id = i.id), 0) as hizmet_sayisi,
+          COALESCE((SELECT COUNT(*) FROM calisanlar c WHERE c.isletme_id = i.id), 0) as calisan_sayisi,
+          (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id) as son_randevu,
+          COALESCE((SELECT AVG(CASE WHEN r.durum = 'tamamlandi' THEN 1.0 ELSE 0.0 END) FROM randevular r WHERE r.isletme_id = i.id), 0) as tamamlanma_orani
+        FROM isletmeler i
+        WHERE i.aktif = true
+        ORDER BY toplam_gelir DESC
+      `);
+
+      let botBagliIds = [];
+      try {
+        const waResult = await pool.query("SELECT DISTINCT isletme_id FROM wa_auth_keys WHERE isletme_id != 999999");
+        botBagliIds = waResult.rows.map(r => r.isletme_id);
+      } catch(e) {}
+
+      const isletmeler = result.rows.map(i => ({
+        ...i,
+        toplam_gelir: parseFloat(i.toplam_gelir) || 0,
+        randevu_sayisi: parseInt(i.randevu_sayisi) || 0,
+        aylik_randevu: parseInt(i.aylik_randevu) || 0,
+        musteri_sayisi: parseInt(i.musteri_sayisi) || 0,
+        hizmet_sayisi: parseInt(i.hizmet_sayisi) || 0,
+        calisan_sayisi: parseInt(i.calisan_sayisi) || 0,
+        tamamlanma_orani: Math.round((parseFloat(i.tamamlanma_orani) || 0) * 100),
+        bot_bagli: botBagliIds.includes(i.id),
+        kayit_gun: Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000)
+      }));
+
+      // Ortalamalar
+      const ort = {
+        gelir: isletmeler.length > 0 ? Math.round(isletmeler.reduce((s, i) => s + i.toplam_gelir, 0) / isletmeler.length) : 0,
+        randevu: isletmeler.length > 0 ? Math.round(isletmeler.reduce((s, i) => s + i.randevu_sayisi, 0) / isletmeler.length) : 0,
+        aylikRandevu: isletmeler.length > 0 ? Math.round(isletmeler.reduce((s, i) => s + i.aylik_randevu, 0) / isletmeler.length) : 0,
+        musteri: isletmeler.length > 0 ? Math.round(isletmeler.reduce((s, i) => s + i.musteri_sayisi, 0) / isletmeler.length) : 0,
+        tamamlanma: isletmeler.length > 0 ? Math.round(isletmeler.reduce((s, i) => s + i.tamamlanma_orani, 0) / isletmeler.length) : 0,
+      };
+
+      // Kategori bazında ortalamalar
+      const kategoriler = {};
+      isletmeler.forEach(i => {
+        if (!kategoriler[i.kategori]) kategoriler[i.kategori] = { sayi: 0, gelir: 0, randevu: 0, musteri: 0 };
+        kategoriler[i.kategori].sayi++;
+        kategoriler[i.kategori].gelir += i.toplam_gelir;
+        kategoriler[i.kategori].randevu += i.randevu_sayisi;
+        kategoriler[i.kategori].musteri += i.musteri_sayisi;
+      });
+
+      res.json({ isletmeler, ortalamalar: ort, kategoriler, toplam: isletmeler.length });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== MÜŞTERİ SEGMENTASYONU ====================
+
+  async musteriSegmentasyon(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT i.id, i.isim, i.telefon, i.kategori, i.paket, i.aktif, i.olusturma_tarihi,
+          COALESCE((SELECT SUM(o.tutar) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
+          COALESCE((SELECT COUNT(*) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as odeme_sayisi,
+          COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id), 0) as randevu_sayisi,
+          COALESCE((SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id), 0) as musteri_sayisi,
+          (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id) as son_randevu
+        FROM isletmeler i
+        WHERE i.aktif = true
+        ORDER BY toplam_gelir DESC
+      `);
+
+      let botBagliIds = [];
+      try {
+        const waResult = await pool.query("SELECT DISTINCT isletme_id FROM wa_auth_keys WHERE isletme_id != 999999");
+        botBagliIds = waResult.rows.map(r => r.isletme_id);
+      } catch(e) {}
+
+      const simdi = new Date();
+      const segmentler = { vip: [], aktif: [], risk: [], uyuyan: [], yeni: [] };
+
+      const isletmeler = result.rows.map(i => {
+        const toplam = parseFloat(i.toplam_gelir) || 0;
+        const randevu = parseInt(i.randevu_sayisi) || 0;
+        const sonRandevu = i.son_randevu ? new Date(i.son_randevu) : null;
+        const gunFarki = sonRandevu ? Math.floor((simdi - sonRandevu) / 86400000) : 999;
+        const kayitGun = Math.floor((simdi - new Date(i.olusturma_tarihi)) / 86400000);
+        const botBagli = botBagliIds.includes(i.id);
+
+        let segment = 'uyuyan';
+        if (kayitGun <= 14) segment = 'yeni';
+        else if (toplam >= 1500 && randevu >= 50 && gunFarki <= 7) segment = 'vip';
+        else if (randevu >= 10 && gunFarki <= 14) segment = 'aktif';
+        else if (randevu > 0 && gunFarki > 14 && gunFarki <= 45) segment = 'risk';
+        else if (gunFarki > 45 || (randevu === 0 && kayitGun > 14)) segment = 'uyuyan';
+
+        const obj = { ...i, toplam_gelir: toplam, segment, gun_farki: gunFarki, kayit_gun: kayitGun, bot_bagli: botBagli };
+        segmentler[segment].push(obj);
+        return obj;
+      });
+
+      const segmentOzet = {
+        vip: { sayi: segmentler.vip.length, gelir: segmentler.vip.reduce((s, i) => s + i.toplam_gelir, 0) },
+        aktif: { sayi: segmentler.aktif.length, gelir: segmentler.aktif.reduce((s, i) => s + i.toplam_gelir, 0) },
+        risk: { sayi: segmentler.risk.length, gelir: segmentler.risk.reduce((s, i) => s + i.toplam_gelir, 0) },
+        uyuyan: { sayi: segmentler.uyuyan.length, gelir: segmentler.uyuyan.reduce((s, i) => s + i.toplam_gelir, 0) },
+        yeni: { sayi: segmentler.yeni.length, gelir: segmentler.yeni.reduce((s, i) => s + i.toplam_gelir, 0) },
+      };
+
+      res.json({ isletmeler, segmentler: segmentOzet, toplam: isletmeler.length });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== İŞLETME ONBOARDING ====================
+
+  async onboardingDurum(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT i.id, i.isim, i.telefon, i.kategori, i.paket, i.aktif, i.olusturma_tarihi,
+          i.onboarding_tamamlandi, i.onboarding_profil, i.onboarding_hizmet, 
+          i.onboarding_calisan, i.onboarding_bot, i.onboarding_randevu,
+          (SELECT COUNT(*) FROM hizmetler h WHERE h.isletme_id = i.id) as hizmet_sayisi,
+          (SELECT COUNT(*) FROM calisanlar c WHERE c.isletme_id = i.id) as calisan_sayisi,
+          (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id) as randevu_sayisi
+        FROM isletmeler i
+        WHERE i.aktif = true
+        ORDER BY i.olusturma_tarihi DESC
+      `);
+
+      let botBagliIds = [];
+      try {
+        const waResult = await pool.query("SELECT DISTINCT isletme_id FROM wa_auth_keys WHERE isletme_id != 999999");
+        botBagliIds = waResult.rows.map(r => r.isletme_id);
+      } catch(e) {}
+
+      const isletmeler = result.rows.map(i => {
+        const hizmetVar = parseInt(i.hizmet_sayisi) > 0;
+        const calisanVar = parseInt(i.calisan_sayisi) > 0;
+        const botBagli = botBagliIds.includes(i.id);
+        const randevuVar = parseInt(i.randevu_sayisi) > 0;
+        const profilTamam = !!(i.telefon && i.kategori);
+
+        const adimlar = [
+          { anahtar: 'profil', isim: 'Profil Bilgileri', tamamlandi: profilTamam, aciklama: 'İşletme adı, telefon, kategori' },
+          { anahtar: 'hizmet', isim: 'Hizmet Ekle', tamamlandi: hizmetVar, aciklama: 'En az 1 hizmet tanımlama' },
+          { anahtar: 'calisan', isim: 'Çalışan Ekle', tamamlandi: calisanVar, aciklama: 'En az 1 çalışan tanımlama' },
+          { anahtar: 'bot', isim: 'WhatsApp Bot Bağla', tamamlandi: botBagli, aciklama: 'QR kod ile bot bağlantısı' },
+          { anahtar: 'randevu', isim: 'İlk Randevu', tamamlandi: randevuVar, aciklama: 'İlk müşteri randevusu' }
+        ];
+
+        const tamamlananAdim = adimlar.filter(a => a.tamamlandi).length;
+        const toplamAdim = adimlar.length;
+        const tamamYuzde = Math.round((tamamlananAdim / toplamAdim) * 100);
+
+        return {
+          ...i, adimlar, tamamlananAdim, toplamAdim, tamamYuzde,
+          bot_bagli: botBagli, hizmet_var: hizmetVar, calisan_var: calisanVar, randevu_var: randevuVar
+        };
+      });
+
+      const tamamlanan = isletmeler.filter(i => i.tamamYuzde === 100).length;
+      const devamEden = isletmeler.filter(i => i.tamamYuzde > 0 && i.tamamYuzde < 100).length;
+      const hicBaslamamis = isletmeler.filter(i => i.tamamYuzde === 0).length;
+      const ortalamaYuzde = isletmeler.length > 0 ? Math.round(isletmeler.reduce((s, i) => s + i.tamamYuzde, 0) / isletmeler.length) : 0;
+
+      res.json({
+        isletmeler,
+        istatistik: { tamamlanan, devamEden, hicBaslamamis, ortalamaYuzde, toplam: isletmeler.length }
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== SATIŞ BOT ŞABLONLARI ====================
+
+  async satisSablonlariGetir(req, res) {
+    try {
+      const sablonlar = (await pool.query('SELECT * FROM satis_bot_sablonlar ORDER BY id')).rows;
+      // En iyi performans: en yüksek dönüş oranı
+      let enIyiId = null;
+      let enIyiOran = -1;
+      sablonlar.forEach(s => {
+        const oran = s.gonderilen > 0 ? (s.cevap_gelen / s.gonderilen) * 100 : 0;
+        if (s.gonderilen >= 5 && oran > enIyiOran) {
+          enIyiOran = oran;
+          enIyiId = s.id;
+        }
+      });
+      res.json({ sablonlar, enIyiId });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisSablonEkle(req, res) {
+    try {
+      const { isim, mesaj, kategori, aktif, gonderim_modu } = req.body;
+      if (!isim || !mesaj) return res.status(400).json({ hata: 'İsim ve mesaj zorunlu' });
+      const result = await pool.query(
+        'INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori, aktif, gonderim_modu) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [isim, mesaj, kategori || 'genel', aktif !== false, gonderim_modu || 'rastgele']
+      );
+      res.json({ sablon: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisSablonGuncelle(req, res) {
+    try {
+      const { id } = req.params;
+      const { isim, mesaj, kategori, aktif, gonderim_modu } = req.body;
+      const result = await pool.query(
+        'UPDATE satis_bot_sablonlar SET isim=$1, mesaj=$2, kategori=$3, aktif=$4, gonderim_modu=$5 WHERE id=$6 RETURNING *',
+        [isim, mesaj, kategori || 'genel', aktif, gonderim_modu || 'rastgele', id]
+      );
+      res.json({ sablon: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisSablonSil(req, res) {
+    try {
+      await pool.query('DELETE FROM satis_bot_sablonlar WHERE id=$1', [req.params.id]);
+      res.json({ mesaj: 'Silindi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisSablonPerformans(req, res) {
+    try {
+      const sablonlar = (await pool.query(`
+        SELECT s.*, 
+          CASE WHEN s.gonderilen > 0 THEN ROUND((s.cevap_gelen::numeric / s.gonderilen) * 100, 1) ELSE 0 END as donus_orani,
+          CASE WHEN s.cevap_gelen > 0 THEN ROUND((s.olumlu::numeric / s.cevap_gelen) * 100, 1) ELSE 0 END as olumlu_orani
+        FROM satis_bot_sablonlar s ORDER BY donus_orani DESC
+      `)).rows;
+      res.json({ sablonlar });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+  // ==================== MÜŞTERİ CRM ====================
+
+  async musteriCRM(req, res) {
+    try {
+      const { isletme_id, arama, segment } = req.query;
+
+      let sorgu = `
+        SELECT m.id, m.isim, m.telefon, m.isletme_id, m.olusturma_tarihi, m.notlar,
+          m.puan, m.referans_kodu,
+          i.isim as isletme_isim, i.kategori, i.paket,
+          COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id), 0) as randevu_sayisi,
+          COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id AND r.durum = 'tamamlandi'), 0) as tamamlanan_randevu,
+          COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id AND r.durum = 'iptal'), 0) as iptal_randevu,
+          (SELECT MAX(r.tarih) FROM randevular r WHERE r.musteri_id = m.id) as son_randevu_tarih,
+          (SELECT MIN(r.tarih) FROM randevular r WHERE r.musteri_id = m.id) as ilk_randevu_tarih
+        FROM musteriler m
+        LEFT JOIN isletmeler i ON m.isletme_id = i.id
+      `;
+
+      const params = [];
+      const where = [];
+
+      if (isletme_id) { params.push(isletme_id); where.push(`m.isletme_id = $${params.length}`); }
+      if (arama) { params.push(`%${arama}%`); where.push(`(m.isim ILIKE $${params.length} OR m.telefon ILIKE $${params.length})`); }
+
+      if (where.length > 0) sorgu += ' WHERE ' + where.join(' AND ');
+      sorgu += ' ORDER BY m.olusturma_tarihi DESC LIMIT 500';
+
+      const result = await pool.query(sorgu, params);
+
+      const simdi = new Date();
+      const musteriler = result.rows.map(m => {
+        const randevuSayisi = parseInt(m.randevu_sayisi) || 0;
+        const tamamlanan = parseInt(m.tamamlanan_randevu) || 0;
+        const iptal = parseInt(m.iptal_randevu) || 0;
+        const sonRandevu = m.son_randevu_tarih ? new Date(m.son_randevu_tarih) : null;
+        const gunFarki = sonRandevu ? Math.floor((simdi - sonRandevu) / 86400000) : 999;
+
+        let seg = 'yeni';
+        if (randevuSayisi >= 10 && gunFarki <= 30) seg = 'sadik';
+        else if (randevuSayisi >= 3 && gunFarki <= 30) seg = 'aktif';
+        else if (randevuSayisi > 0 && gunFarki > 30 && gunFarki <= 90) seg = 'risk';
+        else if (randevuSayisi > 0 && gunFarki > 90) seg = 'kayip';
+        else if (randevuSayisi === 0) seg = 'yeni';
+
+        return { ...m, randevu_sayisi: randevuSayisi, tamamlanan_randevu: tamamlanan, iptal_randevu: iptal, gun_farki: gunFarki, segment: seg };
+      });
+
+      const filtrelenmis = segment && segment !== 'hepsi' ? musteriler.filter(m => m.segment === segment) : musteriler;
+
+      const segmentSayilari = { sadik: 0, aktif: 0, risk: 0, kayip: 0, yeni: 0 };
+      musteriler.forEach(m => { if (segmentSayilari[m.segment] !== undefined) segmentSayilari[m.segment]++; });
+
+      res.json({
+        musteriler: filtrelenmis,
+        toplam: musteriler.length,
+        segmentler: segmentSayilari
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async musteriDetay(req, res) {
+    try {
+      const { id } = req.params;
+      const musteri = (await pool.query(`
+        SELECT m.*, i.isim as isletme_isim, i.kategori, i.paket
+        FROM musteriler m LEFT JOIN isletmeler i ON m.isletme_id = i.id
+        WHERE m.id = $1
+      `, [id])).rows[0];
+
+      if (!musteri) return res.status(404).json({ hata: 'Müşteri bulunamadı' });
+
+      const randevular = (await pool.query(`
+        SELECT r.tarih, r.saat, r.durum, r.notlar, h.isim as hizmet, c.isim as calisan
+        FROM randevular r
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        LEFT JOIN calisanlar c ON r.calisan_id = c.id
+        WHERE r.musteri_id = $1
+        ORDER BY r.tarih DESC, r.saat DESC LIMIT 50
+      `, [id])).rows;
+
+      res.json({ musteri, randevular });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== QR KOD SİSTEMİ ====================
+
+  async adminQrKodOlustur(req, res) {
+    try {
+      const { isletme_id, type = 'whatsapp' } = req.query;
+      if (!isletme_id) return res.status(400).json({ hata: 'isletme_id gerekli' });
+
+      const isletme = (await pool.query(
+        'SELECT id, isim, telefon, slug FROM isletmeler WHERE id = $1', [isletme_id]
+      )).rows[0];
+
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      let slug = isletme.slug;
+      if (!slug) {
+        slug = isletme.isim
+          .toLowerCase()
+          .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+          .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+          .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        slug = slug + '-' + isletme_id;
+        await pool.query('UPDATE isletmeler SET slug = $1 WHERE id = $2', [slug, isletme_id]);
+      }
+
+      let hedefUrl;
+      if (type === 'booking') {
+        hedefUrl = `https://sirago.com/book/${slug}`;
+      } else {
+        const telefon = (isletme.telefon || '').replace(/\D/g, '');
+        const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
+        hedefUrl = `https://wa.me/${uluslararasi}?text=Merhaba`;
+      }
+
+      const qrBase64 = await QRCode.toDataURL(hedefUrl, {
+        width: 600, margin: 2,
+        color: { dark: type === 'booking' ? '#3b82f6' : '#00C853', light: '#FFFFFF' },
+        errorCorrectionLevel: 'M'
+      });
+
+      res.json({ qr: qrBase64, hedefUrl, type, isletmeIsim: isletme.isim, slug });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async qrKodOlustur(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { type = 'whatsapp' } = req.query;
+
+      const isletme = (await pool.query(
+        'SELECT id, isim, telefon, slug FROM isletmeler WHERE id = $1', [isletmeId]
+      )).rows[0];
+
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      let slug = isletme.slug;
+      if (!slug) {
+        slug = isletme.isim
+          .toLowerCase()
+          .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+          .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+          .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        slug = slug + '-' + isletmeId;
+        await pool.query('UPDATE isletmeler SET slug = $1 WHERE id = $2', [slug, isletmeId]);
+      }
+
+      let hedefUrl;
+      if (type === 'booking') {
+        hedefUrl = `https://sirago.com/book/${slug}`;
+      } else {
+        const telefon = (isletme.telefon || '').replace(/\D/g, '');
+        const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
+        hedefUrl = `https://wa.me/${uluslararasi}?text=Merhaba`;
+      }
+
+      const qrBase64 = await QRCode.toDataURL(hedefUrl, {
+        width: 600,
+        margin: 2,
+        color: { dark: '#00C853', light: '#FFFFFF' },
+        errorCorrectionLevel: 'M'
+      });
+
+      res.json({
+        qr: qrBase64,
+        hedefUrl,
+        type,
+        isletmeIsim: isletme.isim,
+        slug
       });
     } catch (error) {
       res.status(500).json({ hata: error.message });

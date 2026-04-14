@@ -616,11 +616,31 @@ class SatisBot extends EventEmitter {
       console.log(`⚠️ WhatsApp kontrol hatası: ${e.message}`);
     }
 
-    // Kategoriye göre mesaj şablonu seç
+    // Kategoriye göre mesaj şablonu seç — önce DB şablonları, yoksa hardcoded
     const kategori = (lead.kategori || '').toLowerCase();
-    const sablonlar = MESAJ_SABLONLARI[kategori] || MESAJ_SABLONLARI.default;
-    const rastgeleSablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
-    const mesaj = rastgeleSablon(lead.isletme_adi);
+    let mesaj = '';
+    let sablonId = null;
+    try {
+      const dbSablonlar = (await pool.query(
+        "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND (kategori = $1 OR kategori = 'genel') ORDER BY RANDOM() LIMIT 1",
+        [kategori || 'genel']
+      )).rows;
+      if (dbSablonlar.length > 0) {
+        const s = dbSablonlar[0];
+        sablonId = s.id;
+        mesaj = s.mesaj
+          .replace(/{isletme_adi}/g, lead.isletme_adi || '')
+          .replace(/{isletme_sahibi}/g, lead.isletme_sahibi || lead.isletme_adi || '')
+          .replace(/{kategori}/g, lead.kategori || 'işletme')
+          .replace(/{telefon}/g, lead.telefon || '');
+        await pool.query('UPDATE satis_bot_sablonlar SET gonderilen = gonderilen + 1 WHERE id = $1', [sablonId]);
+      }
+    } catch(e) { console.log('DB şablon hatası (fallback kullanılacak):', e.message); }
+    if (!mesaj) {
+      const sablonlar = MESAJ_SABLONLARI[kategori] || MESAJ_SABLONLARI.default;
+      const rastgeleSablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
+      mesaj = rastgeleSablon(lead.isletme_adi);
+    }
 
     // Anti-ban: Typing indicator
     const jid = `${telefon}@s.whatsapp.net`;
@@ -646,9 +666,9 @@ class SatisBot extends EventEmitter {
 
       // Konuşma kaydı oluştur
       await pool.query(
-        `INSERT INTO satis_konusmalar (lead_id, telefon, isletme_adi, kategori, gonderilen_mesaj, durum) 
-         VALUES ($1, $2, $3, $4, $5, 'bekliyor')`,
-        [lead.id, telefon, lead.isletme_adi, lead.kategori, mesaj]
+        `INSERT INTO satis_konusmalar (lead_id, telefon, isletme_adi, kategori, gonderilen_mesaj, durum, sablon_id) 
+         VALUES ($1, $2, $3, $4, $5, 'bekliyor', $6)`,
+        [lead.id, telefon, lead.isletme_adi, lead.kategori, mesaj, sablonId]
       );
 
     } catch (err) {
@@ -968,6 +988,13 @@ class SatisBot extends EventEmitter {
       [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, konusma.id]
     );
 
+    // Şablon performansı güncelle — ilk cevap geldiğinde
+    if (konusma.durum === 'bekliyor' && konusma.sablon_id) {
+      try {
+        await pool.query('UPDATE satis_bot_sablonlar SET cevap_gelen = cevap_gelen + 1 WHERE id = $1', [konusma.sablon_id]);
+      } catch(e) {}
+    }
+
     // Olumsuz konuşma — müşteri tekrar yazarsa ikinci şans ver
     if (konusma.durum === 'olumsuz') {
       console.log(`� Olumsuz konuşma tekrar aktif ediliyor: ${telefon}`);
@@ -1004,6 +1031,10 @@ class SatisBot extends EventEmitter {
       );
       if (konusma.lead_id) {
         await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
+      }
+      // Şablon olumsuz sayacı
+      if (konusma.sablon_id) {
+        try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {}
       }
       return;
     }
@@ -1066,8 +1097,10 @@ class SatisBot extends EventEmitter {
       // Lead durumunu güncelle
       if (aiCevap.durum === 'olumlu') {
         await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);
+        if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumlu = olumlu + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {} }
       } else if (aiCevap.durum === 'olumsuz') {
         await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
+        if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {} }
       }
     }
   }

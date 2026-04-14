@@ -38,13 +38,19 @@ class RandevuService {
 
     // Hizmet süresi: seçilen hizmetin süresi veya işletme varsayılanı
     let hizmetSureDk = isletme.randevu_suresi_dk || 30;
+    let hizmetTamponDk = 0;
     if (hizmetId) {
-      const hizmet = (await pool.query('SELECT sure_dk FROM hizmetler WHERE id=$1', [hizmetId])).rows[0];
-      if (hizmet) hizmetSureDk = hizmet.sure_dk;
+      const hizmet = (await pool.query('SELECT sure_dk, tampon_dk FROM hizmetler WHERE id=$1', [hizmetId])).rows[0];
+      if (hizmet) {
+        hizmetSureDk = hizmet.sure_dk;
+        hizmetTamponDk = hizmet.tampon_dk || 0;
+      }
     }
 
-    // 5dk tampon (arası hazırlık/temizlik)
-    const TAMPON_DK = 5;
+    // Tampon: hizmet bazlı > işletme varsayılanı > 5dk
+    const TAMPON_DK = hizmetTamponDk > 0 ? hizmetTamponDk : (isletme.varsayilan_tampon_dk || 5);
+    // Slot aralığı: işletme ayarı veya 30dk
+    const SLOT_ARALIK_DK = isletme.slot_aralik_dk || 30;
 
     // Çalışma saatleri: çalışanın kendi mesaisi varsa onu kullan, yoksa işletme varsayılanı
     const baslangic = (calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : (isletme.calisma_baslangic || '09:00');
@@ -98,8 +104,8 @@ class RandevuService {
     // Aday slotları oluştur: 30dk aralık + randevu bitişlerinden sonraki ilk uygun 10dk slot
     const adaySet = new Set();
 
-    // 1) 30dk aralıklı temel slotlar (10:00, 10:30, 11:00...)
-    for (let dk = basDk; dk + hizmetSureDk <= bitisDk; dk += 30) {
+    // 1) Slot aralığına göre temel slotlar
+    for (let dk = basDk; dk + hizmetSureDk <= bitisDk; dk += SLOT_ARALIK_DK) {
       adaySet.add(dk);
     }
 
