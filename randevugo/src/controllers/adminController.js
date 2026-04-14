@@ -1100,8 +1100,8 @@ class AdminController {
           return res.json({ mesaj: 'Bu dönem ödemesi zaten tamamlanmış.' });
         }
         await pool.query(
-          "UPDATE odemeler SET durum = 'havale_bekliyor', odeme_yontemi = 'havale', havale_dekont = $1, referans_kodu = $2 WHERE id = $3",
-          [dekont_notu || '', refKod, mevcut.id]
+          "UPDATE odemeler SET durum = 'havale_bekliyor', odeme_yontemi = 'havale', havale_dekont = $1, referans_kodu = $2, tutar = $3 WHERE id = $4",
+          [dekont_notu || '', refKod, paketBilgi.fiyat, mevcut.id]
         );
       } else {
         await pool.query(
