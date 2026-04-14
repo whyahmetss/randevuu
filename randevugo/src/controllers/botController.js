@@ -205,22 +205,31 @@ class BotController {
               [musteriTelefon, isletme.id]
             )).rows[0];
 
-            const sonuc = await randevuService.randevuOlustur({
-              isletmeId: isletme.id,
-              musteriTelefon: musteriTelefon.replace('whatsapp:', ''),
-              hizmetId: sonDurum.secilen_hizmet_id,
-              calisanId: sonDurum.secilen_calisan_id,
-              tarih: sonDurum.secilen_tarih,
-              saat: sonDurum.secilen_saat
-            });
+            try {
+              const sonuc = await randevuService.randevuOlustur({
+                isletmeId: isletme.id,
+                musteriTelefon: musteriTelefon.replace('whatsapp:', ''),
+                hizmetId: sonDurum.secilen_hizmet_id,
+                calisanId: sonDurum.secilen_calisan_id,
+                tarih: sonDurum.secilen_tarih,
+                saat: sonDurum.secilen_saat,
+                kaynak: 'bot'
+              });
 
-            cevap = `✅ Randevunuz oluşturuldu!\n\n`;
-            cevap += `📍 ${isletme.isim}\n`;
-            cevap += `📅 ${this.tarihFormat(sonDurum.secilen_tarih)}\n`;
-            cevap += `🕐 ${sonDurum.secilen_saat}\n`;
-            if (sonuc.hizmet) cevap += `✂️ ${sonuc.hizmet.isim}\n`;
-            cevap += `\n⏰ Randevunuzdan 1 saat önce hatırlatma mesajı göndereceğim.\n`;
-            cevap += `\nİptal etmek için "iptal" yazabilirsiniz.`;
+              cevap = `✅ Randevunuz oluşturuldu!\n\n`;
+              cevap += `📍 ${isletme.isim}\n`;
+              cevap += `📅 ${this.tarihFormat(sonDurum.secilen_tarih)}\n`;
+              cevap += `🕐 ${sonDurum.secilen_saat}\n`;
+              if (sonuc.hizmet) cevap += `✂️ ${sonuc.hizmet.isim}\n`;
+              cevap += `\n⏰ Randevunuzdan 1 saat önce hatırlatma mesajı göndereceğim.\n`;
+              cevap += `\nİptal etmek için "iptal" yazabilirsiniz.`;
+            } catch (limitErr) {
+              if (limitErr.code === 'LIMIT_ASIMI') {
+                cevap = `😔 Üzgünüz, şu anda randevu kapasitemiz dolmuştur.\nLütfen daha sonra tekrar deneyin veya işletmeyi arayın. 🙏`;
+              } else {
+                throw limitErr;
+              }
+            }
 
             // Durumu sıfırla
             await this.durumGuncelle(musteriTelefon, isletme.id, 'baslangic', {

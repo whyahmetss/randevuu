@@ -177,7 +177,26 @@ class RandevuService {
   }
 
   // Randevu oluştur
-  async randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, calisanId, tarih, saat }) {
+  async randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, calisanId, tarih, saat, kaynak }) {
+    // ─── AYLIK RANDEVU LİMİT KONTROLÜ ───
+    const { paketGetir } = require('../config/paketler');
+    const isletmePaket = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    const paket = await paketGetir(isletmePaket?.paket);
+    if (paket.aylik_randevu_limit < 99999) {
+      const buAyBasi = new Date(); buAyBasi.setDate(1);
+      const buAyBasiStr = buAyBasi.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+      const aylikSayi = (await pool.query(
+        'SELECT COUNT(*) as sayi FROM randevular WHERE isletme_id=$1 AND tarih >= $2',
+        [isletmeId, buAyBasiStr]
+      )).rows[0];
+      if (parseInt(aylikSayi.sayi) >= paket.aylik_randevu_limit) {
+        const err = new Error(`Aylık randevu limitine ulaşıldı (${paket.aylik_randevu_limit}/${paket.isim}). Paketinizi yükseltin.`);
+        err.code = 'LIMIT_ASIMI';
+        err.statusCode = 403;
+        throw err;
+      }
+    }
+
     // Müşteriyi bul veya oluştur
     let musteri = (await pool.query('SELECT * FROM musteriler WHERE telefon = $1', [musteriTelefon])).rows[0];
     

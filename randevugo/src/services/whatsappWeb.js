@@ -488,9 +488,17 @@ class WhatsAppWebService extends EventEmitter {
       case 'randevu_onayla': {
         const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
         if (metin === '1' || metin.toLowerCase().includes('evet') || metin.toLowerCase().includes('onayla')) {
-          const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
-          return botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
+          try {
+            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot' });
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
+            return botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
+          } catch (limitErr) {
+            if (limitErr.code === 'LIMIT_ASIMI') {
+              await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
+              return { metin: '😔 Üzgünüz, şu anda randevu kapasitemiz dolmuştur.\nLütfen daha sonra tekrar deneyin. 🙏', butonlar: null };
+            }
+            throw limitErr;
+          }
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -922,7 +930,16 @@ class WhatsAppWebService extends EventEmitter {
         const randevuService = require('./randevu');
         if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla') || metinKucuk.includes('yes') || metinKucuk.includes('confirm') || metinKucuk.includes('نعم') || metinKucuk.includes('تأكيد')) {
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
+          let sonuc;
+          try {
+            sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot' });
+          } catch (limitErr) {
+            if (limitErr.code === 'LIMIT_ASIMI') {
+              await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+              return { metin: '😔 Üzgünüz, şu anda randevu kapasitemiz dolmuştur.\nLütfen daha sonra tekrar deneyin. 🙏', butonlar: null };
+            }
+            throw limitErr;
+          }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
           const clOnay = sd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [sd.secilen_calisan_id])).rows[0] : null;
 
@@ -976,12 +993,20 @@ class WhatsAppWebService extends EventEmitter {
         } else if (metinKucuk !== '2' && !metinKucuk.includes('iptal') && !metinKucuk.includes('hayır') && metin.length > 1) {
           // Musteri not yazdi - onaylayip notu kaydet
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
-          if (sonuc && sonuc.randevu) {
-            await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc.randevu.id]);
+          try {
+            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot' });
+            if (sonuc && sonuc.randevu) {
+              await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc.randevu.id]);
+            }
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+            return { metin: botMesajlar.get(isletme, 'randevuNotKaydedildi', { not: metin }), butonlar: null };
+          } catch (limitErr) {
+            if (limitErr.code === 'LIMIT_ASIMI') {
+              await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+              return { metin: '😔 Üzgünüz, şu anda randevu kapasitemiz dolmuştur.\nLütfen daha sonra tekrar deneyin. 🙏', butonlar: null };
+            }
+            throw limitErr;
           }
-          await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
-          return { metin: botMesajlar.get(isletme, 'randevuNotKaydedildi', { not: metin }), butonlar: null };
         }
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
@@ -1065,19 +1090,28 @@ class WhatsAppWebService extends EventEmitter {
         if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla') || metinKucuk.includes('yes') || metinKucuk.includes('نعم')) {
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           if (sd?.secilen_tarih && sd?.secilen_saat) {
-            const sonuc = await randevuService.randevuOlustur({
-              isletmeId, musteriTelefon,
-              hizmetId: sd.secilen_hizmet_id,
-              tarih: sd.secilen_tarih,
-              saat: sd.secilen_saat
-            });
-            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
-            // Bekleme listesini tamamlandı yap
-            try { await pool.query("UPDATE bekleme_listesi SET durum='randevu_alindi' WHERE musteri_telefon=$1 AND isletme_id=$2 AND durum='bildirildi'", [musteriTelefon, isletmeId]); } catch(e) {}
-            return { metin: botMesajlar.get(isletme, 'randevuOnaylandi', {
-              isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim,
-              tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat)
-            }), butonlar: null };
+            try {
+              const sonuc = await randevuService.randevuOlustur({
+                isletmeId, musteriTelefon,
+                hizmetId: sd.secilen_hizmet_id,
+                tarih: sd.secilen_tarih,
+                saat: sd.secilen_saat,
+                kaynak: 'bot'
+              });
+              await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+              // Bekleme listesini tamamlandı yap
+              try { await pool.query("UPDATE bekleme_listesi SET durum='randevu_alindi' WHERE musteri_telefon=$1 AND isletme_id=$2 AND durum='bildirildi'", [musteriTelefon, isletmeId]); } catch(e) {}
+              return { metin: botMesajlar.get(isletme, 'randevuOnaylandi', {
+                isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim,
+                tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat)
+              }), butonlar: null };
+            } catch (limitErr) {
+              if (limitErr.code === 'LIMIT_ASIMI') {
+                await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+                return { metin: '😔 Üzgünüz, şu anda randevu kapasitemiz dolmuştur.\nLütfen daha sonra tekrar deneyin. 🙏', butonlar: null };
+              }
+              throw limitErr;
+            }
           }
         }
         // Hayır veya 30dk geçti

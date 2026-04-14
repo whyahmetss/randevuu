@@ -155,6 +155,9 @@ class BookingController {
         kapora: sonuc.kapora
       });
     } catch (error) {
+      if (error.code === 'LIMIT_ASIMI') {
+        return res.status(403).json({ hata: 'Bu işletmenin aylık randevu kapasitesi dolmuştur. Lütfen daha sonra tekrar deneyin.', limit_asimi: true });
+      }
       res.status(500).json({ hata: error.message });
     }
   }
