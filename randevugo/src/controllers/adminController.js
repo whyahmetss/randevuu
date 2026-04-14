@@ -578,6 +578,14 @@ class AdminController {
       const buAyBasi = new Date(); buAyBasi.setDate(1);
       const buAyBasiStr = buAyBasi.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
       const randevuSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM randevular WHERE isletme_id=$1 AND tarih >= $2', [req.kullanici.isletme_id, buAyBasiStr])).rows[0];
+      // Tüm paketleri yükle (modal'da fiyat göstermek için)
+      const tumPaketler = await paketleriYukle();
+      const paketListesi = {};
+      for (const [kod, p] of Object.entries(tumPaketler)) {
+        if (kod === 'premium') continue; // alias'ı atla
+        paketListesi[kod] = { isim: p.isim, fiyat: p.fiyat };
+      }
+
       res.json({
         paket: paketAdi,
         paket_bilgi: paket,
@@ -585,7 +593,8 @@ class AdminController {
           calisan: parseInt(calisanSayisi.sayi),
           hizmet: parseInt(hizmetSayisi.sayi),
           randevu: parseInt(randevuSayisi.sayi)
-        }
+        },
+        tum_paketler: paketListesi
       });
     } catch (error) {
       res.status(500).json({ hata: error.message });

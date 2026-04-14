@@ -2812,9 +2812,9 @@ function Dashboard() {
             </div>
             <div className="price-grid-modal">
               {[
-                { key: "baslangic", isim: "Başlangıç", fiyat: 299, renk: "#64748b", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
-                { key: "profesyonel", isim: "Profesyonel", fiyat: 699, renk: "#3b82f6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["SMS Hatırlatma", "Öncelikli Destek", "API Erişimi"] },
-                { key: "kurumsal", isim: "Kurumsal", fiyat: 1499, renk: "#f59e0b", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "12+ Dil Desteği", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
+                { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#64748b", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
+                { key: "profesyonel", isim: "Profesyonel", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 699, renk: "#3b82f6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["SMS Hatırlatma", "Öncelikli Destek", "API Erişimi"] },
+                { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 1499, renk: "#f59e0b", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "12+ Dil Desteği", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
