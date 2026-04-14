@@ -3525,7 +3525,7 @@ function SuperAdminPanel({ kullanici }) {
               <div className="stat-card green">
                 <div className="sc-icon">💰</div>
                 <div className="sc-label">Bu Ay Gelir</div>
-                <div className="sc-val">{(saasMetrik ? saasMetrik.mrr : buAyGelir).toLocaleString("tr-TR")} ₺</div>
+                <div className="sc-val">{(saasMetrik?.buAyGelir ?? buAyGelir ?? 0).toLocaleString("tr-TR")} ₺</div>
               </div>
               <div className="stat-card amber">
                 <div className="sc-icon">🏢</div>
@@ -3535,7 +3535,7 @@ function SuperAdminPanel({ kullanici }) {
               <div className="stat-card green">
                 <div className="sc-icon">✅</div>
                 <div className="sc-label">Aktif Abone</div>
-                <div className="sc-val">{saasMetrik?.buAyOdeyen || buAyOdeyenler.length}</div>
+                <div className="sc-val">{saasMetrik?.aktifAboneSayi ?? saasMetrik?.buAyOdeyen ?? 0}</div>
               </div>
               <div className="stat-card blue">
                 <div className="sc-icon">🆕</div>
