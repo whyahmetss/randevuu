@@ -4337,7 +4337,7 @@ class AdminController {
       const { isletme_id, arama, segment } = req.query;
 
       let sorgu = `
-        SELECT m.id, m.isim, m.telefon, m.olusturma_tarihi, m.notlar,
+        SELECT m.id, m.isim, m.telefon, m.olusturma_tarihi,
           COALESCE(m.puan_bakiye, 0) as puan, m.referans_kodu,
           (SELECT r2.isletme_id FROM randevular r2 WHERE r2.musteri_id = m.id LIMIT 1) as isletme_id,
           i.isim as isletme_isim, i.kategori, i.paket,
