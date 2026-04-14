@@ -561,14 +561,33 @@ app.listen(PORT, () => {
   // WhatsApp servisini başlat
   whatsappService.init();
 
+  // Auto-migration: yeni feature kolonları
+  try {
+    const migrations = [
+      "ALTER TABLE randevular ADD COLUMN IF NOT EXISTS onbes_dk_gonderildi BOOLEAN DEFAULT false",
+      "ALTER TABLE randevular ADD COLUMN IF NOT EXISTS rebook_gonderildi BOOLEAN DEFAULT false",
+      "ALTER TABLE randevular ADD COLUMN IF NOT EXISTS form_cevaplari JSONB DEFAULT NULL",
+      "ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS hatirlatma_zinciri_aktif BOOLEAN DEFAULT true",
+      "ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS haftalik_rapor_aktif BOOLEAN DEFAULT false",
+      "ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS rebook_aktif BOOLEAN DEFAULT true",
+      "ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_maps_reserve_url TEXT DEFAULT NULL",
+      "ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS musteri_formu JSONB DEFAULT NULL",
+      "ALTER TABLE bekleme_listesi ADD COLUMN IF NOT EXISTS bildirim_zamani TIMESTAMPTZ DEFAULT NULL",
+      "ALTER TABLE bekleme_listesi ADD COLUMN IF NOT EXISTS bildirim_sayisi INT DEFAULT 0",
+    ];
+    Promise.all(migrations.map(m => pool.query(m).catch(() => {})))
+      .then(() => console.log('✅ Auto-migration tamamlandı'))
+      .catch(() => {});
+  } catch(e) { console.log('⚠️ Migration hatası:', e.message); }
+
   // Cleanup: test duyurularını sil
   try { pool.query("DELETE FROM duyurular WHERE baslik ILIKE '%battık%' OR baslik ILIKE '%test%duyuru%'").then(r => { if (r.rowCount > 0) console.log(`🧹 ${r.rowCount} test duyurusu silindi`); }); } catch(e) {}
   
   // Hatırlatma cron job'ını başlat (production'da sadece ENABLE_CRON=true ise)
   if (process.env.ENABLE_CRON !== 'false') {
     hatirlatmaService.baslat();
-    // Gece raporu servisi
-    try { const geceRaporu = require('./services/geceRaporu'); geceRaporu.baslat(); } catch (e) { console.error('Gece raporu başlatma hatası:', e.message); }
+    // Gece raporu servisi + Haftalık rapor
+    try { const geceRaporu = require('./services/geceRaporu'); geceRaporu.baslat(); geceRaporu.haftalikCronBaslat(); } catch (e) { console.error('Gece raporu başlatma hatası:', e.message); }
   }
 
   // Google Yorum Feedback cron (Premium)

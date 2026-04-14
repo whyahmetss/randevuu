@@ -473,6 +473,56 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </div>
       </div>
 
+      {/* ═══════════════  Akıllı Özellikler  ═══════════════ */}
+      <div style={S.card}>
+        <CardHead emoji="🤖" title="Akıllı Özellikler" color="#8b5cf6" desc="Bot ve hatırlatma otomasyonları" />
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 8 }}>
+          {/* Hatırlatma Zinciri */}
+          <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
+            <input type="checkbox" checked={ayarlar.hatirlatma_zinciri_aktif !== false} onChange={e => setAyarlar({...ayarlar, hatirlatma_zinciri_aktif: e.target.checked})}
+              style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>⏰ Hatırlatma Zinciri (24h + 1h + 15dk)</div>
+              <div style={{ fontSize: 11, color: "var(--dim)" }}>Randevudan 24 saat, 1 saat ve 15 dakika önce WhatsApp hatırlatma gönderir.</div>
+            </div>
+          </label>
+          {/* Haftalık Rapor */}
+          <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
+            <input type="checkbox" checked={!!ayarlar.haftalik_rapor_aktif} onChange={e => setAyarlar({...ayarlar, haftalik_rapor_aktif: e.target.checked})}
+              style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>📊 Haftalık Rapor</div>
+              <div style={{ fontSize: 11, color: "var(--dim)" }}>Her Pazartesi 09:00'da WhatsApp'tan haftalık özet rapor alın.</div>
+            </div>
+          </label>
+          {/* Otomatik Rebook */}
+          <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
+            <input type="checkbox" checked={ayarlar.rebook_aktif !== false} onChange={e => setAyarlar({...ayarlar, rebook_aktif: e.target.checked})}
+              style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>📅 Otomatik Rebook</div>
+              <div style={{ fontSize: 11, color: "var(--dim)" }}>Randevu tamamlandıktan 2 saat sonra tekrar randevu teklifi gönderir. (2 haftada 1 max)</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* ═══════════════  Google Maps Reserve  ═══════════════ */}
+      <div style={S.card}>
+        <CardHead emoji="📍" title="Google Maps Reserve" color="#4285f4" desc="Google Business profil linkinizi ekleyin — QR kod sayfasında gösterilir." />
+        <input
+          type="url"
+          placeholder="https://maps.google.com/..."
+          value={ayarlar.google_maps_reserve_url || ''}
+          onChange={e => setAyarlar({...ayarlar, google_maps_reserve_url: e.target.value})}
+          className="input"
+          style={{ width: "100%", marginTop: 8 }}
+        />
+        <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>
+          Google Maps → İşletmeniz → "Paylaş" → "Bağlantıyı kopyala" ile alabilirsiniz.
+        </div>
+      </div>
+
       {/* ═══════════════  Kaydet Butonu  ═══════════════ */}
       <button onClick={kaydet} style={{
         width: "100%", padding: "16px", borderRadius: 14, border: "none",

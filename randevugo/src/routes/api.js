@@ -278,6 +278,18 @@ router.get('/admin/musteri-crm/:id', authMiddleware, superAdminMiddleware, (req,
 router.get('/admin/qr-kod', authMiddleware, superAdminMiddleware, (req, res) => adminController.adminQrKodOlustur(req, res));
 router.get('/qr-kod', authMiddleware, (req, res) => adminController.qrKodOlustur(req, res));
 
+// ==================== GELİR TAHMİNİ / FORECASTING ====================
+router.get('/gelir-tahmini', authMiddleware, (req, res) => adminController.gelirTahmini(req, res));
+router.get('/yogunluk-tahmini', authMiddleware, (req, res) => adminController.yogunlukTahmini(req, res));
+router.get('/no-show-istatistik', authMiddleware, (req, res) => adminController.noShowIstatistik(req, res));
+
+// ==================== MÜŞTERİ FORMU ====================
+router.get('/musteri-formu', authMiddleware, (req, res) => adminController.musteriFormuGetir(req, res));
+router.put('/musteri-formu', authMiddleware, (req, res) => adminController.musteriFormuGuncelle(req, res));
+
+// ==================== GOOGLE MAPS RESERVE ====================
+router.put('/google-maps-reserve', authMiddleware, (req, res) => adminController.googleMapsReserveGuncelle(req, res));
+
 // ==================== ONLINE RANDEVU (Public) ====================
 router.get('/book/:slug', (req, res) => bookingController.isletmeBilgileri(req, res));
 router.get('/book/:slug/hizmetler', (req, res) => bookingController.hizmetleriGetir(req, res));

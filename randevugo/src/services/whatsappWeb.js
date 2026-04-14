@@ -562,6 +562,35 @@ class WhatsAppWebService extends EventEmitter {
       } catch (e) { /* skip */ }
     }
 
+    // Sıra takibi intent — "sıram", "sırada kaç kişi var", "ne zaman gelecek sıram", "queue"
+    if (metinKucuk.includes('sıram') || metinKucuk.includes('siram') || metinKucuk.includes('sırada') || metinKucuk.includes('sirada') || metinKucuk.includes('queue') || metinKucuk.includes('الطابور')) {
+      try {
+        const bugun = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
+        const randevum = (await pool.query(`
+          SELECT r.id, r.saat, r.tarih, h.sure_dk, h.isim as hizmet_isim
+          FROM randevular r
+          JOIN musteriler m ON r.musteri_id = m.id
+          LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+          WHERE r.isletme_id = $1 AND m.telefon = $2
+            AND r.tarih = $3 AND r.durum = 'onaylandi'
+            AND r.saat >= NOW()::time
+          ORDER BY r.saat ASC LIMIT 1
+        `, [isletmeId, musteriTelefon, bugun])).rows[0];
+        if (!randevum) {
+          return { metin: botMesajlar.get(isletme, 'siraTakibiYok'), butonlar: null };
+        }
+        const oncekiSayi = (await pool.query(`
+          SELECT COUNT(*) as sayi FROM randevular
+          WHERE isletme_id = $1 AND tarih = $2 AND durum = 'onaylandi'
+            AND saat < $3 AND saat >= NOW()::time
+        `, [isletmeId, bugun, randevum.saat])).rows[0];
+        const sureDk = randevum.sure_dk || isletme.randevu_suresi_dk || 30;
+        const tahminiSure = parseInt(oncekiSayi.sayi) * sureDk;
+        const saatStr = String(randevum.saat).substring(0, 5);
+        return { metin: botMesajlar.get(isletme, 'siraTakibi', { oncekiSayi: oncekiSayi.sayi, tahminiSure, saatStr }), butonlar: null };
+      } catch (e) { /* skip */ }
+    }
+
     // Puan sorgulama intent
     if (metinKucuk.includes('puan') || metinKucuk.includes('puanım') || metinKucuk.includes('puanim') || metinKucuk.includes('sadakat')) {
       try {
@@ -1012,13 +1041,53 @@ class WhatsAppWebService extends EventEmitter {
         if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('iptal et')) {
           const gd = (await pool.query('SELECT iptal_randevu_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           if (gd?.iptal_randevu_id) {
+            // İptal edilen randevunun bilgilerini al (bekleme listesi için)
+            const iptalEdilen = (await pool.query('SELECT tarih, saat, hizmet_id FROM randevular WHERE id=$1', [gd.iptal_randevu_id])).rows[0];
             await randevuService.randevuIptal(gd.iptal_randevu_id);
+            // Bekleme listesindeki ilk kişiye bildir
+            if (iptalEdilen) {
+              try {
+                await this._beklemeListesiBildir(isletmeId, isletme, iptalEdilen.tarih, iptalEdilen.saat, iptalEdilen.hizmet_id);
+              } catch (e) { /* skip */ }
+            }
           }
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
           return { metin: botMesajlar.get(isletme, 'iptalBasarili', { hizmetAd: 'Randevu' }), butonlar: null };
         }
         // Geri dön veya vazgeç
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
+        return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
+      }
+
+      case 'bekleme_onay': {
+        // Bekleme listesinden bildirildi — müşteri "evet" derse otomatik randevu oluştur
+        const randevuService = require('./randevu');
+        if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla') || metinKucuk.includes('yes') || metinKucuk.includes('نعم')) {
+          const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+          if (sd?.secilen_tarih && sd?.secilen_saat) {
+            const sonuc = await randevuService.randevuOlustur({
+              isletmeId, musteriTelefon,
+              hizmetId: sd.secilen_hizmet_id,
+              tarih: sd.secilen_tarih,
+              saat: sd.secilen_saat
+            });
+            await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+            // Bekleme listesini tamamlandı yap
+            try { await pool.query("UPDATE bekleme_listesi SET durum='randevu_alindi' WHERE musteri_telefon=$1 AND isletme_id=$2 AND durum='bildirildi'", [musteriTelefon, isletmeId]); } catch(e) {}
+            return { metin: botMesajlar.get(isletme, 'randevuOnaylandi', {
+              isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim,
+              tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat)
+            }), butonlar: null };
+          }
+        }
+        // Hayır veya 30dk geçti
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
+        try { await pool.query("UPDATE bekleme_listesi SET durum='vazgecti' WHERE musteri_telefon=$1 AND isletme_id=$2 AND durum='bildirildi'", [musteriTelefon, isletmeId]); } catch(e) {}
+        // Sıradaki müşteriye bildir
+        const sd2 = (await pool.query('SELECT secilen_tarih, secilen_saat, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
+        if (sd2?.secilen_tarih) {
+          try { await this._beklemeListesiBildir(isletmeId, isletme, sd2.secilen_tarih, sd2.secilen_saat, sd2.secilen_hizmet_id); } catch(e) {}
+        }
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
       }
 
@@ -1104,10 +1173,39 @@ class WhatsAppWebService extends EventEmitter {
     }
     const saatFmt = saatler.map(s => String(s).substring(0,5));
 
+    // Akıllı saat önerisi — en boş zaman dilimindeki en uygun saati öner
+    let onerilen = null;
+    try {
+      const bugunStr = secilenTarih;
+      const doluSaatler = (await pool.query(`
+        SELECT saat FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+      `, [isletmeId, bugunStr])).rows.map(r => String(r.saat).substring(0,5));
+      // Her saat diliminde kaç randevu var
+      const sabahDolu = doluSaatler.filter(s => parseInt(s.split(':')[0]) < 12).length;
+      const ogleDolu = doluSaatler.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; }).length;
+      const aksamDolu = doluSaatler.filter(s => parseInt(s.split(':')[0]) >= 17).length;
+      const sabahBos = saatFmt.filter(s => parseInt(s.split(':')[0]) < 12);
+      const ogleBos = saatFmt.filter(s => { const h = parseInt(s.split(':')[0]); return h >= 12 && h < 17; });
+      const aksamBos = saatFmt.filter(s => parseInt(s.split(':')[0]) >= 17);
+      // En az dolu olan dilimi bul
+      const dilimler = [
+        { ad: 'sabah', dolu: sabahDolu, bos: sabahBos },
+        { ad: 'ogle', dolu: ogleDolu, bos: ogleBos },
+        { ad: 'aksam', dolu: aksamDolu, bos: aksamBos },
+      ].filter(d => d.bos.length > 0).sort((a, b) => a.dolu - b.dolu);
+      if (dilimler.length > 0) {
+        // En boş dilimin ortasındaki saati öner
+        const enBos = dilimler[0].bos;
+        onerilen = enBos[Math.floor(enBos.length / 2)];
+      }
+    } catch (e) { /* skip */ }
+
     // Az saat varsa direkt listele, çoksa zaman dilimi sor
     if (saatFmt.length <= 6) {
       await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_tarih: secilenTarih });
-      return { metin: botMesajlar.get(isletme, 'saatListesi', { tarihStr: this.tarihFormat(secilenTarih), saatler: saatFmt }), butonlar: null };
+      let mesaj = botMesajlar.get(isletme, 'saatListesi', { tarihStr: this.tarihFormat(secilenTarih), saatler: saatFmt });
+      if (onerilen) mesaj = `💡 *Önerilen: ${onerilen}* _(en müsait saat)_\n\n` + mesaj;
+      return { metin: mesaj, butonlar: null };
     }
 
     // Çok saat var → zaman dilimi sorusu, ayrı aşama
@@ -1256,6 +1354,47 @@ class WhatsAppWebService extends EventEmitter {
     }
 
     return null; // Zincir yakalamadı → normal bot akışına devam
+  }
+
+  // Bekleme listesi — iptal olduğunda ilk sıradaki müşteriye bildir
+  async _beklemeListesiBildir(isletmeId, isletme, tarih, saat, hizmetId) {
+    try {
+      const tarihStr = typeof tarih === 'string' ? tarih : new Date(tarih).toISOString().slice(0, 10);
+      const bekleyen = (await pool.query(`
+        SELECT bl.*, h.isim as hizmet_isim
+        FROM bekleme_listesi bl
+        LEFT JOIN hizmetler h ON bl.hizmet_id = h.id
+        WHERE bl.isletme_id = $1 AND bl.istenen_tarih = $2 AND bl.durum = 'bekliyor'
+          AND (bl.hizmet_id = $3 OR bl.hizmet_id IS NULL OR $3 IS NULL)
+        ORDER BY bl.olusturma_tarihi ASC LIMIT 1
+      `, [isletmeId, tarihStr, hizmetId])).rows[0];
+
+      if (!bekleyen) return;
+
+      const saatStr = String(saat).substring(0, 5);
+      const mesaj = botMesajlar.get(isletme, 'beklemeListesiMusait', {
+        tarihStr: this.tarihFormat(tarih),
+        saatStr,
+        hizmetAd: bekleyen.hizmet_isim
+      });
+
+      const jid = bekleyen.musteri_telefon.includes('@') ? bekleyen.musteri_telefon : `${bekleyen.musteri_telefon.replace(/^\+/, '')}@s.whatsapp.net`;
+      await this.mesajGonder(isletmeId, jid, mesaj);
+
+      // Durumu güncelle — bildirildi, 30dk timeout başlat
+      await pool.query("UPDATE bekleme_listesi SET durum='bildirildi', bildirim_zamani=NOW(), bildirim_sayisi=bildirim_sayisi+1 WHERE id=$1", [bekleyen.id]);
+
+      // Bot durumunu bekleme_onay aşamasına al (müşteri cevap verirse otomatik randevu oluşturulsun)
+      await this.durumGuncelle(bekleyen.musteri_telefon, isletmeId, 'bekleme_onay', {
+        secilen_tarih: tarihStr,
+        secilen_saat: saatStr,
+        secilen_hizmet_id: hizmetId
+      });
+
+      console.log(`🔔 Bekleme listesi bildirim: ${bekleyen.musteri_telefon} → ${tarihStr} ${saatStr}`);
+    } catch (e) {
+      console.error('❌ Bekleme listesi bildirim hatası:', e.message);
+    }
   }
 
   async durumGuncelle(musteriTelefon, isletmeId, asama, ekstra = {}) {

@@ -802,6 +802,8 @@ function Dashboard() {
   const [odemeYukleniyor, setOdemeYukleniyor] = useState(false);
   const [dashCalisanlar, setDashCalisanlar] = useState([]);
   const [yorumIstat, setYorumIstat] = useState(null);
+  const [gelirTahmini, setGelirTahmini] = useState(null);
+  const [yogunlukTahmini, setYogunlukTahmini] = useState(null);
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [profilPopover, setProfilPopover] = useState(false);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
@@ -912,7 +914,11 @@ function Dashboard() {
     if (sayfa === "finans") finansYukle();
     if (sayfa === "destek") destekYukleIsletme();
     if (sayfa === "bildirimler") api.get("/bildirimler?limit=50").then(d => setBildirimler(d.bildirimler || [])).catch(() => {});
-    if (sayfa === "anasayfa") api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
+    if (sayfa === "anasayfa") {
+      api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
+      api.get("/gelir-tahmini").then(d => { if (d && !d.hata) setGelirTahmini(d); }).catch(() => {});
+      api.get("/yogunluk-tahmini").then(d => { if (d && !d.hata) setYogunlukTahmini(d); }).catch(() => {});
+    }
   }, [sayfa]);
 
   useEffect(() => {
@@ -1610,6 +1616,94 @@ function Dashboard() {
                       </>
                     ) : <div style={{ fontSize: 13, color: "var(--dim)" }}>Bugün henüz randevu yok</div>}
                   </div>
+                </div>
+              </div>
+
+              {/* ── ROW 3.6: Gelir Tahmini + Yoğunluk Tahmini ── */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+                {/* Gelir Tahmini Kartı */}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(84,224,151,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>💰</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>Gelir Tahmini</div>
+                      <div style={{ fontSize: 11, color: "var(--dim)" }}>Önümüzdeki 7 gün</div>
+                    </div>
+                  </div>
+                  {gelirTahmini ? (
+                    <>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 26, fontWeight: 800, color: "#2cb872" }}>₺{(gelirTahmini.duzeltilmisGelir || 0).toLocaleString("tr-TR")}</span>
+                        <span style={{ fontSize: 11, color: "var(--dim)" }}>tahmini</span>
+                      </div>
+                      {gelirTahmini.noShowOran > 0 && (
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginBottom: 6 }}>
+                          ⚠️ No-show düzeltmesi: %{gelirTahmini.noShowOran} (brüt: ₺{(gelirTahmini.toplamTahmini || 0).toLocaleString("tr-TR")})
+                        </div>
+                      )}
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {(gelirTahmini.gunluk || []).map((g, i) => {
+                          const d = new Date(g.tarih);
+                          const gunler = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
+                          return (
+                            <div key={i} style={{ flex: "1 1 40px", textAlign: "center", padding: "6px 4px", borderRadius: 8, background: "var(--surface2)", minWidth: 40 }}>
+                              <div style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600 }}>{gunler[d.getDay()]}</div>
+                              <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text)" }}>{parseInt(g.randevu_sayi)}</div>
+                              <div style={{ fontSize: 9, color: "var(--muted)" }}>₺{Math.round(parseFloat(g.tahmini_gelir)).toLocaleString("tr-TR")}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {gelirTahmini.gecenHaftaGelir > 0 && (
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 8 }}>
+                          📊 Geçen hafta: ₺{gelirTahmini.gecenHaftaGelir.toLocaleString("tr-TR")} gerçekleşti
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: "var(--dim)", padding: "16px 0", textAlign: "center" }}>Yükleniyor...</div>
+                  )}
+                </div>
+
+                {/* Yoğunluk Tahmini Kartı */}
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139,92,246,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📊</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>Doluluk Durumu</div>
+                      <div style={{ fontSize: 11, color: "var(--dim)" }}>Bugün ve yarın</div>
+                    </div>
+                  </div>
+                  {yogunlukTahmini ? (
+                    <div style={{ display: "flex", gap: 16 }}>
+                      {[
+                        { label: "Bugün", data: yogunlukTahmini.bugun },
+                        { label: "Yarın", data: yogunlukTahmini.yarin }
+                      ].map((item, i) => {
+                        const renkMap = { green: "#2cb872", yellow: "#f59e0b", red: "#ef4444" };
+                        const renk = renkMap[item.data?.renk] || "#9ca3af";
+                        const doluluk = item.data?.doluluk || 0;
+                        return (
+                          <div key={i} style={{ flex: 1, textAlign: "center", padding: "14px 10px", borderRadius: 12, background: "var(--surface2)" }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>{item.label}</div>
+                            <div style={{ position: "relative", width: 70, height: 70, margin: "0 auto 8px" }}>
+                              <svg width="70" height="70" viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--surface3)" strokeWidth="3" />
+                                <circle cx="18" cy="18" r="15.9" fill="none" stroke={renk} strokeWidth="3"
+                                  strokeDasharray={`${doluluk} ${100 - doluluk}`}
+                                  strokeDashoffset="25" strokeLinecap="round"
+                                  style={{ transition: "stroke-dasharray .6s" }} />
+                              </svg>
+                              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, color: renk }}>{doluluk}%</div>
+                            </div>
+                            <div style={{ fontSize: 11, color: "var(--dim)" }}>{item.data?.dolu || 0}/{item.data?.kapasite || 0} slot</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: "var(--dim)", padding: "16px 0", textAlign: "center" }}>Yükleniyor...</div>
+                  )}
                 </div>
               </div>
 

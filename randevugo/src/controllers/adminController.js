@@ -114,16 +114,40 @@ class AdminController {
             'SELECT ihlal_sayisi, aktif FROM kara_liste WHERE isletme_id=$1 AND telefon=$2',
             [isletmeId, musteri.telefon]
           )).rows[0];
-          const isletme = (await pool.query(
-            'SELECT kara_liste_otomatik, kara_liste_ihlal_sinir FROM isletmeler WHERE id=$1',
+          const isletmeNoShow = (await pool.query(
+            'SELECT kara_liste_otomatik, kara_liste_ihlal_sinir, isim FROM isletmeler WHERE id=$1',
             [isletmeId]
           )).rows[0];
           noShow = {
             ihlalSayisi: kl?.ihlal_sayisi || 1,
-            sinir: isletme?.kara_liste_ihlal_sinir || 3,
+            sinir: isletmeNoShow?.kara_liste_ihlal_sinir || 3,
             engellendi: kl?.aktif || false,
-            otomatikAktif: isletme?.kara_liste_otomatik || false
+            otomatikAktif: isletmeNoShow?.kara_liste_otomatik || false
           };
+
+          // No-Show WhatsApp mesajı gönder
+          try {
+            const whatsappWeb = require('../services/whatsappWeb');
+            const waDurum = whatsappWeb.getDurum(isletmeId);
+            if (waDurum?.durum === 'bagli') {
+              const hizmet = randevu.hizmet_id ? (await pool.query('SELECT isim FROM hizmetler WHERE id=$1', [randevu.hizmet_id])).rows[0] : null;
+              const botMesajlar = require('../utils/botMesajlar');
+              const isletmeObj = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0] || {};
+              const tarihFormat = (t) => { const d = new Date(t); const g=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi']; const a=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık']; return `${d.getDate()} ${a[d.getMonth()]} ${g[d.getDay()]}`; };
+              const kaporaTutar = randevu.kapora_tutari && parseFloat(randevu.kapora_tutari) > 0 ? parseFloat(randevu.kapora_tutari) : null;
+              // Kapora kesilsin (iade yapılmasın)
+              if (kaporaTutar && randevu.kapora_durumu === 'odendi') {
+                await pool.query("UPDATE randevular SET kapora_durumu='kesildi' WHERE id=$1", [randevu.id]);
+              }
+              const mesaj = botMesajlar.get(isletmeObj, 'noShowMesaj', {
+                isletmeAd: isletmeNoShow?.isim || '',
+                tarihStr: tarihFormat(randevu.tarih),
+                saatStr: String(randevu.saat).substring(0, 5),
+                kaporaTutar
+              });
+              await whatsappWeb.mesajGonder(isletmeId, musteri.telefon, mesaj);
+            }
+          } catch (e) { console.error('No-show WA mesaj hatası:', e.message); }
         }
       }
 
@@ -583,9 +607,11 @@ class AdminController {
         'kategori','bot_konusma_stili','randevu_modu','hatirlatma_saat','calisan_secim_modu',
         'randevu_onay_modu','onay_timeout_dk','iptal_sinir_saat','mesai_disi_mod','mesai_disi_mesaj',
         'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug',
-        'varsayilan_tampon_dk','slot_aralik_dk'
+        'varsayilan_tampon_dk','slot_aralik_dk',
+        'hatirlatma_zinciri_aktif','haftalik_rapor_aktif','rebook_aktif',
+        'google_maps_reserve_url','musteri_formu'
       ];
-      const jsonAlanlar = ['mola_saatleri'];
+      const jsonAlanlar = ['mola_saatleri','musteri_formu'];
       const setClauses = [];
       const values = [];
       let idx = 1;
@@ -1345,6 +1371,182 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+  // ==================== GELİR TAHMİNİ / FORECASTING ====================
+
+  async gelirTahmini(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      // Önümüzdeki 7 günlük onaylı randevulardan tahmini gelir
+      const gunluk = (await pool.query(`
+        SELECT r.tarih, COUNT(*) as randevu_sayi,
+          COALESCE(SUM(h.fiyat), 0) as tahmini_gelir
+        FROM randevular r
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        WHERE r.isletme_id = $1 AND r.tarih BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
+          AND r.durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+        GROUP BY r.tarih ORDER BY r.tarih
+      `, [isletmeId])).rows;
+
+      // No-show oranını hesapla (son 30 gün)
+      const stat = (await pool.query(`
+        SELECT COUNT(*) as toplam,
+          COUNT(*) FILTER (WHERE durum = 'gelmedi') as gelmedi
+        FROM randevular WHERE isletme_id = $1 AND tarih >= CURRENT_DATE - INTERVAL '30 days'
+      `, [isletmeId])).rows[0];
+      const noShowOran = parseInt(stat.toplam) > 0 ? parseInt(stat.gelmedi) / parseInt(stat.toplam) : 0;
+
+      // Haftalık toplam ve düzeltilmiş gelir
+      const toplamTahmini = gunluk.reduce((s, g) => s + parseFloat(g.tahmini_gelir), 0);
+      const duzeltilmisGelir = Math.round(toplamTahmini * (1 - noShowOran));
+
+      // Geçen haftanın gerçekleşen geliri (karşılaştırma)
+      const gecenHafta = (await pool.query(`
+        SELECT COALESCE(SUM(h.fiyat), 0) as toplam
+        FROM randevular r LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        WHERE r.isletme_id = $1 AND r.tarih BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE - INTERVAL '1 day'
+          AND r.durum = 'tamamlandi'
+      `, [isletmeId])).rows[0];
+
+      res.json({
+        gunluk,
+        toplamTahmini: Math.round(toplamTahmini),
+        duzeltilmisGelir,
+        noShowOran: Math.round(noShowOran * 100),
+        gecenHaftaGelir: Math.round(parseFloat(gecenHafta.toplam))
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== YOĞUNLUK TAHMİNİ ====================
+
+  async yogunlukTahmini(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query('SELECT calisma_baslangic, calisma_bitis, randevu_suresi_dk FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      const sureDk = isletme?.randevu_suresi_dk || 30;
+      const basSaat = parseInt((isletme?.calisma_baslangic || '09:00').split(':')[0]);
+      const bitSaat = parseInt((isletme?.calisma_bitis || '18:00').split(':')[0]);
+      const toplamSlot = Math.floor(((bitSaat - basSaat) * 60) / sureDk);
+
+      // Calisan sayısı
+      const calisanSayi = (await pool.query("SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true)", [isletmeId])).rows[0];
+      const toplamKapasite = toplamSlot * Math.max(parseInt(calisanSayi.sayi), 1);
+
+      // Yarınki dolu slot sayısı
+      const yarinDolu = (await pool.query(`
+        SELECT COUNT(*) as sayi FROM randevular
+        WHERE isletme_id=$1 AND tarih = CURRENT_DATE + 1 AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+      `, [isletmeId])).rows[0];
+
+      // Bugünkü dolu slot sayısı
+      const bugunDolu = (await pool.query(`
+        SELECT COUNT(*) as sayi FROM randevular
+        WHERE isletme_id=$1 AND tarih = CURRENT_DATE AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor','tamamlandi')
+      `, [isletmeId])).rows[0];
+
+      const yarinDoluluk = toplamKapasite > 0 ? Math.round((parseInt(yarinDolu.sayi) / toplamKapasite) * 100) : 0;
+      const bugunDoluluk = toplamKapasite > 0 ? Math.round((parseInt(bugunDolu.sayi) / toplamKapasite) * 100) : 0;
+
+      // Renk: 0-50 yeşil, 50-80 sarı, 80+ kırmızı
+      const renk = (d) => d >= 80 ? 'red' : d >= 50 ? 'yellow' : 'green';
+
+      res.json({
+        yarin: { dolu: parseInt(yarinDolu.sayi), kapasite: toplamKapasite, doluluk: yarinDoluluk, renk: renk(yarinDoluluk) },
+        bugun: { dolu: parseInt(bugunDolu.sayi), kapasite: toplamKapasite, doluluk: bugunDoluluk, renk: renk(bugunDoluluk) }
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== NO-SHOW İSTATİSTİK ====================
+
+  async noShowIstatistik(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      // Son 30 günlük no-show sayısı ve oranı
+      const stat = (await pool.query(`
+        SELECT
+          COUNT(*) as toplam_randevu,
+          COUNT(*) FILTER (WHERE durum = 'gelmedi') as no_show,
+          COUNT(*) FILTER (WHERE durum = 'tamamlandi') as tamamlanan,
+          COUNT(*) FILTER (WHERE durum = 'iptal') as iptal
+        FROM randevular WHERE isletme_id = $1 AND tarih >= CURRENT_DATE - INTERVAL '30 days'
+      `, [isletmeId])).rows[0];
+
+      // En çok no-show yapan müşteriler
+      const tekrarlayan = (await pool.query(`
+        SELECT m.isim, m.telefon, COUNT(*) as no_show_sayi
+        FROM randevular r
+        JOIN musteriler m ON r.musteri_id = m.id
+        WHERE r.isletme_id = $1 AND r.durum = 'gelmedi' AND r.tarih >= CURRENT_DATE - INTERVAL '90 days'
+        GROUP BY m.id, m.isim, m.telefon
+        HAVING COUNT(*) >= 2
+        ORDER BY no_show_sayi DESC LIMIT 10
+      `, [isletmeId])).rows;
+
+      // Kaybedilen gelir (no-show'ların hizmet fiyatı toplamı)
+      const kaybedilen = (await pool.query(`
+        SELECT COALESCE(SUM(h.fiyat), 0) as toplam
+        FROM randevular r
+        LEFT JOIN hizmetler h ON r.hizmet_id = h.id
+        WHERE r.isletme_id = $1 AND r.durum = 'gelmedi' AND r.tarih >= CURRENT_DATE - INTERVAL '30 days'
+      `, [isletmeId])).rows[0];
+
+      const toplam = parseInt(stat.toplam_randevu);
+      const noShowSayi = parseInt(stat.no_show);
+      res.json({
+        toplamRandevu: toplam,
+        noShow: noShowSayi,
+        noShowOran: toplam > 0 ? Math.round((noShowSayi / toplam) * 100) : 0,
+        tamamlanan: parseInt(stat.tamamlanan),
+        iptal: parseInt(stat.iptal),
+        kaybedilenGelir: Math.round(parseFloat(kaybedilen.toplam)),
+        tekrarlayan
+      });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== MÜŞTERİ FORMU ====================
+
+  async musteriFormuGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { musteri_formu } = req.body;
+      await pool.query('UPDATE isletmeler SET musteri_formu = $1 WHERE id = $2', [JSON.stringify(musteri_formu), isletmeId]);
+      res.json({ mesaj: 'Müşteri formu güncellendi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async musteriFormuGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const result = (await pool.query('SELECT musteri_formu FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      res.json({ musteri_formu: result?.musteri_formu || null });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ==================== GOOGLE MAPS RESERVE ====================
+
+  async googleMapsReserveGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { google_maps_reserve_url } = req.body;
+      await pool.query('UPDATE isletmeler SET google_maps_reserve_url = $1 WHERE id = $2', [google_maps_reserve_url, isletmeId]);
+      res.json({ mesaj: 'Google Maps Reserve URL güncellendi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   // ==================== SATIŞ BOTU ====================
 
   async satisBotBaslat(req, res) {

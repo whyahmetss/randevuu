@@ -543,6 +543,28 @@ const ar = {
   },
 };
 
+// ═══ Ek mesajlar (3 dil) — beklemeListesi, siraTakibi, rebookTeklif, akilliSaat, noShow ═══
+tr.beklemeListesiSor = (s, p) => `${s.emoji ? '📋 ' : ''}Bu saat dolu. Bekleme listesine ekleyelim mi? İptal olursa size haber veririz.\n\n*1.* ${s.emoji ? '✅ ' : ''}Evet, ekle\n*2.* ${s.emoji ? '❌ ' : ''}Hayır`;
+tr.beklemeListesiEklendi = (s, p) => `${s.emoji ? '✅ ' : ''}Bekleme listesine eklendi${s.hitap === 'siz' ? 'niz' : 'n'}! ${p.tarihStr} tarihinde yer açılırsa size haber vereceğiz.\n\n*0.* Ana Menü`;
+tr.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*Müjde!* İstediğiniz saat müsait oldu!\n\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.hizmetAd ? (s.emoji ? '✂️ ' : '') + p.hizmetAd + '\n' : ''}\nRandevunuzu onaylayalım mı?\n\n*1.* ${s.emoji ? '✅ ' : ''}Evet, onayla\n*2.* ${s.emoji ? '❌ ' : ''}Hayır`;
+tr.siraTakibi = (s, p) => `${s.emoji ? '📊 ' : ''}*Sıra Durumunuz*\n\n${s.emoji ? '👥 ' : ''}Sizden önce *${p.oncekiSayi}* kişi var.\n${s.emoji ? '⏱ ' : ''}Tahmini bekleme süresi: *${p.tahminiSure} dakika*\n\n${s.emoji ? '🕐 ' : ''}Randevu saatiniz: ${p.saatStr}`;
+tr.siraTakibiYok = (s) => `Bugün aktif randevunuz bulunmuyor.\n\n${s.emoji ? '📅 ' : ''}Randevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
+tr.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*Randevunuza gelmediniz.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.kaporaTutar ? '\n💳 Kapora tutarı (' + p.kaporaTutar + '₺) iade edilmeyecektir.\n' : ''}\n📅 Yeni randevu için *1* yazın.`;
+
+en.beklemeListesiSor = (s, p) => `${s.emoji ? '📋 ' : ''}This time slot is full. Would you like to join the waiting list? We'll notify you if a spot opens.\n\n*1.* ${s.emoji ? '✅ ' : ''}Yes\n*2.* ${s.emoji ? '❌ ' : ''}No`;
+en.beklemeListesiEklendi = (s, p) => `${s.emoji ? '✅ ' : ''}Added to waiting list! We'll let you know if a spot opens on ${p.tarihStr}.\n\n*0.* Main Menu`;
+en.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*Great news!* Your requested time is now available!\n\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.hizmetAd ? (s.emoji ? '✂️ ' : '') + p.hizmetAd + '\n' : ''}\nShall we confirm your appointment?\n\n*1.* ${s.emoji ? '✅ ' : ''}Yes, confirm\n*2.* ${s.emoji ? '❌ ' : ''}No`;
+en.siraTakibi = (s, p) => `${s.emoji ? '📊 ' : ''}*Your Queue Status*\n\n${s.emoji ? '👥 ' : ''}*${p.oncekiSayi}* people ahead of you.\n${s.emoji ? '⏱ ' : ''}Estimated wait: *${p.tahminiSure} minutes*\n\n${s.emoji ? '🕐 ' : ''}Your appointment: ${p.saatStr}`;
+en.siraTakibiYok = (s) => `You have no active appointments today.\n\n${s.emoji ? '📅 ' : ''}Type *1* to book.`;
+en.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*You missed your appointment.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.kaporaTutar ? '\n💳 Deposit (' + p.kaporaTutar + '₺) will not be refunded.\n' : ''}\nType *1* to book a new appointment.`;
+
+ar.beklemeListesiSor = (s, p) => `${s.emoji ? '📋 ' : ''}هذا الوقت محجوز. هل تريد الانضمام لقائمة الانتظار؟\n\n*1.* ${s.emoji ? '✅ ' : ''}نعم\n*2.* ${s.emoji ? '❌ ' : ''}لا`;
+ar.beklemeListesiEklendi = (s, p) => `${s.emoji ? '✅ ' : ''}تمت إضافتك لقائمة الانتظار! سنخبرك إذا توفر مكان في ${p.tarihStr}.\n\n*0.* القائمة الرئيسية`;
+ar.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*بشرى!* الوقت المطلوب أصبح متاحاً!\n\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nهل نؤكد موعدك؟\n\n*1.* ${s.emoji ? '✅ ' : ''}نعم\n*2.* ${s.emoji ? '❌ ' : ''}لا`;
+ar.siraTakibi = (s, p) => `${s.emoji ? '📊 ' : ''}*حالة الطابور*\n\n${s.emoji ? '👥 ' : ''}أمامك *${p.oncekiSayi}* أشخاص.\n${s.emoji ? '⏱ ' : ''}الانتظار المتوقع: *${p.tahminiSure} دقيقة*\n\n${s.emoji ? '🕐 ' : ''}موعدك: ${p.saatStr}`;
+ar.siraTakibiYok = (s) => `لا توجد مواعيد اليوم.\n\n${s.emoji ? '📅 ' : ''}اكتب *1* للحجز.`;
+ar.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*لم تحضر لموعدك.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nاكتب *1* لحجز موعد جديد.`;
+
 const DILLER = { tr, en, ar };
 
 /**
