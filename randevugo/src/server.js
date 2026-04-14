@@ -508,6 +508,7 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false 
 const allowedOrigins = [
   'http://localhost:5173', 'http://localhost:3000',
   'https://randevugo-admin.onrender.com', 'https://admin.xn--srago-n4a.com',
+  'https://xn--srago-n4a.com', 'https://randevugo-api.onrender.com',
   process.env.ADMIN_PANEL_URL
 ].filter(Boolean);
 
@@ -554,6 +555,12 @@ app.get('/book/:slug', (req, res) => {
 // Ana sayfa - Landing page
 app.get('/', (req, res) => {
   res.sendFile(require('path').join(__dirname, 'public', 'index.html'));
+});
+
+// Global error handler — her zaman JSON döndür
+app.use((err, req, res, next) => {
+  console.error('❌ Unhandled error:', err.message);
+  res.status(err.status || 500).json({ hata: err.message || 'Sunucu hatası' });
 });
 
 // Sunucuyu başlat
