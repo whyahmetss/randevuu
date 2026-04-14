@@ -2755,16 +2755,16 @@ class AdminController {
         isletmeler.sort((a, b) => b.bu_ay_randevu - a.bu_ay_randevu);
       } catch(e) { console.error('Aktivite ana sorgu hatası:', e.message); }
 
-      // Bot kullanım durumu
+      // Bot kullanım durumu — sohbet_gecmisi tablosu
       let botKullanim = {};
       try {
         botKullanim = (await pool.query(`
           SELECT isletme_id, COUNT(*) as mesaj_sayisi 
-          FROM bot_mesajlar 
+          FROM sohbet_gecmisi 
           WHERE olusturma_tarihi >= date_trunc('month', CURRENT_DATE) 
           GROUP BY isletme_id
         `)).rows.reduce((acc, r) => { acc[r.isletme_id] = parseInt(r.mesaj_sayisi); return acc; }, {});
-      } catch(e) { /* tablo yoksa boş */ }
+      } catch(e) { console.log('Bot kullanım sorgu hatası:', e.message); }
 
       // Ödeme durumları
       let odemeDurumlari = {};
@@ -2774,13 +2774,22 @@ class AdminController {
         `, [buAy])).rows.reduce((acc, r) => { acc[r.isletme_id] = r.durum; return acc; }, {});
       } catch(e) {}
 
-      // Son giriş tarihleri
+      // Son giriş tarihleri — audit_log veya admin_kullanicilar.son_giris
       let sonGirisler = {};
       try {
+        // Önce audit_log'dan dene
         sonGirisler = (await pool.query(`
-          SELECT isletme_id, MAX(olusturma_tarihi) as son_giris FROM audit_log WHERE islem = 'giris' GROUP BY isletme_id
+          SELECT isletme_id, MAX(olusturma_tarihi) as son_giris FROM audit_log WHERE islem ILIKE '%giris%' OR islem ILIKE '%login%' GROUP BY isletme_id
         `)).rows.reduce((acc, r) => { acc[r.isletme_id] = r.son_giris; return acc; }, {});
-      } catch(e) { /* tablo yoksa boş */ }
+      } catch(e) {}
+      // Eğer audit_log boşsa, admin_kullanicilar tablosundan son_giris al
+      if (Object.keys(sonGirisler).length === 0) {
+        try {
+          sonGirisler = (await pool.query(`
+            SELECT isletme_id, MAX(guncelleme_tarihi) as son_giris FROM admin_kullanicilar WHERE isletme_id IS NOT NULL GROUP BY isletme_id
+          `)).rows.reduce((acc, r) => { acc[r.isletme_id] = r.son_giris; return acc; }, {});
+        } catch(e) {}
+      }
 
       const aktiviteler = isletmeler.map(i => {
         const buAyR = parseInt(i.bu_ay_randevu) || 0;

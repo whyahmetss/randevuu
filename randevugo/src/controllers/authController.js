@@ -19,6 +19,15 @@ class AuthController {
         { expiresIn: '7d' }
       );
 
+      // Audit log — giriş kaydı
+      try {
+        await pool.query(
+          `INSERT INTO audit_log (isletme_id, kullanici_id, kullanici_email, islem, detay, ip_adresi)
+           VALUES ($1, $2, $3, 'giris', 'Panel girişi', $4)`,
+          [kullanici.isletme_id, kullanici.id, kullanici.email, req.ip]
+        );
+      } catch(e) { /* audit log opsiyonel */ }
+
       res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id } });
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);
