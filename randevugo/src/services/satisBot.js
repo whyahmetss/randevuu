@@ -5,8 +5,24 @@ const EventEmitter = require('events');
 const pino = require('pino');
 const axios = require('axios');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
+const fs = require('fs');
+const path = require('path');
 
-const SATIS_BOT_ID = 999999; // sabit isletme_id for satis bot auth
+const SATIS_BOT_ID = 999999;
+
+// Sektöre özel tanıtım videoları — public/videos/ klasöründe .mp4 olmalı
+const TANITIM_VIDEOLARI = {
+  berber: 'berber.mp4',
+  'kuaför': 'kuafor.mp4',
+  'güzellik salonu': 'guzellik.mp4',
+  'diş kliniği': 'dis-klinigi.mp4',
+  veteriner: 'veteriner.mp4',
+  diyetisyen: 'diyetisyen.mp4',
+  spa: 'spa.mp4',
+  'dövme': 'dovme.mp4',
+  'tırnak salonu': 'tirnak.mp4',
+  default: 'genel.mp4'
+};
 
 // Türkiye saati (UTC+3)
 function turkiyeSaati() {
@@ -922,6 +938,9 @@ class SatisBot extends EventEmitter {
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
       console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor}`);
 
+      // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder (link yerine medya)
+      await this._tanitimVideosuGonder(sock, jid, kategori, ns.numaraId);
+
       await pool.query(
         "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
         [lead.id]
@@ -1004,6 +1023,9 @@ class SatisBot extends EventEmitter {
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
       console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor}`);
 
+      // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder
+      await this._tanitimVideosuGonder(sock, jid, kategori, numaraInfo);
+
       // DB güncelle
       await pool.query(
         "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
@@ -1020,6 +1042,38 @@ class SatisBot extends EventEmitter {
     } catch (err) {
       console.error(`❌ Mesaj gönderme hatası (${lead.isletme_adi}):`, err.message);
       await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'hata' WHERE id = $1", [lead.id]);
+    }
+  }
+
+  // Tanıtım videosunu .mp4 olarak doğrudan WhatsApp sohbetine gönder (link yerine medya)
+  async _tanitimVideosuGonder(sock, jid, kategori, numaraTag) {
+    try {
+      const videoFile = TANITIM_VIDEOLARI[kategori] || TANITIM_VIDEOLARI.default;
+      const videoPath = path.join(__dirname, '../../public/videos', videoFile);
+      
+      // Sektöre özel video yoksa genel videoyu dene
+      let finalPath = videoPath;
+      if (!fs.existsSync(finalPath)) {
+        finalPath = path.join(__dirname, '../../public/videos', TANITIM_VIDEOLARI.default);
+      }
+      
+      if (!fs.existsSync(finalPath)) {
+        console.log(`⚠️ [${numaraTag}] Tanıtım videosu bulunamadı: ${videoFile} (public/videos/ klasörüne .mp4 ekleyin)`);
+        return;
+      }
+
+      // 3-5 saniye bekle (mesaj + video arası doğal gecikme)
+      await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+
+      const videoBuffer = fs.readFileSync(finalPath);
+      await sock.sendMessage(jid, {
+        video: videoBuffer,
+        mimetype: 'video/mp4',
+        caption: 'Sistemin nasıl çalıştığını gösteren kısa tanıtım 👆'
+      });
+      console.log(`🎬 [${numaraTag}] Tanıtım videosu gönderildi (${videoFile})`);
+    } catch (err) {
+      console.log(`⚠️ [${numaraTag}] Video gönderme hatası:`, err.message);
     }
   }
 
@@ -1630,14 +1684,15 @@ Mesaj sayısı: ${mesajSayisi}
 5. Müşteri reddettiyse → kibarca veda et, bir daha yazma
 
 ═══ KESİN KURALLAR ═══
-- KISA YAZ. Maksimum 2-3 cümle. Esnafla konuşuyorsun, kurumsal paragraf YASAK.
-- Tek seferde tek mesaj yaz, maddeli liste YAPMA.
-- Emoji max 1-2, abartma.
-- Samimi ol — esnaf gibi konuş.
+- ASLA 2 CÜMLEDEN UZUN CEVAP VERME. Bu en önemli kural. 2 cümle = HARD LİMİT.
+- Tek seferde tek mesaj yaz, maddeli liste YAPMA, paragraf YAPMA.
+- Emoji max 1, abartma.
+- Samimi ol — esnaf gibi konuş, "siz" değil "sen" de.
 - Kayıt linki: sirago.com. ASLA "admin.sirago.com" yazma.
 - ASLA "yapay zeka" veya "bot" olduğunu söyleme.
 - Uzun özellik listesi DÖKME. Tek fayda söyle, bitir.
-- Fiyat/itiraz gelirse HAZIR cevapları kullan, kendinden cümle KURMA.
+- Fiyat/itiraz gelirse HAZIR cevapları BİREBİR kullan, kendinden cümle KURMA.
+- "minimize eder", "optimize eder", "entegre" gibi kurumsal kelimeler YASAK.
 
 CEVABINI SADECE ŞU JSON FORMATINDA VER:
 {"mesaj": "müşteriye gönderilecek mesaj", "durum": "olumlu" veya "olumsuz" veya "bekliyor"}`;
@@ -1646,11 +1701,11 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
       const response = await axios.post('https://api.deepseek.com/chat/completions', {
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: 'Sen SıraGO satış asistanısın. Esnafla WhatsApp\'tan konuşuyorsun. KISA ve NET yaz — max 2-3 cümle. Kurumsal dil YASAK. Maddeli liste YAPMA. Müşteri reddetmişse ISRAR ETME, link bırak kapat. Sadece JSON formatında yanıt ver.' },
+          { role: 'system', content: 'Sen SıraGO satış asistanısın. Esnafla WhatsApp\'tan konuşuyorsun. ASLA 2 cümleden uzun yazma — bu en önemli kural. Kurumsal dil ve paragraf YASAK. Esnaf kısa mesaj okur. Müşteri reddetmişse ISRAR ETME. Sadece JSON formatında yanıt ver.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.8,
-        max_tokens: 800
+        temperature: 0.5,
+        max_tokens: 250
       }, {
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         timeout: 20000
