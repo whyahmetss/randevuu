@@ -12,6 +12,7 @@ import Winback from "./components/Winback/Winback";
 import Sadakat from "./components/Sadakat/Sadakat";
 import Referans from "./components/Referans/Referans";
 import DogumGunu from "./components/DogumGunu/DogumGunu";
+import MusteriGetir from "./components/MusteriGetir/MusteriGetir";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -990,8 +991,7 @@ function Dashboard() {
     { id: "yorumavcisi", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
     { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
     { id: "sadakat", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>, label: "Sadakat", featureKey: "sadakat" },
-    { id: "referans", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>, label: "Referans" },
-    { id: "dogumgunu", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-8H4v8"/><path d="M1 21h22"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg>, label: "Doğum Günü" },
+    { id: "musterigetir", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>, label: "Müşteri Getir" },
     { id: "finans", icon: SVG.finans, label: "Finans" },
     { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
     { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
@@ -2551,14 +2551,9 @@ function Dashboard() {
             <Sadakat api={api} />
           )}
 
-          {/* ── REFERANS ── */}
-          {sayfa === "referans" && (
-            <Referans api={api} />
-          )}
-
-          {/* ── DOĞUM GÜNÜ ── */}
-          {sayfa === "dogumgunu" && (
-            <DogumGunu api={api} />
+          {/* ── MÜŞTERİ GETİR (Referans + Doğum Günü birleşik) ── */}
+          {sayfa === "musterigetir" && (
+            <MusteriGetir api={api} />
           )}
 
           {/* ── KASA ── */}
