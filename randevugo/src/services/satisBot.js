@@ -836,6 +836,8 @@ class SatisBot extends EventEmitter {
             AND wp_mesaj_durumu IS NULL
             AND LOWER(kategori) = LOWER($1)
             AND skor >= $2
+            AND id NOT IN (SELECT COALESCE(lead_id,0) FROM satis_konusmalar WHERE durum IN ('olumsuz','musteri'))
+            AND telefon NOT IN (SELECT telefon FROM satis_konusmalar)
           ORDER BY skor DESC
           LIMIT 1
         `, [kamp.kategori, kamp.min_skor])).rows[0];
@@ -853,6 +855,8 @@ class SatisBot extends EventEmitter {
         WHERE telefon IS NOT NULL AND telefon != ''
           AND durum = 'yeni'
           AND wp_mesaj_durumu IS NULL
+          AND id NOT IN (SELECT COALESCE(lead_id,0) FROM satis_konusmalar WHERE durum IN ('olumsuz','musteri'))
+          AND telefon NOT IN (SELECT telefon FROM satis_konusmalar)
       `;
       const params = [];
       if (kategori) {
@@ -872,6 +876,8 @@ class SatisBot extends EventEmitter {
         SELECT * FROM potansiyel_musteriler
         WHERE telefon IS NOT NULL AND telefon != ''
           AND durum = 'yeni' AND wp_mesaj_durumu IS NULL
+          AND id NOT IN (SELECT COALESCE(lead_id,0) FROM satis_konusmalar WHERE durum IN ('olumsuz','musteri'))
+          AND telefon NOT IN (SELECT telefon FROM satis_konusmalar)
         ORDER BY skor DESC LIMIT 1
       `);
       if (result.rows[0]) return { lead: result.rows[0], kampanya: null };
@@ -889,6 +895,18 @@ class SatisBot extends EventEmitter {
       await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gecersiz_numara' WHERE id = $1", [lead.id]);
       return;
     }
+
+    // Çift gönderim koruması — bu telefona zaten başka numara mesaj attıysa atla
+    try {
+      const mevcutKonusma = (await pool.query(
+        "SELECT id FROM satis_konusmalar WHERE telefon = $1 LIMIT 1", [telefon]
+      )).rows[0];
+      if (mevcutKonusma) {
+        console.log(`⚠️ [#${ns.numaraId}] Bu telefona zaten mesaj atılmış, skip: ${lead.isletme_adi} (${telefon})`);
+        await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'zaten_yazildi' WHERE id = $1", [lead.id]);
+        return;
+      }
+    } catch(e) {}
 
     const kategori = (lead.kategori || '').toLowerCase();
     let mesaj = '';
@@ -1400,14 +1418,10 @@ class SatisBot extends EventEmitter {
       } catch(e) {}
     }
 
-    // Olumsuz konuşma — müşteri tekrar yazarsa ikinci şans ver
+    // Olumsuz konuşma — müşteri red etmişse bir daha yazma
     if (konusma.durum === 'olumsuz') {
-      console.log(`� Olumsuz konuşma tekrar aktif ediliyor: ${telefon}`);
-      await pool.query(
-        "UPDATE satis_konusmalar SET durum = 'ai_devrede' WHERE id = $1",
-        [konusma.id]
-      );
-      konusma.durum = 'ai_devrede';
+      console.log(`🚫 Olumsuz konuşma, cevap verilmiyor: ${telefon}`);
+      return;
     }
 
     // Red / ilgilenmiyorum algılama — AI'dan önce yakala
@@ -1423,7 +1437,7 @@ class SatisBot extends EventEmitter {
     if (redKelimeler.some(k => metinLower.includes(k))) {
       console.log(`🚫 Red algılandı: ${telefon} → "${metin}"`);
       const ad = konusma.isletme_adi || '';
-      const vedaMesaj = `Anlıyorum ${ad}, rahatsız ettiysem özür dilerim 🙏\n\nFikrinizi değiştirirseniz sırago.com adresinden bize ulaşabilirsiniz.\n\nİyi çalışmalar dilerim! 🙂`;
+      const vedaMesaj = 'Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏';
       try {
         await sock.sendPresenceUpdate('composing', remoteJid);
         await new Promise(r => setTimeout(r, 1500));
