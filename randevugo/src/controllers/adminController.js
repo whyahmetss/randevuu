@@ -809,13 +809,18 @@ class AdminController {
         for (let r = 0; r < randevuAdet; r++) {
           const musteriId = musteriIds[Math.floor(Math.random() * musteriIds.length)];
           const calisanId = calisanIds[Math.floor(Math.random() * calisanIds.length)];
-          const hizmetId = hizmetIds[Math.floor(Math.random() * hizmetIds.length)];
+          const hIdx = Math.floor(Math.random() * hizmetIds.length);
+          const hizmetId = hizmetIds[hIdx];
+          const sureDk = hizmetler[hIdx].sure;
           const saat = saatler[Math.floor(Math.random() * saatler.length)];
+          const [sh, sm] = saat.split(':').map(Number);
+          const bitDk = sh * 60 + sm + sureDk;
+          const bitisSaati = `${String(Math.floor(bitDk / 60)).padStart(2, '0')}:${String(bitDk % 60).padStart(2, '0')}`;
           const durum = gun > 0 ? 'bekliyor' : durumlar[Math.floor(Math.random() * durumlar.length)];
           await pool.query(
-            `INSERT INTO randevular (isletme_id, musteri_id, calisan_id, hizmet_id, tarih, saat, durum, kaynak, olusturma_tarihi)
-             VALUES ($1,$2,$3,$4, CURRENT_DATE + $5::int, $6, $7, $8, NOW() - INTERVAL '1 day' * (30 - $5::int))`,
-            [id, musteriId, calisanId, hizmetId, gun, saat, durum, ['bot','online','manuel'][Math.floor(Math.random()*3)]]
+            `INSERT INTO randevular (isletme_id, musteri_id, calisan_id, hizmet_id, tarih, saat, bitis_saati, durum, kaynak, olusturma_tarihi)
+             VALUES ($1,$2,$3,$4, CURRENT_DATE + $5::int, $6, $7, $8, $9, NOW() - INTERVAL '1 day' * (30 - $5::int))`,
+            [id, musteriId, calisanId, hizmetId, gun, saat, bitisSaati, durum, ['bot','online','manuel'][Math.floor(Math.random()*3)]]
           );
           randevuSayisi++;
         }
