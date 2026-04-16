@@ -1744,7 +1744,7 @@ class AdminController {
     try {
       const satisBot = require('../services/satisBot');
       const durum = await satisBot.getDurum();
-      let istatistikler = { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, gunluk_gonderim: 0, gunluk_limit: 50 };
+      let istatistikler = { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, sicak: 0, gunluk_gonderim: 0, gunluk_limit: 80 };
       try {
         istatistikler = await satisBot.istatistikler();
       } catch (e) {
@@ -1753,7 +1753,7 @@ class AdminController {
       res.json({ ...durum, istatistikler });
     } catch (error) {
       console.error('❌ satisBotDurum hatası:', error);
-      res.json({ durum: 'kapali', qrBase64: null, aktif: false, istatistikler: { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, gunluk_gonderim: 0, gunluk_limit: 50 } });
+      res.json({ durum: 'kapali', qrBase64: null, aktif: false, istatistikler: { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, sicak: 0, gunluk_gonderim: 0, gunluk_limit: 80 } });
     }
   }
 

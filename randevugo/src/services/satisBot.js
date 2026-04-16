@@ -1095,6 +1095,41 @@ class SatisBot extends EventEmitter {
     }
   }
 
+  // ═══════════════════════════════════════════════════
+  // Sıcak Lead Telegram Bildirim
+  // ═══════════════════════════════════════════════════
+  async _sicakLeadBildirim(konusma, musteriMesaj) {
+    try {
+      const telefonGosterim = konusma.telefon ? `+${konusma.telefon}` : 'Bilinmiyor';
+      const mesaj = `🔥 *SICAK LEAD DÜŞTÜ!*\n\n` +
+        `🏪 *İşletme:* ${konusma.isletme_adi || 'Bilinmiyor'}\n` +
+        `📞 *Telefon:* ${telefonGosterim}\n` +
+        `🏷️ *Kategori:* ${konusma.kategori || '-'}\n` +
+        `💬 *Son mesajı:* "${musteriMesaj}"\n\n` +
+        `⏰ *Zaman:* ${turkiyeSaati().toLocaleString('tr-TR')}\n\n` +
+        `👉 *Hemen ara ve kapat!*`;
+
+      await this._telegramBildirimGonder(mesaj);
+      console.log(`🔥 Sıcak lead Telegram bildirimi gönderildi: ${konusma.isletme_adi} (${telefonGosterim})`);
+    } catch (err) {
+      console.log(`⚠️ Telegram bildirim hatası:`, err.message);
+    }
+  }
+
+  async _telegramBildirimGonder(mesaj) {
+    const botToken = process.env.SATIS_TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.SATIS_TELEGRAM_CHAT_ID;
+    if (!botToken || !chatId) {
+      console.log('⚠️ Telegram bildirim ayarları eksik (SATIS_TELEGRAM_BOT_TOKEN / SATIS_TELEGRAM_CHAT_ID)');
+      return;
+    }
+    await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      chat_id: chatId,
+      text: mesaj,
+      parse_mode: 'Markdown'
+    }, { timeout: 10000 });
+  }
+
   telefonDuzelt(telefon) {
     if (!telefon) return null;
     let t = telefon.replace(/[\s\-\(\)]/g, '');
@@ -1486,6 +1521,10 @@ class SatisBot extends EventEmitter {
           "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
           [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${fallback.mesaj}`, fallback.durum || 'ai_devrede', konusma.id]
         );
+        // 🔥 Sıcak lead — Telegram bildirim gönder
+        if (fallback.durum === 'sicak') {
+          this._sicakLeadBildirim(konusma, metin);
+        }
       }
       return;
     }
@@ -1514,9 +1553,13 @@ class SatisBot extends EventEmitter {
       );
 
       // Lead durumunu güncelle
-      if (aiCevap.durum === 'olumlu') {
+      if (aiCevap.durum === 'sicak' || aiCevap.durum === 'olumlu') {
         await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);
         if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumlu = olumlu + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {} }
+        // 🔥 Sıcak lead — Telegram bildirim gönder
+        if (aiCevap.durum === 'sicak') {
+          this._sicakLeadBildirim(konusma, metin);
+        }
       } else if (aiCevap.durum === 'olumsuz') {
         await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
         if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {} }
@@ -1559,7 +1602,7 @@ class SatisBot extends EventEmitter {
     if (fiyatKelimeler.some(k => mesajLower.includes(k))) {
       return {
         mesaj: `İlk ay sıfır lira. Sonrası günde 10₺. Bir müşteri kaçırmak bundan pahalı.`,
-        durum: 'olumlu'
+        durum: 'sicak'
       };
     }
 
@@ -1604,7 +1647,7 @@ class SatisBot extends EventEmitter {
     if (merakKelimeler.some(k => mesajLower.includes(k))) {
       return {
         mesaj: `Müşterilerin WhatsApp'tan 7/24 randevu alıyor, otomatik hatırlatma gidiyor. ${ad} için ilk ay ücretsiz 👉 sirago.com`,
-        durum: 'olumlu'
+        durum: 'sicak'
       };
     }
 
@@ -1612,8 +1655,8 @@ class SatisBot extends EventEmitter {
     const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'süper', 'harika', 'güzel'];
     if (olumluKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Süper! sirago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz �`,
-        durum: 'olumlu'
+        mesaj: `Süper! sirago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz 👍`,
+        durum: 'sicak'
       };
     }
 
@@ -1697,6 +1740,14 @@ Mesaj sayısı: ${mesajSayisi}
 4. ${mesajSayisi} > 3 ve karar vermemişse → "Link bırakıyorum, vaktin olunca bakarsın 👉 sirago.com" yaz ve bırak
 5. Müşteri reddettiyse → kibarca veda et, bir daha yazma
 
+═══ HANDOFF (DEVRETME) KURALI — ÇOK ÖNEMLİ ═══
+Müşteri aşağıdakilerden birini derse durum'u "sicak" yap:
+- Fiyat sorusu: "ne kadar", "fiyatı ne", "ücret"
+- İlgi: "nasıl çalışıyor", "anlat", "göster", "demo", "video"
+- Olumlu sinyal: "ilgileniyorum", "deneyelim", "kuralım", "başlayalım", "tamam"
+- Paket sorusu: "paket", "karşılaştır", "fark ne"
+Bu durumda KISA bir cevap yaz + durum'u "sicak" olarak dön. Biz aranıp devam edeceğiz.
+
 ═══ KESİN KURALLAR ═══
 - ASLA 2 CÜMLEDEN UZUN CEVAP VERME. Bu en önemli kural. 2 cümle = HARD LİMİT.
 - Tek seferde tek mesaj yaz, maddeli liste YAPMA, paragraf YAPMA.
@@ -1709,7 +1760,7 @@ Mesaj sayısı: ${mesajSayisi}
 - "minimize eder", "optimize eder", "entegre" gibi kurumsal kelimeler YASAK.
 
 CEVABINI SADECE ŞU JSON FORMATINDA VER:
-{"mesaj": "müşteriye gönderilecek mesaj", "durum": "olumlu" veya "olumsuz" veya "bekliyor"}`;
+{"mesaj": "müşteriye gönderilecek mesaj", "durum": "olumlu" veya "olumsuz" veya "bekliyor" veya "sicak"}`;
 
     try {
       const response = await axios.post('https://api.deepseek.com/chat/completions', {
@@ -1758,12 +1809,13 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
   // ═══════════════════════════════════════════════════
   async istatistikler() {
     try {
-    const [gonderilen, bekleyen, olumlu, olumsuz, wpYok] = await Promise.all([
+    const [gonderilen, bekleyen, olumlu, olumsuz, wpYok, sicak] = await Promise.all([
       pool.query("SELECT COUNT(*) as c FROM potansiyel_musteriler WHERE wp_mesaj_durumu = 'gonderildi'"),
       pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'bekliyor'"),
       pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'olumlu'"),
       pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'olumsuz'"),
       pool.query("SELECT COUNT(*) as c FROM potansiyel_musteriler WHERE wp_mesaj_durumu = 'wp_yok'"),
+      pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'sicak'"),
     ]);
 
     return {
@@ -1772,12 +1824,13 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
       olumlu: parseInt(olumlu.rows[0].c),
       olumsuz: parseInt(olumsuz.rows[0].c),
       wp_yok: parseInt(wpYok.rows[0].c),
+      sicak: parseInt(sicak.rows[0].c),
       gunluk_gonderim: this.gunlukGonderim,
-      gunluk_limit: 50
+      gunluk_limit: this.ayarlar.gunlukLimit || 80
     };
     } catch (err) {
       console.log('⚠️ İstatistik sorgu hatası (tablo henüz yok olabilir):', err.message);
-      return { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, gunluk_gonderim: this.gunlukGonderim, gunluk_limit: 50 };
+      return { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, sicak: 0, gunluk_gonderim: this.gunlukGonderim, gunluk_limit: this.ayarlar.gunlukLimit || 80 };
     }
   }
 

@@ -6268,6 +6268,7 @@ function SuperAdminPanel({ kullanici }) {
                 {[
                   { icon: "📤", label: "Gönderilen", val: satisBotDurum.istatistikler.gonderilen, color: "#3b82f6", bg: "linear-gradient(135deg, rgba(59,130,246,.08), rgba(59,130,246,.02))" },
                   { icon: "⏳", label: "Cevap Bekliyor", val: satisBotDurum.istatistikler.bekleyen, color: "#f59e0b", bg: "linear-gradient(135deg, rgba(245,158,11,.08), rgba(245,158,11,.02))" },
+                  { icon: "🔥", label: "Sıcak (Ara!)", val: satisBotDurum.istatistikler.sicak || 0, color: "#f97316", bg: "linear-gradient(135deg, rgba(249,115,22,.12), rgba(249,115,22,.03))" },
                   { icon: "✅", label: "Olumlu", val: satisBotDurum.istatistikler.olumlu, color: "#10b981", bg: "linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.02))" },
                   { icon: "❌", label: "Olumsuz", val: satisBotDurum.istatistikler.olumsuz, color: "#ef4444", bg: "linear-gradient(135deg, rgba(239,68,68,.08), rgba(239,68,68,.02))" },
                   { icon: "📵", label: "WP Yok", val: satisBotDurum.istatistikler.wp_yok, color: "#64748b", bg: "linear-gradient(135deg, rgba(100,116,139,.08), rgba(100,116,139,.02))" }
@@ -6437,8 +6438,8 @@ function SuperAdminPanel({ kullanici }) {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {satisBotKonusmalar.map(k => {
-                    const dRenk = { bekliyor: "#f59e0b", olumlu: "#10b981", olumsuz: "#ef4444" };
-                    const dIcon = { bekliyor: "⏳", olumlu: "✅", olumsuz: "❌" };
+                    const dRenk = { bekliyor: "#f59e0b", sicak: "#f97316", olumlu: "#10b981", olumsuz: "#ef4444", ai_devrede: "#8b5cf6" };
+                    const dIcon = { bekliyor: "⏳", sicak: "🔥", olumlu: "✅", olumsuz: "❌", ai_devrede: "🤖" };
                     return (
                       <div key={k.id} className="row gap-12" style={{ padding: "12px 14px", borderRadius: 12, background: "var(--bg)", alignItems: "center", cursor: "pointer", transition: "all .15s" }}>
                         <div style={{ width: 40, height: 40, borderRadius: 20, background: `${dRenk[k.durum] || "#64748b"}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{dIcon[k.durum] || "💬"}</div>
