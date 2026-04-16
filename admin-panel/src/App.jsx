@@ -2607,8 +2607,8 @@ function Dashboard() {
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                   <span style={{ fontSize: 20 }}>📍</span>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>Google Maps Reserve</div>
-                    <div style={{ fontSize: 12, color: "var(--dim)" }}>Google Maps'te "Online rezervasyon yap" butonu ile müşterilerinizi yönlendirin</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>Google Haritalar Bağlantısı</div>
+                    <div style={{ fontSize: 12, color: "var(--dim)" }}>İşletmenizi Google'da bulsunlar, randevu linkinizi profilinize ekleyin.</div>
                   </div>
                 </div>
 
@@ -2635,9 +2635,9 @@ function Dashboard() {
                   {/* Sağ: Booking linki + talimat */}
                   {ayarlar?.slug && (
                     <div style={{ padding: 16, borderRadius: 12, background: "rgba(66,133,244,.06)", border: "1px solid rgba(66,133,244,.15)" }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "#4285f4", marginBottom: 8 }}>🗺️ Google'da "Online rezervasyon yap" Butonu</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#4285f4", marginBottom: 8 }}>📅 Google Business Randevu Linki</div>
                       <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.6, marginBottom: 8 }}>
-                        Aşağıdaki linki Google Business profilinize ekleyin:
+                        Aşağıdaki size özel linki Google Business profilinize yapıştırın:
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <div style={{ flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(66,133,244,.06)", border: "1px solid rgba(66,133,244,.15)", fontSize: 12, fontWeight: 600, color: "#4285f4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -2649,9 +2649,11 @@ function Dashboard() {
                       </div>
                       <div style={{ marginTop: 12, fontSize: 11, color: "var(--dim)", lineHeight: 1.8 }}>
                         <strong>Nasıl eklenir?</strong><br/>
-                        1. <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" style={{ color: "#4285f4" }}>Google Business</a> hesabınıza girin<br/>
-                        2. Profilinizi düzenle → "Randevu linki" alanına yapıştırın<br/>
-                        3. Kaydedin — Google Maps'te "Online rezervasyon yap" butonu görünecek
+                        1. <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" style={{ color: "#4285f4" }}>Google Business</a> hesabınıza giriş yapın<br/>
+                        2. 'Profili Düzenle' menüsünden 'İletişim' sekmesine geçin<br/>
+                        3. 'Randevu bağlantısı' alanına yukarıdaki linki yapıştırın<br/>
+                        <br/>
+                        <span style={{ color: "var(--muted)", fontStyle: "italic" }}>ℹ️ Profilinizin iletişim kısmında tıklanabilir bir randevu linki oluşacaktır. Google'ın linki onaylaması 24 saati bulabilir.</span>
                       </div>
                     </div>
                   )}
