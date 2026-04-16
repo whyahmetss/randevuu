@@ -237,6 +237,11 @@ router.get('/referans/ayarlar', authMiddleware, odemeKontrol, (req, res) => admi
 router.put('/referans/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.referansAyarlariGuncelle(req, res));
 router.get('/referans/rapor', authMiddleware, odemeKontrol, (req, res) => adminController.referansRaporu(req, res));
 
+// ==================== DOĞUM GÜNÜ PAZARLAMASI ====================
+router.get('/dogum-gunu/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.dogumGunuAyarlariGetir(req, res));
+router.put('/dogum-gunu/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.dogumGunuAyarlariGuncelle(req, res));
+router.post('/dogum-gunu/manuel-tetikle', authMiddleware, odemeKontrol, (req, res) => adminController.dogumGunuManuelTetikle(req, res));
+
 // ==================== SADAKAT PUAN SİSTEMİ ====================
 router.get('/sadakat/ayarlar', authMiddleware, odemeKontrol, featureGuard('sadakat'), (req, res) => adminController.sadakatAyarlariGetir(req, res));
 router.put('/sadakat/ayarlar', authMiddleware, odemeKontrol, featureGuard('sadakat'), (req, res) => adminController.sadakatAyarlariGuncelle(req, res));

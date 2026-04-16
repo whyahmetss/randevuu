@@ -88,10 +88,18 @@ class AdminController {
           }
         } catch (e) { console.error('Sadakat puan hatası:', e.message); }
 
-        // Referans: puan ver
+        // Referans: puan ver (kodla gelen davetliyse) + davet mesajı gönder (viral döngü)
         try {
-          const mRef = (await pool.query('SELECT telefon FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
-          if (mRef) { const referans = require('../services/referans'); await referans.referansPuanVer(isletmeId, randevu.musteri_id, mRef.telefon); }
+          const mRef = (await pool.query('SELECT telefon, isim FROM musteriler WHERE id=$1', [randevu.musteri_id])).rows[0];
+          if (mRef) {
+            const referans = require('../services/referans');
+            await referans.referansPuanVer(isletmeId, randevu.musteri_id, mRef.telefon);
+            // 🎁 Viral döngü — müşteriye kendi referans kodunu ve davet mesajını gönder
+            // 5 saniye sonra gönder ki diğer mesajlarla (yorum/sadakat) çakışmasın
+            setTimeout(() => {
+              referans.davetMesajiGonder(isletmeId, randevu.musteri_id, mRef.telefon, mRef.isim).catch(()=>{});
+            }, 5000);
+          }
         } catch (e) { /* skip */ }
 
         // Yorum Avcısı: talebi oluştur
@@ -3696,6 +3704,63 @@ class AdminController {
         loglar,
         istatistik: { toplam: parseInt(stat.toplam), basarili: parseInt(stat.basarili) }
       });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // ==================== DOĞUM GÜNÜ PAZARLAMASI ====================
+
+  async dogumGunuAyarlariGetir(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const isletme = (await pool.query(
+        'SELECT dogum_gunu_aktif, dogum_gunu_indirim, dogum_gunu_mesaj_sablonu FROM isletmeler WHERE id=$1',
+        [isletmeId]
+      )).rows[0];
+
+      const istatistik = (await pool.query(
+        `SELECT COUNT(*) as toplam,
+          COUNT(*) FILTER (WHERE gonderim_tarihi >= NOW() - INTERVAL '30 days') as son_30_gun
+         FROM dogum_gunu_log WHERE isletme_id = $1`,
+        [isletmeId]
+      )).rows[0];
+
+      const bugunDogumGunu = (await pool.query(
+        `SELECT COUNT(*) as sayi FROM musteriler
+         WHERE isletme_id = $1 AND dogum_tarihi IS NOT NULL
+           AND EXTRACT(MONTH FROM dogum_tarihi) = EXTRACT(MONTH FROM CURRENT_DATE)
+           AND EXTRACT(DAY FROM dogum_tarihi) = EXTRACT(DAY FROM CURRENT_DATE)`,
+        [isletmeId]
+      )).rows[0];
+
+      res.json({
+        ayarlar: isletme || {},
+        istatistik: {
+          toplam_gonderilen: parseInt(istatistik.toplam || 0),
+          son_30_gun: parseInt(istatistik.son_30_gun || 0),
+          bugun_dogum_gunu: parseInt(bugunDogumGunu.sayi || 0)
+        }
+      });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async dogumGunuAyarlariGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { dogum_gunu_aktif, dogum_gunu_indirim, dogum_gunu_mesaj_sablonu } = req.body;
+      await pool.query(
+        `UPDATE isletmeler SET dogum_gunu_aktif=$1, dogum_gunu_indirim=$2, dogum_gunu_mesaj_sablonu=$3 WHERE id=$4`,
+        [!!dogum_gunu_aktif, dogum_gunu_indirim || 30, dogum_gunu_mesaj_sablonu || null, isletmeId]
+      );
+      res.json({ mesaj: 'Doğum günü ayarları güncellendi' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async dogumGunuManuelTetikle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const dogumGunu = require('../services/dogumGunu');
+      const sonuc = await dogumGunu.manuelTarama(isletmeId);
+      res.json(sonuc);
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 

@@ -11,6 +11,7 @@ import YorumAvcisi from "./components/Settings/YorumAvcisi";
 import Winback from "./components/Winback/Winback";
 import Sadakat from "./components/Sadakat/Sadakat";
 import Referans from "./components/Referans/Referans";
+import DogumGunu from "./components/DogumGunu/DogumGunu";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -990,6 +991,7 @@ function Dashboard() {
     { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
     { id: "sadakat", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>, label: "Sadakat", featureKey: "sadakat" },
     { id: "referans", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>, label: "Referans" },
+    { id: "dogumgunu", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-8H4v8"/><path d="M1 21h22"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg>, label: "Doğum Günü" },
     { id: "finans", icon: SVG.finans, label: "Finans" },
     { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
     { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
@@ -2552,6 +2554,11 @@ function Dashboard() {
           {/* ── REFERANS ── */}
           {sayfa === "referans" && (
             <Referans api={api} />
+          )}
+
+          {/* ── DOĞUM GÜNÜ ── */}
+          {sayfa === "dogumgunu" && (
+            <DogumGunu api={api} />
           )}
 
           {/* ── KASA ── */}

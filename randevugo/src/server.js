@@ -425,6 +425,20 @@ const PORT = process.env.PORT || 3000;
       tarih TIMESTAMP DEFAULT NOW()
     )`);
 
+    // ─── DOĞUM GÜNÜ PAZARLAMASI ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_aktif BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_indirim INTEGER DEFAULT 30`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_mesaj_sablonu TEXT`);
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS dogum_tarihi DATE`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS dogum_gunu_log (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
+      indirim INTEGER,
+      durum VARCHAR(20) DEFAULT 'gonderildi',
+      gonderim_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+
     // ─── SATIŞ BOT ŞABLONLAR ───
     await pool.query(`CREATE TABLE IF NOT EXISTS satis_bot_sablonlar (
       id SERIAL PRIMARY KEY,
@@ -713,6 +727,8 @@ app.listen(PORT, () => {
     hatirlatmaService.baslat();
     // Gece raporu servisi + Haftalık rapor
     try { const geceRaporu = require('./services/geceRaporu'); geceRaporu.baslat(); geceRaporu.haftalikCronBaslat(); } catch (e) { console.error('Gece raporu başlatma hatası:', e.message); }
+    // 🎂 Doğum günü pazarlaması (her gün 10:00)
+    try { const dogumGunu = require('./services/dogumGunu'); dogumGunu.baslat(); } catch (e) { console.error('Doğum günü servisi başlatma hatası:', e.message); }
   }
 
   // Google Yorum Feedback cron (Premium)

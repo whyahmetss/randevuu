@@ -94,6 +94,56 @@ class ReferansService {
     }
   }
 
+  // Randevu tamamlandıktan sonra müşteriye "Arkadaşını getir" davet mesajı gönder (VİRAL DÖNGÜ)
+  async davetMesajiGonder(isletmeId, musteriId, musteriTelefon, musteriIsim) {
+    try {
+      const isletme = (await pool.query(
+        `SELECT id, isim, referans_aktif, referans_puan_davet, referans_puan_davetli, telegram_token FROM isletmeler WHERE id=$1`,
+        [isletmeId]
+      )).rows[0];
+      if (!isletme?.referans_aktif) return;
+
+      // Müşterinin referans kodunu al/üret
+      const kod = await this.kodUret(isletmeId, musteriId);
+      const ad = (musteriIsim || '').split(' ')[0] || 'Değerli müşterimiz';
+      const puanDavet = isletme.referans_puan_davet || 200;
+      const puanDavetli = isletme.referans_puan_davetli || 100;
+
+      const mesaj = `Merhaba ${ad}, bugün *${isletme.isim}*'ye geldiğin için teşekkürler 🙏\n\n` +
+        `🎁 *ARKADAŞINI GETİR, İKİNİZ DE KAZAN!*\n\n` +
+        `Bu kodu bir arkadaşına gönder:\n` +
+        `🔑 *${kod}*\n\n` +
+        `✨ Arkadaşın ilk randevusunda *${puanDavetli} puan* (indirim) kazanır\n` +
+        `✨ Sen bir sonraki gelişinde *${puanDavet} puan* (hediye hizmet) kazanırsın\n\n` +
+        `Randevu için: Mesaj at → Kod ${kod} yaz → Arkadaşın hediyeyle gelsin 🎉`;
+
+      // Telegram mı WhatsApp mı?
+      const isTelegram = musteriTelefon && musteriTelefon.startsWith('tg:');
+      if (isTelegram && isletme.telegram_token) {
+        try {
+          const telegram = require('./telegram');
+          const chatId = musteriTelefon.slice(3);
+          const bot = telegram.botlar?.[isletmeId];
+          if (bot) {
+            await bot.sendMessage(chatId, mesaj, { parse_mode: 'Markdown' });
+          }
+        } catch(e) { console.log('⚠️ Referans TG gönderim hatası:', e.message); }
+      } else if (!isTelegram) {
+        try {
+          const whatsappWeb = require('./whatsappWeb');
+          const waDurum = whatsappWeb.getDurum(isletmeId);
+          if (waDurum?.durum === 'bagli') {
+            await whatsappWeb.mesajGonder(isletmeId, musteriTelefon, mesaj);
+          }
+        } catch(e) { console.log('⚠️ Referans WA gönderim hatası:', e.message); }
+      }
+
+      console.log(`🎁 Referans davet mesajı gönderildi: ${ad} (${musteriTelefon}) kod=${kod}`);
+    } catch (e) {
+      console.error('Referans davet mesajı hatası:', e.message);
+    }
+  }
+
   // Bot'tan referans kodu sorgulama
   async kodSorgula(isletmeId, musteriTelefon) {
     const musteri = (await pool.query(
