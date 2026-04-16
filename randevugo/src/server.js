@@ -445,8 +445,8 @@ const PORT = process.env.PORT || 3000;
     const mevcutSablon = (await pool.query('SELECT COUNT(*) as c FROM satis_bot_sablonlar')).rows[0];
     if (parseInt(mevcutSablon.c) === 0) {
       await pool.query(`INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES
-        ('Acı Noktası', 'Selam {isletme_sahibi} Bey. Müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel'),
-        ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi} Bey. Müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')
+        ('Acı Noktası', 'Selam {isletme_sahibi}, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel'),
+        ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')
       `);
     }
 
@@ -455,17 +455,19 @@ const PORT = process.env.PORT || 3000;
     try {
       // "Soru Soran" → pasif
       await pool.query("UPDATE satis_bot_sablonlar SET aktif = false WHERE isim = 'Soru Soran' AND aktif = true");
+      // "Bey" kaldır — cinsiyet nötr
+      await pool.query("UPDATE satis_bot_sablonlar SET mesaj = REPLACE(mesaj, '{isletme_sahibi} Bey', '{isletme_sahibi}') WHERE mesaj LIKE '%{isletme_sahibi} Bey%'");
       // "Değer Öneren" ve "Rakip Müşterisi" → sil (0 gönderim veya düşük performans)
       await pool.query("DELETE FROM satis_bot_sablonlar WHERE isim = 'Değer Öneren' AND gonderilen = 0");
       await pool.query("DELETE FROM satis_bot_sablonlar WHERE isim = 'Rakip Müşterisi'");
       // Yeni şablonlar (yoksa ekle)
       const aciNokta = (await pool.query("SELECT id FROM satis_bot_sablonlar WHERE isim = 'Acı Noktası'")).rows[0];
       if (!aciNokta) {
-        await pool.query("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Acı Noktası', 'Selam {isletme_sahibi} Bey. Müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel')");
+        await pool.query("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Acı Noktası', 'Selam {isletme_sahibi}, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel')");
       }
       const kolaylik = (await pool.query("SELECT id FROM satis_bot_sablonlar WHERE isim = 'Kolaylık Odaklı'")).rows[0];
       if (!kolaylik) {
-        await pool.query("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi} Bey. Müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')");
+        await pool.query("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')");
       }
       console.log('✅ Satış bot şablonları v2 güncellendi');
     } catch(e) { console.log('⚠️ Şablon güncelleme notu:', e.message); }
