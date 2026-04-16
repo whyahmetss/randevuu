@@ -18,41 +18,37 @@ function turkiyeSaati() {
 // ═══════════════════════════════════════════════════
 const MESAJ_SABLONLARI = {
   berber: [
-    (ad) => `Merhabalar 🙂\n\n${ad} berber dükkanınızı inceledik, müşteri yorumlarınız çok olumlu!\n\nİşletmenize özel online randevu sistemi kuruyoruz. Müşterileriniz sıra beklemeden telefondan randevu alır, WhatsApp ile otomatik hatırlatma gider.\n\nİlk ay tamamen ücretsiz — denemek ister misiniz?`,
-    (ad) => `Merhaba, iyi günler 🙂\n\n${ad} için harika bir çözümümüz var! Müşterileriniz artık telefonla aramak yerine 7/24 online randevu alabilir.\n\nSıra bekleme sorunu biter, WhatsApp hatırlatıcı ile randevu kaçırma olmaz.\n\nİlk ay ücretsiz deneyin — ilgilenir misiniz?`,
-    (ad) => `Selam, iyi çalışmalar 🙂\n\nBiz SıraGO olarak berber dükkanlarına özel randevu sistemi kuruyoruz.\n\n${ad} için mükemmel olur: müşterileriniz telefondan randevu alır, siz de WhatsApp ile hatırlatma gönderirsiniz.\n\nÜcretsiz deneme hakkınız var — bilgi verebilir miyim?`,
+    (ad) => `Selam, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir.\n\n${ad} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz?\n\nSistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.`,
+    (ad) => `Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz bir sistem kurduk.\n\n${ad} için ilk ay ücretsiz — demo linki göndereyim mi?`,
   ],
   'kuaför': [
-    (ad) => `Merhabalar 🙂\n\n${ad} salonunuzu inceledik, çok şık çalışmalarınız var!\n\nMüşterileriniz 7/24 online randevu alsın, randevu öncesi WhatsApp hatırlatma gitsin, unutulan randevular bitsin.\n\nBiz SıraGO olarak bu sistemi sizin için kuruyoruz. İlk ay ücretsiz — detay vermemi ister misiniz?`,
-    (ad) => `Merhaba, günaydın 🙂\n\n${ad} için profesyonel bir randevu sistemi sunuyoruz. Müşterileriniz telefonla aramak zorunda kalmaz, online randevu alır.\n\nWhatsApp ile otomatik hatırlatma gider, randevu kaçırma biter.\n\nİlk ay bizden — denemek ister misiniz?`,
-    (ad) => `İyi günler 🙂\n\nSalonunuzu inceledik ve dijital randevu sistemiyle işlerinizi kolaylaştırabileceğimizi düşündük.\n\n${ad} müşterileri 7/24 randevu alabilir, WhatsApp ile hatırlatma alır.\n\nÜcretsiz deneme hakkınız var — ilgilenir misiniz?`,
+    (ad) => `Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi aktif ettik.\n\n${ad} için ilk ay ücretsiz geçiş — 5 dakikalık demo linki göndereyim mi?`,
+    (ad) => `Selam, müşteri saçını boyatırken telefon çalıyor, açamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n${ad} randevularını WhatsApp botu otomatik alsın. İlk ay ücretsiz, demo atayım mı?`,
   ],
   'güzellik salonu': [
-    (ad) => `Merhabalar 🙂\n\n${ad} güzellik salonunuzu inceledik, hizmetleriniz çok kapsamlı!\n\nMüşterileriniz hizmet seçip anında online randevu alabilir. WhatsApp hatırlatıcı ile randevu kaçırma biter.\n\nİlk ay bizden — denemek ister misiniz? 🙏`,
-    (ad) => `Merhaba, iyi günler 🙂\n\n${ad} için harika bir çözüm: müşterileriniz telefondan hizmet seçip randevu alsın, WhatsApp ile hatırlatma gitsin.\n\nTek panelden tüm randevuları yönetin. İlk ay ücretsiz — ne dersiniz?`,
-    (ad) => `Selam 🙂\n\nGüzellik salonunuz için dijital randevu sistemi kuruyoruz. ${ad} müşterileri online randevu alır, hatırlatma mesajı alır.\n\nİlk ay tamamen ücretsiz — bilgi verebilir miyim?`,
+    (ad) => `Selam, saçtan tırnağa 10 farklı hizmetiniz var ama müşteri telefon açıp "bugün müsait misiniz" diye soruyor değil mi?\n\n${ad} için hizmet seçimli online randevu botu kurduk. Müşteri kendisi seçiyor, siz onaylıyorsunuz. İlk ay ücretsiz — bakmak ister misiniz?`,
+    (ad) => `Merhaba, müşterileriniz hizmet seçip WhatsApp'tan kendi kendine randevu alsın, siz müşteriyle ilgilenin.\n\n${ad} için ilk ay ücretsiz. 2 dakikada aktif — demo atayım mı?`,
   ],
   'dövme': [
-    (ad) => `Merhabalar 🙂\n\n${ad} stüdyonuzu inceledik, çok güzel çalışmalarınız var!\n\nMüşterileriniz telefondan randevu alsın, WhatsApp ile otomatik hatırlatma gitsin. Randevu karışıklığına son verin.\n\nİlk ay tamamen ücretsiz — ilgilenirseniz demo gösterebilirim.`,
-    (ad) => `Merhaba 🙂\n\n${ad} için online randevu sistemi sunuyoruz. Müşterileriniz 7/24 randevu alabilir, siz de WhatsApp ile hatırlatma gönderirsiniz.\n\nİlk ay bizden — denemek ister misiniz?`,
-    (ad) => `İyi günler 🙂\n\nDövme stüdyonuz için profesyonel randevu yönetim sistemi kuruyoruz.\n\n${ad} müşterileri telefonla aramak yerine online randevu alsın. WhatsApp hatırlatıcı dahil.\n\nÜcretsiz deneyin — ne dersiniz?`,
+    (ad) => `Selam, dövme randevusu uzun süreç — mesajlaşma, tasarım onayı, tarih ayarlama. Hepsini tek yerden yönetebileceğiniz bir sistem kurduk.\n\n${ad} için ilk ay ücretsiz. Demo atayım mı?`,
+    (ad) => `Merhaba, ${ad} müşterileri WhatsApp'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\nİlk ay ücretsiz — bakmak ister misiniz?`,
   ],
   'diş kliniği': [
-    (ad) => `Merhabalar 🙂\n\n${ad} kliniğinizi inceledik, hasta yorumlarınız çok olumlu!\n\nHastalarınız 7/24 online randevu alabilir, randevu öncesi otomatik WhatsApp hatırlatma gider.\n\nSekreter yükünü azaltır, randevu kaçırma oranı düşer. İlk ay ücretsiz — denemek ister misiniz?`,
-    (ad) => `Merhaba, iyi günler 🙂\n\n${ad} için dijital randevu çözümü sunuyoruz. Hastalarınız telefonla aramadan online randevu alır.\n\nWhatsApp ile otomatik hatırlatma gider. İlk ay bizden — ilgilenir misiniz?`,
+    (ad) => `Merhaba, hasta telefonla randevu alıp gelmiyor — sekreter gününün yarısını telefonda geçiriyor.\n\n${ad} için otomatik randevu + WhatsApp hatırlatma sistemi kurduk. İptal oranı %80 düşüyor. Demo atayım mı?`,
+    (ad) => `Selam, hastalarınız 7/24 online randevu alsın, randevu öncesi otomatik WhatsApp hatırlatma gitsin.\n\n${ad} için ilk ay ücretsiz — sekreter yükünü azaltmak ister misiniz?`,
   ],
   'veteriner': [
-    (ad) => `Merhabalar 🙂\n\n${ad} kliniğinizi inceledik, hayvan severler tarafından çok seviliyorsunuz!\n\nMüşterileriniz evcil dostları için 7/24 online randevu alabilir. WhatsApp hatırlatıcı ile randevular unutulmaz.\n\nİlk ay tamamen ücretsiz — ilgilenirseniz detay verebilirim 🙏`,
-    (ad) => `Merhaba 🙂\n\nVeteriner kliniğiniz için online randevu sistemi kuruyoruz. ${ad} müşterileri telefondan randevu alsın, WhatsApp ile hatırlatma alsın.\n\nİlk ay ücretsiz — ne dersiniz?`,
+    (ad) => `Merhaba, evcil hayvan sahipleri genelde acil arıyor ama siz muayenedeyken telefona bakamıyorsunuz.\n\n${ad} için WhatsApp'tan 7/24 otomatik randevu sistemi kurduk. İlk ay ücretsiz — demo atayım mı?`,
+    (ad) => `Selam, ${ad} müşterileri evcil dostları için WhatsApp'tan randevu alsın, hatırlatma otomatik gitsin.\n\nİlk ay ücretsiz — bakmak ister misiniz?`,
   ],
   'spa': [
-    (ad) => `Merhabalar 🙂\n\n${ad} salonunuzu inceledik, çok huzurlu bir mekan!\n\nMüşterileriniz hizmet ve saat seçip online randevu alsın. WhatsApp ile otomatik hatırlatma gitsin.\n\nİlk ay bizden — denemek ister misiniz?`,
+    (ad) => `Merhaba, müşterileriniz hizmet ve saat seçip WhatsApp'tan kendi kendine randevu alsın. Siz rahat edin.\n\n${ad} için ilk ay ücretsiz — demo atayım mı?`,
   ],
   'tırnak salonu': [
-    (ad) => `Merhabalar 🙂\n\n${ad} sayfanızı inceledik, nail art çalışmalarınız muhteşem!\n\nMüşterileriniz hizmet seçip online randevu alsın, WhatsApp ile hatırlatma gitsin.\n\nİlk ay ücretsiz deneyin — ne dersiniz?`,
+    (ad) => `Selam, müşteriniz işlem sırasında telefonunuza bakamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n${ad} için WhatsApp randevu botu kurduk. İlk ay ücretsiz — bakmak ister misiniz?`,
   ],
   'diyetisyen': [
-    (ad) => `Merhabalar 🙂\n\n${ad} sayfanızı inceledik, danışanlarınız çok memnun!\n\nDanışanlarınız 7/24 online randevu alabilir, WhatsApp ile hatırlatma gider.\n\nİlk ay ücretsiz — detay vermemi ister misiniz?`,
+    (ad) => `Merhaba, danışanlarınız 7/24 WhatsApp'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\n${ad} için ilk ay ücretsiz — demo atayım mı?`,
   ],
   default: [
     (ad) => `Selam, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. ${ad} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.`,
@@ -102,9 +98,9 @@ class SatisBot extends EventEmitter {
     this.ayarlar = {
       mesaiBaslangic: 9,   // saat
       mesaiBitis: 19,       // saat
-      gunlukLimit: 50,
-      minBekleme: 8,        // dakika
-      maxBekleme: 15,       // dakika
+      gunlukLimit: 80,
+      minBekleme: 5,        // dakika
+      maxBekleme: 10,       // dakika
       tatil: false,         // bugün tatil mi
       hedefKategori: '',    // boş = tüm kategoriler, değilse sadece o kategori
       // Yeni gelişmiş ayarlar
@@ -1465,61 +1461,106 @@ class SatisBot extends EventEmitter {
     const mesajLower = musteriMesaj.toLowerCase().replace(/[?!.,]/g, '');
     const ad = konusma.isletme_adi || 'işletmeniz';
 
-    // Olumsuz / red cevapları
+    // ─── RED / OLUMSUZ ───
     const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz',
       'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın', 'yazmayin',
       'beni arama', 'aramayın', 'aramayin', 'mesaj atma', 'engel', 'darlamayın', 'darlama',
       'ilgilenmem', 'istemem', 'yok teşekkürler', 'teşekkür ederim gerek yok', 'sağol gerek yok',
-      'ben dönerim', 'ben döneceğim', 'ben donerim', 'ben ararım', 'ben ararim',
-      'sizi ararız', 'biz ararız', 'gerekirse ararız', 'gerekirse döneriz',
-      'şu an ilgilenmiyorum', 'şimdilik gerek yok', 'şimdilik istemiyorum',
-      'anlamıyorum bu konulardan', 'bilgilenemiyo', 'anlamıyo'];
+      'şu an ilgilenmiyorum', 'şimdilik gerek yok', 'şimdilik istemiyorum'];
     if (redKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Anlıyorum, rahatsız ettiysem özür dilerim 🙏\n\nFikrinizi değiştirirseniz bize ulaşabilirsiniz: sırago.com\n\nİyi çalışmalar dilerim! 🙂`,
+        mesaj: `Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏`,
         durum: 'olumsuz'
       };
     }
 
-    // Fiyat soruları
-    const fiyatKelimeler = ['fiyat', 'ücret', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'pahalı', 'pahali', 'para', 'maliyet', 'aylık', 'aylik'];
-    if (fiyatKelimeler.some(k => mesajLower.includes(k))) {
+    // ─── KİBAR RED (ben ararım / düşüneyim / dönerim) ───
+    const kibarRedKelimeler = ['ben dönerim', 'ben döneceğim', 'ben donerim', 'ben ararım', 'ben ararim',
+      'sizi ararız', 'biz ararız', 'gerekirse ararız', 'gerekirse döneriz',
+      'düşüneyim', 'dusuneyim', 'düşüneceğim', 'sonra bakarım', 'sonra bakarim',
+      'bi düşüneyim', 'bakayım', 'bakalım', 'sonra'];
+    if (kibarRedKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Harika soru! 💰\n\nİlk ay tamamen ÜCRETSİZ — hiçbir ödeme yok, kart bilgisi istemiyoruz.\n\nSonra:\n• Başlangıç: 299₺/ay (1 çalışan)\n• Profesyonel: 599₺/ay (5 çalışana kadar)\n• Premium: 999₺/ay (sınırsız)\n\nGünde bir kahve parası ile müşteri kaybını %80 azaltırsınız ☕\n\nÜcretsiz denemeyi hemen başlatayım mı? 👉 sırago.com`,
-        durum: 'olumlu'
-      };
-    }
-
-    // Ne olduğunu sorma / merak
-    const merakKelimeler = ['nedir', 'ne', 'nasıl', 'nasil', 'anlamadım', 'anlamadim', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'ne yapıyor', 'ne yapiyor', 'özellik'];
-    if (merakKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Tabii, kısaca anlatayım 😊\n\nSıraGO, ${ad} için online randevu sistemi:\n\n✅ Müşterileriniz 7/24 telefondan randevu alır\n✅ WhatsApp ile otomatik hatırlatma gider\n✅ Randevu kaçırma oranı %80 düşer\n✅ Tüm yönetimi tek panelden yaparsınız\n\nSektörünüzdeki işletmeler bunu kullanarak müşteri memnuniyetini ciddi artırdı.\n\nÜcretsiz deneyin: sırago.com 🚀`,
-        durum: 'olumlu'
-      };
-    }
-
-    // Olumlu / ilgi gösteren
-    const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'bakalım', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'güzel', 'iyi', 'süper', 'harika'];
-    if (olumluKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Harika! 🎉\n\nHemen başlayalım! Şu adrese girin:\n👉 sırago.com\n\n30 saniyede kayıt olun, sistemi hemen kullanmaya başlayın. İlk ay tamamen ücretsiz!\n\nKurulumda yardıma ihtiyacınız olursa ben buradayım 💪`,
-        durum: 'olumlu'
-      };
-    }
-
-    // Selam / merhaba
-    const selamKelimeler = ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'gunaydin', 'günaydın'];
-    if (selamKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Merhabalar! 🙂\n\n${ad} için online randevu sistemi hakkında yazmıştım. Müşterileriniz telefonla aramak yerine 7/24 online randevu alabilir.\n\nİlk ay tamamen ücretsiz — denemek ister misiniz?\n\n👉 sırago.com`,
+        mesaj: `Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sirago.com`,
         durum: 'bekliyor'
       };
     }
 
-    // Genel / bilinmeyen mesajlar — kibar ve kısa
+    // ─── FİYAT SORUSU ───
+    const fiyatKelimeler = ['fiyat', 'ücret', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'para', 'maliyet', 'aylık', 'aylik'];
+    if (fiyatKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `İlk ay sıfır lira. Sonrası günde 10₺. Bir müşteri kaçırmak bundan pahalı.`,
+        durum: 'olumlu'
+      };
+    }
+
+    // ─── PAHALI İTİRAZI ───
+    const pahaliKelimeler = ['pahalı', 'pahali', 'çok para', 'cok para', 'param yok', 'bütçe', 'butce', 'ekonomi', 'karşılayamam'];
+    if (pahaliKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Günde 1 müşteri kaçırmak ayda 3000₺ kayıp. Sistem ayda 299₺. Kendini 3 günde amorti ediyor.`,
+        durum: 'olumlu'
+      };
+    }
+
+    // ─── TEKNOLOJİ İTİRAZI ───
+    const teknolojiKelimeler = ['bilmem', 'anlamam', 'teknoloji', 'bilgisayar', 'zor', 'yapamam', 'kurulum', 'anlamıyorum'];
+    if (teknolojiKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `WhatsApp kullanıyorsan yeterli. Biz kuruyoruz, sen sadece telefondan bakıyorsun. 5 dakika.`,
+        durum: 'olumlu'
+      };
+    }
+
+    // ─── TELEFONLA HALLEDİYORUM İTİRAZI ───
+    const telefonKelimeler = ['telefonla', 'zaten yapıyoruz', 'zaten yapiyoruz', 'hallediyoruz', 'hallediyorum', 'gerek duymuyoruz', 'ihtiyacımız yok'];
+    if (telefonKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Telefonla hallediyorsun ama müşteri işlemdeyken çalan telefona bakamıyorsun. O arayan rakibe gidiyor.`,
+        durum: 'olumlu'
+      };
+    }
+
+    // ─── MÜSAİT DEĞİLİM ───
+    const musaitKelimeler = ['müsait değilim', 'musait degilim', 'meşgulüm', 'mesgulum', 'yoğunum', 'yogunum', 'şimdi olmaz', 'sonra yaz'];
+    if (musaitKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sirago.com`,
+        durum: 'bekliyor'
+      };
+    }
+
+    // ─── MERAK / BİLGİ ───
+    const merakKelimeler = ['nedir', 'nasıl', 'nasil', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'ne yapıyor', 'ne yapiyor', 'özellik'];
+    if (merakKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Müşterilerin WhatsApp'tan 7/24 randevu alıyor, otomatik hatırlatma gidiyor. ${ad} için ilk ay ücretsiz 👉 sirago.com`,
+        durum: 'olumlu'
+      };
+    }
+
+    // ─── OLUMLU / İLGİ ───
+    const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'süper', 'harika', 'güzel'];
+    if (olumluKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Süper! sirago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz �`,
+        durum: 'olumlu'
+      };
+    }
+
+    // ─── SELAM ───
+    const selamKelimeler = ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'gunaydin', 'günaydın'];
+    if (selamKelimeler.some(k => mesajLower.includes(k))) {
+      return {
+        mesaj: `Selam! ${ad} için randevu sistemi hakkında yazmıştım. Müşterilerin WhatsApp'tan randevu alsın, ilk ay ücretsiz. Bakmak ister misin?`,
+        durum: 'bekliyor'
+      };
+    }
+
+    // ─── GENEL ───
     return {
-      mesaj: `Teşekkürler yanıtınız için! 🙏\n\n${ad} için online randevu sistemi hakkında merak ettiğiniz bir şey olursa sırago.com'dan bilgi alabilirsiniz.\n\nİyi çalışmalar! �`,
+      mesaj: `Teşekkürler! Merak ettiğin olursa yaz, link burada 👉 sirago.com`,
       durum: 'bekliyor'
     };
   }
@@ -1556,59 +1597,47 @@ class SatisBot extends EventEmitter {
 📦 Profesyonel (999₺/ay): 3 çalışan, 20 hizmet, sınırsız randevu, Telegram, istatistik, export`;
     }
 
-    const prompt = `Sen profesyonel ve saygılı bir satış danışmanısın. Kibar ve yardımseversin. Müşteriye yardımcı olmak istiyorsun ama ASLA ISRAR ETMİYORSUN.
+    const prompt = `Sen SıraGO satış asistanısın. Esnafla WhatsApp'tan konuşuyorsun. Gerçek bir insan gibi yaz.
 
-SEN KİMSİN: SıraGO satış temsilcisi (Gerçek bir insan gibi yaz, BOT olduğun belli olmasın)
-NE SATIYORSUN: İşletmelere online randevu & müşteri yönetim sistemi
+═══ İŞLETME ═══
+${konusma.isletme_adi} (${konusma.kategori})
 
-═══ PAKET DETAYLARI ═══
+═══ PAKETLER ═══
 ${paketBilgiStr}
+İlk ay tamamen ücretsiz — kart bilgisi yok, 2 dakikada kurulum.
 
-═══ ÜRÜN ÖZELLİKLERİ ═══
-🔹 7/24 online randevu: Müşteriler WhatsApp/Telegram üzerinden anında randevu alır, siz uğraşmazsınız
-🔹 Akıllı WhatsApp botu: Müşterilerle otomatik konuşur, hizmet seçtirir, randevu oluşturur
-🔹 Otomatik hatırlatma: Randevu öncesi müşteriye WhatsApp ile otomatik hatırlatma — randevu kaçırma %80 azalır
-🔹 Tek panel yönetimi: Randevu, müşteri, çalışan, hizmet, finans hepsi tek ekrandan
-🔹 Çalışan yönetimi: Her çalışana ayrı mesai saati, mola saati, kapalı gün tanımlama
-🔹 Müşteri CRM: Müşteri kartları, etiketleme, geçmiş randevular, harcama takibi
-🔹 Kapora sistemi: Online ödeme ile kapora alma, no-show azaltma
-🔹 Google Calendar entegrasyonu: Randevular otomatik takvime düşer
-🔹 Çok dilli destek: Türkçe, İngilizce, Arapça bot desteği
-🔹 İstatistik & grafik: Haftalık/aylık randevu, gelir, hizmet dağılımı grafikleri
-🔹 Excel export: Müşteri listesi, randevu verileri dışa aktarma
-🔹 Telegram botu: WhatsApp'a ek olarak Telegram kanalından da randevu alma
-🔹 İLK 7 GÜN TAMAMEN ÜCRETSİZ — kart bilgisi istemiyoruz, 2 dakikada kurulum
+═══ KONUŞMA ═══
+İlk mesajımız: ${konusma.gonderilen_mesaj?.slice(0, 200)}
+Geçmiş: ${konusmaGecmisi.slice(-800)}
+MÜŞTERİ SON MESAJ: "${musteriMesaj}"
+Mesaj sayısı: ${mesajSayisi}
 
-═══ KONUŞMA BİLGİLERİ ═══
-İşletme: ${konusma.isletme_adi} (Kategori: ${konusma.kategori})
-İlk mesajımız: ${konusma.gonderilen_mesaj?.slice(0, 300)}
-Konuşma geçmişi: ${konusmaGecmisi.slice(-1000)}
-
-MÜŞTERİNİN SON MESAJI: "${musteriMesaj}"
-Bu konuşmada müşteri ${mesajSayisi}. kez cevap veriyor.
+═══ İTİRAZ KIRICI HAZIR CEVAPLAR (BİREBİR KULLAN) ═══
+"Fiyatı ne / ne kadar" → "İlk ay sıfır lira. Sonrası günde 10₺. Bir müşteri kaçırmak bundan pahalı."
+"Telefonla hallediyorum" → "Telefonla hallediyorsun ama müşteri işlemdeyken çalan telefona bakamıyorsun. O arayan rakibe gidiyor."
+"Teknoloji bilmem" → "WhatsApp kullanıyorsan yeterli. Biz kuruyoruz, sen sadece telefondan bakıyorsun. 5 dakika."
+"Düşüneyim / sonra bakarım" → "Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sirago.com"
+"Pahalı / param yok" → "Günde 1 müşteri kaçırmak ayda 3000₺ kayıp. Sistem ayda 299₺. Kendini 3 günde amorti ediyor."
+"Şimdi müsait değilim / meşgulüm" → "Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sirago.com"
+"Hayır / istemiyorum / gerek yok" → Kibarca veda et, ISRAR ETME: "Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏"
+"Arayın / ben dönerim / ben ararım" → Bu KİBAR REDDİR: "Tamam, link bırakıyorum lazım olursa 👉 sirago.com. İyi çalışmalar!"
 
 ═══ SATIŞ STRATEJİN ═══
-1. Müşteri "merhaba/selam/bilgi" derse → işletmesine uygun paketi öner, 2-3 somut fayda söyle, ücretsiz denemeyi vurgula
-2. Müşteri belirli bir paket sorarsa → O paketin TÜM özelliklerini madde madde anlat, rakamlarla (kaç çalışan, kaç randevu vs.)
-3. Müşteri "fark ne / karşılaştır" derse → paketleri karşılaştır, hangisinin ona uygun olduğunu söyle
-4. Müşteri fiyat sorarsa → günlük maliyeti hesapla, "günde bir kahve parası" gibi somutlaştır, ilk 7 gün ücretsiz vurgula
-5. Müşteri "nasıl çalışıyor" derse → adım adım anlat: kayıt ol → bot bağla → müşterilerin randevu alsın
-6. Müşteri ilgileniyorsa → hemen kayıt yönlendir: "Hemen kayıt olmak için *kayıt* yazabilirsiniz" de
-7. Müşteri tereddüt ediyorsa → işletmesine özel faydaları anlat (berber için randevu kuyruğu, kuaför için çalışan yönetimi vs.)
-8. Müşteri reddederse → HEMEN kabul et, kibar veda mesajı yaz, ISRAR ETME
-9. Müşteri "arayın/döneceğim/ben ararım" derse → bu KİBAR REDDİR, kabul et ve veda et
-10. ${mesajSayisi} > 4 ve hala karar vermemişse → son kez nazikçe hatırlat ve bırak
+1. İlgi varsa → tek fayda söyle + "kayıt yaz veya sirago.com'a gir" de
+2. Soru varsa → kısa cevap ver, 1-2 cümle
+3. İtiraz gelirse → yukarıdaki hazır cevapları BİREBİR kullan
+4. ${mesajSayisi} > 3 ve karar vermemişse → "Link bırakıyorum, vaktin olunca bakarsın 👉 sirago.com" yaz ve bırak
+5. Müşteri reddettiyse → kibarca veda et, bir daha yazma
 
-═══ KURALLAR ═══
-- Türkçe yaz, doğal ve samimi ol (gerçek bir satış danışmanı gibi)
-- Paket sorulduğunda DETAYLI cevap ver (7-10 cümle olabilir), genel sorularda kısa tut (3-5 cümle)
-- Kayıt linki olarak sırago.com VER veya "kayıt yazmak yeterli" de
-- ASLA "admin.sırago.com" yazma! Sadece "sırago.com" yaz
-- Emoji kullan ama abartma (max 3-4)
-- Müşterinin işletme adını kullan
-- ASLA "yapay zeka" veya "bot" olduğunu söyleme
-- Rakip ismi verme
-- Paket fiyatlarını doğru ver (DB'deki güncel fiyatlar yukarıda)
+═══ KESİN KURALLAR ═══
+- KISA YAZ. Maksimum 2-3 cümle. Esnafla konuşuyorsun, kurumsal paragraf YASAK.
+- Tek seferde tek mesaj yaz, maddeli liste YAPMA.
+- Emoji max 1-2, abartma.
+- Samimi ol — esnaf gibi konuş.
+- Kayıt linki: sirago.com. ASLA "admin.sirago.com" yazma.
+- ASLA "yapay zeka" veya "bot" olduğunu söyleme.
+- Uzun özellik listesi DÖKME. Tek fayda söyle, bitir.
+- Fiyat/itiraz gelirse HAZIR cevapları kullan, kendinden cümle KURMA.
 
 CEVABINI SADECE ŞU JSON FORMATINDA VER:
 {"mesaj": "müşteriye gönderilecek mesaj", "durum": "olumlu" veya "olumsuz" veya "bekliyor"}`;
@@ -1617,7 +1646,7 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
       const response = await axios.post('https://api.deepseek.com/chat/completions', {
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: 'Sen kibar ve saygılı bir satış danışmanısın. Müşteri ilgilenmiyorsa veya reddetmişse ASLA ISRAR ETME, kibarca veda et. Sadece JSON formatında yanıt ver, başka hiçbir şey yazma.' },
+          { role: 'system', content: 'Sen SıraGO satış asistanısın. Esnafla WhatsApp\'tan konuşuyorsun. KISA ve NET yaz — max 2-3 cümle. Kurumsal dil YASAK. Maddeli liste YAPMA. Müşteri reddetmişse ISRAR ETME, link bırak kapat. Sadece JSON formatında yanıt ver.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.8,
