@@ -723,6 +723,108 @@ class AdminController {
     }
   }
 
+  async demoVeriBas(req, res) {
+    const id = parseInt(req.params.id);
+    try {
+      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [id])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      // ─── ÇALIŞANLAR ───
+      const calisanlar = [
+        { isim: 'Ahmet Usta', telefon: '05551110001', uzmanlik: 'Erkek Kuaförü' },
+        { isim: 'Fatma Hanım', telefon: '05551110002', uzmanlik: 'Bayan Kuaförü' },
+        { isim: 'Mehmet', telefon: '05551110003', uzmanlik: 'Sakal & Cilt Bakım' },
+      ];
+      const calisanIds = [];
+      for (const c of calisanlar) {
+        const r = await pool.query(
+          'INSERT INTO calisanlar (isletme_id, isim, telefon, uzmanlik, aktif, calisma_saatleri) VALUES ($1,$2,$3,$4,true,$5) RETURNING id',
+          [id, c.isim, c.telefon, c.uzmanlik, JSON.stringify({pzt:{bas:'09:00',bit:'19:00'},sal:{bas:'09:00',bit:'19:00'},car:{bas:'09:00',bit:'19:00'},per:{bas:'09:00',bit:'19:00'},cum:{bas:'09:00',bit:'19:00'},cmt:{bas:'09:00',bit:'17:00'},paz:null})]
+        );
+        calisanIds.push(r.rows[0].id);
+      }
+
+      // ─── HİZMETLER ───
+      const hizmetler = [
+        { isim: 'Saç Kesim (Erkek)', sure: 30, fiyat: 200 },
+        { isim: 'Saç Kesim (Bayan)', sure: 45, fiyat: 350 },
+        { isim: 'Saç Boyama', sure: 90, fiyat: 600 },
+        { isim: 'Sakal Tıraş', sure: 20, fiyat: 100 },
+        { isim: 'Fön', sure: 30, fiyat: 150 },
+        { isim: 'Keratin Bakım', sure: 60, fiyat: 800 },
+      ];
+      const hizmetIds = [];
+      for (const h of hizmetler) {
+        const r = await pool.query(
+          'INSERT INTO hizmetler (isletme_id, isim, sure, fiyat, aktif) VALUES ($1,$2,$3,$4,true) RETURNING id',
+          [id, h.isim, h.sure, h.fiyat]
+        );
+        hizmetIds.push(r.rows[0].id);
+      }
+
+      // Çalışan-Hizmet eşleştirme
+      for (const cId of calisanIds) {
+        for (const hId of hizmetIds) {
+          await pool.query('INSERT INTO calisan_hizmetler (calisan_id, hizmet_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [cId, hId]);
+        }
+      }
+
+      // ─── MÜŞTERİLER ───
+      const musteriler = [
+        { isim: 'Ali Yılmaz', telefon: '+905321000001' },
+        { isim: 'Ayşe Demir', telefon: '+905321000002' },
+        { isim: 'Mehmet Kaya', telefon: '+905321000003' },
+        { isim: 'Fatma Şahin', telefon: '+905321000004' },
+        { isim: 'Emre Çelik', telefon: '+905321000005' },
+        { isim: 'Zeynep Arslan', telefon: '+905321000006' },
+        { isim: 'Burak Öztürk', telefon: '+905321000007' },
+        { isim: 'Selin Koç', telefon: '+905321000008' },
+        { isim: 'Cem Aydın', telefon: '+905321000009' },
+        { isim: 'Derya Güneş', telefon: '+905321000010' },
+        { isim: 'Hakan Polat', telefon: '+905321000011' },
+        { isim: 'Elif Yıldız', telefon: '+905321000012' },
+        { isim: 'Oğuz Kara', telefon: '+905321000013' },
+        { isim: 'Merve Aksoy', telefon: '+905321000014' },
+        { isim: 'Serkan Erdoğan', telefon: '+905321000015' },
+      ];
+      const musteriIds = [];
+      for (const m of musteriler) {
+        const r = await pool.query(
+          'INSERT INTO musteriler (isletme_id, isim, telefon, olusturma_tarihi) VALUES ($1,$2,$3, NOW() - INTERVAL \'1 day\' * (RANDOM()*60)::int) RETURNING id',
+          [id, m.isim, m.telefon]
+        );
+        musteriIds.push(r.rows[0].id);
+      }
+
+      // ─── RANDEVULAR (son 30 gün + gelecek 7 gün) ───
+      const durumlar = ['tamamlandi', 'tamamlandi', 'tamamlandi', 'tamamlandi', 'iptal', 'tamamlandi', 'bekliyor'];
+      const saatler = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];
+      let randevuSayisi = 0;
+      for (let gun = -30; gun <= 7; gun++) {
+        const randevuAdet = 2 + Math.floor(Math.random() * 4); // günde 2-5 randevu
+        for (let r = 0; r < randevuAdet; r++) {
+          const musteriId = musteriIds[Math.floor(Math.random() * musteriIds.length)];
+          const calisanId = calisanIds[Math.floor(Math.random() * calisanIds.length)];
+          const hizmetId = hizmetIds[Math.floor(Math.random() * hizmetIds.length)];
+          const saat = saatler[Math.floor(Math.random() * saatler.length)];
+          const durum = gun > 0 ? 'bekliyor' : durumlar[Math.floor(Math.random() * durumlar.length)];
+          await pool.query(
+            `INSERT INTO randevular (isletme_id, musteri_id, calisan_id, hizmet_id, tarih, saat, durum, kaynak, olusturma_tarihi)
+             VALUES ($1,$2,$3,$4, CURRENT_DATE + $5::int, $6, $7, $8, NOW() - INTERVAL '1 day' * (30 - $5::int))`,
+            [id, musteriId, calisanId, hizmetId, gun, saat, durum, ['bot','online','manuel'][Math.floor(Math.random()*3)]]
+          );
+          randevuSayisi++;
+        }
+      }
+
+      console.log(`✅ Demo veri basıldı: isletme=${id}, ${calisanIds.length} çalışan, ${hizmetIds.length} hizmet, ${musteriIds.length} müşteri, ${randevuSayisi} randevu`);
+      res.json({ mesaj: 'Demo veri başarıyla eklendi', calisanlar: calisanIds.length, hizmetler: hizmetIds.length, musteriler: musteriIds.length, randevular: randevuSayisi });
+    } catch (error) {
+      console.error('❌ Demo veri hatası:', error);
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   async isletmeSil(req, res) {
     const id = req.params.id;
     try {

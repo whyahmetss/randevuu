@@ -6802,6 +6802,17 @@ function SuperAdminPanel({ kullanici }) {
                       <button onClick={async () => { await api.put(`/admin/isletmeler/${isl.id}/not`, { not: detayNot }); alert("Not kaydedildi"); }} style={{ marginTop: 8, padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: 12 }}>💾 Notu Kaydet</button>
                     </div>
 
+                    {/* Demo Veri */}
+                    <div style={{ background: "linear-gradient(135deg, rgba(245,158,11,.04), rgba(245,158,11,.01))", borderRadius: 14, padding: "16px 20px", marginBottom: 16, border: "1px solid rgba(245,158,11,.12)" }}>
+                      <div className="row row-between" style={{ alignItems: "center" }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>🧪 Demo Veri</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>Çalışan, hizmet, müşteri ve randevu demo verisi ekle</div>
+                        </div>
+                        <button onClick={async () => { if (!confirm("Bu işletmeye demo veri basılacak. Emin misiniz?")) return; const r = await api.post(`/admin/isletmeler/${isl.id}/demo-veri`); alert(r.mesaj || r.hata || "Tamamlandı"); isletmeDetayYukle(isl.id); }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", fontWeight: 700, fontSize: 12, boxShadow: "0 2px 8px rgba(245,158,11,.3)" }}>🚀 Demo Veri Bas</button>
+                      </div>
+                    </div>
+
                     {/* Bot Durumu */}
                     <div style={{ background: "var(--bg)", borderRadius: 14, padding: "16px 20px" }}>
                       <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", marginBottom: 8 }}>🤖 Bot & Entegrasyon</div>

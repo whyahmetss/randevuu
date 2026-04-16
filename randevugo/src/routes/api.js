@@ -81,6 +81,7 @@ router.get('/admin/isletmeler/:id/detay', authMiddleware, superAdminMiddleware, 
 router.post('/admin/isletmeler/:id/deneme-uzat', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeDenemeUzat(req, res));
 router.put('/admin/isletmeler/:id/not', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeNotEkle(req, res));
 router.post('/admin/impersonate/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.impersonate(req, res));
+router.post('/admin/isletmeler/:id/demo-veri', authMiddleware, superAdminMiddleware, (req, res) => adminController.demoVeriBas(req, res));
 
 router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeleriGetir(req, res));
 router.post('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeEkle(req, res));
