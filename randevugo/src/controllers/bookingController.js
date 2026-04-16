@@ -65,6 +65,14 @@ class BookingController {
       const isletme = (await pool.query('SELECT id, calisan_secim_modu FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
+      const secimModu = isletme.calisan_secim_modu || 'musteri';
+
+      // Otomatik veya tek çalışan modunda çalışan listesi gösterme
+      if (secimModu === 'otomatik' || secimModu === 'tek') {
+        return res.json({ calisanlar: [], otomatik: true });
+      }
+
+      // Müşteri seçer modu
       const calisanlar = await randevuService.uygunCalisanlar(isletme.id, hizmetId ? parseInt(hizmetId) : null);
       
       // Tek çalışan veya 0 ise otomatik atama
@@ -138,15 +146,25 @@ class BookingController {
 
       // Çalışan otomatik seçim
       let secilenCalisanId = calisanId ? parseInt(calisanId) : null;
+      const secimModu = isletme.calisan_secim_modu || 'musteri';
       if (!secilenCalisanId) {
-        const enBos = await randevuService.enBosCalisan(isletme.id, tarih, parseInt(hizmetId));
-        if (!enBos) return res.status(400).json({ hata: 'Uygun çalışan bulunamadı' });
-        secilenCalisanId = enBos.id;
+        if (secimModu === 'tek') {
+          // Tek çalışan modu: ilk uygun çalışanı ata
+          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, parseInt(hizmetId));
+          if (uygunlar.length > 0) secilenCalisanId = uygunlar[0].id;
+        } else {
+          // Otomatik veya müşteri modu: en boş çalışanı ata (seans modunda saat de gönder)
+          const enBos = await randevuService.enBosCalisan(isletme.id, tarih, parseInt(hizmetId), saat);
+          if (enBos) secilenCalisanId = enBos.id;
+        }
+        if (!secilenCalisanId) return res.status(400).json({ hata: 'Uygun çalışan bulunamadı' });
       }
 
-      // Müsaitlik kontrolü
+      // Müsaitlik kontrolü (seans modunda işletme bazlı, diğerlerinde çalışan bazlı)
       const musaitSaatler = await randevuService.musaitSaatleriGetir(
-        isletme.id, tarih, secilenCalisanId, parseInt(hizmetId)
+        isletme.id, tarih,
+        secimModu === 'musteri' ? secilenCalisanId : null,
+        parseInt(hizmetId)
       );
       if (!musaitSaatler.includes(saat)) {
         return res.status(400).json({ hata: 'Seçilen saat artık müsait değil' });

@@ -277,6 +277,11 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarili INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarisiz INTEGER DEFAULT 0`);
 
+    // ─── RANDEVU MODLARI ───
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS randevu_modu VARCHAR(20) DEFAULT 'sirali'`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS calisan_secim_modu VARCHAR(20) DEFAULT 'musteri'`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS randevu_onay_modu VARCHAR(20) DEFAULT 'otomatik'`);
+
     // ─── ONLINE RANDEVU LİNKİ ───
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE`);
     await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kaynak VARCHAR(30) DEFAULT 'bot'`);

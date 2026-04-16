@@ -6,9 +6,15 @@ class RandevuService {
   // Müsait saatleri hesapla
   // hizmetId: seçilen hizmetin süresi kadar blok tutar
   // calisanId: sadece o çalışanın randevularına bakar
+  // Randevu Modları:
+  //   sirali: her slot 1 randevu alır, arka arkaya sıralı (varsayılan)
+  //   seans: aynı slota birden fazla müşteri alınabilir (çalışan sayısı kadar)
+  //   esnek: 10dk aralıklarla tüm boş saatler sunulur
   async musaitSaatleriGetir(isletmeId, tarih, calisanId = null, hizmetId = null) {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (!isletme) return [];
+
+    const randevuModu = isletme.randevu_modu || 'sirali';
 
     // tarih parametresi Date objesi olabilir (PostgreSQL), string'e çevir
     if (tarih instanceof Date) {
@@ -49,15 +55,15 @@ class RandevuService {
 
     // Tampon: hizmet bazlı > işletme varsayılanı > 5dk
     const TAMPON_DK = hizmetTamponDk > 0 ? hizmetTamponDk : (isletme.varsayilan_tampon_dk || 5);
-    // Slot aralığı: işletme ayarı veya 30dk
-    const SLOT_ARALIK_DK = isletme.slot_aralik_dk || 30;
+    // Slot aralığı: işletme ayarı veya 30dk (esnek modda 10dk)
+    const SLOT_ARALIK_DK = randevuModu === 'esnek' ? 10 : (isletme.slot_aralik_dk || 30);
 
     // Çalışma saatleri: çalışanın kendi mesaisi varsa onu kullan, yoksa işletme varsayılanı
     const baslangic = (calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : (isletme.calisma_baslangic || '09:00');
     const bitis = (calisan && calisan.calisma_bitis) ? calisan.calisma_bitis : (isletme.calisma_bitis || '19:00');
 
     // Mevcut randevuları al (iptal ve gelmedi hariç — onay_bekliyor dahil, slotu kilitler)
-    let randevuQuery = 'SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum NOT IN ($3, $4)';
+    let randevuQuery = 'SELECT saat, bitis_saati, calisan_id FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum NOT IN ($3, $4)';
     const params = [isletmeId, tarih, 'iptal', 'gelmedi'];
     
     if (calisanId) {
@@ -67,6 +73,59 @@ class RandevuService {
 
     const mevcutRandevular = (await pool.query(randevuQuery, params)).rows;
 
+    // ─── SEANS MODU: aynı slota birden fazla müşteri alınabilir ───
+    if (randevuModu === 'seans') {
+      // Aktif çalışan sayısı = eşzamanlı kapasite
+      const calisanSayisi = (await pool.query(
+        'SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true)',
+        [isletmeId]
+      )).rows[0];
+      const kapasite = Math.max(parseInt(calisanSayisi.sayi) || 1, 1);
+
+      // Her slot için kaç randevu var say
+      const slotSayac = {};
+      mevcutRandevular.forEach(r => {
+        const key = r.saat.substring(0, 5);
+        slotSayac[key] = (slotSayac[key] || 0) + 1;
+      });
+
+      // Mola aralıkları
+      const molaAraliklari = [];
+      const molalar = (calisan && calisan.mola_saatleri && calisan.mola_saatleri.length > 0)
+        ? calisan.mola_saatleri : (isletme.mola_saatleri || []);
+      molalar.forEach(m => {
+        if (m.baslangic && m.bitis) {
+          const [mBH, mBM] = m.baslangic.split(':').map(Number);
+          const [mBtH, mBtM] = m.bitis.split(':').map(Number);
+          molaAraliklari.push({ bas: mBH * 60 + mBM, bit: mBtH * 60 + mBtM });
+        }
+      });
+
+      const [basH, basM] = baslangic.split(':').map(Number);
+      const [bitH, bitM] = bitis.split(':').map(Number);
+      const basDk = basH * 60 + basM;
+      const bitisDk = bitH * 60 + bitM;
+      const bugun = bugunTarih();
+      const simdiDk = simdiSaat().toplam;
+      const SEANS_ARALIK = isletme.slot_aralik_dk || 30;
+
+      const musaitSaatler = [];
+      for (let dk = basDk; dk + hizmetSureDk <= bitisDk; dk += SEANS_ARALIK) {
+        if (tarih === bugun && dk <= simdiDk + 30) continue;
+        // Mola kontrolü
+        const molada = molaAraliklari.some(m => dk < m.bit && dk + hizmetSureDk > m.bas);
+        if (molada) continue;
+
+        const saat = `${String(Math.floor(dk / 60)).padStart(2, '0')}:${String(dk % 60).padStart(2, '0')}`;
+        const mevcutSayi = slotSayac[saat] || 0;
+        if (mevcutSayi < kapasite) {
+          musaitSaatler.push(saat);
+        }
+      }
+      return musaitSaatler;
+    }
+
+    // ─── SIRALİ (varsayılan) & ESNEK MOD ───
     // Randevu bilgilerini dakikaya çevir
     const doluAraliklar = mevcutRandevular.map(r => {
       const [rH, rM] = r.saat.split(':').map(Number);
@@ -101,7 +160,7 @@ class RandevuService {
     const bugun = bugunTarih();
     const simdiDk = simdiSaat().toplam;
 
-    // Aday slotları oluştur: 30dk aralık + randevu bitişlerinden sonraki ilk uygun 10dk slot
+    // Aday slotları oluştur
     const adaySet = new Set();
 
     // 1) Slot aralığına göre temel slotlar
@@ -109,13 +168,15 @@ class RandevuService {
       adaySet.add(dk);
     }
 
-    // 2) Randevu bitişlerinden sonra en yakın 10'un katı slot ekle (boşluğu değerlendir)
-    doluAraliklar.forEach(r => {
-      const ilkMusait = Math.ceil(r.bit / 10) * 10; // bitiş+tampon sonrası ilk 10dk katı
-      if (ilkMusait + hizmetSureDk <= bitisDk) {
-        adaySet.add(ilkMusait);
-      }
-    });
+    // 2) Sıralı modda: randevu bitişlerinden sonra en yakın 10'un katı slot ekle (boşluğu değerlendir)
+    if (randevuModu === 'sirali') {
+      doluAraliklar.forEach(r => {
+        const ilkMusait = Math.ceil(r.bit / 10) * 10;
+        if (ilkMusait + hizmetSureDk <= bitisDk) {
+          adaySet.add(ilkMusait);
+        }
+      });
+    }
 
     // Sırala ve filtrele
     const musaitSaatler = [];
@@ -309,11 +370,25 @@ class RandevuService {
   }
 
   // Slot-aware çalışan atama: ardışık blok kontrolü ile en boş çalışanı seç
-  async enBosCalisan(isletmeId, tarih, hizmetId) {
+  // saat parametresi: seans modunda belirli bir saat için boş çalışanı bul
+  async enBosCalisan(isletmeId, tarih, hizmetId, saat = null) {
     const calisanlar = await this.uygunCalisanlar(isletmeId, hizmetId);
     if (calisanlar.length === 0) return null;
     if (calisanlar.length === 1) return calisanlar[0];
 
+    // Seans modunda belirli saat için: o saatte henüz randevusu olmayan çalışanı bul
+    if (saat) {
+      const mevcutAtamalar = (await pool.query(
+        "SELECT calisan_id FROM randevular WHERE isletme_id=$1 AND tarih=$2 AND saat=$3 AND durum NOT IN ('iptal','gelmedi')",
+        [isletmeId, tarih, saat]
+      )).rows.map(r => r.calisan_id);
+
+      for (const calisan of calisanlar) {
+        if (!mevcutAtamalar.includes(calisan.id)) return calisan;
+      }
+    }
+
+    // Normal mod: en çok müsait slotu olan çalışan
     let enIyi = null;
     let enCokSlot = -1;
 
