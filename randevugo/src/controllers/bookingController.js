@@ -23,7 +23,8 @@ class BookingController {
       const { slug } = req.params;
       const isletme = (await pool.query(
         `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
-                kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif
+                kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
+                google_maps_reserve_url
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
         [slug]
       )).rows[0];
