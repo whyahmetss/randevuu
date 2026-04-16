@@ -738,8 +738,8 @@ class AdminController {
       const calisanIds = [];
       for (const c of calisanlar) {
         const r = await pool.query(
-          'INSERT INTO calisanlar (isletme_id, isim, telefon, uzmanlik, aktif, calisma_saatleri) VALUES ($1,$2,$3,$4,true,$5) RETURNING id',
-          [id, c.isim, c.telefon, c.uzmanlik, JSON.stringify({pzt:{bas:'09:00',bit:'19:00'},sal:{bas:'09:00',bit:'19:00'},car:{bas:'09:00',bit:'19:00'},per:{bas:'09:00',bit:'19:00'},cum:{bas:'09:00',bit:'19:00'},cmt:{bas:'09:00',bit:'17:00'},paz:null})]
+          'INSERT INTO calisanlar (isletme_id, isim, telefon, uzmanlik, aktif) VALUES ($1,$2,$3,$4,true) RETURNING id',
+          [id, c.isim, c.telefon, c.uzmanlik]
         );
         calisanIds.push(r.rows[0].id);
       }
