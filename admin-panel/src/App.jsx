@@ -2601,6 +2601,62 @@ function Dashboard() {
                   )}
                 </div>
               </div>
+
+              {/* ═══════ GOOGLE MAPS RESERVE ═══════ */}
+              <div style={{ marginTop: 24, background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontSize: 20 }}>📍</span>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>Google Maps Reserve</div>
+                    <div style={{ fontSize: 12, color: "var(--dim)" }}>Google Maps'te "Online rezervasyon yap" butonu ile müşterilerinizi yönlendirin</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="settings-grid-2">
+                  {/* Sol: Google Maps Profil Linki */}
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Google Maps Profil Linkiniz</label>
+                    <input
+                      type="url"
+                      placeholder="https://maps.google.com/..."
+                      value={ayarlar?.google_maps_reserve_url || ''}
+                      onChange={e => setAyarlar({...ayarlar, google_maps_reserve_url: e.target.value})}
+                      className="input"
+                      style={{ width: "100%" }}
+                    />
+                    <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>
+                      Google Maps → İşletmeniz → "Paylaş" → "Bağlantıyı kopyala" ile alabilirsiniz.
+                    </div>
+                    <button onClick={async () => { await api.put("/ayarlar", { google_maps_reserve_url: ayarlar?.google_maps_reserve_url || '' }); alert("Google Maps linki kaydedildi!"); }} style={{ marginTop: 10, padding: "8px 20px", borderRadius: 10, border: "none", background: "rgba(66,133,244,.1)", color: "#4285f4", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+                      💾 Kaydet
+                    </button>
+                  </div>
+
+                  {/* Sağ: Booking linki + talimat */}
+                  {ayarlar?.slug && (
+                    <div style={{ padding: 16, borderRadius: 12, background: "rgba(66,133,244,.06)", border: "1px solid rgba(66,133,244,.15)" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#4285f4", marginBottom: 8 }}>🗺️ Google'da "Online rezervasyon yap" Butonu</div>
+                      <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.6, marginBottom: 8 }}>
+                        Aşağıdaki linki Google Business profilinize ekleyin:
+                      </div>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <div style={{ flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(66,133,244,.06)", border: "1px solid rgba(66,133,244,.15)", fontSize: 12, fontWeight: 600, color: "#4285f4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          https://randevugo-api.onrender.com/book/{ayarlar.slug}
+                        </div>
+                        <button onClick={() => navigator.clipboard.writeText(`https://randevugo-api.onrender.com/book/${ayarlar.slug}`)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "rgba(66,133,244,.1)", color: "#4285f4", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+                          Kopyala
+                        </button>
+                      </div>
+                      <div style={{ marginTop: 12, fontSize: 11, color: "var(--dim)", lineHeight: 1.8 }}>
+                        <strong>Nasıl eklenir?</strong><br/>
+                        1. <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" style={{ color: "#4285f4" }}>Google Business</a> hesabınıza girin<br/>
+                        2. Profilinizi düzenle → "Randevu linki" alanına yapıştırın<br/>
+                        3. Kaydedin — Google Maps'te "Online rezervasyon yap" butonu görünecek
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
