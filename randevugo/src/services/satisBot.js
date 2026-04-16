@@ -679,27 +679,54 @@ class SatisBot extends EventEmitter {
       return;
     }
 
-    // Mesai saatleri kontrolü (Türkiye saati)
+    // Genel mesai kontrolü (kampanya bazlı saat kontrolü siradakiLeadGetir içinde)
     const saat = simdi.getHours();
-    if (saat < this.ayarlar.mesaiBaslangic || saat >= this.ayarlar.mesaiBitis) {
-      console.log(`🕐 Mesai dışı — TR saat: ${saat}:00 (mesai: ${this.ayarlar.mesaiBaslangic}:00-${this.ayarlar.mesaiBitis}:00). 30dk sonra tekrar kontrol.`);
+    if (saat < 8 || saat >= 20) {
+      console.log(`🕐 Gece saati — TR saat: ${saat}:00. 30dk sonra tekrar kontrol.`);
       this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
       return;
     }
 
     try {
-      // DB'den mesaj gönderilmemiş bir lead çek
-      const lead = await this.siradakiLeadGetir();
-      if (!lead) {
-        console.log('📭 Gönderilecek lead kalmadı');
-        // 1 saat sonra tekrar kontrol et (yeni tarama olabilir)
-        this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 60 * 60 * 1000);
+      // Kampanya bazlı lead seçimi (sektöre özel gün/saat/skor filtresi)
+      const sonuc = await this.siradakiLeadGetir();
+      if (!sonuc) {
+        console.log('📭 Uygun kampanya/lead kalmadı — 30dk sonra tekrar.');
+        this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
         return;
       }
 
-      // Mesaj gönder
-      await this.leadeMesajGonder(lead);
+      const { lead, kampanya } = sonuc;
+
+      // WhatsApp kontrol (ban riski azaltma)
+      const ns = this._aktifSock();
+      const sock = ns?.sock || this.sock;
+      if (sock) {
+        const telefon = this.telefonDuzelt(lead.telefon);
+        if (telefon) {
+          try {
+            const [wpSonuc] = await sock.onWhatsApp(telefon);
+            if (!wpSonuc?.exists) {
+              console.log(`📵 WP YOK: ${lead.isletme_adi} (${telefon}) — skip`);
+              await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
+              // Hemen sonraki lead'e geç (kısa bekleme)
+              this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 3000);
+              return;
+            }
+          } catch(e) { console.log('⚠️ WP kontrol hatası (devam):', e.message); }
+        }
+      }
+
+      // Mesaj gönder (kampanya bilgisi ile)
+      await this.leadeMesajGonder(lead, kampanya);
       this.gunlukGonderim++;
+
+      // Kampanya günlük sayacını güncelle
+      if (kampanya) {
+        try {
+          await pool.query(`UPDATE satis_kampanyalar SET gonderilen = gonderilen + 1, bugun_gonderilen = CASE WHEN bugun_tarihi = CURRENT_DATE THEN bugun_gonderilen + 1 ELSE 1 END, bugun_tarihi = CURRENT_DATE WHERE id = $1`, [kampanya.id]);
+        } catch(e) { /* kampanya sayaç hatası önemsiz */ }
+      }
 
       // Anti-ban: Rastgele bekleme (ayarlardan)
       const minBekleme = this.ayarlar.minBekleme * 60 * 1000;
@@ -718,30 +745,79 @@ class SatisBot extends EventEmitter {
   }
 
   // ═══════════════════════════════════════════════════
-  // Lead Seçimi ve Mesaj Gönderimi
+  // Lead Seçimi — Kampanya Bazlı Segmentasyon Motoru
   // ═══════════════════════════════════════════════════
   async siradakiLeadGetir() {
-    // Telefonu olan, mesaj gönderilmemiş, yeni durumdaki lead'ler
-    // hedefKategori seçiliyse sadece o kategoriden
-    const kategori = this.ayarlar.hedefKategori;
-    let query = `
-      SELECT * FROM potansiyel_musteriler 
-      WHERE telefon IS NOT NULL 
-        AND telefon != '' 
-        AND durum = 'yeni'
-        AND wp_mesaj_durumu IS NULL
-    `;
-    const params = [];
-    if (kategori) {
-      query += ` AND LOWER(kategori) = LOWER($1)`;
-      params.push(kategori);
+    const simdi = turkiyeSaati();
+    const saat = simdi.getHours();
+    // JS getDay(): 0=Paz, 1=Pzt ... 6=Cmt → PostgreSQL array: 1=Pzt ... 7=Paz
+    const jsGun = simdi.getDay(); // 0-6
+    const pgGun = jsGun === 0 ? 7 : jsGun; // 1-7
+
+    try {
+      // 1. Aktif kampanyalardan, bugünün gününe ve saatine uygun olanları çek
+      const kampanyalar = (await pool.query(`
+        SELECT * FROM satis_kampanyalar
+        WHERE aktif = true
+          AND $1 = ANY(gunler)
+          AND $2 >= mesai_baslangic AND $2 < mesai_bitis
+          AND (bugun_tarihi != CURRENT_DATE OR bugun_gonderilen < gunluk_limit)
+        ORDER BY oncelik DESC
+      `, [pgGun, saat])).rows;
+
+      // 2. Her kampanya için uygun lead bul
+      for (const kamp of kampanyalar) {
+        const lead = (await pool.query(`
+          SELECT * FROM potansiyel_musteriler
+          WHERE telefon IS NOT NULL AND telefon != ''
+            AND durum = 'yeni'
+            AND wp_mesaj_durumu IS NULL
+            AND LOWER(kategori) = LOWER($1)
+            AND skor >= $2
+          ORDER BY skor DESC
+          LIMIT 1
+        `, [kamp.kategori, kamp.min_skor])).rows[0];
+
+        if (lead) {
+          console.log(`🎯 Kampanya: ${kamp.isim} | Lead: ${lead.isletme_adi} (skor:${lead.skor})`);
+          return { lead, kampanya: kamp };
+        }
+      }
+
+      // 3. Hiçbir kampanya uygun değilse → fallback: eski mantık (hedefKategori veya tümü)
+      const kategori = this.ayarlar.hedefKategori;
+      let query = `
+        SELECT * FROM potansiyel_musteriler
+        WHERE telefon IS NOT NULL AND telefon != ''
+          AND durum = 'yeni'
+          AND wp_mesaj_durumu IS NULL
+      `;
+      const params = [];
+      if (kategori) {
+        query += ` AND LOWER(kategori) = LOWER($1)`;
+        params.push(kategori);
+      }
+      query += ` ORDER BY skor DESC LIMIT 1`;
+      const fallback = (await pool.query(query, params)).rows[0];
+      if (fallback) {
+        console.log(`📋 Fallback lead: ${fallback.isletme_adi} (skor:${fallback.skor}, kategori:${fallback.kategori})`);
+        return { lead: fallback, kampanya: null };
+      }
+    } catch(e) {
+      console.error('❌ Kampanya lead seçim hatası:', e.message);
+      // Hata durumunda eski basit mantığa düş
+      const result = await pool.query(`
+        SELECT * FROM potansiyel_musteriler
+        WHERE telefon IS NOT NULL AND telefon != ''
+          AND durum = 'yeni' AND wp_mesaj_durumu IS NULL
+        ORDER BY skor DESC LIMIT 1
+      `);
+      if (result.rows[0]) return { lead: result.rows[0], kampanya: null };
     }
-    query += ` ORDER BY skor DESC LIMIT 1`;
-    const result = await pool.query(query, params);
-    return result.rows[0] || null;
+    return null;
   }
 
-  async leadeMesajGonder(lead) {
+  async leadeMesajGonder(lead, kampanya = null) {
     const ns = this._aktifSock();
     const sock = ns?.sock || this.sock;
     if (!sock) { console.log('⚠️ Aktif socket yok, mesaj gönderilemedi'); return; }
@@ -752,27 +828,26 @@ class SatisBot extends EventEmitter {
       return;
     }
 
-    // Numaranın WhatsApp'ta kayıtlı olup olmadığını kontrol et
-    try {
-      const [result] = await sock.onWhatsApp(telefon);
-      if (!result?.exists) {
-        console.log(`📵 ${lead.isletme_adi} — numara WhatsApp'ta yok`);
-        await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
-        return;
-      }
-    } catch (e) {
-      console.log(`⚠️ WhatsApp kontrol hatası: ${e.message}`);
-    }
-
-    // Kategoriye göre mesaj şablonu seç — önce DB şablonları, yoksa hardcoded
+    // Kategoriye göre mesaj şablonu seç — kampanya varsa kampanyaya bağlı A/B, yoksa fallback
     const kategori = (lead.kategori || '').toLowerCase();
     let mesaj = '';
     let sablonId = null;
     try {
-      const dbSablonlar = (await pool.query(
-        "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND (kategori = $1 OR kategori = 'genel') ORDER BY RANDOM() LIMIT 1",
-        [kategori || 'genel']
-      )).rows;
+      let dbSablonlar;
+      if (kampanya) {
+        // A/B test: kampanyaya bağlı şablonlardan rastgele birini seç
+        dbSablonlar = (await pool.query(
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id = $1 ORDER BY RANDOM() LIMIT 1",
+          [kampanya.id]
+        )).rows;
+      }
+      // Kampanya şablonu yoksa kategori veya genel şablonlara düş
+      if (!dbSablonlar || dbSablonlar.length === 0) {
+        dbSablonlar = (await pool.query(
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id IS NULL AND (kategori = $1 OR kategori = 'genel') ORDER BY RANDOM() LIMIT 1",
+          [kategori || 'genel']
+        )).rows;
+      }
       if (dbSablonlar.length > 0) {
         const s = dbSablonlar[0];
         sablonId = s.id;
@@ -795,8 +870,7 @@ class SatisBot extends EventEmitter {
     try {
       await sock.presenceSubscribe(jid);
       await sock.sendPresenceUpdate('composing', jid);
-      // Rastgele 3-8 saniye "yazıyor" göster
-      const typingMs = 3000 + Math.random() * 5000;
+      const typingMs = (this.ayarlar.typingMinMs || 2000) + Math.random() * ((this.ayarlar.typingMaxMs || 6000) - (this.ayarlar.typingMinMs || 2000));
       await new Promise(r => setTimeout(r, typingMs));
       await sock.sendPresenceUpdate('paused', jid);
     } catch (e) { /* presence hataları önemsiz */ }
@@ -805,7 +879,8 @@ class SatisBot extends EventEmitter {
     try {
       await sock.sendMessage(jid, { text: mesaj });
       const numaraInfo = ns ? `#${ns.numaraId}` : 'tek';
-      console.log(`✅ [${numaraInfo}] Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}]`);
+      const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
+      console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor}`);
 
       // DB güncelle
       await pool.query(

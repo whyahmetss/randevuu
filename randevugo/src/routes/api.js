@@ -145,6 +145,13 @@ router.put('/admin/satis-bot/sablonlar/:id', authMiddleware, superAdminMiddlewar
 router.delete('/admin/satis-bot/sablonlar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisSablonSil(req, res));
 router.get('/admin/satis-bot/sablonlar/performans', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisSablonPerformans(req, res));
 
+// ==================== SATIŞ KAMPANYALARI (SEGMENTASYON) ====================
+router.get('/admin/satis-bot/kampanyalar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisKampanyalariGetir(req, res));
+router.post('/admin/satis-bot/kampanyalar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisKampanyaEkle(req, res));
+router.put('/admin/satis-bot/kampanyalar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisKampanyaGuncelle(req, res));
+router.delete('/admin/satis-bot/kampanyalar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisKampanyaSil(req, res));
+router.get('/admin/satis-bot/kategori-dagilimi', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisKategoriDagilimi(req, res));
+
 // ==================== MÜŞTERİ AKTİVİTE & BİLDİRİM MERKEZİ ====================
 router.get('/admin/musteri-aktivite', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriAktivite(req, res));
 router.get('/admin/bildirimler', authMiddleware, superAdminMiddleware, (req, res) => adminController.bildirimMerkezi(req, res));

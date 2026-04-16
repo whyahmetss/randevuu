@@ -4526,6 +4526,91 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+  // ==================== SATIŞ KAMPANYALARI (SEGMENTASYON) ====================
+
+  async satisKampanyalariGetir(req, res) {
+    try {
+      const kampanyalar = (await pool.query(`
+        SELECT k.*,
+          CASE WHEN k.gonderilen > 0 THEN ROUND((k.cevap_gelen::numeric / k.gonderilen) * 100, 1) ELSE 0 END as donus_orani,
+          CASE WHEN k.cevap_gelen > 0 THEN ROUND((k.olumlu::numeric / k.cevap_gelen) * 100, 1) ELSE 0 END as olumlu_orani,
+          (SELECT COUNT(*) FROM satis_bot_sablonlar s WHERE s.kampanya_id = k.id AND s.aktif = true) as sablon_sayisi,
+          (SELECT COUNT(*) FROM potansiyel_musteriler pm WHERE LOWER(pm.kategori) = LOWER(k.kategori) AND pm.durum = 'yeni' AND pm.wp_mesaj_durumu IS NULL) as bekleyen_lead
+        FROM satis_kampanyalar k ORDER BY k.oncelik DESC, k.id
+      `)).rows;
+      res.json({ kampanyalar });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisKampanyaEkle(req, res) {
+    try {
+      const { isim, kategori, aktif, oncelik, min_skor, mesai_baslangic, mesai_bitis, gunler, gunluk_limit } = req.body;
+      if (!isim || !kategori) return res.status(400).json({ hata: 'İsim ve kategori zorunlu' });
+      const result = await pool.query(
+        `INSERT INTO satis_kampanyalar (isim, kategori, aktif, oncelik, min_skor, mesai_baslangic, mesai_bitis, gunler, gunluk_limit)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8::int[],$9) RETURNING *`,
+        [isim, kategori, aktif !== false, oncelik || 0, min_skor || 0, mesai_baslangic || 10, mesai_bitis || 18, gunler || '{1,2,3,4,5}', gunluk_limit || 20]
+      );
+      res.json({ kampanya: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisKampanyaGuncelle(req, res) {
+    try {
+      const { id } = req.params;
+      const { isim, kategori, aktif, oncelik, min_skor, mesai_baslangic, mesai_bitis, gunler, gunluk_limit } = req.body;
+      const result = await pool.query(
+        `UPDATE satis_kampanyalar SET isim=$1, kategori=$2, aktif=$3, oncelik=$4, min_skor=$5, mesai_baslangic=$6, mesai_bitis=$7, gunler=$8::int[], gunluk_limit=$9 WHERE id=$10 RETURNING *`,
+        [isim, kategori, aktif, oncelik || 0, min_skor || 0, mesai_baslangic || 10, mesai_bitis || 18, gunler || '{1,2,3,4,5}', gunluk_limit || 20, id]
+      );
+      res.json({ kampanya: result.rows[0] });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisKampanyaSil(req, res) {
+    try {
+      await pool.query('UPDATE satis_bot_sablonlar SET kampanya_id = NULL WHERE kampanya_id = $1', [req.params.id]);
+      await pool.query('DELETE FROM satis_kampanyalar WHERE id=$1', [req.params.id]);
+      res.json({ mesaj: 'Kampanya silindi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async satisKategoriDagilimi(req, res) {
+    try {
+      const dagilim = (await pool.query(`
+        SELECT LOWER(kategori) as kategori,
+          COUNT(*) as toplam,
+          COUNT(*) FILTER (WHERE durum = 'yeni' AND wp_mesaj_durumu IS NULL) as bekleyen,
+          COUNT(*) FILTER (WHERE wp_mesaj_durumu = 'gonderildi') as gonderilen,
+          COUNT(*) FILTER (WHERE wp_mesaj_durumu = 'wp_yok') as wp_yok,
+          COUNT(*) FILTER (WHERE durum = 'musteri') as musteri,
+          ROUND(AVG(skor), 1) as ort_skor
+        FROM potansiyel_musteriler
+        WHERE kategori IS NOT NULL AND kategori != ''
+        GROUP BY LOWER(kategori)
+        ORDER BY toplam DESC
+      `)).rows;
+      const toplamlar = {
+        toplam: dagilim.reduce((a, d) => a + parseInt(d.toplam), 0),
+        bekleyen: dagilim.reduce((a, d) => a + parseInt(d.bekleyen), 0),
+        gonderilen: dagilim.reduce((a, d) => a + parseInt(d.gonderilen), 0),
+        wp_yok: dagilim.reduce((a, d) => a + parseInt(d.wp_yok), 0),
+        musteri: dagilim.reduce((a, d) => a + parseInt(d.musteri), 0),
+      };
+      res.json({ dagilim, toplamlar });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   // ==================== MÜŞTERİ CRM ====================
 
   async musteriCRM(req, res) {

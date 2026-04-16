@@ -3006,6 +3006,13 @@ function SuperAdminPanel({ kullanici }) {
   const [sablonDuzenle, setSablonDuzenle] = useState(null);
   const [yeniSablon, setYeniSablon] = useState({ isim: "", mesaj: "", kategori: "genel", aktif: true, gonderim_modu: "rastgele" });
   const [sablonTab, setSablonTab] = useState("liste");
+  // Satış Kampanyalar (Segmentasyon)
+  const [kampanyalar, setKampanyalar] = useState([]);
+  const [kampanyaFormAcik, setKampanyaFormAcik] = useState(false);
+  const [kampanyaDuzenle, setKampanyaDuzenle] = useState(null);
+  const [yeniKampanya, setYeniKampanya] = useState({ isim: "", kategori: "", aktif: true, oncelik: 5, min_skor: 0, mesai_baslangic: 10, mesai_bitis: 18, gunler: "{1,2,3,4,5}", gunluk_limit: 20 });
+  const [kategoriDagilimi, setKategoriDagilimi] = useState(null);
+  const [satisAnaTab, setSatisAnaTab] = useState("bot"); // bot | kampanyalar | dagilim
   // Audit Log
   const [auditLoglar, setAuditLoglar] = useState([]);
   const [auditToplam, setAuditToplam] = useState(0);
@@ -3167,6 +3174,30 @@ function SuperAdminPanel({ kullanici }) {
     try { await api.del(`/admin/satis-bot/sablonlar/${id}`); sablonlariYukle(); } catch (e) { alert("Silme hatası"); }
   };
 
+  // ─── KAMPANYA FONKSİYONLARI ───
+  const kampanyalariYukle = async () => {
+    try { const d = await api.get("/admin/satis-bot/kampanyalar"); setKampanyalar(d.kampanyalar || []); } catch (e) { console.log("Kampanya yükleme hatası:", e); }
+  };
+  const kategoriDagiliminiYukle = async () => {
+    try { const d = await api.get("/admin/satis-bot/kategori-dagilimi"); setKategoriDagilimi(d); } catch (e) { console.log("Kategori dağılımı hatası:", e); }
+  };
+  const kampanyaKaydet = async () => {
+    try {
+      if (kampanyaDuzenle) {
+        await api.put(`/admin/satis-bot/kampanyalar/${kampanyaDuzenle.id}`, yeniKampanya);
+      } else {
+        await api.post("/admin/satis-bot/kampanyalar", yeniKampanya);
+      }
+      setKampanyaFormAcik(false); setKampanyaDuzenle(null);
+      setYeniKampanya({ isim: "", kategori: "", aktif: true, oncelik: 5, min_skor: 0, mesai_baslangic: 10, mesai_bitis: 18, gunler: "{1,2,3,4,5}", gunluk_limit: 20 });
+      kampanyalariYukle();
+    } catch (e) { alert("Kampanya kaydetme hatası: " + e.message); }
+  };
+  const kampanyaSil = async (id) => {
+    if (!confirm("Bu kampanyayı silmek istediğinize emin misiniz?")) return;
+    try { await api.del(`/admin/satis-bot/kampanyalar/${id}`); kampanyalariYukle(); } catch (e) { alert("Silme hatası"); }
+  };
+
   useEffect(() => {
     isletmeleriYukle();
     odemeleriYukle();
@@ -3295,7 +3326,7 @@ function SuperAdminPanel({ kullanici }) {
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
     if (sayfa === "iletisim") iletisimYukle();
-    if (sayfa === "satisBot") { numaralariYukle(); sablonlariYukle(); }
+    if (sayfa === "satisBot") { numaralariYukle(); sablonlariYukle(); kampanyalariYukle(); kategoriDagiliminiYukle(); }
     if (sayfa === "auditLog") auditLogYukle();
     if (sayfa === "sistemDurum") sistemDurumuYukle();
     if (sayfa === "destek") destekYukle();
@@ -6165,6 +6196,17 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             </div>
 
+            {/* ─── ANA TAB BAR ─── */}
+            <div className="row gap-8" style={{ marginBottom: 20 }}>
+              {[{id:"bot",icon:"🤖",label:"Bot & Şablonlar"},{id:"kampanyalar",icon:"🎯",label:"Kampanyalar"},{id:"dagilim",icon:"📊",label:"Kategori Dağılımı"}].map(t => (
+                <button key={t.id} onClick={() => setSatisAnaTab(t.id)} style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid " + (satisAnaTab === t.id ? "#25d366" : "var(--border)"), cursor: "pointer", background: satisAnaTab === t.id ? "rgba(37,211,102,.08)" : "var(--surface)", color: satisAnaTab === t.id ? "#25d366" : "var(--dim)", fontWeight: 700, fontSize: 13, transition: "all .2s" }}>
+                  {t.icon} {t.label} {t.id === "kampanyalar" && kampanyalar.length > 0 && <span style={{ marginLeft: 4, padding: "1px 7px", borderRadius: 10, background: "rgba(37,211,102,.12)", fontSize: 10, fontWeight: 800, color: "#25d366" }}>{kampanyalar.filter(k => k.aktif).length}</span>}
+                </button>
+              ))}
+            </div>
+
+            {/* ─── TAB: BOT & ŞABLONLAR ─── */}
+            {satisAnaTab === "bot" && <>
             {/* Ana Grid: Bot Durumu + QR + İstatistikler */}
             <div style={{ display: "grid", gridTemplateColumns: satisBotDurum?.durum === 'qr_bekleniyor' ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 24 }}>
               {/* Bot Durumu Kartı */}
@@ -6694,6 +6736,206 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               </div>
             </div>
+            </>}
+
+            {/* ─── TAB: KAMPANYALAR ─── */}
+            {satisAnaTab === "kampanyalar" && <>
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 16 }}>
+                <div className="row row-between mb-16" style={{ alignItems: "center" }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: 0 }}>🎯 Sektöre Özel Kampanyalar</h3>
+                    <p style={{ fontSize: 12, color: "var(--dim)", margin: "4px 0 0" }}>Her sektöre özel mesaj, gün ve saat ayarı — A/B test ile dönüşüm takibi</p>
+                  </div>
+                  <div className="row gap-8">
+                    <button onClick={kampanyalariYukle} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "var(--bg)", color: "var(--dim)", fontWeight: 600, fontSize: 12 }}>🔄</button>
+                    <button onClick={() => { setKampanyaDuzenle(null); setYeniKampanya({ isim: "", kategori: "", aktif: true, oncelik: 5, min_skor: 0, mesai_baslangic: 10, mesai_bitis: 18, gunler: "{1,2,3,4,5}", gunluk_limit: 20 }); setKampanyaFormAcik(true); }} style={{ padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer", background: "#25d366", color: "#fff", fontWeight: 700, fontSize: 12 }}>+ Yeni Kampanya</button>
+                  </div>
+                </div>
+
+                {/* Kampanya Form Modal */}
+                {kampanyaFormAcik && (
+                  <div style={{ padding: "20px", borderRadius: 14, background: "var(--bg)", border: "1px solid var(--border)", marginBottom: 16 }}>
+                    <h4 style={{ color: "var(--text)", fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{kampanyaDuzenle ? "✏️ Kampanya Düzenle" : "➕ Yeni Kampanya"}</h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                      <input value={yeniKampanya.isim} onChange={e => setYeniKampanya({...yeniKampanya, isim: e.target.value})} placeholder="Kampanya İsmi" style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+                      <select value={yeniKampanya.kategori} onChange={e => setYeniKampanya({...yeniKampanya, kategori: e.target.value})} style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }}>
+                        <option value="">Kategori Seç</option>
+                        {["berber","kuaför","güzellik salonu","dövme","diş kliniği","veteriner","spa","tırnak salonu","diyetisyen","cilt bakım","pilates","yoga","masaj","fizik tedavi","psikolog"].map(k => <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+                      <div>
+                        <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Öncelik (0-10)</label>
+                        <input type="number" min="0" max="10" value={yeniKampanya.oncelik} onChange={e => setYeniKampanya({...yeniKampanya, oncelik: parseInt(e.target.value)||0})} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Min. Skor</label>
+                        <input type="number" min="0" value={yeniKampanya.min_skor} onChange={e => setYeniKampanya({...yeniKampanya, min_skor: parseInt(e.target.value)||0})} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Mesai Başlangıç</label>
+                        <input type="number" min="6" max="22" value={yeniKampanya.mesai_baslangic} onChange={e => setYeniKampanya({...yeniKampanya, mesai_baslangic: parseInt(e.target.value)||10})} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Mesai Bitiş</label>
+                        <input type="number" min="6" max="22" value={yeniKampanya.mesai_bitis} onChange={e => setYeniKampanya({...yeniKampanya, mesai_bitis: parseInt(e.target.value)||18})} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+                      </div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                      <div>
+                        <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Günlük Limit</label>
+                        <input type="number" min="1" max="100" value={yeniKampanya.gunluk_limit} onChange={e => setYeniKampanya({...yeniKampanya, gunluk_limit: parseInt(e.target.value)||20})} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Gönderim Günleri</label>
+                        <div className="row gap-4" style={{ flexWrap: "wrap" }}>
+                          {[{v:1,l:"Pzt"},{v:2,l:"Sal"},{v:3,l:"Çar"},{v:4,l:"Per"},{v:5,l:"Cum"},{v:6,l:"Cmt"},{v:7,l:"Paz"}].map(g => {
+                            const gunArr = (yeniKampanya.gunler || "").replace(/[{}]/g, "").split(",").map(Number).filter(Boolean);
+                            const secili = gunArr.includes(g.v);
+                            return <button key={g.v} onClick={() => {
+                              const yeni = secili ? gunArr.filter(x => x !== g.v) : [...gunArr, g.v];
+                              setYeniKampanya({...yeniKampanya, gunler: `{${yeni.sort().join(",")}}`});
+                            }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid " + (secili ? "#25d366" : "var(--border)"), cursor: "pointer", background: secili ? "rgba(37,211,102,.1)" : "var(--surface)", color: secili ? "#25d366" : "var(--dim)", fontWeight: 600, fontSize: 11 }}>{g.l}</button>;
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="row gap-8" style={{ marginTop: 12 }}>
+                      <label className="row gap-6" style={{ cursor: "pointer", fontSize: 13, color: "var(--text)" }}>
+                        <input type="checkbox" checked={yeniKampanya.aktif} onChange={e => setYeniKampanya({...yeniKampanya, aktif: e.target.checked})} /> Aktif
+                      </label>
+                      <div style={{ flex: 1 }} />
+                      <button onClick={() => { setKampanyaFormAcik(false); setKampanyaDuzenle(null); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontWeight: 600, fontSize: 12 }}>İptal</button>
+                      <button onClick={kampanyaKaydet} disabled={!yeniKampanya.isim || !yeniKampanya.kategori} style={{ padding: "8px 20px", borderRadius: 8, border: "none", cursor: "pointer", background: "#25d366", color: "#fff", fontWeight: 700, fontSize: 12, opacity: !yeniKampanya.isim || !yeniKampanya.kategori ? 0.5 : 1 }}>{kampanyaDuzenle ? "Güncelle" : "Kaydet"}</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Kampanya Listesi */}
+                {kampanyalar.length === 0 ? (
+                  <p style={{ color: "var(--dim)", fontSize: 13, textAlign: "center", padding: 20 }}>Henüz kampanya oluşturulmadı. Deploy sonrası otomatik seed edilecek.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {kampanyalar.map(k => {
+                      const gunMap = {1:"Pzt",2:"Sal",3:"Çar",4:"Per",5:"Cum",6:"Cmt",7:"Paz"};
+                      const gunler = (k.gunler || []).map(g => gunMap[g] || g).join(", ");
+                      const donusOrani = k.gonderilen > 0 ? ((k.cevap_gelen / k.gonderilen) * 100).toFixed(1) : "0.0";
+                      return (
+                        <div key={k.id} style={{ padding: "16px 20px", borderRadius: 14, background: k.aktif ? "var(--bg)" : "rgba(0,0,0,.02)", border: "1px solid " + (k.aktif ? "var(--border)" : "rgba(0,0,0,.05)"), opacity: k.aktif ? 1 : 0.6 }}>
+                          <div className="row row-between" style={{ alignItems: "flex-start" }}>
+                            <div style={{ flex: 1 }}>
+                              <div className="row gap-8" style={{ alignItems: "center", marginBottom: 6 }}>
+                                <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{k.isim}</span>
+                                <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(59,130,246,.08)", color: "#3b82f6", fontSize: 10, fontWeight: 700 }}>{k.kategori}</span>
+                                <span style={{ padding: "2px 8px", borderRadius: 6, background: k.aktif ? "rgba(16,185,129,.08)" : "rgba(239,68,68,.08)", color: k.aktif ? "#10b981" : "#ef4444", fontSize: 10, fontWeight: 700 }}>{k.aktif ? "Aktif" : "Pasif"}</span>
+                                <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(139,92,246,.08)", color: "#8b5cf6", fontSize: 10, fontWeight: 700 }}>Öncelik: {k.oncelik}</span>
+                              </div>
+                              <div className="row gap-12" style={{ fontSize: 11, color: "var(--dim)" }}>
+                                <span>📅 {gunler}</span>
+                                <span>⏰ {k.mesai_baslangic}:00-{k.mesai_bitis}:00</span>
+                                <span>🎯 Min Skor: {k.min_skor}</span>
+                                <span>📨 Limit: {k.gunluk_limit}/gün</span>
+                                <span>📝 {k.sablon_sayisi} şablon</span>
+                                <span>👥 {k.bekleyen_lead} bekleyen lead</span>
+                              </div>
+                              <div className="row gap-12" style={{ marginTop: 8, fontSize: 12 }}>
+                                <span style={{ color: "var(--text)", fontWeight: 600 }}>📊 Gönderilen: {k.gonderilen}</span>
+                                <span style={{ color: "#3b82f6", fontWeight: 600 }}>💬 Cevap: {k.cevap_gelen}</span>
+                                <span style={{ color: "#10b981", fontWeight: 600 }}>✅ Olumlu: {k.olumlu}</span>
+                                <span style={{ padding: "2px 8px", borderRadius: 6, fontWeight: 700, fontSize: 11, background: parseFloat(donusOrani) > 15 ? "rgba(16,185,129,.1)" : parseFloat(donusOrani) > 5 ? "rgba(245,158,11,.1)" : "rgba(239,68,68,.06)", color: parseFloat(donusOrani) > 15 ? "#10b981" : parseFloat(donusOrani) > 5 ? "#f59e0b" : "#ef4444" }}>%{donusOrani} dönüş</span>
+                              </div>
+                            </div>
+                            <div className="row gap-6">
+                              <button onClick={() => { setKampanyaDuzenle(k); setYeniKampanya({ isim: k.isim, kategori: k.kategori, aktif: k.aktif, oncelik: k.oncelik, min_skor: k.min_skor, mesai_baslangic: k.mesai_baslangic, mesai_bitis: k.mesai_bitis, gunler: `{${(k.gunler||[]).join(",")}}`, gunluk_limit: k.gunluk_limit }); setKampanyaFormAcik(true); }} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontWeight: 600, fontSize: 11 }}>✏️</button>
+                              <button onClick={() => kampanyaSil(k.id)} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(239,68,68,.2)", cursor: "pointer", background: "rgba(239,68,68,.04)", color: "#ef4444", fontWeight: 600, fontSize: 11 }}>🗑️</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>}
+
+            {/* ─── TAB: KATEGORİ DAĞILIMI ─── */}
+            {satisAnaTab === "dagilim" && <>
+              <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 16 }}>
+                <div className="row row-between mb-16" style={{ alignItems: "center" }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: 0 }}>📊 Lead Kategori Dağılımı</h3>
+                    <p style={{ fontSize: 12, color: "var(--dim)", margin: "4px 0 0" }}>Tüm lead'lerin sektör bazlı analizi — hangi kategoride ne kadar data var</p>
+                  </div>
+                  <button onClick={kategoriDagiliminiYukle} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "var(--bg)", color: "var(--dim)", fontWeight: 600, fontSize: 12 }}>🔄</button>
+                </div>
+
+                {/* Özet Kartları */}
+                {kategoriDagilimi?.toplamlar && (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
+                    {[
+                      {l:"Toplam Lead", v: kategoriDagilimi.toplamlar.toplam, c:"#3b82f6", bg:"rgba(59,130,246,.06)"},
+                      {l:"Bekleyen", v: kategoriDagilimi.toplamlar.bekleyen, c:"#f59e0b", bg:"rgba(245,158,11,.06)"},
+                      {l:"Gönderilen", v: kategoriDagilimi.toplamlar.gonderilen, c:"#8b5cf6", bg:"rgba(139,92,246,.06)"},
+                      {l:"WP Yok", v: kategoriDagilimi.toplamlar.wp_yok, c:"#ef4444", bg:"rgba(239,68,68,.06)"},
+                      {l:"Müşteri Oldu", v: kategoriDagilimi.toplamlar.musteri, c:"#10b981", bg:"rgba(16,185,129,.06)"},
+                    ].map((s,i) => (
+                      <div key={i} style={{ background: s.bg, borderRadius: 12, padding: "14px 16px", textAlign: "center", border: `1px solid ${s.c}15` }}>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: s.c }}>{s.v?.toLocaleString()}</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, marginTop: 2 }}>{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Kategori Tablosu */}
+                {kategoriDagilimi?.dagilim?.length > 0 ? (
+                  <div style={{ borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ background: "var(--bg)" }}>
+                          <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>Kategori</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>Toplam</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>Bekleyen</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>Gönderilen</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>WP Yok</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>Müşteri</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>Ort. Skor</th>
+                          <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "var(--text)", fontSize: 12 }}>Kampanya</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {kategoriDagilimi.dagilim.map((d,i) => {
+                          const kampanya = kampanyalar.find(k => k.kategori.toLowerCase() === d.kategori);
+                          return (
+                            <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
+                              <td style={{ padding: "10px 14px", fontWeight: 600, color: "var(--text)", textTransform: "capitalize" }}>{d.kategori}</td>
+                              <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 700, color: "#3b82f6" }}>{parseInt(d.toplam).toLocaleString()}</td>
+                              <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#f59e0b" }}>{parseInt(d.bekleyen).toLocaleString()}</td>
+                              <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#8b5cf6" }}>{parseInt(d.gonderilen).toLocaleString()}</td>
+                              <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#ef4444" }}>{parseInt(d.wp_yok).toLocaleString()}</td>
+                              <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#10b981" }}>{parseInt(d.musteri)}</td>
+                              <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                                <span style={{ padding: "2px 8px", borderRadius: 6, fontWeight: 700, fontSize: 11, background: parseFloat(d.ort_skor) >= 80 ? "rgba(16,185,129,.1)" : parseFloat(d.ort_skor) >= 50 ? "rgba(245,158,11,.1)" : "rgba(239,68,68,.06)", color: parseFloat(d.ort_skor) >= 80 ? "#10b981" : parseFloat(d.ort_skor) >= 50 ? "#f59e0b" : "#ef4444" }}>{d.ort_skor}</span>
+                              </td>
+                              <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                                {kampanya ? (
+                                  <span style={{ padding: "2px 8px", borderRadius: 6, background: kampanya.aktif ? "rgba(16,185,129,.08)" : "rgba(239,68,68,.08)", color: kampanya.aktif ? "#10b981" : "#ef4444", fontSize: 10, fontWeight: 700 }}>{kampanya.aktif ? "✅ Aktif" : "⏸ Pasif"}</span>
+                                ) : (
+                                  <span style={{ fontSize: 10, color: "var(--dim)" }}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ color: "var(--dim)", fontSize: 13, textAlign: "center", padding: 20 }}>Henüz lead verisi yok.</p>
+                )}
+              </div>
+            </>}
+
           </>
         )}
 
