@@ -789,11 +789,15 @@ class AdminController {
       ];
       const musteriIds = [];
       for (const m of musteriler) {
-        const r = await pool.query(
-          'INSERT INTO musteriler (isletme_id, isim, telefon, olusturma_tarihi) VALUES ($1,$2,$3, NOW() - INTERVAL \'1 day\' * (RANDOM()*60)::int) RETURNING id',
-          [id, m.isim, m.telefon]
-        );
-        musteriIds.push(r.rows[0].id);
+        // Telefon zaten varsa onu kullan
+        let mevcut = (await pool.query('SELECT id FROM musteriler WHERE telefon=$1', [m.telefon])).rows[0];
+        if (!mevcut) {
+          mevcut = (await pool.query(
+            'INSERT INTO musteriler (isim, telefon) VALUES ($1,$2) RETURNING id',
+            [m.isim, m.telefon]
+          )).rows[0];
+        }
+        musteriIds.push(mevcut.id);
       }
 
       // ─── RANDEVULAR (son 30 gün + gelecek 7 gün) ───
