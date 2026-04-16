@@ -82,8 +82,12 @@ const TAKIP_SABLONLARI = {
 class SatisBot extends EventEmitter {
   constructor() {
     super();
+    // ─── ÇOKLU NUMARA DESTEĞİ ───
+    // Her numaranın kendi socket, durum, QR'ı var
+    this.numaraSockets = new Map(); // numaraId → { sock, durum, qrBase64, reconnectAttempts, basariliOturumVardi, _reconnectTimer }
+    // Geriye uyumluluk (eski tek-socket alanlar → artık aktif numaradan okunur)
     this.sock = null;
-    this.durum = 'kapali'; // kapali, qr_bekleniyor, bagli, calisiyor
+    this.durum = 'kapali';
     this.qrBase64 = null;
     this.aktif = false; // mesaj gönderme döngüsü aktif mi
     this.gonderimTimer = null;
@@ -91,9 +95,8 @@ class SatisBot extends EventEmitter {
     this.gunlukGonderim = 0;
     this.sonGonderimTarihi = null;
     this.konusmalar = {};
-    this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.basariliOturumVardi = false; // QR tarandı mı daha önce
+    this.roundRobinIndex = 0; // round-robin gönderimde sıra
     // SuperAdmin'den kontrol edilebilir ayarlar
     this.ayarlar = {
       mesaiBaslangic: 9,   // saat
@@ -115,6 +118,37 @@ class SatisBot extends EventEmitter {
       typingMinMs: 2000,     // Minimum typing süresi ms
       typingMaxMs: 6000,     // Maximum typing süresi ms
     };
+  }
+
+  // Bağlı numara socket'lerinden birini döndür (round-robin)
+  _aktifSock() {
+    const baglilar = [];
+    for (const [id, ns] of this.numaraSockets) {
+      if (ns.durum === 'bagli' && ns.sock && ns.sock.user) baglilar.push(ns);
+    }
+    if (baglilar.length === 0) return null;
+    this.roundRobinIndex = (this.roundRobinIndex + 1) % baglilar.length;
+    return baglilar[this.roundRobinIndex];
+  }
+
+  // Tüm bağlı socket'lerin listesi
+  _bagliSocklar() {
+    const baglilar = [];
+    for (const [id, ns] of this.numaraSockets) {
+      if (ns.durum === 'bagli' && ns.sock) baglilar.push(ns);
+    }
+    return baglilar;
+  }
+
+  // Genel durum: en az 1 numara bağlıysa 'bagli'
+  _genelDurum() {
+    for (const [, ns] of this.numaraSockets) {
+      if (ns.durum === 'bagli') return 'bagli';
+    }
+    for (const [, ns] of this.numaraSockets) {
+      if (ns.durum === 'qr_bekleniyor') return 'qr_bekleniyor';
+    }
+    return 'kapali';
   }
 
   ayarGuncelle(yeniAyarlar) {
@@ -151,112 +185,138 @@ class SatisBot extends EventEmitter {
   }
 
   // ═══════════════════════════════════════════════════
-  // WhatsApp Bağlantısı (Baileys)
+  // WhatsApp Bağlantısı — Çoklu Numara (Baileys)
   // ═══════════════════════════════════════════════════
+
+  // Tüm aktif numaraları DB'den oku ve bağla
   async baslat() {
-    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor' || this.durum === 'baslatiyor') {
-      console.log(`🔄 Satış Bot başlatma isteği geldi, mevcut durum: ${this.durum}`);
-      return;
+    await this._ayarlariYukle();
+    // DB'den aktif numaraları çek
+    let numaralar = [];
+    try {
+      numaralar = (await pool.query("SELECT * FROM satis_bot_numaralar WHERE durum = 'aktif' ORDER BY id")).rows;
+    } catch(e) { console.log('⚠️ Numara tablosu henüz yok:', e.message); }
+
+    if (numaralar.length === 0) {
+      // Geriye uyumluluk: numara yoksa eski tek-numara modunda başlat
+      console.log('📱 Aktif numara yok, eski tek-numara modunda başlatılıyor...');
+      return this._tekNumaraBaslat(SATIS_BOT_ID);
     }
 
-    // DB'den ayarları yükle
-    await this._ayarlariYukle();
+    console.log(`📱 ${numaralar.length} aktif numara bulundu, hepsi bağlanıyor...`);
+    for (const n of numaralar) {
+      await this.numaraBaslat(n.id);
+    }
+  }
 
-    // Bekleyen reconnect timer varsa iptal et
-    if (this._reconnectTimer) {
-      clearTimeout(this._reconnectTimer);
-      this._reconnectTimer = null;
+  // Belirli bir numarayı bağla (numaraId = DB id)
+  async numaraBaslat(numaraId) {
+    const authId = 900000 + numaraId; // Her numara için benzersiz auth ID
+    const mevcut = this.numaraSockets.get(numaraId);
+    if (mevcut && (mevcut.durum === 'bagli' || mevcut.durum === 'qr_bekleniyor' || mevcut.durum === 'baslatiyor')) {
+      console.log(`🔄 Numara #${numaraId} zaten ${mevcut.durum} durumunda`);
+      return mevcut;
     }
 
     // Eski socket varsa kapat
-    if (this.sock) {
-      try { this.sock.end(); } catch (e) {}
-      this.sock = null;
+    if (mevcut?.sock) {
+      try { mevcut.sock.end(); } catch(e) {}
+    }
+    if (mevcut?._reconnectTimer) {
+      clearTimeout(mevcut._reconnectTimer);
     }
 
-    this.durum = 'baslatiyor';
-    console.log('🔄 Satış Bot başlatılıyor...');
+    const ns = { sock: null, durum: 'baslatiyor', qrBase64: null, reconnectAttempts: 0, basariliOturumVardi: false, _reconnectTimer: null, numaraId, authId };
+    this.numaraSockets.set(numaraId, ns);
+    console.log(`🔄 Numara #${numaraId} başlatılıyor (authId: ${authId})...`);
 
     try {
-      const { state, saveCreds } = await usePostgresAuthState(pool, SATIS_BOT_ID);
+      const { state, saveCreds } = await usePostgresAuthState(pool, authId);
       const { version } = await fetchLatestBaileysVersion();
-      console.log('📱 Baileys version:', version);
 
-      const baileysLogger = pino({ level: 'silent' });
-      this.sock = makeWASocket({
+      ns.sock = makeWASocket({
         version,
         auth: {
           creds: state.creds,
           keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         logger: pino({ level: 'silent' }),
-        browser: ['RandevuGO', 'Chrome', '4.0.0'],
+        browser: ['SıraGO-Sales', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
       });
 
-      this.sock.ev.on('creds.update', saveCreds);
+      ns.sock.ev.on('creds.update', saveCreds);
 
-      // Bağlantı durumu — whatsappWeb.js ile birebir aynı pattern
-      this.sock.ev.on('connection.update', (update) => {
-        this._handleConnectionUpdate(update);
+      ns.sock.ev.on('connection.update', (update) => {
+        this._handleNumaraConnectionUpdate(numaraId, update);
       });
 
       // Gelen mesajları dinle
-      this.sock.ev.on('messages.upsert', async (data) => {
+      ns.sock.ev.on('messages.upsert', async (data) => {
         try {
-          console.log(`📨 SatışBot RAW messages.upsert:`, JSON.stringify(data).slice(0, 500));
           const messages = data?.messages || (Array.isArray(data) ? data : []);
           for (const msg of messages) {
             if (!msg?.key) continue;
             const jid = msg.key.remoteJid || '';
             const fromMe = msg.key.fromMe;
-            const text = this._getMsgText(msg);
-            console.log(`📨 Mesaj: jid=${jid}, fromMe=${fromMe}, text="${(text || '').slice(0, 80)}"`);
-            
             if (fromMe) continue;
             if (!msg.message) continue;
             if (jid.endsWith('@g.us')) continue;
             if (jid === 'status@broadcast') continue;
             
-            await this.gelenMesajIsle(msg);
+            const text = this._getMsgText(msg);
+            console.log(`📨 [#${numaraId}] Mesaj: jid=${jid}, text="${(text || '').slice(0, 80)}"`);
+            await this.gelenMesajIsle(msg, numaraId);
           }
         } catch (err) {
-          console.error('❌ SatışBot messages.upsert HATA:', err.message, err.stack);
+          console.error(`❌ [#${numaraId}] messages.upsert HATA:`, err.message);
         }
       });
-      console.log('✅ SatışBot event listener\'lar bağlandı (connection.update + messages.upsert)');
+
+      console.log(`✅ [#${numaraId}] Event listener'lar bağlandı`);
+      // Geriye uyumluluk
+      this._senkronEt();
 
     } catch (err) {
-      console.error('❌ Satış bot başlatma hatası:', err.message);
-      this.durum = 'hata';
+      console.error(`❌ [#${numaraId}] Başlatma hatası:`, err.message);
+      ns.durum = 'hata';
+      this._senkronEt();
     }
+    return ns;
   }
 
-  async _handleConnectionUpdate(update) {
+  async _handleNumaraConnectionUpdate(numaraId, update) {
+    const ns = this.numaraSockets.get(numaraId);
+    if (!ns) return;
+    const authId = ns.authId;
+
     try {
-      console.log('📡 SatışBot connection.update:', JSON.stringify(update, null, 0).slice(0, 300));
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
-        this.durum = 'qr_bekleniyor';
-        qrcode.toDataURL(qr).then(url => {
-          this.qrBase64 = url;
-          this.emit('qr', url);
-        }).catch(e => console.error('QR dönüşüm hatası:', e));
-        console.log('📱 Satış Bot QR hazır — SuperAdmin panelden tarayın');
+        ns.durum = 'qr_bekleniyor';
+        try {
+          ns.qrBase64 = await qrcode.toDataURL(qr);
+          this.emit('qr', { numaraId, qr: ns.qrBase64 });
+        } catch(e) { console.error('QR dönüşüm hatası:', e); }
+        console.log(`📱 [#${numaraId}] QR hazır — panelden tarayın`);
+        this._senkronEt();
       }
 
       if (connection === 'open') {
-        this.durum = 'bagli';
-        this.qrBase64 = null;
-        this.reconnectAttempts = 0;
-        this.basariliOturumVardi = true;
-        const numara = this.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
-        console.log(`✅ Satış Bot WhatsApp bağlandı — numara: ${numara}`);
-        this.emit('bagli');
-        // Takip kontrol timer'ı başlat (her 30dk)
-        this.takipTimerBaslat();
-        // Gönderim aktifse ama timer yoksa, devam ettir
+        ns.durum = 'bagli';
+        ns.qrBase64 = null;
+        ns.reconnectAttempts = 0;
+        ns.basariliOturumVardi = true;
+        const numara = ns.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
+        console.log(`✅ [#${numaraId}] WhatsApp bağlandı — numara: ${numara}`);
+        // DB'de numarayı güncelle
+        try { await pool.query("UPDATE satis_bot_numaralar SET durum='aktif', telefon=$1 WHERE id=$2", [numara, numaraId]); } catch(e) {}
+        this.emit('bagli', { numaraId });
+        this._senkronEt();
+        // Takip timer'ı başlat (ilk bağlanan numara başlatsın)
+        if (!this.takipTimer) this.takipTimerBaslat();
+        // Gönderim aktifse ve timer yoksa, devam ettir
         if (this.aktif && !this.gonderimTimer) {
           console.log('🚀 Gönderim aktifti, timer devam ettiriliyor...');
           this.sonrakiGonderim();
@@ -266,82 +326,150 @@ class SatisBot extends EventEmitter {
       if (connection === 'close') {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const errorMsg = lastDisconnect?.error?.message || '';
-        const credsExist = this.basariliOturumVardi;
-        console.log(`❌ Satış Bot bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}, session: ${credsExist}, deneme: ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-        
-        // Conflict = başka bir socket zaten bağlı, bu eski instance'i durdur
+        console.log(`❌ [#${numaraId}] Bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}`);
+
         if (statusCode === 440) {
-          console.log('⚠️ Conflict — başka socket zaten bağlı, eski instance durduruluyor.');
-          this.sock = null;
-          // aktif ve gonderimTimer koru — yeni socket devam etsin
+          ns.sock = null;
+          this._senkronEt();
           return;
         }
 
         if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
-          console.log('🔄 restartRequired — QR tarandı, yeni socket oluşturuluyor (auth korunuyor)...');
-          this.durum = 'kapali';
-          this.sock = null;
-          this._reconnectTimer = setTimeout(() => this.baslat(), 1500);
+          ns.durum = 'kapali';
+          ns.sock = null;
+          ns._reconnectTimer = setTimeout(() => this.numaraBaslat(numaraId), 1500);
         } else if (statusCode === DisconnectReason.loggedOut) {
-          this.durum = 'kapali';
-          this.qrBase64 = null;
-          this.aktif = false;
-          this.sock = null;
-          try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [SATIS_BOT_ID]); } catch (e) {}
-          console.log('🗑️ Satış Bot oturumu kapatıldı. Panel\'den yeniden başlatıp QR tarayın.');
-        } else if (credsExist && this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectAttempts++;
-          this.durum = 'kapali';
-          this.sock = null;
-          const bekleme = Math.min(3000 * this.reconnectAttempts, 30000);
-          console.log(`🔄 Satış Bot ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-          this._reconnectTimer = setTimeout(() => this.baslat(), bekleme);
-        } else if (!credsExist && this.reconnectAttempts < 3) {
-          this.reconnectAttempts++;
-          this.durum = 'kapali';
-          this.sock = null;
-          console.log(`🔄 QR süresi doldu, yeni QR üretiliyor (deneme ${this.reconnectAttempts}/3)...`);
-          this._reconnectTimer = setTimeout(() => this.baslat(), 3000);
+          ns.durum = 'kapali';
+          ns.qrBase64 = null;
+          ns.sock = null;
+          try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {}
+          try { await pool.query("UPDATE satis_bot_numaralar SET durum='bekliyor' WHERE id=$1", [numaraId]); } catch(e) {}
+          console.log(`🗑️ [#${numaraId}] Oturum kapatıldı. Panelden yeniden QR tarayın.`);
+        } else if (ns.basariliOturumVardi && ns.reconnectAttempts < this.maxReconnectAttempts) {
+          ns.reconnectAttempts++;
+          ns.durum = 'kapali';
+          ns.sock = null;
+          const bekleme = Math.min(3000 * ns.reconnectAttempts, 30000);
+          console.log(`🔄 [#${numaraId}] ${bekleme/1000}sn sonra yeniden bağlanıyor (deneme ${ns.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+          ns._reconnectTimer = setTimeout(() => this.numaraBaslat(numaraId), bekleme);
+        } else if (!ns.basariliOturumVardi && ns.reconnectAttempts < 3) {
+          ns.reconnectAttempts++;
+          ns.durum = 'kapali';
+          ns.sock = null;
+          ns._reconnectTimer = setTimeout(() => this.numaraBaslat(numaraId), 3000);
         } else {
-          this.durum = 'kapali';
-          this.qrBase64 = null;
-          this.sock = null;
-          if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            try { pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [SATIS_BOT_ID]); } catch (e) {}
-            console.log('🗑️ Max deneme aşıldı, auth temizlendi.');
+          ns.durum = 'kapali';
+          ns.qrBase64 = null;
+          ns.sock = null;
+          if (ns.reconnectAttempts >= this.maxReconnectAttempts) {
+            try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {}
           }
-          console.log('⏹️ Satış Bot durdu. Panel\'den "Botu Başlat" ile yeniden başlatıp QR tarayın.');
+          console.log(`⏹️ [#${numaraId}] Numara durdu.`);
         }
+        this._senkronEt();
       }
     } catch (connErr) {
-      console.error('❌ SatışBot connection.update HATA:', connErr.message, connErr.stack);
+      console.error(`❌ [#${numaraId}] connection.update HATA:`, connErr.message);
     }
+  }
+
+  // Geriye uyumluluk: this.sock, this.durum, this.qrBase64 senkron et
+  _senkronEt() {
+    this.durum = this._genelDurum();
+    // İlk bağlı socket'i this.sock olarak ata (geriye uyumluluk)
+    const aktif = this._aktifSock();
+    this.sock = aktif?.sock || null;
+    // QR: qr_bekleniyor olan ilk numaranın QR'ını göster
+    this.qrBase64 = null;
+    for (const [, ns] of this.numaraSockets) {
+      if (ns.qrBase64) { this.qrBase64 = ns.qrBase64; break; }
+    }
+  }
+
+  // Geriye uyumluluk: eski tek-numara başlatma
+  async _tekNumaraBaslat(authId) {
+    if (this.durum === 'bagli' || this.durum === 'qr_bekleniyor' || this.durum === 'baslatiyor') {
+      return;
+    }
+    if (this._reconnectTimer) { clearTimeout(this._reconnectTimer); this._reconnectTimer = null; }
+    if (this.sock) { try { this.sock.end(); } catch(e) {} this.sock = null; }
+    this.durum = 'baslatiyor';
+    console.log('🔄 Satış Bot başlatılıyor (tek numara modu)...');
+    try {
+      const { state, saveCreds } = await usePostgresAuthState(pool, authId);
+      const { version } = await fetchLatestBaileysVersion();
+      this.sock = makeWASocket({
+        version,
+        auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) },
+        logger: pino({ level: 'silent' }),
+        browser: ['RandevuGO', 'Chrome', '4.0.0'],
+        generateHighQualityLinkPreview: false,
+      });
+      this.sock.ev.on('creds.update', saveCreds);
+      this.sock.ev.on('connection.update', (update) => this._handleTekNumaraUpdate(update, authId));
+      this.sock.ev.on('messages.upsert', async (data) => {
+        try {
+          const messages = data?.messages || (Array.isArray(data) ? data : []);
+          for (const msg of messages) {
+            if (!msg?.key || msg.key.fromMe || !msg.message) continue;
+            const jid = msg.key.remoteJid || '';
+            if (jid.endsWith('@g.us') || jid === 'status@broadcast') continue;
+            await this.gelenMesajIsle(msg);
+          }
+        } catch(err) { console.error('❌ messages.upsert HATA:', err.message); }
+      });
+    } catch(err) { console.error('❌ Başlatma hatası:', err.message); this.durum = 'hata'; }
+  }
+
+  async _handleTekNumaraUpdate(update, authId) {
+    const { connection, lastDisconnect, qr } = update;
+    if (qr) { this.durum = 'qr_bekleniyor'; try { this.qrBase64 = await qrcode.toDataURL(qr); } catch(e) {} }
+    if (connection === 'open') { this.durum = 'bagli'; this.qrBase64 = null; this.reconnectAttempts = 0; this.basariliOturumVardi = true; console.log('✅ Satış Bot WhatsApp bağlandı'); this.takipTimerBaslat(); if (this.aktif && !this.gonderimTimer) this.sonrakiGonderim(); }
+    if (connection === 'close') {
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      if (statusCode === DisconnectReason.loggedOut) { this.durum = 'kapali'; this.sock = null; try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {} }
+      else if (this.basariliOturumVardi && (this.reconnectAttempts || 0) < this.maxReconnectAttempts) { this.reconnectAttempts = (this.reconnectAttempts || 0) + 1; this.durum = 'kapali'; this.sock = null; setTimeout(() => this._tekNumaraBaslat(authId), 3000 * this.reconnectAttempts); }
+      else { this.durum = 'kapali'; this.sock = null; }
+    }
+  }
+
+  // Belirli bir numarayı durdur
+  async numaraDurdur(numaraId) {
+    const ns = this.numaraSockets.get(numaraId);
+    if (!ns) return;
+    if (ns._reconnectTimer) clearTimeout(ns._reconnectTimer);
+    if (ns.sock) { try { ns.sock.end(); } catch(e) {} }
+    ns.sock = null;
+    ns.durum = 'kapali';
+    ns.qrBase64 = null;
+    this.numaraSockets.delete(numaraId);
+    this._senkronEt();
+    console.log(`🛑 [#${numaraId}] Numara durduruldu`);
   }
 
   async durdur() {
     this.aktif = false;
-    if (this.gonderimTimer) {
-      clearTimeout(this.gonderimTimer);
-      this.gonderimTimer = null;
+    if (this.gonderimTimer) { clearTimeout(this.gonderimTimer); this.gonderimTimer = null; }
+    if (this.takipTimer) { clearInterval(this.takipTimer); this.takipTimer = null; }
+    // Tüm numara socket'lerini kapat
+    for (const [id, ns] of this.numaraSockets) {
+      if (ns._reconnectTimer) clearTimeout(ns._reconnectTimer);
+      if (ns.sock) { try { ns.sock.end(); } catch(e) {} }
     }
-    if (this.takipTimer) {
-      clearInterval(this.takipTimer);
-      this.takipTimer = null;
-    }
-    if (this.sock) {
-      try { this.sock.end(); } catch (e) {}
-    }
+    this.numaraSockets.clear();
+    // Eski tek-socket
+    if (this.sock) { try { this.sock.end(); } catch(e) {} }
     this.sock = null;
     this.durum = 'kapali';
     this.qrBase64 = null;
-    // Auth dosyalarını silme — yeniden bağlanabilsin
-    console.log('🛑 Satış Bot durduruldu (oturum korunuyor)');
+    console.log('🛑 Satış Bot durduruldu (tüm numaralar)');
   }
 
   async tamamenKapat() {
     await this.durdur();
-    try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [SATIS_BOT_ID]); } catch (e) {}
-    console.log('🗑️ Satış Bot oturumu tamamen silindi');
+    try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id >= 900000'); } catch(e) {}
+    try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [SATIS_BOT_ID]); } catch(e) {}
+    console.log('🗑️ Satış Bot oturumları tamamen silindi');
   }
 
   // ═══════════════════════════════════════════════════
@@ -357,7 +485,8 @@ class SatisBot extends EventEmitter {
   }
 
   async takipKontrol() {
-    if (this.durum !== 'bagli' || !this.sock) return;
+    const aktifNs = this._aktifSock();
+    if (!aktifNs && (this.durum !== 'bagli' || !this.sock)) return;
 
     // Takip aktif mi kontrol et
     if (!this.ayarlar.takipAktif) return;
@@ -404,7 +533,9 @@ class SatisBot extends EventEmitter {
   }
 
   async takipMesajGonder(konusma) {
-    if (this.durum !== 'bagli' || !this.sock) return;
+    const ns = this._aktifSock();
+    const sock = ns?.sock || this.sock;
+    if (!sock) return;
 
     const takipNo = (konusma.takip_sayisi || 0) + 1;
     const sablonlar = TAKIP_SABLONLARI[takipNo] || TAKIP_SABLONLARI[2];
@@ -417,14 +548,14 @@ class SatisBot extends EventEmitter {
     try {
       // Anti-ban: Typing indicator
       try {
-        await this.sock.presenceSubscribe(jid);
-        await this.sock.sendPresenceUpdate('composing', jid);
+        await sock.presenceSubscribe(jid);
+        await sock.sendPresenceUpdate('composing', jid);
         const typingMs = 2000 + Math.random() * 4000;
         await new Promise(r => setTimeout(r, typingMs));
-        await this.sock.sendPresenceUpdate('paused', jid);
+        await sock.sendPresenceUpdate('paused', jid);
       } catch (e) {}
 
-      await this.sock.sendMessage(jid, { text: mesaj });
+      await sock.sendMessage(jid, { text: mesaj });
       console.log(`🔔 Takip #${takipNo} gönderildi: ${konusma.isletme_adi} (${telefon})`);
 
       // DB güncelle
@@ -462,12 +593,23 @@ class SatisBot extends EventEmitter {
       await this._ayarlariYukle();
       this._ayarlarYuklendi = true;
     }
-    // Gerçek socket durumunu kontrol et
-    if (this.durum === 'bagli' && (!this.sock || !this.sock.user)) {
-      console.log('⚠️ getDurum: durum bagli ama socket yok/user yok, kapali yapılıyor');
+    // Senkronize et
+    this._senkronEt();
+    // Gerçek socket durumunu kontrol et (tek numara modu)
+    if (this.numaraSockets.size === 0 && this.durum === 'bagli' && (!this.sock || !this.sock.user)) {
       this.durum = 'kapali';
       this.aktif = false;
       this.sock = null;
+    }
+    // Numara bazlı durumlar
+    const numaraDurumlari = [];
+    for (const [id, ns] of this.numaraSockets) {
+      numaraDurumlari.push({
+        numaraId: id,
+        durum: ns.durum,
+        qrBase64: ns.qrBase64,
+        numara: ns.sock?.user?.id?.split(':')[0] || null,
+      });
     }
     return {
       durum: this.durum,
@@ -475,7 +617,9 @@ class SatisBot extends EventEmitter {
       aktif: this.aktif,
       gunlukGonderim: this.gunlukGonderim,
       sonGonderimTarihi: this.sonGonderimTarihi,
-      ayarlar: this.ayarlar
+      ayarlar: this.ayarlar,
+      bagliNumaraSayisi: this._bagliSocklar().length,
+      numaraDurumlari,
     };
   }
 
@@ -503,6 +647,7 @@ class SatisBot extends EventEmitter {
   }
 
   async sonrakiGonderim() {
+    this._senkronEt();
     if (!this.aktif || this.durum !== 'bagli') return;
 
     // Günlük sayacı sıfırla (Türkiye saati)
@@ -598,6 +743,10 @@ class SatisBot extends EventEmitter {
   }
 
   async leadeMesajGonder(lead) {
+    const ns = this._aktifSock();
+    const sock = ns?.sock || this.sock;
+    if (!sock) { console.log('⚠️ Aktif socket yok, mesaj gönderilemedi'); return; }
+
     const telefon = this.telefonDuzelt(lead.telefon);
     if (!telefon) {
       await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gecersiz_numara' WHERE id = $1", [lead.id]);
@@ -606,7 +755,7 @@ class SatisBot extends EventEmitter {
 
     // Numaranın WhatsApp'ta kayıtlı olup olmadığını kontrol et
     try {
-      const [result] = await this.sock.onWhatsApp(telefon);
+      const [result] = await sock.onWhatsApp(telefon);
       if (!result?.exists) {
         console.log(`📵 ${lead.isletme_adi} — numara WhatsApp'ta yok`);
         await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
@@ -645,18 +794,19 @@ class SatisBot extends EventEmitter {
     // Anti-ban: Typing indicator
     const jid = `${telefon}@s.whatsapp.net`;
     try {
-      await this.sock.presenceSubscribe(jid);
-      await this.sock.sendPresenceUpdate('composing', jid);
+      await sock.presenceSubscribe(jid);
+      await sock.sendPresenceUpdate('composing', jid);
       // Rastgele 3-8 saniye "yazıyor" göster
       const typingMs = 3000 + Math.random() * 5000;
       await new Promise(r => setTimeout(r, typingMs));
-      await this.sock.sendPresenceUpdate('paused', jid);
+      await sock.sendPresenceUpdate('paused', jid);
     } catch (e) { /* presence hataları önemsiz */ }
 
     // Mesaj gönder
     try {
-      await this.sock.sendMessage(jid, { text: mesaj });
-      console.log(`✅ Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}]`);
+      await sock.sendMessage(jid, { text: mesaj });
+      const numaraInfo = ns ? `#${ns.numaraId}` : 'tek';
+      console.log(`✅ [${numaraInfo}] Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}]`);
 
       // DB güncelle
       await pool.query(
@@ -692,18 +842,19 @@ class SatisBot extends EventEmitter {
   // ═══════════════════════════════════════════════════
   // Kayıt Akışı — Bot üzerinden hesap açma
   // ═══════════════════════════════════════════════════
-  async kayitAkisi(remoteJid, telefon, metin) {
+  async kayitAkisi(remoteJid, telefon, metin, sock) {
     const kayitDurum = this.konusmalar[telefon]?.kayit;
     
     if (!kayitDurum) return false; // Kayıt akışında değil
 
+    const _sock = sock || this.sock;
     const mesajGonder = async (txt) => {
       try {
-        await this.sock.sendPresenceUpdate('composing', remoteJid);
+        await _sock.sendPresenceUpdate('composing', remoteJid);
         await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
-        await this.sock.sendPresenceUpdate('paused', remoteJid);
+        await _sock.sendPresenceUpdate('paused', remoteJid);
       } catch(e) {}
-      await this.sock.sendMessage(remoteJid, { text: txt });
+      await _sock.sendMessage(remoteJid, { text: txt });
     };
 
     const metinKucuk = metin.toLowerCase().trim();
@@ -884,9 +1035,14 @@ class SatisBot extends EventEmitter {
   // ═══════════════════════════════════════════════════
   // Gelen Mesaj İşleme + DeepSeek AI Satış
   // ═══════════════════════════════════════════════════
-  async gelenMesajIsle(msg) {
+  async gelenMesajIsle(msg, numaraId) {
     const metin = this._getMsgText(msg);
     if (!metin) return;
+
+    // Hangi socket'ten geldi? O socket'i kullan (cevap aynı numaradan gitsin)
+    const ns = numaraId ? this.numaraSockets.get(numaraId) : null;
+    const sock = ns?.sock || this.sock;
+    if (!sock) return;
 
     const remoteJid = msg.key.remoteJid;
     // WhatsApp Business LID desteği: @lid JID'lerde gerçek numara remoteJidAlt'ta
@@ -899,7 +1055,7 @@ class SatisBot extends EventEmitter {
       telefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
     }
 
-    console.log(`📩 Satış Bot cevap aldı: ${telefon} → "${metin}"`);
+    console.log(`📩 [#${numaraId || 'tek'}] Satış Bot cevap aldı: ${telefon} → "${metin}"`);
 
     // Mod kontrolü — kapali modunda hiçbir şey yapma
     if (this.ayarlar.mod === 'kapali') {
@@ -917,7 +1073,7 @@ class SatisBot extends EventEmitter {
     
     // Kayıt akışı devam ediyorsa ona yönlendir (kayıt aktifse)
     if (this.konusmalar[telefon].kayit && this.ayarlar.kayitAktif) {
-      const handled = await this.kayitAkisi(remoteJid, telefon, metin);
+      const handled = await this.kayitAkisi(remoteJid, telefon, metin, sock);
       if (handled) return;
     }
 
@@ -927,11 +1083,11 @@ class SatisBot extends EventEmitter {
     if (this.ayarlar.kayitAktif && kayitKomutlari.some(k => metinKucuk.includes(k))) {
       this.konusmalar[telefon].kayit = { adim: 'isletme_adi' };
       try {
-        await this.sock.sendPresenceUpdate('composing', remoteJid);
+        await sock.sendPresenceUpdate('composing', remoteJid);
         await new Promise(r => setTimeout(r, 1500));
-        await this.sock.sendPresenceUpdate('paused', remoteJid);
+        await sock.sendPresenceUpdate('paused', remoteJid);
       } catch(e) {}
-      await this.sock.sendMessage(remoteJid, { text: 
+      await sock.sendMessage(remoteJid, { text: 
         `🎉 *SıraGO'ya Hoş Geldiniz!*\n\n` +
         `Hemen ücretsiz hesabınızı oluşturalım 🚀\n\n` +
         `Adım 1/3\n` +
@@ -1019,11 +1175,11 @@ class SatisBot extends EventEmitter {
       const ad = konusma.isletme_adi || '';
       const vedaMesaj = `Anlıyorum ${ad}, rahatsız ettiysem özür dilerim 🙏\n\nFikrinizi değiştirirseniz sırago.com adresinden bize ulaşabilirsiniz.\n\nİyi çalışmalar dilerim! 🙂`;
       try {
-        await this.sock.sendPresenceUpdate('composing', remoteJid);
+        await sock.sendPresenceUpdate('composing', remoteJid);
         await new Promise(r => setTimeout(r, 1500));
-        await this.sock.sendPresenceUpdate('paused', remoteJid);
+        await sock.sendPresenceUpdate('paused', remoteJid);
       } catch(e) {}
-      await this.sock.sendMessage(remoteJid, { text: vedaMesaj });
+      await sock.sendMessage(remoteJid, { text: vedaMesaj });
       await pool.query(
         "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = 'olumsuz' WHERE id = $2",
         [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${vedaMesaj}`, konusma.id]
@@ -1055,13 +1211,13 @@ class SatisBot extends EventEmitter {
       if (fallback) {
         if (this.ayarlar.typingIndicator) {
           try {
-            await this.sock.sendPresenceUpdate('composing', remoteJid);
+            await sock.sendPresenceUpdate('composing', remoteJid);
             const typingMs = (this.ayarlar.typingMinMs || 2000) + Math.random() * ((this.ayarlar.typingMaxMs || 6000) - (this.ayarlar.typingMinMs || 2000));
             await new Promise(r => setTimeout(r, typingMs));
-            await this.sock.sendPresenceUpdate('paused', remoteJid);
+            await sock.sendPresenceUpdate('paused', remoteJid);
           } catch(e) {}
         }
-        await this.sock.sendMessage(remoteJid, { text: fallback.mesaj });
+        await sock.sendMessage(remoteJid, { text: fallback.mesaj });
         await pool.query(
           "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
           [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${fallback.mesaj}`, fallback.durum || 'ai_devrede', konusma.id]
@@ -1077,14 +1233,14 @@ class SatisBot extends EventEmitter {
     if (aiCevap) {
       // Anti-ban: Typing indicator
       try {
-        await this.sock.sendPresenceUpdate('composing', remoteJid);
+        await sock.sendPresenceUpdate('composing', remoteJid);
         const typingMs = 2000 + Math.random() * 4000;
         await new Promise(r => setTimeout(r, typingMs));
-        await this.sock.sendPresenceUpdate('paused', remoteJid);
+        await sock.sendPresenceUpdate('paused', remoteJid);
       } catch (e) {}
 
       // Cevap gönder
-      await this.sock.sendMessage(remoteJid, { text: aiCevap.mesaj });
+      await sock.sendMessage(remoteJid, { text: aiCevap.mesaj });
       console.log(`💬 Satış Bot cevap gönderdi: ${telefon} → "${aiCevap.mesaj.slice(0, 60)}..."`);
 
       // Konuşma kaydını güncelle

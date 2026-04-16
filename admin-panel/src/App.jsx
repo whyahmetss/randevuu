@@ -3279,13 +3279,15 @@ function SuperAdminPanel({ kullanici }) {
     } catch (e) { console.log("satis bot yükleme hatası:", e); }
   };
 
-  // Satış Bot polling — sayfa açıkken her 10sn durum kontrol et
+  // Satış Bot polling — QR bekliyorken 3sn, normalde 10sn
   useEffect(() => {
     if (sayfa !== "satisBot") return;
     satisBotYukle();
-    const interval = setInterval(satisBotYukle, 10000);
+    const qrBekliyor = satisBotDurum?.numaraDurumlari?.some(n => n.durum === 'qr_bekleniyor') || satisBotDurum?.durum === 'qr_bekleniyor';
+    const sure = qrBekliyor ? 3000 : 10000;
+    const interval = setInterval(satisBotYukle, sure);
     return () => clearInterval(interval);
-  }, [sayfa]);
+  }, [sayfa, satisBotDurum?.durum, satisBotDurum?.numaraDurumlari?.length]);
 
   useEffect(() => {
     if (sayfa === "dashboard") saasMetrikleriYukle();
@@ -6460,41 +6462,58 @@ function SuperAdminPanel({ kullanici }) {
                 </form>
               )}
 
-              {/* Aktif numara banner */}
-              {satisBotDurum?.durum === 'bagli' && (
+              {/* Bağlı numara özeti */}
+              {satisBotDurum?.bagliNumaraSayisi > 0 && (
                 <div className="row gap-8 mb-12" style={{ padding: "10px 16px", borderRadius: 10, background: "rgba(16,185,129,.04)", border: "1px solid rgba(16,185,129,.12)", alignItems: "center" }}>
                   <div style={{ width: 8, height: 8, borderRadius: 4, background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
-                  <span style={{ color: "#10b981", fontWeight: 700, fontSize: 13 }}>Bot bu numarayla bağlı</span>
+                  <span style={{ color: "#10b981", fontWeight: 700, fontSize: 13 }}>{satisBotDurum.bagliNumaraSayisi} numara bağlı — round-robin gönderim aktif</span>
                   {satisBotDurum?.gunlukGonderim > 0 && <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--dim)" }}>Bugün {satisBotDurum.gunlukGonderim} mesaj</span>}
                 </div>
               )}
 
               {/* Numara listesi */}
               {numaralar.length === 0 ? (
-                <div style={{ textAlign: "center", padding: 20, color: "var(--dim)", fontSize: 13 }}>Henüz numara yok. Yedek numaralar ekle!</div>
+                <div style={{ textAlign: "center", padding: 20, color: "var(--dim)", fontSize: 13 }}>Henüz numara yok. Numara ekleyip bağlayın!</div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {numaralar.map(n => {
                     const nRenk = { aktif: "#10b981", bekliyor: "#f59e0b", banli: "#ef4444", dinleniyor: "#3b82f6" };
                     const nLabel = { aktif: "Aktif", bekliyor: "Bekliyor", banli: "Banlı", dinleniyor: "Dinleniyor" };
+                    const nd = (satisBotDurum?.numaraDurumlari || []).find(x => x.numaraId === n.id);
+                    const wsBagli = nd?.durum === 'bagli';
+                    const wsQr = nd?.durum === 'qr_bekleniyor';
                     return (
-                      <div key={n.id} className="row gap-10" style={{ padding: "12px 14px", borderRadius: 10, background: n.durum === 'banli' ? "rgba(239,68,68,.03)" : "var(--bg)", border: `1px solid ${n.durum === 'banli' ? "rgba(239,68,68,.12)" : "var(--border)"}`, alignItems: "center" }}>
-                        <div style={{ width: 8, height: 8, borderRadius: 4, background: nRenk[n.durum] || "#64748b", flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="row gap-6" style={{ alignItems: "center" }}>
-                            <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{n.isim}</span>
-                            <span style={{ fontSize: 12, color: "var(--dim)" }}>{n.telefon || "—"}</span>
-                            <span style={{ padding: "1px 8px", borderRadius: 6, background: `${nRenk[n.durum] || "#64748b"}15`, color: nRenk[n.durum] || "#64748b", fontSize: 10, fontWeight: 700 }}>{nLabel[n.durum] || n.durum}</span>
-                            {n.gonderim_sayisi > 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>{n.gonderim_sayisi} msj</span>}
-                            {n.ban_tarihi && <span style={{ fontSize: 10, color: "#ef4444" }}>Ban: {new Date(n.ban_tarihi).toLocaleDateString("tr-TR")}</span>}
+                      <div key={n.id} style={{ padding: "14px 16px", borderRadius: 12, background: n.durum === 'banli' ? "rgba(239,68,68,.03)" : wsBagli ? "rgba(16,185,129,.03)" : "var(--bg)", border: `1px solid ${wsBagli ? "rgba(16,185,129,.15)" : n.durum === 'banli' ? "rgba(239,68,68,.12)" : "var(--border)"}` }}>
+                        <div className="row gap-10" style={{ alignItems: "center" }}>
+                          <div style={{ width: 10, height: 10, borderRadius: 5, background: wsBagli ? "#10b981" : nRenk[n.durum] || "#64748b", flexShrink: 0, boxShadow: wsBagli ? "0 0 8px #10b981" : "none" }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="row gap-6" style={{ alignItems: "center", flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{n.isim}</span>
+                              <span style={{ fontSize: 12, color: "var(--dim)" }}>{n.telefon || "—"}</span>
+                              <span style={{ padding: "2px 8px", borderRadius: 6, background: wsBagli ? "rgba(16,185,129,.1)" : `${nRenk[n.durum] || "#64748b"}15`, color: wsBagli ? "#10b981" : nRenk[n.durum] || "#64748b", fontSize: 10, fontWeight: 700 }}>{wsBagli ? "🟢 Bağlı" : wsQr ? "📱 QR Bekliyor" : nLabel[n.durum] || n.durum}</span>
+                              {n.gonderim_sayisi > 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>{n.gonderim_sayisi} msj</span>}
+                              {n.ban_tarihi && <span style={{ fontSize: 10, color: "#ef4444" }}>Ban: {new Date(n.ban_tarihi).toLocaleDateString("tr-TR")}</span>}
+                            </div>
+                          </div>
+                          <div className="row gap-4" style={{ flexShrink: 0, flexWrap: "wrap" }}>
+                            {n.durum === 'aktif' && !wsBagli && !wsQr && (
+                              <button onClick={async () => { await api.post("/admin/satis-bot/baslat", { numaraId: n.id }); setTimeout(() => satisBotYukle(), 1000); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, fontSize: 11 }}>🔗 Bağla</button>
+                            )}
+                            {wsBagli && (
+                              <button onClick={async () => { await api.post("/admin/satis-bot/durdur", { numaraId: n.id }); setTimeout(() => satisBotYukle(), 500); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.08)", color: "#ef4444", fontWeight: 700, fontSize: 11 }}>⏹ Kes</button>
+                            )}
+                            {n.durum !== 'aktif' && n.durum !== 'banli' && <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'aktif' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(16,185,129,.08)", color: "#10b981", fontWeight: 600, fontSize: 11 }}>Aktif Yap</button>}
+                            <button onClick={async () => { const notu = prompt("Ban notu:"); await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'banli', ban_notu: notu || 'WP ban' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.06)", color: "#ef4444", fontSize: 11 }}>Ban</button>
+                            <button onClick={async () => { if (confirm(`"${n.isim}" sil?`)) { await api.del(`/admin/satis-bot/numaralar/${n.id}`); numaralariYukle(); }}} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.04)", color: "var(--dim)", fontSize: 11 }}>✕</button>
                           </div>
                         </div>
-                        <div className="row gap-4" style={{ flexShrink: 0 }}>
-                          {n.durum !== 'aktif' && n.durum !== 'banli' && <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'aktif' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(16,185,129,.08)", color: "#10b981", fontWeight: 600, fontSize: 11 }}>Aktif</button>}
-                          {n.durum === 'aktif' && <button onClick={async () => { await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'dinleniyor' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(59,130,246,.08)", color: "#3b82f6", fontWeight: 600, fontSize: 11 }}>Dinlendir</button>}
-                          <button onClick={async () => { const notu = prompt("Ban notu:"); await api.put(`/admin/satis-bot/numaralar/${n.id}`, { durum: 'banli', ban_notu: notu || 'WP ban' }); numaralariYukle(); }} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.06)", color: "#ef4444", fontSize: 11 }}>Ban</button>
-                          <button onClick={async () => { if (confirm(`"${n.isim}" sil?`)) { await api.del(`/admin/satis-bot/numaralar/${n.id}`); numaralariYukle(); }}} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.04)", color: "var(--dim)", fontSize: 11 }}>✕</button>
-                        </div>
+                        {/* QR Kodu göster */}
+                        {wsQr && nd?.qrBase64 && (
+                          <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: "#8b5cf6", marginBottom: 8 }}>📱 {n.isim} için QR Kodu — WhatsApp'tan tarayın</div>
+                            <img src={nd.qrBase64} alt="QR" style={{ width: 220, height: 220, borderRadius: 12 }} />
+                          </div>
+                        )}
                       </div>
                     );
                   })}

@@ -1591,31 +1591,22 @@ class AdminController {
   async satisBotBaslat(req, res) {
     try {
       const satisBot = require('../services/satisBot');
-      console.log('🔄 Satış Bot başlatma isteği geldi, mevcut durum:', satisBot.durum);
+      const { numaraId } = req.body || {};
+      console.log('🔄 Satış Bot başlatma isteği geldi, numaraId:', numaraId, 'mevcut durum:', satisBot.durum);
 
-      // Zaten bağlıysa tekrar başlatma — sadece durumu döndür
-      if (satisBot.durum === 'bagli' && satisBot.sock?.user) {
-        console.log('✅ Satış Bot zaten bağlı, yeniden başlatma atlanıyor.');
-        return res.json({ mesaj: 'Satış botu zaten bağlı', ...(await satisBot.getDurum()) });
+      if (numaraId) {
+        // Tek numara başlat
+        await satisBot.numaraBaslat(numaraId);
+        await new Promise(r => setTimeout(r, 2500));
+        const durum = await satisBot.getDurum();
+        return res.json({ mesaj: `Numara #${numaraId} başlatıldı`, ...durum });
       }
 
-      // Bağlanma sürecindeyse bekle
-      if (satisBot.durum === 'baslatiyor' || satisBot.durum === 'qr_bekleniyor') {
-        console.log('⏳ Satış Bot zaten başlatılıyor/QR bekliyor.');
-        return res.json({ mesaj: 'Satış botu başlatılıyor', ...(await satisBot.getDurum()) });
-      }
-
-      // Gerçekten kapalıysa başlat
-      if (satisBot.sock) { try { satisBot.sock.end(); } catch(e) {} satisBot.sock = null; }
-      satisBot.durum = 'kapali';
-      satisBot.qrBase64 = null;
-      satisBot.reconnectAttempts = 0;
-      console.log('🔄 Satış Bot sıfırlandı, yeniden başlatılıyor...');
+      // Tüm aktif numaraları başlat
       satisBot.baslat();
-      // 2sn bekle ki QR event'i gelsin
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 2500));
       const durum = await satisBot.getDurum();
-      console.log('📱 Satış Bot başlatma sonrası durum:', durum.durum, 'QR var mı:', !!durum.qrBase64);
+      console.log('📱 Satış Bot başlatma sonrası durum:', durum.durum, 'bağlı numara:', durum.bagliNumaraSayisi);
       res.json({ mesaj: 'Satış botu başlatıldı', ...durum });
     } catch (error) {
       console.error('❌ satisBotBaslat hatası:', error);
@@ -1626,8 +1617,13 @@ class AdminController {
   async satisBotDurdur(req, res) {
     try {
       const satisBot = require('../services/satisBot');
+      const { numaraId } = req.body || {};
+      if (numaraId) {
+        await satisBot.numaraDurdur(numaraId);
+        return res.json({ mesaj: `Numara #${numaraId} durduruldu` });
+      }
       await satisBot.durdur();
-      res.json({ mesaj: 'Satış botu durduruldu' });
+      res.json({ mesaj: 'Satış botu durduruldu (tüm numaralar)' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
