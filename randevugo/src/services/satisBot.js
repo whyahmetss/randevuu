@@ -55,9 +55,8 @@ const MESAJ_SABLONLARI = {
     (ad) => `Merhabalar 🙂\n\n${ad} sayfanızı inceledik, danışanlarınız çok memnun!\n\nDanışanlarınız 7/24 online randevu alabilir, WhatsApp ile hatırlatma gider.\n\nİlk ay ücretsiz — detay vermemi ister misiniz?`,
   ],
   default: [
-    (ad) => `Merhabalar 🙂\n\n${ad} işletmenizi inceledik!\n\nMüşterileriniz 7/24 online randevu alabilir, WhatsApp ile otomatik hatırlatma gider. Tüm yönetimi tek panelden yaparsınız.\n\nİlk ay tamamen ücretsiz — denemek ister misiniz?`,
-    (ad) => `Merhaba, iyi günler 🙂\n\n${ad} için profesyonel bir randevu sistemi sunuyoruz. Müşterileriniz telefonla aramak zorunda kalmaz.\n\nWhatsApp hatırlatıcı dahil. İlk ay bizden — ilgilenir misiniz?`,
-    (ad) => `Selam 🙂\n\nBiz SıraGO olarak işletmelere online randevu sistemi kuruyoruz.\n\n${ad} için mükemmel olur: 7/24 randevu, WhatsApp hatırlatma, kolay panel.\n\nÜcretsiz deneyin — bilgi verebilir miyim?`,
+    (ad) => `Selam. Müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. ${ad} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.`,
+    (ad) => `Merhaba. Müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi aktif ettik. ${ad} için ilk ay ücretsiz geçiş — 5 dakikalık demo linki göndereyim mi?`,
   ]
 };
 
