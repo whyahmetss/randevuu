@@ -491,7 +491,8 @@ class WhatsAppWebService extends EventEmitter {
           try {
             const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot' });
             await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
-            return botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
+            const mesaj1 = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
+            return await this._dogumTarihiHavucEkle(mesaj1, musteriTelefon, isletmeId, isletme);
           } catch (limitErr) {
             if (limitErr.code === 'LIMIT_ASIMI') {
               await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
@@ -513,8 +514,42 @@ class WhatsAppWebService extends EventEmitter {
     }
   }
 
+  // Randevu onaylandı mesajının sonuna "doğum günü havuç" ekler (opsiyonel)
+  async _dogumTarihiHavucEkle(onayMesaji, musteriTelefon, isletmeId, isletme) {
+    try {
+      if (!isletme?.dogum_gunu_aktif) return onayMesaji;
+      const musteri = (await pool.query(
+        'SELECT id, dogum_tarihi FROM musteriler WHERE telefon=$1 AND isletme_id=$2',
+        [musteriTelefon, isletmeId]
+      )).rows[0];
+      if (!musteri || musteri.dogum_tarihi) return onayMesaji; // Zaten var, sorma
+      const indirim = isletme.dogum_gunu_indirim || 30;
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'dogum_tarihi_bekleniyor');
+      const havuc = `\n\n━━━━━━━━━━━━━━━\n🎁 *Bir sürprizimiz var!*\nDoğum gününüzde size *%${indirim} indirim* tanımlayabilmemiz için doğum tarihinizi *gün ve ay olarak* yazar mısınız?\n\n_Örn: 15 Mayıs veya 15.05_\n\n_İstemiyorsanız bu mesajı yanıtsız bırakabilirsiniz._`;
+      return typeof onayMesaji === 'string' ? onayMesaji + havuc : { ...onayMesaji, metin: (onayMesaji.metin || '') + havuc };
+    } catch(e) {
+      console.log('⚠️ Doğum günü havuç eklenemedi:', e.message);
+      return onayMesaji;
+    }
+  }
+
   async akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId) {
     const metinKucuk = metin.toLowerCase();
+
+    // === DOĞUM TARİHİ BEKLİYOR — sıradaki mesaj cevap olarak parse edilir ===
+    if (botDurum.asama === 'dogum_tarihi_bekleniyor') {
+      const { parseDogumTarihi, formatDogumTarihi } = require('../utils/dogumTarihi');
+      const parsed = parseDogumTarihi(metin);
+      if (parsed) {
+        await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND isletme_id=$3',
+          [parsed, musteriTelefon, isletmeId]);
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+        return { metin: `✅ Teşekkürler! Doğum tarihiniz kaydedildi (*${formatDogumTarihi(parsed)}*). O gün size özel sürprizimiz olacak 🎂`, butonlar: null };
+      }
+      // Parse edilemedi — kullanıcı başka bir şey yazmış olabilir. Vazgeçme, ana menüye dön.
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+      // Normal akışa düş (aşağıdaki menü/intent handler'ları devreye girer)
+    }
 
     // === GLOBAL INTENT DETECTION (her aşamada çalışır) ===
 
@@ -989,7 +1024,7 @@ class WhatsAppWebService extends EventEmitter {
           }
 
           const tebrik = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, calisanAd: clOnay?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
-          return { metin: tebrik, butonlar: null };
+          return await this._dogumTarihiHavucEkle({ metin: tebrik, butonlar: null }, musteriTelefon, isletmeId, isletme);
         } else if (metinKucuk !== '2' && !metinKucuk.includes('iptal') && !metinKucuk.includes('hayır') && metin.length > 1) {
           // Musteri not yazdi - onaylayip notu kaydet
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];

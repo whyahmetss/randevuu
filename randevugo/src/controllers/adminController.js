@@ -3732,12 +3732,22 @@ class AdminController {
         [isletmeId]
       )).rows[0];
 
+      const dogumData = (await pool.query(
+        `SELECT 
+          COUNT(*) FILTER (WHERE dogum_tarihi IS NOT NULL) as dogum_var,
+          COUNT(*) FILTER (WHERE dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != '') as dogum_eksik
+         FROM musteriler WHERE isletme_id = $1`,
+        [isletmeId]
+      )).rows[0];
+
       res.json({
         ayarlar: isletme || {},
         istatistik: {
           toplam_gonderilen: parseInt(istatistik.toplam || 0),
           son_30_gun: parseInt(istatistik.son_30_gun || 0),
-          bugun_dogum_gunu: parseInt(bugunDogumGunu.sayi || 0)
+          bugun_dogum_gunu: parseInt(bugunDogumGunu.sayi || 0),
+          dogum_tarihi_olan: parseInt(dogumData.dogum_var || 0),
+          dogum_tarihi_eksik: parseInt(dogumData.dogum_eksik || 0)
         }
       });
     } catch (error) { res.status(500).json({ hata: error.message }); }
@@ -3761,6 +3771,21 @@ class AdminController {
       const dogumGunu = require('../services/dogumGunu');
       const sonuc = await dogumGunu.manuelTarama(isletmeId);
       res.json(sonuc);
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async dogumGunuTopluGuncelleme(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const dogumGunu = require('../services/dogumGunu');
+      // Arka planda çalıştır — kullanıcıyı bekletme
+      dogumGunu.topluProfilGuncelleme(isletmeId).catch(e => console.error('Toplu güncelleme hatası:', e.message));
+      // Müşteri sayısını hızlı sorgula
+      const sayi = (await pool.query(
+        "SELECT COUNT(*) as c FROM musteriler WHERE isletme_id=$1 AND dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != ''",
+        [isletmeId]
+      )).rows[0];
+      res.json({ basarili: true, mesaj: 'Toplu profil güncelleme başlatıldı', tahmini_gonderim: parseInt(sayi.c || 0) });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 

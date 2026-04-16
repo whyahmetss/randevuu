@@ -101,6 +101,76 @@ class DogumGunuService {
     );
   }
 
+  // Tek seferlik toplu profil güncelleme mesajı (eski müşterilerden doğum tarihi topla)
+  async topluProfilGuncelleme(isletmeId) {
+    try {
+      const isletme = (await pool.query(
+        `SELECT id, isim, telegram_token FROM isletmeler WHERE id=$1`,
+        [isletmeId]
+      )).rows[0];
+      if (!isletme) return { basarili: false, mesaj: 'İşletme bulunamadı' };
+
+      // Doğum tarihi henüz boş olan tüm müşteriler
+      const musteriler = (await pool.query(
+        `SELECT id, isim, telefon FROM musteriler
+         WHERE isletme_id = $1 AND dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != ''`,
+        [isletmeId]
+      )).rows;
+
+      const mesajSablonu = (isim) =>
+        `Merhaba${isim ? ' ' + isim.split(' ')[0] : ''}! *${isletme.isim}* olarak sistemimizi yeniledik 🎉\n\n` +
+        `🎂 Doğum gününüzde size özel hediyeler ve indirimler sunabilmemiz için doğum tarihinizi *gün ve ay olarak* (Örn: 05.10 veya 5 Ekim) yazarak iletebilir misiniz?\n\n` +
+        `_İstemiyorsanız bu mesajı yanıtsız bırakabilirsiniz._`;
+
+      let gonderilen = 0;
+      let hata = 0;
+
+      // Anti-ban: müşteriler arasında 2-5 saniye random bekleme
+      for (const m of musteriler) {
+        try {
+          const isTelegram = m.telefon.startsWith('tg:');
+          const mesaj = mesajSablonu(m.isim);
+          if (isTelegram && isletme.telegram_token) {
+            const telegram = require('./telegram');
+            const chatId = m.telefon.slice(3);
+            const bot = telegram.botlar?.[isletmeId];
+            if (bot) {
+              await bot.sendMessage(chatId, mesaj, { parse_mode: 'Markdown' });
+              // TG için state Bot'a gider ama basit olsun, sadece WA'da state değiştireceğiz
+              gonderilen++;
+            }
+          } else if (!isTelegram) {
+            const whatsappWeb = require('./whatsappWeb');
+            const waDurum = whatsappWeb.getDurum(isletmeId);
+            if (waDurum?.durum === 'bagli') {
+              await whatsappWeb.mesajGonder(isletmeId, m.telefon, mesaj);
+              // Bir sonraki yanıtı doğum tarihi olarak beklesin
+              try {
+                await pool.query(
+                  `INSERT INTO bot_durum (musteri_telefon, isletme_id, asama, son_aktivite) VALUES ($1, $2, 'dogum_tarihi_bekleniyor', NOW())
+                   ON CONFLICT (musteri_telefon, isletme_id) DO UPDATE SET asama='dogum_tarihi_bekleniyor', son_aktivite=NOW()`,
+                  [m.telefon, isletmeId]
+                );
+              } catch(e) { /* bot_durum tablosu yoksa skip */ }
+              gonderilen++;
+            }
+          }
+          // Anti-ban: 2-5 saniye bekle
+          await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000));
+        } catch (e) {
+          hata++;
+          console.log(`⚠️ Profil güncelleme mesaj hatası (${m.telefon}):`, e.message);
+        }
+      }
+
+      console.log(`📬 ${isletme.isim}: ${gonderilen}/${musteriler.length} müşteriye profil güncelleme mesajı gönderildi`);
+      return { basarili: true, toplam: musteriler.length, gonderilen, hata };
+    } catch (e) {
+      console.error('Toplu profil güncelleme hatası:', e.message);
+      return { basarili: false, mesaj: e.message };
+    }
+  }
+
   // Manuel tetikleme (test için)
   async manuelTarama(isletmeId) {
     try {

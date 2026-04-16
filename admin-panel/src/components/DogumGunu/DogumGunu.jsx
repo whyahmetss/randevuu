@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 
 export default function DogumGunu({ api }) {
   const [ayarlar, setAyarlar] = useState({ dogum_gunu_aktif: false, dogum_gunu_indirim: 30, dogum_gunu_mesaj_sablonu: '' });
-  const [istatistik, setIstatistik] = useState({ toplam_gonderilen: 0, son_30_gun: 0, bugun_dogum_gunu: 0 });
+  const [istatistik, setIstatistik] = useState({ toplam_gonderilen: 0, son_30_gun: 0, bugun_dogum_gunu: 0, dogum_tarihi_olan: 0, dogum_tarihi_eksik: 0 });
   const [kaydedildi, setKaydedildi] = useState(false);
   const [tetikleniyor, setTetikleniyor] = useState(false);
+  const [topluTetikleniyor, setTopluTetikleniyor] = useState(false);
 
   useEffect(() => {
     yukle();
@@ -43,6 +44,27 @@ export default function DogumGunu({ api }) {
     }
   };
 
+  const topluProfilGuncelle = async () => {
+    const sayi = istatistik.dogum_tarihi_eksik;
+    if (sayi === 0) { alert('Tüm müşterilerinin doğum tarihi zaten sistemde kayıtlı 🎉'); return; }
+    const msg = `⚠️ ${sayi} eski müşteriye doğum tarihlerini sormak için WhatsApp mesajı gönderilecek.\n\nBu tek seferlik bir kampanyadır — tekrar çalıştırmak tavsiye EDİLMEZ (müşteri spam algılayabilir).\n\nDevam edilsin mi?`;
+    if (!confirm(msg)) return;
+    setTopluTetikleniyor(true);
+    try {
+      const sonuc = await api.post('/dogum-gunu/toplu-guncelleme', {});
+      if (sonuc?.basarili) {
+        alert(`✅ Kampanya başlatıldı! ${sonuc.tahmini_gonderim} müşteriye mesaj gönderiliyor (arka planda, 2-5 sn arayla). Cevap verenlerin doğum tarihi otomatik kaydedilecek.`);
+        yukle();
+      } else {
+        alert('❌ Hata: ' + (sonuc?.hata || 'Bilinmeyen hata'));
+      }
+    } catch (e) {
+      alert('❌ Hata: ' + e.message);
+    } finally {
+      setTopluTetikleniyor(false);
+    }
+  };
+
   const S = {
     card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' },
     label: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
@@ -72,23 +94,57 @@ Randevu için mesaj at, yerini ayarlayalım 💫`;
       </div>
 
       {/* İstatistik kartları */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
         <div style={{ ...S.card, background: 'linear-gradient(135deg, rgba(236,72,153,.08), rgba(236,72,153,.02))', border: '1px solid rgba(236,72,153,.2)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bugün Doğum Günü</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: '#ec4899' }}>{istatistik.bugun_dogum_gunu}</div>
-          <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>{istatistik.bugun_dogum_gunu > 0 ? 'Mesaj gönderilecek' : 'Bugün kimsenin doğum günü yok'}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#ec4899' }}>{istatistik.bugun_dogum_gunu}</div>
+          <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>{istatistik.bugun_dogum_gunu > 0 ? 'Mesaj gönderilecek' : 'Bugün kimse yok'}</div>
         </div>
         <div style={S.card}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Son 30 Gün</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)' }}>{istatistik.son_30_gun}</div>
-          <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Mesaj gönderildi</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Doğum Tarihi VAR</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#10b981' }}>{istatistik.dogum_tarihi_olan}</div>
+          <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Kayıtlı müşteri</div>
         </div>
         <div style={S.card}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Toplam</div>
-          <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)' }}>{istatistik.toplam_gonderilen}</div>
-          <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Tüm zamanlar</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Doğum Tarihi EKSİK</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#f59e0b' }}>{istatistik.dogum_tarihi_eksik}</div>
+          <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Toplamak için ↓</div>
+        </div>
+        <div style={S.card}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Son 30 Gün Gönd.</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)' }}>{istatistik.son_30_gun}</div>
+          <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Kutlama mesajı</div>
         </div>
       </div>
+
+      {/* Toplu Profil Güncelleme — Eski Müşterilerden Veri Topla */}
+      {istatistik.dogum_tarihi_eksik > 0 && (
+        <div style={{ ...S.card, marginBottom: 20, background: 'linear-gradient(135deg, rgba(245,158,11,.06), rgba(245,158,11,.01))', border: '1px solid rgba(245,158,11,.25)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>📬 Eski Müşterilerden Doğum Tarihi Topla</div>
+              <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>
+                <strong>{istatistik.dogum_tarihi_eksik} müşteri</strong>nin doğum tarihi eksik. Tek seferlik bir kampanya ile WhatsApp'tan nazikçe sor, cevap verenlerin tarihi otomatik kaydedilsin.
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 6, fontStyle: 'italic' }}>
+                ⚠️ Anti-ban için 2-5 saniye arayla gönderim yapılır. 100 müşteri için ~5-10 dakika sürer.
+              </div>
+            </div>
+            <button
+              onClick={topluProfilGuncelle}
+              disabled={topluTetikleniyor}
+              style={{
+                padding: '12px 24px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: '#f59e0b', color: '#fff',
+                fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+                opacity: topluTetikleniyor ? 0.5 : 1, whiteSpace: 'nowrap'
+              }}
+            >
+              {topluTetikleniyor ? '⏳ Başlatılıyor...' : `📬 ${istatistik.dogum_tarihi_eksik} Kişiye Sor`}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Ayarlar */}
       <div style={S.card}>

@@ -113,7 +113,7 @@ class BookingController {
   async randevuOlustur(req, res) {
     try {
       const { slug } = req.params;
-      const { hizmetId, calisanId, tarih, saat, musteriIsim, musteriTelefon } = req.body;
+      const { hizmetId, calisanId, tarih, saat, musteriIsim, musteriTelefon, musteriDogum, musteriNot } = req.body;
 
       if (!hizmetId || !tarih || !saat || !musteriTelefon) {
         return res.status(400).json({ hata: 'Eksik bilgi' });
@@ -183,6 +183,23 @@ class BookingController {
 
       // Kaynağı online olarak güncelle
       await pool.query("UPDATE randevular SET kaynak='online' WHERE id=$1", [sonuc.randevu.id]);
+
+      // Notu kaydet (varsa)
+      if (musteriNot && musteriNot.trim()) {
+        try { await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [musteriNot.trim().slice(0, 500), sonuc.randevu.id]); } catch(e) {}
+      }
+
+      // 🎂 Doğum tarihi kaydet (varsa) — opsiyonel
+      if (musteriDogum && musteriDogum.trim()) {
+        try {
+          const { parseDogumTarihi } = require('../utils/dogumTarihi');
+          const parsed = parseDogumTarihi(musteriDogum);
+          if (parsed) {
+            await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND isletme_id=$3 AND dogum_tarihi IS NULL',
+              [parsed, musteriTelefon, isletme.id]);
+          }
+        } catch(e) { /* ignore */ }
+      }
 
       // İşletmeye bildirim gönder
       try {

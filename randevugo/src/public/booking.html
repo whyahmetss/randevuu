@@ -351,7 +351,7 @@
     let state = {
       step: 1, isletme: null, hizmetler: [], calisanlar: [], saatler: [],
       seciliHizmet: null, seciliCalisan: null, seciliTarih: null, seciliSaat: null,
-      musteriAd: '', musteriTel: '', musteriNot: '', hata: '', yukleniyor: false,
+      musteriAd: '', musteriTel: '', musteriNot: '', musteriDogum: '', hata: '', yukleniyor: false,
       captchaA: 0, captchaB: 0, captchaCevap: '', sonRandevuZaman: 0,
       otomatikCalisan: false, calisanSecildi: false,
       otpGonderildi: false, otpDogrulandi: false, otpKod: '', otpYukleniyor: false, otpBypass: false, otpMesaj: '', captchaModu: false
@@ -541,6 +541,8 @@
         }
 
         h += `<div style="position:absolute;left:-9999px"><input type="text" id="website" tabindex="-1" autocomplete="off"></div>`;
+        h += `<div class="fg"><label>🎂 Doğum Tarihiniz <span style="color:var(--muted);font-weight:400;font-size:11px">(isteğe bağlı · sürprizler için)</span></label>
+          <input type="text" id="musteriDogum" value="${s.musteriDogum}" placeholder="Örn: 15.05 veya 15 Mayıs" oninput="state.musteriDogum=this.value" maxlength="20"></div>`;
         h += `<div class="fg"><label>${t('note_label')}</label>
           <textarea id="musteriNot" placeholder="${t('note_placeholder')}" oninput="state.musteriNot=this.value">${s.musteriNot}</textarea></div>`;
 
@@ -704,7 +706,7 @@
     async function randevuOlustur() {
       state.yukleniyor=true; state.hata=''; render();
       const tel = state.musteriTel.replace(/\s/g,'').replace(/^0/,'90');
-      const body = {musteriTelefon:tel, musteriIsim:state.musteriAd, hizmetId:state.seciliHizmet.id, calisanId:state.seciliCalisan?.id||null, tarih:state.seciliTarih, saat:state.seciliSaat};
+      const body = {musteriTelefon:tel, musteriIsim:state.musteriAd, hizmetId:state.seciliHizmet.id, calisanId:state.seciliCalisan?.id||null, tarih:state.seciliTarih, saat:state.seciliSaat, musteriDogum:state.musteriDogum, musteriNot:state.musteriNot};
       const data = await apiPost(`/book/${slug}/randevu`, body);
       state.yukleniyor=false;
       if(data.hata) { state.hata=data.hata; render(); return; }
@@ -712,7 +714,7 @@
     }
 
     function yeniRandevu() {
-      Object.assign(state, {step:1,seciliHizmet:null,seciliCalisan:null,seciliTarih:null,seciliSaat:null,saatler:[],musteriAd:'',musteriTel:'',musteriNot:'',hata:'',calisanSecildi:false,
+      Object.assign(state, {step:1,seciliHizmet:null,seciliCalisan:null,seciliTarih:null,seciliSaat:null,saatler:[],musteriAd:'',musteriTel:'',musteriNot:'',musteriDogum:'',hata:'',calisanSecildi:false,
         otpGonderildi:false,otpDogrulandi:false,otpKod:'',otpYukleniyor:false,otpBypass:false,otpMesaj:'',captchaModu:false});
       yeniCaptcha(); render();
     }
