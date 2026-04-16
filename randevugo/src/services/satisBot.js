@@ -89,13 +89,15 @@ class SatisBot extends EventEmitter {
     this.durum = 'kapali';
     this.qrBase64 = null;
     this.aktif = false; // mesaj gönderme döngüsü aktif mi
-    this.gonderimTimer = null;
+    this.gonderimTimer = null; // eski uyumluluk
+    this.numaraTimers = new Map(); // numaraId → timer (her numara kendi loop'u)
+    this.numaraGunluk = new Map(); // numaraId → { gonderim: 0, tarih: 'YYYY-MM-DD' }
     this.takipTimer = null;
     this.gunlukGonderim = 0;
     this.sonGonderimTarihi = null;
     this.konusmalar = {};
     this.maxReconnectAttempts = 5;
-    this.roundRobinIndex = 0; // round-robin gönderimde sıra
+    this.roundRobinIndex = 0; // round-robin gönderimde sıra (gelen mesaj cevabı için)
     // SuperAdmin'den kontrol edilebilir ayarlar
     this.ayarlar = {
       mesaiBaslangic: 9,   // saat
@@ -600,16 +602,20 @@ class SatisBot extends EventEmitter {
       this.aktif = false;
       this.sock = null;
     }
-    // Numara bazlı durumlar
+    // Numara bazlı durumlar + paralel loop bilgisi
     const numaraDurumlari = [];
     for (const [id, ns] of this.numaraSockets) {
+      const ng = this.numaraGunluk.get(id);
       numaraDurumlari.push({
         numaraId: id,
         durum: ns.durum,
         qrBase64: ns.qrBase64,
         numara: ns.sock?.user?.id?.split(':')[0] || null,
+        paralelAktif: this.numaraTimers.has(id),
+        gunlukGonderim: ng?.gonderim || 0,
       });
     }
+    const paralelCalisan = [...this.numaraTimers.keys()].length;
     return {
       durum: this.durum,
       qrBase64: this.qrBase64,
@@ -618,6 +624,7 @@ class SatisBot extends EventEmitter {
       sonGonderimTarihi: this.sonGonderimTarihi,
       ayarlar: this.ayarlar,
       bagliNumaraSayisi: this._bagliSocklar().length,
+      paralelCalisan,
       numaraDurumlari,
     };
   }
@@ -630,117 +637,160 @@ class SatisBot extends EventEmitter {
     if (this.aktif) return { hata: 'Zaten çalışıyor' };
 
     this.aktif = true;
-    console.log('🚀 Satış Bot mesaj gönderimi başladı');
-    this.sonrakiGonderim();
-    return { mesaj: 'Gönderim başladı' };
+    // Her bağlı numara kendi paralel gönderim döngüsünü başlatır
+    const baglilar = this._bagliSocklar();
+    console.log(`🚀 Satış Bot PARALEL gönderim başladı — ${baglilar.length} numara aynı anda çalışacak`);
+    for (const ns of baglilar) {
+      this._numaraLoopBaslat(ns.numaraId);
+    }
+    return { mesaj: `${baglilar.length} numara ile paralel gönderim başladı` };
   }
 
   gonderimDurdur() {
     this.aktif = false;
+    // Tüm numara timer'larını durdur
+    for (const [nId, timer] of this.numaraTimers) {
+      clearTimeout(timer);
+    }
+    this.numaraTimers.clear();
     if (this.gonderimTimer) {
       clearTimeout(this.gonderimTimer);
       this.gonderimTimer = null;
     }
-    console.log('⏸️ Satış Bot mesaj gönderimi durduruldu');
+    console.log('⏸️ Satış Bot tüm paralel gönderimler durduruldu');
     return { mesaj: 'Gönderim durduruldu' };
   }
 
-  async sonrakiGonderim() {
-    this._senkronEt();
-    if (!this.aktif || this.durum !== 'bagli') return;
+  _numaraLoopBaslat(numaraId) {
+    // Zaten çalışıyorsa tekrar başlatma
+    if (this.numaraTimers.has(numaraId)) return;
+    console.log(`🔄 Numara #${numaraId} paralel gönderim loop'u başladı`);
+    this._numaraGonderim(numaraId);
+  }
 
-    // Günlük sayacı sıfırla (Türkiye saati)
+  // Her numara kendi paralel döngüsünü çalıştırır
+  async _numaraGonderim(numaraId) {
+    this._senkronEt();
+    if (!this.aktif) { this.numaraTimers.delete(numaraId); return; }
+
+    // Numara hâlâ bağlı mı kontrol et
+    const ns = this.numaraSockets.get(numaraId);
+    if (!ns || ns.durum !== 'bagli' || !ns.sock) {
+      console.log(`⚠️ Numara #${numaraId} artık bağlı değil, loop durduruluyor`);
+      this.numaraTimers.delete(numaraId);
+      return;
+    }
+
     const simdi = turkiyeSaati();
     const bugun = simdi.toISOString().slice(0, 10);
+
+    // Numara bazlı günlük sayaç
+    let ng = this.numaraGunluk.get(numaraId) || { gonderim: 0, tarih: bugun };
+    if (ng.tarih !== bugun) { ng = { gonderim: 0, tarih: bugun }; }
+    this.numaraGunluk.set(numaraId, ng);
+
+    // Global günlük sıfırla
     if (this.sonGonderimTarihi !== bugun) {
       this.gunlukGonderim = 0;
       this.sonGonderimTarihi = bugun;
     }
 
-    // Mod kontrolü — sadece_kayit, sadece_ai veya kapali modunda giden mesaj gönderme
+    // Mod kontrolü
     if (['sadece_kayit', 'sadece_ai', 'kapali'].includes(this.ayarlar.mod)) {
-      console.log(`⏸️ Mod: ${this.ayarlar.mod} — giden mesaj gönderilmiyor. 30dk sonra tekrar kontrol.`);
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
+      this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 30 * 60 * 1000));
       return;
     }
 
-    // Tatil kontrolü
+    // Tatil
     if (this.ayarlar.tatil) {
-      console.log('🏖️ Bugün tatil — gönderim yapılmıyor. 1 saat sonra tekrar kontrol.');
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 60 * 60 * 1000);
+      this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 60 * 60 * 1000));
       return;
     }
 
-    // Günlük limit
+    // Global günlük limit
     if (this.gunlukGonderim >= this.ayarlar.gunlukLimit) {
-      console.log(`📊 Günlük limit doldu (${this.ayarlar.gunlukLimit}), yarın devam edilecek`);
-      // 1 saat sonra tekrar kontrol (yeni gün olmuş olabilir)
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 60 * 60 * 1000);
+      console.log(`📊 [#${numaraId}] Global günlük limit doldu (${this.ayarlar.gunlukLimit})`);
+      this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 60 * 60 * 1000));
       return;
     }
 
-    // Genel mesai kontrolü (kampanya bazlı saat kontrolü siradakiLeadGetir içinde)
+    // Numara bazlı günlük limit (global / numara sayısı)
+    const bagliSayisi = this._bagliSocklar().length || 1;
+    const numaraLimit = Math.ceil(this.ayarlar.gunlukLimit / bagliSayisi) + 5; // biraz tolerans
+    if (ng.gonderim >= numaraLimit) {
+      console.log(`📊 [#${numaraId}] Numara limiti doldu (${ng.gonderim}/${numaraLimit})`);
+      this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 60 * 60 * 1000));
+      return;
+    }
+
+    // Gece kontrolü
     const saat = simdi.getHours();
     if (saat < 8 || saat >= 20) {
-      console.log(`🕐 Gece saati — TR saat: ${saat}:00. 30dk sonra tekrar kontrol.`);
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
+      this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 30 * 60 * 1000));
       return;
     }
 
     try {
-      // Kampanya bazlı lead seçimi (sektöre özel gün/saat/skor filtresi)
+      // Kampanya bazlı lead seçimi
       const sonuc = await this.siradakiLeadGetir();
       if (!sonuc) {
-        console.log('📭 Uygun kampanya/lead kalmadı — 30dk sonra tekrar.');
-        this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
+        console.log(`📭 [#${numaraId}] Uygun lead kalmadı — 5dk sonra tekrar`);
+        this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 5 * 60 * 1000));
         return;
       }
 
       const { lead, kampanya } = sonuc;
+      const sock = ns.sock;
 
-      // WhatsApp kontrol (ban riski azaltma)
-      const ns = this._aktifSock();
-      const sock = ns?.sock || this.sock;
-      if (sock) {
-        const telefon = this.telefonDuzelt(lead.telefon);
-        if (telefon) {
-          try {
-            const [wpSonuc] = await sock.onWhatsApp(telefon);
-            if (!wpSonuc?.exists) {
-              console.log(`📵 WP YOK: ${lead.isletme_adi} (${telefon}) — skip`);
-              await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
-              // Hemen sonraki lead'e geç (kısa bekleme)
-              this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 3000);
-              return;
-            }
-          } catch(e) { console.log('⚠️ WP kontrol hatası (devam):', e.message); }
-        }
+      // WhatsApp kontrol
+      const telefon = this.telefonDuzelt(lead.telefon);
+      if (telefon) {
+        try {
+          const [wpSonuc] = await sock.onWhatsApp(telefon);
+          if (!wpSonuc?.exists) {
+            console.log(`📵 [#${numaraId}] WP YOK: ${lead.isletme_adi} (${telefon}) — skip`);
+            await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
+            this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 2000));
+            return;
+          }
+        } catch(e) { console.log(`⚠️ [#${numaraId}] WP kontrol hatası (devam):`, e.message); }
       }
 
-      // Mesaj gönder (kampanya bilgisi ile)
-      await this.leadeMesajGonder(lead, kampanya);
+      // Mesaj gönder — bu numaranın socket'i ile
+      await this._numaraMesajGonder(ns, lead, kampanya);
+      ng.gonderim++;
+      this.numaraGunluk.set(numaraId, ng);
       this.gunlukGonderim++;
 
-      // Kampanya günlük sayacını güncelle
+      // Kampanya sayacı
       if (kampanya) {
         try {
           await pool.query(`UPDATE satis_kampanyalar SET gonderilen = gonderilen + 1, bugun_gonderilen = CASE WHEN bugun_tarihi = CURRENT_DATE THEN bugun_gonderilen + 1 ELSE 1 END, bugun_tarihi = CURRENT_DATE WHERE id = $1`, [kampanya.id]);
-        } catch(e) { /* kampanya sayaç hatası önemsiz */ }
+        } catch(e) { /* önemsiz */ }
       }
 
-      // Anti-ban: Rastgele bekleme (ayarlardan)
+      // Bekleme — her numara kendi arasında bekler, diğer numaralar aynı anda devam eder
       const minBekleme = this.ayarlar.minBekleme * 60 * 1000;
       const maxBekleme = this.ayarlar.maxBekleme * 60 * 1000;
       const bekleme = minBekleme + Math.random() * (maxBekleme - minBekleme);
       const dakika = Math.round(bekleme / 60000);
 
-      console.log(`⏳ Sonraki mesaj ${dakika} dakika sonra (bugün: ${this.gunlukGonderim}/${this.ayarlar.gunlukLimit})`);
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), bekleme);
+      console.log(`⏳ [#${numaraId}] Sonraki mesaj ${dakika}dk sonra (numara: ${ng.gonderim}, global: ${this.gunlukGonderim}/${this.ayarlar.gunlukLimit})`);
+      this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), bekleme));
 
     } catch (err) {
-      console.error('❌ Gönderim hatası:', err.message);
-      // Hata olursa 30 dk bekle
-      this.gonderimTimer = setTimeout(() => this.sonrakiGonderim(), 30 * 60 * 1000);
+      console.error(`❌ [#${numaraId}] Gönderim hatası:`, err.message);
+      this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 5 * 60 * 1000));
+    }
+  }
+
+  // Eski uyumluluk: sonrakiGonderim → paralel sisteme yönlendir
+  async sonrakiGonderim() {
+    const baglilar = this._bagliSocklar();
+    if (baglilar.length > 0) {
+      for (const ns of baglilar) {
+        this._numaraLoopBaslat(ns.numaraId);
+      }
     }
   }
 
@@ -817,6 +867,82 @@ class SatisBot extends EventEmitter {
     return null;
   }
 
+  // Belirli numaranın socket'i ile mesaj gönder (paralel sistem)
+  async _numaraMesajGonder(ns, lead, kampanya = null) {
+    const sock = ns.sock;
+    if (!sock) { console.log(`⚠️ [#${ns.numaraId}] Socket yok`); return; }
+
+    const telefon = this.telefonDuzelt(lead.telefon);
+    if (!telefon) {
+      await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gecersiz_numara' WHERE id = $1", [lead.id]);
+      return;
+    }
+
+    const kategori = (lead.kategori || '').toLowerCase();
+    let mesaj = '';
+    let sablonId = null;
+    try {
+      let dbSablonlar;
+      if (kampanya) {
+        dbSablonlar = (await pool.query(
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id = $1 ORDER BY RANDOM() LIMIT 1",
+          [kampanya.id]
+        )).rows;
+      }
+      if (!dbSablonlar || dbSablonlar.length === 0) {
+        dbSablonlar = (await pool.query(
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id IS NULL AND (kategori = $1 OR kategori = 'genel') ORDER BY RANDOM() LIMIT 1",
+          [kategori || 'genel']
+        )).rows;
+      }
+      if (dbSablonlar.length > 0) {
+        const s = dbSablonlar[0];
+        sablonId = s.id;
+        mesaj = s.mesaj
+          .replace(/{isletme_adi}/g, lead.isletme_adi || '')
+          .replace(/{isletme_sahibi}/g, lead.isletme_sahibi || lead.isletme_adi || '')
+          .replace(/{kategori}/g, lead.kategori || 'işletme')
+          .replace(/{telefon}/g, lead.telefon || '');
+        await pool.query('UPDATE satis_bot_sablonlar SET gonderilen = gonderilen + 1 WHERE id = $1', [sablonId]);
+      }
+    } catch(e) { console.log('DB şablon hatası (fallback):', e.message); }
+    if (!mesaj) {
+      const sablonlar = MESAJ_SABLONLARI[kategori] || MESAJ_SABLONLARI.default;
+      const rastgeleSablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
+      mesaj = rastgeleSablon(lead.isletme_adi);
+    }
+
+    const jid = `${telefon}@s.whatsapp.net`;
+    try {
+      await sock.presenceSubscribe(jid);
+      await sock.sendPresenceUpdate('composing', jid);
+      const typingMs = (this.ayarlar.typingMinMs || 2000) + Math.random() * ((this.ayarlar.typingMaxMs || 6000) - (this.ayarlar.typingMinMs || 2000));
+      await new Promise(r => setTimeout(r, typingMs));
+      await sock.sendPresenceUpdate('paused', jid);
+    } catch (e) { /* presence hataları önemsiz */ }
+
+    try {
+      await sock.sendMessage(jid, { text: mesaj });
+      const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
+      console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor}`);
+
+      await pool.query(
+        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
+        [lead.id]
+      );
+
+      await pool.query(
+        `INSERT INTO satis_konusmalar (lead_id, telefon, isletme_adi, kategori, gonderilen_mesaj, durum, sablon_id) 
+         VALUES ($1, $2, $3, $4, $5, 'bekliyor', $6)`,
+        [lead.id, telefon, lead.isletme_adi, lead.kategori, mesaj, sablonId]
+      );
+    } catch (err) {
+      console.error(`❌ [#${ns.numaraId}] Mesaj gönderme hatası (${lead.isletme_adi}):`, err.message);
+      await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'hata' WHERE id = $1", [lead.id]);
+    }
+  }
+
+  // Eski uyumluluk: leadeMesajGonder (gelen mesaj cevabı vb. için)
   async leadeMesajGonder(lead, kampanya = null) {
     const ns = this._aktifSock();
     const sock = ns?.sock || this.sock;

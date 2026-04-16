@@ -6508,7 +6508,7 @@ function SuperAdminPanel({ kullanici }) {
               {satisBotDurum?.bagliNumaraSayisi > 0 && (
                 <div className="row gap-8 mb-12" style={{ padding: "10px 16px", borderRadius: 10, background: "rgba(16,185,129,.04)", border: "1px solid rgba(16,185,129,.12)", alignItems: "center" }}>
                   <div style={{ width: 8, height: 8, borderRadius: 4, background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
-                  <span style={{ color: "#10b981", fontWeight: 700, fontSize: 13 }}>{satisBotDurum.bagliNumaraSayisi} numara bağlı — round-robin gönderim aktif</span>
+                  <span style={{ color: "#10b981", fontWeight: 700, fontSize: 13 }}>{satisBotDurum.bagliNumaraSayisi} numara bağlı — {satisBotDurum.paralelCalisan > 0 ? `${satisBotDurum.paralelCalisan} numara paralel çalışıyor 🔥` : 'paralel gönderim hazır'}</span>
                   {satisBotDurum?.gunlukGonderim > 0 && <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--dim)" }}>Bugün {satisBotDurum.gunlukGonderim} mesaj</span>}
                 </div>
               )}
@@ -6533,7 +6533,9 @@ function SuperAdminPanel({ kullanici }) {
                               <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>{n.isim}</span>
                               <span style={{ fontSize: 12, color: "var(--dim)" }}>{n.telefon || "—"}</span>
                               <span style={{ padding: "2px 8px", borderRadius: 6, background: wsBagli ? "rgba(16,185,129,.1)" : `${nRenk[n.durum] || "#64748b"}15`, color: wsBagli ? "#10b981" : nRenk[n.durum] || "#64748b", fontSize: 10, fontWeight: 700 }}>{wsBagli ? "🟢 Bağlı" : wsQr ? "📱 QR Bekliyor" : nLabel[n.durum] || n.durum}</span>
-                              {n.gonderim_sayisi > 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>{n.gonderim_sayisi} msj</span>}
+                              {nd?.paralelAktif && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(245,158,11,.1)", color: "#f59e0b", fontSize: 10, fontWeight: 700 }}>⚡ Paralel Aktif</span>}
+                              {nd?.gunlukGonderim > 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>bugün {nd.gunlukGonderim} msj</span>}
+                              {n.gonderim_sayisi > 0 && !nd?.gunlukGonderim && <span style={{ fontSize: 10, color: "var(--dim)" }}>{n.gonderim_sayisi} msj</span>}
                               {n.ban_tarihi && <span style={{ fontSize: 10, color: "#ef4444" }}>Ban: {new Date(n.ban_tarihi).toLocaleDateString("tr-TR")}</span>}
                             </div>
                           </div>
@@ -6723,6 +6725,8 @@ function SuperAdminPanel({ kullanici }) {
                   <span>• Mesai: {satisBotDurum?.ayarlar?.mesaiBaslangic || 9}:00 — {satisBotDurum?.ayarlar?.mesaiBitis || 19}:00</span>
                   <span>• "Yazıyor..." simülasyonu</span>
                   <span>• 3 farklı mesaj varyasyonu</span>
+                  <span>• Her numara paralel gönderim (bağımsız loop)</span>
+                  <span>• WP numara kontrol — geçersiz numara skip</span>
                 </div>
               </div>
               <div style={{ background: "linear-gradient(135deg, rgba(139,92,246,.04), rgba(139,92,246,.01))", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(139,92,246,.12)" }}>
