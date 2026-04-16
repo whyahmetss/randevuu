@@ -756,7 +756,7 @@ class AdminController {
       const hizmetIds = [];
       for (const h of hizmetler) {
         const r = await pool.query(
-          'INSERT INTO hizmetler (isletme_id, isim, sure, fiyat, aktif) VALUES ($1,$2,$3,$4,true) RETURNING id',
+          'INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aktif) VALUES ($1,$2,$3,$4,true) RETURNING id',
           [id, h.isim, h.sure, h.fiyat]
         );
         hizmetIds.push(r.rows[0].id);
