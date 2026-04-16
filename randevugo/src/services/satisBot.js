@@ -1117,10 +1117,10 @@ class SatisBot extends EventEmitter {
   }
 
   async _telegramBildirimGonder(mesaj) {
-    const botToken = process.env.SATIS_TELEGRAM_BOT_TOKEN;
+    const botToken = process.env.TELEGRAM_SATIS_BOT_TOKEN || process.env.SATIS_TELEGRAM_BOT_TOKEN;
     const chatId = process.env.SATIS_TELEGRAM_CHAT_ID;
     if (!botToken || !chatId) {
-      console.log('⚠️ Telegram bildirim ayarları eksik (SATIS_TELEGRAM_BOT_TOKEN / SATIS_TELEGRAM_CHAT_ID)');
+      console.log('⚠️ Telegram bildirim ayarları eksik (SATIS_TELEGRAM_CHAT_ID env ekle)');
       return;
     }
     await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
