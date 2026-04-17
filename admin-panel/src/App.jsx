@@ -19,6 +19,7 @@ const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, us
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
 import { API_URL, API_ORIGIN, bookingUrl } from './lib/config';
+import BackendHealth from './components/BackendHealth';
 
 const api = {
   token: localStorage.getItem("randevugo_token"),
@@ -1288,6 +1289,7 @@ function Dashboard() {
         )}
 
         <div className="sidebar-footer">
+          <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}><BackendHealth /></div>
           <button onClick={cikisYap} className="btn btn-ghost btn-block btn-sm">Çıkış Yap</button>
         </div>
       </aside>
@@ -3841,7 +3843,10 @@ function SuperAdminPanel({ kullanici }) {
           ))}
         </nav>
         <div className="sidebar-footer">
-          <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}><CanliDurumu /></div>
+          <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+            <CanliDurumu />
+            <BackendHealth />
+          </div>
           <button onClick={cikisYap} className="btn btn-ghost btn-block btn-sm">Çıkış Yap</button>
         </div>
       </aside>
