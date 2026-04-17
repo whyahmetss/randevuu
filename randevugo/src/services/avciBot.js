@@ -1,20 +1,37 @@
 const pool = require('../config/db');
+const TR_ILCELER = require('../data/tr_ilceler.json');
+const { sinonimleriGetir } = require('../data/kategori_sinonimleri');
 
 // Google Places API ile işletme arama
 class AvciBot {
+  constructor() {
+    // Arka planda koşan taramaların progress durumları (tarama_id → { ... })
+    this.taramaDurumlari = new Map();
+  }
 
-  // Google Maps'ten işletmeleri ara ve DB'ye kaydet
-  async taramaYap(params) {
-    const { sehir, ilce, kategori, apiKey } = params;
-    if (!apiKey) throw new Error('Google Maps API key gerekli');
+  // Şehir adını normalize et ve ilçelerini getir (static JSON'dan)
+  _ilceleriGetir(sehir) {
+    if (!sehir) return [];
+    const key = String(sehir).toLowerCase().trim()
+      .replace('i̇', 'i'); // Türkçe "İ" lowercase edge case
+    // Direkt match
+    if (TR_ILCELER[key]) return TR_ILCELER[key];
+    // Edge case: "İstanbul" → "istanbul"
+    const normalize = (s) => s.toLocaleLowerCase('tr').replace(/\s+/g, ' ').trim();
+    const nKey = normalize(sehir);
+    for (const il of Object.keys(TR_ILCELER)) {
+      if (normalize(il) === nKey) return TR_ILCELER[il];
+    }
+    return [];
+  }
 
-    const aramaMetni = `${kategori} ${ilce ? ilce + ' ' : ''}${sehir}`;
-    console.log(`🔍 Avcı Bot tarama: "${aramaMetni}"`);
+  // TEK SORGU — pagination'lı Text Search + DB insert (max 60 sonuç Google limiti)
+  async _tekSorgu({ sehir, ilce, kategori, apiKey }) {
+    const aramaMetni = `${kategori} ${ilce ? ilce + ' ' : ''}${sehir}`.trim();
 
     let tumSonuclar = [];
     let nextPageToken = null;
 
-    // Places API (New) - Text Search kullanıyoruz
     do {
       const body = { textQuery: aramaMetni, languageCode: 'tr', maxResultCount: 20 };
       if (nextPageToken) body.pageToken = nextPageToken;
@@ -46,8 +63,6 @@ class AvciBot {
       }
     } while (nextPageToken);
 
-    console.log(`📍 ${tumSonuclar.length} işletme bulundu`);
-
     let yeniEklenen = 0;
     let zatenVar = 0;
 
@@ -71,7 +86,6 @@ class AvciBot {
         const isletmeAdi = yer.displayName?.text || yer.displayName || 'Bilinmiyor';
         const adres = yer.formattedAddress || null;
 
-        // İlçe tespiti
         let tespit_ilce = ilce || null;
         if (adres) {
           const adresParcalari = adres.split(',').map(s => s.trim());
@@ -108,58 +122,168 @@ class AvciBot {
         ]);
 
         yeniEklenen++;
-
-        if (yeniEklenen % 10 === 0) {
-          await new Promise(r => setTimeout(r, 500));
-        }
-
       } catch (e) {
         console.log(`⚠️ Kayıt hatası:`, e.message);
       }
     }
 
-    const sonuc = {
-      toplam_bulunan: tumSonuclar.length,
-      yeni_eklenen: yeniEklenen,
-      zaten_var: zatenVar,
-      arama_metni: aramaMetni
-    };
-
-    console.log(`✅ Tarama tamamlandı: ${yeniEklenen} yeni, ${zatenVar} zaten vardı`);
-    return sonuc;
+    return { toplam_bulunan: tumSonuclar.length, yeni_eklenen: yeniEklenen, zaten_var: zatenVar };
   }
 
-  // Toplu tarama - tüm ilçeleri ve kategorileri tara
-  async topluTarama({ sehir, kategoriler, apiKey }) {
-    const istanbulIlceler = [
-      'Kadıköy','Beşiktaş','Şişli','Bakırköy','Ataşehir','Üsküdar','Maltepe','Kartal',
-      'Pendik','Tuzla','Ümraniye','Sancaktepe','Sultanbeyli','Çekmeköy','Beykoz',
-      'Sarıyer','Eyüpsultan','Kağıthane','Beyoğlu','Fatih','Zeytinburnu','Bayrampaşa',
-      'Güngören','Bahçelievler','Bağcılar','Esenler','Sultangazi','Gaziosmanpaşa',
-      'Başakşehir','Küçükçekmece','Avcılar','Esenyurt','Beylikdüzü','Büyükçekmece',
-      'Arnavutköy','Çatalca','Silivri','Şile','Adalar'
-    ];
+  // ANA TARAMA — Query Fanout: İlçe × Sinonim matrisi ile geniş kapsamlı arama
+  async taramaYap(params) {
+    const { sehir, ilce, kategori, apiKey, taramaId, hardLimit = 100 } = params;
+    if (!apiKey) throw new Error('Google Maps API key gerekli');
+    if (!sehir) throw new Error('Şehir gerekli');
+    if (!kategori) throw new Error('Kategori gerekli');
 
-    const ilceler = sehir === 'İstanbul' ? istanbulIlceler : [''];
-    const toplamSonuc = { toplam_bulunan: 0, yeni_eklenen: 0, zaten_var: 0, tarama_sayisi: 0 };
-
-    for (const kategori of kategoriler) {
-      for (const ilce of ilceler) {
-        try {
-          const sonuc = await this.taramaYap({ sehir, ilce, kategori, apiKey });
-          toplamSonuc.toplam_bulunan += sonuc.toplam_bulunan;
-          toplamSonuc.yeni_eklenen += sonuc.yeni_eklenen;
-          toplamSonuc.zaten_var += sonuc.zaten_var;
-          toplamSonuc.tarama_sayisi++;
-          // Rate limit - her tarama arası 1sn bekle
-          await new Promise(r => setTimeout(r, 1000));
-        } catch (e) {
-          console.log(`⚠️ Toplu tarama hatası (${kategori} ${ilce}):`, e.message);
-        }
+    // 1) İlçe listesi: kullanıcı girdiyse tek ilçe, boşsa şehrin tüm ilçeleri
+    let ilceler = [];
+    if (ilce && ilce.trim()) {
+      ilceler = [ilce.trim()];
+    } else {
+      ilceler = this._ilceleriGetir(sehir);
+      if (ilceler.length === 0) {
+        // İl bilinmiyor — tek "il merkezi" sorgusu ile devam et
+        console.log(`⚠️ "${sehir}" için ilçe listesi bulunamadı, tek sorgu yapılıyor`);
+        ilceler = [''];
       }
     }
 
-    console.log(`✅ Toplu tarama bitti: ${toplamSonuc.tarama_sayisi} tarama, ${toplamSonuc.yeni_eklenen} yeni lead`);
+    // 2) Sinonim listesi
+    const sinonimler = sinonimleriGetir(kategori);
+
+    // 3) Toplam sorgu sayısını hesapla, hard limit uygula
+    const planlanan = ilceler.length * sinonimler.length;
+    if (planlanan > hardLimit) {
+      console.log(`⚠️ ${planlanan} sorgu planlandı, hard limit ${hardLimit}'e düşürülüyor. İlçe veya sinonim azaltılıyor.`);
+    }
+    const toplamSorgu = Math.min(planlanan, hardLimit);
+
+    console.log(`🎯 Query Fanout: ${ilceler.length} ilçe × ${sinonimler.length} sinonim = ${planlanan} planlanan sorgu (limit: ${hardLimit})`);
+
+    // 4) Progress başlat
+    const durum = {
+      basladi: new Date().toISOString(),
+      durum: 'calisiyor',
+      sehir, kategori, ilce_girilmis: !!ilce,
+      toplam_sorgu: toplamSorgu,
+      tamamlanan: 0,
+      aktif: '',
+      toplam_bulunan: 0,
+      yeni_eklenen: 0,
+      zaten_var: 0,
+      ilce_detay: [],
+      iptal: false,
+      hata: null
+    };
+    if (taramaId) this.taramaDurumlari.set(taramaId, durum);
+
+    let sorguSayaci = 0;
+
+    // 5) Fanout loop: her ilçe × her sinonim
+    for (const curIlce of ilceler) {
+      if (durum.iptal) break;
+
+      const ilceBas = { ilce: curIlce || 'merkez', yeni: 0, zaten: 0 };
+
+      for (const sinonim of sinonimler) {
+        if (durum.iptal) break;
+        if (sorguSayaci >= hardLimit) {
+          console.log(`🛑 Hard limit (${hardLimit}) aşıldı, tarama durduruluyor`);
+          break;
+        }
+
+        durum.aktif = `${sinonim} ${curIlce || ''} ${sehir}`.trim();
+
+        try {
+          const sonuc = await this._tekSorgu({ sehir, ilce: curIlce, kategori: sinonim, apiKey });
+          durum.toplam_bulunan += sonuc.toplam_bulunan;
+          durum.yeni_eklenen += sonuc.yeni_eklenen;
+          durum.zaten_var += sonuc.zaten_var;
+          ilceBas.yeni += sonuc.yeni_eklenen;
+          ilceBas.zaten += sonuc.zaten_var;
+          console.log(`  ✓ [${sorguSayaci + 1}/${toplamSorgu}] "${durum.aktif}" → ${sonuc.yeni_eklenen} yeni, ${sonuc.zaten_var} var`);
+        } catch (e) {
+          console.log(`  ✗ [${sorguSayaci + 1}/${toplamSorgu}] "${durum.aktif}" hata:`, e.message);
+        }
+
+        sorguSayaci++;
+        durum.tamamlanan = sorguSayaci;
+
+        // Rate limit - sorgular arası kısa bekleme
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      durum.ilce_detay.push(ilceBas);
+    }
+
+    durum.durum = durum.iptal ? 'iptal' : 'tamamlandi';
+    durum.bitti = new Date().toISOString();
+    if (taramaId) this.taramaDurumlari.set(taramaId, durum);
+
+    const sonuc = {
+      tarama_id: taramaId,
+      toplam_bulunan: durum.toplam_bulunan,
+      yeni_eklenen: durum.yeni_eklenen,
+      zaten_var: durum.zaten_var,
+      tarama_sayisi: durum.tamamlanan,
+      ilce_sayisi: ilceler.length,
+      sinonim_sayisi: sinonimler.length,
+      hard_limit: hardLimit,
+      iptal: durum.iptal,
+      arama_metni: `${kategori} ${ilce || ''} ${sehir}`.trim(),
+      ilce_detay: durum.ilce_detay
+    };
+
+    console.log(`✅ Fanout tamamlandı: ${sorguSayaci} sorgu, ${durum.yeni_eklenen} yeni, ${durum.zaten_var} zaten vardı`);
+
+    // Durumu 10 dakika sonra temizle (memory koruması)
+    if (taramaId) {
+      setTimeout(() => this.taramaDurumlari.delete(taramaId), 10 * 60 * 1000);
+    }
+
+    return sonuc;
+  }
+
+  // Progress polling için
+  getTaramaDurumu(taramaId) {
+    return this.taramaDurumlari.get(taramaId) || null;
+  }
+
+  // Taramayı iptal et
+  taramayiIptalEt(taramaId) {
+    const d = this.taramaDurumlari.get(taramaId);
+    if (d) {
+      d.iptal = true;
+      return true;
+    }
+    return false;
+  }
+
+  // Toplu tarama - birden fazla kategori için fanout (her kategori kendi içinde ilçe × sinonim yapar)
+  async topluTarama({ sehir, kategoriler, apiKey, taramaId, hardLimitPerKategori = 60 }) {
+    const toplamSonuc = { toplam_bulunan: 0, yeni_eklenen: 0, zaten_var: 0, tarama_sayisi: 0, detay: [] };
+
+    for (const kategori of kategoriler) {
+      try {
+        // Her kategori için fanout tarama çağır (ilçe boş → tüm ilçeler)
+        const sonuc = await this.taramaYap({
+          sehir, ilce: '', kategori, apiKey,
+          taramaId, // aynı taramaId ile progress akışı birleşik
+          hardLimit: hardLimitPerKategori
+        });
+        toplamSonuc.toplam_bulunan += sonuc.toplam_bulunan;
+        toplamSonuc.yeni_eklenen += sonuc.yeni_eklenen;
+        toplamSonuc.zaten_var += sonuc.zaten_var;
+        toplamSonuc.tarama_sayisi += sonuc.tarama_sayisi;
+        toplamSonuc.detay.push({ kategori, ...sonuc });
+      } catch (e) {
+        console.log(`⚠️ Toplu tarama hatası (${kategori}):`, e.message);
+      }
+    }
+
+    console.log(`✅ Toplu tarama bitti: ${toplamSonuc.tarama_sayisi} sorgu, ${toplamSonuc.yeni_eklenen} yeni lead`);
     return toplamSonuc;
   }
 

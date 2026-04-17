@@ -3081,6 +3081,8 @@ function SuperAdminPanel({ kullanici }) {
   const [avciTarama, setAvciTarama] = useState({ sehir: "İstanbul", ilce: "", kategori: "berber" });
   const [avciTaramaSonuc, setAvciTaramaSonuc] = useState(null);
   const [avciTaramaYukleniyor, setAvciTaramaYukleniyor] = useState(false);
+  const [avciTaramaDurum, setAvciTaramaDurum] = useState(null); // { toplam_sorgu, tamamlanan, aktif, yeni_eklenen, zaten_var, ... }
+  const [avciTaramaId, setAvciTaramaId] = useState(null);
   const [avciSecili, setAvciSecili] = useState(null);
   const [avciTab, setAvciTab] = useState("liste");
   const [avciKaynak, setAvciKaynak] = useState("hepsi");
@@ -3219,6 +3221,52 @@ function SuperAdminPanel({ kullanici }) {
   };
   const avciGunlukYukle = async () => {
     try { const d = await api.get("/admin/avci/gunluk?limit=10"); setAvciGunluk(d.gunluk_liste || []); } catch(e) { console.log("Avcı günlük hatası:", e); }
+  };
+
+  // Async tarama başlat + polling (her 2 sn'de durum çek)
+  const avciTaramaBaslat = async (endpoint, body) => {
+    setAvciTaramaYukleniyor(true);
+    setAvciTaramaSonuc(null);
+    setAvciTaramaDurum(null);
+    try {
+      const res = await api.post(endpoint, body);
+      if (res.hata || !res.tarama_id) {
+        setAvciTaramaSonuc({ hata: res.hata || "Tarama başlatılamadı" });
+        setAvciTaramaYukleniyor(false);
+        return;
+      }
+      setAvciTaramaId(res.tarama_id);
+      // Polling
+      const tid = res.tarama_id;
+      const poll = setInterval(async () => {
+        try {
+          const d = await api.get(`/admin/avci/tarama-durum/${tid}`);
+          if (d?.hata) { clearInterval(poll); setAvciTaramaYukleniyor(false); return; }
+          setAvciTaramaDurum(d);
+          if (d.durum === "tamamlandi" || d.durum === "iptal") {
+            clearInterval(poll);
+            setAvciTaramaSonuc({
+              arama_metni: `${body.kategori || (body.kategoriler?.join(", ")) || ""} ${body.ilce || ""} ${body.sehir || ""}`.trim(),
+              toplam_bulunan: d.toplam_bulunan,
+              yeni_eklenen: d.yeni_eklenen,
+              zaten_var: d.zaten_var,
+              tarama_sayisi: d.tamamlanan,
+              iptal: d.iptal
+            });
+            setAvciTaramaYukleniyor(false);
+            avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
+          }
+        } catch(e) { clearInterval(poll); setAvciTaramaYukleniyor(false); }
+      }, 2000);
+    } catch(e) {
+      setAvciTaramaSonuc({ hata: e.message });
+      setAvciTaramaYukleniyor(false);
+    }
+  };
+
+  const avciTaramaIptalEt = async () => {
+    if (!avciTaramaId) return;
+    try { await api.post(`/admin/avci/tarama-iptal/${avciTaramaId}`, {}); } catch(e) {}
   };
 
   const iletisimYukle = async () => {
@@ -5989,11 +6037,39 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
                 <div className="row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
                   <div><label className="form-label">Şehir *</label><input value={avciTarama.sehir} onChange={e => setAvciTarama({...avciTarama, sehir: e.target.value})} placeholder="İstanbul" className="input" style={{ borderRadius: 10 }} /></div>
-                  <div><label className="form-label">İlçe</label><input value={avciTarama.ilce} onChange={e => setAvciTarama({...avciTarama, ilce: e.target.value})} placeholder="Kadıköy" className="input" style={{ borderRadius: 10 }} /></div>
+                  <div><label className="form-label">İlçe</label><input value={avciTarama.ilce} onChange={e => setAvciTarama({...avciTarama, ilce: e.target.value})} placeholder="Boş bırak → tüm ilçeler" className="input" style={{ borderRadius: 10 }} /></div>
                   <div><label className="form-label">Kategori *</label><select value={avciTarama.kategori} onChange={e => setAvciTarama({...avciTarama, kategori: e.target.value})} className="input" style={{ borderRadius: 10 }}>{["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => <option key={k} value={k}>{k}</option>)}</select></div>
-                  <button disabled={avciTaramaYukleniyor} onClick={async () => { setAvciTaramaYukleniyor(true); setAvciTaramaSonuc(null); try { const res = await api.post("/admin/avci/tarama", avciTarama); setAvciTaramaSonuc(res); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); } catch(e) { setAvciTaramaSonuc({ hata: e.message }); } setAvciTaramaYukleniyor(false); }} className="btn" style={{ background: "#10b981", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: avciTaramaYukleniyor ? 0.5 : 1 }}>{avciTaramaYukleniyor ? "Taranıyor..." : "🔍 Tara"}</button>
+                  <button disabled={avciTaramaYukleniyor} onClick={() => avciTaramaBaslat("/admin/avci/tarama", avciTarama)} className="btn" style={{ background: "#10b981", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: avciTaramaYukleniyor ? 0.5 : 1 }}>{avciTaramaYukleniyor ? "Taranıyor..." : "🔍 Tara"}</button>
+                  {avciTaramaYukleniyor && avciTaramaId && (
+                    <button onClick={avciTaramaIptalEt} className="btn" style={{ background: "rgba(239,68,68,.1)", color: "#ef4444", fontWeight: 700, borderRadius: 10, border: "1px solid rgba(239,68,68,.3)" }}>⏹ İptal</button>
+                  )}
                 </div>
-                {avciTaramaSonuc && <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: avciTaramaSonuc.hata ? "rgba(239,68,68,.08)" : "rgba(16,185,129,.08)", color: avciTaramaSonuc.hata ? "#ef4444" : "#10b981", fontSize: 13, fontWeight: 600 }}>{avciTaramaSonuc.hata ? `❌ ${avciTaramaSonuc.hata}` : `✅ "${avciTaramaSonuc.arama_metni}" — ${avciTaramaSonuc.toplam_bulunan} bulundu, ${avciTaramaSonuc.yeni_eklenen} yeni, ${avciTaramaSonuc.zaten_var} zaten vardı`}</div>}
+                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 6 }}>💡 İlçe boş bırakılırsa Google'ın 60 sonuç limitini aşmak için o şehrin tüm ilçeleri × kategori sinonimleri otomatik taranır.</div>
+                {/* Canlı progress */}
+                {avciTaramaYukleniyor && avciTaramaDurum && (
+                  <div style={{ marginTop: 14, padding: "14px 16px", borderRadius: 12, background: "rgba(16,185,129,.06)", border: "1px solid rgba(16,185,129,.2)" }}>
+                    <div className="row row-between" style={{ alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#10b981" }}>🎯 Sorgular çalışıyor · {avciTaramaDurum.tamamlanan}/{avciTaramaDurum.toplam_sorgu}</div>
+                      <div style={{ fontSize: 12, color: "var(--dim)" }}>{Math.round((avciTaramaDurum.tamamlanan / avciTaramaDurum.toplam_sorgu) * 100)}%</div>
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ height: 8, background: "rgba(16,185,129,.12)", borderRadius: 999, overflow: "hidden", marginBottom: 10 }}>
+                      <div style={{ height: "100%", width: `${Math.min(100, Math.round((avciTaramaDurum.tamamlanan / avciTaramaDurum.toplam_sorgu) * 100))}%`, background: "linear-gradient(90deg, #10b981, #059669)", transition: "width .4s" }}></div>
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text)", fontWeight: 600, marginBottom: 4 }}>🔎 Şu an: <span style={{ color: "#10b981" }}>{avciTaramaDurum.aktif || "hazırlanıyor..."}</span></div>
+                    <div style={{ fontSize: 11, color: "var(--dim)" }}>
+                      ✨ Yeni bulunan: <strong style={{ color: "#10b981" }}>{avciTaramaDurum.yeni_eklenen}</strong>
+                      {" · "}Zaten vardı: <strong>{avciTaramaDurum.zaten_var}</strong>
+                      {" · "}Toplam bulundu: <strong>{avciTaramaDurum.toplam_bulunan}</strong>
+                    </div>
+                  </div>
+                )}
+                {/* Final sonuç */}
+                {avciTaramaSonuc && !avciTaramaYukleniyor && (
+                  <div style={{ marginTop: 12, padding: "12px 16px", borderRadius: 10, background: avciTaramaSonuc.hata ? "rgba(239,68,68,.08)" : (avciTaramaSonuc.iptal ? "rgba(245,158,11,.08)" : "rgba(16,185,129,.08)"), color: avciTaramaSonuc.hata ? "#ef4444" : (avciTaramaSonuc.iptal ? "#f59e0b" : "#10b981"), fontSize: 13, fontWeight: 600 }}>
+                    {avciTaramaSonuc.hata ? `❌ ${avciTaramaSonuc.hata}` : `${avciTaramaSonuc.iptal ? "⏹ İptal edildi" : "✅"} "${avciTaramaSonuc.arama_metni}" — ${avciTaramaSonuc.tarama_sayisi} sorgu · ${avciTaramaSonuc.toplam_bulunan} bulundu · ${avciTaramaSonuc.yeni_eklenen} yeni · ${avciTaramaSonuc.zaten_var} zaten vardı`}
+                  </div>
+                )}
               </div>
             )}
 
@@ -6015,8 +6091,10 @@ function SuperAdminPanel({ kullanici }) {
                   ))}</div>
                   <span style={{ display: "block", marginTop: 8, color: "var(--dim)", fontSize: 11 }}>{topluKategoriler.length} kategori seçili · ~{topluKategoriler.length * 39} tarama</span>
                 </div>
-                <button disabled={topluYukleniyor || !topluKategoriler.length} onClick={async () => { setTopluYukleniyor(true); setTopluSonuc(null); try { const res = await api.post("/admin/avci/toplu-tarama", { sehir: topluSehir, kategoriler: topluKategoriler }); setTopluSonuc(res); avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); } catch(e) { setTopluSonuc({ hata: e.message }); } setTopluYukleniyor(false); }} className="btn" style={{ background: topluYukleniyor ? "var(--surface3)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: topluYukleniyor ? 0.6 : 1 }}>{topluYukleniyor ? "⏳ Toplu tarama devam ediyor..." : `🚀 ${topluKategoriler.length} Kategori × 39 İlçe Tara`}</button>
-                {topluSonuc && <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: topluSonuc.hata ? "rgba(239,68,68,.08)" : "rgba(139,92,246,.08)", color: topluSonuc.hata ? "#ef4444" : "#8b5cf6", fontSize: 13, fontWeight: 600 }}>{topluSonuc.hata ? `❌ ${topluSonuc.hata}` : `✅ ${topluSonuc.tarama_sayisi} tarama — ${topluSonuc.toplam_bulunan} bulundu, ${topluSonuc.yeni_eklenen} yeni, ${topluSonuc.zaten_var} zaten vardı`}</div>}
+                <button disabled={avciTaramaYukleniyor || !topluKategoriler.length} onClick={() => avciTaramaBaslat("/admin/avci/toplu-tarama", { sehir: topluSehir, kategoriler: topluKategoriler })} className="btn" style={{ background: avciTaramaYukleniyor ? "var(--surface3)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: avciTaramaYukleniyor ? 0.6 : 1 }}>{avciTaramaYukleniyor ? "⏳ Toplu tarama devam ediyor..." : `🚀 ${topluKategoriler.length} Kategori × Tüm İlçeler Tara`}</button>
+                {avciTaramaYukleniyor && avciTaramaId && (
+                  <button onClick={avciTaramaIptalEt} className="btn" style={{ marginLeft: 8, background: "rgba(239,68,68,.1)", color: "#ef4444", fontWeight: 700, borderRadius: 10, border: "1px solid rgba(239,68,68,.3)" }}>⏹ İptal</button>
+                )}
               </div>
             )}
 

@@ -1075,16 +1075,36 @@ class AdminController {
 
   async avciTarama(req, res) {
     try {
-      const { sehir, ilce, kategori } = req.body;
+      const { sehir, ilce, kategori, hardLimit } = req.body;
       const apiKey = process.env.GOOGLE_MAPS_API_KEY;
       if (!apiKey) return res.status(400).json({ hata: 'GOOGLE_MAPS_API_KEY .env dosyasında tanımlı değil' });
       if (!sehir || !kategori) return res.status(400).json({ hata: 'Şehir ve kategori zorunlu' });
 
-      const sonuc = await avciBot.taramaYap({ sehir, ilce, kategori, apiKey });
-      res.json(sonuc);
+      // Arka planda çalıştır, hemen tarama_id dön
+      const taramaId = 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      avciBot.taramaYap({ sehir, ilce, kategori, apiKey, taramaId, hardLimit: hardLimit || 100 })
+        .catch(e => console.error('Tarama hatası:', e.message));
+      res.json({ basarili: true, tarama_id: taramaId, mesaj: 'Tarama arka planda başlatıldı' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
+  }
+
+  async avciTaramaDurum(req, res) {
+    try {
+      const { id } = req.params;
+      const durum = avciBot.getTaramaDurumu(id);
+      if (!durum) return res.status(404).json({ hata: 'Tarama bulunamadı veya süresi doldu' });
+      res.json(durum);
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async avciTaramaIptal(req, res) {
+    try {
+      const { id } = req.params;
+      const sonuc = avciBot.taramayiIptalEt(id);
+      res.json({ basarili: sonuc });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
   async avciSosyalTarama(req, res) {
@@ -1101,13 +1121,15 @@ class AdminController {
 
   async avciTopluTarama(req, res) {
     try {
-      const { sehir, kategoriler } = req.body;
+      const { sehir, kategoriler, hardLimitPerKategori } = req.body;
       const apiKey = process.env.GOOGLE_MAPS_API_KEY;
       if (!apiKey) return res.status(400).json({ hata: 'GOOGLE_MAPS_API_KEY .env dosyasında tanımlı değil' });
       if (!sehir || !kategoriler?.length) return res.status(400).json({ hata: 'Şehir ve en az 1 kategori zorunlu' });
 
-      const sonuc = await avciBot.topluTarama({ sehir, kategoriler, apiKey });
-      res.json(sonuc);
+      const taramaId = 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      avciBot.topluTarama({ sehir, kategoriler, apiKey, taramaId, hardLimitPerKategori: hardLimitPerKategori || 60 })
+        .catch(e => console.error('Toplu tarama hatası:', e.message));
+      res.json({ basarili: true, tarama_id: taramaId, mesaj: 'Toplu tarama arka planda başlatıldı' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
