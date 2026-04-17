@@ -178,6 +178,15 @@ body {
 /* ── STAT CARDS ── */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
 
+/* ── METRIC GRID (Dashboard MRR/Churn/ARPU 3'lü kart) ── */
+.metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+@media (max-width: 960px) {
+  .metric-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 620px) {
+  .metric-grid { grid-template-columns: 1fr; gap: 12px; }
+}
+
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -720,6 +729,12 @@ select.input { appearance: none; }
 @media (max-width: 420px) {
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-card .sc-val { font-size: 20px; }
+}
+
+/* ── Top-bar sağ bölüm mobilde wrap + daha dar gap ── */
+@media (max-width: 560px) {
+  .top-bar-right { gap: 8px !important; }
+  .top-bar-right > div:last-child span { display: none; } /* İşletme adı yazısı gizlensin, avatar kalır */
 }
 
 /* ── RANDEVU GLOW (bekleyen onay) ── */

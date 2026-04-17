@@ -1301,7 +1301,7 @@ function Dashboard() {
             <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", margin: 0 }}>{sayfaBaslik[sayfa]}</h1>
             {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div className="top-bar-right" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {/* Canlı bağlantı göstergesi */}
             <CanliDurumu />
             {/* Çalışan Avatarları + Ekip Dropdown */}
@@ -3863,7 +3863,7 @@ function SuperAdminPanel({ kullanici }) {
             </div>
 
             {/* ═══ KRİTİK SaaS METRİKLERİ (Yatırımcı Görünümü) ═══ */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }} className="stats-grid">
+            <div className="metric-grid">
               {/* MRR Kartı — Sparkline ile */}
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)", position: "relative", overflow: "hidden" }}>
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #10b981, #06b6d4)" }} />
