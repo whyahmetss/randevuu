@@ -676,15 +676,28 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false 
 
 const allowedOrigins = [
   'http://localhost:5173', 'http://localhost:3000',
-  'https://randevugo-admin.onrender.com', 'https://admin.xn--srago-n4a.com',
-  'https://xn--srago-n4a.com', 'https://randevugo-api.onrender.com',
-  process.env.ADMIN_PANEL_URL
+  'https://randevugo-admin.onrender.com', 'https://randevugo-admin-v2.onrender.com',
+  'https://randevugo-api.onrender.com', 'https://randevugo-api-v2.onrender.com',
+  'https://admin.xn--srago-n4a.com', 'https://xn--srago-n4a.com',
+  process.env.ADMIN_PANEL_URL, process.env.FRONTEND_URL
 ].filter(Boolean);
+
+// 🛡️ CORS kontrolü — origin listesi + regex fallback (Render auto-URL'ler, siragO subdomain'leri)
+const corsCheck = (origin) => {
+  if (!origin) return true; // curl/SSR istekleri
+  if (allowedOrigins.includes(origin)) return true;
+  // Render'ın otomatik dağıttığı URL'ler (randevugo-*, randevugo-*-v2, vb.)
+  if (/^https:\/\/randevugo[a-z0-9-]*\.onrender\.com$/i.test(origin)) return true;
+  // siragO ana alan + tüm subdomain'ler (punycode dahil)
+  if (/^https:\/\/([a-z0-9-]+\.)?(xn--srago-n4a|sirago)\.com$/i.test(origin)) return true;
+  console.log('⚠️ CORS reject:', origin);
+  return false;
+};
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error('CORS policy: Origin not allowed'));
+    if (corsCheck(origin)) callback(null, true);
+    else callback(null, false); // throw yok → 500 vermez, silent reject
   },
   credentials: true
 }));
@@ -732,9 +745,9 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ hata: err.message || 'Sunucu hatası' });
 });
 
-// HTTP sunucu + Socket.IO
+// HTTP sunucu + Socket.IO (CORS check fonksiyonunu geçir, böylece regex de çalışır)
 const httpServer = http.createServer(app);
-socketServer.init(httpServer, allowedOrigins);
+socketServer.init(httpServer, allowedOrigins, corsCheck);
 
 // Sunucuyu başlat
 httpServer.listen(PORT, () => {

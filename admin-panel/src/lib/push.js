@@ -4,7 +4,7 @@
  *   import { pushIzinDurumu, pushAc, pushKapat, pushTest } from './lib/push';
  */
 
-const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://randevugo-api.onrender.com/api');
+import { API_URL } from './config';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

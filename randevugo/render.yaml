@@ -1,5 +1,5 @@
 services:
-  # Backend API Service
+  # Backend API Service — Neon PostgreSQL external DB'ye bağlanır
   - type: web
     name: randevugo-api
     env: node
@@ -12,17 +12,42 @@ services:
         value: production
       - key: BASE_URL
         sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_PANEL_URL
+        sync: false
+      # Neon PostgreSQL connection string
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      # WhatsApp (Twilio) - opsiyonel
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
         sync: false
       - key: TWILIO_PHONE_NUMBER
         sync: false
+      # AI
       - key: DEEPSEEK_API_KEY
+        sync: false
+      # Google Maps (Avcı Bot)
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      # SerpAPI (sosyal medya tarama)
+      - key: SERP_API_KEY
+        sync: false
+      # Shopier ödeme
+      - key: SHOPIER_USERNAME
+        sync: false
+      - key: SHOPIER_PASSWORD
+        sync: false
+      - key: SHOPIER_RANDOM_KEY
+        sync: false
+      # Web Push
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
         sync: false
       - key: LOG_LEVEL
         value: info
@@ -31,20 +56,10 @@ services:
       - key: CRON_TIMEZONE
         value: Europe/Istanbul
 
-  # PostgreSQL Database
-  - type: pserv
-    name: randevugo-db
-    plan: starter
-    databaseName: randevugo
-    user: randevugo_user
-    envVars:
-      - key: POSTGRES_USER
-        value: randevugo_user
-      - key: POSTGRES_PASSWORD
-        generateValue: true
-      - key: POSTGRES_DB
-        value: randevugo
-
 # Auto-deploy from main branch
 autoDeploy: true
 branch: main
+
+# NOT: PostgreSQL artık Neon.tech (https://neon.tech) üzerinde yönetiliyor.
+# Render Managed PostgreSQL tanımı kaldırıldı. DATABASE_URL env variable'ı
+# Neon connection string'i olarak manuel set edilir (sync: false).

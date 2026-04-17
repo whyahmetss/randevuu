@@ -18,7 +18,7 @@ const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, us
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
-const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://randevugo-api.onrender.com/api');
+import { API_URL, API_ORIGIN, bookingUrl } from './lib/config';
 
 const api = {
   token: localStorage.getItem("randevugo_token"),
@@ -2040,8 +2040,7 @@ function Dashboard() {
                       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
                         <button onClick={() => {
                           const token = localStorage.getItem("randevugo_token");
-                          const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
-                          window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
+                          window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
                         }} style={{ flex: 1, padding: "14px 20px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#54E097,#2cb872)", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                           🚀 Tek Tıkla Paketini Uzat — {odemeBilgi.tutar}₺
                         </button>
@@ -2828,9 +2827,9 @@ function Dashboard() {
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <div style={{ flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(66,133,244,.06)", border: "1px solid rgba(66,133,244,.15)", fontSize: 12, fontWeight: 600, color: "#4285f4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          https://randevugo-api.onrender.com/book/{ayarlar.slug}
+                          {bookingUrl(ayarlar.slug)}
                         </div>
-                        <button onClick={() => navigator.clipboard.writeText(`https://randevugo-api.onrender.com/book/${ayarlar.slug}`)} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "rgba(66,133,244,.1)", color: "#4285f4", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
+                        <button onClick={() => navigator.clipboard.writeText(bookingUrl(ayarlar.slug))} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: "rgba(66,133,244,.1)", color: "#4285f4", fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}>
                           Kopyala
                         </button>
                       </div>
@@ -3079,8 +3078,7 @@ function Dashboard() {
                     {!aktif && p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
                         const token = localStorage.getItem("randevugo_token");
-                        const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
-                        window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}&paket=${p.key}`, "_blank");
+                        window.open(`${API_URL}/odeme/shopier/baslat?token=${token}&paket=${p.key}`, "_blank");
                         setPaketModal(false);
                       }}>
                         {p.key === "baslangic" ? "Başla" : "Yükselt"}
@@ -3147,8 +3145,7 @@ function Dashboard() {
               }}>Dashboard'a Dön</button>
               <button onClick={() => {
                 const token = localStorage.getItem("randevugo_token");
-                const baseUrl = import.meta.env.VITE_API_URL || "https://randevugo-api.onrender.com/api";
-                window.open(`${baseUrl}/odeme/shopier/baslat?token=${token}`, "_blank");
+                window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
               }} style={{
                 padding: "12px 24px", borderRadius: 12, border: "none",
                 background: "var(--gradient-accent)", color: "#fff", fontSize: 13, fontWeight: 700,
@@ -3868,7 +3865,7 @@ function SuperAdminPanel({ kullanici }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>MRR (Aylık Gelir)</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", marginTop: 4 }}>{(saasMetrik ? saasMetrik.mrr : buAyGelir).toLocaleString("tr-TR")} ₺</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", marginTop: 4 }}>{Number(saasMetrik?.mrr ?? buAyGelir ?? 0).toLocaleString("tr-TR")} ₺</div>
                     {saasMetrik && saasMetrik.mrrBuyume !== 0 && (
                       <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 6, marginTop: 6, fontSize: 11, fontWeight: 700, background: saasMetrik.mrrBuyume > 0 ? "rgba(16,185,129,.1)" : "rgba(239,68,68,.1)", color: saasMetrik.mrrBuyume > 0 ? "#10b981" : "#ef4444" }}>
                         {saasMetrik.mrrBuyume > 0 ? "▲" : "▼"} %{Math.abs(saasMetrik.mrrBuyume)}

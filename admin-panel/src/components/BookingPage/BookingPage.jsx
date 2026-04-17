@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : 'https://randevugo-api.onrender.com/api');
+import { API_URL } from '../../lib/config';
 
 const kategoriRenk = {
   berber: '#2563eb', kuafor: '#ec4899', guzellik: '#f43f5e', spa: '#8b5cf6', disci: '#0ea5e9',

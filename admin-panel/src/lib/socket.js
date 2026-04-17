@@ -11,11 +11,7 @@ import { io } from 'socket.io-client';
 import { useEffect, useRef, useState } from 'react';
 
 // Socket sunucusu = API kökü (rota prefiksi /api ama Socket.IO root path kullanır)
-const DEFAULT_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:3000'
-  : 'https://randevugo-api.onrender.com';
-
-const SOCKET_URL = (import.meta.env.VITE_API_URL || DEFAULT_URL).replace(/\/api\/?$/, '');
+import { SOCKET_URL } from './config';
 
 let socket = null;
 const listeners = new Set(); // durum güncellemesi dinleyicileri (hooklar için)

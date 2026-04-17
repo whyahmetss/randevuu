@@ -31,8 +31,8 @@ class IyzicoService {
     const admin = (await pool.query('SELECT * FROM admin_kullanicilar WHERE isletme_id = $1 LIMIT 1', [isletmeId])).rows[0];
 
     const buAy = new Date().toISOString().slice(0, 7);
-    const baseUrl = process.env.ADMIN_PANEL_URL || 'https://randevugo-admin.onrender.com';
-    const apiUrl = process.env.BASE_URL || 'https://randevugo-api.onrender.com';
+    const baseUrl = process.env.ADMIN_PANEL_URL || process.env.FRONTEND_URL || 'https://randevugo-admin-v2.onrender.com';
+    const apiUrl = process.env.BASE_URL || 'https://randevugo-api-v2.onrender.com';
     const conversationId = `${isletmeId}_${buAy}_${Date.now()}`;
 
     return new Promise((resolve, reject) => {

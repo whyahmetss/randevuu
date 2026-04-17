@@ -20,12 +20,14 @@ const { jwtSecret } = require('../middleware/auth');
 
 let io = null;
 
-function init(httpServer, allowedOrigins = []) {
+function init(httpServer, allowedOrigins = [], corsCheck = null) {
   io = new Server(httpServer, {
     cors: {
       origin: (origin, cb) => {
-        if (!origin || allowedOrigins.includes(origin)) cb(null, true);
-        else cb(new Error('Socket.IO CORS: Origin not allowed'));
+        // corsCheck verilmişse onu kullan (regex dahil), yoksa sadece liste
+        const ok = corsCheck ? corsCheck(origin) : (!origin || allowedOrigins.includes(origin));
+        if (ok) cb(null, true);
+        else cb(null, false); // throw yok, silent reject
       },
       credentials: true
     },
