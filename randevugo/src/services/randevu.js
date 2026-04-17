@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { bugunTarih, simdiSaat } = require('../utils/tarih');
 const socketServer = require('./socketServer');
+const pushService = require('./pushService');
 
 class RandevuService {
 
@@ -321,6 +322,19 @@ class RandevuService {
         kaynak: kaynak || 'bot'
       });
     } catch (e) { /* socket hatası randevu oluşturmayı engellemesin */ }
+
+    // ─── WEB PUSH (ekran kapalı olsa bile bildirim) ───
+    try {
+      const saatStr = String(saat).slice(0, 5);
+      const tarihFmt = String(tarih).slice(0, 10);
+      pushService.sendToIsletme(isletmeId, {
+        title: '🎉 Yeni Randevu',
+        body: `${musteri.isim || 'Müşteri'} — ${hizmet?.isim || 'Randevu'} • ${tarihFmt} ${saatStr}`,
+        url: '/',
+        tag: `randevu-${randevu.id}`,
+        data: { randevuId: randevu.id, sayfa: 'randevular' }
+      });
+    } catch (e) {}
 
     return { randevu, musteri, hizmet, kapora, manuelOnay };
   }

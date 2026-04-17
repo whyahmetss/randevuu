@@ -8,6 +8,7 @@ const iyzicoService = require('../services/iyzicoService');
 const shopierService = require('../services/shopierService');
 const QRCode = require('qrcode');
 const socketServer = require('../services/socketServer');
+const pushService = require('../services/pushService');
 
 class AdminController {
 
@@ -1432,12 +1433,24 @@ class AdminController {
       if (!isim && !telefon) return res.status(400).json({ hata: 'İsim veya telefon zorunlu.' });
       if (mesaj && mesaj.length > 2000) return res.status(400).json({ hata: 'Mesaj çok uzun (max 2000 karakter).' });
 
-      await pool.query(
-        'INSERT INTO iletisim_mesajlari (isim, email, telefon, mesaj, kaynak) VALUES ($1, $2, $3, $4, $5)',
+      const kaydi = (await pool.query(
+        'INSERT INTO iletisim_mesajlari (isim, email, telefon, mesaj, kaynak) VALUES ($1, $2, $3, $4, $5) RETURNING *',
         [(isim || '').slice(0, 255), (email || '').slice(0, 255), (telefon || '').slice(0, 20), (mesaj || 'Landing page başvuru').slice(0, 2000), kaynak || 'web']
-      );
+      )).rows[0];
 
       console.log(`📩 Yeni iletişim mesajı: ${isim || telefon} (${email || telefon}) [${kaynak || 'web'}]`);
+
+      // Süper admin canlı + push
+      try {
+        socketServer.emitToAdmin('iletisim:yeni', { mesaj: kaydi });
+        pushService.sendToAdmin({
+          title: '📩 Yeni İletişim Başvurusu',
+          body: `${isim || telefon} ${email ? `• ${email}` : ''}`.slice(0, 180),
+          url: '/',
+          tag: `iletisim-${kaydi.id}`,
+        });
+      } catch (e) {}
+
       res.json({ mesaj: 'Mesajınız başarıyla gönderildi.' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -2459,6 +2472,19 @@ class AdminController {
         [req.kullanici.isletme_id, req.kullanici.id, konu, mesaj, oncelik || 'normal']
       );
       await this.auditLogYaz(req.kullanici, 'destek_talebi_olusturuldu', `Konu: ${konu}`, 'destek_talepleri', result.rows[0].id);
+
+      // Süper admin canlı + push
+      try {
+        const talep = result.rows[0];
+        socketServer.emitToAdmin('destek:yeni', { talep });
+        pushService.sendToAdmin({
+          title: `🎫 Yeni Destek [${oncelik || 'normal'}]`,
+          body: `${konu}`.slice(0, 180),
+          url: '/',
+          tag: `destek-${talep.id}`,
+        });
+      } catch (e) {}
+
       res.json({ talep: result.rows[0] });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -4960,6 +4986,17 @@ class AdminController {
 
       // ─── CANLI YAYIN ───
       try { socketServer.emitToIsletme(isletmeId, 'bildirim:yeni', { bildirim: yeniBildirim }); } catch (e) {}
+
+      // ─── WEB PUSH (panel kapalı olsa bile) ───
+      try {
+        pushService.sendToIsletme(isletmeId, {
+          title: `🔔 ${baslik}`,
+          body: (mesaj || '').slice(0, 180),
+          url: link || '/',
+          tag: `bildirim-${yeniBildirim.id}`,
+          data: { bildirimId: yeniBildirim.id, tip }
+        });
+      } catch (e) {}
 
       // İşletme bildirim tercihlerini kontrol et
       const isletme = (await pool.query(

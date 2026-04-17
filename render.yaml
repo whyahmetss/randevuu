@@ -32,6 +32,13 @@ services:
         value: true
       - key: CRON_TIMEZONE
         value: Europe/Istanbul
+      # Web Push (Faz 2) — VAPID keys
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_CONTACT
+        value: mailto:destek@sirago.com
 
   # PostgreSQL Database
   - type: pserv

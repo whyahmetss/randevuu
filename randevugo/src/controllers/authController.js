@@ -1,6 +1,8 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const socketServer = require('../services/socketServer');
+const pushService = require('../services/pushService');
 const jwtSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
 
 class AuthController {
@@ -79,6 +81,17 @@ class AuthController {
       }
 
       console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}${referansMesaj}`);
+
+      // Süper admin panele canlı yayın + push
+      try {
+        socketServer.emitToAdmin('isletme:yeni', { isletme, kanal: kayitKanal || 'web' });
+        pushService.sendToAdmin({
+          title: '🎉 Yeni İşletme Kaydı',
+          body: `${isletmeAdi} — ${email}${kayitKanal ? ` (${kayitKanal})` : ''}`,
+          url: '/',
+          tag: `isletme-${isletme.id}`,
+        });
+      } catch (e) {}
 
       res.json({ 
         basarili: true, 

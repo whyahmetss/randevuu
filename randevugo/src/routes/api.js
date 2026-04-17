@@ -308,6 +308,40 @@ router.put('/musteri-formu', authMiddleware, (req, res) => adminController.muste
 // ==================== GOOGLE MAPS RESERVE ====================
 router.put('/google-maps-reserve', authMiddleware, (req, res) => adminController.googleMapsReserveGuncelle(req, res));
 
+// ==================== WEB PUSH (Bildirim) ====================
+const pushService = require('../services/pushService');
+router.get('/push/public-key', (req, res) => res.json({ publicKey: pushService.getPublicKey(), enabled: pushService.isEnabled() }));
+router.post('/push/subscribe', authMiddleware, async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    await pushService.saveSubscription(
+      subscription,
+      req.kullanici.isletme_id,
+      req.kullanici.id,
+      req.headers['user-agent'] || null
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ hata: e.message }); }
+});
+router.post('/push/unsubscribe', authMiddleware, async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    await pushService.removeSubscription(endpoint);
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ hata: e.message }); }
+});
+router.post('/push/test', authMiddleware, async (req, res) => {
+  try {
+    const r = await pushService.sendToUser(req.kullanici.id, {
+      title: '🔔 Test Bildirim',
+      body: 'SıraGO push bildirimleri çalışıyor! 🎉',
+      url: '/',
+      tag: 'test'
+    });
+    res.json(r);
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+
 // ==================== ONLINE RANDEVU (Public) ====================
 const noCache = (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); };
 router.get('/book/:slug', noCache, (req, res) => bookingController.isletmeBilgileri(req, res));

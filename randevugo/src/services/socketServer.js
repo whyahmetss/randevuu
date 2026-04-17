@@ -54,7 +54,7 @@ function init(httpServer, allowedOrigins = []) {
     // Otomatik odalar
     if (k.isletme_id) socket.join(`isletme:${k.isletme_id}`);
     if (k.id) socket.join(`user:${k.id}`);
-    if (k.rol === 'super_admin') socket.join('admin');
+    if (k.rol === 'superadmin' || k.rol === 'super_admin') socket.join('admin');
 
     console.log(`🔌 Socket bağlandı: user=${k.id}, isletme=${k.isletme_id}, rol=${k.rol}`);
 

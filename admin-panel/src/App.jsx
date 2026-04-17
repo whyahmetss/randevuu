@@ -988,6 +988,23 @@ function Dashboard() {
     canliToast(`💬 Destek yanıtı: "${konu || 'Talep'}"`, "#8b5cf6");
   });
 
+  // Wake Lock — randevu/anasayfa açıkken tablet ekranı kapanmasın
+  useEffect(() => {
+    if (!("wakeLock" in navigator)) return;
+    const ekranAcikTutacakSayfalar = ["anasayfa", "randevular"];
+    let wakeLock = null;
+    const aktifEt = async () => {
+      if (!ekranAcikTutacakSayfalar.includes(sayfa)) return;
+      if (document.visibilityState !== "visible") return;
+      try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* ignore */ }
+    };
+    const kapat = async () => { try { await wakeLock?.release(); wakeLock = null; } catch(e) {} };
+    aktifEt();
+    const visHandler = () => { if (document.visibilityState === "visible") aktifEt(); };
+    document.addEventListener("visibilitychange", visHandler);
+    return () => { document.removeEventListener("visibilitychange", visHandler); kapat(); };
+  }, [sayfa]);
+
   // WhatsApp bağlantı olayları (QR, bağlı, ayrıldı)
   useSocketEvent("wa:qr", (payload) => {
     try { window.dispatchEvent(new CustomEvent("wa:qr", { detail: payload })); } catch(e) {}
@@ -3390,6 +3407,34 @@ function SuperAdminPanel({ kullanici }) {
     try { const d = await api.get("/admin/iletisim"); setIletisimMesajlar(d.mesajlar || []); } catch(e) { console.log("İletişim yükleme hatası:", e); }
   };
 
+  // ═══════════ CANLI YAYIN (Süper Admin) ═══════════
+  const adminToast = (m, renk = "#10b981") => {
+    try {
+      const el = document.createElement("div");
+      el.textContent = m;
+      el.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:14px 20px;background:${renk};color:#fff;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:340px;animation:slideIn .3s ease;`;
+      document.body.appendChild(el);
+      setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .4s"; }, 3500);
+      setTimeout(() => { try { el.remove(); } catch(e){} }, 4200);
+    } catch(e) {}
+  };
+
+  useSocketEvent("isletme:yeni", (p) => {
+    if (!p?.isletme) return;
+    setIsletmeler(prev => [p.isletme, ...prev].filter((x,i,a) => a.findIndex(y => y.id === x.id) === i));
+    adminToast(`🎉 Yeni işletme: ${p.isletme.isim}`, "#10b981");
+  });
+  useSocketEvent("iletisim:yeni", (p) => {
+    if (!p?.mesaj) return;
+    setIletisimMesajlar(prev => [p.mesaj, ...prev]);
+    adminToast(`📩 Yeni başvuru: ${p.mesaj.isim || p.mesaj.telefon || '-'}`, "#3b82f6");
+  });
+  useSocketEvent("destek:yeni", (p) => {
+    if (!p?.talep) return;
+    setDestekTalepler(prev => [p.talep, ...prev]);
+    adminToast(`🎫 Yeni destek: ${p.talep.konu}`, p.talep.oncelik === "acil" ? "#ef4444" : "#8b5cf6");
+  });
+
   const auditLogYukle = async () => {
     try { const d = await api.get(`/admin/audit-log?limit=50&islem=${auditFiltre}`); setAuditLoglar(d.loglar || []); setAuditToplam(d.toplam || 0); } catch(e) {}
   };
@@ -3679,6 +3724,7 @@ function SuperAdminPanel({ kullanici }) {
           ))}
         </nav>
         <div className="sidebar-footer">
+          <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}><CanliDurumu /></div>
           <button onClick={cikisYap} className="btn btn-ghost btn-block btn-sm">Çıkış Yap</button>
         </div>
       </aside>

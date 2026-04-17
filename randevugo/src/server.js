@@ -620,6 +620,20 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS varsayilan_tampon_dk INTEGER DEFAULT 5`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slot_aralik_dk INTEGER DEFAULT 30`);
 
+    // ─── WEB PUSH ABONELİKLERİ ───
+    await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER REFERENCES isletmeler(id) ON DELETE CASCADE,
+      kullanici_id INTEGER,
+      endpoint TEXT UNIQUE NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_isletme ON push_subscriptions(isletme_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_kullanici ON push_subscriptions(kullanici_id)`);
+
     console.log('✅ DB migration kontrolü tamamlandı');
 
     // Dosya tabanlı migration'ları çalıştır

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { pushIzinDurumu, pushAc, pushKapat, pushTest, pushDesteklenir } from '../../lib/push';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -6,10 +7,33 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [yeniKaraTelefon, setYeniKaraTelefon] = useState('');
   const [yeniKaraSebep, setYeniKaraSebep] = useState('manuel');
   const [slugKopyalandi, setSlugKopyalandi] = useState(false);
+  const [pushDurum, setPushDurum] = useState({ desteklenir: false, izin: 'default', aboneMi: false });
+  const [pushYukleniyor, setPushYukleniyor] = useState(false);
 
   useEffect(() => {
     api.get("/kara-liste").then(r => { if (r?.karaListe) setKaraListe(r.karaListe); });
+    pushIzinDurumu().then(setPushDurum);
   }, []);
+
+  const pushToggle = async () => {
+    setPushYukleniyor(true);
+    try {
+      if (pushDurum.aboneMi) {
+        await pushKapat();
+      } else {
+        await pushAc();
+      }
+      setPushDurum(await pushIzinDurumu());
+    } catch (e) {
+      alert('Hata: ' + e.message);
+    }
+    setPushYukleniyor(false);
+  };
+
+  const pushTestGonder = async () => {
+    try { await pushTest(); alert('✅ Test bildirimi gönderildi — bildirim gelmezse tarayıcı izinlerini kontrol edin'); }
+    catch (e) { alert('Hata: ' + e.message); }
+  };
 
   const kaydet = async () => {
     await api.put("/ayarlar", ayarlar);
@@ -454,6 +478,45 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       <div style={S.card}>
         <CardHead emoji="🔔" title="Bildirim Tercihleri" color="#f59e0b" desc="Hangi kanallardan bildirim almak istersiniz?" />
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+          {/* 🆕 Push Bildirim (Tablet/Masaüstü) */}
+          <div style={{ padding: "14px 16px", borderRadius: 12, background: "linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.02))", border: "1px solid rgba(16,185,129,.2)" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
+                  📱 Tablet/Masaüstü Push Bildirim
+                  {pushDurum.aboneMi && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#10b981", color: "#fff", fontWeight: 700 }}>AKTİF</span>}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4, lineHeight: 1.5 }}>
+                  Tablet açık ama panel kapalı olsa bile yeni randevu/bildirim geldiğinde ekran uyanır ve bildirim görünür. Dükkandaki tablet için ideal.
+                </div>
+                {!pushDurum.desteklenir && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#ef4444", fontWeight: 600 }}>⚠️ Tarayıcınız push bildirimleri desteklemiyor (Chrome, Edge, Firefox önerilir)</div>
+                )}
+                {pushDurum.izin === 'denied' && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#ef4444", fontWeight: 600 }}>⚠️ Bildirim izni engelli — tarayıcı site ayarlarından "Bildirimler: İzin Ver" yapın</div>
+                )}
+              </div>
+              {pushDurum.desteklenir && pushDurum.izin !== 'denied' && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 120 }}>
+                  <button onClick={pushToggle} disabled={pushYukleniyor} style={{
+                    padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+                    background: pushDurum.aboneMi ? "rgba(239,68,68,.12)" : "linear-gradient(135deg,#10b981,#059669)",
+                    color: pushDurum.aboneMi ? "#ef4444" : "#fff",
+                    opacity: pushYukleniyor ? 0.6 : 1
+                  }}>
+                    {pushYukleniyor ? "..." : (pushDurum.aboneMi ? "🔕 Kapat" : "🔔 Etkinleştir")}
+                  </button>
+                  {pushDurum.aboneMi && (
+                    <button onClick={pushTestGonder} style={{
+                      padding: "6px 12px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer",
+                      background: "var(--bg)", color: "var(--text)", fontSize: 11, fontWeight: 600
+                    }}>Test Gönder</button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {[
             { key: 'bildirim_panel', label: 'Panel Bildirimi', desc: 'Zil ikonu + sayaç', varsayilan: true },
             { key: 'bildirim_whatsapp', label: 'WhatsApp', desc: 'Telefona WhatsApp mesajı', varsayilan: true },
