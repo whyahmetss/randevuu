@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const pool = require('../config/db');
+const socketServer = require('./socketServer');
+const pushService = require('./pushService');
 
 // ═══════════════════════════════════════════════════════════
 // Shopier Tam Otomatik Ödeme Sistemi (PAT + Webhook)
@@ -182,6 +184,32 @@ class ShopierService {
         );
       }
       console.log(`✅ Shopier ödeme onaylandı: işletme=${isletmeId}, sipariş=#${siparisId}, tutar=${tutar}₺`);
+
+      // ─── CANLI YAYIN + PUSH (süper admin + ilgili işletme) ───
+      try {
+        const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+        const payload = {
+          isletme_id: isletmeId,
+          isletme_isim: isletme?.isim || '',
+          tutar,
+          siparis_id: siparisId,
+          yontem: 'shopier'
+        };
+        socketServer.emitToAdmin('odeme:yeni', payload);
+        socketServer.emitToIsletme(isletmeId, 'odeme:onaylandi', payload);
+        pushService.sendToAdmin({
+          title: '💳 Yeni Ödeme',
+          body: `${isletme?.isim || 'İşletme'} — ${tutar}₺ (Shopier)`,
+          url: '/',
+          tag: `odeme-${siparisId}`,
+        });
+        pushService.sendToIsletme(isletmeId, {
+          title: '✅ Ödemeniz alındı',
+          body: `${tutar}₺ — paketiniz 30 gün yenilendi`,
+          url: '/',
+          tag: `odeme-ok-${siparisId}`,
+        });
+      } catch (e) {}
 
       // Paket bitiş tarihini +30 gün yenile ve aktif yap
       await pool.query(

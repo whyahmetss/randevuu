@@ -47,7 +47,7 @@ function init(httpServer, allowedOrigins = []) {
     }
   });
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     const k = socket.data.kullanici;
     if (!k) { socket.disconnect(true); return; }
 
@@ -60,8 +60,22 @@ function init(httpServer, allowedOrigins = []) {
 
     socket.emit('connected', { userId: k.id, isletmeId: k.isletme_id, rol: k.rol });
 
-    socket.on('disconnect', (reason) => {
+    // Presence — odadaki cihaz sayısını yayınla
+    if (k.isletme_id) {
+      try {
+        const size = await io.in(`isletme:${k.isletme_id}`).fetchSockets().then(s => s.length);
+        io.to(`isletme:${k.isletme_id}`).emit('presence', { isletmeId: k.isletme_id, cihaz: size });
+      } catch (e) {}
+    }
+
+    socket.on('disconnect', async (reason) => {
       console.log(`🔌 Socket ayrıldı: user=${k.id}, reason=${reason}`);
+      if (k.isletme_id) {
+        try {
+          const size = await io.in(`isletme:${k.isletme_id}`).fetchSockets().then(s => s.length);
+          io.to(`isletme:${k.isletme_id}`).emit('presence', { isletmeId: k.isletme_id, cihaz: size });
+        } catch (e) {}
+      }
     });
   });
 

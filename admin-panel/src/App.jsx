@@ -789,13 +789,20 @@ function StatCard({ icon, baslik, deger, renk }) {
 // Canlı Socket.IO bağlantı durumu göstergesi (işletme paneli top-bar için)
 function CanliDurumu() {
   const { status } = useSocketStatus();
+  const [cihazSayi, setCihazSayi] = useState(0);
+  useSocketEvent("presence", (p) => { if (p && typeof p.cihaz === "number") setCihazSayi(p.cihaz); });
   const renk = status === "connected" ? "#10b981" : status === "reconnecting" ? "#f59e0b" : "#ef4444";
   const metin = status === "connected" ? "Canlı" : status === "reconnecting" ? "Yeniden..." : "Bağlı değil";
-  const title = status === "connected" ? "Canlı güncelleme aktif — yeni randevular anında gelir" : "Socket.IO bağlantısı yok — yeni randevular için sayfayı yenileyin";
+  const title = status === "connected"
+    ? `Canlı güncelleme aktif — ${cihazSayi} cihaz online`
+    : "Socket.IO bağlantısı yok — yeni randevular için sayfayı yenileyin";
   return (
     <div title={title} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: `${renk}14`, border: `1px solid ${renk}33`, fontSize: 11, fontWeight: 700, color: renk }}>
       <span style={{ width: 7, height: 7, borderRadius: "50%", background: renk, boxShadow: status === "connected" ? `0 0 0 3px ${renk}22` : "none", animation: status === "connected" ? "pulseDot 2s infinite" : "none" }} />
       {metin}
+      {status === "connected" && cihazSayi > 1 && (
+        <span style={{ fontSize: 10, opacity: 0.8, marginLeft: 2 }}>• {cihazSayi} cihaz</span>
+      )}
     </div>
   );
 }
@@ -914,9 +921,21 @@ function Dashboard() {
       setTimeout(() => { try { el.remove(); } catch(e){} }, 4200);
     } catch(e) {}
   };
+  // AudioContext singleton — autoplay politikaları için ilk etkileşimde unlock edilir
+  const audioCtxRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+  const _getAudioCtx = () => {
+    if (!audioCtxRef.current) {
+      try { audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+    }
+    return audioCtxRef.current;
+  };
   const canliSes = () => {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = _getAudioCtx();
+      if (!ctx) return;
+      // Suspended ise gesture bekleniyor — sessizce geç, alert iconu görsel UX gösterir
+      if (ctx.state === "suspended") { ctx.resume().catch(() => {}); return; }
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
       o.frequency.setValueAtTime(880, ctx.currentTime);
@@ -927,6 +946,28 @@ function Dashboard() {
     } catch(e) {}
   };
   const canliTitret = () => { try { navigator.vibrate?.([200, 80, 200]); } catch(e) {} };
+
+  // Audio unlock — ilk kullanıcı etkileşiminde AudioContext'i resume et (iOS Safari, Chrome autoplay)
+  useEffect(() => {
+    const unlock = () => {
+      if (audioUnlockedRef.current) return;
+      const ctx = _getAudioCtx();
+      if (!ctx) return;
+      ctx.resume().then(() => {
+        // Sessiz kısa bir ping çalarak context'i warm tut
+        try {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, ctx.currentTime);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(); o.stop(ctx.currentTime + 0.01);
+        } catch(e) {}
+        audioUnlockedRef.current = true;
+      }).catch(() => {});
+    };
+    const events = ["click", "touchstart", "keydown"];
+    events.forEach(ev => document.addEventListener(ev, unlock, { once: false, passive: true }));
+    return () => events.forEach(ev => document.removeEventListener(ev, unlock));
+  }, []);
 
   // Yeni randevu → listeye ekle + ses + titreşim + toast
   useSocketEvent("randevu:yeni", (payload) => {
@@ -978,6 +1019,16 @@ function Dashboard() {
     setBildirimSayi(s => s + 1);
     canliSes();
     canliToast(`🔔 ${bildirim.baslik}`, "#3b82f6");
+  });
+
+  // Ödeme onaylandı (esnaf tarafı)
+  useSocketEvent("odeme:onaylandi", (p) => {
+    if (!p) return;
+    canliSes();
+    canliToast(`✅ Ödemeniz alındı: ${p.tutar}₺`, "#10b981");
+    // Paket/ödeme bilgilerini tazele
+    api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); }).catch(() => {});
+    api.get("/paket").then(d => { if (d.paket) setPaketDurum(d); }).catch(() => {});
   });
 
   // Destek cevap geldi
@@ -3370,7 +3421,7 @@ function SuperAdminPanel({ kullanici }) {
         return;
       }
       setAvciTaramaId(res.tarama_id);
-      // Polling
+      // Backup polling (socket düşerse yine çalışsın) — 10 sn'de bir
       const tid = res.tarama_id;
       const poll = setInterval(async () => {
         try {
@@ -3391,7 +3442,7 @@ function SuperAdminPanel({ kullanici }) {
             avciListeYukle(); avciStatsYukle(); avciGunlukYukle();
           }
         } catch(e) { clearInterval(poll); setAvciTaramaYukleniyor(false); }
-      }, 2000);
+      }, 10000);
     } catch(e) {
       setAvciTaramaSonuc({ hata: e.message });
       setAvciTaramaYukleniyor(false);
@@ -3433,6 +3484,33 @@ function SuperAdminPanel({ kullanici }) {
     if (!p?.talep) return;
     setDestekTalepler(prev => [p.talep, ...prev]);
     adminToast(`🎫 Yeni destek: ${p.talep.konu}`, p.talep.oncelik === "acil" ? "#ef4444" : "#8b5cf6");
+  });
+  useSocketEvent("odeme:yeni", (p) => {
+    if (!p) return;
+    adminToast(`💳 ${p.isletme_isim || 'İşletme'} ödedi: ${p.tutar}₺`, "#10b981");
+    // Ödemeler sayfası açıksa listeyi tazele
+    try { if (typeof odemeleriYukle === "function") odemeleriYukle(); } catch (e) {}
+    try { if (typeof saasMetrikleriYukle === "function") saasMetrikleriYukle(); } catch (e) {}
+  });
+
+  // Avcı bot tarama progress (canlı, polling'den çok daha hızlı)
+  useSocketEvent("avci:progress", (d) => {
+    if (!d) return;
+    // Sadece aktif tarama için (başka bir tarayıcıda başka tarama varsa karışmasın)
+    if (avciTaramaId && d.tarama_id && String(d.tarama_id) !== String(avciTaramaId)) return;
+    setAvciTaramaDurum(d);
+    if (d.durum === "tamamlandi" || d.durum === "iptal") {
+      setAvciTaramaSonuc({
+        arama_metni: `${d.kategori || ""} ${d.sehir || ""}`.trim(),
+        toplam_bulunan: d.toplam_bulunan,
+        yeni_eklenen: d.yeni_eklenen,
+        zaten_var: d.zaten_var,
+        tarama_sayisi: d.tamamlanan,
+        iptal: d.iptal
+      });
+      setAvciTaramaYukleniyor(false);
+      try { avciListeYukle(); avciStatsYukle(); avciGunlukYukle(); } catch (e) {}
+    }
   });
 
   const auditLogYukle = async () => {

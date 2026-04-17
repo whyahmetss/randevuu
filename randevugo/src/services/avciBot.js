@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const TR_ILCELER = require('../data/tr_ilceler.json');
 const { sinonimleriGetir } = require('../data/kategori_sinonimleri');
+const socketServer = require('./socketServer');
 
 // Google Places API ile işletme arama
 class AvciBot {
@@ -178,6 +179,7 @@ class AvciBot {
       hata: null
     };
     if (taramaId) this.taramaDurumlari.set(taramaId, durum);
+    try { socketServer.emitToAdmin('avci:progress', { tarama_id: taramaId, ...durum }); } catch (e) {}
 
     let sorguSayaci = 0;
 
@@ -211,6 +213,9 @@ class AvciBot {
         sorguSayaci++;
         durum.tamamlanan = sorguSayaci;
 
+        // Her sorgu sonrası canlı progress yayını (süper admin)
+        try { socketServer.emitToAdmin('avci:progress', { tarama_id: taramaId, ...durum }); } catch (e) {}
+
         // Rate limit - sorgular arası kısa bekleme
         await new Promise(r => setTimeout(r, 500));
       }
@@ -221,6 +226,7 @@ class AvciBot {
     durum.durum = durum.iptal ? 'iptal' : 'tamamlandi';
     durum.bitti = new Date().toISOString();
     if (taramaId) this.taramaDurumlari.set(taramaId, durum);
+    try { socketServer.emitToAdmin('avci:progress', { tarama_id: taramaId, ...durum }); } catch (e) {}
 
     const sonuc = {
       tarama_id: taramaId,
