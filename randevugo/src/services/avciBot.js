@@ -26,6 +26,56 @@ class AvciBot {
     return [];
   }
 
+  // Türkçe lowercase + whitespace normalize
+  _trLower(s) {
+    return String(s || '').toLocaleLowerCase('tr').replace(/\s+/g, ' ').trim();
+  }
+
+  // Bir kelimeyi capitalize et (ilk harf büyük) — "çankaya" → "Çankaya"
+  _capitalize(s) {
+    if (!s) return s;
+    return s.charAt(0).toLocaleUpperCase('tr') + s.slice(1);
+  }
+
+  // 🎯 AKILLI İLÇE TESPİT: Adres metninden bilinen ilçeyi match et.
+  // Öncelik: verilen `hintIlce` → o şehrin bilinen ilçelerinde ara → diğer tüm ilçelerde ara.
+  // Cadde/sokak adını asla ilçe olarak döndürmez.
+  _ilceTespitEt(adres, sehir, hintIlce = null) {
+    if (!adres && !hintIlce) return null;
+    const adresN = this._trLower(adres);
+
+    // 1) Hint verildi ve adresin içinde geçiyorsa en güvenli sonuç
+    if (hintIlce) {
+      const hintN = this._trLower(hintIlce);
+      if (!adres || adresN.includes(hintN)) return this._capitalize(hintN);
+    }
+
+    // 2) Şehrin ilçeleri içinde ara — daha uzun eşleşme öncelikli (kelime sınırıyla)
+    const wordBoundary = (text, target) => {
+      const pat = new RegExp(`(^|[^a-zçğıöşüâî])${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-zçğıöşüâî]|$)`, 'i');
+      return pat.test(text);
+    };
+
+    if (adres) {
+      const sehirIlceleri = this._ilceleriGetir(sehir) || [];
+      const sortedSehir = [...sehirIlceleri].sort((a, b) => b.length - a.length);
+      for (const i of sortedSehir) {
+        if (wordBoundary(adresN, this._trLower(i))) return this._capitalize(i);
+      }
+
+      // 3) Tüm ülke ilçelerinde ara (şehir bilinmiyorsa veya adres başka il'deyse)
+      const tumIlceler = [];
+      for (const arr of Object.values(TR_ILCELER)) for (const i of arr) tumIlceler.push(i);
+      const sorted = [...new Set(tumIlceler)].sort((a, b) => b.length - a.length);
+      for (const i of sorted) {
+        if (this._trLower(i).length < 4) continue; // çok kısa ilçeleri (ör. "eş") ele
+        if (wordBoundary(adresN, this._trLower(i))) return this._capitalize(i);
+      }
+    }
+
+    return null;
+  }
+
   // TEK SORGU — pagination'lı Text Search + DB insert (max 60 sonuç Google limiti)
   async _tekSorgu({ sehir, ilce, kategori, apiKey }) {
     const aramaMetni = `${kategori} ${ilce ? ilce + ' ' : ''}${sehir}`.trim();
@@ -87,13 +137,8 @@ class AvciBot {
         const isletmeAdi = yer.displayName?.text || yer.displayName || 'Bilinmiyor';
         const adres = yer.formattedAddress || null;
 
-        let tespit_ilce = ilce || null;
-        if (adres) {
-          const adresParcalari = adres.split(',').map(s => s.trim());
-          if (adresParcalari.length >= 3) {
-            tespit_ilce = adresParcalari[adresParcalari.length - 3] || tespit_ilce;
-          }
-        }
+        // 🎯 Akıllı ilçe tespiti — adresi TR_ILCELER ile match et, cadde/sokak adı asla geçmez
+        const tespit_ilce = this._ilceTespitEt(adres, sehir, ilce);
 
         const skor = this.skorHesapla({
           puan: yer.rating,
@@ -476,6 +521,27 @@ class AvciBot {
     else if (puan && puan >= 3.5) skor += 5;
 
     return skor;
+  }
+
+  // 🧹 TOPLU ONARIM: mevcut kirli ilçe değerlerini adresden yeniden tespit et
+  async ilceleriYenidenHesapla(limit = 10000) {
+    const r = await pool.query(
+      `SELECT id, sehir, ilce, adres FROM potansiyel_musteriler
+       WHERE adres IS NOT NULL OR ilce IS NOT NULL
+       LIMIT $1`, [limit]
+    );
+    let duzeltildi = 0, temizlendi = 0, degismedi = 0;
+    for (const row of r.rows) {
+      const yeni = this._ilceTespitEt(row.adres, row.sehir, null);
+      const eski = row.ilce;
+      if (yeni === eski) { degismedi++; continue; }
+      await pool.query(
+        `UPDATE potansiyel_musteriler SET ilce = $1 WHERE id = $2`,
+        [yeni, row.id]
+      );
+      if (yeni) duzeltildi++; else temizlendi++;
+    }
+    return { toplam: r.rows.length, duzeltildi, temizlendi, degismedi };
   }
 
   // Potansiyel müşterileri listele (filtreli)

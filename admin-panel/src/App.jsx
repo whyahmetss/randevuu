@@ -6499,6 +6499,19 @@ function SuperAdminPanel({ kullanici }) {
                       <option value="">{avciSehir ? "🏘️ Tüm ilçeler" : "🏘️ Önce şehir seç"}</option>
                       {avciIlceListe.map(i => <option key={i} value={i}>{i}</option>)}
                     </select>
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Tüm kayıtların ilçe alanı adresten yeniden hesaplanacak. Devam?")) return;
+                        const d = await api.post("/admin/avci/ilceleri-duzelt", {});
+                        if (d.hata) { alert("Hata: " + d.hata); return; }
+                        alert(`✅ ${d.duzeltildi} düzeltildi, ${d.temizlendi} temizlendi, ${d.degismedi} değişmedi (toplam ${d.toplam})`);
+                        avciSehirleriYukle();
+                        avciIlceleriYukle(avciSehir);
+                        avciListeYukle();
+                      }}
+                      title="Kirli ilçe kayıtlarını adresten yeniden tespit et"
+                      style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--bg)", color: "var(--dim)", cursor: "pointer" }}
+                    >🧹</button>
                     <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)} style={{ marginLeft: "auto", padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--bg)", color: "var(--text)", cursor: "pointer" }}>
                       <option value="skor_desc">Skor ↓</option>
                       <option value="puan_desc">Puan ↓</option>

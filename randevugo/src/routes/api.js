@@ -111,6 +111,7 @@ router.post('/admin/avci/tarama-iptal/:id', authMiddleware, superAdminMiddleware
 router.get('/admin/avci/liste', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciListe(req, res));
 router.get('/admin/avci/sehirler', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciSehirler(req, res));
 router.get('/admin/avci/ilceler', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIlceler(req, res));
+router.post('/admin/avci/ilceleri-duzelt', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIlceleriDuzelt(req, res));
 router.get('/admin/avci/istatistik', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIstatistik(req, res));
 router.get('/admin/avci/gunluk', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciGunlukListe(req, res));
 router.put('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciDurumGuncelle(req, res));

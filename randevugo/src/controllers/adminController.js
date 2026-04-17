@@ -1175,6 +1175,16 @@ class AdminController {
     }
   }
 
+  // Avcı: mevcut kayıtların ilçe alanını adresten yeniden hesapla (one-off repair)
+  async avciIlceleriDuzelt(req, res) {
+    try {
+      const sonuc = await avciBot.ilceleriYenidenHesapla();
+      res.json({ basarili: true, ...sonuc });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   // Avcı: distinct ilçeler (şehre göre cascade)
   async avciIlceler(req, res) {
     try {

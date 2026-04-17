@@ -642,6 +642,24 @@ const PORT = process.env.PORT || 3000;
     try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_sehir_ilce ON potansiyel_musteriler (sehir, ilce)`); } catch (e) {}
     try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_kategori ON potansiyel_musteriler (kategori)`); } catch (e) {}
 
+    // Avcı Bot — ONE-TIME: kirli ilçe kayıtlarını adresten yeniden tespit et (idempotent, sadece ilk defa)
+    try {
+      await pool.query(`CREATE TABLE IF NOT EXISTS _avci_migrations (
+        flag TEXT PRIMARY KEY,
+        applied_at TIMESTAMP DEFAULT NOW()
+      )`);
+      const applied = await pool.query(
+        `INSERT INTO _avci_migrations (flag) VALUES ('ilce_repair_v1')
+         ON CONFLICT (flag) DO NOTHING RETURNING flag`
+      );
+      if (applied.rowCount > 0) {
+        console.log('🧹 Avcı ilçe onarımı başlıyor (one-time)...');
+        const avciBot = require('./services/avciBot');
+        const r = await avciBot.ilceleriYenidenHesapla();
+        console.log(`✅ Avcı ilçe onarımı: ${r.duzeltildi} düzeltildi, ${r.temizlendi} temizlendi, ${r.degismedi} değişmedi (toplam ${r.toplam})`);
+      }
+    } catch (e) { console.log('⚠️ Avcı ilçe onarımı atlandı:', e.message); }
+
     console.log('✅ DB migration kontrolü tamamlandı');
 
     // Dosya tabanlı migration'ları çalıştır
