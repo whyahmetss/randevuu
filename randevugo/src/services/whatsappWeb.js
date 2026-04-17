@@ -6,6 +6,7 @@ const pino = require('pino');
 const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
 const botMesajlar = require('../utils/botMesajlar');
+const socketServer = require('./socketServer');
 
 // Türkçe karakter normalize + Levenshtein mesafe (yazım hatası toleransı)
 function trNormalize(str) {
@@ -116,6 +117,7 @@ class WhatsAppWebService extends EventEmitter {
             this.isletmeler[isletmeId].durum = 'qr_bekleniyor';
             console.log(`📱 QR hazır: ${isletmeIsim}`);
             this.emit(`qr_${isletmeId}`, qrBase64);
+            socketServer.emitToIsletme(isletmeId, 'wa:qr', { qr_base64: qrBase64, durum: 'qr_bekleniyor' });
           } catch (e) {
             console.error(`❌ QR oluşturma hatası:`, e.message);
           }
@@ -131,6 +133,7 @@ class WhatsAppWebService extends EventEmitter {
           }
           console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara})`);
           this.emit(`bagli_${isletmeId}`, numara);
+          socketServer.emitToIsletme(isletmeId, 'wa:bagli', { numara, durum: 'bagli' });
         }
 
         if (connection === 'close') {
@@ -150,6 +153,7 @@ class WhatsAppWebService extends EventEmitter {
             this.isletmeler[isletmeId].durum = 'bagli_degil';
             try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch (e) {}
             this.emit(`ayrildi_${isletmeId}`, 'logged_out');
+            socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'logged_out', durum: 'bagli_degil' });
           } else if (shouldReconnect) {
             // Yeniden bağlan
             console.log(`🔄 Yeniden bağlanılıyor: ${isletmeIsim}`);
@@ -160,6 +164,7 @@ class WhatsAppWebService extends EventEmitter {
           } else {
             this.isletmeler[isletmeId].durum = 'bagli_degil';
             this.emit(`ayrildi_${isletmeId}`, 'disconnected');
+            socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'disconnected', durum: 'bagli_degil' });
           }
         }
       });

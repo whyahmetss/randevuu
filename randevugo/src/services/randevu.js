@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { bugunTarih, simdiSaat } = require('../utils/tarih');
+const socketServer = require('./socketServer');
 
 class RandevuService {
 
@@ -260,12 +261,14 @@ class RandevuService {
 
     // Müşteriyi bul veya oluştur
     let musteri = (await pool.query('SELECT * FROM musteriler WHERE telefon = $1', [musteriTelefon])).rows[0];
-    
+    let musteriYeni = false;
+
     if (!musteri) {
       musteri = (await pool.query(
         'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) RETURNING *',
         [musteriTelefon, musteriIsim || 'Bilinmiyor']
       )).rows[0];
+      musteriYeni = true;
     }
 
     // Hizmet süresini al
@@ -297,14 +300,27 @@ class RandevuService {
 
     // Randevuyu kaydet
     const randevu = (await pool.query(
-      `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum, kapora_durumu, kapora_tutari)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum, kapora_durumu, kapora_tutari, kaynak)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [isletmeId, calisanId, musteri.id, hizmetId, tarih, saat, bitisSaat,
-       durum, kaporaDurumu, kapora.tutar]
+       durum, kaporaDurumu, kapora.tutar, kaynak || 'bot']
     )).rows[0];
 
     // Win-back kurtarma takibi
     try { const winback = require('./winback'); await winback.kurtarmaKontrol(isletmeId, musteri.id); } catch (e) { /* skip */ }
+
+    // ─── CANLI YAYIN (Socket.IO) ───
+    try {
+      if (musteriYeni) {
+        socketServer.emitToIsletme(isletmeId, 'musteri:yeni', { musteri });
+      }
+      socketServer.emitToIsletme(isletmeId, 'randevu:yeni', {
+        randevu,
+        musteri: { id: musteri.id, isim: musteri.isim, telefon: musteri.telefon },
+        hizmet: hizmet ? { id: hizmet.id, isim: hizmet.isim, sure_dk: hizmet.sure_dk, fiyat: hizmet.fiyat } : null,
+        kaynak: kaynak || 'bot'
+      });
+    } catch (e) { /* socket hatası randevu oluşturmayı engellemesin */ }
 
     return { randevu, musteri, hizmet, kapora, manuelOnay };
   }
@@ -315,6 +331,16 @@ class RandevuService {
       `UPDATE randevular SET durum = 'iptal' WHERE id = $1 RETURNING *`,
       [randevuId]
     );
+    // Canlı güncelleme
+    try {
+      if (result.rows[0]) {
+        socketServer.emitToIsletme(result.rows[0].isletme_id, 'randevu:guncellendi', {
+          randevu: result.rows[0],
+          eski_durum: null,
+          yeni_durum: 'iptal'
+        });
+      }
+    } catch (e) {}
     return result.rows[0];
   }
 

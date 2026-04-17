@@ -1,6 +1,7 @@
 process.env.TZ = 'Europe/Istanbul';
 
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -13,6 +14,7 @@ const odemeService = require('./services/odemeService');
 const telegramService = require('./services/telegram');
 const whatsappWebService = require('./services/whatsappWeb');
 const telegramSatisBot = require('./services/telegramSatisBot');
+const socketServer = require('./services/socketServer');
 
 const pool = require('./config/db');
 
@@ -690,11 +692,16 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ hata: err.message || 'Sunucu hatası' });
 });
 
+// HTTP sunucu + Socket.IO
+const httpServer = http.createServer(app);
+socketServer.init(httpServer, allowedOrigins);
+
 // Sunucuyu başlat
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
   console.log(`\n🚀 RandevuGO API çalışıyor: ${baseUrl}`);
   console.log(`📡 WhatsApp Webhook: ${baseUrl}/api/webhook/whatsapp`);
+  console.log(`🔌 Socket.IO aktif`);
   console.log(`🏥 Health Check: ${baseUrl}/api/health\n`);
   
   // WhatsApp servisini başlat

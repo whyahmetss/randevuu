@@ -7,6 +7,7 @@ const avciBot = require('../services/avciBot');
 const iyzicoService = require('../services/iyzicoService');
 const shopierService = require('../services/shopierService');
 const QRCode = require('qrcode');
+const socketServer = require('../services/socketServer');
 
 class AdminController {
 
@@ -158,6 +159,16 @@ class AdminController {
           } catch (e) { console.error('No-show WA mesaj hatası:', e.message); }
         }
       }
+
+      // ─── CANLI YAYIN (Socket.IO) ───
+      try {
+        if (result.rows[0]) {
+          socketServer.emitToIsletme(isletmeId, 'randevu:guncellendi', {
+            randevu: result.rows[0],
+            yeni_durum: durum,
+          });
+        }
+      } catch (e) { /* skip */ }
 
       res.json({ randevu: result.rows[0], noShow });
     } catch (error) {
@@ -2491,7 +2502,35 @@ class AdminController {
       if (admin_yanit) { fields.push(`admin_yanit = $${idx++}`); values.push(admin_yanit); fields.push(`admin_yanit_tarihi = NOW()`); }
       if (durum) { fields.push(`durum = $${idx++}`); values.push(durum); }
       values.push(req.params.id);
-      await pool.query(`UPDATE destek_talepleri SET ${fields.join(', ')} WHERE id = $${idx}`, values);
+      const guncel = await pool.query(
+        `UPDATE destek_talepleri SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+        values
+      );
+
+      // ─── CANLI YAYIN: işletmeye cevap bildirimi ───
+      try {
+        const talep = guncel.rows[0];
+        if (talep && admin_yanit) {
+          socketServer.emitToIsletme(talep.isletme_id, 'destek:cevap', {
+            talep_id: talep.id,
+            konu: talep.konu,
+            admin_yanit: talep.admin_yanit,
+            durum: talep.durum,
+            admin_yanit_tarihi: talep.admin_yanit_tarihi
+          });
+          // Bildirim kaydı + toast
+          try {
+            await this.bildirimOlustur(
+              talep.isletme_id,
+              'destek_cevap',
+              '💬 Destek ekibinden yanıt',
+              `"${talep.konu}" talebinize cevap geldi.`,
+              '/destek'
+            );
+          } catch (e) {}
+        }
+      } catch (e) {}
+
       res.json({ mesaj: 'Talep güncellendi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -4914,10 +4953,13 @@ class AdminController {
   async bildirimOlustur(isletmeId, tip, baslik, mesaj, link = null) {
     try {
       // Panel bildirimi oluştur
-      await pool.query(
-        `INSERT INTO isletme_bildirimleri (isletme_id, tip, baslik, mesaj, link) VALUES ($1, $2, $3, $4, $5)`,
+      const yeniBildirim = (await pool.query(
+        `INSERT INTO isletme_bildirimleri (isletme_id, tip, baslik, mesaj, link) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
         [isletmeId, tip, baslik, mesaj || '', link]
-      );
+      )).rows[0];
+
+      // ─── CANLI YAYIN ───
+      try { socketServer.emitToIsletme(isletmeId, 'bildirim:yeni', { bildirim: yeniBildirim }); } catch (e) {}
 
       // İşletme bildirim tercihlerini kontrol et
       const isletme = (await pool.query(

@@ -13,6 +13,8 @@ import Sadakat from "./components/Sadakat/Sadakat";
 import Referans from "./components/Referans/Referans";
 import DogumGunu from "./components/DogumGunu/DogumGunu";
 import MusteriGetir from "./components/MusteriGetir/MusteriGetir";
+import * as socketClient from "./lib/socket";
+const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, useSocketStatus } = socketClient;
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -784,6 +786,20 @@ function StatCard({ icon, baslik, deger, renk }) {
   );
 }
 
+// Canlı Socket.IO bağlantı durumu göstergesi (işletme paneli top-bar için)
+function CanliDurumu() {
+  const { status } = useSocketStatus();
+  const renk = status === "connected" ? "#10b981" : status === "reconnecting" ? "#f59e0b" : "#ef4444";
+  const metin = status === "connected" ? "Canlı" : status === "reconnecting" ? "Yeniden..." : "Bağlı değil";
+  const title = status === "connected" ? "Canlı güncelleme aktif — yeni randevular anında gelir" : "Socket.IO bağlantısı yok — yeni randevular için sayfayı yenileyin";
+  return (
+    <div title={title} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: `${renk}14`, border: `1px solid ${renk}33`, fontSize: 11, fontWeight: 700, color: renk }}>
+      <span style={{ width: 7, height: 7, borderRadius: "50%", background: renk, boxShadow: status === "connected" ? `0 0 0 3px ${renk}22` : "none", animation: status === "connected" ? "pulseDot 2s infinite" : "none" }} />
+      {metin}
+    </div>
+  );
+}
+
 function Dashboard() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [stats, setStats] = useState(null);
@@ -886,6 +902,105 @@ function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // ═══════════ CANLI YAYIN (Socket.IO) ═══════════
+  // Yardımcı: ses + titreşim + toast
+  const canliToast = (mesaj, renk = "#10b981") => {
+    try {
+      const el = document.createElement("div");
+      el.textContent = mesaj;
+      el.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:14px 20px;background:${renk};color:#fff;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:340px;animation:slideIn .3s ease;`;
+      document.body.appendChild(el);
+      setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .4s"; }, 3500);
+      setTimeout(() => { try { el.remove(); } catch(e){} }, 4200);
+    } catch(e) {}
+  };
+  const canliSes = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.18);
+      g.gain.setValueAtTime(0.22, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      o.start(); o.stop(ctx.currentTime + 0.4);
+    } catch(e) {}
+  };
+  const canliTitret = () => { try { navigator.vibrate?.([200, 80, 200]); } catch(e) {} };
+
+  // Yeni randevu → listeye ekle + ses + titreşim + toast
+  useSocketEvent("randevu:yeni", (payload) => {
+    const { randevu, musteri, hizmet } = payload || {};
+    if (!randevu) return;
+    // Listeye prepend (aynı tarih ise)
+    setRandevular(prev => {
+      if (prev.find(r => r.id === randevu.id)) return prev;
+      // Randevu eğer görünen güne ait değilse sadece toast, listeye ekleme
+      if (String(randevu.tarih).slice(0, 10) !== randevuTarih) return prev;
+      return [{
+        ...randevu,
+        musteri_isim: musteri?.isim,
+        musteri_telefon: musteri?.telefon,
+        hizmet_isim: hizmet?.isim,
+        hizmet_fiyat: hizmet?.fiyat,
+      }, ...prev];
+    });
+    canliSes();
+    canliTitret();
+    const saatStr = String(randevu.saat).slice(0, 5);
+    canliToast(`🎉 Yeni randevu: ${musteri?.isim || "Müşteri"} — ${saatStr}`);
+    // İstatistiği tazele (arka planda)
+    api.get("/istatistikler").then(s => { if (s && !s.hata) setStats(s); }).catch(() => {});
+  });
+
+  // Randevu durumu güncellendi (onay, iptal, tamamlandı, gelmedi...)
+  useSocketEvent("randevu:guncellendi", (payload) => {
+    const { randevu, yeni_durum } = payload || {};
+    if (!randevu) return;
+    setRandevular(prev => prev.map(r => r.id === randevu.id ? { ...r, ...randevu, durum: yeni_durum || randevu.durum } : r));
+  });
+
+  // Yeni müşteri
+  useSocketEvent("musteri:yeni", (payload) => {
+    const { musteri } = payload || {};
+    if (!musteri) return;
+    setMusteriler(prev => {
+      if (prev.find(m => m.id === musteri.id)) return prev;
+      return [musteri, ...prev];
+    });
+  });
+
+  // Yeni bildirim → rozet +1, toast + ses
+  useSocketEvent("bildirim:yeni", (payload) => {
+    const { bildirim } = payload || {};
+    if (!bildirim) return;
+    setBildirimler(prev => [bildirim, ...prev].slice(0, 50));
+    setBildirimSayi(s => s + 1);
+    canliSes();
+    canliToast(`🔔 ${bildirim.baslik}`, "#3b82f6");
+  });
+
+  // Destek cevap geldi
+  useSocketEvent("destek:cevap", (payload) => {
+    const { talep_id, konu } = payload || {};
+    setDestekTaleplerim(prev => prev.map(t => t.id === talep_id ? { ...t, admin_yanit: payload.admin_yanit, durum: payload.durum, admin_yanit_tarihi: payload.admin_yanit_tarihi } : t));
+    canliSes();
+    canliToast(`💬 Destek yanıtı: "${konu || 'Talep'}"`, "#8b5cf6");
+  });
+
+  // WhatsApp bağlantı olayları (QR, bağlı, ayrıldı)
+  useSocketEvent("wa:qr", (payload) => {
+    try { window.dispatchEvent(new CustomEvent("wa:qr", { detail: payload })); } catch(e) {}
+  });
+  useSocketEvent("wa:bagli", (payload) => {
+    try { window.dispatchEvent(new CustomEvent("wa:bagli", { detail: payload })); } catch(e) {}
+    canliToast(`✅ WhatsApp bağlandı${payload?.numara ? ` (+${payload.numara})` : ""}`);
+  });
+  useSocketEvent("wa:ayrildi", (payload) => {
+    try { window.dispatchEvent(new CustomEvent("wa:ayrildi", { detail: payload })); } catch(e) {}
+    canliToast("⚠️ WhatsApp bağlantısı kesildi", "#ef4444");
+  });
+
   const hizmetleriYukle = async () => { const d = await api.get("/hizmetler"); setHizmetler(d.hizmetler || []); };
   const musterileriYukle = async () => { const d = await api.get("/musteriler"); setMusteriler(d.musteriler || []); };
   const ayarlariYukle = async () => { const d = await api.get("/ayarlar"); setAyarlar(d.isletme); };
@@ -955,7 +1070,7 @@ function Dashboard() {
     setTestYukleniyor(false);
   };
 
-  const cikisYap = () => { localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
+  const cikisYap = () => { try { socketDisconnect(); } catch(e){} localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
 
   const qrKodOlustur = async () => {
     setQrYukleniyor(true);
@@ -1117,6 +1232,8 @@ function Dashboard() {
             {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {/* Canlı bağlantı göstergesi */}
+            <CanliDurumu />
             {/* Çalışan Avatarları + Ekip Dropdown */}
             {dashCalisanlar.length > 0 && (
               <div style={{ display: "flex", alignItems: "center", position: "relative" }}
@@ -3435,7 +3552,7 @@ function SuperAdminPanel({ kullanici }) {
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const cikisYap = () => { localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
+  const cikisYap = () => { try { socketDisconnect(); } catch(e){} localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
 
   const SVGA = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -7404,6 +7521,15 @@ export default function App() {
       setYukleniyor(false);
     }
   }, []);
+
+  // Kullanıcı set olunca Socket.IO bağlantısı kur (canlı panel için)
+  useEffect(() => {
+    if (kullanici) {
+      const token = localStorage.getItem("randevugo_token");
+      if (token) socketConnect(token);
+    }
+    return () => { /* app unmount: */ };
+  }, [kullanici]);
 
   if (yukleniyor) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0c0e14" }}>
