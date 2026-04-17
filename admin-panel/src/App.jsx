@@ -3272,6 +3272,12 @@ function SuperAdminPanel({ kullanici }) {
   const [avciTab, setAvciTab] = useState("liste");
   const [avciKaynak, setAvciKaynak] = useState("hepsi");
   const [avciKategoriFiltre, setAvciKategoriFiltre] = useState("hepsi");
+  // 🆕 Arama + konum filtreleri
+  const [avciArama, setAvciArama] = useState("");
+  const [avciSehir, setAvciSehir] = useState("");
+  const [avciIlce, setAvciIlce] = useState("");
+  const [avciSehirListe, setAvciSehirListe] = useState([]);
+  const [avciIlceListe, setAvciIlceListe] = useState([]);
   const [topluTaramaAcik, setTopluTaramaAcik] = useState(false);
   const [topluKategoriler, setTopluKategoriler] = useState(["berber","kuaför","güzellik salonu","dövme","diş kliniği"]);
   const [topluSehir, setTopluSehir] = useState("İstanbul");
@@ -3399,7 +3405,29 @@ function SuperAdminPanel({ kullanici }) {
   }, []);
 
   const avciListeYukle = async () => {
-    try { const d = await api.get(`/admin/avci/liste?durum=${avciFiltre}&kategori=${avciKategoriFiltre}&siralama=${avciSiralama}&kaynak=${avciKaynak}&limit=100`); setAvciListe(d.potansiyel_musteriler || []); } catch(e) { console.log("Avcı liste hatası:", e); }
+    try {
+      const qs = new URLSearchParams({
+        durum: avciFiltre,
+        kategori: avciKategoriFiltre,
+        siralama: avciSiralama,
+        kaynak: avciKaynak,
+        sehir: avciSehir || "",
+        ilce: avciIlce || "",
+        q: (avciArama || "").trim(),
+        limit: "100",
+      }).toString();
+      const d = await api.get(`/admin/avci/liste?${qs}`);
+      setAvciListe(d.potansiyel_musteriler || []);
+    } catch(e) { console.log("Avcı liste hatası:", e); }
+  };
+  const avciSehirleriYukle = async () => {
+    try { const d = await api.get("/admin/avci/sehirler"); setAvciSehirListe(d.sehirler || []); } catch(e) {}
+  };
+  const avciIlceleriYukle = async (sehir) => {
+    try {
+      const d = await api.get(`/admin/avci/ilceler${sehir ? `?sehir=${encodeURIComponent(sehir)}` : ""}`);
+      setAvciIlceListe(d.ilceler || []);
+    } catch(e) { setAvciIlceListe([]); }
   };
   const avciStatsYukle = async () => {
     try { const d = await api.get("/admin/avci/istatistik"); setAvciStats(d); } catch(e) { console.log("Avcı stats hatası:", e); }
@@ -3616,7 +3644,7 @@ function SuperAdminPanel({ kullanici }) {
     if (sayfa === "dashboard") saasMetrikleriYukle();
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
-    if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); }
+    if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); avciSehirleriYukle(); avciIlceleriYukle(avciSehir); }
     if (sayfa === "iletisim") iletisimYukle();
     if (sayfa === "satisBot") { numaralariYukle(); sablonlariYukle(); kampanyalariYukle(); kategoriDagiliminiYukle(); }
     if (sayfa === "auditLog") auditLogYukle();
@@ -3633,7 +3661,21 @@ function SuperAdminPanel({ kullanici }) {
     if (sayfa === "duyurular") duyurulariYukle();
     if (sayfa === "aktivite") aktiviteYukle();
     if (sayfa === "bildirimler") bildirimleriYukle();
-  }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak, auditFiltre, destekFiltre]);
+  }, [sayfa, avciFiltre, avciSiralama, avciKategoriFiltre, avciKaynak, avciSehir, avciIlce, auditFiltre, destekFiltre]);
+
+  // Debounced arama — sadece avci sayfasındayken
+  useEffect(() => {
+    if (sayfa !== "avci") return;
+    const t = setTimeout(() => { avciListeYukle(); }, 300);
+    return () => clearTimeout(t);
+  }, [avciArama]);
+
+  // Cascade: şehir değişince ilçe listesini yenile + seçimi sıfırla
+  useEffect(() => {
+    if (sayfa !== "avci") return;
+    setAvciIlce("");
+    avciIlceleriYukle(avciSehir);
+  }, [avciSehir]);
 
   const isletmeEkle = async (e) => {
     e.preventDefault();
@@ -6426,25 +6468,110 @@ function SuperAdminPanel({ kullanici }) {
               const isSosyal = (k) => ["instagram", "facebook", "tiktok"].includes(k);
               return (
               <>
-                {/* Filtre Çubuğu */}
-                <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 10, padding: 4, marginBottom: 12, flexWrap: "wrap" }}>
-                  {[["hepsi","Tümü"],["yeni","Yeni"],["bot_yazdi","📱 Bot Yazdı"],["cevapsiz","📭 Cevapsız"],["arandi","Arandı"],["ilgileniyor","İlgileniyor"],["ilgilenmiyor","İlgilenmiyor"],["musteri_oldu","Müşteri ✓"]].map(([v,l]) => (
-                    <button key={v} onClick={() => setAvciFiltre(v)} style={{ padding: "7px 14px", borderRadius: 8, border: "none", fontSize: 12, fontWeight: avciFiltre === v ? 700 : 500, cursor: "pointer", background: avciFiltre === v ? "var(--surface)" : "transparent", color: avciFiltre === v ? "var(--text)" : "var(--dim)", transition: "all .2s", boxShadow: avciFiltre === v ? "0 1px 4px rgba(0,0,0,.06)" : "none" }}>{l}</button>
-                  ))}
-                  <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)} style={{ marginLeft: "auto", padding: "6px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 12, background: "var(--surface)", color: "var(--text)", cursor: "pointer" }}>
-                    <option value="skor_desc">Skor ↓</option>
-                    <option value="puan_desc">Puan ↓</option>
-                    <option value="yorum_desc">Yorum ↓</option>
-                    <option value="yeni">En Yeni</option>
-                  </select>
-                </div>
+                {/* ═══ FİLTRE DOCK — 3 satır tek konteyner ═══ */}
+                <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, marginBottom: 14, display: "flex", flexDirection: "column", gap: 10 }}>
 
-                {/* Kategori Filtreleri */}
-                <div className="row row-wrap gap-4 mb-16" style={{ alignItems: "center" }}>
-                  <span style={{ color: "var(--dim)", fontSize: 11, marginRight: 4 }}>Kategori:</span>
-                  {[["hepsi","Tümü"],["berber","✂️ Berber"],["kuaför","💇 Kuaför"],["güzellik salonu","💅 Güzellik"],["dövme","🎨 Dövme"],["diş kliniği","🦷 Dişçi"],["veteriner","🐾 Veteriner"],["spa","🧖 Spa"],["diyetisyen","🥗 Diyetisyen"],["tırnak salonu","💅 Tırnak"],["cilt bakım","✨ Cilt Bakım"]].map(([v,l]) => (
-                    <button key={v} onClick={() => setAvciKategoriFiltre(v)} style={{ padding: "4px 10px", borderRadius: 8, border: "none", fontSize: 11, fontWeight: avciKategoriFiltre === v ? 700 : 500, cursor: "pointer", background: avciKategoriFiltre === v ? "#8b5cf6" : "var(--bg)", color: avciKategoriFiltre === v ? "#fff" : "var(--dim)", transition: "all .15s" }}>{l}</button>
-                  ))}
+                  {/* Satır 1: Arama + Şehir + İlçe + Sıralama */}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <div style={{ position: "relative", flex: "1 1 240px", minWidth: 200 }}>
+                      <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--dim)", pointerEvents: "none" }}>🔍</span>
+                      <input
+                        value={avciArama}
+                        onChange={e => setAvciArama(e.target.value)}
+                        placeholder="İşletme adı, telefon, adres ara…"
+                        className="input"
+                        style={{ paddingLeft: 34, paddingRight: avciArama ? 34 : 12, borderRadius: 10, width: "100%", fontSize: 13 }}
+                      />
+                      {avciArama && (
+                        <button onClick={() => setAvciArama("")} title="Temizle" style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--dim)", cursor: "pointer", fontSize: 14, padding: 4, lineHeight: 1 }}>✕</button>
+                      )}
+                    </div>
+                    <select value={avciSehir} onChange={e => setAvciSehir(e.target.value)} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--bg)", color: "var(--text)", cursor: "pointer", minWidth: 140 }}>
+                      <option value="">📍 Tüm şehirler</option>
+                      {avciSehirListe.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <select
+                      value={avciIlce}
+                      onChange={e => setAvciIlce(e.target.value)}
+                      disabled={!avciSehir}
+                      style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--bg)", color: avciSehir ? "var(--text)" : "var(--dim)", cursor: avciSehir ? "pointer" : "not-allowed", minWidth: 140, opacity: avciSehir ? 1 : 0.6 }}
+                    >
+                      <option value="">{avciSehir ? "🏘️ Tüm ilçeler" : "🏘️ Önce şehir seç"}</option>
+                      {avciIlceListe.map(i => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                    <select value={avciSiralama} onChange={e => setAvciSiralama(e.target.value)} style={{ marginLeft: "auto", padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--bg)", color: "var(--text)", cursor: "pointer" }}>
+                      <option value="skor_desc">Skor ↓</option>
+                      <option value="puan_desc">Puan ↓</option>
+                      <option value="yorum_desc">Yorum ↓</option>
+                      <option value="yeni">En Yeni</option>
+                    </select>
+                  </div>
+
+                  {/* Satır 2: Durum Chip'leri (sayılı) */}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                    {[
+                      ["hepsi", "Tümü", avciStats?.toplam],
+                      ["yeni", "Yeni", avciStats?.yeni],
+                      ["bot_yazdi", "📱 Bot Yazdı", avciStats?.bot_yazdi],
+                      ["cevapsiz", "📭 Cevapsız", avciStats?.cevapsiz],
+                      ["arandi", "Arandı", avciStats?.arandi],
+                      ["ilgileniyor", "İlgileniyor", avciStats?.ilgileniyor],
+                      ["ilgilenmiyor", "İlgilenmiyor", avciStats?.ilgilenmiyor],
+                      ["musteri_oldu", "Müşteri ✓", avciStats?.musteri_oldu],
+                    ].map(([v, l, count]) => {
+                      const active = avciFiltre === v;
+                      return (
+                        <button
+                          key={v}
+                          onClick={() => setAvciFiltre(v)}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "7px 12px", borderRadius: 999,
+                            border: active ? "none" : "1px solid var(--border)",
+                            fontSize: 12, fontWeight: active ? 700 : 500,
+                            cursor: "pointer",
+                            background: active ? "#8b5cf6" : "var(--bg)",
+                            color: active ? "#fff" : "var(--dim)",
+                            boxShadow: active ? "0 2px 8px rgba(139,92,246,.3)" : "none",
+                            transition: "all .15s"
+                          }}
+                        >
+                          <span>{l}</span>
+                          {count !== undefined && count !== null && (
+                            <span style={{
+                              padding: "1px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, minWidth: 20, textAlign: "center",
+                              background: active ? "rgba(255,255,255,.22)" : "var(--surface)",
+                              color: active ? "#fff" : "var(--text)"
+                            }}>{count}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Satır 3: Kategori Chip'leri — yatay scroll */}
+                  <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "thin", WebkitOverflowScrolling: "touch" }}>
+                    {[["hepsi","Tümü"],["berber","✂️ Berber"],["kuaför","💇 Kuaför"],["güzellik salonu","💅 Güzellik"],["dövme","🎨 Dövme"],["diş kliniği","🦷 Dişçi"],["veteriner","🐾 Veteriner"],["spa","🧖 Spa"],["diyetisyen","🥗 Diyetisyen"],["tırnak salonu","💅 Tırnak"],["cilt bakım","✨ Cilt Bakım"],["fizyoterapi","💪 Fizyoterapi"],["psikolog","🧠 Psikolog"],["pilates","🧘 Pilates"],["oto yıkama","🚗 Oto Yıkama"]].map(([v,l]) => {
+                      const active = avciKategoriFiltre === v;
+                      return (
+                        <button
+                          key={v}
+                          onClick={() => setAvciKategoriFiltre(v)}
+                          style={{
+                            flexShrink: 0, whiteSpace: "nowrap",
+                            padding: "6px 12px", borderRadius: 999,
+                            border: active ? "none" : "1px solid var(--border)",
+                            fontSize: 11, fontWeight: active ? 700 : 500,
+                            cursor: "pointer",
+                            background: active ? "#8b5cf6" : "var(--bg)",
+                            color: active ? "#fff" : "var(--dim)",
+                            boxShadow: active ? "0 2px 6px rgba(139,92,246,.25)" : "none",
+                            transition: "all .15s"
+                          }}
+                        >{l}</button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Lead Kartları */}

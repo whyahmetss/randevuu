@@ -1149,13 +1149,49 @@ class AdminController {
 
   async avciListe(req, res) {
     try {
-      const { durum, kategori, sehir, ilce, siralama, limit, offset, kaynak } = req.query;
+      const { durum, kategori, sehir, ilce, siralama, limit, offset, kaynak, q } = req.query;
       const liste = await avciBot.listele({
-        durum, kategori, sehir, ilce, siralama, kaynak,
+        durum, kategori, sehir, ilce, siralama, kaynak, q,
         limit: limit ? parseInt(limit) : 50,
         offset: offset ? parseInt(offset) : 0
       });
       res.json({ potansiyel_musteriler: liste });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Avcı: distinct şehirler (DB'de kaydı olan)
+  async avciSehirler(req, res) {
+    try {
+      const result = await pool.query(
+        `SELECT DISTINCT sehir FROM potansiyel_musteriler
+         WHERE sehir IS NOT NULL AND sehir != ''
+         ORDER BY sehir`
+      );
+      res.json({ sehirler: result.rows.map(r => r.sehir) });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Avcı: distinct ilçeler (şehre göre cascade)
+  async avciIlceler(req, res) {
+    try {
+      const { sehir } = req.query;
+      let q, params = [];
+      if (sehir) {
+        q = `SELECT DISTINCT ilce FROM potansiyel_musteriler
+             WHERE sehir = $1 AND ilce IS NOT NULL AND ilce != ''
+             ORDER BY ilce`;
+        params = [sehir];
+      } else {
+        q = `SELECT DISTINCT ilce FROM potansiyel_musteriler
+             WHERE ilce IS NOT NULL AND ilce != ''
+             ORDER BY ilce LIMIT 500`;
+      }
+      const result = await pool.query(q, params);
+      res.json({ ilceler: result.rows.map(r => r.ilce) });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

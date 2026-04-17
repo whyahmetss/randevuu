@@ -634,6 +634,14 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_isletme ON push_subscriptions(isletme_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_kullanici ON push_subscriptions(kullanici_id)`);
 
+    // Avcı Bot — arama/filtre için index'ler (her biri bağımsız try/catch, pg_trgm yoksa da çalışır)
+    try { await pool.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`); } catch (e) { console.log('⚠️ pg_trgm extension yok, trigram index atlanıyor:', e.message); }
+    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_isletme_adi_trgm ON potansiyel_musteriler USING gin (isletme_adi gin_trgm_ops)`); }
+    catch (e) { try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_isletme_adi_lower ON potansiyel_musteriler (LOWER(isletme_adi))`); } catch(_) {} }
+    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_telefon ON potansiyel_musteriler (telefon)`); } catch (e) {}
+    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_sehir_ilce ON potansiyel_musteriler (sehir, ilce)`); } catch (e) {}
+    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_kategori ON potansiyel_musteriler (kategori)`); } catch (e) {}
+
     console.log('✅ DB migration kontrolü tamamlandı');
 
     // Dosya tabanlı migration'ları çalıştır

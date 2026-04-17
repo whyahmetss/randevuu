@@ -479,10 +479,18 @@ class AvciBot {
   }
 
   // Potansiyel müşterileri listele (filtreli)
-  async listele({ durum, kategori, sehir, ilce, siralama, limit, offset, kaynak }) {
+  async listele({ durum, kategori, sehir, ilce, siralama, limit, offset, kaynak, q }) {
     let query = 'SELECT * FROM potansiyel_musteriler WHERE 1=1';
     const params = [];
     let idx = 1;
+
+    // Serbest metin arama (isim, telefon, adres, instagram) — min 2 char
+    if (q && String(q).trim().length >= 2) {
+      const pattern = `%${String(q).trim()}%`;
+      query += ` AND (isletme_adi ILIKE $${idx} OR telefon ILIKE $${idx} OR adres ILIKE $${idx} OR instagram ILIKE $${idx})`;
+      params.push(pattern);
+      idx++;
+    }
 
     if (kaynak && kaynak !== 'hepsi') {
       if (kaynak === 'maps') {
@@ -584,6 +592,16 @@ class AvciBot {
         COUNT(*) FILTER (WHERE durum = 'ilgilenmiyor') as ilgilenmiyor,
         COUNT(*) FILTER (WHERE durum = 'demo_yapildi') as demo_yapildi,
         COUNT(*) FILTER (WHERE durum = 'musteri_oldu') as musteri_oldu,
+        COUNT(*) FILTER (WHERE wp_mesaj_durumu = 'gonderildi') as bot_yazdi,
+        COUNT(*) FILTER (
+          WHERE wp_mesaj_durumu = 'gonderildi'
+            AND id NOT IN (
+              SELECT lead_id FROM satis_konusmalar
+              WHERE lead_id IS NOT NULL
+                AND gelen_mesajlar IS NOT NULL
+                AND gelen_mesajlar != ''
+            )
+        ) as cevapsiz,
         COUNT(*) FILTER (WHERE telefon IS NOT NULL) as telefonlu,
         COUNT(*) FILTER (WHERE web_sitesi IS NULL) as websitesiz,
         ROUND(AVG(skor)) as ort_skor,
