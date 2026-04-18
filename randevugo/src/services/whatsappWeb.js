@@ -107,6 +107,7 @@ class WhatsAppWebService extends EventEmitter {
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: false,
+        getMessage: async () => ({ conversation: '' }),
       });
 
       this.isletmeler[isletmeId].sock = sock;

@@ -131,6 +131,7 @@ class MerkezOtpBot {
         logger: pino({ level: 'silent' }),
         browser: ['SıraGO OTP', 'Desktop', '4.0.0'],
         generateHighQualityLinkPreview: false,
+        getMessage: async () => ({ conversation: '' }),
       });
 
       state.sock = sock;

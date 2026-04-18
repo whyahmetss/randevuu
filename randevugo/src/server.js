@@ -1,14 +1,11 @@
 process.env.TZ = 'Europe/Istanbul';
 
-// Baileys/libsignal internal spam loglarını sustur
-const _origLog = console.log;
-const _origWarn = console.warn;
-const _isBaileysSpam = (...args) => {
-  const s = typeof args[0] === 'string' ? args[0] : '';
-  return s.startsWith('Closing session') || s.startsWith('Decrypted message with closed');
+// Baileys/libsignal internal spam loglarını sustur (console + stdout)
+const _origStdoutWrite = process.stdout.write.bind(process.stdout);
+process.stdout.write = function(chunk, ...rest) {
+  if (typeof chunk === 'string' && (chunk.includes('Closing session') || chunk.includes('Decrypted message with closed'))) return true;
+  return _origStdoutWrite(chunk, ...rest);
 };
-console.log = function(...args) { if (_isBaileysSpam(...args)) return; _origLog.apply(console, args); };
-console.warn = function(...args) { if (_isBaileysSpam(...args)) return; _origWarn.apply(console, args); };
 
 const express = require('express');
 const http = require('http');

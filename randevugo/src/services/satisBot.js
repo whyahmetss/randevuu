@@ -93,6 +93,9 @@ const TAKIP_SABLONLARI = {
 class SatisBot extends EventEmitter {
   constructor() {
     super();
+    // ─── MESAJ RETRY STORE ───
+    // getMessage callback için gönderilen mesajları sakla (5dk sonra temizlenir)
+    this.msgStore = new Map();
     // ─── ÇOKLU NUMARA DESTEĞİ ───
     // Her numaranın kendi socket, durum, QR'ı var
     this.numaraSockets = new Map(); // numaraId → { sock, durum, qrBase64, reconnectAttempts, basariliOturumVardi, _reconnectTimer }
@@ -258,6 +261,11 @@ class SatisBot extends EventEmitter {
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: false,
+        getMessage: async (key) => {
+          const msg = this.msgStore.get(key.id);
+          if (msg) return msg;
+          return { conversation: '' };
+        },
       });
 
       ns.sock.ev.on('creds.update', saveCreds);
@@ -428,6 +436,11 @@ class SatisBot extends EventEmitter {
         logger: pino({ level: 'silent' }),
         browser: ['RandevuGO', 'Desktop', '4.0.0'],
         generateHighQualityLinkPreview: false,
+        getMessage: async (key) => {
+          const msg = this.msgStore.get(key.id);
+          if (msg) return msg;
+          return { conversation: '' };
+        },
       });
       this.sock.ev.on('creds.update', saveCreds);
       this.sock.ev.on('connection.update', (update) => this._handleTekNumaraUpdate(update, authId));
@@ -599,8 +612,12 @@ class SatisBot extends EventEmitter {
         return;
       }
 
-      // 2sn bekle — socket sağlam mı kontrol
-      await new Promise(r => setTimeout(r, 2000));
+      // Retry store'a kaydet
+      if (sent.message) {
+        this.msgStore.set(sent.key.id, sent.message);
+        setTimeout(() => this.msgStore.delete(sent.key.id), 5 * 60 * 1000);
+      }
+
       const saglamMi = !!sock?.user;
 
       if (saglamMi) {
@@ -1014,6 +1031,12 @@ class SatisBot extends EventEmitter {
         throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
       }
 
+      // Retry store'a kaydet (5dk sonra temizle)
+      if (sent.message) {
+        this.msgStore.set(sent.key.id, sent.message);
+        setTimeout(() => this.msgStore.delete(sent.key.id), 5 * 60 * 1000);
+      }
+
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
       console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
 
@@ -1119,6 +1142,12 @@ class SatisBot extends EventEmitter {
       const sent = await sock.sendMessage(jid, { text: mesaj });
       if (!sent?.key?.id) {
         throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
+      }
+
+      // Retry store'a kaydet (5dk sonra temizle)
+      if (sent.message) {
+        this.msgStore.set(sent.key.id, sent.message);
+        setTimeout(() => this.msgStore.delete(sent.key.id), 5 * 60 * 1000);
       }
 
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
