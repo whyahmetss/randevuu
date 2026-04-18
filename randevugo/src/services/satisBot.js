@@ -506,7 +506,7 @@ class SatisBot extends EventEmitter {
     // Tüm auth key'leri sil
     const delResult = await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]);
     const silinen = delResult?.rowCount || 0;
-    try { await pool.query("UPDATE satis_bot_numaralar SET durum='bekliyor' WHERE id=$1", [numaraId]); } catch(e) {}
+    try { await pool.query("UPDATE satis_bot_numaralar SET durum='aktif' WHERE id=$1", [numaraId]); } catch(e) {}
     // msgStore da temizle
     this.msgStore.clear();
     console.log(`🗑️ [#${numaraId}] Session temizlendi — ${silinen} auth key silindi (authId: ${authId}). Yeniden QR taratın.`);
