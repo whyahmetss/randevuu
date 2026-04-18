@@ -447,24 +447,78 @@ class RandevuService {
     return enIyi;
   }
 
-  // No-show kaydet → kara listeye ihlal ekle (otomatik mod açıksa)
+  // No-show kaydet → kara listeye basamaklı ceza + WA uyarı mesajı
   async noShowKaydet(isletmeId, musteriTelefon) {
     try {
       const isletme = (await pool.query(
-        'SELECT kara_liste_otomatik, kara_liste_ihlal_sinir FROM isletmeler WHERE id=$1',
+        'SELECT isim, kara_liste_otomatik, kara_liste_ihlal_sinir FROM isletmeler WHERE id=$1',
         [isletmeId]
       )).rows[0];
       if (!isletme || !isletme.kara_liste_otomatik) return;
 
-      await pool.query(`
-        INSERT INTO kara_liste (isletme_id, telefon, sebep, ihlal_sayisi, aktif)
-        VALUES ($1, $2, 'no_show', 1, false)
+      const esikSayi = isletme.kara_liste_ihlal_sinir || 3;
+
+      // Basamaklı ceza: 1. uyarı, 2. 7gün bloke, 3+. kalıcı
+      // bloke_bitis: 7 gün bloke için NOW()+7day; kalıcı için NULL ama aktif=true
+      const sonuc = (await pool.query(`
+        INSERT INTO kara_liste (isletme_id, telefon, sebep, ihlal_sayisi, aktif, ilk_ihlal_zamani, son_ihlal_zamani)
+        VALUES ($1, $2, 'no_show', 1, false, NOW(), NOW())
         ON CONFLICT (isletme_id, telefon) DO UPDATE SET
           ihlal_sayisi = kara_liste.ihlal_sayisi + 1,
-          aktif = CASE WHEN kara_liste.ihlal_sayisi + 1 >= $3 THEN true ELSE kara_liste.aktif END
-      `, [isletmeId, musteriTelefon, isletme.kara_liste_ihlal_sinir || 3]);
+          son_ihlal_zamani = NOW(),
+          aktif = CASE WHEN kara_liste.ihlal_sayisi + 1 >= $3 THEN true ELSE kara_liste.aktif END,
+          bloke_bitis = CASE 
+            WHEN kara_liste.ihlal_sayisi + 1 = 2 THEN NOW() + INTERVAL '7 days'
+            WHEN kara_liste.ihlal_sayisi + 1 >= $3 THEN NULL
+            ELSE kara_liste.bloke_bitis
+          END
+        RETURNING ihlal_sayisi, aktif, bloke_bitis
+      `, [isletmeId, musteriTelefon, esikSayi])).rows[0];
+
+      // Basamaklı uyarı WA mesajı
+      try {
+        const whatsappWeb = require('./whatsappWeb');
+        const durum = whatsappWeb.getDurum(isletmeId);
+        if (durum?.durum === 'bagli') {
+          let jidTel = String(musteriTelefon).replace(/[^\d]/g, '');
+          if (jidTel.startsWith('0')) jidTel = '90' + jidTel.substring(1);
+          if (!jidTel.startsWith('90') && jidTel.length === 10) jidTel = '90' + jidTel;
+          const jid = `${jidTel}@s.whatsapp.net`;
+          let mesaj = null;
+          if (sonuc.ihlal_sayisi === 1) {
+            mesaj = `😔 *${isletme.isim}*\n\nBugünkü randevunuza gelmediğinizi fark ettik. Umarız iyi bir sebebiniz vardır. 🙏\n\n_Bu bir nazik hatırlatmadır, bir sonraki randevunuza gelmeyi lütfen ihmal etmeyin._`;
+          } else if (sonuc.ihlal_sayisi === 2) {
+            mesaj = `⚠️ *${isletme.isim}*\n\nMaalesef 2. kez randevunuza gelmediniz. Bu nedenle *7 gün boyunca yeni randevu alamayacaksınız*.\n\nBu süreden sonra tekrar görüşmek dileğiyle 🙏`;
+          } else if (sonuc.ihlal_sayisi >= esikSayi) {
+            mesaj = `🛑 *${isletme.isim}*\n\nMaalesef randevu sisteminde kalıcı olarak engellendiniz. Tekrar randevu almak için işletme ile doğrudan iletişime geçmeniz gerekecek.`;
+          }
+          if (mesaj) {
+            await whatsappWeb.mesajGonder(isletmeId, jid, mesaj);
+          }
+        }
+      } catch (waErr) { /* WA bağlı değilse sessiz geç */ }
+
+      console.log(`⚖️ No-show ceza: ${musteriTelefon} → ${sonuc.ihlal_sayisi}. ihlal ${sonuc.aktif ? '(kalıcı bloke)' : sonuc.bloke_bitis ? '(7 gün bloke)' : '(uyarı)'}`);
     } catch (e) {
       console.error('No-show kara liste hatası:', e.message);
+    }
+  }
+
+  // Randevu tamamlandı → güven skoru + sayaç
+  async randevuTamamlandi(randevuId) {
+    try {
+      const r = (await pool.query(
+        `SELECT r.*, m.telefon FROM randevular r JOIN musteriler m ON m.id=r.musteri_id WHERE r.id=$1`,
+        [randevuId]
+      )).rows[0];
+      if (!r) return;
+      await pool.query(`UPDATE randevular SET durum='tamamlandi' WHERE id=$1`, [randevuId]);
+      try {
+        const guvenlikSkor = require('./guvenlikSkor');
+        await guvenlikSkor.logla(r.telefon, 'randevu_geldi', r.isletme_id, `randevuId=${randevuId}`);
+      } catch {}
+    } catch (e) {
+      console.error('randevuTamamlandi hatası:', e.message);
     }
   }
 }

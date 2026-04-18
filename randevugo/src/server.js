@@ -660,7 +660,84 @@ const PORT = process.env.PORT || 3000;
       }
     } catch (e) { console.log('⚠️ Avcı ilçe onarımı atlandı:', e.message); }
 
-    console.log('✅ DB migration kontrolü tamamlandı');
+    // ═══════════════════════════════════════════════════
+    // 🛡️ GÜVENLIK + SALDIRI KORUMA MIGRATION (v2)
+    // ═══════════════════════════════════════════════════
+
+    // Booking Gate — işletme WA bağlayana kadar /book/:slug kapalı
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS booking_acik BOOLEAN DEFAULT false`);
+
+    // Güvenlik ayarları (esnaf kontrol)
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS otp_zorunlu BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS no_show_otomatik BOOLEAN DEFAULT true`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS teyit_zincir_iptal BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dusuk_skor_manuel_onay BOOLEAN DEFAULT false`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ip_gunluk_limit INT DEFAULT 5`);
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS skor_esigi INT DEFAULT 30`);
+
+    // Güven skoru (cross-business — müşteri global skoru)
+    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS guven_skoru INT DEFAULT 50`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_musteriler_guven ON musteriler(guven_skoru)`);
+
+    // Merkez OTP Bot — SıraGO sistem numaraları (esnaf WA'sı yoksa fallback)
+    await pool.query(`CREATE TABLE IF NOT EXISTS merkez_otp_bot (
+      id SERIAL PRIMARY KEY,
+      numara TEXT UNIQUE,
+      auth_id INT UNIQUE,
+      durum VARCHAR(20) DEFAULT 'kapali',
+      qr_base64 TEXT,
+      gunluk_gonderim INT DEFAULT 0,
+      bugun_tarihi DATE,
+      aktif BOOLEAN DEFAULT true,
+      olusturma TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // IP bazlı günlük randevu sayacı
+    await pool.query(`CREATE TABLE IF NOT EXISTS ip_randevu_log (
+      id SERIAL PRIMARY KEY,
+      ip TEXT NOT NULL,
+      isletme_id INT,
+      tarih DATE NOT NULL,
+      sayi INT DEFAULT 1,
+      olusturma TIMESTAMP DEFAULT NOW(),
+      UNIQUE(ip, isletme_id, tarih)
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ip_randevu_ip_tarih ON ip_randevu_log(ip, tarih)`);
+
+    // Fingerprint bazlı spam tespiti
+    await pool.query(`CREATE TABLE IF NOT EXISTS fingerprint_log (
+      hash TEXT NOT NULL,
+      telefon TEXT,
+      tarih DATE NOT NULL,
+      sayi INT DEFAULT 1,
+      PRIMARY KEY(hash, tarih, telefon)
+    )`);
+
+    // Güvenlik olay log (dashboard istatistik)
+    await pool.query(`CREATE TABLE IF NOT EXISTS guvenlik_olay_log (
+      id SERIAL PRIMARY KEY,
+      isletme_id INT,
+      tip VARCHAR(30),
+      detay TEXT,
+      ip TEXT,
+      telefon TEXT,
+      zaman TIMESTAMP DEFAULT NOW()
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_guvenlik_olay_isletme_zaman ON guvenlik_olay_log(isletme_id, zaman)`);
+
+    // No-show basamaklı ceza için kara_liste'de sebep detayı
+    await pool.query(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS ilk_ihlal_zamani TIMESTAMP`);
+    await pool.query(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS son_ihlal_zamani TIMESTAMP`);
+    await pool.query(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS bloke_bitis TIMESTAMP`);
+
+    // Hali hazırda WA bağlı işletmeler için booking_acik'i true yap
+    await pool.query(`
+      UPDATE isletmeler SET booking_acik = true 
+      WHERE id IN (SELECT DISTINCT isletme_id FROM wa_auth_keys) 
+      AND booking_acik IS NOT true
+    `);
+
+    console.log('✅ DB migration kontrolü tamamlandı (güvenlik v2 dahil)');
 
     // Dosya tabanlı migration'ları çalıştır
     const migrationRunner = require('./utils/migrationRunner');
@@ -815,6 +892,24 @@ httpServer.listen(PORT, () => {
     satisBot.baslat();
   } catch (e) {
     console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
+  }
+
+  // 📞 SıraGO Merkez OTP Bot (esnaf WA'sı yoksa fallback)
+  try {
+    const merkezOtpBot = require('./services/merkezOtpBot');
+    console.log('📞 Merkez OTP Bot başlatılıyor...');
+    merkezOtpBot.baslat();
+  } catch (e) {
+    console.log('⚠️ Merkez OTP Bot başlatma hatası:', e.message);
+  }
+
+  // 🕛 Otomatik no-show cron (her 10 dk)
+  try {
+    const otomatikNoShow = require('./services/otomatikNoShow');
+    console.log('🕛 Otomatik no-show cron başlatılıyor...');
+    otomatikNoShow.baslat();
+  } catch (e) {
+    console.log('⚠️ Otomatik no-show başlatma hatası:', e.message);
   }
 
   // Telegram Kayıt Botu (siragoapp_bot)

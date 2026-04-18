@@ -6,6 +6,7 @@ const adminController = require('../controllers/adminController');
 const botController = require('../controllers/botController');
 const bookingController = require('../controllers/bookingController');
 const { numaraRateLimit, payloadDogrula } = require('../middleware/webhookGuard');
+const { ddosGuard } = require('../middleware/ddosGuard');
 const featureGuard = require('../middleware/featureGuard');
 
 // ==================== AUTH ====================
@@ -48,6 +49,10 @@ router.put('/ayarlar', authMiddleware, (req, res) => adminController.isletmeGunc
 router.get('/kara-liste', authMiddleware, (req, res) => adminController.karaListeGetir(req, res));
 router.post('/kara-liste', authMiddleware, (req, res) => adminController.karaListeEkle(req, res));
 router.delete('/kara-liste/:id', authMiddleware, (req, res) => adminController.karaListeSil(req, res));
+
+// Güvenlik & Koruma istatistikleri
+router.get('/guvenlik/istatistik', authMiddleware, (req, res) => adminController.guvenlikIstatistik(req, res));
+router.get('/guvenlik/son-olaylar', authMiddleware, (req, res) => adminController.guvenlikSonOlaylar(req, res));
 router.get('/paket', authMiddleware, (req, res) => adminController.paketBilgisi(req, res));
 router.get('/bot/durum', authMiddleware, (req, res) => adminController.botDurum(req, res));
 router.put('/bot/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.botAyarlarGuncelle(req, res));
@@ -130,6 +135,13 @@ router.get('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (
 router.post('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraEkle(req, res));
 router.delete('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraSil(req, res));
 router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraDurumGuncelle(req, res));
+
+// ==================== SıraGO MERKEZ OTP BOT (süper admin) ====================
+router.get('/admin/merkez-otp/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.merkezOtpNumaralar(req, res));
+router.post('/admin/merkez-otp/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.merkezOtpNumaraEkle(req, res));
+router.post('/admin/merkez-otp/numaralar/:id/baslat', authMiddleware, superAdminMiddleware, (req, res) => adminController.merkezOtpNumaraBaslat(req, res));
+router.post('/admin/merkez-otp/numaralar/:id/durdur', authMiddleware, superAdminMiddleware, (req, res) => adminController.merkezOtpNumaraDurdur(req, res));
+router.delete('/admin/merkez-otp/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.merkezOtpNumaraSil(req, res));
 
 // ==================== API DASHBOARD ====================
 router.get('/admin/api-dashboard', authMiddleware, superAdminMiddleware, (req, res) => adminController.apiDashboard(req, res));
@@ -351,7 +363,7 @@ router.get('/book/:slug', noCache, (req, res) => bookingController.isletmeBilgil
 router.get('/book/:slug/hizmetler', noCache, (req, res) => bookingController.hizmetleriGetir(req, res));
 router.get('/book/:slug/calisanlar', noCache, (req, res) => bookingController.calisanlariGetir(req, res));
 router.get('/book/:slug/saatler', noCache, (req, res) => bookingController.musaitSaatler(req, res));
-router.post('/book/:slug/randevu', (req, res) => bookingController.randevuOlustur(req, res));
+router.post('/book/:slug/randevu', ddosGuard, (req, res) => bookingController.randevuOlustur(req, res));
 router.post('/book/:slug/otp-gonder', (req, res) => bookingController.otpGonder(req, res));
 router.post('/book/:slug/otp-dogrula', (req, res) => bookingController.otpDogrula(req, res));
 

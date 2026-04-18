@@ -639,7 +639,10 @@ class AdminController {
         'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug',
         'varsayilan_tampon_dk','slot_aralik_dk',
         'hatirlatma_zinciri_aktif','haftalik_rapor_aktif','rebook_aktif',
-        'google_maps_reserve_url','musteri_formu'
+        'google_maps_reserve_url','musteri_formu',
+        // Güvenlik & Koruma v2
+        'booking_acik','otp_zorunlu','no_show_otomatik','teyit_zincir_iptal',
+        'dusuk_skor_manuel_onay','ip_gunluk_limit','skor_esigi'
       ];
       const jsonAlanlar = ['mola_saatleri','musteri_formu'];
       const setClauses = [];
@@ -5146,6 +5149,114 @@ class AdminController {
         [bildirim_panel, bildirim_whatsapp, bildirim_sms, isletmeId]
       );
       res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ════════════════════════════════════════════
+  // 🛡️ GÜVENLIK & KORUMA (v2)
+  // ════════════════════════════════════════════
+
+  async guvenlikIstatistik(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const gun = parseInt(req.query.gun || '30', 10);
+      const guvenlikSkor = require('../services/guvenlikSkor');
+      const olaylar = await guvenlikSkor.istatistik(isletmeId, gun);
+      // Son 30 gün özet
+      const ozet = {
+        son_gun: gun,
+        toplam_olay: olaylar.reduce((a, o) => a + parseInt(o.sayi), 0),
+        olaylar,
+      };
+      // Kara liste toplam
+      try {
+        const kl = (await pool.query(
+          `SELECT 
+             COUNT(*) FILTER (WHERE aktif=true) as kalici, 
+             COUNT(*) FILTER (WHERE aktif=false AND bloke_bitis > NOW()) as gecici,
+             COUNT(*) as toplam 
+           FROM kara_liste WHERE isletme_id=$1`,
+          [isletmeId]
+        )).rows[0];
+        ozet.kara_liste = kl;
+      } catch {}
+      res.json(ozet);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async guvenlikSonOlaylar(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
+      const rows = (await pool.query(
+        `SELECT id, tip, detay, ip, telefon, zaman 
+         FROM guvenlik_olay_log 
+         WHERE isletme_id=$1 
+         ORDER BY zaman DESC 
+         LIMIT $2`,
+        [isletmeId, limit]
+      )).rows;
+      res.json({ olaylar: rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // ════════════════════════════════════════════
+  // 📞 MERKEZ OTP BOT (süper admin)
+  // ════════════════════════════════════════════
+
+  async merkezOtpNumaralar(req, res) {
+    try {
+      const merkezOtpBot = require('../services/merkezOtpBot');
+      const data = await merkezOtpBot.getDurum();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async merkezOtpNumaraEkle(req, res) {
+    try {
+      const merkezOtpBot = require('../services/merkezOtpBot');
+      const yeni = await merkezOtpBot.numaraEkle();
+      // Hemen başlat (QR alabilmesi için)
+      merkezOtpBot.numaraBaslat(yeni.id, yeni.auth_id).catch(e => console.log('Numara başlatma uyarı:', e.message));
+      res.json({ basarili: true, numara: yeni });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async merkezOtpNumaraBaslat(req, res) {
+    try {
+      const merkezOtpBot = require('../services/merkezOtpBot');
+      merkezOtpBot.numaraBaslat(parseInt(req.params.id)).catch(e => console.log('baslat hata:', e.message));
+      res.json({ basarili: true });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async merkezOtpNumaraDurdur(req, res) {
+    try {
+      const merkezOtpBot = require('../services/merkezOtpBot');
+      await merkezOtpBot.numaraDurdur(parseInt(req.params.id));
+      res.json({ basarili: true });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  async merkezOtpNumaraSil(req, res) {
+    try {
+      const merkezOtpBot = require('../services/merkezOtpBot');
+      await merkezOtpBot.numaraSil(parseInt(req.params.id));
+      res.json({ basarili: true });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

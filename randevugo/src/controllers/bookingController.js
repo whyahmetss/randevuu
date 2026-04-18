@@ -1,8 +1,9 @@
 const pool = require('../config/db');
 const randevuService = require('../services/randevu');
+const { ddosSayacArtir, _olayLogla } = require('../middleware/ddosGuard');
 
 /* ─── In-memory OTP store ─── */
-const otpStore = new Map(); // key: "isletmeId:telefon" → { kod, olusturma, deneme }
+const otpStore = new Map(); // key: "isletmeId:telefon" → { kod, olusturma, deneme, kaynak }
 const OTP_TTL = 5 * 60 * 1000; // 5 dakika
 const OTP_COOLDOWN = 60 * 1000; // 60 saniye - aynı numaraya tekrar gönderim
 const OTP_MAX_DENEME = 5; // max yanlış deneme
@@ -15,6 +16,16 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
+// Ad soyad validation — minimum 3 karakter + en az bir harf (sayı/sembol kabul değil)
+function adGecerliMi(isim) {
+  if (!isim) return false;
+  const temiz = String(isim).trim();
+  if (temiz.length < 3) return false;
+  // En az 2 harf (Türkçe + latin)
+  const harfSayi = (temiz.match(/[a-zA-ZçÇğĞıİöÖşŞüÜ]/g) || []).length;
+  return harfSayi >= 2;
+}
+
 class BookingController {
 
   // GET /api/book/:slug — İşletme bilgilerini getir (public)
@@ -24,13 +35,22 @@ class BookingController {
       const isletme = (await pool.query(
         `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
-                google_maps_reserve_url
+                google_maps_reserve_url, booking_acik
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
         [slug]
       )).rows[0];
 
       if (!isletme) {
         return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      }
+
+      // Booking Gate — henüz aktif değilse özel response
+      if (!isletme.booking_acik) {
+        return res.json({
+          isletme: { id: isletme.id, isim: isletme.isim, kategori: isletme.kategori },
+          bookingKapali: true,
+          sebep: 'kurulum_tamamlanmadi',
+        });
       }
 
       res.json({ isletme });
@@ -125,8 +145,33 @@ class BookingController {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih)) return res.status(400).json({ hata: 'Geçersiz tarih formatı' });
       if (!/^\d{2}:\d{2}$/.test(saat)) return res.status(400).json({ hata: 'Geçersiz saat formatı' });
 
-      const isletme = (await pool.query('SELECT id, calisan_secim_modu FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
+      // Ad soyad kontrolü — bot/troll'a karşı
+      if (musteriIsim && !adGecerliMi(musteriIsim)) {
+        try { await _olayLogla(null, 'ad_gecersiz', String(musteriIsim).slice(0, 30), req._ddosCtx?.ip, telefonTemiz); } catch {}
+        return res.status(400).json({ hata: 'Lütfen gerçek ad ve soyadınızı girin (en az 3 harf).' });
+      }
+
+      const isletme = (await pool.query('SELECT id, calisan_secim_modu, booking_acik, dusuk_skor_manuel_onay, skor_esigi FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      // Booking gate kontrolü (ddosGuard zaten kontrol etti ama double-check)
+      if (!isletme.booking_acik) {
+        return res.status(423).json({ hata: 'Bu işletme henüz randevu kabul etmiyor', bookingKapali: true });
+      }
+
+      // Kara liste kontrolü (aktif veya bloke_bitis > NOW)
+      try {
+        const kara = (await pool.query(
+          `SELECT aktif, bloke_bitis FROM kara_liste 
+           WHERE isletme_id=$1 AND telefon=$2 
+             AND (aktif=true OR (bloke_bitis IS NOT NULL AND bloke_bitis > NOW()))`,
+          [isletme.id, telefonTemiz]
+        )).rows[0];
+        if (kara) {
+          try { await _olayLogla(isletme.id, 'kara_liste_block', JSON.stringify(kara), req._ddosCtx?.ip, telefonTemiz); } catch {}
+          return res.status(403).json({ hata: 'Bu numara şu anda randevu alamıyor. Lütfen işletme ile iletişime geçin.' });
+        }
+      } catch {}
 
       // Aynı telefon+tarih+saat ile tekrar randevu kontrolü
       const mevcutRandevu = (await pool.query(
@@ -211,6 +256,11 @@ class BookingController {
         );
       } catch(e) {}
 
+      // DDoS sayaçlarını artır (IP, fingerprint)
+      if (req._ddosCtx) {
+        try { await ddosSayacArtir(req._ddosCtx); } catch {}
+      }
+
       res.json({
         basarili: true,
         randevu: {
@@ -240,8 +290,13 @@ class BookingController {
       const telefonTemiz = String(telefon).replace(/[^\d]/g, '');
       if (telefonTemiz.length < 10 || telefonTemiz.length > 15) return res.status(400).json({ hata: 'Geçersiz telefon numarası' });
 
-      const isletme = (await pool.query('SELECT id, isim FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
+      const isletme = (await pool.query('SELECT id, isim, booking_acik FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      // Booking gate kontrolü
+      if (!isletme.booking_acik) {
+        return res.status(423).json({ hata: 'Bu işletme henüz randevu kabul etmiyor', bookingKapali: true });
+      }
 
       const storeKey = `${isletme.id}:${telefonTemiz}`;
       const mevcut = otpStore.get(storeKey);
@@ -255,29 +310,60 @@ class BookingController {
       // 6 haneli kod üret
       const kod = String(Math.floor(100000 + Math.random() * 900000));
 
-      // Store'a kaydet
-      otpStore.set(storeKey, { kod, olusturma: Date.now(), deneme: 0 });
-
-      // WhatsApp ile gönder
-      const whatsappWeb = require('../services/whatsappWeb');
-      const waDurum = whatsappWeb.getDurum(isletme.id);
-
-      if (waDurum?.durum !== 'bagli') {
-        // WA bağlı değilse — OTP gönderilemez, frontend captcha moduna düşsün
-        return res.json({ basarili: false, waBagli: false });
-      }
-
       // Numara formatı: 90XXXXXXXXXX veya XXXXXXXXXX → JID
       let jidTel = telefonTemiz;
       if (jidTel.startsWith('0')) jidTel = '90' + jidTel.substring(1);
       if (!jidTel.startsWith('90') && jidTel.length === 10) jidTel = '90' + jidTel;
 
-      const mesaj = `🔐 *SıraGO Doğrulama Kodu*\n\n*${isletme.isim}* üzerinden online randevu almak için doğrulama kodunuz:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesajı siz talep etmediyseniz lütfen dikkate almayın._`;
+      // ═══ CASCADE OTP GÖNDERİM ═══
+      // 1. Esnafın kendi WA'sı bağlı mı?
+      const whatsappWeb = require('../services/whatsappWeb');
+      const waDurum = whatsappWeb.getDurum(isletme.id);
+      let kaynak = null;
+      let gonderildi = false;
 
-      await whatsappWeb.mesajGonder(isletme.id, `${jidTel}@s.whatsapp.net`, mesaj);
+      if (waDurum?.durum === 'bagli') {
+        const mesaj = `🔐 *${isletme.isim} Doğrulama Kodu*\n\nOnline randevu için doğrulama kodunuz:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesajı siz talep etmediyseniz lütfen dikkate almayın._`;
+        try {
+          await whatsappWeb.mesajGonder(isletme.id, `${jidTel}@s.whatsapp.net`, mesaj);
+          kaynak = 'esnaf_wa';
+          gonderildi = true;
+        } catch (e) {
+          console.log(`⚠️ Esnaf WA ile gönderilemedi, merkez OTP'ye düşülüyor:`, e.message);
+        }
+      }
 
-      console.log(`📤 OTP gönderildi: ${telefonTemiz} → ${isletme.isim} (${kod})`);
-      res.json({ basarili: true });
+      // 2. Esnafın WA'sı yoksa → SıraGO Merkez OTP Bot
+      if (!gonderildi) {
+        const merkezOtpBot = require('../services/merkezOtpBot');
+        if (merkezOtpBot.aktifMi()) {
+          const mesaj = `🔐 *SıraGO Doğrulama*\n\n«${isletme.isim}» üzerinden randevunuz için kod:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesaj SıraGO güvenlik sistemi tarafından gönderilmiştir. Sen talep etmediysen dikkate alma._`;
+          const sonuc = await merkezOtpBot.mesajGonder(telefonTemiz, mesaj);
+          if (sonuc.success) {
+            kaynak = 'merkez_otp';
+            gonderildi = true;
+          } else {
+            console.error(`❌ Merkez OTP gönderilemedi:`, sonuc.hata);
+          }
+        }
+      }
+
+      // 3. Hiçbiri bağlı değilse → reddet (booking gate zaten kapalı olmalı ama ihtimal)
+      if (!gonderildi) {
+        try {
+          await _olayLogla(isletme.id, 'otp_gonder_yok', 'Ne esnaf WA ne merkez OTP aktif', null, telefonTemiz);
+        } catch {}
+        return res.status(503).json({
+          hata: 'Doğrulama servisi geçici olarak kullanılamıyor. Lütfen işletme ile doğrudan iletişime geçin.',
+          servisYok: true,
+        });
+      }
+
+      // Store'a kaydet
+      otpStore.set(storeKey, { kod, olusturma: Date.now(), deneme: 0, kaynak });
+
+      console.log(`📤 OTP gönderildi (${kaynak}): ${telefonTemiz} → ${isletme.isim} (${kod})`);
+      res.json({ basarili: true, kaynak });
     } catch (error) {
       console.error('❌ OTP gönderme hatası:', error.message);
       res.status(500).json({ hata: 'Doğrulama kodu gönderilemedi' });
@@ -307,15 +393,10 @@ class BookingController {
         return res.status(400).json({ hata: 'Kodun süresi dolmuş. Lütfen yeni kod isteyin.', sureDoldu: true });
       }
 
-      // Bypass modu (WA bağlı değilken)
-      if (kayit.bypass) {
-        otpStore.delete(storeKey);
-        return res.json({ basarili: true, dogrulandi: true });
-      }
-
       // Max deneme kontrolü
       if (kayit.deneme >= OTP_MAX_DENEME) {
         otpStore.delete(storeKey);
+        try { await _olayLogla(isletme.id, 'otp_max_deneme', 'Çok fazla yanlış deneme', null, telefonTemiz); } catch {}
         return res.status(429).json({ hata: 'Çok fazla yanlış deneme. Lütfen yeni kod isteyin.' });
       }
 
@@ -327,7 +408,19 @@ class BookingController {
 
       // Başarılı doğrulama
       otpStore.delete(storeKey);
-      console.log(`✅ OTP doğrulandı: ${telefonTemiz}`);
+      // Skor bonusu (ilk OTP doğrulama)
+      try {
+        const guvenlikSkor = require('../services/guvenlikSkor');
+        // Müşteri bu işletmede varsa ve daha önce OTP doğrulamış mı?
+        const mus = (await pool.query(
+          `SELECT id, guven_skoru FROM musteriler WHERE telefon=$1 LIMIT 1`,
+          [telefonTemiz]
+        )).rows[0];
+        if (!mus || (mus.guven_skoru || 50) < 60) {
+          await guvenlikSkor.logla(telefonTemiz, 'otp_dogrulandi', isletme.id);
+        }
+      } catch {}
+      console.log(`✅ OTP doğrulandı: ${telefonTemiz} (kaynak=${kayit.kaynak || 'bilinmiyor'})`);
       res.json({ basarili: true, dogrulandi: true });
     } catch (error) {
       console.error('❌ OTP doğrulama hatası:', error.message);

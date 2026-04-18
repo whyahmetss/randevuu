@@ -678,6 +678,77 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         </div>
       </div>
 
+      {/* ═══════════════  🛡️ Güvenlik & Koruma  ═══════════════ */}
+      <div style={{ ...S.card, marginTop: 16, borderLeft: "3px solid #ef4444" }}>
+        <CardHead emoji="🛡️" title="Güvenlik & Koruma" color="#ef4444" desc="Troll, spam, no-show ve yanlış numaraya karşı çok katmanlı koruma. Tüm ayarlar her an değiştirilebilir." />
+
+        {/* Booking durumu */}
+        <div style={{ padding: "12px 14px", borderRadius: 10, background: ayarlar.booking_acik ? "rgba(84,224,151,.1)" : "rgba(239,68,68,.1)", border: `1px solid ${ayarlar.booking_acik ? "rgba(84,224,151,.25)" : "rgba(239,68,68,.25)"}`, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                {ayarlar.booking_acik ? "✅ Online randevu açık" : "🚧 Online randevu kapalı"}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>
+                {ayarlar.booking_acik
+                  ? "Müşteriler /book linkinizden randevu alabiliyor."
+                  : "WhatsApp bot bağlanana kadar randevu alınamaz. Bağlanınca otomatik açılır."}
+              </div>
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!ayarlar.booking_acik} onChange={e => setAyarlar({...ayarlar, booking_acik: e.target.checked})} style={{ accentColor: "#54E097", width: 18, height: 18 }} />
+            </label>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Otomatik No-show */}
+          <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
+            <input type="checkbox" checked={ayarlar.no_show_otomatik !== false} onChange={e => setAyarlar({...ayarlar, no_show_otomatik: e.target.checked})} style={{ accentColor: "#ef4444", width: 18, height: 18 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🕛 Otomatik No-show Tespiti</div>
+              <div style={{ fontSize: 11, color: "var(--dim)" }}>Randevu saati +2 saat geçmiş randevular otomatik "gelmedi" olarak işaretlenir. Müşteriye basamaklı uyarı gider (1. uyarı → 2. 7gün bloke → 3. kalıcı).</div>
+            </div>
+          </label>
+
+          {/* Düşük skor manuel onay */}
+          <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
+            <input type="checkbox" checked={!!ayarlar.dusuk_skor_manuel_onay} onChange={e => setAyarlar({...ayarlar, dusuk_skor_manuel_onay: e.target.checked})} style={{ accentColor: "#ef4444", width: 18, height: 18 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🧠 Düşük Güven Skorlu Müşteriye Manuel Onay</div>
+              <div style={{ fontSize: 11, color: "var(--dim)" }}>Sistem-geneli güven skoru eşik altındaki müşterilerin randevuları siz onaylamadan geçmez. Yeni müşterileri etkilemez.</div>
+            </div>
+          </label>
+
+          {/* Teyit zincirini kapatma */}
+          <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
+            <input type="checkbox" checked={!!ayarlar.teyit_zincir_iptal} onChange={e => setAyarlar({...ayarlar, teyit_zincir_iptal: e.target.checked})} style={{ accentColor: "#ef4444", width: 18, height: 18 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>⛓️ Teyit Zincirini Pasifleştir</div>
+              <div style={{ fontSize: 11, color: "var(--dim)" }}>Hatırlatma sonrası "evet/iptal" teyit zincirini kapatır. No-show oranı düşer ama müşteriye otomatik iptal imkânı kalmaz.</div>
+            </div>
+          </label>
+        </div>
+
+        {/* Numeric ayarlar */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>IP başına günlük limit</label>
+            <input type="number" min={1} max={100} value={ayarlar.ip_gunluk_limit ?? 5} onChange={e => setAyarlar({...ayarlar, ip_gunluk_limit: parseInt(e.target.value || '5', 10)})} className="input" style={{ width: "100%" }} />
+            <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 4 }}>Aynı IP'den günde max kaç randevu (varsayılan 5)</div>
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Güven skoru eşiği</label>
+            <input type="number" min={0} max={100} value={ayarlar.skor_esigi ?? 30} onChange={e => setAyarlar({...ayarlar, skor_esigi: parseInt(e.target.value || '30', 10)})} className="input" style={{ width: "100%" }} />
+            <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 4 }}>Bu skor altı = şüpheli (varsayılan 30)</div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, color: "var(--muted)", padding: "10px 12px", background: "rgba(59,130,246,.08)", borderRadius: 10, marginTop: 14, lineHeight: 1.5 }}>
+          💡 <strong>OTP Kaynağı:</strong> Esnaf WhatsApp'ınız bağlıysa doğrulama kodları oradan gider (müşteri "siz" olarak görür). Bağlı değilken otomatik olarak SıraGO Merkez OTP Servisi devreye girer — müşteri yine kod alır, bu sayede her randevu doğrulanmış olur.
+        </div>
+      </div>
+
       {/* ═══════════════  Kaydet Butonu  ═══════════════ */}
       <button onClick={kaydet} style={{
         width: "100%", padding: "16px", borderRadius: 14, border: "none",
@@ -685,6 +756,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer",
         boxShadow: "0 4px 16px rgba(84,224,151,.3)", transition: "all .2s",
         fontFamily: "inherit", letterSpacing: "-0.3px",
+        marginTop: 16,
       }}
       onMouseOver={e => e.currentTarget.style.transform = "translateY(-1px)"}
       onMouseOut={e => e.currentTarget.style.transform = "translateY(0)"}>

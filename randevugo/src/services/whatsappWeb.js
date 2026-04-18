@@ -129,9 +129,13 @@ class WhatsAppWebService extends EventEmitter {
           this.isletmeler[isletmeId].qrBase64 = null;
           const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
           if (numara) {
-            await pool.query('UPDATE isletmeler SET whatsapp_no=$1 WHERE id=$2', [`+${numara}`, isletmeId]);
+            // İlk bağlantıda booking_acik otomatik açılır — bir kez bağlanmış her işletme için
+            await pool.query(
+              `UPDATE isletmeler SET whatsapp_no=$1, booking_acik=true WHERE id=$2`,
+              [`+${numara}`, isletmeId]
+            );
           }
-          console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara})`);
+          console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara}) — booking gate açık`);
           this.emit(`bagli_${isletmeId}`, numara);
           socketServer.emitToIsletme(isletmeId, 'wa:bagli', { numara, durum: 'bagli' });
         }
@@ -306,6 +310,27 @@ class WhatsAppWebService extends EventEmitter {
     console.log(`🔄 mesajIsle: isletme=${isletmeId}, metin="${metin}", jid=${remoteJid}, keys=${msg.message ? Object.keys(msg.message).join(',') : 'null'}`);
     if (!metin) return;
 
+    // ═══ Anti-spam: aynı kişi dakikada 15+ mesaj atıyorsa 10dk mute ═══
+    if (!this._spamSayac) this._spamSayac = new Map(); // jid → { sayac, pencereBas, mute_bitis }
+    const simdi = Date.now();
+    const spamKey = `${isletmeId}:${remoteJid}`;
+    let sc = this._spamSayac.get(spamKey);
+    if (!sc) { sc = { sayac: 0, pencereBas: simdi, mute_bitis: 0 }; this._spamSayac.set(spamKey, sc); }
+    if (sc.mute_bitis > simdi) { return; } // mute aktif
+    if (simdi - sc.pencereBas > 60000) { sc.sayac = 1; sc.pencereBas = simdi; }
+    else { sc.sayac++; }
+    if (sc.sayac >= 15) {
+      sc.mute_bitis = simdi + 10 * 60 * 1000;
+      console.log(`🤐 Anti-spam: ${remoteJid} → 10dk mute (dakikada ${sc.sayac} mesaj)`);
+      try {
+        await pool.query(
+          `INSERT INTO guvenlik_olay_log (isletme_id, tip, detay, telefon) VALUES ($1, 'wa_bot_spam', $2, $3)`,
+          [isletmeId, `${sc.sayac} msg/dk → 10dk mute`, remoteJid]
+        );
+      } catch {}
+      return;
+    }
+
     // @lid veya @s.whatsapp.net — telefon numarasını çıkar
     let musteriTelefon;
     if (remoteJid.endsWith('@s.whatsapp.net')) {
@@ -336,10 +361,12 @@ class WhatsAppWebService extends EventEmitter {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
 
-    // Kara liste kontrolü — engelli numaraya cevap verme
+    // Kara liste kontrolü — engelli numaraya cevap verme (kalıcı veya 7-günlük bloke)
     try {
       const kara = (await pool.query(
-        'SELECT aktif FROM kara_liste WHERE isletme_id=$1 AND telefon=$2 AND aktif=true',
+        `SELECT aktif, bloke_bitis FROM kara_liste 
+         WHERE isletme_id=$1 AND telefon=$2 
+           AND (aktif=true OR (bloke_bitis IS NOT NULL AND bloke_bitis > NOW()))`,
         [isletmeId, musteriTelefon]
       )).rows[0];
       if (kara) return;

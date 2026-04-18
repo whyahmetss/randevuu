@@ -80,12 +80,26 @@ export default function BookingPage({ slug }) {
   const [sonuc, setSonuc] = useState(null);
 
   // ─── WhatsApp OTP doğrulama ───
-  // otpStage: 'giris' (ad+telefon formu) | 'kod' (OTP input) | 'bypass' (WA bağlı değil, atla)
+  // otpStage: 'giris' (ad+telefon formu) | 'kod' (OTP input)
   const [otpStage, setOtpStage] = useState('giris');
   const [otpKod, setOtpKod] = useState('');
   const [otpGonderiliyor, setOtpGonderiliyor] = useState(false);
   const [otpDogrulaniyor, setOtpDogrulaniyor] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0); // saniye
+  const [bookingKapali, setBookingKapali] = useState(false);
+  const [honeypot, setHoneypot] = useState(''); // bot tuzağı — gerçek kullanıcı boş bırakır
+  const [emailConfirm, setEmailConfirm] = useState(''); // ikinci tuzak
+  const [formBaslangic] = useState(Date.now()); // form açıldığı zaman (bot tespiti)
+  // Basit browser fingerprint (deterministic)
+  const [fingerprint] = useState(() => {
+    try {
+      const ua = navigator.userAgent || '';
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const lang = (navigator.languages || [navigator.language || '']).join(',');
+      const screenStr = `${screen.width}x${screen.height}x${screen.colorDepth}`;
+      return btoa(`${ua}|${tz}|${lang}|${screenStr}`).substring(0, 32);
+    } catch { return 'unknown'; }
+  });
 
   // ─── i18n ───
   const [dil, setDil] = useState(() => detectLang());
@@ -107,6 +121,11 @@ export default function BookingPage({ slug }) {
       .then(r => r.json())
       .then(d => {
         if (d.hata) { setHata(t('notFoundTitle')); return; }
+        if (d.bookingKapali) {
+          setIsletme(d.isletme);
+          setBookingKapali(true);
+          return;
+        }
         setIsletme(d.isletme);
         setAdim(1);
       })
@@ -163,7 +182,12 @@ export default function BookingPage({ slug }) {
           tarih: secilenTarih,
           saat: secilenSaat,
           musteriIsim: musteriIsim.trim(),
-          musteriTelefon: musteriTelefon.trim()
+          musteriTelefon: musteriTelefon.trim(),
+          // Bot koruma alanları
+          website: honeypot,
+          email_confirm: emailConfirm,
+          form_sure_ms: Date.now() - formBaslangic,
+          fingerprint,
         })
       });
       const d = await res.json();
@@ -222,10 +246,9 @@ export default function BookingPage({ slug }) {
         setOtpStage('kod');
         setOtpKod('');
         setOtpCooldown(60);
-      } else if (d.waBagli === false) {
-        // WA bağlı değil → bypass modu, direkt özet adımına
-        setOtpStage('bypass');
-        setAdim(6);
+      } else if (d.servisYok) {
+        // Ne esnaf WA ne merkez OTP aktif → booking kapalı say
+        setBookingKapali(true);
       } else {
         setHata(d.hata || t('genericError'));
       }
@@ -248,9 +271,8 @@ export default function BookingPage({ slug }) {
       const d = await res.json();
       if (d.basarili) {
         setOtpCooldown(60);
-      } else if (d.waBagli === false) {
-        setOtpStage('bypass');
-        setAdim(6);
+      } else if (d.servisYok) {
+        setBookingKapali(true);
       } else {
         setHata(d.hata || t('genericError'));
         if (d.cooldown) setOtpCooldown(d.cooldown);
@@ -273,7 +295,7 @@ export default function BookingPage({ slug }) {
       });
       const d = await res.json();
       if (d.basarili && d.dogrulandi) {
-        setOtpStage('bypass'); // artık doğrulandı, bypass gibi davran
+        setOtpStage('dogrulandi');
         setAdim(6);
       } else {
         setHata(d.hata || t('genericError'));
@@ -359,6 +381,25 @@ export default function BookingPage({ slug }) {
             <div className="bk-error-page-icon">😔</div>
             <div className="bk-error-page-title">{t('notFoundTitle')}</div>
             <div className="bk-error-page-desc">{t('notFoundDesc')}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════ BOOKING GATE KAPALI ═══════════════
+  if (bookingKapali) {
+    return (
+      <div className="bk-page" dir={rtl ? 'rtl' : 'ltr'} lang={dil}>
+        <DilSecici />
+        <div className="bk-container">
+          <div className="bk-card bk-error-page">
+            <div className="bk-error-page-icon">🚧</div>
+            <div className="bk-error-page-title">{isletme?.isim || 'İşletme'}</div>
+            <div className="bk-error-page-desc" style={{ marginTop: 12 }}>
+              Bu işletmenin online randevu sistemi henüz hazır değil.<br />
+              Lütfen işletme ile doğrudan iletişime geçin.
+            </div>
           </div>
         </div>
       </div>
@@ -577,6 +618,27 @@ export default function BookingPage({ slug }) {
               </span>
             </div>
             <div className="bk-form">
+              {/* Honeypot alanları — gerçek kullanıcı göremez, bot doldurur */}
+              <input
+                type="text"
+                name="website"
+                value={honeypot}
+                onChange={e => setHoneypot(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+              />
+              <input
+                type="email"
+                name="email_confirm"
+                value={emailConfirm}
+                onChange={e => setEmailConfirm(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+              />
               <div>
                 <label className="bk-field-label">{t('fullName')}</label>
                 <input

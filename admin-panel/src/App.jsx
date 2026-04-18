@@ -3191,6 +3191,8 @@ function SuperAdminPanel({ kullanici }) {
   const [numaralar, setNumaralar] = useState([]);
   const [numaraFormAcik, setNumaraFormAcik] = useState(false);
   const [yeniNumara, setYeniNumara] = useState({ isim: "", telefon: "" });
+  // Merkez OTP Bot (SıraGO sistem numaraları — esnaf WA'sı yoksa fallback)
+  const [merkezOtp, setMerkezOtp] = useState({ durum: 'kapali', numaralar: [] });
   // Satış Bot Şablonlar
   const [sablonlar, setSablonlar] = useState([]);
   const [sablonEnIyi, setSablonEnIyi] = useState(null);
@@ -3352,6 +3354,11 @@ function SuperAdminPanel({ kullanici }) {
 
   const numaralariYukle = async () => {
     try { const d = await api.get("/admin/satis-bot/numaralar"); setNumaralar(d.numaralar || []); } catch (e) { console.log("Numara yükleme hatası:", e); }
+  };
+
+  const merkezOtpYukle = async () => {
+    try { const d = await api.get("/admin/merkez-otp/numaralar"); setMerkezOtp(d || { durum: 'kapali', numaralar: [] }); }
+    catch (e) { console.log("Merkez OTP yükleme hatası:", e); }
   };
 
   const sablonlariYukle = async () => {
@@ -3643,13 +3650,22 @@ function SuperAdminPanel({ kullanici }) {
     return () => clearInterval(interval);
   }, [sayfa, satisBotDurum?.durum, satisBotDurum?.numaraDurumlari?.length]);
 
+  // Merkez OTP polling — QR bekliyorken 3sn
+  useEffect(() => {
+    if (sayfa !== "satisBot") return;
+    const qrBekliyor = merkezOtp?.numaralar?.some(n => n.durum === 'qr_bekliyor');
+    const sure = qrBekliyor ? 3000 : 15000;
+    const interval = setInterval(merkezOtpYukle, sure);
+    return () => clearInterval(interval);
+  }, [sayfa, merkezOtp?.durum, merkezOtp?.numaralar?.length]);
+
   useEffect(() => {
     if (sayfa === "dashboard") saasMetrikleriYukle();
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); avciSehirleriYukle(); avciIlceleriYukle(avciSehir); }
     if (sayfa === "iletisim") iletisimYukle();
-    if (sayfa === "satisBot") { numaralariYukle(); sablonlariYukle(); kampanyalariYukle(); kategoriDagiliminiYukle(); }
+    if (sayfa === "satisBot") { numaralariYukle(); sablonlariYukle(); kampanyalariYukle(); kategoriDagiliminiYukle(); merkezOtpYukle(); }
     if (sayfa === "auditLog") auditLogYukle();
     if (sayfa === "sistemDurum") sistemDurumuYukle();
     if (sayfa === "destek") destekYukle();
@@ -7031,6 +7047,59 @@ function SuperAdminPanel({ kullanici }) {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+
+            {/* ═══ SıraGO MERKEZ OTP BOT ═══ */}
+            <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 16, borderLeft: "3px solid #ef4444" }}>
+              <div className="row row-between mb-16" style={{ alignItems: "center" }}>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", margin: 0 }}>📞 SıraGO Merkez OTP Numaraları</h3>
+                  <p style={{ fontSize: 12, color: "var(--dim)", margin: "4px 0 0", maxWidth: 680 }}>
+                    Esnaf WhatsApp'ı bağlı değilse / kopuksa bu numaralardan otomatik olarak doğrulama kodu gönderilir.
+                    Müşteri yine WhatsApp kodu alır, bypass yok. Birden fazla numara eklenirse round-robin + günlük limit yönetimi devreye girer.
+                  </p>
+                </div>
+                <button onClick={async () => { await api.post("/admin/merkez-otp/numaralar", {}); setTimeout(merkezOtpYukle, 500); }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #ef4444, #dc2626)", color: "#fff", fontWeight: 700, fontSize: 12 }}>+ Yeni Numara</button>
+              </div>
+
+              {merkezOtp?.numaralar?.length === 0 ? (
+                <div style={{ padding: 16, borderRadius: 10, background: "rgba(239,68,68,.05)", border: "1px dashed rgba(239,68,68,.2)", textAlign: "center", color: "var(--dim)", fontSize: 13 }}>
+                  Henüz merkez OTP numarası yok. Yeni bir numara ekleyin ve QR'ı tarayın — esnaf WA'sı yoksa müşteri kodları buradan gidecek.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {merkezOtp.numaralar.map(n => (
+                    <div key={n.id} style={{ padding: 14, borderRadius: 10, background: "var(--bg)", border: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>
+                            {n.numara || '(henüz numara yok)'} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--dim)" }}>#{n.id}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 3 }}>
+                            Durum: <strong style={{ color: n.durum === 'bagli' ? '#10b981' : n.durum === 'qr_bekliyor' ? '#f59e0b' : '#ef4444' }}>{n.durum}</strong>
+                            &nbsp;·&nbsp; Bugün: {n.gunluk_gonderim || 0} gönderim
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          {n.durum !== 'bagli' && (
+                            <button onClick={async () => { await api.post(`/admin/merkez-otp/numaralar/${n.id}/baslat`); setTimeout(merkezOtpYukle, 1500); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "#ef4444", color: "#fff", fontWeight: 700, fontSize: 11 }}>Başlat / Yeni QR</button>
+                          )}
+                          {n.durum === 'bagli' && (
+                            <button onClick={async () => { await api.post(`/admin/merkez-otp/numaralar/${n.id}/durdur`); setTimeout(merkezOtpYukle, 500); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.08)", color: "#ef4444", fontWeight: 700, fontSize: 11 }}>Durdur</button>
+                          )}
+                          <button onClick={async () => { if (confirm(`Numara #${n.id} silinsin mi?`)) { await api.del(`/admin/merkez-otp/numaralar/${n.id}`); merkezOtpYukle(); }}} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(239,68,68,.04)", color: "var(--dim)", fontSize: 11 }}>✕</button>
+                        </div>
+                      </div>
+                      {n.durum === 'qr_bekliyor' && n.qr_base64 && (
+                        <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#ef4444", marginBottom: 8 }}>📱 QR'ı SıraGO sistem telefonunuzdan WhatsApp Web ile tarayın</div>
+                          <img src={n.qr_base64} alt="QR" style={{ width: 220, height: 220, borderRadius: 12 }} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
