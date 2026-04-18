@@ -82,13 +82,13 @@ class WhatsAppWebService extends EventEmitter {
       try { this.isletmeler[isletmeId].sock.end(); } catch (e) {}
     }
 
-    // State'i koru (reconnect durumlarında)
+    // State'i koru (reconnect durumlarında) — kullanıcı yeniBaslat derse sayaçları sıfırla
     const onceki = this.isletmeler[isletmeId];
     this.isletmeler[isletmeId] = {
       sock: null, durum: 'baslatiyor', qr: null, qrBase64: null,
-      qrAttempts: onceki?.qrAttempts || 0,
-      basariliOturumVardi: onceki?.basariliOturumVardi || false,
-      reconnectAttempts: onceki?.reconnectAttempts || 0,
+      qrAttempts: yeniBaslat ? 0 : (onceki?.qrAttempts || 0),
+      basariliOturumVardi: yeniBaslat ? false : (onceki?.basariliOturumVardi || false),
+      reconnectAttempts: yeniBaslat ? 0 : (onceki?.reconnectAttempts || 0),
     };
 
     try {
@@ -170,9 +170,11 @@ class WhatsAppWebService extends EventEmitter {
           if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
             // QR tarandıktan sonra WhatsApp bilerek koparıyor — NORMAL, hemen yeniden bağlan
             console.log(`🔄 restartRequired — QR tarandı, yeniden bağlanılıyor: ${isletmeIsim}`);
+            // basariliOturumVardi'yi koru (515 = QR tarandı, session var)
+            const oturumVardi = this.isletmeler[isletmeId]?.basariliOturumVardi || true;
             setTimeout(() => {
-              this.isletmeler[isletmeId] = null;
-              this.isletmeBaslat(isletmeId, isletmeIsim, true);
+              this.isletmeler[isletmeId] = { basariliOturumVardi: oturumVardi };
+              this.isletmeBaslat(isletmeId, isletmeIsim, false);
             }, 1000);
           } else if (statusCode === DisconnectReason.loggedOut) {
             // Oturum silindi, DB'den auth verilerini temizle
