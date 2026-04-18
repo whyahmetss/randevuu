@@ -2399,6 +2399,16 @@ class AdminController {
     }
   }
 
+  async satisBotSessionTemizle(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      const sonuc = await satisBot.numaraSessionTemizle(parseInt(req.params.id));
+      res.json(sonuc);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   async satisBotNumaraDurumGuncelle(req, res) {
     try {
       const { durum, ban_notu } = req.body;

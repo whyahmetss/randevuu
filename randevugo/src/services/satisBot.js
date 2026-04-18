@@ -471,6 +471,16 @@ class SatisBot extends EventEmitter {
     console.log(`🛑 [#${numaraId}] Numara durduruldu`);
   }
 
+  // Session temizle — bozuk auth key'leri sil, sıfırdan QR taratmak için
+  async numaraSessionTemizle(numaraId) {
+    await this.numaraDurdur(numaraId);
+    const authId = 900000 + numaraId;
+    try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {}
+    try { await pool.query("UPDATE satis_bot_numaralar SET durum='bekliyor' WHERE id=$1", [numaraId]); } catch(e) {}
+    console.log(`🗑️ [#${numaraId}] Session temizlendi (authId: ${authId}). Yeniden QR taratın.`);
+    return { mesaj: `Numara #${numaraId} session temizlendi — panelden tekrar bağlayın` };
+  }
+
   async durdur() {
     this.aktif = false;
     if (this.gonderimTimer) { clearTimeout(this.gonderimTimer); this.gonderimTimer = null; }
@@ -559,7 +569,10 @@ class SatisBot extends EventEmitter {
   async takipMesajGonder(konusma) {
     const ns = this._aktifSock();
     const sock = ns?.sock || this.sock;
-    if (!sock) return;
+    if (!sock || !sock?.user || !sock?.ws) {
+      console.log(`⚠️ Takip mesajı gönderilemedi — socket bağlı değil (${konusma.isletme_adi})`);
+      return;
+    }
 
     const takipNo = (konusma.takip_sayisi || 0) + 1;
     const sablonlar = TAKIP_SABLONLARI[takipNo] || TAKIP_SABLONLARI[2];
@@ -568,6 +581,7 @@ class SatisBot extends EventEmitter {
 
     const telefon = konusma.telefon;
     const jid = `${telefon}@s.whatsapp.net`;
+    const numaraInfo = ns ? `#${ns.numaraId}` : 'legacy';
 
     try {
       // Anti-ban: Typing indicator
@@ -579,8 +593,21 @@ class SatisBot extends EventEmitter {
         await sock.sendPresenceUpdate('paused', jid);
       } catch (e) {}
 
-      await sock.sendMessage(jid, { text: mesaj });
-      console.log(`🔔 Takip #${takipNo} gönderildi: ${konusma.isletme_adi} (${telefon})`);
+      const sent = await sock.sendMessage(jid, { text: mesaj });
+      if (!sent?.key?.id) {
+        console.log(`❌ [${numaraInfo}] Takip #${takipNo} boş response: ${konusma.isletme_adi} (${telefon})`);
+        return;
+      }
+
+      // 2sn bekle — socket sağlam mı kontrol
+      await new Promise(r => setTimeout(r, 2000));
+      const saglamMi = sock?.user && sock?.ws?.readyState === 1;
+
+      if (saglamMi) {
+        console.log(`🔔 [${numaraInfo}] Takip #${takipNo} gönderildi + socket sağlam: ${konusma.isletme_adi} (${telefon}) msgId=${sent.key.id}`);
+      } else {
+        console.log(`⚠️ [${numaraInfo}] Takip #${takipNo} gönderildi ama socket DÜŞTÜ: ${konusma.isletme_adi} (${telefon}) msgId=${sent.key.id}`);
+      }
 
       // DB güncelle
       await pool.query(
@@ -696,10 +723,10 @@ class SatisBot extends EventEmitter {
     this._senkronEt();
     if (!this.aktif) { this.numaraTimers.delete(numaraId); return; }
 
-    // Numara hâlâ bağlı mı kontrol et
+    // Numara hâlâ bağlı mı kontrol et (durum + sock + ws sağlık)
     const ns = this.numaraSockets.get(numaraId);
-    if (!ns || ns.durum !== 'bagli' || !ns.sock) {
-      console.log(`⚠️ Numara #${numaraId} artık bağlı değil, loop durduruluyor`);
+    if (!ns || ns.durum !== 'bagli' || !ns.sock || !ns.sock.user || !ns.sock.ws || ns.sock.ws.readyState !== 1) {
+      console.log(`⚠️ Numara #${numaraId} bağlı değil veya socket sağlıksız (durum=${ns?.durum}, ws=${ns?.sock?.ws?.readyState}), loop durduruluyor`);
       this.numaraTimers.delete(numaraId);
       return;
     }

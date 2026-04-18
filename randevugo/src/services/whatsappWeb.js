@@ -82,7 +82,14 @@ class WhatsAppWebService extends EventEmitter {
       try { this.isletmeler[isletmeId].sock.end(); } catch (e) {}
     }
 
-    this.isletmeler[isletmeId] = { sock: null, durum: 'baslatiyor', qr: null, qrBase64: null };
+    // State'i koru (reconnect durumlarında)
+    const onceki = this.isletmeler[isletmeId];
+    this.isletmeler[isletmeId] = {
+      sock: null, durum: 'baslatiyor', qr: null, qrBase64: null,
+      qrAttempts: onceki?.qrAttempts || 0,
+      basariliOturumVardi: onceki?.basariliOturumVardi || false,
+      reconnectAttempts: onceki?.reconnectAttempts || 0,
+    };
 
     try {
       const { state, saveCreds } = await usePostgresAuthState(pool, isletmeId);
@@ -98,6 +105,8 @@ class WhatsAppWebService extends EventEmitter {
         logger: pino({ level: 'silent' }),
         browser: ['RandevuGO', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
+        syncFullHistory: false,
+        markOnlineOnConnect: false,
       });
 
       this.isletmeler[isletmeId].sock = sock;
@@ -110,12 +119,21 @@ class WhatsAppWebService extends EventEmitter {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
+          this.isletmeler[isletmeId].qrAttempts = (this.isletmeler[isletmeId].qrAttempts || 0) + 1;
+          if (this.isletmeler[isletmeId].qrAttempts > 5) {
+            console.log(`⏹️ QR ${this.isletmeler[isletmeId].qrAttempts}. deneme — ${isletmeIsim} durduruluyor (taranmadı)`);
+            this.isletmeler[isletmeId].durum = 'bagli_degil';
+            this.isletmeler[isletmeId].qrBase64 = null;
+            try { sock.end(); } catch(e) {}
+            this.isletmeler[isletmeId].sock = null;
+            return;
+          }
           try {
             const qrBase64 = await qrcode.toDataURL(qr);
             this.isletmeler[isletmeId].qr = qr;
             this.isletmeler[isletmeId].qrBase64 = qrBase64;
             this.isletmeler[isletmeId].durum = 'qr_bekleniyor';
-            console.log(`📱 QR hazır: ${isletmeIsim}`);
+            console.log(`📱 QR hazır (${this.isletmeler[isletmeId].qrAttempts}/5): ${isletmeIsim}`);
             this.emit(`qr_${isletmeId}`, qrBase64);
             socketServer.emitToIsletme(isletmeId, 'wa:qr', { qr_base64: qrBase64, durum: 'qr_bekleniyor' });
           } catch (e) {
@@ -127,6 +145,9 @@ class WhatsAppWebService extends EventEmitter {
           this.isletmeler[isletmeId].durum = 'bagli';
           this.isletmeler[isletmeId].qr = null;
           this.isletmeler[isletmeId].qrBase64 = null;
+          this.isletmeler[isletmeId].basariliOturumVardi = true;
+          this.isletmeler[isletmeId].qrAttempts = 0;
+          this.isletmeler[isletmeId].reconnectAttempts = 0;
           const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
           if (numara) {
             // İlk bağlantıda booking_acik otomatik açılır — bir kez bağlanmış her işletme için
@@ -158,13 +179,26 @@ class WhatsAppWebService extends EventEmitter {
             try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch (e) {}
             this.emit(`ayrildi_${isletmeId}`, 'logged_out');
             socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'logged_out', durum: 'bagli_degil' });
-          } else if (shouldReconnect) {
-            // Yeniden bağlan
-            console.log(`🔄 Yeniden bağlanılıyor: ${isletmeIsim}`);
-            setTimeout(() => {
-              this.isletmeler[isletmeId] = null;
-              this.isletmeBaslat(isletmeId, isletmeIsim, true);
-            }, 3000);
+          } else if (shouldReconnect && this.isletmeler[isletmeId]?.basariliOturumVardi) {
+            // Sadece daha önce başarılı oturum varsa yeniden bağlan
+            const ra = (this.isletmeler[isletmeId].reconnectAttempts || 0) + 1;
+            if (ra > 5) {
+              console.log(`⏹️ ${isletmeIsim} — ${ra} reconnect denemesi aşıldı, durduruluyor`);
+              this.isletmeler[isletmeId].durum = 'bagli_degil';
+              try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch(e) {}
+              socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'max_reconnect', durum: 'bagli_degil' });
+            } else {
+              const bekleme = Math.min(3000 * ra, 15000);
+              console.log(`🔄 Yeniden bağlanılıyor: ${isletmeIsim} (${ra}/5, ${bekleme/1000}sn)`);
+              this.isletmeler[isletmeId].reconnectAttempts = ra;
+              setTimeout(() => {
+                this.isletmeBaslat(isletmeId, isletmeIsim, true);
+              }, bekleme);
+            }
+          } else if (shouldReconnect && !this.isletmeler[isletmeId]?.basariliOturumVardi) {
+            console.log(`⏹️ ${isletmeIsim} — QR taranmadan bağlantı düştü (kod: ${statusCode}), durduruluyor`);
+            this.isletmeler[isletmeId].durum = 'bagli_degil';
+            socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'qr_not_scanned', durum: 'bagli_degil' });
           } else {
             this.isletmeler[isletmeId].durum = 'bagli_degil';
             this.emit(`ayrildi_${isletmeId}`, 'disconnected');

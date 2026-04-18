@@ -135,6 +135,7 @@ router.get('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (
 router.post('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraEkle(req, res));
 router.delete('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraSil(req, res));
 router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraDurumGuncelle(req, res));
+router.post('/admin/satis-bot/numaralar/:id/session-temizle', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotSessionTemizle(req, res));
 
 // ==================== SıraGO MERKEZ OTP BOT (süper admin) ====================
 router.get('/admin/merkez-otp/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.merkezOtpNumaralar(req, res));
