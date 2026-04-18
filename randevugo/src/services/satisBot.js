@@ -1045,7 +1045,9 @@ class SatisBot extends EventEmitter {
         throw new Error('Socket bağlı değil — mesaj gönderilemez');
       }
 
+      console.log(`📤 [#${ns.numaraId}] sendMessage başlıyor: jid=${jid}`);
       const sent = await sock.sendMessage(jid, { text: mesaj });
+      console.log(`📤 [#${ns.numaraId}] sendMessage döndü:`, JSON.stringify({ keyId: sent?.key?.id, status: sent?.status, hasMessage: !!sent?.message, messageKeys: sent?.message ? Object.keys(sent.message) : [] }));
       if (!sent?.key?.id) {
         throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
       }
@@ -1674,8 +1676,17 @@ class SatisBot extends EventEmitter {
       } catch (e) {}
 
       // Cevap gönder
-      await sock.sendMessage(remoteJid, { text: aiCevap.mesaj });
-      console.log(`💬 Satış Bot cevap gönderdi: ${telefon} → "${aiCevap.mesaj.slice(0, 60)}..."`);
+      try {
+        console.log(`📤 sendMessage başlıyor: jid=${remoteJid}, text=${aiCevap.mesaj.slice(0, 30)}...`);
+        const sentReply = await sock.sendMessage(remoteJid, { text: aiCevap.mesaj });
+        console.log(`💬 Satış Bot cevap gönderdi: ${telefon} → "${aiCevap.mesaj.slice(0, 60)}..." msgId=${sentReply?.key?.id || 'YOK'} status=${sentReply?.status || 'bilinmiyor'}`);
+        if (sentReply?.message) {
+          this.msgStore.set(sentReply.key.id, sentReply.message);
+          setTimeout(() => this.msgStore.delete(sentReply.key.id), 5 * 60 * 1000);
+        }
+      } catch (sendErr) {
+        console.error(`❌ CEVAP GÖNDERME HATASI: ${telefon} → ${sendErr.message}`, sendErr.stack?.split('\n').slice(0, 3).join(' | '));
+      }
 
       // Konuşma kaydını güncelle
       await pool.query(

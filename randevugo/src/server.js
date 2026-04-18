@@ -1,11 +1,6 @@
 process.env.TZ = 'Europe/Istanbul';
 
-// Baileys/libsignal internal spam loglarını sustur (console + stdout)
-const _origStdoutWrite = process.stdout.write.bind(process.stdout);
-process.stdout.write = function(chunk, ...rest) {
-  if (typeof chunk === 'string' && (chunk.includes('Closing session') || chunk.includes('Decrypted message with closed'))) return true;
-  return _origStdoutWrite(chunk, ...rest);
-};
+// stdout filtresi GEÇİCİ OLARAK KAPALI — tüm logları görelim
 
 const express = require('express');
 const http = require('http');
