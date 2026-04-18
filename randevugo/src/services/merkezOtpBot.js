@@ -95,21 +95,26 @@ class MerkezOtpBot {
   }
 
   // ─── Tek numara başlat (Baileys socket) ───
-  async numaraBaslat(numaraId, authId = null) {
+  // isUserInitiated=true → kullanıcı butona bastı, reconnect sayacı sıfırla (fresh start)
+  // isUserInitiated=false → otomatik reconnect, sayacı koru
+  async numaraBaslat(numaraId, authId = null, isUserInitiated = true) {
     if (!authId) {
       const row = (await pool.query(`SELECT auth_id FROM merkez_otp_bot WHERE id=$1`, [numaraId])).rows[0];
       if (!row) throw new Error(`Merkez OTP #${numaraId} bulunamadı`);
       authId = row.auth_id;
     }
 
-    // Mevcut socket varsa kapat
+    // Mevcut socket varsa kapat — ama state'i koru (sayaç/flagler için)
     const eski = this.sockets.get(numaraId);
     if (eski) {
-      if (eski._reconnectTimer) clearTimeout(eski._reconnectTimer);
+      if (eski._reconnectTimer) { clearTimeout(eski._reconnectTimer); eski._reconnectTimer = null; }
+      try { eski.sock?.ev?.removeAllListeners?.(); } catch {}
       try { eski.sock?.end(); } catch {}
     }
 
-    const state = { sock: null, durum: 'baslatiyor', qrBase64: null, reconnectAttempts: 0, _reconnectTimer: null, basariliOturum: false };
+    const state = eski && !isUserInitiated
+      ? { ...eski, sock: null, durum: 'baslatiyor', qrBase64: null, _reconnectTimer: null }
+      : { sock: null, durum: 'baslatiyor', qrBase64: null, reconnectAttempts: 0, _reconnectTimer: null, basariliOturum: false };
     this.sockets.set(numaraId, state);
 
     try {
@@ -171,9 +176,9 @@ class MerkezOtpBot {
 
         if (connection === 'close') {
           const statusCode = lastDisconnect?.error?.output?.statusCode;
-          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
           state.durum = 'kapali';
 
+          // Logged out → auth temizle, reconnect YAPMA
           if (statusCode === DisconnectReason.loggedOut) {
             console.log(`🚪 Merkez OTP #${numaraId} logged out — auth temizleniyor`);
             try { await pool.query(`DELETE FROM wa_auth_keys WHERE isletme_id=$1`, [authId]); } catch {}
@@ -182,14 +187,25 @@ class MerkezOtpBot {
             return;
           }
 
-          if (shouldReconnect && state.reconnectAttempts < MAX_RECONNECT) {
+          // Kullanıcı QR'ı hiç taramamış (basariliOturum=false) → yine QR çıkacak, sonsuz loop
+          // Bu durumda kapat ve kullanıcının "Başlat / Yeni QR" butonuna basmasını bekle
+          if (!state.basariliOturum) {
+            console.log(`⏸️ Merkez OTP #${numaraId} QR tarama bekleniyor ama timeout/close geldi (code=${statusCode}) — kapatılıyor, tekrar başlatmak için butona basın`);
+            await pool.query(`UPDATE merkez_otp_bot SET durum='kapali', qr_base64=NULL WHERE id=$1`, [numaraId]);
+            this.sockets.delete(numaraId);
+            return;
+          }
+
+          // Daha önce başarıyla bağlanmıştı → geçici kopma, reconnect dene
+          if (state.reconnectAttempts < MAX_RECONNECT) {
             state.reconnectAttempts++;
             const delay = Math.min(state.reconnectAttempts * 2000, 10000);
-            console.log(`🔄 Merkez OTP #${numaraId} yeniden bağlanıyor (${state.reconnectAttempts}/${MAX_RECONNECT})`);
+            console.log(`🔄 Merkez OTP #${numaraId} yeniden bağlanıyor (${state.reconnectAttempts}/${MAX_RECONNECT}) — code=${statusCode}`);
             state._reconnectTimer = setTimeout(() => {
-              this.numaraBaslat(numaraId, authId).catch(e => console.log('Reconnect hatası:', e.message));
+              this.numaraBaslat(numaraId, authId, false).catch(e => console.log('Reconnect hatası:', e.message));
             }, delay);
           } else {
+            console.log(`❌ Merkez OTP #${numaraId} ${MAX_RECONNECT} deneme sonrası bağlanamadı — kapatılıyor`);
             await pool.query(`UPDATE merkez_otp_bot SET durum='kapali', qr_base64=NULL WHERE id=$1`, [numaraId]);
             this.sockets.delete(numaraId);
           }
