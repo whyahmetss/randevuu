@@ -951,9 +951,206 @@
   font-weight: 900;
 }
 
+/* ═══ LANGUAGE SWITCHER ═══ */
+.bk-lang {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.bk-page[dir="rtl"] .bk-lang {
+  right: auto;
+  left: 16px;
+}
+
+.bk-lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #F1F5F9;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.4);
+}
+
+.bk-lang-btn:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.bk-lang-btn svg { color: #94A3B8; }
+
+.bk-lang-flag {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.bk-lang-code { color: #C4B5FD; }
+
+.bk-lang-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+  animation: fadein 0.2s ease;
+}
+
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+.bk-lang-menu {
+  position: fixed;
+  top: 60px;
+  right: 16px;
+  z-index: 1001;
+  width: min(340px, calc(100vw - 32px));
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 30px 60px -12px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(148, 163, 184, 0.08) inset;
+  animation: menu-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bk-page[dir="rtl"] .bk-lang-menu {
+  right: auto;
+  left: 16px;
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.bk-lang-menu-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94A3B8;
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+
+.bk-lang-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.bk-lang-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  color: #F1F5F9;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.bk-lang-option:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.08);
+  transform: translateY(-1px);
+}
+
+.bk-lang-option.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.18));
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #F1F5F9;
+}
+
+.bk-lang-option.active svg {
+  color: #A78BFA;
+  margin-left: auto;
+}
+
+.bk-lang-option .bk-lang-flag {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.bk-lang-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ═══ STEPPER CLICKABLE ═══ */
+.bk-step {
+  cursor: default;
+  user-select: none;
+}
+
+.bk-step.clickable {
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.bk-step.clickable:hover {
+  transform: translateY(-2px);
+}
+
+.bk-step.clickable:hover .bk-step-dot {
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.5);
+}
+
+/* ═══ RTL ADJUSTMENTS ═══ */
+.bk-page[dir="rtl"] .bk-back-btn svg {
+  transform: scaleX(-1);
+}
+
+.bk-page[dir="rtl"] .bk-footer-logo {
+  /* keep LTR for brand letter */
+  direction: ltr;
+}
+
+/* Arabic/Persian slight letter-spacing for readability */
+.bk-page[lang="ar"],
+.bk-page[lang="fa"] {
+  letter-spacing: 0;
+}
+
+.bk-page[lang="ar"] .bk-title,
+.bk-page[lang="fa"] .bk-title {
+  letter-spacing: 0;
+}
+
 /* ═══ RESPONSIVE ═══ */
 @media (min-width: 640px) {
   .bk-container { padding: 0 20px; }
   .bk-header { padding: 28px 28px 26px; }
   .bk-card { padding: 26px 24px; }
+}
+
+@media (max-width: 380px) {
+  .bk-lang-btn { padding: 6px 10px; font-size: 11px; }
+  .bk-lang-code { display: none; }
+  .bk-lang-grid { grid-template-columns: 1fr; }
 }
