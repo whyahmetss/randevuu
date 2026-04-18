@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { pushIzinDurumu, pushAc, pushKapat, pushTest, pushDesteklenir } from '../../lib/push';
 import { ayarOku as bildirimAyarOku, ayarYaz as bildirimAyarYaz, sesListesi, bildirimCal, sesKilidiAc } from '../../lib/bildirim';
+import GoogleCalendar from './GoogleCalendar';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -112,6 +113,11 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           <span style={{ fontSize: 14, fontWeight: 700, color: "#2cb872" }}>Ayarlar kaydedildi</span>
         </div>
       )}
+
+      {/* ═══════════════  ENTEGRASYONLAR (Google Calendar)  ═══════════════ */}
+      <div style={{ marginBottom: 16 }}>
+        <GoogleCalendar api={api} />
+      </div>
 
       {/* ═══════════════  ROW 1: İşletme + Çalışma Saatleri + Mola  ═══════════════ */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }} className="settings-grid-3">

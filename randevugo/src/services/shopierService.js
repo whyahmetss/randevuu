@@ -113,7 +113,7 @@ class ShopierService {
     // Ürün başlığı "Kapora -" ile başlıyorsa, bu bir randevu kapora ödemesi
     if (urunBaslik.startsWith('Kapora -') && urunId) {
       const kaporaRandevu = (await pool.query(
-        "SELECT id FROM randevular WHERE kapora_shopier_urun_id=$1 AND kapora_durumu='bekliyor'",
+        "SELECT id, isletme_id FROM randevular WHERE kapora_shopier_urun_id=$1 AND kapora_durumu='bekliyor'",
         [urunId]
       )).rows[0];
       if (kaporaRandevu) {
@@ -122,6 +122,12 @@ class ShopierService {
           [kaporaRandevu.id]
         );
         console.log(`✅ Kapora ödendi → randevu #${kaporaRandevu.id} onaylandı`);
+        // 📅 Google Calendar event oluştur (kapora ödendi = onaylandı artık)
+        try {
+          const googleCalendar = require('./googleCalendar');
+          googleCalendar.freebusyCacheTemizle(kaporaRandevu.isletme_id);
+          googleCalendar.randevuEventOlustur(kaporaRandevu.isletme_id, { id: kaporaRandevu.id }).catch(() => {});
+        } catch (e) {}
         // Ürünü sil
         await this.urunSil(urunId);
         return { islem: 'kapora_onaylandi', randevuId: kaporaRandevu.id, tutar };

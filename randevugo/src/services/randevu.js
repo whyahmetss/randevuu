@@ -2,6 +2,7 @@ const pool = require('../config/db');
 const { bugunTarih, simdiSaat } = require('../utils/tarih');
 const socketServer = require('./socketServer');
 const pushService = require('./pushService');
+const googleCalendar = require('./googleCalendar');
 
 class RandevuService {
 
@@ -184,11 +185,22 @@ class RandevuService {
     const musaitSaatler = [];
     const adaylar = Array.from(adaySet).sort((a, b) => a - b);
 
+    // 📅 Google Calendar freebusy — bağlı ise o günün meşgul aralıklarını da blokla
+    let googleBusy = [];
+    try {
+      googleBusy = await googleCalendar.freebusyAraliklari(isletmeId, tarih);
+    } catch (e) { /* google bağlı değil veya hata — yoksay */ }
+
+    const googleCakisma = (dk) => {
+      if (!googleBusy.length) return false;
+      return googleBusy.some(r => (dk < r.bit && dk + hizmetSureDk > r.bas));
+    };
+
     for (const dk of adaylar) {
       // Bugünse ve geçmişse atla
       if (tarih === bugun && dk <= simdiDk + 30) continue;
 
-      if (!cakismaVar(dk)) {
+      if (!cakismaVar(dk) && !googleCakisma(dk)) {
         const saat = `${String(Math.floor(dk / 60)).padStart(2, '0')}:${String(dk % 60).padStart(2, '0')}`;
         musaitSaatler.push(saat);
       }
@@ -339,6 +351,15 @@ class RandevuService {
       });
     } catch (e) {}
 
+    // ─── 📅 GOOGLE CALENDAR SYNC (fire-and-forget, hata randevu oluşturmayı engellemesin) ───
+    try {
+      googleCalendar.freebusyCacheTemizle(isletmeId);
+      // Sadece onaylı/onay_bekliyor olanları event olarak yaz (kapora_bekliyor olanlar ödeme gelince)
+      if (durum === 'onaylandi' || durum === 'onay_bekliyor') {
+        googleCalendar.randevuEventOlustur(isletmeId, randevu).catch(() => {});
+      }
+    } catch (e) { /* ignore */ }
+
     return { randevu, musteri, hizmet, kapora, manuelOnay };
   }
 
@@ -358,6 +379,15 @@ class RandevuService {
         });
       }
     } catch (e) {}
+
+    // 📅 Google Calendar — event sil (fire-and-forget)
+    try {
+      if (result.rows[0]) {
+        googleCalendar.freebusyCacheTemizle(result.rows[0].isletme_id);
+        googleCalendar.randevuEventSil(result.rows[0].isletme_id, randevuId).catch(() => {});
+      }
+    } catch (e) {}
+
     return result.rows[0];
   }
 

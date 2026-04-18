@@ -21,6 +21,13 @@ router.post('/iletisim', (req, res) => adminController.iletisimGonder(req, res))
 router.post('/webhook/whatsapp', numaraRateLimit, payloadDogrula, (req, res) => botController.gelenMesaj(req, res));
 router.post('/bot/test', authMiddleware, (req, res) => botController.testMesaj(req, res));
 
+// ==================== GOOGLE CALENDAR (public callback, diğerleri auth) ====================
+router.get('/admin/google-calendar/callback', (req, res) => adminController.gcalCallback(req, res));
+router.get('/admin/google-calendar/durum', authMiddleware, (req, res) => adminController.gcalDurum(req, res));
+router.get('/admin/google-calendar/auth-url', authMiddleware, (req, res) => adminController.gcalAuthUrl(req, res));
+router.post('/admin/google-calendar/disconnect', authMiddleware, (req, res) => adminController.gcalDisconnect(req, res));
+router.put('/admin/google-calendar/ayarlar', authMiddleware, (req, res) => adminController.gcalAyarGuncelle(req, res));
+
 // ==================== ADMIN PANEL ====================
 router.get('/randevular', authMiddleware, odemeKontrol, (req, res) => adminController.randevulariGetir(req, res));
 router.put('/randevular/:id/durum', authMiddleware, odemeKontrol, (req, res) => adminController.randevuDurumGuncelle(req, res));

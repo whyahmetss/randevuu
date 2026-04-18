@@ -5351,6 +5351,95 @@ class AdminController {
       res.status(500).json({ hata: error.message });
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 📅 GOOGLE CALENDAR 2-WAY SYNC
+  // ═══════════════════════════════════════════════════════════════
+
+  async gcalDurum(req, res) {
+    try {
+      const googleCalendar = require('../services/googleCalendar');
+      const isletmeId = req.kullanici.isletme_id;
+      const durum = await googleCalendar.bagliMi(isletmeId);
+      if (!durum) return res.json({ bagli: false });
+      res.json({
+        bagli: true,
+        email: durum.google_email,
+        sync_aktif: durum.sync_aktif,
+        freebusy_kontrol: durum.freebusy_kontrol,
+        son_senkron: durum.son_senkron,
+      });
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
+  async gcalAuthUrl(req, res) {
+    try {
+      const googleCalendar = require('../services/googleCalendar');
+      const isletmeId = req.kullanici.isletme_id;
+      const url = googleCalendar.authUrl(isletmeId);
+      res.json({ url });
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
+  async gcalCallback(req, res) {
+    try {
+      const googleCalendar = require('../services/googleCalendar');
+      const { code, state, error } = req.query;
+      if (error) {
+        return res.status(400).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Yetkilendirme iptal edildi</h2><p>${error}</p><p><a href="/">Admin Panel'e dön</a></p></body></html>`);
+      }
+      if (!code || !state) return res.status(400).send('Geçersiz callback');
+      const sonuc = await googleCalendar.callbackHandle(code, state);
+      // Panel'e redirect + success mesajı
+      const redirectUrl = `${process.env.ADMIN_PANEL_URL || process.env.BASE_URL || '/'}/#gcal=ok`;
+      res.send(`<html><body style="font-family:system-ui;padding:40px;text-align:center;background:#0f172a;color:#e2e8f0">
+        <div style="background:#1e293b;padding:30px;border-radius:16px;max-width:400px;margin:0 auto;border:1px solid rgba(16,185,129,.3)">
+          <div style="font-size:48px">✅</div>
+          <h2 style="margin:10px 0">Google Calendar bağlandı!</h2>
+          <p style="color:#94a3b8">${sonuc.email}</p>
+          <p style="color:#94a3b8;font-size:13px">Bu pencereyi kapatabilirsiniz.</p>
+          <a href="${redirectUrl}" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#10b981;color:white;text-decoration:none;border-radius:10px;font-weight:600">Admin Panel'e Dön</a>
+        </div>
+        <script>setTimeout(()=>{ try { window.opener?.postMessage({ type: 'gcal-connected', email: '${sonuc.email}' }, '*'); } catch(e) {} if (!window.opener) window.location.href='${redirectUrl}'; }, 1000);</script>
+      </body></html>`);
+    } catch (e) {
+      console.error('Google Calendar callback hatası:', e);
+      res.status(500).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Bağlantı başarısız</h2><p>${e.message}</p></body></html>`);
+    }
+  }
+
+  async gcalDisconnect(req, res) {
+    try {
+      const googleCalendar = require('../services/googleCalendar');
+      const isletmeId = req.kullanici.isletme_id;
+      await googleCalendar.baglantiKes(isletmeId);
+      res.json({ basarili: true });
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
+  async gcalAyarGuncelle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const { sync_aktif, freebusy_kontrol } = req.body;
+      const updates = [];
+      const params = [];
+      let idx = 1;
+      if (sync_aktif !== undefined) { updates.push(`sync_aktif=$${idx++}`); params.push(!!sync_aktif); }
+      if (freebusy_kontrol !== undefined) { updates.push(`freebusy_kontrol=$${idx++}`); params.push(!!freebusy_kontrol); }
+      if (!updates.length) return res.json({ basarili: true });
+      params.push(isletmeId);
+      await pool.query(`UPDATE google_calendar_auth SET ${updates.join(', ')} WHERE isletme_id=$${idx}`, params);
+      res.json({ basarili: true });
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
 }
 
 module.exports = new AdminController();

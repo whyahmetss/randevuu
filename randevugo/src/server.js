@@ -782,7 +782,30 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_job ON avci_tarama_detay(job_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_durum ON avci_tarama_detay(durum)`);
 
-    console.log('✅ DB migration kontrolü tamamlandı (güvenlik v2 + avcı job dahil)');
+    // ═══════════════════════════════════════════════════
+    // 📅 GOOGLE CALENDAR 2-WAY SYNC
+    // ═══════════════════════════════════════════════════
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'Europe/Istanbul'`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS google_calendar_auth (
+      id SERIAL PRIMARY KEY,
+      isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+      google_email TEXT,
+      access_token TEXT NOT NULL,
+      refresh_token TEXT NOT NULL,
+      expires_at TIMESTAMPTZ,
+      calendar_id TEXT DEFAULT 'primary',
+      sync_aktif BOOLEAN DEFAULT true,
+      freebusy_kontrol BOOLEAN DEFAULT true,
+      son_senkron TIMESTAMPTZ,
+      olusturma_tarihi TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(isletme_id)
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_gcal_auth_isletme ON google_calendar_auth(isletme_id)`);
+    // Randevu ↔ Google event eşleşme
+    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS google_event_id TEXT`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_randevular_google_event ON randevular(google_event_id) WHERE google_event_id IS NOT NULL`);
+
+    console.log('✅ DB migration kontrolü tamamlandı (güvenlik v2 + avcı job + google calendar dahil)');
 
     // Dosya tabanlı migration'ları çalıştır
     const migrationRunner = require('./utils/migrationRunner');
