@@ -569,7 +569,7 @@ class SatisBot extends EventEmitter {
   async takipMesajGonder(konusma) {
     const ns = this._aktifSock();
     const sock = ns?.sock || this.sock;
-    if (!sock || !sock?.user || !sock?.ws) {
+    if (!sock || !sock?.user) {
       console.log(`⚠️ Takip mesajı gönderilemedi — socket bağlı değil (${konusma.isletme_adi})`);
       return;
     }
@@ -601,7 +601,7 @@ class SatisBot extends EventEmitter {
 
       // 2sn bekle — socket sağlam mı kontrol
       await new Promise(r => setTimeout(r, 2000));
-      const saglamMi = sock?.user && sock?.ws?.readyState === 1;
+      const saglamMi = !!sock?.user;
 
       if (saglamMi) {
         console.log(`🔔 [${numaraInfo}] Takip #${takipNo} gönderildi + socket sağlam: ${konusma.isletme_adi} (${telefon}) msgId=${sent.key.id}`);
@@ -723,10 +723,10 @@ class SatisBot extends EventEmitter {
     this._senkronEt();
     if (!this.aktif) { this.numaraTimers.delete(numaraId); return; }
 
-    // Numara hâlâ bağlı mı kontrol et (durum + sock + ws sağlık)
+    // Numara hâlâ bağlı mı kontrol et
     const ns = this.numaraSockets.get(numaraId);
-    if (!ns || ns.durum !== 'bagli' || !ns.sock || !ns.sock.user || !ns.sock.ws || ns.sock.ws.readyState !== 1) {
-      console.log(`⚠️ Numara #${numaraId} bağlı değil veya socket sağlıksız (durum=${ns?.durum}, ws=${ns?.sock?.ws?.readyState}), loop durduruluyor`);
+    if (!ns || ns.durum !== 'bagli' || !ns.sock || !ns.sock.user) {
+      console.log(`⚠️ Numara #${numaraId} bağlı değil (durum=${ns?.durum}, user=${!!ns?.sock?.user}), loop durduruluyor`);
       this.numaraTimers.delete(numaraId);
       return;
     }
@@ -1005,7 +1005,7 @@ class SatisBot extends EventEmitter {
 
     try {
       // Socket bağlantı kontrolü — gönderim öncesi
-      if (!sock?.user || !sock?.ws) {
+      if (!sock?.user) {
         throw new Error('Socket bağlı değil — mesaj gönderilemez');
       }
 
@@ -1014,25 +1014,15 @@ class SatisBot extends EventEmitter {
         throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
       }
 
-      // Gönderimden sonra 2sn bekle — socket hâlâ ayakta mı?
-      await new Promise(r => setTimeout(r, 2000));
-      const socketSaglamMi = sock?.user && sock?.ws?.readyState === 1;
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
-
-      if (socketSaglamMi) {
-        console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi + socket sağlam: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
-      } else {
-        console.log(`⚠️ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi ama socket DÜŞTÜ: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
-      }
+      console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
 
       // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder (link yerine medya)
-      if (socketSaglamMi) {
-        await this._tanitimVideosuGonder(sock, jid, kategori, ns.numaraId);
-      }
+      await this._tanitimVideosuGonder(sock, jid, kategori, ns.numaraId);
 
       await pool.query(
-        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = $2, wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
-        [lead.id, socketSaglamMi ? 'gonderildi' : 'teslim_belirsiz']
+        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
+        [lead.id]
       );
 
       await pool.query(
@@ -1122,7 +1112,7 @@ class SatisBot extends EventEmitter {
 
     // Mesaj gönder
     try {
-      if (!sock?.user || !sock?.ws) {
+      if (!sock?.user) {
         throw new Error('Socket bağlı değil — mesaj gönderilemez');
       }
 
@@ -1131,25 +1121,16 @@ class SatisBot extends EventEmitter {
         throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
       }
 
-      await new Promise(r => setTimeout(r, 2000));
-      const socketSaglamMi = sock?.user && sock?.ws?.readyState === 1;
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
-
-      if (socketSaglamMi) {
-        console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi + socket sağlam: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
-      } else {
-        console.log(`⚠️ [${numaraInfo}]${kampInfo} Mesaj gönderildi ama socket DÜŞTÜ: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
-      }
+      console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
 
       // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder
-      if (socketSaglamMi) {
-        await this._tanitimVideosuGonder(sock, jid, kategori, numaraInfo);
-      }
+      await this._tanitimVideosuGonder(sock, jid, kategori, numaraInfo);
 
       // DB güncelle
       await pool.query(
-        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = $2, wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
-        [lead.id, socketSaglamMi ? 'gonderildi' : 'teslim_belirsiz']
+        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
+        [lead.id]
       );
 
       // Konuşma kaydı oluştur
