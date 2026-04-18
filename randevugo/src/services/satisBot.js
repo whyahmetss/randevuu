@@ -942,7 +942,21 @@ class SatisBot extends EventEmitter {
       mesaj = rastgeleSablon(lead.isletme_adi);
     }
 
-    const jid = `${telefon}@s.whatsapp.net`;
+    // Numaranın WhatsApp'ta olduğunu ÖN KONTROL ET — gerçek hedef JID'i al
+    let jid;
+    try {
+      const check = await sock.onWhatsApp(`${telefon}@s.whatsapp.net`);
+      if (!check || !check.length || !check[0]?.exists) {
+        console.log(`📵 [#${ns.numaraId}] WP YOK (onWhatsApp=false): ${lead.isletme_adi} (${telefon}) — atlanıyor`);
+        await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
+        return;
+      }
+      jid = check[0].jid || `${telefon}@s.whatsapp.net`;
+    } catch (e) {
+      console.log(`⚠️ [#${ns.numaraId}] onWhatsApp kontrolü başarısız (${telefon}): ${e.message} — default JID ile devam`);
+      jid = `${telefon}@s.whatsapp.net`;
+    }
+
     try {
       await sock.presenceSubscribe(jid);
       await sock.sendPresenceUpdate('composing', jid);
@@ -952,9 +966,12 @@ class SatisBot extends EventEmitter {
     } catch (e) { /* presence hataları önemsiz */ }
 
     try {
-      await sock.sendMessage(jid, { text: mesaj });
+      const sent = await sock.sendMessage(jid, { text: mesaj });
+      if (!sent?.key?.id) {
+        throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
+      }
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
-      console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor}`);
+      console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
 
       // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder (link yerine medya)
       await this._tanitimVideosuGonder(sock, jid, kategori, ns.numaraId);
@@ -1024,8 +1041,23 @@ class SatisBot extends EventEmitter {
       mesaj = rastgeleSablon(lead.isletme_adi);
     }
 
+    // Numaranın WhatsApp'ta olduğunu ÖN KONTROL ET — gerçek hedef JID'i al
+    let jid;
+    const numaraInfo = ns ? `#${ns.numaraId}` : 'tek';
+    try {
+      const check = await sock.onWhatsApp(`${telefon}@s.whatsapp.net`);
+      if (!check || !check.length || !check[0]?.exists) {
+        console.log(`📵 [${numaraInfo}] WP YOK (onWhatsApp=false): ${lead.isletme_adi} (${telefon}) — atlanıyor`);
+        await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
+        return;
+      }
+      jid = check[0].jid || `${telefon}@s.whatsapp.net`;
+    } catch (e) {
+      console.log(`⚠️ [${numaraInfo}] onWhatsApp kontrolü başarısız (${telefon}): ${e.message} — default JID ile devam`);
+      jid = `${telefon}@s.whatsapp.net`;
+    }
+
     // Anti-ban: Typing indicator
-    const jid = `${telefon}@s.whatsapp.net`;
     try {
       await sock.presenceSubscribe(jid);
       await sock.sendPresenceUpdate('composing', jid);
@@ -1036,10 +1068,12 @@ class SatisBot extends EventEmitter {
 
     // Mesaj gönder
     try {
-      await sock.sendMessage(jid, { text: mesaj });
-      const numaraInfo = ns ? `#${ns.numaraId}` : 'tek';
+      const sent = await sock.sendMessage(jid, { text: mesaj });
+      if (!sent?.key?.id) {
+        throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
+      }
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
-      console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor}`);
+      console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
 
       // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder
       await this._tanitimVideosuGonder(sock, jid, kategori, numaraInfo);
