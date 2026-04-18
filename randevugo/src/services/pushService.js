@@ -69,6 +69,10 @@ async function _sendToSubs(rows, payload) {
     icon: payload.icon || '/logo.png',
     badge: payload.badge || '/logo.png',
     data: payload.data || {},
+    // Tablet dükkan modu için opsiyonel: sürekli görünür + özel titreşim
+    ...(payload.requireInteraction !== undefined && { requireInteraction: !!payload.requireInteraction }),
+    ...(payload.vibrate && { vibrate: payload.vibrate }),
+    ...(payload.silent !== undefined && { silent: !!payload.silent }),
   });
   let sent = 0, failed = 0, silindi = 0;
   await Promise.allSettled(rows.map(async (r) => {

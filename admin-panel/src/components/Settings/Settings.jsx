@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { pushIzinDurumu, pushAc, pushKapat, pushTest, pushDesteklenir } from '../../lib/push';
+import { ayarOku as bildirimAyarOku, ayarYaz as bildirimAyarYaz, sesListesi, bildirimCal, sesKilidiAc } from '../../lib/bildirim';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -9,11 +10,23 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [slugKopyalandi, setSlugKopyalandi] = useState(false);
   const [pushDurum, setPushDurum] = useState({ desteklenir: false, izin: 'default', aboneMi: false });
   const [pushYukleniyor, setPushYukleniyor] = useState(false);
+  const [sesAyar, setSesAyar] = useState(() => bildirimAyarOku());
 
   useEffect(() => {
     api.get("/kara-liste").then(r => { if (r?.karaListe) setKaraListe(r.karaListe); });
     pushIzinDurumu().then(setPushDurum);
   }, []);
+
+  const sesGuncelle = (patch) => {
+    const yeni = { ...sesAyar, ...patch };
+    setSesAyar(yeni);
+    bildirimAyarYaz(patch);
+  };
+
+  const sesTestEt = (sesId) => {
+    sesKilidiAc();
+    bildirimCal({ sesOverride: sesId || sesAyar.ses, volumeOverride: sesAyar.volume, force: true });
+  };
 
   const pushToggle = async () => {
     setPushYukleniyor(true);
@@ -472,6 +485,101 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
             <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 8 }}>Kapora oranını Hizmetler sayfasından ayarlayın.</div>
           </div>
         </div>
+      </div>
+
+      {/* ═══════════════  🔊 BİLDİRİM SESLERİ (Dükkan için ideal)  ═══════════════ */}
+      <div style={{ ...S.card, marginBottom: 16, background: "linear-gradient(135deg, rgba(84,224,151,.04), rgba(22,5,39,0))", borderColor: "rgba(84,224,151,.25)" }}>
+        <CardHead emoji="🔊" title="Bildirim Sesleri" color="#2cb872" desc="Tabletini dükkana koy — randevu gelince ziiink diye ötsün, sen sadece hazırlan." />
+
+        {/* Sessiz mod toggle */}
+        <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: sesAyar.sessiz ? "rgba(239,68,68,.06)" : "var(--surface2)", cursor: "pointer", marginBottom: 14, border: sesAyar.sessiz ? "1px solid rgba(239,68,68,.2)" : "1px solid var(--border)" }}>
+          <input type="checkbox" checked={!sesAyar.sessiz} onChange={e => sesGuncelle({ sessiz: !e.target.checked })}
+            style={{ accentColor: "#2cb872", width: 18, height: 18 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>
+              {sesAyar.sessiz ? "🔕 Sessiz Mod — Ses Çalmaz" : "🔔 Ses Açık"}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--dim)" }}>
+              {sesAyar.sessiz ? "Randevu/bildirim geldiğinde ses çalmaz (sadece görsel)" : "Randevu/bildirim geldiğinde seçili ses çalar"}
+            </div>
+          </div>
+        </label>
+
+        {/* Ses seçici */}
+        {!sesAyar.sessiz && (
+          <>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 10 }}>Ses Türü</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 16 }}>
+              {sesListesi().map(s => {
+                const aktif = sesAyar.ses === s.id;
+                return (
+                  <div key={s.id}
+                    onClick={() => sesGuncelle({ ses: s.id })}
+                    style={{
+                      padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+                      background: aktif ? "rgba(84,224,151,.12)" : "var(--surface2)",
+                      border: aktif ? "2px solid #2cb872" : "1px solid var(--border)",
+                      transition: "all .15s", position: "relative"
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: aktif ? "#2cb872" : "var(--text)", marginBottom: 2 }}>{s.ad}</div>
+                    <div style={{ fontSize: 10, color: "var(--dim)" }}>{s.aciklama}</div>
+                    <button onClick={(e) => { e.stopPropagation(); sesTestEt(s.id); }}
+                      style={{
+                        position: "absolute", top: 8, right: 8, background: "rgba(84,224,151,.1)",
+                        border: "none", color: "#2cb872", width: 24, height: 24, borderRadius: "50%",
+                        cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center"
+                      }}
+                      title="Bu sesi çal"
+                    >▶</button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Ses Seviyesi */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px" }}>Ses Seviyesi</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#2cb872" }}>%{Math.round(sesAyar.volume * 100)}</span>
+              </div>
+              <input type="range" min="0" max="100" value={Math.round(sesAyar.volume * 100)}
+                onChange={e => sesGuncelle({ volume: parseInt(e.target.value) / 100 })}
+                style={{ width: "100%", accentColor: "#2cb872" }} />
+            </div>
+          </>
+        )}
+
+        {/* Titreşim toggle (mobil) */}
+        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer", marginBottom: 14 }}>
+          <input type="checkbox" checked={!!sesAyar.titresim} onChange={e => sesGuncelle({ titresim: e.target.checked })}
+            style={{ accentColor: "#2cb872", width: 18, height: 18 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>📳 Titreşim (Telefon/Tablet)</div>
+            <div style={{ fontSize: 11, color: "var(--dim)" }}>Mobil cihazlarda ses ile birlikte titreşim çalışsın</div>
+          </div>
+        </label>
+
+        {/* Dükkan Modu otomatik aç */}
+        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "rgba(139,92,246,.06)", cursor: "pointer", marginBottom: 14, border: "1px solid rgba(139,92,246,.2)" }}>
+          <input type="checkbox" checked={!!sesAyar.dukkanModuAuto} onChange={e => sesGuncelle({ dukkanModuAuto: e.target.checked })}
+            style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🛍️ Dükkan Modu — Fullscreen Popup</div>
+            <div style={{ fontSize: 11, color: "var(--dim)", lineHeight: 1.4 }}>
+              Yeni randevu geldiğinde tüm ekranı kaplayan büyük "YENİ RANDEVU" ekranı açılsın. Ses 3 kere tekrar eder, 1 metreden bile kaçırmazsın.
+            </div>
+          </div>
+        </label>
+
+        {/* Test butonu */}
+        <button onClick={() => sesTestEt()} style={{
+          width: "100%", padding: "12px", borderRadius: 10, border: "none",
+          background: "linear-gradient(135deg,#2cb872,#10b981)", color: "#fff",
+          fontWeight: 700, fontSize: 13, cursor: "pointer",
+        }}>
+          🔔 Şimdi Test Et {sesAyar.sessiz ? "(Sessiz moda rağmen)" : ""}
+        </button>
       </div>
 
       {/* ═══════════════  Bildirim Tercihleri  ═══════════════ */}

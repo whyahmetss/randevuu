@@ -21,8 +21,12 @@ self.addEventListener('push', (event) => {
     badge: payload.badge || '/logo1-CHW0j2wI.png',
     tag: payload.tag || 'default',
     data: { url: payload.url || '/', ...(payload.data || {}) },
-    vibrate: [200, 80, 200],
-    requireInteraction: false,
+    vibrate: payload.vibrate || [200, 80, 200, 80, 200],
+    // requireInteraction: bildirim kullanıcı manuel kapatana kadar ekranda kalır
+    // Dükkan tableti için kritik → randevu kaçırılmasın
+    requireInteraction: payload.requireInteraction === true,
+    silent: payload.silent === true,
+    renotify: payload.renotify === true,
   };
 
   event.waitUntil(self.registration.showNotification(title, options));

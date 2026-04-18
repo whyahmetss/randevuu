@@ -332,6 +332,9 @@ class RandevuService {
         body: `${musteri.isim || 'Müşteri'} — ${hizmet?.isim || 'Randevu'} • ${tarihFmt} ${saatStr}`,
         url: '/',
         tag: `randevu-${randevu.id}`,
+        // Dükkan tableti için: bildirim kullanıcı kapatana kadar görünür kalsın (kaçırılmasın)
+        requireInteraction: true,
+        vibrate: [300, 100, 300, 100, 300],
         data: { randevuId: randevu.id, sayfa: 'randevular' }
       });
     } catch (e) {}

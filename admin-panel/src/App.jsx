@@ -20,6 +20,9 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 
 import { API_URL, API_ORIGIN, bookingUrl } from './lib/config';
 import BackendHealth from './components/BackendHealth';
+import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
+import BildirimAktivasyon from './components/BildirimAktivasyon';
+import DukkanModuPopup from './components/DukkanModuPopup';
 
 const api = {
   token: localStorage.getItem("randevugo_token"),
@@ -931,22 +934,10 @@ function Dashboard() {
     }
     return audioCtxRef.current;
   };
-  const canliSes = () => {
-    try {
-      const ctx = _getAudioCtx();
-      if (!ctx) return;
-      // Suspended ise gesture bekleniyor — sessizce geç, alert iconu görsel UX gösterir
-      if (ctx.state === "suspended") { ctx.resume().catch(() => {}); return; }
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.setValueAtTime(880, ctx.currentTime);
-      o.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.18);
-      g.gain.setValueAtTime(0.22, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      o.start(); o.stop(ctx.currentTime + 0.4);
-    } catch(e) {}
-  };
-  const canliTitret = () => { try { navigator.vibrate?.([200, 80, 200]); } catch(e) {} };
+  // canliSes / canliTitret artık merkezi bildirim.js helper'ına yönlendirir
+  // (MP3 desteği, kullanıcı ayarı, dedup, sessiz mod, 3x tekrar)
+  const canliSes = (opts = {}) => bildirimCal(opts);
+  const canliTitret = () => bildirimTitret();
 
   // Audio unlock — ilk kullanıcı etkileşiminde AudioContext'i resume et (iOS Safari, Chrome autoplay)
   useEffect(() => {
@@ -987,10 +978,16 @@ function Dashboard() {
         hizmet_fiyat: hizmet?.fiyat,
       }, ...prev];
     });
-    canliSes();
+    canliSes({ dedupId: `randevu-${randevu.id}` });
     canliTitret();
     const saatStr = String(randevu.saat).slice(0, 5);
     canliToast(`🎉 Yeni randevu: ${musteri?.isim || "Müşteri"} — ${saatStr}`);
+    // Dükkan Modu aktifse fullscreen popup göster
+    try {
+      window.dispatchEvent(new CustomEvent("dukkan:yeniRandevu", {
+        detail: { randevu, musteri, hizmet, saatStr }
+      }));
+    } catch (e) {}
     // İstatistiği tazele (arka planda)
     api.get("/istatistikler").then(s => { if (s && !s.hata) setStats(s); }).catch(() => {});
   });
@@ -1040,13 +1037,16 @@ function Dashboard() {
     canliToast(`💬 Destek yanıtı: "${konu || 'Talep'}"`, "#8b5cf6");
   });
 
-  // Wake Lock — randevu/anasayfa açıkken tablet ekranı kapanmasın
+  // Wake Lock — tablet ekranı kapanmasın (dükkan için)
   useEffect(() => {
     if (!("wakeLock" in navigator)) return;
-    const ekranAcikTutacakSayfalar = ["anasayfa", "randevular"];
     let wakeLock = null;
     const aktifEt = async () => {
-      if (!ekranAcikTutacakSayfalar.includes(sayfa)) return;
+      // Sessiz mod değilse her sayfada aktif tut (dükkan modu için)
+      try {
+        const ayar = bildirimAyarOku();
+        if (ayar?.sessiz) return;
+      } catch {}
       if (document.visibilityState !== "visible") return;
       try { wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* ignore */ }
     };
@@ -1192,6 +1192,10 @@ function Dashboard() {
 
   return (
     <div className="app-shell">
+
+      {/* 🔔 Bildirim aktivasyon banner (ilk girişte) + 🛍️ Dükkan Modu Popup */}
+      <BildirimAktivasyon />
+      <DukkanModuPopup />
 
       {/* Mobile top bar */}
       <div className="mobile-topbar">
