@@ -1,11 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { API_URL } from '../../lib/config';
+import './BookingPage.css';
 
-const kategoriRenk = {
-  berber: '#2563eb', kuafor: '#ec4899', guzellik: '#f43f5e', spa: '#8b5cf6', disci: '#0ea5e9',
-  veteriner: '#f59e0b', diyetisyen: '#22c55e', psikolog: '#6366f1', fizyoterapi: '#14b8a6',
-  restoran: '#ef4444', cafe: '#a16207', spor: '#ea580c', egitim: '#3b82f6', foto: '#7c3aed',
-  dovme: '#e11d48', oto: '#64748b', hukuk: '#475569', genel: '#10b981'
+/* ═══════════════════════════════════════════════════════════════
+   INLINE LUCIDE-STYLE ICONS
+   Tek dosya, dependency yok, tutarlı stroke-width: 2
+   ═══════════════════════════════════════════════════════════════ */
+const I = {
+  MapPin: (p) => <svg {...p} width={p?.size || 14} height={p?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
+  Clock: (p) => <svg {...p} width={p?.size || 14} height={p?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  Scissors: (p) => <svg {...p} width={p?.size || 22} height={p?.size || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>,
+  Sparkles: (p) => <svg {...p} width={p?.size || 22} height={p?.size || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>,
+  Wind: (p) => <svg {...p} width={p?.size || 22} height={p?.size || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>,
+  Droplets: (p) => <svg {...p} width={p?.size || 22} height={p?.size || 22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>,
+  User: (p) => <svg {...p} width={p?.size || 20} height={p?.size || 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  Check: (p) => <svg {...p} width={p?.size || 16} height={p?.size || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  CheckBig: (p) => <svg {...p} width={p?.size || 40} height={p?.size || 40} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  ChevronLeft: (p) => <svg {...p} width={p?.size || 14} height={p?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+  Timer: (p) => <svg {...p} width={p?.size || 12} height={p?.size || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>,
+  CalendarX: (p) => <svg {...p} width={p?.size || 28} height={p?.size || 28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m14 14-4 4"/><path d="m10 14 4 4"/></svg>,
+  AlertCircle: (p) => <svg {...p} width={p?.size || 14} height={p?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+  Phone: (p) => <svg {...p} width={p?.size || 20} height={p?.size || 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
 };
 
 const kategoriIcon = {
@@ -14,8 +29,36 @@ const kategoriIcon = {
   spor: '🏋️', egitim: '📚', foto: '📸', dovme: '🎨', oto: '🚗', hukuk: '⚖️', genel: '🏢'
 };
 
+// Hizmet adına göre akıllı ikon eşleştirmesi
+function hizmetIconu(isim) {
+  const n = (isim || '').toLocaleLowerCase('tr');
+  if (n.includes('kesim') || n.includes('sakal') || n.includes('traş') || n.includes('tiraş') || n.includes('model')) return <I.Scissors />;
+  if (n.includes('fön') || n.includes('fon ') || n.includes('kurut')) return <I.Wind />;
+  if (n.includes('yıkama') || n.includes('şampuan') || n.includes('şamp')) return <I.Droplets />;
+  if (n.includes('boya') || n.includes('bakım') || n.includes('keratin') || n.includes('makyaj') || n.includes('manikür') || n.includes('pedikür') || n.includes('mask')) return <I.Sparkles />;
+  return <I.Sparkles />;
+}
+
+// Açık/kapalı durumu (basit: çalışma saati + kapalı günler)
+function isletmeAcikMi(isletme) {
+  if (!isletme) return { acik: false, metin: 'Bilinmiyor' };
+  const simdi = new Date();
+  const gun = simdi.getDay();
+  const kapaliGunler = String(isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number);
+  if (kapaliGunler.includes(gun)) return { acik: false, metin: 'Bugün kapalı' };
+
+  const [bh, bm] = String(isletme.calisma_baslangic || '09:00').split(':').map(Number);
+  const [eh, em] = String(isletme.calisma_bitis || '19:00').split(':').map(Number);
+  const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
+  const baslangic = bh * 60 + bm;
+  const bitis = eh * 60 + em;
+
+  if (simdiDk >= baslangic && simdiDk < bitis) return { acik: true, metin: 'Şu an açık' };
+  return { acik: false, metin: 'Şu an kapalı' };
+}
+
 export default function BookingPage({ slug }) {
-  const [adim, setAdim] = useState(0); // 0=yükleniyor, 1=hizmet, 2=çalışan, 3=tarih, 4=saat, 5=bilgi, 6=ozet, 7=tamamlandı
+  const [adim, setAdim] = useState(0);
   const [isletme, setIsletme] = useState(null);
   const [hizmetler, setHizmetler] = useState([]);
   const [calisanlar, setCalisanlar] = useState([]);
@@ -24,7 +67,6 @@ export default function BookingPage({ slug }) {
   const [hata, setHata] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
 
-  // Seçimler
   const [secilenHizmet, setSecilenHizmet] = useState(null);
   const [secilenCalisan, setSecilenCalisan] = useState(null);
   const [secilenTarih, setSecilenTarih] = useState('');
@@ -33,9 +75,7 @@ export default function BookingPage({ slug }) {
   const [musteriTelefon, setMusteriTelefon] = useState('');
   const [sonuc, setSonuc] = useState(null);
 
-  const renk = kategoriRenk[isletme?.kategori] || '#10b981';
-
-  // İşletme bilgilerini yükle
+  // ─── API ───
   useEffect(() => {
     fetch(`${API_URL}/book/${slug}`)
       .then(r => r.json())
@@ -47,68 +87,37 @@ export default function BookingPage({ slug }) {
       .catch(() => setHata('Bağlantı hatası'));
   }, [slug]);
 
-  // Hizmetleri yükle
   useEffect(() => {
     if (!isletme) return;
-    fetch(`${API_URL}/book/${slug}/hizmetler`)
-      .then(r => r.json())
-      .then(d => setHizmetler(d.hizmetler || []));
+    fetch(`${API_URL}/book/${slug}/hizmetler`).then(r => r.json()).then(d => setHizmetler(d.hizmetler || []));
   }, [isletme]);
 
-  // Çalışanları yükle (hizmet seçildiğinde)
   useEffect(() => {
     if (!secilenHizmet) return;
     fetch(`${API_URL}/book/${slug}/calisanlar?hizmetId=${secilenHizmet.id}`)
       .then(r => r.json())
-      .then(d => {
-        setCalisanlar(d.calisanlar || []);
-        setOtomatikCalisan(!!d.otomatik);
-      });
+      .then(d => { setCalisanlar(d.calisanlar || []); setOtomatikCalisan(!!d.otomatik); });
   }, [secilenHizmet]);
 
-  // Saatleri yükle
   useEffect(() => {
     if (!secilenTarih || !secilenHizmet) return;
     const params = new URLSearchParams({ tarih: secilenTarih, hizmetId: secilenHizmet.id });
     if (secilenCalisan) params.set('calisanId', secilenCalisan.id);
-    fetch(`${API_URL}/book/${slug}/saatler?${params}`)
-      .then(r => r.json())
-      .then(d => setSaatler(d.saatler || []));
+    fetch(`${API_URL}/book/${slug}/saatler?${params}`).then(r => r.json()).then(d => setSaatler(d.saatler || []));
   }, [secilenTarih, secilenCalisan, secilenHizmet]);
 
-  const hizmetSec = (h) => {
-    setSecilenHizmet(h);
-    setSecilenCalisan(null);
-    setSecilenTarih('');
-    setSecilenSaat('');
-    setAdim(2);
-  };
-
-  const calisanSec = (c) => {
-    setSecilenCalisan(c);
-    setSecilenTarih('');
-    setSecilenSaat('');
-    setAdim(3);
-  };
-
-  const tarihSec = (t) => {
-    setSecilenTarih(t);
-    setSecilenSaat('');
-    setAdim(4);
-  };
-
-  const saatSec = (s) => {
-    setSecilenSaat(s);
-    setAdim(5);
-  };
+  // ─── Handlers ───
+  const hizmetSec = (h) => { setSecilenHizmet(h); setSecilenCalisan(null); setSecilenTarih(''); setSecilenSaat(''); setAdim(2); };
+  const calisanSec = (c) => { setSecilenCalisan(c); setSecilenTarih(''); setSecilenSaat(''); setAdim(3); };
+  const tarihSec = (t) => { setSecilenTarih(t); setSecilenSaat(''); setAdim(4); };
+  const saatSec = (s) => { setSecilenSaat(s); setAdim(5); };
 
   const randevuOlustur = async () => {
     if (!musteriTelefon.trim() || musteriTelefon.trim().length < 10) {
       setHata('Geçerli telefon numarası girin');
       return;
     }
-    setYukleniyor(true);
-    setHata('');
+    setYukleniyor(true); setHata('');
     try {
       const res = await fetch(`${API_URL}/book/${slug}/randevu`, {
         method: 'POST',
@@ -123,33 +132,26 @@ export default function BookingPage({ slug }) {
         })
       });
       const d = await res.json();
-      if (d.basarili) {
-        setSonuc(d);
-        setAdim(7);
-      } else {
-        setHata(d.hata || 'Bir hata oluştu');
-      }
-    } catch {
-      setHata('Bağlantı hatası');
-    }
+      if (d.basarili) { setSonuc(d); setAdim(7); }
+      else setHata(d.hata || 'Bir hata oluştu');
+    } catch { setHata('Bağlantı hatası'); }
     setYukleniyor(false);
   };
 
-  // Tarih listesi oluştur (bugünden 30 gün sonrasına)
+  // ─── Tarih listesi ───
   const tarihler = [];
   const kapaliGunler = (isletme?.kapali_gunler || '').split(',').filter(Boolean).map(Number);
   for (let i = 0; i < 30; i++) {
     const t = new Date();
     t.setDate(t.getDate() + i);
-    const gun = t.getDay();
-    if (kapaliGunler.includes(gun)) continue;
+    if (kapaliGunler.includes(t.getDay())) continue;
     tarihler.push({
       str: t.toISOString().slice(0, 10),
-      label: t.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short' }),
       gun: t.toLocaleDateString('tr-TR', { weekday: 'short' }),
       gunSayi: t.getDate(),
       ay: t.toLocaleDateString('tr-TR', { month: 'short' }),
-      bugun: i === 0
+      bugun: i === 0,
+      yarin: i === 1,
     });
   }
 
@@ -158,192 +160,221 @@ export default function BookingPage({ slug }) {
     return d.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  /* ═══════════════════ STYLES ═══════════════════ */
-  const S = {
-    page: {
-      minHeight: '100vh', background: '#f8fafc',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-    },
-    container: {
-      width: '100%', maxWidth: 480, padding: '20px 16px',
-    },
-    header: {
-      background: renk, borderRadius: 20, padding: '28px 24px', marginBottom: 20,
-      color: '#fff', position: 'relative', overflow: 'hidden',
-    },
-    card: {
-      background: '#fff', borderRadius: 16, padding: '20px',
-      border: '1px solid #e2e8f0', marginBottom: 12,
-      boxShadow: '0 1px 3px rgba(0,0,0,.04)',
-    },
-    btn: (aktif) => ({
-      width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-      background: aktif ? renk : '#f1f5f9', color: aktif ? '#fff' : '#64748b',
-      fontWeight: 700, fontSize: 14, cursor: 'pointer',
-      fontFamily: 'inherit', transition: 'all .2s',
-    }),
-    input: {
-      width: '100%', padding: '12px 16px', borderRadius: 12,
-      border: '1px solid #e2e8f0', fontSize: 14, fontFamily: 'inherit',
-      outline: 'none', background: '#fff', boxSizing: 'border-box',
-    },
-    stepBadge: {
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: '4px 12px', borderRadius: 20, background: `${renk}15`,
-      color: renk, fontSize: 12, fontWeight: 700, marginBottom: 12,
-    },
-    backBtn: {
-      background: 'none', border: 'none', color: '#64748b', cursor: 'pointer',
-      fontSize: 13, fontWeight: 600, padding: '8px 0', display: 'flex', alignItems: 'center', gap: 4,
-    }
+  // ─── Stepper — 4 ana adım ───
+  // Internal: 1=Hizmet, 2=Calisan (opt), 3=Tarih, 4=Saat, 5=Bilgiler, 6=Ozet, 7=Success
+  // UI: [Hizmet] → [Personel] → [Tarih&Saat] → [Onay]
+  const stepperDurumu = () => {
+    if (adim <= 1) return 0;           // Hizmet
+    if (adim === 2) return 1;          // Personel
+    if (adim === 3 || adim === 4) return 2; // Tarih & Saat
+    return 3;                          // Onay (5,6,7)
   };
 
-  // Hata sayfası
+  const activeStep = stepperDurumu();
+  const stepLabels = ['Hizmet', 'Personel', 'Tarih', 'Onay'];
+
+  // ═══════════════ HATA SAYFASI ═══════════════
   if (hata && adim === 0) {
     return (
-      <div style={S.page}>
-        <div style={S.container}>
-          <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>😔</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>İşletme Bulunamadı</div>
-            <div style={{ fontSize: 14, color: '#64748b' }}>Bu randevu linki geçersiz veya devre dışı.</div>
+      <div className="bk-page">
+        <div className="bk-container">
+          <div className="bk-card bk-error-page">
+            <div className="bk-error-page-icon">😔</div>
+            <div className="bk-error-page-title">İşletme Bulunamadı</div>
+            <div className="bk-error-page-desc">Bu randevu linki geçersiz veya devre dışı.</div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Yükleniyor
+  // ═══════════════ LOADING ═══════════════
   if (adim === 0) {
     return (
-      <div style={S.page}>
-        <div style={S.container}>
-          <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
-            <div style={{ fontSize: 16, color: '#64748b' }}>Yükleniyor...</div>
-          </div>
+      <div className="bk-page">
+        <div className="bk-container">
+          <div className="bk-skeleton" style={{ height: 120, marginBottom: 20 }} />
+          <div className="bk-skeleton" style={{ height: 60, marginBottom: 20 }} />
+          <div className="bk-skeleton" style={{ height: 280 }} />
         </div>
       </div>
     );
   }
 
+  const durum = isletmeAcikMi(isletme);
+
   return (
-    <div style={S.page}>
-      <div style={S.container}>
-        {/* Header */}
-        <div style={S.header}>
-          <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,.08)' }} />
-          <div style={{ position: 'absolute', bottom: -20, left: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }} />
-          <div style={{ fontSize: 32, marginBottom: 8 }}>{kategoriIcon[isletme?.kategori] || '🏢'}</div>
-          <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{isletme?.isim}</div>
-          {isletme?.adres && <div style={{ fontSize: 13, opacity: .8 }}>{isletme.adres}{isletme.ilce ? ` / ${isletme.ilce}` : ''}</div>}
-          <div style={{ fontSize: 12, opacity: .6, marginTop: 6 }}>
-            {isletme?.calisma_baslangic || '09:00'} - {isletme?.calisma_bitis || '19:00'}
+    <div className="bk-page">
+      <div className="bk-container">
+
+        {/* ═══ HEADER ═══ */}
+        <div className="bk-header">
+          <div className="bk-header-row">
+            <div className="bk-logo">{kategoriIcon[isletme?.kategori] || '🏢'}</div>
+            <div className="bk-info">
+              <h1 className="bk-title">{isletme?.isim}</h1>
+              {(isletme?.adres || isletme?.ilce) && (
+                <div className="bk-meta-row">
+                  <I.MapPin size={13} />
+                  <span>{isletme.adres}{isletme.ilce ? `, ${isletme.ilce}` : ''}</span>
+                </div>
+              )}
+              <div className="bk-meta-row">
+                <I.Clock size={13} />
+                <span>{(isletme?.calisma_baslangic || '09:00').slice(0,5)} — {(isletme?.calisma_bitis || '19:00').slice(0,5)}</span>
+              </div>
+              <div className={`bk-status ${durum.acik ? 'open' : 'closed'}`}>
+                <span className="bk-status-dot" />
+                {durum.metin}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Hata mesajı */}
-        {hata && adim !== 0 && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '10px 16px', marginBottom: 12, color: '#dc2626', fontSize: 13, fontWeight: 600 }}>
-            {hata}
+        {/* ═══ STEPPER ═══ */}
+        {adim < 7 && (
+          <div className="bk-stepper">
+            {stepLabels.map((label, i) => (
+              <Fragment key={i}>
+                <div className={`bk-step ${activeStep === i ? 'active' : activeStep > i ? 'done' : 'future'}`}>
+                  <div className="bk-step-dot">
+                    {activeStep > i ? <I.Check size={14} /> : i + 1}
+                  </div>
+                  <div className="bk-step-label">{label}</div>
+                </div>
+                {i < stepLabels.length - 1 && (
+                  <div className={`bk-step-line ${activeStep > i ? 'done' : ''}`} />
+                )}
+              </Fragment>
+            ))}
           </div>
         )}
 
-        {/* ── ADIM 1: Hizmet Seçimi ── */}
+        {/* ═══ ERROR BANNER ═══ */}
+        {hata && adim !== 0 && (
+          <div className="bk-error">
+            <I.AlertCircle size={16} />
+            <span>{hata}</span>
+          </div>
+        )}
+
+        {/* ═══ ADIM 1: HİZMET ═══ */}
         {adim >= 1 && adim < 7 && (
-          <div style={S.card}>
-            <div style={S.stepBadge}>1 — Hizmet Seçin</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="bk-card">
+            <div className="bk-card-head">
+              <span className="bk-step-badge">
+                <I.Sparkles size={11} /> Hizmet Seçin
+              </span>
+            </div>
+            <div className="bk-list">
               {hizmetler.map(h => (
-                <button key={h.id} onClick={() => hizmetSec(h)} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '14px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                  background: secilenHizmet?.id === h.id ? `${renk}12` : '#f8fafc',
-                  outline: secilenHizmet?.id === h.id ? `2px solid ${renk}` : '1px solid #e2e8f0',
-                  fontFamily: 'inherit', transition: 'all .15s',
-                }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{h.isim}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{h.sure_dk} dk</div>
+                <button
+                  key={h.id}
+                  onClick={() => hizmetSec(h)}
+                  className={`bk-item ${secilenHizmet?.id === h.id ? 'active' : ''}`}
+                >
+                  <div className="bk-item-icon">{hizmetIconu(h.isim)}</div>
+                  <div className="bk-item-body">
+                    <div className="bk-item-name">{h.isim}</div>
+                    <div className="bk-item-meta">
+                      <I.Timer size={11} /> {h.sure_dk} dk
+                    </div>
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: renk }}>{h.fiyat}₺</div>
+                  <div className="bk-item-price">
+                    <span className="bk-price-num">{Number(h.fiyat).toLocaleString('tr-TR')}</span>
+                    <span className="bk-price-lira">₺</span>
+                  </div>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── ADIM 2: Çalışan Seçimi ── */}
+        {/* ═══ ADIM 2: ÇALIŞAN ═══ */}
         {adim >= 2 && adim < 7 && !otomatikCalisan && calisanlar.length > 0 && (
-          <div style={S.card}>
-            <button onClick={() => { setAdim(1); setSecilenCalisan(null); }} style={S.backBtn}>← Geri</button>
-            <div style={S.stepBadge}>2 — Çalışan Seçin</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="bk-card">
+            <button onClick={() => { setAdim(1); setSecilenCalisan(null); }} className="bk-back-btn">
+              <I.ChevronLeft size={14} /> Geri
+            </button>
+            <div className="bk-card-head">
+              <span className="bk-step-badge">
+                <I.User size={11} /> Personel Seçin
+              </span>
+            </div>
+            <div className="bk-list">
               {calisanlar.map(c => (
-                <button key={c.id} onClick={() => calisanSec(c)} style={{
-                  padding: '14px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                  background: secilenCalisan?.id === c.id ? `${renk}12` : '#f8fafc',
-                  outline: secilenCalisan?.id === c.id ? `2px solid ${renk}` : '1px solid #e2e8f0',
-                  fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: '#1e293b',
-                  textAlign: 'left', transition: 'all .15s',
-                }}>
-                  {c.isim}
+                <button
+                  key={c.id}
+                  onClick={() => calisanSec(c)}
+                  className={`bk-item ${secilenCalisan?.id === c.id ? 'active' : ''}`}
+                >
+                  <div className="bk-item-icon"><I.User size={20} /></div>
+                  <div className="bk-item-body">
+                    <div className="bk-item-name">{c.isim}</div>
+                    {c.uzmanlik && <div className="bk-item-meta">{c.uzmanlik}</div>}
+                  </div>
                 </button>
               ))}
-              <button onClick={() => calisanSec(null)} style={{
-                padding: '12px', borderRadius: 12, border: '1px dashed #cbd5e1',
-                background: 'transparent', color: '#64748b', cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-              }}>
-                Fark etmez (otomatik)
+              <button onClick={() => calisanSec(null)} className="bk-btn-ghost">
+                Fark etmez — herhangi bir personel
               </button>
             </div>
           </div>
         )}
 
-        {/* ── ADIM 3: Tarih Seçimi ── */}
+        {/* ═══ ADIM 3: TARİH ═══ */}
         {adim >= 3 && adim < 7 && (
-          <div style={S.card}>
-            <button onClick={() => setAdim(otomatikCalisan ? 1 : 2)} style={S.backBtn}>← Geri</button>
-            <div style={S.stepBadge}>{otomatikCalisan ? '2' : '3'} — Tarih Seçin</div>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-              {tarihler.slice(0, 14).map(t => (
-                <button key={t.str} onClick={() => tarihSec(t.str)} style={{
-                  minWidth: 64, padding: '10px 8px', borderRadius: 12, border: 'none', cursor: 'pointer',
-                  background: secilenTarih === t.str ? renk : '#f8fafc',
-                  color: secilenTarih === t.str ? '#fff' : '#1e293b',
-                  outline: secilenTarih === t.str ? 'none' : '1px solid #e2e8f0',
-                  fontFamily: 'inherit', textAlign: 'center', transition: 'all .15s', flexShrink: 0,
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, opacity: .7 }}>{t.gun}</div>
-                  <div style={{ fontSize: 18, fontWeight: 800 }}>{t.gunSayi}</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, opacity: .6 }}>{t.ay}</div>
+          <div className="bk-card">
+            <button onClick={() => setAdim(otomatikCalisan ? 1 : 2)} className="bk-back-btn">
+              <I.ChevronLeft size={14} /> Geri
+            </button>
+            <div className="bk-card-head">
+              <span className="bk-step-badge">
+                <I.Clock size={11} /> Tarih Seçin
+              </span>
+            </div>
+            <div className="bk-date-grid">
+              {tarihler.map(t => (
+                <button
+                  key={t.str}
+                  onClick={() => tarihSec(t.str)}
+                  className={`bk-date ${secilenTarih === t.str ? 'active' : ''}`}
+                >
+                  <div className="bk-date-day">{t.gun}</div>
+                  <div className="bk-date-num">{t.gunSayi}</div>
+                  <div className="bk-date-month">{t.ay}</div>
+                  {t.bugun && <span className="bk-date-badge">BUGÜN</span>}
+                  {t.yarin && <span className="bk-date-badge">YARIN</span>}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── ADIM 4: Saat Seçimi ── */}
+        {/* ═══ ADIM 4: SAAT ═══ */}
         {adim >= 4 && adim < 7 && (
-          <div style={S.card}>
-            <button onClick={() => setAdim(3)} style={S.backBtn}>← Geri</button>
-            <div style={S.stepBadge}>{otomatikCalisan ? '3' : '4'} — Saat Seçin</div>
+          <div className="bk-card">
+            <button onClick={() => setAdim(3)} className="bk-back-btn">
+              <I.ChevronLeft size={14} /> Geri
+            </button>
+            <div className="bk-card-head">
+              <span className="bk-step-badge">
+                <I.Clock size={11} /> Saat Seçin
+              </span>
+            </div>
             {saatler.length === 0 ? (
-              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                Bu tarihte müsait saat yok
+              <div className="bk-empty">
+                <I.CalendarX size={28} />
+                <div>Bu tarihte müsait saat yok</div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              <div className="bk-time-grid">
                 {saatler.map(s => (
-                  <button key={s} onClick={() => saatSec(s)} style={{
-                    padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                    background: secilenSaat === s ? renk : '#f8fafc',
-                    color: secilenSaat === s ? '#fff' : '#334155',
-                    outline: secilenSaat === s ? 'none' : '1px solid #e2e8f0',
-                    fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-                    transition: 'all .15s',
-                  }}>
+                  <button
+                    key={s}
+                    onClick={() => saatSec(s)}
+                    className={`bk-time ${secilenSaat === s ? 'active' : ''}`}
+                  >
                     {s}
                   </button>
                 ))}
@@ -352,95 +383,144 @@ export default function BookingPage({ slug }) {
           </div>
         )}
 
-        {/* ── ADIM 5: Müşteri Bilgileri ── */}
+        {/* ═══ ADIM 5: BİLGİLER ═══ */}
         {adim >= 5 && adim < 7 && (
-          <div style={S.card}>
-            <button onClick={() => setAdim(4)} style={S.backBtn}>← Geri</button>
-            <div style={S.stepBadge}>{otomatikCalisan ? '4' : '5'} — Bilgileriniz</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="bk-card">
+            <button onClick={() => setAdim(4)} className="bk-back-btn">
+              <I.ChevronLeft size={14} /> Geri
+            </button>
+            <div className="bk-card-head">
+              <span className="bk-step-badge">
+                <I.User size={11} /> Bilgileriniz
+              </span>
+            </div>
+            <div className="bk-form">
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6, display: 'block' }}>Ad Soyad</label>
-                <input value={musteriIsim} onChange={e => setMusteriIsim(e.target.value)} placeholder="Adınız Soyadınız" style={S.input} />
+                <label className="bk-field-label">Ad Soyad</label>
+                <input
+                  value={musteriIsim}
+                  onChange={e => setMusteriIsim(e.target.value)}
+                  placeholder="Adınız Soyadınız"
+                  className="bk-input"
+                />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 6, display: 'block' }}>Telefon *</label>
-                <input value={musteriTelefon} onChange={e => setMusteriTelefon(e.target.value)} placeholder="05XX XXX XX XX" style={S.input} type="tel" />
+                <label className="bk-field-label">Telefon *</label>
+                <input
+                  value={musteriTelefon}
+                  onChange={e => setMusteriTelefon(e.target.value)}
+                  placeholder="05XX XXX XX XX"
+                  className="bk-input"
+                  type="tel"
+                />
               </div>
-              <button onClick={() => { setHata(''); setAdim(6); }} disabled={!musteriTelefon.trim()} style={{
-                ...S.btn(!!musteriTelefon.trim()),
-                opacity: musteriTelefon.trim() ? 1 : .5
-              }}>
-                Devam
+              <button
+                onClick={() => { setHata(''); setAdim(6); }}
+                disabled={!musteriTelefon.trim()}
+                className="bk-btn"
+              >
+                Devam Et →
               </button>
             </div>
           </div>
         )}
 
-        {/* ── ADIM 6: Özet & Onayla ── */}
+        {/* ═══ ADIM 6: ÖZET ═══ */}
         {adim === 6 && (
-          <div style={S.card}>
-            <button onClick={() => setAdim(5)} style={S.backBtn}>← Geri</button>
-            <div style={S.stepBadge}>Randevu Özeti</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-              {[
-                ['Hizmet', secilenHizmet?.isim],
-                ['Fiyat', `${secilenHizmet?.fiyat}₺`],
-                secilenCalisan ? ['Uzman', secilenCalisan.isim] : null,
-                ['Tarih', tarihFormat(secilenTarih)],
-                ['Saat', secilenSaat],
-                ['Ad Soyad', musteriIsim || '—'],
-                ['Telefon', musteriTelefon],
-              ].filter(Boolean).map(([k, v], i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: 13, color: '#64748b' }}>{k}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{v}</span>
-                </div>
-              ))}
+          <div className="bk-card">
+            <button onClick={() => setAdim(5)} className="bk-back-btn">
+              <I.ChevronLeft size={14} /> Geri
+            </button>
+            <div className="bk-card-head">
+              <span className="bk-step-badge">
+                <I.Check size={11} /> Randevu Özeti
+              </span>
             </div>
-            <button onClick={randevuOlustur} disabled={yukleniyor} style={{
-              ...S.btn(true),
-              opacity: yukleniyor ? .6 : 1,
-              boxShadow: `0 4px 14px ${renk}40`,
-            }}>
-              {yukleniyor ? 'Oluşturuluyor...' : 'Randevuyu Onayla'}
+            <div className="bk-summary">
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Hizmet</span>
+                <span className="bk-summary-val">{secilenHizmet?.isim}</span>
+              </div>
+              {secilenCalisan && (
+                <div className="bk-summary-row">
+                  <span className="bk-summary-key">Personel</span>
+                  <span className="bk-summary-val">{secilenCalisan.isim}</span>
+                </div>
+              )}
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Tarih</span>
+                <span className="bk-summary-val">{tarihFormat(secilenTarih)}</span>
+              </div>
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Saat</span>
+                <span className="bk-summary-val">{secilenSaat}</span>
+              </div>
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Ad Soyad</span>
+                <span className="bk-summary-val">{musteriIsim || '—'}</span>
+              </div>
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Telefon</span>
+                <span className="bk-summary-val">{musteriTelefon}</span>
+              </div>
+              <div className="bk-summary-row total">
+                <span className="bk-summary-key">Toplam</span>
+                <span className="bk-summary-val">{Number(secilenHizmet?.fiyat || 0).toLocaleString('tr-TR')} ₺</span>
+              </div>
+            </div>
+            <button onClick={randevuOlustur} disabled={yukleniyor} className="bk-btn">
+              {yukleniyor ? 'Oluşturuluyor...' : '✓ Randevuyu Onayla'}
             </button>
           </div>
         )}
 
-        {/* ── ADIM 7: Tamamlandı ── */}
+        {/* ═══ ADIM 7: SUCCESS ═══ */}
         {adim === 7 && (
-          <div style={{ ...S.card, textAlign: 'center', padding: '32px 24px' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${renk}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28 }}>
-              ✓
+          <div className="bk-card bk-success">
+            <div className="bk-success-icon">
+              <I.CheckBig size={44} />
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', marginBottom: 8 }}>Randevunuz Alındı!</div>
-            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 20, lineHeight: 1.5 }}>
-              {tarihFormat(secilenTarih)} saat {secilenSaat}'da {isletme?.isim} için randevunuz oluşturuldu.
+            <div className="bk-success-title">Randevunuz Alındı! 🎉</div>
+            <div className="bk-success-desc">
+              <span className="bk-success-highlight">{tarihFormat(secilenTarih)}</span>
+              {' '}saat{' '}
+              <span className="bk-success-highlight">{secilenSaat}</span>
+              {' '}için{' '}
+              <span className="bk-success-highlight">{isletme?.isim}</span>
+              {' '}randevunuz oluşturuldu.
             </div>
-            <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, textAlign: 'left', marginBottom: 16 }}>
-              {[
-                ['Hizmet', secilenHizmet?.isim],
-                ['Tarih', tarihFormat(secilenTarih)],
-                ['Saat', secilenSaat],
-              ].map(([k, v], i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-                  <span style={{ fontSize: 13, color: '#94a3b8' }}>{k}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{v}</span>
-                </div>
-              ))}
+            <div className="bk-success-card">
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Hizmet</span>
+                <span className="bk-summary-val">{secilenHizmet?.isim}</span>
+              </div>
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Tarih</span>
+                <span className="bk-summary-val">{tarihFormat(secilenTarih)}</span>
+              </div>
+              <div className="bk-summary-row">
+                <span className="bk-summary-key">Saat</span>
+                <span className="bk-summary-val">{secilenSaat}</span>
+              </div>
+              <div className="bk-summary-row total">
+                <span className="bk-summary-key">Toplam</span>
+                <span className="bk-summary-val">{Number(secilenHizmet?.fiyat || 0).toLocaleString('tr-TR')} ₺</span>
+              </div>
             </div>
-            <button onClick={() => window.location.reload()} style={S.btn(true)}>
+            <button onClick={() => window.location.reload()} className="bk-btn">
               Yeni Randevu Al
             </button>
           </div>
         )}
 
-        {/* Branding footer */}
-        <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: 12 }}>
-          <a href="https://sırago.com" target="_blank" rel="noopener" style={{ color: '#94a3b8', textDecoration: 'none' }}>
-            SıraGO ile randevu alın
+        {/* ═══ BRAND FOOTER ═══ */}
+        <div className="bk-footer">
+          <a href="https://xn--srago-n4a.com" target="_blank" rel="noopener">
+            <span className="bk-footer-logo">S</span>
+            Powered by SıraGO
           </a>
         </div>
+
       </div>
     </div>
   );
