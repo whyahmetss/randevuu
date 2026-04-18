@@ -1,4 +1,4 @@
-const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
@@ -75,17 +75,26 @@ class WhatsAppWebService extends EventEmitter {
   async isletmeBaslat(isletmeId, isletmeIsim, yeniBaslat = true) {
     // Zaten bağlıysa durdurma
     if (this.isletmeler[isletmeId]?.durum === 'bagli') return;
-    // Yeniden başlatma değilse ve zaten başlatılıyorsa atla
-    if (!yeniBaslat && this.isletmeler[isletmeId]) return;
-    // Varsa kapat
+    // Zaten başlatma/bağlanma sürecindeyse: paralel çağrıyı blokla (race protection)
+    // Ama "yeniBaslat=true" ise kullanıcı buton → force restart
+    if (this.isletmeler[isletmeId]?._baslatiliyor && !yeniBaslat) return;
+    // Varsa kapat ve PROMISIFY EDILEN şekilde bekle (zombie socket 401'e neden oluyor)
     if (this.isletmeler[isletmeId]?.sock) {
-      try { this.isletmeler[isletmeId].sock.end(); } catch (e) {}
+      try {
+        const eskiSock = this.isletmeler[isletmeId].sock;
+        this.isletmeler[isletmeId].sock = null; // referansı kes önce
+        try { eskiSock.end(undefined); } catch (e) {}
+        try { eskiSock.ws?.close?.(); } catch (e) {}
+        // Baileys'in kapanma event'lerinin akması için kısa bir delay
+        await new Promise(r => setTimeout(r, 300));
+      } catch (e) {}
     }
 
     // State'i koru (reconnect durumlarında) — kullanıcı yeniBaslat derse sayaçları sıfırla
     const onceki = this.isletmeler[isletmeId];
     this.isletmeler[isletmeId] = {
       sock: null, durum: 'baslatiyor', qr: null, qrBase64: null,
+      _baslatiliyor: true,
       qrAttempts: yeniBaslat ? 0 : (onceki?.qrAttempts || 0),
       basariliOturumVardi: yeniBaslat ? false : (onceki?.basariliOturumVardi || false),
       reconnectAttempts: yeniBaslat ? 0 : (onceki?.reconnectAttempts || 0),
@@ -103,7 +112,8 @@ class WhatsAppWebService extends EventEmitter {
         },
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ['RandevuGO', 'Desktop', '4.0.0'],
+        // WhatsApp'ın tanıdığı standart browser imzası — custom string 401'e yol açıyor
+        browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: false,
@@ -149,6 +159,7 @@ class WhatsAppWebService extends EventEmitter {
           this.isletmeler[isletmeId].basariliOturumVardi = true;
           this.isletmeler[isletmeId].qrAttempts = 0;
           this.isletmeler[isletmeId].reconnectAttempts = 0;
+          this.isletmeler[isletmeId]._baslatiliyor = false;
           const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
           if (numara) {
             // İlk bağlantıda booking_acik otomatik açılır — bir kez bağlanmış her işletme için
@@ -167,21 +178,43 @@ class WhatsAppWebService extends EventEmitter {
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
           console.log(`❌ WhatsApp ayrıldı: ${isletmeIsim} - kod: ${statusCode}`);
 
+          // Eski sock'u hemen terminal et (zombie olmasın)
+          try { sock.end(undefined); } catch (e) {}
+          try { sock.ws?.close?.(); } catch (e) {}
+
           if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
-            // QR tarandıktan sonra WhatsApp bilerek koparıyor — NORMAL, hemen yeniden bağlan
+            // QR tarandıktan sonra WhatsApp bilerek koparıyor — NORMAL, yeni creds ile yeniden bağlan
             console.log(`🔄 restartRequired — QR tarandı, yeniden bağlanılıyor: ${isletmeIsim}`);
-            // basariliOturumVardi'yi koru (515 = QR tarandı, session var)
-            const oturumVardi = this.isletmeler[isletmeId]?.basariliOturumVardi || true;
+            // State'i koruyarak flagleri temizle (creds.update'in DB'ye flush olmasını bekle)
+            if (this.isletmeler[isletmeId]) {
+              this.isletmeler[isletmeId].sock = null;
+              this.isletmeler[isletmeId].basariliOturumVardi = true; // 515 = session başladı
+              this.isletmeler[isletmeId]._baslatiliyor = false;
+              this.isletmeler[isletmeId].durum = 'baslatiyor';
+            }
+            // 2sn gecikme: creds.update listener'ının async DB yazmasını bekle
             setTimeout(() => {
-              this.isletmeler[isletmeId] = { basariliOturumVardi: oturumVardi };
               this.isletmeBaslat(isletmeId, isletmeIsim, false);
-            }, 1000);
-          } else if (statusCode === DisconnectReason.loggedOut) {
-            // Oturum silindi, DB'den auth verilerini temizle
-            this.isletmeler[isletmeId].durum = 'bagli_degil';
+            }, 2000);
+          } else if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+            // 401 ya da loggedOut → oturum geçersiz, DB'den auth temizle, kullanıcıya bilgi ver
+            if (this.isletmeler[isletmeId]) {
+              this.isletmeler[isletmeId].durum = 'bagli_degil';
+              this.isletmeler[isletmeId]._baslatiliyor = false;
+              this.isletmeler[isletmeId].sock = null;
+              this.isletmeler[isletmeId].qrBase64 = null;
+              this.isletmeler[isletmeId].basariliOturumVardi = false;
+            }
             try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch (e) {}
-            this.emit(`ayrildi_${isletmeId}`, 'logged_out');
-            socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'logged_out', durum: 'bagli_degil' });
+            const sebep = statusCode === 401 ? 'unauthorized' : 'logged_out';
+            this.emit(`ayrildi_${isletmeId}`, sebep);
+            socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', {
+              sebep,
+              durum: 'bagli_degil',
+              mesaj: statusCode === 401
+                ? 'WhatsApp bağlantısı reddedildi. Telefonunuzdan WhatsApp → Ayarlar → Bağlı Cihazlar bölümüne girip varsa SıraGO cihazını silin ve tekrar QR tarayın.'
+                : null,
+            });
           } else if (shouldReconnect && this.isletmeler[isletmeId]?.basariliOturumVardi) {
             // Sadece daha önce başarılı oturum varsa yeniden bağlan
             const ra = (this.isletmeler[isletmeId].reconnectAttempts || 0) + 1;
@@ -200,10 +233,18 @@ class WhatsAppWebService extends EventEmitter {
             }
           } else if (shouldReconnect && !this.isletmeler[isletmeId]?.basariliOturumVardi) {
             console.log(`⏹️ ${isletmeIsim} — QR taranmadan bağlantı düştü (kod: ${statusCode}), durduruluyor`);
-            this.isletmeler[isletmeId].durum = 'bagli_degil';
+            if (this.isletmeler[isletmeId]) {
+              this.isletmeler[isletmeId].durum = 'bagli_degil';
+              this.isletmeler[isletmeId]._baslatiliyor = false;
+              this.isletmeler[isletmeId].sock = null;
+            }
             socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'qr_not_scanned', durum: 'bagli_degil' });
           } else {
-            this.isletmeler[isletmeId].durum = 'bagli_degil';
+            if (this.isletmeler[isletmeId]) {
+              this.isletmeler[isletmeId].durum = 'bagli_degil';
+              this.isletmeler[isletmeId]._baslatiliyor = false;
+              this.isletmeler[isletmeId].sock = null;
+            }
             this.emit(`ayrildi_${isletmeId}`, 'disconnected');
             socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'disconnected', durum: 'bagli_degil' });
           }

@@ -916,14 +916,15 @@ function Dashboard() {
 
   // ═══════════ CANLI YAYIN (Socket.IO) ═══════════
   // Yardımcı: ses + titreşim + toast
-  const canliToast = (mesaj, renk = "#10b981") => {
+  const canliToast = (mesaj, renk = "#10b981", sure = 3500) => {
     try {
       const el = document.createElement("div");
       el.textContent = mesaj;
-      el.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:14px 20px;background:${renk};color:#fff;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:340px;animation:slideIn .3s ease;`;
+      el.style.cssText = `position:fixed;top:20px;right:20px;z-index:99999;padding:14px 20px;background:${renk};color:#fff;border-radius:12px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:380px;line-height:1.4;animation:slideIn .3s ease;cursor:pointer;`;
+      el.onclick = () => { try { el.remove(); } catch(e){} };
       document.body.appendChild(el);
-      setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .4s"; }, 3500);
-      setTimeout(() => { try { el.remove(); } catch(e){} }, 4200);
+      setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .4s"; }, sure);
+      setTimeout(() => { try { el.remove(); } catch(e){} }, sure + 700);
     } catch(e) {}
   };
   // AudioContext singleton — autoplay politikaları için ilk etkileşimde unlock edilir
@@ -1068,7 +1069,16 @@ function Dashboard() {
   });
   useSocketEvent("wa:ayrildi", (payload) => {
     try { window.dispatchEvent(new CustomEvent("wa:ayrildi", { detail: payload })); } catch(e) {}
-    canliToast("⚠️ WhatsApp bağlantısı kesildi", "#ef4444");
+    // 401 / auth reddi → kullanıcıya yönlendirici açıklama göster (uzun timeout)
+    if (payload?.sebep === 'unauthorized' && payload?.mesaj) {
+      canliToast(`⚠️ ${payload.mesaj}`, "#ef4444", 12000);
+    } else if (payload?.sebep === 'qr_not_scanned') {
+      canliToast("⏱️ QR kod taranmadı — 'QR Kodu Göster' ile yeniden deneyin", "#f59e0b", 6000);
+    } else if (payload?.sebep === 'max_reconnect') {
+      canliToast("⚠️ Yeniden bağlanma denemesi aşıldı — QR ile tekrar bağlayın", "#ef4444", 8000);
+    } else {
+      canliToast("⚠️ WhatsApp bağlantısı kesildi", "#ef4444");
+    }
   });
 
   const hizmetleriYukle = async () => { const d = await api.get("/hizmetler"); setHizmetler(d.hizmetler || []); };
