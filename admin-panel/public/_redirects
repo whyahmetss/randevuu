@@ -1,0 +1,4 @@
+# SPA fallback: tüm client-side route'lar index.html'e fallback yapar
+# Bu sayede /book/:slug, /dashboard, /settings gibi URL'ler direkt açılabilir
+# Hem Netlify hem Render static sites okur
+/*    /index.html   200
