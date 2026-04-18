@@ -336,12 +336,22 @@ class SatisBot extends EventEmitter {
       }
 
       if (connection === 'open') {
+        // 5sn bekle — Baileys session initialization + sock.user set olsun
+        await new Promise(r => setTimeout(r, 5000));
+        
+        if (!ns.sock?.user) {
+          console.log(`⚠️ [#${numaraId}] connection:open geldi ama sock.user hâlâ yok — session bozuk olabilir`);
+          ns.durum = 'hata';
+          this._senkronEt();
+          return;
+        }
+
         ns.durum = 'bagli';
         ns.qrBase64 = null;
         ns.reconnectAttempts = 0;
         ns.basariliOturumVardi = true;
-        const numara = ns.sock?.user?.id?.split(':')[0] || 'bilinmiyor';
-        console.log(`✅ [#${numaraId}] WhatsApp bağlandı — numara: ${numara}`);
+        const numara = ns.sock.user.id.split(':')[0] || 'bilinmiyor';
+        console.log(`✅ [#${numaraId}] WhatsApp bağlandı — numara: ${numara} (user doğrulandı)`);
         // DB'de numarayı güncelle
         try { await pool.query("UPDATE satis_bot_numaralar SET durum='aktif', telefon=$1 WHERE id=$2", [numara, numaraId]); } catch(e) {}
         this.emit('bagli', { numaraId });
@@ -486,12 +496,21 @@ class SatisBot extends EventEmitter {
 
   // Session temizle — bozuk auth key'leri sil, sıfırdan QR taratmak için
   async numaraSessionTemizle(numaraId) {
+    // Timer'ı temizle
+    if (this.numaraTimers.has(numaraId)) {
+      clearTimeout(this.numaraTimers.get(numaraId));
+      this.numaraTimers.delete(numaraId);
+    }
     await this.numaraDurdur(numaraId);
     const authId = 900000 + numaraId;
-    try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {}
+    // Tüm auth key'leri sil
+    const delResult = await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]);
+    const silinen = delResult?.rowCount || 0;
     try { await pool.query("UPDATE satis_bot_numaralar SET durum='bekliyor' WHERE id=$1", [numaraId]); } catch(e) {}
-    console.log(`🗑️ [#${numaraId}] Session temizlendi (authId: ${authId}). Yeniden QR taratın.`);
-    return { mesaj: `Numara #${numaraId} session temizlendi — panelden tekrar bağlayın` };
+    // msgStore da temizle
+    this.msgStore.clear();
+    console.log(`🗑️ [#${numaraId}] Session temizlendi — ${silinen} auth key silindi (authId: ${authId}). Yeniden QR taratın.`);
+    return { mesaj: `Numara #${numaraId} session temizlendi (${silinen} key silindi) — panelden tekrar bağlayın` };
   }
 
   async durdur() {
