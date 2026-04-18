@@ -254,7 +254,7 @@ class SatisBot extends EventEmitter {
           keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         logger: pino({ level: 'silent' }),
-        browser: ['SıraGO-Sales', 'Chrome', '4.0.0'],
+        browser: ['SıraGO-Sales', 'Desktop', '4.0.0'],
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: false,
@@ -426,7 +426,7 @@ class SatisBot extends EventEmitter {
         version,
         auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })) },
         logger: pino({ level: 'silent' }),
-        browser: ['RandevuGO', 'Chrome', '4.0.0'],
+        browser: ['RandevuGO', 'Desktop', '4.0.0'],
         generateHighQualityLinkPreview: false,
       });
       this.sock.ev.on('creds.update', saveCreds);

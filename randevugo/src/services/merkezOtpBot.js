@@ -129,7 +129,7 @@ class MerkezOtpBot {
         },
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ['SıraGO OTP', 'Chrome', '4.0.0'],
+        browser: ['SıraGO OTP', 'Desktop', '4.0.0'],
         generateHighQualityLinkPreview: false,
       });
 

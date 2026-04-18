@@ -103,7 +103,7 @@ class WhatsAppWebService extends EventEmitter {
         },
         printQRInTerminal: false,
         logger: pino({ level: 'silent' }),
-        browser: ['RandevuGO', 'Chrome', '4.0.0'],
+        browser: ['RandevuGO', 'Desktop', '4.0.0'],
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: false,

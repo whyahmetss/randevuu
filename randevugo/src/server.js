@@ -2,10 +2,13 @@ process.env.TZ = 'Europe/Istanbul';
 
 // Baileys/libsignal internal spam loglarını sustur
 const _origLog = console.log;
-console.log = function(...args) {
-  if (args[0] && typeof args[0] === 'string' && args[0].startsWith('Closing session:')) return;
-  _origLog.apply(console, args);
+const _origWarn = console.warn;
+const _isBaileysSpam = (...args) => {
+  const s = typeof args[0] === 'string' ? args[0] : '';
+  return s.startsWith('Closing session') || s.startsWith('Decrypted message with closed');
 };
+console.log = function(...args) { if (_isBaileysSpam(...args)) return; _origLog.apply(console, args); };
+console.warn = function(...args) { if (_isBaileysSpam(...args)) return; _origWarn.apply(console, args); };
 
 const express = require('express');
 const http = require('http');
