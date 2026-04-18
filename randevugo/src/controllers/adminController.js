@@ -1150,6 +1150,86 @@ class AdminController {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  // 🚀 AVCI JOB — Manyak Mod Toplu Tarama Endpoint'leri
+  // ═══════════════════════════════════════════════════════════════════
+
+  async avciJobBaslat(req, res) {
+    try {
+      const { sehirler, kategoriler, preset, paralel, hardLimit, baslik } = req.body;
+      if (!process.env.GOOGLE_MAPS_API_KEY) {
+        return res.status(400).json({ hata: 'GOOGLE_MAPS_API_KEY Render env değişkenlerinde tanımlı değil' });
+      }
+      if (!Array.isArray(sehirler) || !sehirler.length) {
+        return res.status(400).json({ hata: 'En az 1 şehir seçin' });
+      }
+      if (!Array.isArray(kategoriler) || !kategoriler.length) {
+        return res.status(400).json({ hata: 'En az 1 kategori seçin' });
+      }
+      const sonuc = await avciBot.jobBaslat({
+        sehirler,
+        kategoriler,
+        preset: preset || null,
+        paralel: Math.min(Math.max(parseInt(paralel) || 5, 1), 20),
+        hardLimit: Math.min(Math.max(parseInt(hardLimit) || 60, 5), 500),
+        baslik: baslik || null,
+      });
+      res.json(sonuc);
+    } catch (e) {
+      console.error('Avcı job başlatma hatası:', e);
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
+  async avciJobDurum(req, res) {
+    try {
+      const { jobId } = req.params;
+      const durum = await avciBot.jobDurum(jobId);
+      if (!durum) return res.status(404).json({ hata: 'Job bulunamadı' });
+      res.json(durum);
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
+  async avciJobIptal(req, res) {
+    try {
+      const { jobId } = req.params;
+      const sonuc = await avciBot.jobIptal(jobId);
+      res.json(sonuc);
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
+  async avciJobGecmis(req, res) {
+    try {
+      const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+      const joblar = await avciBot.jobGecmis(limit);
+      res.json({ joblar });
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
+  async avciPresetler(req, res) {
+    try {
+      const { BOLGELER, toplamIlceSayisi } = require('../data/tarama_presetleri');
+      // Her preset için ilçe sayısını hesapla
+      const presetler = {};
+      for (const [key, val] of Object.entries(BOLGELER)) {
+        presetler[key] = {
+          ...val,
+          il_sayisi: val.iller.length,
+          ilce_sayisi: toplamIlceSayisi(val.iller),
+        };
+      }
+      res.json({ presetler });
+    } catch (e) {
+      res.status(500).json({ hata: e.message });
+    }
+  }
+
   async avciListe(req, res) {
     try {
       const { durum, kategori, sehir, ilce, siralama, limit, offset, kaynak, q } = req.query;

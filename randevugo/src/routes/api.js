@@ -113,6 +113,12 @@ router.post('/admin/avci/toplu-tarama', authMiddleware, superAdminMiddleware, (r
 router.post('/admin/avci/sosyal-tarama', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciSosyalTarama(req, res));
 router.get('/admin/avci/tarama-durum/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciTaramaDurum(req, res));
 router.post('/admin/avci/tarama-iptal/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciTaramaIptal(req, res));
+// 🚀 Manyak Mod — Job tabanlı toplu tarama
+router.post('/admin/avci/job/baslat', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciJobBaslat(req, res));
+router.get('/admin/avci/job/gecmis', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciJobGecmis(req, res));
+router.get('/admin/avci/job/:jobId', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciJobDurum(req, res));
+router.post('/admin/avci/job/:jobId/iptal', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciJobIptal(req, res));
+router.get('/admin/avci/presetler', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciPresetler(req, res));
 router.get('/admin/avci/liste', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciListe(req, res));
 router.get('/admin/avci/sehirler', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciSehirler(req, res));
 router.get('/admin/avci/ilceler', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIlceler(req, res));

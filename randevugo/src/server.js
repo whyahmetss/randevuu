@@ -739,7 +739,50 @@ const PORT = process.env.PORT || 3000;
       AND booking_acik IS NOT true
     `);
 
-    console.log('✅ DB migration kontrolü tamamlandı (güvenlik v2 dahil)');
+    // ═══════════════════════════════════════════════════
+    // 🚀 AVCI BOT — TOPLU TARAMA JOB SİSTEMİ (Manyak Mod)
+    // ═══════════════════════════════════════════════════
+    await pool.query(`CREATE TABLE IF NOT EXISTS avci_tarama_joblari (
+      id SERIAL PRIMARY KEY,
+      job_id TEXT UNIQUE NOT NULL,
+      baslik TEXT,
+      durum TEXT DEFAULT 'bekliyor',
+      sehirler TEXT[] NOT NULL,
+      kategoriler TEXT[] NOT NULL,
+      toplam_sorgu INT DEFAULT 0,
+      tamamlanan_sorgu INT DEFAULT 0,
+      basarili_sorgu INT DEFAULT 0,
+      hatali_sorgu INT DEFAULT 0,
+      yeni_eklenen INT DEFAULT 0,
+      zaten_var INT DEFAULT 0,
+      toplam_bulunan INT DEFAULT 0,
+      baslangic_tarihi TIMESTAMP DEFAULT NOW(),
+      bitis_tarihi TIMESTAMP,
+      son_guncelleme TIMESTAMP DEFAULT NOW(),
+      preset TEXT,
+      ayarlar JSONB DEFAULT '{}'::jsonb,
+      hata_mesaji TEXT
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_job_durum ON avci_tarama_joblari(durum, baslangic_tarihi DESC)`);
+
+    await pool.query(`CREATE TABLE IF NOT EXISTS avci_tarama_detay (
+      id SERIAL PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      sehir TEXT NOT NULL,
+      kategori TEXT NOT NULL,
+      durum TEXT DEFAULT 'bekliyor',
+      tamamlanan_sorgu INT DEFAULT 0,
+      yeni_eklenen INT DEFAULT 0,
+      zaten_var INT DEFAULT 0,
+      baslangic TIMESTAMP,
+      bitis TIMESTAMP,
+      hata_mesaji TEXT,
+      UNIQUE(job_id, sehir, kategori)
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_job ON avci_tarama_detay(job_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_durum ON avci_tarama_detay(durum)`);
+
+    console.log('✅ DB migration kontrolü tamamlandı (güvenlik v2 + avcı job dahil)');
 
     // Dosya tabanlı migration'ları çalıştır
     const migrationRunner = require('./utils/migrationRunner');
@@ -860,6 +903,17 @@ httpServer.listen(PORT, () => {
 
   // Cleanup: test duyurularını sil
   try { pool.query("DELETE FROM duyurular WHERE baslik ILIKE '%battık%' OR baslik ILIKE '%test%duyuru%'").then(r => { if (r.rowCount > 0) console.log(`🧹 ${r.rowCount} test duyurusu silindi`); }); } catch(e) {}
+
+  // 🚀 Avcı toplu tarama — yarım kalan (pending/calisiyor) job'ları devam ettir
+  try {
+    setTimeout(async () => {
+      try {
+        const avciBot = require('./services/avciBot');
+        const sayi = await avciBot.pendingJoblariDevam();
+        if (sayi > 0) console.log(`🔄 Avcı: ${sayi} yarım kalan toplu tarama job'u devam ettirildi`);
+      } catch(e) { console.log('⚠️ Avcı job resume hatası:', e.message); }
+    }, 5000); // 5sn sonra (DB migration'ların bitmesini bekle)
+  } catch(e) {}
   
   // Hatırlatma cron job'ını başlat (production'da sadece ENABLE_CRON=true ise)
   if (process.env.ENABLE_CRON !== 'false') {

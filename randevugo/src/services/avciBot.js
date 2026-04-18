@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const TR_ILCELER = require('../data/tr_ilceler.json');
 const { sinonimleriGetir } = require('../data/kategori_sinonimleri');
+const { BOLGELER, toplamIlceSayisi } = require('../data/tarama_presetleri');
 const socketServer = require('./socketServer');
 
 // Google Places API ile işletme arama
@@ -8,6 +9,10 @@ class AvciBot {
   constructor() {
     // Arka planda koşan taramaların progress durumları (tarama_id → { ... })
     this.taramaDurumlari = new Map();
+    // Aktif job worker'ları (jobId → { iptal: bool })
+    this.aktifJoblar = new Map();
+    // Canlı sayaç throttle (jobId → lastEmit)
+    this._jobEmitThrottle = new Map();
   }
 
   // Şehir adını normalize et ve ilçelerini getir (static JSON'dan)
@@ -336,6 +341,280 @@ class AvciBot {
 
     console.log(`✅ Toplu tarama bitti: ${toplamSonuc.tarama_sayisi} sorgu, ${toplamSonuc.yeni_eklenen} yeni lead`);
     return toplamSonuc;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🚀 JOB TABANLI TOPLU TARAMA — "Manyak Mod" Paralel Motor
+  // ═══════════════════════════════════════════════════════════════════
+
+  _jobId() {
+    return 'tr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  }
+
+  _jobEmit(jobId, data, force = false) {
+    try {
+      const now = Date.now();
+      const last = this._jobEmitThrottle.get(jobId) || 0;
+      if (!force && now - last < 1000) return; // 1sn throttle
+      this._jobEmitThrottle.set(jobId, now);
+      socketServer.emitToAdmin('avci:job', { job_id: jobId, ...data });
+    } catch (e) {}
+  }
+
+  // Job oluştur, DB'ye kaydet, arka planda başlat
+  async jobBaslat({ sehirler, kategoriler, preset = null, paralel = 5, hardLimit = 60, baslik = null }) {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) throw new Error('GOOGLE_MAPS_API_KEY env değişkeni tanımlı değil');
+    if (!Array.isArray(sehirler) || !sehirler.length) throw new Error('En az 1 şehir gerekli');
+    if (!Array.isArray(kategoriler) || !kategoriler.length) throw new Error('En az 1 kategori gerekli');
+
+    const jobId = this._jobId();
+    const ayarlar = { paralel, hard_limit: hardLimit };
+    const finalBaslik = baslik || `${sehirler.length} il × ${kategoriler.length} kategori`;
+
+    // Tahmini toplam sorgu: her (sehir, kategori) için hardLimit kadar sorgu (tipik kullanım)
+    const tahminiToplam = sehirler.length * kategoriler.length * hardLimit;
+
+    // Ana job kaydı
+    await pool.query(
+      `INSERT INTO avci_tarama_joblari (job_id, baslik, durum, sehirler, kategoriler, toplam_sorgu, preset, ayarlar)
+       VALUES ($1, $2, 'bekliyor', $3, $4, $5, $6, $7)`,
+      [jobId, finalBaslik, sehirler, kategoriler, tahminiToplam, preset, JSON.stringify(ayarlar)]
+    );
+
+    // Detay kayıtları (her sehir × kategori için)
+    const detayValues = [];
+    const detayParams = [];
+    let idx = 1;
+    for (const sehir of sehirler) {
+      for (const kategori of kategoriler) {
+        detayValues.push(`($${idx++}, $${idx++}, $${idx++}, 'bekliyor')`);
+        detayParams.push(jobId, sehir, kategori);
+      }
+    }
+    if (detayValues.length) {
+      await pool.query(
+        `INSERT INTO avci_tarama_detay (job_id, sehir, kategori, durum) VALUES ${detayValues.join(', ')}
+         ON CONFLICT (job_id, sehir, kategori) DO NOTHING`,
+        detayParams
+      );
+    }
+
+    // Arka planda worker başlat (await etme!)
+    this._jobWorker(jobId).catch(e => {
+      console.error(`❌ Job worker hatası (${jobId}):`, e.message);
+      pool.query(
+        `UPDATE avci_tarama_joblari SET durum='hata', hata_mesaji=$1, bitis_tarihi=NOW() WHERE job_id=$2`,
+        [e.message, jobId]
+      ).catch(() => {});
+    });
+
+    return { job_id: jobId, baslik: finalBaslik, toplam_detay: detayValues.length, tahmini_sorgu: tahminiToplam };
+  }
+
+  // Ana worker — pending detayları paralel çalıştırır
+  async _jobWorker(jobId) {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) throw new Error('GOOGLE_MAPS_API_KEY yok');
+
+    // Job bilgilerini al
+    const jobRes = await pool.query(
+      `SELECT * FROM avci_tarama_joblari WHERE job_id=$1`, [jobId]
+    );
+    if (!jobRes.rows.length) throw new Error('Job bulunamadı');
+    const job = jobRes.rows[0];
+    const ayarlar = typeof job.ayarlar === 'string' ? JSON.parse(job.ayarlar) : (job.ayarlar || {});
+    const paralel = ayarlar.paralel || 5;
+    const hardLimit = ayarlar.hard_limit || 60;
+
+    // İptal bayrağı
+    this.aktifJoblar.set(jobId, { iptal: false });
+
+    // Durum: calisiyor
+    await pool.query(
+      `UPDATE avci_tarama_joblari SET durum='calisiyor', son_guncelleme=NOW() WHERE job_id=$1`, [jobId]
+    );
+    this._jobEmit(jobId, { durum: 'calisiyor', baslik: job.baslik }, true);
+
+    console.log(`🚀 [Job ${jobId}] başladı: ${job.sehirler.length} il × ${job.kategoriler.length} kategori, paralel=${paralel}, hardLimit=${hardLimit}`);
+
+    // Pending detayları al
+    const pendingRes = await pool.query(
+      `SELECT sehir, kategori FROM avci_tarama_detay WHERE job_id=$1 AND durum IN ('bekliyor', 'calisiyor') ORDER BY id`,
+      [jobId]
+    );
+    const pendings = pendingRes.rows;
+
+    // Paralel havuz — aynı anda `paralel` sayıda detay çalışır
+    let index = 0;
+    const isler = [];
+    const worker = async () => {
+      while (index < pendings.length) {
+        const ctrl = this.aktifJoblar.get(jobId);
+        if (ctrl?.iptal) return;
+        const my = pendings[index++];
+        try {
+          await this._detayTara(jobId, my.sehir, my.kategori, apiKey, hardLimit);
+        } catch (e) {
+          console.error(`❌ [${jobId}] ${my.sehir}×${my.kategori} hata:`, e.message);
+          await pool.query(
+            `UPDATE avci_tarama_detay SET durum='hata', hata_mesaji=$1, bitis=NOW() WHERE job_id=$2 AND sehir=$3 AND kategori=$4`,
+            [e.message, jobId, my.sehir, my.kategori]
+          ).catch(() => {});
+          await pool.query(`UPDATE avci_tarama_joblari SET hatali_sorgu = hatali_sorgu + 1 WHERE job_id=$1`, [jobId]).catch(() => {});
+        }
+      }
+    };
+    for (let i = 0; i < paralel; i++) isler.push(worker());
+    await Promise.all(isler);
+
+    // Final durum
+    const ctrl = this.aktifJoblar.get(jobId);
+    const finalDurum = ctrl?.iptal ? 'iptal' : 'tamamlandi';
+    await pool.query(
+      `UPDATE avci_tarama_joblari SET durum=$1, bitis_tarihi=NOW(), son_guncelleme=NOW() WHERE job_id=$2`,
+      [finalDurum, jobId]
+    );
+    const finalJob = await pool.query(`SELECT * FROM avci_tarama_joblari WHERE job_id=$1`, [jobId]);
+    this._jobEmit(jobId, { durum: finalDurum, ...finalJob.rows[0] }, true);
+    this.aktifJoblar.delete(jobId);
+
+    console.log(`✅ [Job ${jobId}] bitti (${finalDurum}): yeni=${finalJob.rows[0].yeni_eklenen}, zaten_var=${finalJob.rows[0].zaten_var}`);
+  }
+
+  // Tek bir (sehir, kategori) için fanout tarama — detay tablosunu canlı günceller
+  async _detayTara(jobId, sehir, kategori, apiKey, hardLimit) {
+    const ctrl = this.aktifJoblar.get(jobId);
+    if (ctrl?.iptal) return;
+
+    // İlçeleri al
+    let ilceler = this._ilceleriGetir(sehir);
+    if (!ilceler.length) ilceler = ['']; // bilinmiyorsa tek sorgu
+
+    // Sinonimler
+    const sinonimler = sinonimleriGetir(kategori);
+
+    // Detay: calisiyor
+    await pool.query(
+      `UPDATE avci_tarama_detay SET durum='calisiyor', baslangic=NOW() WHERE job_id=$1 AND sehir=$2 AND kategori=$3`,
+      [jobId, sehir, kategori]
+    );
+    this._jobEmit(jobId, { tip: 'detay_basladi', sehir, kategori });
+
+    let sorguSayaci = 0;
+    let yeniToplam = 0, zatenToplam = 0, bulundToplam = 0;
+
+    for (const curIlce of ilceler) {
+      if (this.aktifJoblar.get(jobId)?.iptal) break;
+      if (sorguSayaci >= hardLimit) break;
+
+      for (const sinonim of sinonimler) {
+        if (this.aktifJoblar.get(jobId)?.iptal) break;
+        if (sorguSayaci >= hardLimit) break;
+
+        try {
+          const sonuc = await this._tekSorgu({ sehir, ilce: curIlce, kategori: sinonim, apiKey });
+          yeniToplam += sonuc.yeni_eklenen;
+          zatenToplam += sonuc.zaten_var;
+          bulundToplam += sonuc.toplam_bulunan;
+          sorguSayaci++;
+
+          // Detay canlı güncelle
+          await pool.query(
+            `UPDATE avci_tarama_detay SET tamamlanan_sorgu=$1, yeni_eklenen=$2, zaten_var=$3 WHERE job_id=$4 AND sehir=$5 AND kategori=$6`,
+            [sorguSayaci, yeniToplam, zatenToplam, jobId, sehir, kategori]
+          );
+          // Ana job sayaçları (atomik increment)
+          await pool.query(
+            `UPDATE avci_tarama_joblari 
+             SET tamamlanan_sorgu = tamamlanan_sorgu + 1,
+                 basarili_sorgu = basarili_sorgu + 1,
+                 yeni_eklenen = yeni_eklenen + $1,
+                 zaten_var = zaten_var + $2,
+                 toplam_bulunan = toplam_bulunan + $3,
+                 son_guncelleme = NOW()
+             WHERE job_id = $4`,
+            [sonuc.yeni_eklenen, sonuc.zaten_var, sonuc.toplam_bulunan, jobId]
+          );
+
+          // Canlı yayın (throttled)
+          this._jobEmit(jobId, {
+            tip: 'progress',
+            sehir, kategori,
+            detay_sorgu: sorguSayaci,
+            detay_yeni: yeniToplam,
+            aktif_sorgu: `${sinonim} ${curIlce || ''} ${sehir}`.trim(),
+          });
+        } catch (e) {
+          console.log(`  ⚠️ [${jobId}] ${sinonim} ${curIlce} ${sehir} sorgu hata:`, e.message);
+          await pool.query(`UPDATE avci_tarama_joblari SET hatali_sorgu = hatali_sorgu + 1, tamamlanan_sorgu = tamamlanan_sorgu + 1 WHERE job_id=$1`, [jobId]).catch(() => {});
+          sorguSayaci++;
+        }
+
+        // Rate limit
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+
+    // Detay bitti
+    await pool.query(
+      `UPDATE avci_tarama_detay SET durum='tamamlandi', bitis=NOW(), tamamlanan_sorgu=$1, yeni_eklenen=$2, zaten_var=$3 WHERE job_id=$4 AND sehir=$5 AND kategori=$6`,
+      [sorguSayaci, yeniToplam, zatenToplam, jobId, sehir, kategori]
+    );
+    this._jobEmit(jobId, { tip: 'detay_bitti', sehir, kategori, yeni: yeniToplam, zaten: zatenToplam }, true);
+  }
+
+  // Job iptal
+  async jobIptal(jobId) {
+    const ctrl = this.aktifJoblar.get(jobId);
+    if (ctrl) ctrl.iptal = true;
+    await pool.query(`UPDATE avci_tarama_joblari SET durum='iptal', bitis_tarihi=NOW() WHERE job_id=$1 AND durum IN ('bekliyor', 'calisiyor')`, [jobId]);
+    return { basarili: true };
+  }
+
+  // Job durumu — ana + detaylar
+  async jobDurum(jobId) {
+    const jobRes = await pool.query(`SELECT * FROM avci_tarama_joblari WHERE job_id=$1`, [jobId]);
+    if (!jobRes.rows.length) return null;
+    const detayRes = await pool.query(
+      `SELECT sehir, kategori, durum, tamamlanan_sorgu, yeni_eklenen, zaten_var, baslangic, bitis, hata_mesaji
+       FROM avci_tarama_detay WHERE job_id=$1 ORDER BY id`,
+      [jobId]
+    );
+    return { ...jobRes.rows[0], detaylar: detayRes.rows };
+  }
+
+  // Son N job (geçmiş)
+  async jobGecmis(limit = 20) {
+    const r = await pool.query(
+      `SELECT job_id, baslik, durum, sehirler, kategoriler, toplam_sorgu, tamamlanan_sorgu,
+              basarili_sorgu, hatali_sorgu, yeni_eklenen, zaten_var,
+              baslangic_tarihi, bitis_tarihi, preset
+       FROM avci_tarama_joblari
+       ORDER BY baslangic_tarihi DESC
+       LIMIT $1`,
+      [limit]
+    );
+    return r.rows;
+  }
+
+  // Pending job'ları resume et (server restart sonrası)
+  async pendingJoblariDevam() {
+    try {
+      const r = await pool.query(
+        `SELECT job_id FROM avci_tarama_joblari WHERE durum IN ('bekliyor', 'calisiyor')`
+      );
+      for (const row of r.rows) {
+        console.log(`🔄 Pending job devam ediyor: ${row.job_id}`);
+        this._jobWorker(row.job_id).catch(e => {
+          console.error(`❌ Resume hatası (${row.job_id}):`, e.message);
+        });
+      }
+      return r.rows.length;
+    } catch (e) {
+      console.log('⚠️ Job resume hatası:', e.message);
+      return 0;
+    }
   }
 
   // Sosyal medya araması - SerpAPI ile Instagram/Facebook/TikTok profilleri bul

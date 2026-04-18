@@ -13,6 +13,7 @@ import Sadakat from "./components/Sadakat/Sadakat";
 import Referans from "./components/Referans/Referans";
 import DogumGunu from "./components/DogumGunu/DogumGunu";
 import MusteriGetir from "./components/MusteriGetir/MusteriGetir";
+import AvciToplu from "./components/AvciToplu/AvciToplu";
 import * as socketClient from "./lib/socket";
 const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, useSocketStatus } = socketClient;
 
@@ -6378,28 +6379,10 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
-            {/* Toplu tarama formu */}
+            {/* 🚀 Toplu tarama — Manyak Mod bileşeni */}
             {topluTaramaAcik && (
-              <div style={{ background: "linear-gradient(135deg, rgba(139,92,246,.04), rgba(139,92,246,.01))", border: "1px solid rgba(139,92,246,.15)", borderRadius: 16, padding: "20px 24px", marginBottom: 20 }}>
-                <div className="row gap-8 mb-12" style={{ alignItems: "center" }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(139,92,246,.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🚀</div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: "var(--text)" }}>Toplu Tarama — Tüm İlçeler</div>
-                    <div style={{ fontSize: 11, color: "var(--dim)" }}>39 ilçede seçtiğin kategorileri otomatik tara (birkaç dk sürebilir)</div>
-                  </div>
-                </div>
-                <div className="mb-16"><label className="form-label">Şehir</label><input value={topluSehir} onChange={e => setTopluSehir(e.target.value)} className="input" style={{ width: 160, borderRadius: 10 }} /></div>
-                <div className="mb-16">
-                  <label className="form-label mb-8">Kategoriler</label>
-                  <div className="row row-wrap gap-6">{["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => (
-                    <button key={k} onClick={() => setTopluKategoriler(prev => prev.includes(k) ? prev.filter(x => x !== k) : [...prev, k])} style={{ padding: "6px 14px", borderRadius: 10, border: "none", fontSize: 12, fontWeight: topluKategoriler.includes(k) ? 700 : 500, cursor: "pointer", background: topluKategoriler.includes(k) ? "#8b5cf6" : "var(--bg)", color: topluKategoriler.includes(k) ? "#fff" : "var(--dim)", transition: "all .2s" }}>{k}</button>
-                  ))}</div>
-                  <span style={{ display: "block", marginTop: 8, color: "var(--dim)", fontSize: 11 }}>{topluKategoriler.length} kategori seçili · ~{topluKategoriler.length * 39} tarama</span>
-                </div>
-                <button disabled={avciTaramaYukleniyor || !topluKategoriler.length} onClick={() => avciTaramaBaslat("/admin/avci/toplu-tarama", { sehir: topluSehir, kategoriler: topluKategoriler })} className="btn" style={{ background: avciTaramaYukleniyor ? "var(--surface3)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)", color: "#fff", fontWeight: 700, borderRadius: 10, opacity: avciTaramaYukleniyor ? 0.6 : 1 }}>{avciTaramaYukleniyor ? "⏳ Toplu tarama devam ediyor..." : `🚀 ${topluKategoriler.length} Kategori × Tüm İlçeler Tara`}</button>
-                {avciTaramaYukleniyor && avciTaramaId && (
-                  <button onClick={avciTaramaIptalEt} className="btn" style={{ marginLeft: 8, background: "rgba(239,68,68,.1)", color: "#ef4444", fontWeight: 700, borderRadius: 10, border: "1px solid rgba(239,68,68,.3)" }}>⏹ İptal</button>
-                )}
+              <div style={{ marginBottom: 20 }}>
+                <AvciToplu api={api} />
               </div>
             )}
 
