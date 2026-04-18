@@ -1,5 +1,12 @@
 process.env.TZ = 'Europe/Istanbul';
 
+// Baileys/libsignal internal spam loglarını sustur
+const _origLog = console.log;
+console.log = function(...args) {
+  if (args[0] && typeof args[0] === 'string' && args[0].startsWith('Closing session:')) return;
+  _origLog.apply(console, args);
+};
+
 const express = require('express');
 const http = require('http');
 const cors = require('cors');

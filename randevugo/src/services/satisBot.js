@@ -256,12 +256,23 @@ class SatisBot extends EventEmitter {
         logger: pino({ level: 'silent' }),
         browser: ['SıraGO-Sales', 'Chrome', '4.0.0'],
         generateHighQualityLinkPreview: false,
+        syncFullHistory: false,
+        markOnlineOnConnect: false,
       });
 
       ns.sock.ev.on('creds.update', saveCreds);
 
       ns.sock.ev.on('connection.update', (update) => {
         this._handleNumaraConnectionUpdate(numaraId, update);
+      });
+
+      // Mesaj teslim durumu takibi
+      ns.sock.ev.on('messages.update', (updates) => {
+        for (const u of updates) {
+          if (u.update?.status === 2) console.log(`📬 [#${numaraId}] Teslim edildi: ${u.key?.remoteJid?.split('@')[0]} msgId=${u.key?.id}`);
+          else if (u.update?.status === 3) console.log(`📭 [#${numaraId}] Okundu: ${u.key?.remoteJid?.split('@')[0]} msgId=${u.key?.id}`);
+          else if (u.update?.status === 0 || u.update?.status === 1) console.log(`⚠️ [#${numaraId}] Mesaj durumu=${u.update?.status}: ${u.key?.remoteJid?.split('@')[0]} msgId=${u.key?.id}`);
+        }
       });
 
       // Gelen mesajları dinle
@@ -966,19 +977,35 @@ class SatisBot extends EventEmitter {
     } catch (e) { /* presence hataları önemsiz */ }
 
     try {
+      // Socket bağlantı kontrolü — gönderim öncesi
+      if (!sock?.user || !sock?.ws) {
+        throw new Error('Socket bağlı değil — mesaj gönderilemez');
+      }
+
       const sent = await sock.sendMessage(jid, { text: mesaj });
       if (!sent?.key?.id) {
         throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
       }
+
+      // Gönderimden sonra 2sn bekle — socket hâlâ ayakta mı?
+      await new Promise(r => setTimeout(r, 2000));
+      const socketSaglamMi = sock?.user && sock?.ws?.readyState === 1;
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
-      console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
+
+      if (socketSaglamMi) {
+        console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi + socket sağlam: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
+      } else {
+        console.log(`⚠️ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi ama socket DÜŞTÜ: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
+      }
 
       // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder (link yerine medya)
-      await this._tanitimVideosuGonder(sock, jid, kategori, ns.numaraId);
+      if (socketSaglamMi) {
+        await this._tanitimVideosuGonder(sock, jid, kategori, ns.numaraId);
+      }
 
       await pool.query(
-        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
-        [lead.id]
+        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = $2, wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
+        [lead.id, socketSaglamMi ? 'gonderildi' : 'teslim_belirsiz']
       );
 
       await pool.query(
@@ -1068,20 +1095,34 @@ class SatisBot extends EventEmitter {
 
     // Mesaj gönder
     try {
+      if (!sock?.user || !sock?.ws) {
+        throw new Error('Socket bağlı değil — mesaj gönderilemez');
+      }
+
       const sent = await sock.sendMessage(jid, { text: mesaj });
       if (!sent?.key?.id) {
         throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
       }
+
+      await new Promise(r => setTimeout(r, 2000));
+      const socketSaglamMi = sock?.user && sock?.ws?.readyState === 1;
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
-      console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
+
+      if (socketSaglamMi) {
+        console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi + socket sağlam: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
+      } else {
+        console.log(`⚠️ [${numaraInfo}]${kampInfo} Mesaj gönderildi ama socket DÜŞTÜ: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
+      }
 
       // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder
-      await this._tanitimVideosuGonder(sock, jid, kategori, numaraInfo);
+      if (socketSaglamMi) {
+        await this._tanitimVideosuGonder(sock, jid, kategori, numaraInfo);
+      }
 
       // DB güncelle
       await pool.query(
-        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
-        [lead.id]
+        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = $2, wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
+        [lead.id, socketSaglamMi ? 'gonderildi' : 'teslim_belirsiz']
       );
 
       // Konuşma kaydı oluştur
