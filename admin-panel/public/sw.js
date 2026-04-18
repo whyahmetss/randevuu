@@ -17,8 +17,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'SıraGO';
   const options = {
     body: payload.body || '',
-    icon: payload.icon || '/logo1-CHW0j2wI.png',
-    badge: payload.badge || '/logo1-CHW0j2wI.png',
+    icon: payload.icon || '/logo.png',
+    badge: payload.badge || '/logo.png',
     tag: payload.tag || 'default',
     data: { url: payload.url || '/', ...(payload.data || {}) },
     vibrate: payload.vibrate || [200, 80, 200, 80, 200],
