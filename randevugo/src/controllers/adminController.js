@@ -5088,14 +5088,14 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://admin.xn--srago-n4a.com/book/${slug}`;
+        hedefUrl = `https://admin.sırago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
         hedefUrl = `https://wa.me/${uluslararasi}?text=Merhaba`;
       }
 
-      const qrBase64 = await QRCode.toDataURL(hedefUrl, {
+      const qrBase64 = await QRCode.toDataURL(type === 'booking' ? `https://admin.xn--srago-n4a.com/book/${slug}` : hedefUrl, {
         width: 600, margin: 2,
         color: { dark: type === 'booking' ? '#3b82f6' : '#00C853', light: '#FFFFFF' },
         errorCorrectionLevel: 'M'
@@ -5129,16 +5129,18 @@ class AdminController {
         await pool.query('UPDATE isletmeler SET slug = $1 WHERE id = $2', [slug, isletmeId]);
       }
 
-      let hedefUrl;
+      let hedefUrl, qrUrl;
       if (type === 'booking') {
-        hedefUrl = `https://admin.xn--srago-n4a.com/book/${slug}`;
+        hedefUrl = `https://admin.sırago.com/book/${slug}`;
+        qrUrl = `https://admin.xn--srago-n4a.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
         hedefUrl = `https://wa.me/${uluslararasi}?text=Merhaba`;
+        qrUrl = hedefUrl;
       }
 
-      const qrBase64 = await QRCode.toDataURL(hedefUrl, {
+      const qrBase64 = await QRCode.toDataURL(qrUrl, {
         width: 600,
         margin: 2,
         color: { dark: '#00C853', light: '#FFFFFF' },
