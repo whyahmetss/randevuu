@@ -140,6 +140,8 @@ export const TRANSLATIONS = {
     otpResend: 'Отправить код снова',
     otpResendWait: 'Повторная отправка через',
     otpChangePhone: '← Изменить номер телефона',
+    servicesSelected: 'услуг выбрано',
+    periodMorning: 'Утро', periodAfternoon: 'День', periodEvening: 'Вечер',
     locale: 'ru-RU',
   },
   de: {
@@ -172,6 +174,8 @@ export const TRANSLATIONS = {
     otpResend: 'Code erneut senden',
     otpResendWait: 'Erneut senden in',
     otpChangePhone: '← Telefonnummer ändern',
+    servicesSelected: 'Dienste ausgewählt',
+    periodMorning: 'Morgen', periodAfternoon: 'Nachmittag', periodEvening: 'Abend',
     locale: 'de-DE',
   },
   ar: {
@@ -249,6 +253,8 @@ export const TRANSLATIONS = {
     otpResend: 'Renvoyer le code',
     otpResendWait: 'Renvoyer dans',
     otpChangePhone: '← Changer le numéro',
+    servicesSelected: 'services sélectionnés',
+    periodMorning: 'Matin', periodAfternoon: 'Après-midi', periodEvening: 'Soir',
     locale: 'fr-FR',
   },
   uk: {
@@ -281,6 +287,8 @@ export const TRANSLATIONS = {
     otpResend: 'Надіслати код ще раз',
     otpResendWait: 'Повторно через',
     otpChangePhone: '← Змінити номер',
+    servicesSelected: 'послуг обрано',
+    periodMorning: 'Ранок', periodAfternoon: 'День', periodEvening: 'Вечір',
     locale: 'uk-UA',
   },
   fa: {
@@ -313,6 +321,8 @@ export const TRANSLATIONS = {
     otpResend: 'ارسال مجدد کد',
     otpResendWait: 'ارسال مجدد در',
     otpChangePhone: '← تغییر شماره تلفن',
+    servicesSelected: 'خدمت انتخاب شد',
+    periodMorning: 'صبح', periodAfternoon: 'بعدازظهر', periodEvening: 'عصر',
     locale: 'fa-IR',
   },
   es: {
@@ -345,6 +355,8 @@ export const TRANSLATIONS = {
     otpResend: 'Reenviar código',
     otpResendWait: 'Reenviar en',
     otpChangePhone: '← Cambiar número',
+    servicesSelected: 'servicios seleccionados',
+    periodMorning: 'Mañana', periodAfternoon: 'Tarde', periodEvening: 'Noche',
     locale: 'es-ES',
   },
   nl: {
@@ -377,6 +389,8 @@ export const TRANSLATIONS = {
     otpResend: 'Code opnieuw verzenden',
     otpResendWait: 'Opnieuw verzenden over',
     otpChangePhone: '← Telefoonnummer wijzigen',
+    servicesSelected: 'diensten geselecteerd',
+    periodMorning: 'Ochtend', periodAfternoon: 'Middag', periodEvening: 'Avond',
     locale: 'nl-NL',
   },
   it: {
@@ -409,6 +423,8 @@ export const TRANSLATIONS = {
     otpResend: 'Reinvia codice',
     otpResendWait: 'Reinvia tra',
     otpChangePhone: '← Cambia numero',
+    servicesSelected: 'servizi selezionati',
+    periodMorning: 'Mattina', periodAfternoon: 'Pomeriggio', periodEvening: 'Sera',
     locale: 'it-IT',
   },
   pl: {
@@ -441,6 +457,8 @@ export const TRANSLATIONS = {
     otpResend: 'Wyślij kod ponownie',
     otpResendWait: 'Ponownie za',
     otpChangePhone: '← Zmień numer',
+    servicesSelected: 'usług wybrano',
+    periodMorning: 'Rano', periodAfternoon: 'Popołudnie', periodEvening: 'Wieczór',
     locale: 'pl-PL',
   },
 };
