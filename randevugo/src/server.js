@@ -162,6 +162,19 @@ const PORT = process.env.PORT || 3000;
          AND (sube.paket_bitis_tarihi IS NULL OR sube.deneme_bitis_tarihi IS NULL)
     `);
 
+    // ─── Bozuk slug'ları düzelt (boşluk içerenler) ───
+    await pool.query(`
+      UPDATE isletmeler
+         SET slug = LOWER(
+           REGEXP_REPLACE(
+             REGEXP_REPLACE(
+               REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(isim,'ğ','g'),'ü','u'),'ş','s'),'ı','i'),'ö','o'),'ç','c'),
+               '[^a-zA-Z0-9]+', '-', 'g'),
+             '(^-|-$)', '', 'g')
+         ) || '-' || id
+       WHERE slug IS NOT NULL AND slug ~ '\\s'
+    `);
+
     // ─── KAPORA SİSTEMİ ───
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS kapora_yuzdesi INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS kapora_aktif BOOLEAN DEFAULT false`);
