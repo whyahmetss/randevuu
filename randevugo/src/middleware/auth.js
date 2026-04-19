@@ -31,13 +31,17 @@ const authMiddleware = async (req, res, next) => {
       }
     }
 
-    // Pasif işletme kontrolü (SuperAdmin hariç)
+    // Pasif işletme kontrolü + grup_id backfill (SuperAdmin hariç)
     const kontrolId = req.kullanici.aktif_isletme_id || decoded.isletme_id;
     if (decoded.rol !== 'superadmin' && kontrolId) {
       try {
-        const isletme = (await pool.query('SELECT aktif FROM isletmeler WHERE id = $1', [kontrolId])).rows[0];
+        const isletme = (await pool.query('SELECT aktif, grup_id FROM isletmeler WHERE id = $1', [kontrolId])).rows[0];
         if (isletme && !isletme.aktif) {
           return res.status(403).json({ hata: 'İşletme pasif', mesaj: 'İşletmeniz pasif durumda. Lütfen destek ile iletişime geçin.', pasif: true });
+        }
+        // JWT eski olabilir — grup_id'yi DB'den fresh al
+        if (isletme && isletme.grup_id && !req.kullanici.grup_id) {
+          req.kullanici.grup_id = isletme.grup_id;
         }
       } catch (e) { /* DB hatası durumunda engelleme */ }
     }
