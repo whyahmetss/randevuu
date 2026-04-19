@@ -13,10 +13,29 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, jwtSecret);
     req.kullanici = decoded;
 
+    // Grup sahibi ise aktif şube header'ı işle
+    if (decoded.rol === 'grup_sahibi' && decoded.grup_id) {
+      const aktifHeader = req.headers['x-aktif-isletme'];
+      if (aktifHeader) {
+        const aktifId = parseInt(aktifHeader, 10);
+        if (!isNaN(aktifId)) {
+          // Spoof koruması: seçilen şube gerçekten bu gruba ait mi?
+          try {
+            const sube = (await pool.query('SELECT id, aktif, grup_id FROM isletmeler WHERE id = $1', [aktifId])).rows[0];
+            if (sube && sube.grup_id === decoded.grup_id) {
+              req.kullanici.aktif_isletme_id = sube.id;
+              req.kullanici.isletme_id = sube.id; // backward compat
+            }
+          } catch (e) { /* ignore */ }
+        }
+      }
+    }
+
     // Pasif işletme kontrolü (SuperAdmin hariç)
-    if (decoded.rol !== 'superadmin' && decoded.isletme_id) {
+    const kontrolId = req.kullanici.aktif_isletme_id || decoded.isletme_id;
+    if (decoded.rol !== 'superadmin' && kontrolId) {
       try {
-        const isletme = (await pool.query('SELECT aktif FROM isletmeler WHERE id = $1', [decoded.isletme_id])).rows[0];
+        const isletme = (await pool.query('SELECT aktif FROM isletmeler WHERE id = $1', [kontrolId])).rows[0];
         if (isletme && !isletme.aktif) {
           return res.status(403).json({ hata: 'İşletme pasif', mesaj: 'İşletmeniz pasif durumda. Lütfen destek ile iletişime geçin.', pasif: true });
         }
@@ -27,6 +46,18 @@ const authMiddleware = async (req, res, next) => {
   } catch (err) {
     return res.status(401).json({ hata: 'Geçersiz token' });
   }
+};
+
+// Kapsam helper: Controllerlar bu fonksiyonu kullansın (eski req.kullanici.isletme_id yerine)
+const getIsletmeId = (req) => req.kullanici?.aktif_isletme_id || req.kullanici?.isletme_id || null;
+const getGrupId = (req) => req.kullanici?.grup_id || null;
+
+// Rol tabanlı erişim helper: rolKontrol('grup_sahibi', 'superadmin')
+const rolKontrol = (...izinliRoller) => (req, res, next) => {
+  if (!req.kullanici || !izinliRoller.includes(req.kullanici.rol)) {
+    return res.status(403).json({ hata: 'Bu işlem için yetkiniz yok' });
+  }
+  next();
 };
 
 const superAdminMiddleware = (req, res, next) => {
@@ -72,4 +103,4 @@ const odemeKontrol = async (req, res, next) => {
   }
 };
 
-module.exports = { authMiddleware, superAdminMiddleware, odemeKontrol, jwtSecret };
+module.exports = { authMiddleware, superAdminMiddleware, odemeKontrol, jwtSecret, getIsletmeId, getGrupId, rolKontrol };

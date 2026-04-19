@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, superAdminMiddleware, odemeKontrol } = require('../middleware/auth');
+const { authMiddleware, superAdminMiddleware, odemeKontrol, rolKontrol } = require('../middleware/auth');
 const authController = require('../controllers/authController');
 const adminController = require('../controllers/adminController');
 const botController = require('../controllers/botController');
 const bookingController = require('../controllers/bookingController');
+const grupController = require('../controllers/grupController');
 const { numaraRateLimit, payloadDogrula } = require('../middleware/webhookGuard');
 const { ddosGuard } = require('../middleware/ddosGuard');
 const featureGuard = require('../middleware/featureGuard');
@@ -27,6 +28,17 @@ router.get('/admin/google-calendar/durum', authMiddleware, (req, res) => adminCo
 router.get('/admin/google-calendar/auth-url', authMiddleware, (req, res) => adminController.gcalAuthUrl(req, res));
 router.post('/admin/google-calendar/disconnect', authMiddleware, (req, res) => adminController.gcalDisconnect(req, res));
 router.put('/admin/google-calendar/ayarlar', authMiddleware, (req, res) => adminController.gcalAyarGuncelle(req, res));
+
+// ==================== KURUMSAL — ŞUBE GRUPLARI ====================
+router.post('/grup', authMiddleware, odemeKontrol, featureGuard('sube_yonetimi'), (req, res) => grupController.grupKur(req, res));
+router.get('/grup', authMiddleware, rolKontrol('grup_sahibi', 'sube_muduru'), (req, res) => grupController.grupGetir(req, res));
+router.put('/grup', authMiddleware, rolKontrol('grup_sahibi'), (req, res) => grupController.grupGuncelle(req, res));
+router.get('/grup/subeler', authMiddleware, rolKontrol('grup_sahibi', 'sube_muduru'), (req, res) => grupController.subelerListe(req, res));
+router.post('/grup/sube', authMiddleware, rolKontrol('grup_sahibi'), (req, res) => grupController.subeEkle(req, res));
+router.put('/grup/sube/:id', authMiddleware, rolKontrol('grup_sahibi'), (req, res) => grupController.subeGuncelle(req, res));
+router.delete('/grup/sube/:id', authMiddleware, rolKontrol('grup_sahibi'), (req, res) => grupController.subeSil(req, res));
+router.post('/grup/sube/:id/mudur', authMiddleware, rolKontrol('grup_sahibi'), (req, res) => grupController.mudurEkle(req, res));
+router.get('/grup/raporlar', authMiddleware, rolKontrol('grup_sahibi'), (req, res) => grupController.raporlar(req, res));
 
 // ==================== ADMIN PANEL ====================
 router.get('/randevular', authMiddleware, odemeKontrol, (req, res) => adminController.randevulariGetir(req, res));
@@ -373,6 +385,7 @@ router.post('/push/test', authMiddleware, async (req, res) => {
 
 // ==================== ONLINE RANDEVU (Public) ====================
 const noCache = (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); };
+router.get('/book/grup/:slug', noCache, (req, res) => bookingController.grupLanding(req, res));
 router.get('/book/:slug', noCache, (req, res) => bookingController.isletmeBilgileri(req, res));
 router.get('/book/:slug/hizmetler', noCache, (req, res) => bookingController.hizmetleriGetir(req, res));
 router.get('/book/:slug/calisanlar', noCache, (req, res) => bookingController.calisanlariGetir(req, res));
