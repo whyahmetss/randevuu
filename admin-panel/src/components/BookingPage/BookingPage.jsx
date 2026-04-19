@@ -75,6 +75,7 @@ export default function BookingPage({ slug }) {
   const [secilenCalisan, setSecilenCalisan] = useState(null);
   const [secilenTarih, setSecilenTarih] = useState('');
   const [secilenSaat, setSecilenSaat] = useState('');
+  const [saatDilimi, setSaatDilimi] = useState('sabah'); // 'sabah' | 'ogleden' | 'aksam'
   const [musteriIsim, setMusteriIsim] = useState('');
   const [musteriTelefon, setMusteriTelefon] = useState('');
   const [sonuc, setSonuc] = useState(null);
@@ -668,37 +669,85 @@ export default function BookingPage({ slug }) {
           </div>
         )}
 
-        {/* ═══ ADIM 4: SAAT ═══ */}
-        {adim === 4 && (
-          <div className="bk-card">
-            <button onClick={() => setAdim(3)} className="bk-back-btn">
-              <I.ChevronLeft size={14} /> {t('back')}
-            </button>
-            <div className="bk-card-head">
-              <span className="bk-step-badge">
-                <I.Clock size={11} /> {t('selectTime')}
-              </span>
+        {/* ═══ ADIM 4: SAAT (dilim bazlı) ═══ */}
+        {adim === 4 && (() => {
+          const saatToMin = (s) => { const [h,m] = String(s).split(':').map(Number); return h*60 + (m||0); };
+          const sabahList = saatler.filter(s => saatToMin(s) < 12*60);
+          const ogledenList = saatler.filter(s => { const m = saatToMin(s); return m >= 12*60 && m < 17*60; });
+          const aksamList = saatler.filter(s => saatToMin(s) >= 17*60);
+          const dilimMap = { sabah: sabahList, ogleden: ogledenList, aksam: aksamList };
+          // İlk dolu dilimi seç (kullanıcı değiştirene kadar)
+          const ilkDolu = sabahList.length ? 'sabah' : ogledenList.length ? 'ogleden' : 'aksam';
+          const aktifDilim = dilimMap[saatDilimi]?.length ? saatDilimi : ilkDolu;
+          const gosterilen = dilimMap[aktifDilim] || [];
+          return (
+            <div className="bk-card">
+              <button onClick={() => setAdim(3)} className="bk-back-btn">
+                <I.ChevronLeft size={14} /> {t('back')}
+              </button>
+              <div className="bk-card-head">
+                <span className="bk-step-badge">
+                  <I.Clock size={11} /> {t('selectTime')}
+                </span>
+              </div>
+              {saatler.length === 0 ? (
+                <div className="bk-empty">
+                  <I.CalendarX size={28} />
+                  <div>{t('noSlots')}</div>
+                </div>
+              ) : (
+                <>
+                  <div className="bk-period-tabs">
+                    <button
+                      className={`bk-period-tab ${aktifDilim === 'sabah' ? 'active' : ''}`}
+                      onClick={() => setSaatDilimi('sabah')}
+                      disabled={sabahList.length === 0}
+                    >
+                      <span className="bk-period-emoji">☀️</span>
+                      <span className="bk-period-label">{t('periodMorning') || 'Sabah'}</span>
+                      <span className="bk-period-count">{sabahList.length}</span>
+                    </button>
+                    <button
+                      className={`bk-period-tab ${aktifDilim === 'ogleden' ? 'active' : ''}`}
+                      onClick={() => setSaatDilimi('ogleden')}
+                      disabled={ogledenList.length === 0}
+                    >
+                      <span className="bk-period-emoji">🌤️</span>
+                      <span className="bk-period-label">{t('periodAfternoon') || 'Öğleden Sonra'}</span>
+                      <span className="bk-period-count">{ogledenList.length}</span>
+                    </button>
+                    <button
+                      className={`bk-period-tab ${aktifDilim === 'aksam' ? 'active' : ''}`}
+                      onClick={() => setSaatDilimi('aksam')}
+                      disabled={aksamList.length === 0}
+                    >
+                      <span className="bk-period-emoji">🌙</span>
+                      <span className="bk-period-label">{t('periodEvening') || 'Akşam'}</span>
+                      <span className="bk-period-count">{aksamList.length}</span>
+                    </button>
+                  </div>
+                  {gosterilen.length === 0 ? (
+                    <div className="bk-empty" style={{ padding: 20 }}>
+                      <div>{t('noSlotsInPeriod') || 'Bu zaman diliminde müsait saat yok'}</div>
+                    </div>
+                  ) : (
+                    <div className="bk-time-grid">
+                      {gosterilen.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => saatSec(s)}
+                          className={`bk-time ${secilenSaat === s ? 'active' : ''}`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            {saatler.length === 0 ? (
-              <div className="bk-empty">
-                <I.CalendarX size={28} />
-                <div>{t('noSlots')}</div>
-              </div>
-            ) : (
-              <div className="bk-time-grid">
-                {saatler.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => saatSec(s)}
-                    className={`bk-time ${secilenSaat === s ? 'active' : ''}`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          );
+        })()}
 
         {/* ═══ ADIM 5: BİLGİLER + OTP ═══ */}
         {adim === 5 && otpStage === 'giris' && (

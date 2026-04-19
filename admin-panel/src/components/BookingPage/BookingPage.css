@@ -565,10 +565,77 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
 }
+.bk-time-grid::-webkit-scrollbar { width: 6px; }
+.bk-time-grid::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 3px; }
 
 @media (max-width: 380px) {
   .bk-time-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ═══ SAAT DİLİMİ SEGMENTED TABS ═══ */
+.bk-period-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  border-radius: 14px;
+}
+.bk-period-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 6px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+.bk-period-tab:hover:not(:disabled):not(.active) {
+  background: rgba(139, 92, 246, 0.08);
+  color: #CBD5E1;
+}
+.bk-period-tab.active {
+  background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+}
+.bk-period-tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.bk-period-emoji { font-size: 18px; line-height: 1; }
+.bk-period-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1px; }
+.bk-period-count {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: #CBD5E1;
+  min-width: 18px;
+  text-align: center;
+}
+.bk-period-tab.active .bk-period-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+@media (max-width: 380px) {
+  .bk-period-label { display: none; }
+  .bk-period-tab { padding: 10px 4px; }
 }
 
 .bk-time {

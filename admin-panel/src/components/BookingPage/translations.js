@@ -59,6 +59,10 @@ export const TRANSLATIONS = {
     telegramOpenBot: 'Botu Aç',
     telegramConnecting: 'Bağlantı bekleniyor…',
     telegramTimeout: 'Bağlantı kurulamadı, tekrar deneyin veya WhatsApp\'ı seçin.',
+    periodMorning: 'Sabah',
+    periodAfternoon: 'Öğleden Sonra',
+    periodEvening: 'Akşam',
+    noSlotsInPeriod: 'Bu zaman diliminde uygun saat yok',
     locale: 'tr-TR',
   },
   en: {
@@ -100,6 +104,10 @@ export const TRANSLATIONS = {
     telegramOpenBot: 'Open Bot',
     telegramConnecting: 'Waiting for connection…',
     telegramTimeout: 'Could not connect. Try again or choose WhatsApp.',
+    periodMorning: 'Morning',
+    periodAfternoon: 'Afternoon',
+    periodEvening: 'Evening',
+    noSlotsInPeriod: 'No available times in this period',
     locale: 'en-US',
   },
   ru: {
@@ -205,6 +213,10 @@ export const TRANSLATIONS = {
     telegramOpenBot: 'فتح البوت',
     telegramConnecting: 'بانتظار الاتصال…',
     telegramTimeout: 'تعذر الاتصال. حاول مرة أخرى أو اختر واتساب.',
+    periodMorning: 'صباحًا',
+    periodAfternoon: 'بعد الظهر',
+    periodEvening: 'مساءً',
+    noSlotsInPeriod: 'لا توجد أوقات متاحة في هذه الفترة',
     locale: 'ar-SA',
   },
   fr: {
