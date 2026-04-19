@@ -569,13 +569,14 @@ export default function BookingPage({ slug }) {
                   <button
                     key={h.id}
                     onClick={() => hizmetToggle(h)}
-                    className={`bk-item ${secili ? 'active' : ''}`}
+                    className={`bk-item bk-svc-item ${secili ? 'active' : ''}`}
                   >
+                    <div className={`bk-svc-check ${secili ? 'on' : ''}`} aria-hidden="true">
+                      {secili && <I.Check size={14} />}
+                    </div>
                     <div className="bk-item-icon">{hizmetIconu(h.isim)}</div>
                     <div className="bk-item-body">
-                      <div className="bk-item-name">
-                        {secili && <I.Check size={14} />} {h.isim}
-                      </div>
+                      <div className="bk-item-name">{h.isim}</div>
                       <div className="bk-item-meta">
                         <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
                       </div>

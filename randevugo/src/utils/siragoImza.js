@@ -5,9 +5,9 @@
 // ═══════════════════════════════════════════════════
 
 const IMZA_METINLER = {
-  tr: '━━━━━━━━━━\n🚀 _SıraGO ile güçlendirilmiştir_\nsirago.com',
-  en: '━━━━━━━━━━\n🚀 _Powered by SıraGO_\nsirago.com',
-  ar: '━━━━━━━━━━\n🚀 _مدعوم من SıraGO_\nsirago.com',
+  tr: '━━━━━━━━━━\n🚀 _SıraGO ile güçlendirilmiştir_\nsırago.com',
+  en: '━━━━━━━━━━\n🚀 _Powered by SıraGO_\nsırago.com',
+  ar: '━━━━━━━━━━\n🚀 _مدعوم من SıraGO_\nsırago.com',
 };
 
 function envAcik() {
