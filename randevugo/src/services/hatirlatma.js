@@ -206,9 +206,14 @@ class HatirlatmaService {
     } catch (e) { console.error('❌ Bekleme listesi hatası:', e.message); }
   }
 
-  // Telegram veya WP üzerinden mesaj gönder (Baileys öncelikli)
+  // Telegram veya WP üzerinden mesaj gönder (Baileys öncelikli) — imza otomatik ekleniyor
   async mesajGonder(randevu, mesaj) {
     const isTelegram = randevu.musteri_telefon && randevu.musteri_telefon.startsWith('tg:');
+
+    // SıraGO imzası — otomatik hatırlatma mesajlarının altına
+    const { imzaEkle } = require('../utils/siragoImza');
+    const isletmeImza = randevu.imza_gizle ? { imza_gizle: true } : null;
+    const mesajFinal = imzaEkle(mesaj, isletmeImza, 'tr');
 
     try {
       if (isTelegram && randevu.telegram_token) {
@@ -216,7 +221,7 @@ class HatirlatmaService {
         if (chatId) {
           const TelegramBot = require('node-telegram-bot-api');
           const bot = new TelegramBot(randevu.telegram_token);
-          await bot.sendMessage(chatId, mesaj, {
+          await bot.sendMessage(chatId, mesajFinal, {
             parse_mode: 'Markdown',
             reply_markup: { inline_keyboard: [[{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]] }
           });
@@ -230,21 +235,25 @@ class HatirlatmaService {
           const whatsappWeb = require('./whatsappWeb');
           const durum = whatsappWeb.getDurum(randevu.isletme_id);
           if (durum?.durum === 'bagli') {
-            await whatsappWeb.mesajGonder(randevu.isletme_id, randevu.musteri_telefon, mesaj);
+            await whatsappWeb.mesajGonder(randevu.isletme_id, randevu.musteri_telefon, mesajFinal);
             return;
           }
         } catch (e) { /* Baileys bağlı değil, Twilio'ya düş */ }
 
         // Fallback: Twilio
         const whatsappService = require('./whatsapp');
-        await whatsappService.mesajGonder(randevu.musteri_telefon, mesaj);
+        await whatsappService.mesajGonder(randevu.musteri_telefon, mesajFinal);
       }
     } catch (e) { console.error('Hatırlatma gönderim hatası:', e.message); }
   }
 
-  // Memnuniyet mesajı - yıldız butonlarıyla
+  // Memnuniyet mesajı - yıldız butonlarıyla (imza dahil)
   async memnuniyetMesajGonder(randevu, mesaj) {
     const isTelegram = randevu.musteri_telefon && randevu.musteri_telefon.startsWith('tg:');
+
+    const { imzaEkle } = require('../utils/siragoImza');
+    const isletmeImza = randevu.imza_gizle ? { imza_gizle: true } : null;
+    const mesajFinal = imzaEkle(mesaj, isletmeImza, 'tr');
 
     try {
       if (isTelegram && randevu.telegram_token) {
@@ -252,7 +261,7 @@ class HatirlatmaService {
         if (chatId) {
           const TelegramBot = require('node-telegram-bot-api');
           const bot = new TelegramBot(randevu.telegram_token);
-          await bot.sendMessage(chatId, mesaj, {
+          await bot.sendMessage(chatId, mesajFinal, {
             parse_mode: 'Markdown',
             reply_markup: { inline_keyboard: [
               [

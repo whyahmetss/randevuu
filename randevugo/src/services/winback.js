@@ -60,6 +60,10 @@ class WinbackService {
       .replace(/{indirim}/g, indirim)
       .replace(/{isletme_adi}/g, isletme.isim || '');
 
+    const { imzaEkle } = require('../utils/siragoImza');
+    const isletmeImza = isletme.imza_gizle ? { imza_gizle: true } : null;
+    const mesajFinal = imzaEkle(mesaj, isletmeImza, 'tr');
+
     let durum = 'gonderildi';
     try {
       const isTelegram = musteri.telefon?.startsWith('tg:');
@@ -68,13 +72,13 @@ class WinbackService {
         if (chatId) {
           const TelegramBot = require('node-telegram-bot-api');
           const bot = new TelegramBot(isletme.telegram_token);
-          await bot.sendMessage(chatId, mesaj);
+          await bot.sendMessage(chatId, mesajFinal);
         } else { durum = 'baglanti_yok'; }
       } else if (!isTelegram) {
         const whatsappWeb = require('./whatsappWeb');
         const waDurum = whatsappWeb.getDurum(isletme.id);
         if (waDurum?.durum === 'bagli') {
-          await whatsappWeb.mesajGonder(isletme.id, musteri.telefon, mesaj);
+          await whatsappWeb.mesajGonder(isletme.id, musteri.telefon, mesajFinal);
         } else { durum = 'baglanti_yok'; }
       }
     } catch (e) {

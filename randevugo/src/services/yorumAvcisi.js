@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
+const siragoImza = require('../utils/siragoImza');
 
 class YorumAvcisiService {
 
@@ -74,6 +75,8 @@ class YorumAvcisiService {
           .replace(/{isletme_adi}/g, t.isletme_isim || '')
           .replace(/{google_maps_link}/g, t.google_maps_link || '');
 
+        const mesajWithSignature = siragoImza.imzaEkle(mesaj, { imza_gizle: !t.paket || t.paket === 'baslangic' ? false : null, ...t });
+
         let durum = 'gonderildi';
         try {
           const isTelegram = t.telefon && t.telefon.startsWith('tg:');
@@ -82,14 +85,14 @@ class YorumAvcisiService {
             if (chatId) {
               const TelegramBot = require('node-telegram-bot-api');
               const bot = new TelegramBot(t.telegram_token);
-              await bot.sendMessage(chatId, mesaj);
+              await bot.sendMessage(chatId, mesajWithSignature);
             } else { durum = 'baglanti_yok'; }
           } else if (!isTelegram) {
             // WhatsApp Web (Baileys)
             const whatsappWeb = require('./whatsappWeb');
             const waDurum = whatsappWeb.getDurum(t.isletme_id);
             if (waDurum?.durum === 'bagli') {
-              await whatsappWeb.mesajGonder(t.isletme_id, t.telefon, mesaj);
+              await whatsappWeb.mesajGonder(t.isletme_id, t.telefon, mesajWithSignature);
             } else { durum = 'baglanti_yok'; }
           }
         } catch (e) {

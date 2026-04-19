@@ -115,6 +115,9 @@ const PORT = process.env.PORT || 3000;
     // Dil tercihi kalıcılığı
     await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_dil VARCHAR(5)`);
     await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_dilim VARCHAR(10)`);
+    // Telegram OTP — chat_id eşleşmesi (booking sayfası TG kanalı için)
+    await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS chat_id VARCHAR(50)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_bot_durum_chat_id ON bot_durum(chat_id) WHERE chat_id IS NOT NULL`);
     // Çok dilli hizmet isimleri
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_en VARCHAR(100)`);
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_ar VARCHAR(100)`);
@@ -781,6 +784,41 @@ const PORT = process.env.PORT || 3000;
     )`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_job ON avci_tarama_detay(job_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_durum ON avci_tarama_detay(durum)`);
+
+    // ═══════════════════════════════════════════════════
+    // 🧾 ÇOKLU HİZMET (Saç + Sakal + ...) — Junction tablo
+    // ═══════════════════════════════════════════════════
+    await pool.query(`CREATE TABLE IF NOT EXISTS randevu_hizmetleri (
+      id SERIAL PRIMARY KEY,
+      randevu_id INTEGER NOT NULL REFERENCES randevular(id) ON DELETE CASCADE,
+      hizmet_id INTEGER NOT NULL REFERENCES hizmetler(id) ON DELETE RESTRICT,
+      sira SMALLINT DEFAULT 0,
+      fiyat NUMERIC(10,2),
+      sure_dk INTEGER,
+      UNIQUE(randevu_id, hizmet_id)
+    )`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_randevu_hizmetleri_randevu ON randevu_hizmetleri(randevu_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_randevu_hizmetleri_hizmet ON randevu_hizmetleri(hizmet_id)`);
+
+    // ⬇️ BACKFILL: Mevcut randevular için junction tabloya tek-hizmet kayıtları at.
+    // Sadece junction'da hiç kaydı olmayan randevular için yapılır (idempotent).
+    // Try-catch ile sarıldı — migration başarısız olursa diğer başlatmalar etkilenmesin.
+    try {
+      const bf = await pool.query(`
+        INSERT INTO randevu_hizmetleri (randevu_id, hizmet_id, sira, fiyat, sure_dk)
+        SELECT r.id, r.hizmet_id, 0, h.fiyat, h.sure_dk
+        FROM randevular r
+        LEFT JOIN hizmetler h ON h.id = r.hizmet_id
+        LEFT JOIN randevu_hizmetleri rh ON rh.randevu_id = r.id
+        WHERE r.hizmet_id IS NOT NULL AND rh.id IS NULL
+      `);
+      if (bf.rowCount > 0) console.log(`📋 Junction backfill: ${bf.rowCount} randevu aktarıldı`);
+    } catch (bfErr) {
+      console.log('⚠️ Junction backfill atlandı:', bfErr.message);
+    }
+
+    // Premium paket için imza gizleme kolonu (ileride kullanılacak)
+    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS imza_gizle BOOLEAN DEFAULT false`);
 
     // ═══════════════════════════════════════════════════
     // 📅 GOOGLE CALENDAR 2-WAY SYNC

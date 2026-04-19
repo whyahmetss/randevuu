@@ -2006,7 +2006,7 @@ function Dashboard() {
                         }}>{r.saat?.slice(0, 5)}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.musteri_isim || "İsimsiz"}</div>
-                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{r.hizmet_isim}</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}</div>
                         </div>
                         <span style={{ padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 600, background: `${DR[r.durum] || "#9ca3af"}12`, color: DR[r.durum] || "#9ca3af", whiteSpace: "nowrap" }}>{DL[r.durum] || r.durum}</span>
                       </div>
@@ -2224,7 +2224,7 @@ function Dashboard() {
                       }}>
                         <span style={{ fontWeight: 800, color: renk }}>{r.saat?.slice(0, 5)}</span>
                         <span style={{ fontWeight: 600, color: "var(--text)" }}>{r.musteri_isim || "İsimsiz"}</span>
-                        {r.hizmet_isim && <span style={{ color: "var(--dim)" }}>· {r.hizmet_isim}</span>}
+                        {(r.hizmetler_adlari || r.hizmet_isim) && <span style={{ color: "var(--dim)" }}>· {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}</span>}
                         <span style={{ marginLeft: "auto", background: `${renk}30`, color: renk, padding: "2px 8px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
                           {DL[r.durum] || "Bekliyor"}
                         </span>
@@ -2363,7 +2363,7 @@ function Dashboard() {
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 12, color: "var(--dim)" }}>
                             <span>📞 {r.musteri_telefon}</span>
-                            {r.hizmet_isim && <span>✂️ {r.hizmet_isim}{r.fiyat ? ` · ${Number(r.fiyat).toLocaleString("tr-TR")}₺` : ""}</span>}
+                            {(r.hizmetler_adlari || r.hizmet_isim) && <span>✂️ {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}{(Number(r.toplam_fiyat) || Number(r.fiyat)) ? ` · ${Number(r.toplam_fiyat || r.fiyat).toLocaleString("tr-TR")}₺` : ""}</span>}
                             {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
                             {r.kapora_durumu && r.kapora_durumu !== 'yok' && (
                               <span style={{ color: r.kapora_durumu === 'odendi' ? '#2cb872' : '#f59e0b', fontWeight: 600 }}>

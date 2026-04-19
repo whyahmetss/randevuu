@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
+const siragoImza = require('../utils/siragoImza');
 
 class GeceRaporuService {
 
@@ -75,7 +76,7 @@ class GeceRaporuService {
       WHERE isletme_id = $1 AND tarih = $2 AND durum IN ('onaylandi', 'onay_bekliyor')
     `, [isletmeId, yarinStr])).rows[0];
 
-    const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     const gelir = parseFloat(kasa.gelir);
     const gider = parseFloat(kasa.gider);
     const toplamCiro = parseFloat(ciro.toplam_ciro);
@@ -97,11 +98,9 @@ class GeceRaporuService {
 • Net: ${Math.round(gelir - gider)}₺
 
 📅 *Yarın*
-• Bekleyen randevu: ${yarinRandevu.sayi}
+• Bekleyen randevu: ${yarinRandevu.sayi}`;
 
-_SıraGO — Otomatik Gece Raporu_`;
-
-    return mesaj;
+    return siragoImza.imzaEkle(mesaj, isletme);
   }
 
   async raporGonder(isletme) {
@@ -255,7 +254,7 @@ _SıraGO — Otomatik Gece Raporu_`;
         )
     `, [isletmeId, basStr, sonStr])).rows[0];
 
-    const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     const toplamRandevu = parseInt(stat.toplam_randevu);
     const toplamCiro = parseFloat(ciro.toplam);
     const oncekiRandevu = parseInt(oncekiStat.toplam_randevu);
@@ -285,9 +284,9 @@ _SıraGO — Otomatik Gece Raporu_`;
 • ${yogunGunStr}
 
 👤 *Yeni Müşteri*
-• ${yeniMusteri?.sayi || 0} yeni müşteri
+• ${yeniMusteri?.sayi || 0} yeni müşteri`;
 
-_SıraGO — Otomatik Haftalık Rapor_`;
+    return siragoImza.imzaEkle(mesaj, isletme);
   }
 
   tarihKisaFormat(tarih) {

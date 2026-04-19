@@ -380,5 +380,6 @@ router.get('/book/:slug/saatler', noCache, (req, res) => bookingController.musai
 router.post('/book/:slug/randevu', ddosGuard, (req, res) => bookingController.randevuOlustur(req, res));
 router.post('/book/:slug/otp-gonder', (req, res) => bookingController.otpGonder(req, res));
 router.post('/book/:slug/otp-dogrula', (req, res) => bookingController.otpDogrula(req, res));
+router.get('/book/:slug/telegram-chat-durum', noCache, (req, res) => bookingController.telegramChatDurum(req, res));
 
 module.exports = router;

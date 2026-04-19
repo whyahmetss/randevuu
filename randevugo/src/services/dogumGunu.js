@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
+const siragoImza = require('../utils/siragoImza');
 
 class DogumGunuService {
 
@@ -69,6 +70,8 @@ class DogumGunuService {
       .replace(/\{isletme\}/g, isletme.isim)
       .replace(/\{indirim\}/g, indirim);
 
+    const mesajWithSignature = siragoImza.imzaEkle(mesaj, isletme);
+
     let durum = 'gonderildi';
     try {
       const isTelegram = musteri.telefon && musteri.telefon.startsWith('tg:');
@@ -78,7 +81,7 @@ class DogumGunuService {
           const chatId = musteri.telefon.slice(3);
           const bot = telegram.botlar?.[isletme.id];
           if (bot) {
-            await bot.sendMessage(chatId, mesaj, { parse_mode: 'Markdown' });
+            await bot.sendMessage(chatId, mesajWithSignature, { parse_mode: 'Markdown' });
           } else { durum = 'baglanti_yok'; }
         } catch(e) { durum = 'hata'; }
       } else if (!isTelegram) {
@@ -86,7 +89,7 @@ class DogumGunuService {
           const whatsappWeb = require('./whatsappWeb');
           const waDurum = whatsappWeb.getDurum(isletme.id);
           if (waDurum?.durum === 'bagli') {
-            await whatsappWeb.mesajGonder(isletme.id, musteri.telefon, mesaj);
+            await whatsappWeb.mesajGonder(isletme.id, musteri.telefon, mesajWithSignature);
           } else { durum = 'baglanti_yok'; }
         } catch(e) { durum = 'hata'; }
       }
@@ -117,10 +120,12 @@ class DogumGunuService {
         [isletmeId]
       )).rows;
 
-      const mesajSablonu = (isim) =>
-        `Merhaba${isim ? ' ' + isim.split(' ')[0] : ''}! *${isletme.isim}* olarak sistemimizi yeniledik 🎉\n\n` +
-        `🎂 Doğum gününüzde size özel hediyeler ve indirimler sunabilmemiz için doğum tarihinizi *gün ve ay olarak* (Örn: 05.10 veya 5 Ekim) yazarak iletebilir misiniz?\n\n` +
-        `_İstemiyorsanız bu mesajı yanıtsız bırakabilirsiniz._`;
+      const mesajSablonu = (isim) => {
+        const mesaj = `Merhaba${isim ? ' ' + isim.split(' ')[0] : ''}! *${isletme.isim}* olarak sistemimizi yeniledik 🎉\n\n` +
+          `🎂 Doğum gününüzde size özel hediyeler ve indirimler sunabilmemiz için doğum tarihinizi *gün ve ay olarak* (Örn: 05.10 veya 5 Ekim) yazarak iletebilir misiniz?\n\n` +
+          `_İstemiyorsanız bu mesajı yanıtsız bırakabilirsiniz._`;
+        return siragoImza.imzaEkle(mesaj, isletme);
+      };
 
       let gonderilen = 0;
       let hata = 0;

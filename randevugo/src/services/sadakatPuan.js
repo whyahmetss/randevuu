@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const siragoImza = require('../utils/siragoImza');
 
 class SadakatPuanService {
 
@@ -123,7 +124,7 @@ class SadakatPuanService {
   }
 
   // Otomatik bildirim mesajı oluştur
-  puanBildirimMesaji(kazanilanPuan, toplamBakiye, odulEsik) {
+  puanBildirimMesaji(kazanilanPuan, toplamBakiye, odulEsik, isletme = null) {
     let mesaj = `🎯 Bu işlemden *+${kazanilanPuan} puan* kazandınız!\n⭐ Toplam bakiye: *${toplamBakiye} puan*`;
     const kalan = odulEsik - toplamBakiye;
     if (kalan > 0) {
@@ -131,7 +132,7 @@ class SadakatPuanService {
     } else {
       mesaj += `\n🎉 Tebrikler! Ödül hakkınız var! Bir sonraki randevunuzda kullanabilirsiniz.`;
     }
-    return mesaj;
+    return siragoImza.imzaEkle(mesaj, isletme);
   }
 }
 

@@ -1230,3 +1230,84 @@
   .bk-lang-code { display: none; }
   .bk-lang-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══ Çoklu Hizmet Footer (sticky bottom of step 1) ═══ */
+.bk-multi-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 12px -14px -14px -14px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.98));
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 0 0 14px 14px;
+  z-index: 5;
+}
+.bk-multi-info { flex: 1; min-width: 0; }
+.bk-multi-count { font-weight: 700; font-size: 14px; color: #f8fafc; }
+.bk-multi-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.bk-btn-compact { width: auto !important; padding: 10px 20px !important; font-size: 14px !important; white-space: nowrap; }
+
+/* ═══ Kanal seçici (WhatsApp | Telegram) ═══ */
+.bk-channel-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 4px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  margin-top: 6px;
+}
+.bk-channel-opt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bk-channel-opt:hover { background: rgba(139, 92, 246, 0.1); color: #f8fafc; }
+.bk-channel-opt.active {
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.4);
+}
+
+/* ═══ Telegram Bot Eşleşme Modal'ı ═══ */
+.bk-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+  animation: bkModalFade 0.2s ease-out;
+}
+.bk-modal {
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 18px;
+  padding: 28px 24px 20px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.bk-modal-title { font-size: 18px; font-weight: 700; color: #f8fafc; margin-bottom: 10px; }
+.bk-modal-desc { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+.bk-modal-sub { font-size: 12px; color: #8b5cf6; margin-top: 14px; font-style: italic; }
+@keyframes bkModalFade { from { opacity: 0; } to { opacity: 1; } }

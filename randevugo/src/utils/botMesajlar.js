@@ -102,12 +102,11 @@ const tr = {
     txt += `${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}Randevu${s.hitap === 'siz' ? 'nuz' : 'n'}dan 1 saat önce hatırlatma alacaksınız.\n`;
     txt += `\n${icon ? '' : ''}Görüşmek üzere${icon ? '! 😊' : '.'}`;
-    txt += `\n\n_Powered by SıraGO — sırago.com_`;
     return txt;
   },
 
   randevuNotKaydedildi: (s, p) => {
-    return `${s.emoji ? '✅ ' : ''}*Randevu${s.hitap === 'siz' ? 'nuz' : 'n'} oluşturuldu!*\n\n${s.emoji ? '💬 ' : ''}Not${s.hitap === 'siz' ? 'unuz' : 'un'}: "${p.not}"\n\nGörüşmek üzere${s.emoji ? '! 😊' : '.'}\n\n_Powered by SıraGO — sırago.com_`;
+    return `${s.emoji ? '✅ ' : ''}*Randevu${s.hitap === 'siz' ? 'nuz' : 'n'} oluşturuldu!*\n\n${s.emoji ? '💬 ' : ''}Not${s.hitap === 'siz' ? 'unuz' : 'un'}: "${p.not}"\n\nGörüşmek üzere${s.emoji ? '! 😊' : '.'}`;
   },
 
   iptalListesi: (s, p) => {
@@ -287,11 +286,10 @@ const en = {
     txt += `${icon ? '📅 ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}You will receive a reminder 1 hour before.\n`;
     txt += `\nSee you${icon ? '! 😊' : '.'}`;
-    txt += `\n\n_Powered by SıraGO — sırago.com_`;
     return txt;
   },
 
-  randevuNotKaydedildi: (s, p) => `${s.emoji ? '✅ ' : ''}*Appointment confirmed!*\n\n${s.emoji ? '💬 ' : ''}Note: "${p.not}"\n\nSee you${s.emoji ? '! 😊' : '.'}\n\n_Powered by SıraGO — sırago.com_`,
+  randevuNotKaydedildi: (s, p) => `${s.emoji ? '✅ ' : ''}*Appointment confirmed!*\n\n${s.emoji ? '💬 ' : ''}Note: "${p.not}"\n\nSee you${s.emoji ? '! 😊' : '.'}`,
 
   iptalListesi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}*Cancel Appointment*\n\nWhich appointment would you like to cancel?\n\n`;
@@ -452,11 +450,10 @@ const ar = {
     txt += `${icon ? '📅 ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}سيتم تذكيرك قبل ساعة.\n`;
     txt += `\nنراكم${icon ? '! 😊' : '.'}`;
-    txt += `\n\n_Powered by SıraGO — sırago.com_`;
     return txt;
   },
 
-  randevuNotKaydedildi: (s, p) => `${s.emoji ? '✅ ' : ''}*تم تأكيد الموعد!*\n\n${s.emoji ? '💬 ' : ''}ملاحظة: "${p.not}"\n\nنراكم${s.emoji ? '! 😊' : '.'}\n\n_Powered by SıraGO — sırago.com_`,
+  randevuNotKaydedildi: (s, p) => `${s.emoji ? '✅ ' : ''}*تم تأكيد الموعد!*\n\n${s.emoji ? '💬 ' : ''}ملاحظة: "${p.not}"\n\nنراكم${s.emoji ? '! 😊' : '.'}`,
 
   iptalListesi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}*إلغاء موعد*\n\nأي موعد تريد إلغاءه؟\n\n`;
@@ -567,6 +564,14 @@ ar.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*لم تحضر لموعد
 
 const DILLER = { tr, en, ar };
 
+// Otomatik sistem bildirimi niteliğindeki mesaj anahtarları — altına SıraGO imzası eklenir.
+// İnteraktif bot diyalog mesajları (hizmetListesi, anaMenu vb.) imzasız kalır.
+const IMZA_ANAHTARLARI = new Set([
+  'randevuOnaylandi',
+  'randevuNotKaydedildi',
+]);
+const { imzaSatiri } = require('./siragoImza');
+
 /**
  * Gelişmiş dil algılama — müşteri mesajından dili tespit et
  */
@@ -651,8 +656,12 @@ function get(isletme, key, params = {}, musteriMesaj = null, kaydedilenDil = nul
 
   const dilMesajlar = DILLER[dil] || DILLER.tr;
   const fn = dilMesajlar[key];
-  if (!fn) return DILLER.tr[key] ? DILLER.tr[key](stil, params) : '';
-  return fn(stil, params);
+  const metin = fn ? fn(stil, params) : (DILLER.tr[key] ? DILLER.tr[key](stil, params) : '');
+  if (IMZA_ANAHTARLARI.has(key)) {
+    const imzaDil = (dil === 'en' || dil === 'ar') ? dil : 'tr';
+    return metin + imzaSatiri(isletme, imzaDil);
+  }
+  return metin;
 }
 
 module.exports = { get, dilAlgila, varsayilanDil, STILLER };

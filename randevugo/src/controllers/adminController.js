@@ -21,7 +21,14 @@ class AdminController {
       
       let query = `
         SELECT r.*, m.isim as musteri_isim, m.telefon as musteri_telefon,
-               h.isim as hizmet_isim, h.fiyat, c.isim as calisan_isim
+               h.isim as hizmet_isim, h.fiyat, c.isim as calisan_isim,
+               (SELECT COUNT(*)::int FROM randevu_hizmetleri rh WHERE rh.randevu_id = r.id) as hizmet_adet,
+               (SELECT STRING_AGG(hh.isim, ' + ' ORDER BY rh.sira)
+                  FROM randevu_hizmetleri rh
+                  LEFT JOIN hizmetler hh ON hh.id = rh.hizmet_id
+                 WHERE rh.randevu_id = r.id) as hizmetler_adlari,
+               (SELECT COALESCE(SUM(rh.fiyat), 0) FROM randevu_hizmetleri rh WHERE rh.randevu_id = r.id) as toplam_fiyat,
+               (SELECT COALESCE(SUM(rh.sure_dk), 0) FROM randevu_hizmetleri rh WHERE rh.randevu_id = r.id) as toplam_sure
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id

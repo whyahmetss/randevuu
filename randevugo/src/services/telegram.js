@@ -102,6 +102,27 @@ class TelegramService {
     this._editMsgId = editMsgId; // callback'lerde mesajı düzenlemek için
     const musteriTelefon = `tg:${chatId}`;
 
+    // ─── /start link_<telefon> — OTP eşleştirme (booking sayfasından tetiklenir)
+    // Müşteri booking'de TG seçti → t.me/<bot>?start=link_<tel> linkine tıkladı →
+    // burada bot_durum'da <tel, chatId> eşleştirmesini kaydederiz.
+    const startLinkMatch = metin.match(/^\/start\s+link_(\d{10,15})$/i);
+    if (startLinkMatch) {
+      const telefonTemiz = startLinkMatch[1];
+      try {
+        const telegramOtp = require('./telegramOtp');
+        await telegramOtp.eslestirmeKaydet(isletmeId, telefonTemiz, chatId);
+        await bot.sendMessage(chatId,
+          `✅ *Bağlantı başarılı!*\n\nArtık randevu sayfasına dönebilir ve doğrulama kodunu Telegram'dan alabilirsiniz.\n\n_Bu bot ${this.botlar?.[isletmeId]?._username ? '@'+this.botlar[isletmeId]._username : ''} ile güçlendirilmiştir._`,
+          { parse_mode: 'Markdown' }
+        );
+        // Bu mesaj sonrası normal akışa devam etmiyoruz (sadece eşleştirme yaptık)
+      } catch (e) {
+        console.error('❌ TG OTP link başlangıç hatası:', e.message);
+        await bot.sendMessage(chatId, '⚠️ Bağlantı kurulamadı. Lütfen tekrar deneyin.').catch(()=>{});
+      }
+      return;
+    }
+
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
 

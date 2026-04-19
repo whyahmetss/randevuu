@@ -5,6 +5,7 @@
  * Premium paket özelliği.
  */
 const pool = require('../config/db');
+const siragoImza = require('../utils/siragoImza');
 
 class GoogleYorumService {
   constructor() {
@@ -65,6 +66,10 @@ class GoogleYorumService {
         `👉 ${mapsUrl}\n\n` +
         `_Desteğiniz için teşekkürler! 🙏_`;
 
+      // İşletme bilgisini al
+      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [randevu.isletme_id])).rows[0];
+      const mesajWithSignature = siragoImza.imzaEkle(mesaj, isletme);
+
       // DB'ye kaydet
       await pool.query(
         'INSERT INTO google_yorum_talepleri (isletme_id, randevu_id, musteri_telefon, gonderim_zamani, gonderildi) VALUES ($1,$2,$3,NOW(),true)',
@@ -75,7 +80,7 @@ class GoogleYorumService {
       try {
         const wpService = require('./whatsappWeb');
         const jid = `${tel.replace(/^\+/, '')}@s.whatsapp.net`;
-        await wpService.mesajGonder(randevu.isletme_id, jid, mesaj);
+        await wpService.mesajGonder(randevu.isletme_id, jid, mesajWithSignature);
         console.log(`⭐ Google yorum mesajı gönderildi: ${tel} (${randevu.isletme_isim})`);
       } catch (e) {
         // WhatsApp yoksa Telegram dene
@@ -83,7 +88,7 @@ class GoogleYorumService {
           const telegramService = require('./telegram');
           const bot = telegramService.botlar[randevu.isletme_id];
           if (bot) {
-            await bot.sendMessage(tel, mesaj, { parse_mode: 'Markdown' });
+            await bot.sendMessage(tel, mesajWithSignature, { parse_mode: 'Markdown' });
             console.log(`⭐ Google yorum mesajı TG ile gönderildi: ${tel}`);
           }
         } catch (e2) {}

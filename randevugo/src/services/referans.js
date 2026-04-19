@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const crypto = require('crypto');
+const siragoImza = require('../utils/siragoImza');
 
 class ReferansService {
 
@@ -117,6 +118,8 @@ class ReferansService {
         `✨ Sen bir sonraki gelişinde *${puanDavet} puan* (hediye hizmet) kazanırsın\n\n` +
         `Randevu için: Mesaj at → Kod ${kod} yaz → Arkadaşın hediyeyle gelsin 🎉`;
 
+      const mesajWithSignature = siragoImza.imzaEkle(mesaj, isletme);
+
       // Telegram mı WhatsApp mı?
       const isTelegram = musteriTelefon && musteriTelefon.startsWith('tg:');
       if (isTelegram && isletme.telegram_token) {
@@ -125,7 +128,7 @@ class ReferansService {
           const chatId = musteriTelefon.slice(3);
           const bot = telegram.botlar?.[isletmeId];
           if (bot) {
-            await bot.sendMessage(chatId, mesaj, { parse_mode: 'Markdown' });
+            await bot.sendMessage(chatId, mesajWithSignature, { parse_mode: 'Markdown' });
           }
         } catch(e) { console.log('⚠️ Referans TG gönderim hatası:', e.message); }
       } else if (!isTelegram) {
@@ -133,7 +136,7 @@ class ReferansService {
           const whatsappWeb = require('./whatsappWeb');
           const waDurum = whatsappWeb.getDurum(isletmeId);
           if (waDurum?.durum === 'bagli') {
-            await whatsappWeb.mesajGonder(isletmeId, musteriTelefon, mesaj);
+            await whatsappWeb.mesajGonder(isletmeId, musteriTelefon, mesajWithSignature);
           }
         } catch(e) { console.log('⚠️ Referans WA gönderim hatası:', e.message); }
       }

@@ -7,13 +7,15 @@ const googleCalendar = require('./googleCalendar');
 class RandevuService {
 
   // Müsait saatleri hesapla
-  // hizmetId: seçilen hizmetin süresi kadar blok tutar
+  // hizmetId: tek hizmet (legacy)
+  // opts.hizmetIds: çoklu hizmet array [1,4] → toplam süre + max tampon
+  // opts.toplamSureDk: manuel override (bot'larda direkt süre geçmek için)
   // calisanId: sadece o çalışanın randevularına bakar
   // Randevu Modları:
   //   sirali: her slot 1 randevu alır, arka arkaya sıralı (varsayılan)
   //   seans: aynı slota birden fazla müşteri alınabilir (çalışan sayısı kadar)
   //   esnek: 10dk aralıklarla tüm boş saatler sunulur
-  async musaitSaatleriGetir(isletmeId, tarih, calisanId = null, hizmetId = null) {
+  async musaitSaatleriGetir(isletmeId, tarih, calisanId = null, hizmetId = null, opts = {}) {
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (!isletme) return [];
 
@@ -45,14 +47,25 @@ class RandevuService {
     const kapaliGunler = (isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number);
     if (kapaliGunler.length > 0 && kapaliGunler.includes(gun)) return [];
 
-    // Hizmet süresi: seçilen hizmetin süresi veya işletme varsayılanı
+    // ─── Hizmet süresi ve tampon hesabı ───
+    // Öncelik: opts.toplamSureDk > opts.hizmetIds (çoklu) > hizmetId (tek) > işletme varsayılanı
     let hizmetSureDk = isletme.randevu_suresi_dk || 30;
     let hizmetTamponDk = 0;
-    if (hizmetId) {
-      const hizmet = (await pool.query('SELECT sure_dk, tampon_dk FROM hizmetler WHERE id=$1', [hizmetId])).rows[0];
-      if (hizmet) {
-        hizmetSureDk = hizmet.sure_dk;
-        hizmetTamponDk = hizmet.tampon_dk || 0;
+    const hizmetIdListesi = Array.isArray(opts.hizmetIds) && opts.hizmetIds.length > 0
+      ? opts.hizmetIds.map(x => parseInt(x)).filter(Boolean)
+      : (hizmetId ? [parseInt(hizmetId)] : []);
+
+    if (typeof opts.toplamSureDk === 'number' && opts.toplamSureDk > 0) {
+      hizmetSureDk = opts.toplamSureDk;
+    } else if (hizmetIdListesi.length > 0) {
+      // Birden fazla hizmet → toplam süre + en büyük tampon
+      const hz = await pool.query(
+        'SELECT sure_dk, tampon_dk FROM hizmetler WHERE id = ANY($1::int[])',
+        [hizmetIdListesi]
+      );
+      if (hz.rows.length > 0) {
+        hizmetSureDk = hz.rows.reduce((t, r) => t + (r.sure_dk || 0), 0) || hizmetSureDk;
+        hizmetTamponDk = Math.max(...hz.rows.map(r => r.tampon_dk || 0), 0);
       }
     }
 
@@ -210,49 +223,103 @@ class RandevuService {
   }
 
   // Kapora hesapla — işletme alt sınırı + oran kontrolü
-  async kaporaHesapla(isletmeId, hizmetId) {
+  // İkinci parametre hizmetId (legacy) VEYA hizmetIds array olabilir
+  async kaporaHesapla(isletmeId, hizmetIdOrIds) {
     const isletme = (await pool.query('SELECT kapora_aktif, kapora_alt_siniri, kapora_orani FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme || !isletme.kapora_aktif) return { gerekli: false, tutar: 0, yuzde: 0 };
-    
-    if (!hizmetId) return { gerekli: false, tutar: 0, yuzde: 0 };
-    const hizmet = (await pool.query('SELECT fiyat, kapora_yuzdesi FROM hizmetler WHERE id=$1', [hizmetId])).rows[0];
-    if (!hizmet || !hizmet.fiyat) return { gerekli: false, tutar: 0, yuzde: 0 };
 
-    const fiyat = parseFloat(hizmet.fiyat);
+    const hizmetIds = Array.isArray(hizmetIdOrIds)
+      ? hizmetIdOrIds.map(x => parseInt(x)).filter(Boolean)
+      : (hizmetIdOrIds ? [parseInt(hizmetIdOrIds)] : []);
+    if (hizmetIds.length === 0) return { gerekli: false, tutar: 0, yuzde: 0 };
+
+    const hizmetler = (await pool.query(
+      'SELECT fiyat, kapora_yuzdesi FROM hizmetler WHERE id = ANY($1::int[])',
+      [hizmetIds]
+    )).rows;
+    if (hizmetler.length === 0) return { gerekli: false, tutar: 0, yuzde: 0 };
+
+    const toplamFiyat = hizmetler.reduce((t, h) => t + (parseFloat(h.fiyat) || 0), 0);
+    if (toplamFiyat <= 0) return { gerekli: false, tutar: 0, yuzde: 0 };
+
     const altSinir = parseFloat(isletme.kapora_alt_siniri) || 0;
-    if (fiyat < altSinir) return { gerekli: false, tutar: 0, yuzde: 0 };
+    if (toplamFiyat < altSinir) return { gerekli: false, tutar: 0, yuzde: 0 };
 
-    // Hizmet bazlı yüzde varsa onu kullan, yoksa işletme genel oranını kullan
-    const yuzde = (hizmet.kapora_yuzdesi && hizmet.kapora_yuzdesi > 0) ? hizmet.kapora_yuzdesi : (isletme.kapora_orani || 20);
-    if (yuzde <= 0) return { gerekli: false, tutar: 0, yuzde: 0 };
-    
-    const tutar = Math.ceil(fiyat * yuzde / 100);
-    return { gerekli: true, tutar, yuzde };
+    // Çoklu hizmette: her hizmetin kendi kapora yüzdesi → ağırlıklı ortalama
+    // Yüzdesi olmayan hizmetler işletme genel oranını kullanır
+    const genelYuzde = parseFloat(isletme.kapora_orani) || 20;
+    let toplamKapora = 0;
+    for (const h of hizmetler) {
+      const fiyat = parseFloat(h.fiyat) || 0;
+      const yuzde = (h.kapora_yuzdesi && h.kapora_yuzdesi > 0) ? parseFloat(h.kapora_yuzdesi) : genelYuzde;
+      toplamKapora += Math.ceil(fiyat * yuzde / 100);
+    }
+
+    if (toplamKapora <= 0) return { gerekli: false, tutar: 0, yuzde: 0 };
+
+    // Efektif yüzde (bilgi amaçlı): toplam kapora / toplam fiyat
+    const efektifYuzde = Math.round((toplamKapora / toplamFiyat) * 100);
+    return { gerekli: true, tutar: toplamKapora, yuzde: efektifYuzde };
   }
 
   // Hizmete uygun çalışanları getir (calisan_hizmetler tablosundan)
-  async uygunCalisanlar(isletmeId, hizmetId = null) {
-    let query = 'SELECT c.* FROM calisanlar c WHERE c.isletme_id=$1 AND (c.aktif IS NULL OR c.aktif=true)';
-    const params = [isletmeId];
-    
-    if (hizmetId) {
-      // calisan_hizmetler tablosunda kayıt varsa sadece eşleşenleri getir, yoksa tüm çalışanları getir
-      const eslesme = (await pool.query('SELECT COUNT(*) as sayi FROM calisan_hizmetler ch JOIN calisanlar c ON c.id=ch.calisan_id WHERE c.isletme_id=$1', [isletmeId])).rows[0];
-      if (parseInt(eslesme.sayi) > 0) {
-        // Eşleştirme sistemi aktif — sadece bu hizmete atanmış çalışanları getir
-        query = `SELECT c.* FROM calisanlar c 
-                 JOIN calisan_hizmetler ch ON ch.calisan_id = c.id 
-                 WHERE c.isletme_id=$1 AND (c.aktif IS NULL OR c.aktif=true) AND ch.hizmet_id=$2`;
-        params.push(hizmetId);
-      }
+  // hizmetIdOrIds: tek hizmet (legacy) VEYA hizmet array (intersection — tümünü yapabilen)
+  async uygunCalisanlar(isletmeId, hizmetIdOrIds = null) {
+    const hizmetIds = Array.isArray(hizmetIdOrIds)
+      ? hizmetIdOrIds.map(x => parseInt(x)).filter(Boolean)
+      : (hizmetIdOrIds ? [parseInt(hizmetIdOrIds)] : []);
+
+    // Eşleştirme sistemi aktif mi?
+    const eslesme = (await pool.query(
+      'SELECT COUNT(*) as sayi FROM calisan_hizmetler ch JOIN calisanlar c ON c.id=ch.calisan_id WHERE c.isletme_id=$1',
+      [isletmeId]
+    )).rows[0];
+    const eslesmeAktif = parseInt(eslesme.sayi) > 0;
+
+    if (hizmetIds.length === 0 || !eslesmeAktif) {
+      // Hizmet filtresi yok VEYA eşleştirme kurulmamış → tüm aktif çalışanlar
+      return (await pool.query(
+        'SELECT c.* FROM calisanlar c WHERE c.isletme_id=$1 AND (c.aktif IS NULL OR c.aktif=true) ORDER BY c.id',
+        [isletmeId]
+      )).rows;
     }
-    
-    query += ' ORDER BY c.id';
-    return (await pool.query(query, params)).rows;
+
+    // Intersection: SEÇİLEN TÜM HİZMETLERİ yapabilen çalışanlar
+    // GROUP BY + HAVING COUNT = seçili hizmet sayısı
+    const q = `
+      SELECT c.* FROM calisanlar c
+      JOIN calisan_hizmetler ch ON ch.calisan_id = c.id
+      WHERE c.isletme_id = $1
+        AND (c.aktif IS NULL OR c.aktif = true)
+        AND ch.hizmet_id = ANY($2::int[])
+      GROUP BY c.id
+      HAVING COUNT(DISTINCT ch.hizmet_id) = $3
+      ORDER BY c.id
+    `;
+    return (await pool.query(q, [isletmeId, hizmetIds, hizmetIds.length])).rows;
   }
 
-  // Randevu oluştur
-  async randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, calisanId, tarih, saat, kaynak }) {
+  // Randevu oluştur — çoklu hizmet destekli (tek transaction, atomik)
+  // hizmetId (legacy tek) VEYA hizmetIds (array) kabul edilir
+  async randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, hizmetIds, calisanId, tarih, saat, kaynak }) {
+    // Hizmet ID listesini normalize et (legacy + multi)
+    const hizmetIdListesi = Array.isArray(hizmetIds) && hizmetIds.length > 0
+      ? hizmetIds.map(x => parseInt(x)).filter(Boolean)
+      : (hizmetId ? [parseInt(hizmetId)] : []);
+
+    if (hizmetIdListesi.length === 0) {
+      const err = new Error('En az bir hizmet seçilmelidir');
+      err.code = 'HIZMET_GEREKLI';
+      throw err;
+    }
+    if (hizmetIdListesi.length > 6) {
+      const err = new Error('En fazla 6 hizmet aynı anda seçilebilir');
+      err.code = 'HIZMET_LIMIT';
+      throw err;
+    }
+    // Aynı hizmet birden fazla girilmişse dedup
+    const hizmetIdsUnique = [...new Set(hizmetIdListesi)];
+
     // ─── AYLIK RANDEVU LİMİT KONTROLÜ ───
     const { paketGetir } = require('../config/paketler');
     const isletmePaket = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
@@ -284,18 +351,30 @@ class RandevuService {
       musteriYeni = true;
     }
 
-    // Hizmet süresini al
-    const hizmet = hizmetId 
-      ? (await pool.query('SELECT * FROM hizmetler WHERE id = $1', [hizmetId])).rows[0]
-      : null;
-    
-    const sureDk = hizmet ? hizmet.sure_dk : 30;
+    // Hizmetleri toplu çek (sıra korunsun — kullanıcının gönderdiği sıra)
+    const hizmetlerRaw = (await pool.query(
+      'SELECT * FROM hizmetler WHERE id = ANY($1::int[])',
+      [hizmetIdsUnique]
+    )).rows;
+    const hizmetMap = new Map(hizmetlerRaw.map(h => [h.id, h]));
+    const hizmetler = hizmetIdsUnique.map(id => hizmetMap.get(id)).filter(Boolean);
+
+    if (hizmetler.length !== hizmetIdsUnique.length) {
+      const err = new Error('Seçilen hizmetlerden biri bulunamadı');
+      err.code = 'HIZMET_BULUNAMADI';
+      throw err;
+    }
+
+    // Toplam süre + toplam fiyat
+    const toplamSureDk = hizmetler.reduce((t, h) => t + (h.sure_dk || 0), 0);
+    const toplamFiyat = hizmetler.reduce((t, h) => t + (parseFloat(h.fiyat) || 0), 0);
+
     const [saatH, saatM] = saat.split(':').map(Number);
-    const bitisDk = saatH * 60 + saatM + sureDk;
+    const bitisDk = saatH * 60 + saatM + toplamSureDk;
     const bitisSaat = `${String(Math.floor(bitisDk / 60)).padStart(2, '0')}:${String(bitisDk % 60).padStart(2, '0')}`;
 
-    // Kapora kontrolü
-    const kapora = await this.kaporaHesapla(isletmeId, hizmetId);
+    // Kapora kontrolü (toplam)
+    const kapora = await this.kaporaHesapla(isletmeId, hizmetIdsUnique);
 
     // İşletme onay modunu al
     const isletme = (await pool.query('SELECT randevu_onay_modu FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
@@ -311,13 +390,39 @@ class RandevuService {
       durum = 'onay_bekliyor';
     }
 
-    // Randevuyu kaydet
-    const randevu = (await pool.query(
-      `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum, kapora_durumu, kapora_tutari, kaynak)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [isletmeId, calisanId, musteri.id, hizmetId, tarih, saat, bitisSaat,
-       durum, kaporaDurumu, kapora.tutar, kaynak || 'bot']
-    )).rows[0];
+    // İlk hizmet = legacy `hizmet_id` sütunu (backward compat için)
+    const anaHizmetId = hizmetIdsUnique[0];
+    const anaHizmet = hizmetler[0];
+
+    // ─── TRANSACTION: randevu + junction atomik ───
+    const client = await pool.connect();
+    let randevu;
+    try {
+      await client.query('BEGIN');
+      randevu = (await client.query(
+        `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum, kapora_durumu, kapora_tutari, kaynak)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+        [isletmeId, calisanId, musteri.id, anaHizmetId, tarih, saat, bitisSaat,
+         durum, kaporaDurumu, kapora.tutar, kaynak || 'bot']
+      )).rows[0];
+
+      // Junction tabloya tüm hizmetleri kaydet (sira korunur)
+      for (let i = 0; i < hizmetler.length; i++) {
+        const h = hizmetler[i];
+        await client.query(
+          `INSERT INTO randevu_hizmetleri (randevu_id, hizmet_id, sira, fiyat, sure_dk)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [randevu.id, h.id, i, h.fiyat, h.sure_dk]
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txErr;
+    } finally {
+      client.release();
+    }
 
     // Win-back kurtarma takibi
     try { const winback = require('./winback'); await winback.kurtarmaKontrol(isletmeId, musteri.id); } catch (e) { /* skip */ }
@@ -330,7 +435,8 @@ class RandevuService {
       socketServer.emitToIsletme(isletmeId, 'randevu:yeni', {
         randevu,
         musteri: { id: musteri.id, isim: musteri.isim, telefon: musteri.telefon },
-        hizmet: hizmet ? { id: hizmet.id, isim: hizmet.isim, sure_dk: hizmet.sure_dk, fiyat: hizmet.fiyat } : null,
+        hizmet: anaHizmet ? { id: anaHizmet.id, isim: anaHizmet.isim, sure_dk: toplamSureDk, fiyat: toplamFiyat } : null,
+        hizmetler: hizmetler.map(h => ({ id: h.id, isim: h.isim, sure_dk: h.sure_dk, fiyat: h.fiyat })),
         kaynak: kaynak || 'bot'
       });
     } catch (e) { /* socket hatası randevu oluşturmayı engellemesin */ }
@@ -339,28 +445,39 @@ class RandevuService {
     try {
       const saatStr = String(saat).slice(0, 5);
       const tarihFmt = String(tarih).slice(0, 10);
+      const hizmetBasligi = hizmetler.length === 1
+        ? hizmetler[0].isim
+        : `${hizmetler[0].isim} + ${hizmetler.length - 1} hizmet daha`;
       pushService.sendToIsletme(isletmeId, {
         title: '🎉 Yeni Randevu',
-        body: `${musteri.isim || 'Müşteri'} — ${hizmet?.isim || 'Randevu'} • ${tarihFmt} ${saatStr}`,
+        body: `${musteri.isim || 'Müşteri'} — ${hizmetBasligi} • ${tarihFmt} ${saatStr}`,
         url: '/',
         tag: `randevu-${randevu.id}`,
-        // Dükkan tableti için: bildirim kullanıcı kapatana kadar görünür kalsın (kaçırılmasın)
         requireInteraction: true,
         vibrate: [300, 100, 300, 100, 300],
         data: { randevuId: randevu.id, sayfa: 'randevular' }
       });
     } catch (e) {}
 
-    // ─── 📅 GOOGLE CALENDAR SYNC (fire-and-forget, hata randevu oluşturmayı engellemesin) ───
+    // ─── 📅 GOOGLE CALENDAR SYNC (fire-and-forget) ───
     try {
       googleCalendar.freebusyCacheTemizle(isletmeId);
-      // Sadece onaylı/onay_bekliyor olanları event olarak yaz (kapora_bekliyor olanlar ödeme gelince)
       if (durum === 'onaylandi' || durum === 'onay_bekliyor') {
         googleCalendar.randevuEventOlustur(isletmeId, randevu).catch(() => {});
       }
     } catch (e) { /* ignore */ }
 
-    return { randevu, musteri, hizmet, kapora, manuelOnay };
+    // Döndürülen hizmet: birleştirilmiş ana hizmet (legacy uyumlu) + tam liste
+    const birlesikHizmet = anaHizmet ? {
+      id: anaHizmet.id,
+      isim: hizmetler.length === 1 ? anaHizmet.isim : `${anaHizmet.isim} + ${hizmetler.length - 1} hizmet`,
+      isim_en: anaHizmet.isim_en,
+      isim_ar: anaHizmet.isim_ar,
+      sure_dk: toplamSureDk,
+      fiyat: toplamFiyat
+    } : null;
+
+    return { randevu, musteri, hizmet: birlesikHizmet, hizmetler, kapora, manuelOnay };
   }
 
   // Randevu iptal et
@@ -391,10 +508,22 @@ class RandevuService {
     return result.rows[0];
   }
 
-  // Müşterinin aktif randevularını getir
+  // Müşterinin aktif randevularını getir (junction'dan çoklu hizmet dahil)
   async musteriRandevulari(musteriTelefon, isletmeId) {
     const result = await pool.query(`
-      SELECT r.*, h.isim as hizmet_isim, h.fiyat, i.isim as isletme_isim, i.adres
+      SELECT r.*,
+             h.isim as hizmet_isim, h.fiyat,
+             i.isim as isletme_isim, i.adres,
+             (SELECT COALESCE(STRING_AGG(hh.isim, ', ' ORDER BY rh.sira), h.isim)
+                FROM randevu_hizmetleri rh
+                LEFT JOIN hizmetler hh ON hh.id = rh.hizmet_id
+                WHERE rh.randevu_id = r.id) as hizmetler_isim,
+             (SELECT COALESCE(SUM(rh.fiyat), h.fiyat)
+                FROM randevu_hizmetleri rh
+                WHERE rh.randevu_id = r.id) as toplam_fiyat,
+             (SELECT COALESCE(SUM(rh.sure_dk), h.sure_dk)
+                FROM randevu_hizmetleri rh
+                WHERE rh.randevu_id = r.id) as toplam_sure_dk
       FROM randevular r
       LEFT JOIN hizmetler h ON r.hizmet_id = h.id
       JOIN isletmeler i ON r.isletme_id = i.id
@@ -403,6 +532,36 @@ class RandevuService {
       ORDER BY r.tarih, r.saat
     `, [musteriTelefon, isletmeId]);
     return result.rows;
+  }
+
+  // Randevunun tüm hizmetlerini junction'dan getir (fallback: randevular.hizmet_id)
+  async randevuHizmetleri(randevuId) {
+    const rows = (await pool.query(`
+      SELECT rh.hizmet_id, rh.sira, rh.fiyat, rh.sure_dk,
+             h.isim, h.isim_en, h.isim_ar
+      FROM randevu_hizmetleri rh
+      LEFT JOIN hizmetler h ON h.id = rh.hizmet_id
+      WHERE rh.randevu_id = $1
+      ORDER BY rh.sira, rh.id
+    `, [randevuId])).rows;
+    if (rows.length > 0) return rows;
+
+    // Junction boşsa (çok eski kayıt) randevudaki tek hizmete düş
+    const legacy = (await pool.query(`
+      SELECT r.hizmet_id, 0 as sira, h.fiyat, h.sure_dk, h.isim, h.isim_en, h.isim_ar
+      FROM randevular r LEFT JOIN hizmetler h ON h.id = r.hizmet_id
+      WHERE r.id = $1
+    `, [randevuId])).rows;
+    return legacy.filter(r => r.hizmet_id);
+  }
+
+  // Birleşik hizmet başlığı (tek/çoklu uyumlu, 3 dil)
+  hizmetBasligi(hizmetler, dil = 'tr') {
+    if (!hizmetler || hizmetler.length === 0) return '';
+    const alan = dil === 'en' ? 'isim_en' : dil === 'ar' ? 'isim_ar' : 'isim';
+    const adlar = hizmetler.map(h => h[alan] || h.isim).filter(Boolean);
+    if (adlar.length === 1) return adlar[0];
+    return adlar.join(' + ');
   }
 
   // Hatırlatma gönderilecek randevuları getir (1 saat içindekiler)

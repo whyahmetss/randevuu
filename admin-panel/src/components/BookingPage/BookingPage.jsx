@@ -71,7 +71,7 @@ export default function BookingPage({ slug }) {
   const [hata, setHata] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
 
-  const [secilenHizmet, setSecilenHizmet] = useState(null);
+  const [secilenHizmetler, setSecilenHizmetler] = useState([]); // çoklu hizmet
   const [secilenCalisan, setSecilenCalisan] = useState(null);
   const [secilenTarih, setSecilenTarih] = useState('');
   const [secilenSaat, setSecilenSaat] = useState('');
@@ -87,6 +87,12 @@ export default function BookingPage({ slug }) {
   const [otpDogrulaniyor, setOtpDogrulaniyor] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0); // saniye
   const [bookingKapali, setBookingKapali] = useState(false);
+  // ─── OTP kanal seçimi (WhatsApp | Telegram) ───
+  const [otpKanali, setOtpKanali] = useState('whatsapp');
+  const [tgModalAcik, setTgModalAcik] = useState(false);
+  const [tgBotUsername, setTgBotUsername] = useState('');
+  const [tgStartLink, setTgStartLink] = useState('');
+
   const [honeypot, setHoneypot] = useState(''); // bot tuzağı — gerçek kullanıcı boş bırakır
   const [emailConfirm, setEmailConfirm] = useState(''); // ikinci tuzak
   const [formBaslangic] = useState(Date.now()); // form açıldığı zaman (bot tespiti)
@@ -138,30 +144,50 @@ export default function BookingPage({ slug }) {
     fetch(`${API_URL}/book/${slug}/hizmetler`).then(r => r.json()).then(d => setHizmetler(d.hizmetler || []));
   }, [isletme]);
 
+  // ─── Çoklu hizmet helper'ları ───
+  const hizmetIdsParam = secilenHizmetler.map(h => h.id).join(',');
+  const toplamSure = secilenHizmetler.reduce((s, h) => s + Number(h.sure_dk || 0), 0);
+  const toplamFiyat = secilenHizmetler.reduce((s, h) => s + Number(h.fiyat || 0), 0);
+  const hizmetAdiOzet = secilenHizmetler.map(h => h.isim).join(' + ');
+
   useEffect(() => {
-    if (!secilenHizmet) return;
-    fetch(`${API_URL}/book/${slug}/calisanlar?hizmetId=${secilenHizmet.id}`)
+    if (secilenHizmetler.length === 0) return;
+    fetch(`${API_URL}/book/${slug}/calisanlar?hizmetIds=${hizmetIdsParam}`)
       .then(r => r.json())
       .then(d => {
         setCalisanlar(d.calisanlar || []);
         const otomatik = !!d.otomatik || (d.calisanlar || []).length === 0;
         setOtomatikCalisan(otomatik);
-        // Otomatik mod veya çalışan yok → çalışan adımını atla
         if (otomatik) {
           setAdim(curAdim => curAdim === 2 ? 3 : curAdim);
         }
       });
-  }, [secilenHizmet]);
+  }, [hizmetIdsParam]);
 
   useEffect(() => {
-    if (!secilenTarih || !secilenHizmet) return;
-    const params = new URLSearchParams({ tarih: secilenTarih, hizmetId: secilenHizmet.id });
+    if (!secilenTarih || secilenHizmetler.length === 0) return;
+    const params = new URLSearchParams({ tarih: secilenTarih, hizmetIds: hizmetIdsParam });
     if (secilenCalisan) params.set('calisanId', secilenCalisan.id);
     fetch(`${API_URL}/book/${slug}/saatler?${params}`).then(r => r.json()).then(d => setSaatler(d.saatler || []));
-  }, [secilenTarih, secilenCalisan, secilenHizmet]);
+  }, [secilenTarih, secilenCalisan, hizmetIdsParam]);
 
   // ─── Handlers ───
-  const hizmetSec = (h) => { setSecilenHizmet(h); setSecilenCalisan(null); setSecilenTarih(''); setSecilenSaat(''); setAdim(2); };
+  const hizmetToggle = (h) => {
+    setSecilenHizmetler(prev => {
+      const varMi = prev.some(x => x.id === h.id);
+      if (varMi) return prev.filter(x => x.id !== h.id);
+      if (prev.length >= 6) return prev; // max 6 hizmet
+      return [...prev, h];
+    });
+    // Seçim değişince ileri adımları sıfırla
+    setSecilenCalisan(null);
+    setSecilenTarih('');
+    setSecilenSaat('');
+  };
+  const hizmetleriOnayla = () => {
+    if (secilenHizmetler.length === 0) return;
+    setAdim(2);
+  };
   const calisanSec = (c) => { setSecilenCalisan(c); setSecilenTarih(''); setSecilenSaat(''); setAdim(3); };
   const tarihSec = (t) => { setSecilenTarih(t); setSecilenSaat(''); setAdim(4); };
   const saatSec = (s) => { setSecilenSaat(s); setAdim(5); };
@@ -177,7 +203,7 @@ export default function BookingPage({ slug }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          hizmetId: secilenHizmet.id,
+          hizmetIds: secilenHizmetler.map(h => h.id),
           calisanId: secilenCalisan?.id,
           tarih: secilenTarih,
           saat: secilenSaat,
@@ -226,6 +252,19 @@ export default function BookingPage({ slug }) {
     return () => clearTimeout(id);
   }, [otpCooldown]);
 
+  // ─── OTP gönderim helper'ı (kanal destekli) ───
+  const otpGonderIstek = async (kanal) => {
+    const res = await fetch(`${API_URL}/book/${slug}/otp-gonder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telefon: musteriTelefon.trim(), kanal })
+    });
+    const status = res.status;
+    let d = {};
+    try { d = await res.json(); } catch {}
+    return { status, d };
+  };
+
   // ─── Telefon → "Devam Et" → OTP gönder ───
   const devamEt = async () => {
     if (!musteriTelefon.trim() || musteriTelefon.trim().length < 10) {
@@ -235,19 +274,17 @@ export default function BookingPage({ slug }) {
     setHata('');
     setOtpGonderiliyor(true);
     try {
-      const res = await fetch(`${API_URL}/book/${slug}/otp-gonder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefon: musteriTelefon.trim() })
-      });
-      const d = await res.json();
+      const { status, d } = await otpGonderIstek(otpKanali);
       if (d.basarili) {
-        // OTP gönderildi — kod adımına geç
         setOtpStage('kod');
         setOtpKod('');
         setOtpCooldown(60);
+      } else if (status === 428 && d.telegramHazirDegil) {
+        // Müşteri TG seçti ama henüz bot ile eşleşmemiş → QR/modal göster
+        setTgBotUsername(d.botUsername || isletme?.telegram_bot_username || '');
+        setTgStartLink(d.startLink || (d.botUsername ? `https://t.me/${d.botUsername}?start=link_${musteriTelefon.trim().replace(/\D/g,'')}` : ''));
+        setTgModalAcik(true);
       } else if (d.servisYok) {
-        // Ne esnaf WA ne merkez OTP aktif → booking kapalı say
         setBookingKapali(true);
       } else {
         setHata(d.hata || t('genericError'));
@@ -263,12 +300,7 @@ export default function BookingPage({ slug }) {
     setOtpGonderiliyor(true);
     setHata('');
     try {
-      const res = await fetch(`${API_URL}/book/${slug}/otp-gonder`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefon: musteriTelefon.trim() })
-      });
-      const d = await res.json();
+      const { d } = await otpGonderIstek(otpKanali);
       if (d.basarili) {
         setOtpCooldown(60);
       } else if (d.servisYok) {
@@ -282,6 +314,47 @@ export default function BookingPage({ slug }) {
     }
     setOtpGonderiliyor(false);
   };
+
+  // ─── Telegram chat_id polling (modal açıkken her 2sn) ───
+  useEffect(() => {
+    if (!tgModalAcik) return;
+    let aktif = true;
+    let tur = 0;
+    const maxTur = 30; // 60 saniye
+    const poll = async () => {
+      if (!aktif) return;
+      tur++;
+      try {
+        const res = await fetch(`${API_URL}/book/${slug}/telegram-chat-durum?tel=${encodeURIComponent(musteriTelefon.trim())}`);
+        const d = await res.json();
+        if (d.hazir) {
+          aktif = false;
+          setTgModalAcik(false);
+          // Hazır → OTP'yi gönder
+          setOtpGonderiliyor(true);
+          const r = await otpGonderIstek('telegram');
+          if (r.d.basarili) {
+            setOtpStage('kod');
+            setOtpKod('');
+            setOtpCooldown(60);
+          } else {
+            setHata(r.d.hata || t('genericError'));
+          }
+          setOtpGonderiliyor(false);
+          return;
+        }
+      } catch {}
+      if (aktif && tur < maxTur) setTimeout(poll, 2000);
+      else if (aktif) {
+        aktif = false;
+        setTgModalAcik(false);
+        setHata(t('telegramTimeout') || t('genericError'));
+      }
+    };
+    const id = setTimeout(poll, 2000);
+    return () => { aktif = false; clearTimeout(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tgModalAcik]);
 
   const otpDogrula = async () => {
     if (otpKod.trim().length < 4) return;
@@ -481,7 +554,7 @@ export default function BookingPage({ slug }) {
           </div>
         )}
 
-        {/* ═══ ADIM 1: HİZMET ═══ */}
+        {/* ═══ ADIM 1: HİZMET (çoklu seçim) ═══ */}
         {adim === 1 && (
           <div className="bk-card">
             <div className="bk-card-head">
@@ -489,27 +562,47 @@ export default function BookingPage({ slug }) {
                 <I.Sparkles size={11} /> {t('selectService')}
               </span>
             </div>
-            <div className="bk-list">
-              {hizmetler.map(h => (
-                <button
-                  key={h.id}
-                  onClick={() => hizmetSec(h)}
-                  className={`bk-item ${secilenHizmet?.id === h.id ? 'active' : ''}`}
-                >
-                  <div className="bk-item-icon">{hizmetIconu(h.isim)}</div>
-                  <div className="bk-item-body">
-                    <div className="bk-item-name">{h.isim}</div>
-                    <div className="bk-item-meta">
-                      <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
+            <div className="bk-list" style={{ paddingBottom: secilenHizmetler.length ? 80 : 0 }}>
+              {hizmetler.map(h => {
+                const secili = secilenHizmetler.some(x => x.id === h.id);
+                return (
+                  <button
+                    key={h.id}
+                    onClick={() => hizmetToggle(h)}
+                    className={`bk-item ${secili ? 'active' : ''}`}
+                  >
+                    <div className="bk-item-icon">{hizmetIconu(h.isim)}</div>
+                    <div className="bk-item-body">
+                      <div className="bk-item-name">
+                        {secili && <I.Check size={14} />} {h.isim}
+                      </div>
+                      <div className="bk-item-meta">
+                        <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
+                      </div>
                     </div>
-                  </div>
-                  <div className="bk-item-price">
-                    <span className="bk-price-num">{Number(h.fiyat).toLocaleString(locale)}</span>
-                    <span className="bk-price-lira">₺</span>
-                  </div>
-                </button>
-              ))}
+                    <div className="bk-item-price">
+                      <span className="bk-price-num">{Number(h.fiyat).toLocaleString(locale)}</span>
+                      <span className="bk-price-lira">₺</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+            {secilenHizmetler.length > 0 && (
+              <div className="bk-multi-footer">
+                <div className="bk-multi-info">
+                  <div className="bk-multi-count">
+                    {secilenHizmetler.length} {t('servicesSelected') || 'hizmet'}
+                  </div>
+                  <div className="bk-multi-sub">
+                    {toplamSure} {t('minutes')} • {Number(toplamFiyat).toLocaleString(locale)} ₺
+                  </div>
+                </div>
+                <button className="bk-btn bk-btn-compact" onClick={hizmetleriOnayla}>
+                  {t('continue')}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -659,12 +752,72 @@ export default function BookingPage({ slug }) {
                   inputMode="tel"
                 />
               </div>
+              {/* Kanal seçici — yalnızca işletmenin TG'si aktifse göster */}
+              {isletme?.telegram_aktif && (
+                <div>
+                  <label className="bk-field-label">{t('otpChannelLabel') || 'Kod nereye gelsin?'}</label>
+                  <div className="bk-channel-seg">
+                    <button
+                      type="button"
+                      className={`bk-channel-opt ${otpKanali === 'whatsapp' ? 'active' : ''}`}
+                      onClick={() => setOtpKanali('whatsapp')}
+                    >
+                      <I.Whatsapp size={16} /> {t('channelWhatsapp') || 'WhatsApp'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`bk-channel-opt ${otpKanali === 'telegram' ? 'active' : ''}`}
+                      onClick={() => setOtpKanali('telegram')}
+                    >
+                      ✈️ {t('channelTelegram') || 'Telegram'}
+                    </button>
+                  </div>
+                </div>
+              )}
               <button
                 onClick={devamEt}
                 disabled={!musteriTelefon.trim() || otpGonderiliyor}
                 className="bk-btn"
               >
                 {otpGonderiliyor ? t('otpSending') : t('continue')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ TELEGRAM BOT EŞLEŞME MODAL'I ═══ */}
+        {tgModalAcik && (
+          <div className="bk-modal-backdrop" onClick={() => setTgModalAcik(false)}>
+            <div className="bk-modal" onClick={e => e.stopPropagation()}>
+              <div className="bk-modal-title">
+                ✈️ {t('telegramNotReadyTitle') || 'Önce Telegram botuna bağlan'}
+              </div>
+              <div className="bk-modal-desc">
+                {t('telegramStartPrompt') || 'Telegram botumuza /start gönder, bağlandığında bu pencere otomatik kapanacak.'}
+              </div>
+              {tgStartLink && (
+                <img
+                  alt="Telegram QR"
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(tgStartLink)}`}
+                  style={{ display: 'block', margin: '16px auto', borderRadius: 12, background: '#fff', padding: 8 }}
+                />
+              )}
+              {tgBotUsername && (
+                <a
+                  href={tgStartLink || `https://t.me/${tgBotUsername}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="bk-btn"
+                  style={{ textDecoration: 'none', display: 'inline-block', marginTop: 8 }}
+                >
+                  {t('telegramOpenBot') || 'Botu Aç'}
+                </a>
+              )}
+              <div className="bk-modal-sub">
+                {t('telegramConnecting') || 'Bağlantı bekleniyor…'}
+              </div>
+              <button className="bk-btn-ghost" onClick={() => setTgModalAcik(false)}>
+                {t('back')}
               </button>
             </div>
           </div>
@@ -731,10 +884,17 @@ export default function BookingPage({ slug }) {
               </span>
             </div>
             <div className="bk-summary">
-              <div className="bk-summary-row">
-                <span className="bk-summary-key">{t('service')}</span>
-                <span className="bk-summary-val">{secilenHizmet?.isim}</span>
-              </div>
+              {secilenHizmetler.map((h, idx) => (
+                <div className="bk-summary-row" key={h.id}>
+                  <span className="bk-summary-key">{idx === 0 ? t('service') : ''}</span>
+                  <span className="bk-summary-val">
+                    {h.isim}
+                    <span style={{ opacity: 0.6, marginLeft: 8 }}>
+                      {h.sure_dk}{t('minutes')} • {Number(h.fiyat).toLocaleString(locale)}₺
+                    </span>
+                  </span>
+                </div>
+              ))}
               {secilenCalisan && (
                 <div className="bk-summary-row">
                   <span className="bk-summary-key">{t('staff')}</span>
@@ -759,7 +919,7 @@ export default function BookingPage({ slug }) {
               </div>
               <div className="bk-summary-row total">
                 <span className="bk-summary-key">{t('total')}</span>
-                <span className="bk-summary-val">{Number(secilenHizmet?.fiyat || 0).toLocaleString(locale)} ₺</span>
+                <span className="bk-summary-val">{toplamSure}{t('minutes')} • {Number(toplamFiyat).toLocaleString(locale)} ₺</span>
               </div>
             </div>
             <button onClick={randevuOlustur} disabled={yukleniyor} className="bk-btn">
@@ -787,7 +947,7 @@ export default function BookingPage({ slug }) {
             <div className="bk-success-card">
               <div className="bk-summary-row">
                 <span className="bk-summary-key">{t('service')}</span>
-                <span className="bk-summary-val">{secilenHizmet?.isim}</span>
+                <span className="bk-summary-val">{hizmetAdiOzet}</span>
               </div>
               <div className="bk-summary-row">
                 <span className="bk-summary-key">{t('date')}</span>
@@ -799,7 +959,7 @@ export default function BookingPage({ slug }) {
               </div>
               <div className="bk-summary-row total">
                 <span className="bk-summary-key">{t('total')}</span>
-                <span className="bk-summary-val">{Number(secilenHizmet?.fiyat || 0).toLocaleString(locale)} ₺</span>
+                <span className="bk-summary-val">{Number(toplamFiyat).toLocaleString(locale)} ₺</span>
               </div>
             </div>
             <button onClick={() => window.location.reload()} className="bk-btn">

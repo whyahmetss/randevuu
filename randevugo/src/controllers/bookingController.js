@@ -35,7 +35,7 @@ class BookingController {
       const isletme = (await pool.query(
         `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
-                google_maps_reserve_url, booking_acik
+                google_maps_reserve_url, booking_acik, telegram_token
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
         [slug]
       )).rows[0];
@@ -52,6 +52,22 @@ class BookingController {
           sebep: 'kurulum_tamamlanmadi',
         });
       }
+
+      // OTP kanal durumu
+      let telegramAktif = false;
+      let telegramBotUsername = null;
+      if (isletme.telegram_token) {
+        try {
+          const telegramOtp = require('../services/telegramOtp');
+          telegramBotUsername = await telegramOtp.botUsername(isletme.id);
+          telegramAktif = !!telegramBotUsername;
+        } catch(e) {}
+      }
+
+      // Response'tan token gizle (güvenlik)
+      delete isletme.telegram_token;
+      isletme.telegram_aktif = telegramAktif;
+      isletme.telegram_bot_username = telegramBotUsername;
 
       res.json({ isletme });
     } catch (error) {
@@ -77,50 +93,77 @@ class BookingController {
     }
   }
 
-  // GET /api/book/:slug/calisanlar?hizmetId=X — Çalışan listesi (public)
+  // GET /api/book/:slug/calisanlar?hizmetId=X  VEYA  ?hizmetIds=1,4,5
+  // Çoklu hizmet → intersection (hepsini yapabilen çalışanlar)
   async calisanlariGetir(req, res) {
     try {
       const { slug } = req.params;
-      const { hizmetId } = req.query;
+      const { hizmetId, hizmetIds } = req.query;
       const isletme = (await pool.query('SELECT id, calisan_secim_modu FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
       const secimModu = isletme.calisan_secim_modu || 'musteri';
 
-      // Otomatik veya tek çalışan modunda çalışan listesi gösterme
+      // Hizmet listesini normalize et: "1,4,5" → [1,4,5] veya tek hizmetId
+      let hizmetListesi = null;
+      if (hizmetIds) {
+        hizmetListesi = String(hizmetIds).split(',').map(x => parseInt(x)).filter(Boolean);
+      } else if (hizmetId) {
+        hizmetListesi = [parseInt(hizmetId)];
+      }
+
+      // Otomatik / tek çalışan modunda: çalışanı backend seçecek
       if (secimModu === 'otomatik' || secimModu === 'tek') {
-        return res.json({ calisanlar: [], otomatik: true });
+        // Intersection ile uygun çalışan var mı kontrol et (uyarı için)
+        const uygun = hizmetListesi
+          ? await randevuService.uygunCalisanlar(isletme.id, hizmetListesi)
+          : [];
+        return res.json({
+          calisanlar: [],
+          otomatik: true,
+          uygunSayi: uygun.length,
+          uyumsuzHizmet: hizmetListesi && hizmetListesi.length > 1 && uygun.length === 0
+        });
       }
 
-      // Müşteri seçer modu
-      const calisanlar = await randevuService.uygunCalisanlar(isletme.id, hizmetId ? parseInt(hizmetId) : null);
-      
-      // Tek çalışan veya 0 ise otomatik atama
+      // Müşteri seçer modu — intersection
+      const calisanlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
+
+      // Tek çalışan veya 0 ise otomatik atama (0 durumu client'a bilgi)
       if (calisanlar.length <= 1) {
-        return res.json({ calisanlar: [], otomatik: true });
+        return res.json({
+          calisanlar: [],
+          otomatik: true,
+          uygunSayi: calisanlar.length,
+          uyumsuzHizmet: hizmetListesi && hizmetListesi.length > 1 && calisanlar.length === 0
+        });
       }
 
-      // 2+ çalışan varsa listeyi göster (müşteri seçsin)
       res.json({ calisanlar: calisanlar.map(c => ({ id: c.id, isim: c.isim })) });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
   }
 
-  // GET /api/book/:slug/saatler?tarih=YYYY-MM-DD&calisanId=X&hizmetId=X — Müsait saatler (public)
+  // GET /api/book/:slug/saatler?tarih=...&calisanId=X&hizmetIds=1,4
   async musaitSaatler(req, res) {
     try {
       const { slug } = req.params;
-      const { tarih, calisanId, hizmetId } = req.query;
+      const { tarih, calisanId, hizmetId, hizmetIds } = req.query;
       if (!tarih) return res.status(400).json({ hata: 'Tarih gerekli' });
 
       const isletme = (await pool.query('SELECT id FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
+      const hizmetListesi = hizmetIds
+        ? String(hizmetIds).split(',').map(x => parseInt(x)).filter(Boolean)
+        : null;
+
       const saatler = await randevuService.musaitSaatleriGetir(
         isletme.id, tarih,
         calisanId ? parseInt(calisanId) : null,
-        hizmetId ? parseInt(hizmetId) : null
+        !hizmetListesi && hizmetId ? parseInt(hizmetId) : null,
+        hizmetListesi ? { hizmetIds: hizmetListesi } : {}
       );
 
       res.json({ saatler });
@@ -129,14 +172,22 @@ class BookingController {
     }
   }
 
-  // POST /api/book/:slug/randevu — Randevu oluştur (public)
+  // POST /api/book/:slug/randevu — Randevu oluştur (public, multi-hizmet)
   async randevuOlustur(req, res) {
     try {
       const { slug } = req.params;
-      const { hizmetId, calisanId, tarih, saat, musteriIsim, musteriTelefon, musteriDogum, musteriNot } = req.body;
+      const { hizmetId, hizmetIds, calisanId, tarih, saat, musteriIsim, musteriTelefon, musteriDogum, musteriNot } = req.body;
 
-      if (!hizmetId || !tarih || !saat || !musteriTelefon) {
-        return res.status(400).json({ hata: 'Eksik bilgi' });
+      // Multi-hizmet: `hizmetIds` array öncelikli, yoksa eski `hizmetId` tek değer
+      const hizmetListesi = Array.isArray(hizmetIds) && hizmetIds.length > 0
+        ? hizmetIds.map(x => parseInt(x)).filter(Boolean)
+        : (hizmetId ? [parseInt(hizmetId)] : []);
+
+      if (hizmetListesi.length === 0 || !tarih || !saat || !musteriTelefon) {
+        return res.status(400).json({ hata: 'Eksik bilgi (hizmet, tarih, saat, telefon gerekli)' });
+      }
+      if (hizmetListesi.length > 6) {
+        return res.status(400).json({ hata: 'En fazla 6 hizmet aynı anda seçilebilir' });
       }
 
       // Input validasyon
@@ -189,38 +240,56 @@ class BookingController {
       )).rows[0]?.c) || 0;
       if (gunlukSayi >= 3) return res.status(400).json({ hata: 'Aynı gün için en fazla 3 randevu alabilirsiniz.' });
 
-      // Çalışan otomatik seçim
+      // Çalışan otomatik seçim — multi-hizmet intersection ile
       let secilenCalisanId = calisanId ? parseInt(calisanId) : null;
       const secimModu = isletme.calisan_secim_modu || 'musteri';
       if (!secilenCalisanId) {
         if (secimModu === 'tek') {
-          // Tek çalışan modu: ilk uygun çalışanı ata
-          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, parseInt(hizmetId));
+          // Tek çalışan modu: tüm hizmetleri yapabilen ilk uygun çalışanı ata
+          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
           if (uygunlar.length > 0) secilenCalisanId = uygunlar[0].id;
         } else {
-          // Otomatik veya müşteri modu: en boş çalışanı ata (seans modunda saat de gönder)
-          const enBos = await randevuService.enBosCalisan(isletme.id, tarih, parseInt(hizmetId), saat);
-          if (enBos) secilenCalisanId = enBos.id;
+          // Otomatik veya müşteri modu: en boş çalışanı ata
+          // enBosCalisan tek hizmetId alıyor — multi-hizmette ilk uyumlu çalışanı seç
+          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
+          if (uygunlar.length === 1) {
+            secilenCalisanId = uygunlar[0].id;
+          } else if (uygunlar.length > 1) {
+            // En az yüklü çalışan
+            const enBos = await randevuService.enBosCalisan(isletme.id, tarih, hizmetListesi[0], saat);
+            if (enBos && uygunlar.some(u => u.id === enBos.id)) {
+              secilenCalisanId = enBos.id;
+            } else {
+              secilenCalisanId = uygunlar[0].id;
+            }
+          }
         }
-        if (!secilenCalisanId) return res.status(400).json({ hata: 'Uygun çalışan bulunamadı' });
+        if (!secilenCalisanId) {
+          return res.status(400).json({
+            hata: hizmetListesi.length > 1
+              ? 'Seçilen hizmet kombinasyonunu yapabilen çalışan bulunamadı. Lütfen daha az hizmet seçin.'
+              : 'Uygun çalışan bulunamadı'
+          });
+        }
       }
 
-      // Müsaitlik kontrolü (seans modunda işletme bazlı, diğerlerinde çalışan bazlı)
+      // Müsaitlik kontrolü (toplam süreye göre, seans modunda işletme bazlı)
       const musaitSaatler = await randevuService.musaitSaatleriGetir(
         isletme.id, tarih,
         secimModu === 'musteri' ? secilenCalisanId : null,
-        parseInt(hizmetId)
+        null,
+        { hizmetIds: hizmetListesi }
       );
       if (!musaitSaatler.includes(saat)) {
         return res.status(400).json({ hata: 'Seçilen saat artık müsait değil' });
       }
 
-      // Randevu oluştur
+      // Randevu oluştur (multi-hizmet)
       const sonuc = await randevuService.randevuOlustur({
         isletmeId: isletme.id,
         musteriTelefon,
         musteriIsim: musteriIsim || 'Online Müşteri',
-        hizmetId: parseInt(hizmetId),
+        hizmetIds: hizmetListesi,
         calisanId: secilenCalisanId,
         tarih,
         saat
@@ -267,9 +336,11 @@ class BookingController {
           id: sonuc.randevu.id,
           tarih: sonuc.randevu.tarih,
           saat: sonuc.randevu.saat,
+          bitis_saati: sonuc.randevu.bitis_saati,
           durum: sonuc.randevu.durum
         },
-        hizmet: sonuc.hizmet ? { isim: sonuc.hizmet.isim, fiyat: sonuc.hizmet.fiyat } : null,
+        hizmet: sonuc.hizmet ? { isim: sonuc.hizmet.isim, fiyat: sonuc.hizmet.fiyat, sure_dk: sonuc.hizmet.sure_dk } : null,
+        hizmetler: (sonuc.hizmetler || []).map(h => ({ id: h.id, isim: h.isim, fiyat: h.fiyat, sure_dk: h.sure_dk })),
         kapora: sonuc.kapora
       });
     } catch (error) {
@@ -280,17 +351,20 @@ class BookingController {
       res.status(500).json({ hata: 'Randevu oluşturulamadı: ' + error.message });
     }
   }
-  // POST /api/book/:slug/otp-gonder — WhatsApp OTP gönder
+  // POST /api/book/:slug/otp-gonder — Çok kanallı OTP (WhatsApp | Telegram)
   async otpGonder(req, res) {
     try {
       const { slug } = req.params;
-      const { telefon } = req.body;
+      const { telefon, kanal } = req.body;  // kanal: 'whatsapp' | 'telegram' (default 'whatsapp')
       if (!telefon) return res.status(400).json({ hata: 'Telefon numarası gerekli' });
 
       const telefonTemiz = String(telefon).replace(/[^\d]/g, '');
       if (telefonTemiz.length < 10 || telefonTemiz.length > 15) return res.status(400).json({ hata: 'Geçersiz telefon numarası' });
 
-      const isletme = (await pool.query('SELECT id, isim, booking_acik FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
+      const isletme = (await pool.query(
+        'SELECT id, isim, booking_acik, imza_gizle FROM isletmeler WHERE slug=$1 AND aktif=true',
+        [slug]
+      )).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
       // Booking gate kontrolü
@@ -315,43 +389,82 @@ class BookingController {
       if (jidTel.startsWith('0')) jidTel = '90' + jidTel.substring(1);
       if (!jidTel.startsWith('90') && jidTel.length === 10) jidTel = '90' + jidTel;
 
-      // ═══ CASCADE OTP GÖNDERİM ═══
-      // 1. Esnafın kendi WA'sı bağlı mı?
-      const whatsappWeb = require('../services/whatsappWeb');
-      const waDurum = whatsappWeb.getDurum(isletme.id);
+      const { imzaSatiri } = require('../utils/siragoImza');
+      const imza = imzaSatiri(isletme, 'tr');
+
       let kaynak = null;
       let gonderildi = false;
+      const secilenKanal = (kanal || 'whatsapp').toLowerCase();
 
-      if (waDurum?.durum === 'bagli') {
-        const mesaj = `🔐 *${isletme.isim} Doğrulama Kodu*\n\nOnline randevu için doğrulama kodunuz:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesajı siz talep etmediyseniz lütfen dikkate almayın._`;
-        try {
-          await whatsappWeb.mesajGonder(isletme.id, `${jidTel}@s.whatsapp.net`, mesaj);
-          kaynak = 'esnaf_wa';
+      // ═══ TELEGRAM KANALI ═══
+      if (secilenKanal === 'telegram') {
+        const telegramOtp = require('../services/telegramOtp');
+        const chatId = await telegramOtp.chatIdBul(isletme.id, telefonTemiz);
+        if (!chatId) {
+          // Müşterinin chat_id'si yok → /start linki dönelim, FE modal gösterip bekleyecek
+          const botUsername = await telegramOtp.botUsername(isletme.id);
+          if (!botUsername) {
+            return res.status(503).json({
+              hata: 'Bu işletmede Telegram ile kod gönderimi aktif değil.',
+              servisYok: true,
+            });
+          }
+          return res.status(428).json({
+            hata: 'Önce Telegram botumuza bağlanın',
+            telegramHazirDegil: true,
+            botUsername,
+            startLink: `https://t.me/${botUsername}?start=link_${telefonTemiz}`,
+          });
+        }
+
+        const mesaj = `🔐 *${isletme.isim} Doğrulama Kodu*\n\nOnline randevu için doğrulama kodunuz:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesajı siz talep etmediyseniz lütfen dikkate almayın._${imza}`;
+        const sonuc = await telegramOtp.mesajGonder(isletme.id, chatId, mesaj);
+        if (sonuc.success) {
+          kaynak = 'telegram';
           gonderildi = true;
-        } catch (e) {
-          console.log(`⚠️ Esnaf WA ile gönderilemedi, merkez OTP'ye düşülüyor:`, e.message);
+        } else {
+          console.error('❌ TG OTP gönderilemedi:', sonuc.hata);
+          return res.status(503).json({ hata: 'Telegram üzerinden gönderilemedi. WhatsApp ile deneyin.' });
         }
       }
 
-      // 2. Esnafın WA'sı yoksa → SıraGO Merkez OTP Bot
-      if (!gonderildi) {
-        const merkezOtpBot = require('../services/merkezOtpBot');
-        if (merkezOtpBot.aktifMi()) {
-          const mesaj = `🔐 *SıraGO Doğrulama*\n\n«${isletme.isim}» üzerinden randevunuz için kod:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesaj SıraGO güvenlik sistemi tarafından gönderilmiştir. Sen talep etmediysen dikkate alma._`;
-          const sonuc = await merkezOtpBot.mesajGonder(telefonTemiz, mesaj);
-          if (sonuc.success) {
-            kaynak = 'merkez_otp';
+      // ═══ WHATSAPP KANALI (default) — CASCADE: Esnaf WA → Merkez OTP ═══
+      if (secilenKanal !== 'telegram' && !gonderildi) {
+        // 1. Esnafın kendi WA'sı bağlı mı?
+        const whatsappWeb = require('../services/whatsappWeb');
+        const waDurum = whatsappWeb.getDurum(isletme.id);
+
+        if (waDurum?.durum === 'bagli') {
+          const mesaj = `🔐 *${isletme.isim} Doğrulama Kodu*\n\nOnline randevu için doğrulama kodunuz:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesajı siz talep etmediyseniz lütfen dikkate almayın._${imza}`;
+          try {
+            await whatsappWeb.mesajGonder(isletme.id, `${jidTel}@s.whatsapp.net`, mesaj);
+            kaynak = 'esnaf_wa';
             gonderildi = true;
-          } else {
-            console.error(`❌ Merkez OTP gönderilemedi:`, sonuc.hata);
+          } catch (e) {
+            console.log(`⚠️ Esnaf WA ile gönderilemedi, merkez OTP'ye düşülüyor:`, e.message);
+          }
+        }
+
+        // 2. Esnafın WA'sı yoksa → SıraGO Merkez OTP Bot
+        if (!gonderildi) {
+          const merkezOtpBot = require('../services/merkezOtpBot');
+          if (merkezOtpBot.aktifMi()) {
+            const mesaj = `🔐 *SıraGO Doğrulama*\n\n«${isletme.isim}» üzerinden randevunuz için kod:\n\n🔑 *${kod}*\n\n⏰ Bu kod 5 dakika geçerlidir.\n\n_Bu mesaj SıraGO güvenlik sistemi tarafından gönderilmiştir. Sen talep etmediysen dikkate alma._${imza}`;
+            const sonuc = await merkezOtpBot.mesajGonder(telefonTemiz, mesaj);
+            if (sonuc.success) {
+              kaynak = 'merkez_otp';
+              gonderildi = true;
+            } else {
+              console.error('❌ Merkez OTP gönderilemedi:', sonuc.hata);
+            }
           }
         }
       }
 
-      // 3. Hiçbiri bağlı değilse → reddet (booking gate zaten kapalı olmalı ama ihtimal)
+      // 3. Hiçbiri başarılı değilse → reddet
       if (!gonderildi) {
         try {
-          await _olayLogla(isletme.id, 'otp_gonder_yok', 'Ne esnaf WA ne merkez OTP aktif', null, telefonTemiz);
+          await _olayLogla(isletme.id, 'otp_gonder_yok', `Kanal=${secilenKanal}, sonuç yok`, null, telefonTemiz);
         } catch {}
         return res.status(503).json({
           hata: 'Doğrulama servisi geçici olarak kullanılamıyor. Lütfen işletme ile doğrudan iletişime geçin.',
@@ -367,6 +480,26 @@ class BookingController {
     } catch (error) {
       console.error('❌ OTP gönderme hatası:', error.message);
       res.status(500).json({ hata: 'Doğrulama kodu gönderilemedi' });
+    }
+  }
+
+  // GET /api/book/:slug/telegram-chat-durum?tel=... — FE polling endpoint
+  // Müşteri /start link_X sonrası chat_id eşleştirmesi yapıldı mı kontrolü
+  async telegramChatDurum(req, res) {
+    try {
+      const { slug } = req.params;
+      const { tel } = req.query;
+      if (!tel) return res.status(400).json({ hata: 'Telefon gerekli' });
+      const telefonTemiz = String(tel).replace(/[^\d]/g, '');
+
+      const isletme = (await pool.query('SELECT id FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+
+      const telegramOtp = require('../services/telegramOtp');
+      const chatId = await telegramOtp.chatIdBul(isletme.id, telefonTemiz);
+      res.json({ hazir: !!chatId });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
     }
   }
 
