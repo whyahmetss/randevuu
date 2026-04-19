@@ -136,14 +136,13 @@ class GrupController {
       // Paket + ödeme tarihleri: grubun mevcut şubesinden (merkezden) inherit
       // Böylece yeni şube ayrıca ödeme istemez — grup paketine dahil
       const ornek = (await pool.query(
-        `SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi, paket_baslangic_tarihi
+        `SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi
            FROM isletmeler WHERE grup_id=$1 ORDER BY id LIMIT 1`,
         [grupId]
       )).rows[0];
       const paket = ornek?.paket || 'kurumsal';
       const paketBitis = ornek?.paket_bitis_tarihi || null;
       const denemeBitis = ornek?.deneme_bitis_tarihi || null;
-      const paketBaslangic = ornek?.paket_baslangic_tarihi || null;
 
       // Slug: isim + sehir bazlı
       const baseSlug = slugify(`${isim}-${sehir || ''}`.trim());
@@ -157,10 +156,10 @@ class GrupController {
       const sube = (await pool.query(
         `INSERT INTO isletmeler
            (isim, slug, telefon, sehir, ilce, adres, kategori, aktif, paket, grup_id, sube_etiketi,
-            paket_baslangic_tarihi, paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi)
-         VALUES ($1,$2,$3,$4,$5,$6,'genel',true,$7,$8,$9,$10,$11,$12,NOW()) RETURNING *`,
+            paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi)
+         VALUES ($1,$2,$3,$4,$5,$6,'genel',true,$7,$8,$9,$10,$11,NOW()) RETURNING *`,
         [isim, slug, telefon || '', sehir || null, ilce || null, adres || null, paket, grupId, sube_etiketi || null,
-         paketBaslangic, paketBitis, denemeBitis]
+         paketBitis, denemeBitis]
       )).rows[0];
 
       // Şube müdürü (opsiyonel)

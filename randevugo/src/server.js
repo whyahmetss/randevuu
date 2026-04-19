@@ -150,10 +150,9 @@ const PORT = process.env.PORT || 3000;
       UPDATE isletmeler sube
          SET paket = COALESCE(sube.paket, merkez.paket),
              paket_bitis_tarihi = COALESCE(sube.paket_bitis_tarihi, merkez.paket_bitis_tarihi),
-             deneme_bitis_tarihi = COALESCE(sube.deneme_bitis_tarihi, merkez.deneme_bitis_tarihi),
-             paket_baslangic_tarihi = COALESCE(sube.paket_baslangic_tarihi, merkez.paket_baslangic_tarihi)
+             deneme_bitis_tarihi = COALESCE(sube.deneme_bitis_tarihi, merkez.deneme_bitis_tarihi)
         FROM (
-          SELECT DISTINCT ON (grup_id) grup_id, paket, paket_bitis_tarihi, deneme_bitis_tarihi, paket_baslangic_tarihi
+          SELECT DISTINCT ON (grup_id) grup_id, paket, paket_bitis_tarihi, deneme_bitis_tarihi
             FROM isletmeler
            WHERE grup_id IS NOT NULL
            ORDER BY grup_id, id
