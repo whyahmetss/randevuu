@@ -24,17 +24,21 @@ import BackendHealth from './components/BackendHealth';
 import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
 import BildirimAktivasyon from './components/BildirimAktivasyon';
 import DukkanModuPopup from './components/DukkanModuPopup';
+import GrupYonetim from './components/Grup/GrupYonetim';
+import SubeSwitcher from './components/Grup/SubeSwitcher';
 
 const api = {
   token: localStorage.getItem("randevugo_token"),
 
   async fetch(endpoint, options = {}) {
     try {
+      const aktifIsletme = localStorage.getItem("aktifIsletme");
       const res = await fetch(`${API_URL}${endpoint}`, {
         ...options,
         headers: {
           "Content-Type": "application/json",
           ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+          ...(aktifIsletme ? { "X-Aktif-Isletme": aktifIsletme } : {}),
           ...options.headers,
         },
       });
@@ -1193,7 +1197,13 @@ function Dashboard() {
     { id: "qrkod", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="17"/><line x1="14" y1="21" x2="17" y2="21"/></svg>, label: "QR Kod" },
     { id: "destek", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, label: "Destek" },
     { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
-  ];
+    { id: "grup", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['isletme', 'grup_sahibi'] },
+  ].filter(m => {
+    if (m.rolOnly && kullanici?.rol && !m.rolOnly.includes(kullanici.rol)) return false;
+    // sube_muduru: gizle ağır yönetim sayfaları
+    if (kullanici?.rol === 'sube_muduru' && ['finans','botbaglanti','bottest','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'].includes(m.id)) return false;
+    return true;
+  });
 
   // Özellik paket kontrolü helper
   const ozellikAcik = (featureKey) => {
@@ -1232,6 +1242,12 @@ function Dashboard() {
         {ayarlar && (
           <div className="sidebar-user">
             <div className="u-name">{ayarlar.isim}</div>
+          </div>
+        )}
+
+        {kullanici?.rol === 'grup_sahibi' && (
+          <div style={{ padding: '0 16px 12px' }}>
+            <SubeSwitcher api={api} onGrupYonetim={() => setSayfa('grup')} />
           </div>
         )}
 
@@ -2868,6 +2884,14 @@ function Dashboard() {
           {/* ── AYARLAR ── */}
           {sayfa === "ayarlar" && (
             <Settings ayarlar={ayarlar} setAyarlar={setAyarlar} paketDurum={paketDurum} api={api} />
+          )}
+
+          {/* ── ŞUBELERİM (Kurumsal Paket) ── */}
+          {sayfa === "grup" && (
+            <GrupYonetim api={api} onSubeSec={(id) => {
+              localStorage.setItem('aktifIsletme', String(id));
+              window.location.reload();
+            }} />
           )}
 
           {/* ── BİLDİRİMLER ── */}

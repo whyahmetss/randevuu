@@ -25,6 +25,7 @@ function featureGuard(featureKey, ozelIsim) {
     coklu_dil: 'Çoklu Dil Desteği',
     export_aktif: 'Excel Dışa Aktarma',
     istatistik: 'Gelişmiş İstatistik',
+    sube_yonetimi: 'Çok Şubeli Yönetim',
   };
 
   const isim = ozelIsim || OZELLIK_ISIMLERI[featureKey] || featureKey;
@@ -34,7 +35,12 @@ function featureGuard(featureKey, ozelIsim) {
       // Superadmin her şeye erişebilir
       if (req.kullanici?.rol === 'superadmin') return next();
 
-      const isletmeId = req.kullanici?.isletme_id;
+      // Grup sahibi için: grubun ilk şubesinin paketini kontrol et (grubun paketi = sahibin paketi)
+      let isletmeId = req.kullanici?.aktif_isletme_id || req.kullanici?.isletme_id;
+      if (!isletmeId && req.kullanici?.grup_id) {
+        const sube = (await pool.query('SELECT id FROM isletmeler WHERE grup_id=$1 LIMIT 1', [req.kullanici.grup_id])).rows[0];
+        isletmeId = sube?.id;
+      }
       if (!isletmeId) return next();
 
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];

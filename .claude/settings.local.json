@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -c src/utils/botMesajlar.js)",
+      "Bash(node -c src/controllers/adminController.js)",
+      "Bash(node -c src/controllers/bookingController.js)",
+      "Bash(node -c src/server.js)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(timeout 15 node -e \"require\\('./src/server.js'\\)\")",
+      "Bash(pkill -f \"node -e\")"
+    ]
+  }
+}

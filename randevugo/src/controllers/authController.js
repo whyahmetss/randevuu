@@ -16,7 +16,7 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id },
+        { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null },
         jwtSecret,
         { expiresIn: '7d' }
       );
@@ -30,7 +30,7 @@ class AuthController {
         );
       } catch(e) { /* audit log opsiyonel */ }
 
-      res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id } });
+      res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null } });
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);
       res.status(500).json({ hata: 'Sunucu hatası oluştu' });
