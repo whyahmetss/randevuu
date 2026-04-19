@@ -1231,10 +1231,15 @@ function Dashboard({ kullanici }) {
   // Rol bazlı gizlenen sayfalar (sube_muduru için)
   const subeMuduruGizli = ['finans','botbaglanti','bottest','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
 
-  // Item filtresi (rol + sube_muduru kısıtı)
+  // Alt şubede mi? (grup_sahibi aktif bir şubeye geçmişse Şubelerim gizlenir)
+  const altSubeModu = kullanici?.rol === 'grup_sahibi' && !!localStorage.getItem('aktifIsletme');
+
+  // Item filtresi (rol + sube_muduru kısıtı + alt şube modu)
   const itemGorunur = (m) => {
     if (m.rolOnly && kullanici?.rol && !m.rolOnly.includes(kullanici.rol)) return false;
     if (kullanici?.rol === 'sube_muduru' && subeMuduruGizli.includes(m.id)) return false;
+    // Alt şube panelindeyken "Şubelerim" menüsü gizli — SubeSwitcher'dan merkeze dönebilir
+    if (altSubeModu && m.id === 'grup') return false;
     return true;
   };
 
