@@ -1177,33 +1177,80 @@ function Dashboard() {
     winback: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>,
   };
 
-  // featureKey: paket_bilgi'deki flag adı — yoksa herkese açık
-  const menuItems = [
-    { id: "anasayfa", icon: SVG.dashboard, label: "Dashboard" },
-    { id: "randevular", icon: SVG.randevular, label: "Randevular" },
-    { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler" },
-    { id: "calisanlar", icon: SVG.calisanlar, label: "Çalışanlar" },
-    { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
-    { id: "kasa", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, label: "Kasa", featureKey: "kasa" },
-    { id: "sms", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>, label: "SMS", featureKey: "sms_hatirlatma" },
-    { id: "geceraporu", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>, label: "Gece Raporu", featureKey: "gece_raporu" },
-    { id: "yorumavcisi", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
-    { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
-    { id: "sadakat", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>, label: "Sadakat", featureKey: "sadakat" },
-    { id: "musterigetir", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>, label: "Müşteri Getir" },
-    { id: "finans", icon: SVG.finans, label: "Finans" },
-    { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
-    { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
-    { id: "qrkod", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="17"/><line x1="14" y1="21" x2="17" y2="21"/></svg>, label: "QR Kod" },
-    { id: "destek", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, label: "Destek" },
-    { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
-    { id: "grup", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['isletme', 'grup_sahibi'] },
-  ].filter(m => {
+  // SVG ikonları (grup + items)
+  const ICON = {
+    kasa: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+    sms: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>,
+    gece: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+    yorum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    sadakat: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
+    getir: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>,
+    qr: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="17"/><line x1="14" y1="21" x2="17" y2="21"/></svg>,
+    destek: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+    sube: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>,
+    pazarlama: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>,
+    bot: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>,
+  };
+
+  // Menü grupları — hiyerarşik yapı
+  // type: 'flat' = divider'lar arasında direkt item'lar
+  // type: 'group' = açılır/kapanır accordion
+  const menuGroups = [
+    { type: 'flat', items: [
+      { id: "anasayfa", icon: SVG.dashboard, label: "Dashboard" },
+      { id: "randevular", icon: SVG.randevular, label: "Randevular" },
+      { id: "kasa", icon: ICON.kasa, label: "Kasa", featureKey: "kasa" },
+      { id: "finans", icon: SVG.finans, label: "Finans" },
+    ]},
+    { type: 'flat', items: [
+      { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+      { id: "calisanlar", icon: SVG.calisanlar, label: "Çalışanlar" },
+      { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler" },
+    ]},
+    { type: 'group', id: 'gr_pazarlama', icon: ICON.pazarlama, label: 'Pazarlama', items: [
+      { id: "sms", icon: ICON.sms, label: "SMS", featureKey: "sms_hatirlatma" },
+      { id: "musterigetir", icon: ICON.getir, label: "Müşteri Getir" },
+      { id: "sadakat", icon: ICON.sadakat, label: "Sadakat", featureKey: "sadakat" },
+      { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
+      { id: "yorumavcisi", icon: ICON.yorum, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
+    ]},
+    { type: 'group', id: 'gr_bot', icon: ICON.bot, label: 'Bot & Sistem', items: [
+      { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
+      { id: "bottest", icon: SVG.bottest, label: "Bot Test" },
+      { id: "qrkod", icon: ICON.qr, label: "QR Kod" },
+    ]},
+    { type: 'flat', items: [
+      { id: "geceraporu", icon: ICON.gece, label: "Gece Raporu", featureKey: "gece_raporu" },
+      { id: "grup", icon: ICON.sube, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['isletme', 'grup_sahibi'] },
+      { id: "destek", icon: ICON.destek, label: "Destek" },
+      { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
+    ]},
+  ];
+
+  // Rol bazlı gizlenen sayfalar (sube_muduru için)
+  const subeMuduruGizli = ['finans','botbaglanti','bottest','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
+
+  // Item filtresi (rol + sube_muduru kısıtı)
+  const itemGorunur = (m) => {
     if (m.rolOnly && kullanici?.rol && !m.rolOnly.includes(kullanici.rol)) return false;
-    // sube_muduru: gizle ağır yönetim sayfaları
-    if (kullanici?.rol === 'sube_muduru' && ['finans','botbaglanti','bottest','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'].includes(m.id)) return false;
+    if (kullanici?.rol === 'sube_muduru' && subeMuduruGizli.includes(m.id)) return false;
     return true;
-  });
+  };
+
+  // Grupları filtrele — boş kalan gruplar görünmez
+  const gorunurGruplar = menuGroups.map(g => ({
+    ...g,
+    items: g.items.filter(itemGorunur),
+  })).filter(g => g.items.length > 0);
+
+  // Flat bir liste (arama/referans için — sidebar-nav superadmin tarafında kullanılıyor olabilir)
+  const menuItems = gorunurGruplar.flatMap(g => g.items);
+
+  // Accordion — hangi grup açık (aktif sayfa hangi gruptaysa o otomatik açık)
+  const aktifGrup = gorunurGruplar.find(g => g.type === 'group' && g.items.some(i => i.id === sayfa))?.id;
+  const [acikGrup, setAcikGrup] = useState(aktifGrup || null);
+  // Aktif sayfa değişince o gruba geçilsin (farklı gruptan tıklanınca otomatik aç)
+  useEffect(() => { if (aktifGrup) setAcikGrup(aktifGrup); }, [aktifGrup]);
 
   // Özellik paket kontrolü helper
   const ozellikAcik = (featureKey) => {
@@ -1252,14 +1299,48 @@ function Dashboard() {
         )}
 
         <nav className="sidebar-nav">
-          {menuItems.map(m => {
-            const kilitli = m.featureKey && !ozellikAcik(m.featureKey);
+          {gorunurGruplar.map((grup, grupIdx) => {
+            // Tek item fonksiyonu
+            const renderItem = (m, indent = false) => {
+              const kilitli = m.featureKey && !ozellikAcik(m.featureKey);
+              return (
+                <div key={m.id} onClick={() => { if (kilitli) { setPaketModal(true); } else { setSayfa(m.id); setMobileOpen(false); } }} className={`nav-item${sayfa === m.id ? ' active' : ''}${kilitli ? ' locked' : ''}`} style={indent ? { paddingLeft: 32 } : undefined} title={kilitli ? 'Bu özellik paketinizde yok — yükseltmek için tıklayın' : ''}>
+                  <span className="nav-icon">{m.icon}</span>
+                  <span>{m.label}</span>
+                  {kilitli && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', opacity: 0.5 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
+                  {!kilitli && sayfa === m.id && <div className="active-dot" />}
+                </div>
+              );
+            };
+
+            // Flat grup — divider + direkt items
+            if (grup.type === 'flat') {
+              return (
+                <div key={`flat-${grupIdx}`}>
+                  {grupIdx > 0 && <div style={{ height: 1, background: 'rgba(255,255,255,.06)', margin: '8px 16px' }} />}
+                  {grup.items.map(m => renderItem(m))}
+                </div>
+              );
+            }
+
+            // Accordion grup — header + açıksa items (ikonlarla hafif girintili)
+            const acik = acikGrup === grup.id;
+            const aktifIcinde = grup.items.some(i => i.id === sayfa);
             return (
-              <div key={m.id} onClick={() => { if (kilitli) { setPaketModal(true); } else { setSayfa(m.id); setMobileOpen(false); } }} className={`nav-item${sayfa === m.id ? ' active' : ''}${kilitli ? ' locked' : ''}`} title={kilitli ? 'Bu özellik paketinizde yok — yükseltmek için tıklayın' : ''}>
-                <span className="nav-icon">{m.icon}</span>
-                <span>{m.label}</span>
-                {kilitli && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', opacity: 0.5 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
-                {!kilitli && sayfa === m.id && <div className="active-dot" />}
+              <div key={grup.id}>
+                <div style={{ height: 1, background: 'rgba(255,255,255,.06)', margin: '8px 16px' }} />
+                <div
+                  onClick={() => setAcikGrup(acik ? null : grup.id)}
+                  className={`nav-item${aktifIcinde ? ' active' : ''}`}
+                  style={{ cursor: 'pointer', fontWeight: 600 }}
+                >
+                  <span className="nav-icon">{grup.icon}</span>
+                  <span>{grup.label}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', transform: acik ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .2s', opacity: 0.7 }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                {acik && <div>{grup.items.map(m => renderItem(m, true))}</div>}
               </div>
             );
           })}
