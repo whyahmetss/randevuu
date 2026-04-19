@@ -7895,5 +7895,5 @@ export default function App() {
 
   if (!kullanici) return <Login onLogin={setKullanici} />;
   if (kullanici.rol === "superadmin") return <SuperAdminPanel kullanici={kullanici} />;
-  return <Dashboard />;
+  return <Dashboard kullanici={kullanici} />;
 }
