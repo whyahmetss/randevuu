@@ -816,7 +816,7 @@ function CanliDurumu() {
   );
 }
 
-function Dashboard() {
+function Dashboard({ kullanici }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [stats, setStats] = useState(null);
   const [randevular, setRandevular] = useState([]);
@@ -7976,5 +7976,5 @@ export default function App() {
 
   if (!kullanici) return <Login onLogin={setKullanici} />;
   if (kullanici.rol === "superadmin") return <SuperAdminPanel kullanici={kullanici} />;
-  return <Dashboard />;
+  return <Dashboard kullanici={kullanici} />;
 }
