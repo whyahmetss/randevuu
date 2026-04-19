@@ -91,13 +91,26 @@ const odemeKontrol = async (req, res, next) => {
     if (!isletmeId) return next();
 
     // Deneme süresi ve paket bitiş kontrolü
-    const isletme = (await pool.query('SELECT deneme_bitis_tarihi, paket_bitis_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    const isletme = (await pool.query('SELECT deneme_bitis_tarihi, paket_bitis_tarihi, grup_id FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (isletme) {
       const now = new Date();
       // Deneme süresi devam ediyorsa geç
       if (isletme.deneme_bitis_tarihi && new Date(isletme.deneme_bitis_tarihi) > now) return next();
       // Paket bitiş tarihi varsa ve hâlâ geçerliyse geç
       if (isletme.paket_bitis_tarihi && new Date(isletme.paket_bitis_tarihi) > now) return next();
+
+      // Grup şubesi: merkez şubenin (ID'si en küçük olan) ödemesine bak
+      if (isletme.grup_id) {
+        const merkez = (await pool.query(
+          `SELECT deneme_bitis_tarihi, paket_bitis_tarihi
+             FROM isletmeler WHERE grup_id=$1 ORDER BY id LIMIT 1`,
+          [isletme.grup_id]
+        )).rows[0];
+        if (merkez) {
+          if (merkez.deneme_bitis_tarihi && new Date(merkez.deneme_bitis_tarihi) > now) return next();
+          if (merkez.paket_bitis_tarihi && new Date(merkez.paket_bitis_tarihi) > now) return next();
+        }
+      }
     }
 
     const buAy = new Date().toISOString().slice(0, 7);

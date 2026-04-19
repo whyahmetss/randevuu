@@ -144,6 +144,25 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_musteriler_grup_tel ON musteriler(grup_id, telefon) WHERE grup_id IS NOT NULL`);
     await pool.query(`ALTER TABLE admin_kullanicilar ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id)`);
 
+    // ─── BACKFILL: Grup alt şubelerinin NULL paket tarihlerini merkezden kopyala ───
+    // (Yeni şube ekleme sırasında kopyalanmayan mevcut kayıtlar için tek seferlik fix)
+    await pool.query(`
+      UPDATE isletmeler sube
+         SET paket = COALESCE(sube.paket, merkez.paket),
+             paket_bitis_tarihi = COALESCE(sube.paket_bitis_tarihi, merkez.paket_bitis_tarihi),
+             deneme_bitis_tarihi = COALESCE(sube.deneme_bitis_tarihi, merkez.deneme_bitis_tarihi),
+             paket_baslangic_tarihi = COALESCE(sube.paket_baslangic_tarihi, merkez.paket_baslangic_tarihi)
+        FROM (
+          SELECT DISTINCT ON (grup_id) grup_id, paket, paket_bitis_tarihi, deneme_bitis_tarihi, paket_baslangic_tarihi
+            FROM isletmeler
+           WHERE grup_id IS NOT NULL
+           ORDER BY grup_id, id
+        ) merkez
+       WHERE sube.grup_id = merkez.grup_id
+         AND sube.id <> (SELECT MIN(id) FROM isletmeler WHERE grup_id = sube.grup_id)
+         AND (sube.paket_bitis_tarihi IS NULL OR sube.deneme_bitis_tarihi IS NULL)
+    `);
+
     // ─── KAPORA SİSTEMİ ───
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS kapora_yuzdesi INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS kapora_aktif BOOLEAN DEFAULT false`);
