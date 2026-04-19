@@ -971,7 +971,19 @@ app.use('/api', apiLimiter, apiRoutes);
 
 // Online Booking sayfası — /book/:slug
 app.get('/book/:slug', (req, res) => {
-  res.sendFile(require('path').join(__dirname, 'public', 'booking.html'));
+  const dosya = require('path').join(__dirname, 'public', 'booking.html');
+  const fs = require('fs');
+  if (!fs.existsSync(dosya)) {
+    console.error('❌ booking.html bulunamadı:', dosya);
+    return res.status(404).send('Booking sayfası bulunamadı. Path: ' + dosya);
+  }
+  res.sendFile(dosya);
+});
+
+// Grup Booking sayfası — /g/:slug
+app.get('/g/:slug', (req, res) => {
+  const dosya = require('path').join(__dirname, 'public', 'booking.html');
+  res.sendFile(dosya);
 });
 
 // Ana sayfa - Landing page
