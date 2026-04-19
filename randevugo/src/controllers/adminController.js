@@ -5088,14 +5088,14 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://admin.sırago.com/book/${slug}`;
+        hedefUrl = `https://sırago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
         hedefUrl = `https://wa.me/${uluslararasi}?text=Merhaba`;
       }
 
-      const qrBase64 = await QRCode.toDataURL(type === 'booking' ? `https://admin.xn--srago-n4a.com/book/${slug}` : hedefUrl, {
+      const qrBase64 = await QRCode.toDataURL(type === 'booking' ? `https://xn--srago-n4a.com/book/${slug}` : hedefUrl, {
         width: 600, margin: 2,
         color: { dark: type === 'booking' ? '#3b82f6' : '#00C853', light: '#FFFFFF' },
         errorCorrectionLevel: 'M'
@@ -5131,8 +5131,8 @@ class AdminController {
 
       let hedefUrl, qrUrl;
       if (type === 'booking') {
-        hedefUrl = `https://admin.sırago.com/book/${slug}`;
-        qrUrl = `https://admin.xn--srago-n4a.com/book/${slug}`;
+        hedefUrl = `https://sırago.com/book/${slug}`;
+        qrUrl = `https://xn--srago-n4a.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
