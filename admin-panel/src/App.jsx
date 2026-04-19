@@ -1221,7 +1221,7 @@ function Dashboard({ kullanici }) {
     ]},
     { type: 'flat', items: [
       { id: "geceraporu", icon: ICON.gece, label: "Gece Raporu", featureKey: "gece_raporu" },
-      { id: "grup", icon: ICON.sube, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['isletme', 'grup_sahibi'] },
+      { id: "grup", icon: ICON.sube, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['admin', 'isletme', 'grup_sahibi'] },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
