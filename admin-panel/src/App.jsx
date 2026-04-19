@@ -78,6 +78,7 @@ const api = {
   post: (e, d) => api.fetch(e, { method: "POST", body: JSON.stringify(d) }),
   put: (e, d) => api.fetch(e, { method: "PUT", body: JSON.stringify(d) }),
   del: (e) => api.fetch(e, { method: "DELETE" }),
+  delete: (e) => api.fetch(e, { method: "DELETE" }),
 };
 
 function Login({ onLogin }) {

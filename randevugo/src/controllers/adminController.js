@@ -1617,10 +1617,24 @@ class AdminController {
       `, [isletmeId, bugun])).rows[0] || null;
 
       // Paket bitiş bilgisi
-      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi, grup_id FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       let paketKalanGun = null;
       let paketBitisTarihi = null;
       let paketDurumTipi = null; // 'deneme' | 'paket' | 'odeme'
+
+      // Grup şubesi: kendi tarihleri yoksa merkez şubeden inherit et
+      if (isletme && isletme.grup_id && !isletme.paket_bitis_tarihi && !isletme.deneme_bitis_tarihi) {
+        const merkez = (await pool.query(
+          `SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi
+             FROM isletmeler WHERE grup_id=$1 ORDER BY id LIMIT 1`,
+          [isletme.grup_id]
+        )).rows[0];
+        if (merkez) {
+          isletme.paket_bitis_tarihi = merkez.paket_bitis_tarihi;
+          isletme.deneme_bitis_tarihi = merkez.deneme_bitis_tarihi;
+          if (merkez.paket) isletme.paket = merkez.paket;
+        }
+      }
 
       if (isletme) {
         // 1) paket_bitis_tarihi elle set edilmişse en öncelikli
