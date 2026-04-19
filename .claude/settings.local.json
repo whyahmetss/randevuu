@@ -14,7 +14,8 @@
       "Bash(curl -sI https://sırago.com/book/test-isletme-16)",
       "Bash(curl -sI https://xn--srago-n4a.com/book/test-isletme-16)",
       "Bash(curl -sI https://randevugo-api-v2.onrender.com/book/test-isletme-16)",
-      "Bash(git commit -m 'fix\\(qr\\): book linki randevu.sırago.com subdomain'\\\\''ine taşındı *)"
+      "Bash(git commit -m 'fix\\(qr\\): book linki randevu.sırago.com subdomain'\\\\''ine taşındı *)",
+      "Bash(git commit -m 'feat\\(booking\\): premium tasarım — hero zenginleştirildi + kart glow + trust badge *)"
     ]
   }
 }
