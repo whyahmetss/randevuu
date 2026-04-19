@@ -13,8 +13,20 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, jwtSecret);
     req.kullanici = decoded;
 
+    // JWT eski olabilir — admin_kullanicilar'dan fresh rol + grup_id çek
+    // (özellikle grup kurma sonrası: rol 'admin' → 'grup_sahibi' güncellenmiş olur)
+    if (decoded.rol !== 'superadmin' && decoded.id) {
+      try {
+        const k = (await pool.query('SELECT rol, grup_id FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
+        if (k) {
+          if (k.rol) req.kullanici.rol = k.rol;
+          if (k.grup_id) req.kullanici.grup_id = k.grup_id;
+        }
+      } catch (e) { /* ignore — JWT değerleri kullanılmaya devam eder */ }
+    }
+
     // Grup sahibi ise aktif şube header'ı işle
-    if (decoded.rol === 'grup_sahibi' && decoded.grup_id) {
+    if (req.kullanici.rol === 'grup_sahibi' && req.kullanici.grup_id) {
       const aktifHeader = req.headers['x-aktif-isletme'];
       if (aktifHeader) {
         const aktifId = parseInt(aktifHeader, 10);
@@ -22,7 +34,7 @@ const authMiddleware = async (req, res, next) => {
           // Spoof koruması: seçilen şube gerçekten bu gruba ait mi?
           try {
             const sube = (await pool.query('SELECT id, aktif, grup_id FROM isletmeler WHERE id = $1', [aktifId])).rows[0];
-            if (sube && sube.grup_id === decoded.grup_id) {
+            if (sube && sube.grup_id === req.kullanici.grup_id) {
               req.kullanici.aktif_isletme_id = sube.id;
               req.kullanici.isletme_id = sube.id; // backward compat
             }
