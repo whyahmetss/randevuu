@@ -560,39 +560,6 @@ class BookingController {
       res.status(500).json({ hata: 'Doğrulama hatası' });
     }
   }
-
-  // GET /api/book/grup/:slug — Grup landing (public)
-  async grupLanding(req, res) {
-    try {
-      const { slug } = req.params;
-      const grup = (await pool.query('SELECT id, isim, slug, logo, tanitim, renk_tema FROM sube_gruplari WHERE slug=$1', [slug])).rows[0];
-      if (!grup) return res.status(404).json({ hata: 'Grup bulunamadı' });
-
-      const subeler = (await pool.query(
-        `SELECT id, slug, isim, sube_etiketi, sehir, ilce, adres, telefon,
-                calisma_baslangic, calisma_bitis, kapali_gunler
-           FROM isletmeler
-          WHERE grup_id=$1 AND aktif=true AND booking_acik=true
-          ORDER BY grup_sira, id`, [grup.id]
-      )).rows;
-
-      const bugun = new Date().getDay(); // 0=Pazar
-      const subelerOut = subeler.map(s => {
-        const kapali = String(s.kapali_gunler || '').split(',').map(x => x.trim()).includes(String(bugun));
-        return {
-          slug: s.slug, isim: s.isim, sube_etiketi: s.sube_etiketi,
-          sehir: s.sehir, ilce: s.ilce, adres: s.adres, telefon: s.telefon,
-          calisma: s.calisma_baslangic && s.calisma_bitis ? `${s.calisma_baslangic.slice(0,5)}-${s.calisma_bitis.slice(0,5)}` : null,
-          bugun_acik: !kapali
-        };
-      });
-
-      res.json({ grup: { isim: grup.isim, slug: grup.slug, logo: grup.logo, tanitim: grup.tanitim, renk_tema: grup.renk_tema }, subeler: subelerOut });
-    } catch (e) {
-      console.error('grupLanding hata:', e.message);
-      res.status(500).json({ hata: e.message });
-    }
-  }
 }
 
 module.exports = new BookingController();

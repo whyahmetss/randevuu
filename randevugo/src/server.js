@@ -122,28 +122,6 @@ const PORT = process.env.PORT || 3000;
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_en VARCHAR(100)`);
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_ar VARCHAR(100)`);
 
-    // ─── KURUMSAL PAKET: ŞUBE GRUPLARI ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS sube_gruplari (
-      id SERIAL PRIMARY KEY,
-      isim VARCHAR(200) NOT NULL,
-      slug VARCHAR(100) UNIQUE NOT NULL,
-      sahip_kullanici_id INTEGER REFERENCES admin_kullanicilar(id),
-      logo TEXT,
-      tanitim TEXT,
-      renk_tema VARCHAR(20) DEFAULT '#8B5CF6',
-      sehirlerarasi BOOLEAN DEFAULT FALSE,
-      olusturma_tarihi TIMESTAMP DEFAULT NOW()
-    )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sube_gruplari_slug ON sube_gruplari(slug)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id) ON DELETE SET NULL`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sube_etiketi VARCHAR(100)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS grup_sira INTEGER DEFAULT 0`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_isletmeler_grup_id ON isletmeler(grup_id)`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id) ON DELETE SET NULL`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS son_gelinen_isletme_id INTEGER REFERENCES isletmeler(id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_musteriler_grup_tel ON musteriler(grup_id, telefon) WHERE grup_id IS NOT NULL`);
-    await pool.query(`ALTER TABLE admin_kullanicilar ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id)`);
-
     // ─── KAPORA SİSTEMİ ───
     await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS kapora_yuzdesi INTEGER DEFAULT 0`);
     await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS kapora_aktif BOOLEAN DEFAULT false`);

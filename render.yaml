@@ -63,19 +63,6 @@ services:
     publishPath: admin-panel/dist
     healthCheckPath: /
 
-  # Landing Page (sirago.com)
-  - type: web
-    name: randevugo-landing
-    env: static
-    plan: starter
-    buildCommand: echo "Static landing - no build"
-    publishPath: landing
-    healthCheckPath: /
-    routes:
-      - type: redirect
-        source: /book/*
-        destination: https://admin.xn--srago-n4a.com/book/*
-
 # Auto-deploy from main branch
 autoDeploy: true
 branch: main

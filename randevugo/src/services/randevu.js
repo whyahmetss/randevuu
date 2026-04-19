@@ -339,26 +339,16 @@ class RandevuService {
       }
     }
 
-    // İşletme grup bilgisi (merkezi müşteri havuzu için)
-    const grupRes = (await pool.query('SELECT grup_id FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-    const grupId = grupRes?.grup_id || null;
-
-    // Müşteriyi bul veya oluştur (musteriler zaten global — telefon unique)
+    // Müşteriyi bul veya oluştur
     let musteri = (await pool.query('SELECT * FROM musteriler WHERE telefon = $1', [musteriTelefon])).rows[0];
     let musteriYeni = false;
 
     if (!musteri) {
       musteri = (await pool.query(
-        'INSERT INTO musteriler (telefon, isim, grup_id, son_gelinen_isletme_id) VALUES ($1, $2, $3, $4) RETURNING *',
-        [musteriTelefon, musteriIsim || 'Bilinmiyor', grupId, isletmeId]
+        'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) RETURNING *',
+        [musteriTelefon, musteriIsim || 'Bilinmiyor']
       )).rows[0];
       musteriYeni = true;
-    } else {
-      // Grup/şube bilgilerini güncel tut
-      await pool.query(
-        'UPDATE musteriler SET grup_id = COALESCE(grup_id, $1), son_gelinen_isletme_id = $2 WHERE id = $3',
-        [grupId, isletmeId, musteri.id]
-      );
     }
 
     // Hizmetleri toplu çek (sıra korunsun — kullanıcının gönderdiği sıra)

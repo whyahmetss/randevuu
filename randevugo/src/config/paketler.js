@@ -84,14 +84,9 @@ const FALLBACK_PAKETLER = {
     sms_hatirlatma: true,    // ✓
     oncelikli_destek: true,  // ✓
     api_erisimi: true,       // ✓
-    sube_yonetimi: true,     // ✓ Çok şubeli işletme yönetimi
-    sube_limit: 999,
     ozellikler: [
       'Sınırsız çalışan',
       'Sınırsız randevu',
-      'Çok Şubeli Yönetim',
-      'Merkezi Müşteri & Sadakat',
-      'Konsolide Raporlar',
       'SMS Hatırlatma',
       'Öncelikli Destek',
       'API Erişimi',
@@ -112,7 +107,7 @@ const FALLBACK_PAKETLER = {
     export_aktif: true,
     coklu_dil: 99, kasa: true, prim: true, sadakat: true, winback: true,
     yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true,
-    oncelikli_destek: true, api_erisimi: true, sube_yonetimi: true, sube_limit: 999,
+    oncelikli_destek: true, api_erisimi: true,
     ozellikler: [
       'Sınırsız çalışan',
       'Sınırsız randevu',
