@@ -162,17 +162,21 @@ const PORT = process.env.PORT || 3000;
          AND (sube.paket_bitis_tarihi IS NULL OR sube.deneme_bitis_tarihi IS NULL)
     `);
 
-    // ─── Bozuk slug'ları düzelt (boşluk içerenler) ───
+    // ─── Bozuk slug'ları düzelt (boşluk, büyük harf, Türkçe karakter içerenler) ───
     await pool.query(`
       UPDATE isletmeler
          SET slug = LOWER(
            REGEXP_REPLACE(
              REGEXP_REPLACE(
-               REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(isim,'ğ','g'),'ü','u'),'ş','s'),'ı','i'),'ö','o'),'ç','c'),
+               REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+               REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                 isim,
+                 'ğ','g'),'ü','u'),'ş','s'),'ı','i'),'ö','o'),'ç','c'),
+                 'Ğ','g'),'Ü','u'),'Ş','s'),'İ','i'),'Ö','o'),'Ç','c'),
                '[^a-zA-Z0-9]+', '-', 'g'),
              '(^-|-$)', '', 'g')
          ) || '-' || id
-       WHERE slug IS NOT NULL AND slug ~ '\\s'
+       WHERE slug IS NOT NULL AND slug ~ '[^a-z0-9\\-]'
     `);
 
     // ─── KAPORA SİSTEMİ ───

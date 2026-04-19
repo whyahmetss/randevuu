@@ -5088,7 +5088,7 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://xn--srago-n4a.com/book/${slug}`;
+        hedefUrl = `https://sirago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
@@ -5119,7 +5119,7 @@ class AdminController {
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
       let slug = isletme.slug;
-      if (!slug || /\s/.test(slug)) {
+      if (!slug || /[\s\p{Lu}çğıöşüÇĞİÖŞÜ]/u.test(slug)) {
         slug = isletme.isim
           .toLowerCase()
           .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
@@ -5131,7 +5131,7 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://xn--srago-n4a.com/book/${slug}`;
+        hedefUrl = `https://sirago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
