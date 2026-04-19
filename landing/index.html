@@ -3,588 +3,1218 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SıraGO — Akıllı Randevu Yönetim Platformu</title>
-  <meta name="description" content="WhatsApp ve Telegram üzerinden 7/24 otomatik randevu alan yapay zeka destekli platform.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>SıraGO — Akıllı Randevu Yönetim Platformu | WhatsApp Bot</title>
+  <meta name="description" content="SıraGO ile WhatsApp ve Telegram üzerinden 7/24 otomatik randevu alın. Yapay zeka destekli randevu asistanı ile müşterilerinizi kaybetmeyin. Berber, kuaför, klinik ve tüm hizmet sektörleri için.">
+  <meta name="keywords" content="randevu sistemi, whatsapp randevu botu, online randevu, berber randevu, kuaför randevu, telegram bot, yapay zeka randevu, SıraGO, otomatik randevu">
+  <meta name="author" content="SıraGO">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://sırago.com">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sırago.com">
+  <meta property="og:title" content="SıraGO — Akıllı Randevu Yönetim Platformu">
+  <meta property="og:description" content="WhatsApp ve Telegram üzerinden 7/24 otomatik randevu alan yapay zeka destekli platform.">
+  <meta property="og:locale" content="tr_TR">
+  <meta property="og:site_name" content="SıraGO">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SıraGO — Akıllı Randevu Yönetim Platformu">
+  <meta name="twitter:description" content="WhatsApp ve Telegram üzerinden 7/24 otomatik randevu alan yapay zeka destekli platform.">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "SıraGO",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "WhatsApp ve Telegram üzerinden 7/24 otomatik randevu alan yapay zeka destekli platform.",
+    "url": "https://sırago.com",
+    "offers": {
+      "@type": "AggregateOffer",
+      "lowPrice": "299",
+      "highPrice": "999",
+      "priceCurrency": "TRY"
+    }
+  }
+  </script>
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#FDFCF8',
+            savor: '#F3EFE0',
+            wa: { 50:'#f0fdf4',100:'#dcfce7',200:'#bbf7d0',300:'#86efac',400:'#4ade80',500:'#25D366',600:'#16a34a',700:'#15803d',800:'#166534',900:'#14532d' },
+            dark: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617' }
+          },
+          borderRadius: { '4xl':'2rem','5xl':'2.5rem' },
+          fontFamily: { sans:['Inter','sans-serif'], serif:['Playfair Display','serif'] }
+        }
+      }
+    }
+  </script>
   <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    :root{
-      --bg:#050816;--surface:#0c1225;--surface2:#111936;--border:rgba(255,255,255,.06);
-      --text:#eef2ff;--muted:#8892b0;--dim:#5a6380;
-      --primary:#6366f1;--primary-glow:rgba(99,102,241,.15);
-      --accent:#a78bfa;--gradient:linear-gradient(135deg,#6366f1 0%,#a78bfa 50%,#c084fc 100%);
-      --radius:16px;
-    }
-    html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
-    body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
-    a{text-decoration:none;color:inherit}
-    .container{max-width:1200px;margin:0 auto;padding:0 32px}
+    *{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',sans-serif;background:#fafaf9;color:#1c1917;overflow-x:hidden}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
 
-    /* ---------- NAVBAR ---------- */
-    header{position:fixed;top:0;left:0;right:0;z-index:999;transition:all .4s}
-    header.scrolled{background:rgba(5,8,22,.85);backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid var(--border)}
-    .nav{height:72px;display:flex;align-items:center;justify-content:space-between}
-    .brand{font-size:22px;font-weight:800;letter-spacing:-.5px}
-    .brand i{font-style:normal;color:var(--accent)}
-    .nav-links{display:flex;align-items:center;gap:36px}
-    .nav-links a{font-size:14px;font-weight:500;color:var(--muted);transition:color .2s}
-    .nav-links a:hover{color:var(--text)}
-    .nav-cta{font-size:13px;font-weight:600;padding:10px 28px;border-radius:10px;background:var(--primary);color:#fff;transition:all .3s}
-    .nav-cta:hover{background:#5558e6;box-shadow:0 0 24px var(--primary-glow)}
-    .hamburger{display:none;background:none;border:none;color:var(--text);font-size:24px;cursor:pointer}
+    /* === KEYFRAMES === */
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+    @keyframes slideInLeft{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes slideInRight{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    @keyframes pulse-ring{0%{transform:scale(1);opacity:.4}100%{transform:scale(2);opacity:0}}
+    @keyframes typing{0%,80%,100%{opacity:.2}40%{opacity:1}}
+    @keyframes gradient-x{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+    @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    @keyframes spin-slow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes dash{to{stroke-dashoffset:0}}
+    @keyframes chat-in{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    @keyframes border-rotate{from{--angle:0deg}to{--angle:360deg}}
+    @keyframes morph{0%,100%{border-radius:60% 40% 30% 70%/60% 30% 70% 40%}50%{border-radius:30% 60% 70% 40%/50% 60% 30% 60%}}
+    @keyframes count-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+    @keyframes glow-pulse{0%,100%{opacity:.4}50%{opacity:.8}}
+    @keyframes slide-down{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 
-    /* ---------- HERO ---------- */
-    .hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding:120px 0 80px}
-    .hero-bg{position:absolute;inset:0;pointer-events:none}
-    .hero-bg .orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:.35;animation:orbFloat 18s ease-in-out infinite}
-    .hero-bg .orb-1{width:600px;height:600px;background:#6366f1;top:-20%;left:-10%;animation-delay:0s}
-    .hero-bg .orb-2{width:500px;height:500px;background:#a78bfa;bottom:-15%;right:-8%;animation-delay:-6s}
-    .hero-bg .orb-3{width:300px;height:300px;background:#c084fc;top:30%;right:20%;animation-delay:-12s;opacity:.2}
-    @keyframes orbFloat{0%,100%{transform:translate(0,0)}33%{transform:translate(40px,-30px)}66%{transform:translate(-20px,20px)}}
-    .hero .container{position:relative;z-index:2}
-    .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
-    .hero-content{max-width:560px}
-    .hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:100px;background:var(--primary-glow);border:1px solid rgba(99,102,241,.2);color:var(--accent);font-size:13px;font-weight:600;margin-bottom:28px}
-    .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s ease infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-    .hero h1{font-size:clamp(36px,5vw,58px);font-weight:800;line-height:1.12;letter-spacing:-.02em;margin-bottom:20px}
-    .hero h1 .hl{background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .hero .sub{font-size:17px;color:var(--muted);line-height:1.7;margin-bottom:36px;max-width:480px}
-    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:48px}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;transition:all .3s;border:none;cursor:pointer}
-    .btn-p{background:var(--gradient);color:#fff;box-shadow:0 4px 24px rgba(99,102,241,.25)}
-    .btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,102,241,.35)}
-    .btn-p svg,.btn-g svg{width:18px;height:18px}
-    .btn-g{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-    .btn-g:hover{border-color:rgba(255,255,255,.12);transform:translateY(-2px)}
-    .trust-row{display:flex;gap:40px}
-    .trust-item .val{font-size:28px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .trust-item .lbl{font-size:12px;color:var(--dim);margin-top:2px;font-weight:500}
+    .anim-fade-up{animation:fadeInUp 1s cubic-bezier(.16,1,.3,1) forwards;opacity:0}
+    .anim-fade-in{animation:fadeIn 1.2s ease forwards;opacity:0}
+    .anim-scale-in{animation:scaleIn 1s cubic-bezier(.16,1,.3,1) forwards;opacity:0}
+    .anim-slide-left{animation:slideInLeft 1s cubic-bezier(.16,1,.3,1) forwards;opacity:0}
+    .anim-slide-right{animation:slideInRight 1s cubic-bezier(.16,1,.3,1) forwards;opacity:0}
+    .anim-float{animation:float 6s ease-in-out infinite}
+    .anim-marquee{animation:marquee 40s linear infinite}
+    .anim-morph{animation:morph 8s ease-in-out infinite}
+    .anim-glow{animation:glow-pulse 3s ease-in-out infinite}
 
-    .hero-visual{position:relative;display:flex;justify-content:center;align-items:center}
-    .hero-mockup{width:100%;max-width:500px;border-radius:20px;background:var(--surface);border:1px solid var(--border);overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.4)}
-    .mockup-header{padding:16px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-    .mockup-dot{width:10px;height:10px;border-radius:50%;background:var(--border)}
-    .mockup-body{padding:24px}
-    .chat-msg{padding:12px 16px;border-radius:14px;margin-bottom:10px;font-size:13px;line-height:1.6;max-width:85%;animation:chatIn .5s ease both}
-    .chat-user{background:var(--primary);color:#fff;margin-left:auto;border-bottom-right-radius:4px;animation-delay:.5s}
-    .chat-bot{background:var(--surface2);color:var(--muted);border-bottom-left-radius:4px}
-    .chat-bot.d1{animation-delay:1s}.chat-bot.d2{animation-delay:2s}.chat-bot.d3{animation-delay:3s}
-    .chat-user.d1{animation-delay:1.5s}.chat-user.d2{animation-delay:2.5s}
-    @keyframes chatIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-    .chat-slots{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .chat-slot{padding:6px 14px;border-radius:8px;background:rgba(99,102,241,.15);color:var(--accent);font-size:12px;font-weight:600;border:1px solid rgba(99,102,241,.2)}
+    .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
+    .d5{animation-delay:.5s}.d6{animation-delay:.6s}.d7{animation-delay:.7s}.d8{animation-delay:.8s}
+    .d9{animation-delay:.9s}.d10{animation-delay:1s}.d12{animation-delay:1.2s}.d14{animation-delay:1.4s}
+    .d16{animation-delay:1.6s}.d18{animation-delay:1.8s}.d20{animation-delay:2s}
 
-    /* ---------- LOGOS ---------- */
-    .logos-section{padding:60px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-    .logos-label{text-align:center;font-size:13px;color:var(--dim);font-weight:500;margin-bottom:32px;text-transform:uppercase;letter-spacing:2px}
-    .logos-row{display:flex;justify-content:center;align-items:center;gap:48px;flex-wrap:wrap;opacity:.4}
-    .logos-row span{font-size:20px;font-weight:700;letter-spacing:-.5px;color:var(--muted)}
+    /* Reveal */
+    .rv{opacity:0;filter:blur(8px);transform:translateY(30px);transition:all .9s cubic-bezier(.16,1,.3,1)}
+    .rv.on{opacity:1;filter:blur(0);transform:translateY(0)}
+    .rv-l{opacity:0;filter:blur(8px);transform:translateX(-50px);transition:all .9s cubic-bezier(.16,1,.3,1)}
+    .rv-l.on{opacity:1;filter:blur(0);transform:translateX(0)}
+    .rv-r{opacity:0;filter:blur(8px);transform:translateX(50px);transition:all .9s cubic-bezier(.16,1,.3,1)}
+    .rv-r.on{opacity:1;filter:blur(0);transform:translateX(0)}
 
-    /* ---------- SECTION SHARED ---------- */
-    .sec{padding:120px 0;position:relative}
-    .sec-alt{background:var(--surface)}
-    .sec-head{text-align:center;margin-bottom:64px}
-    .sec-label{display:inline-block;padding:6px 18px;border-radius:100px;background:var(--primary-glow);border:1px solid rgba(99,102,241,.15);color:var(--accent);font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:20px}
-    .sec-title{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-.02em;margin-bottom:16px;line-height:1.2}
-    .sec-desc{color:var(--muted);font-size:16px;max-width:560px;margin:0 auto;line-height:1.7}
+    /* Glass */
+    .glass{background:rgba(255,255,255,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.3)}
+    .glass-dark{background:rgba(15,23,42,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08)}
 
-    /* ---------- FEATURES ---------- */
-    .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;transition:all .35s;position:relative;overflow:hidden}
-    .feat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--gradient);opacity:0;transition:opacity .35s}
-    .feat-card:hover{border-color:rgba(99,102,241,.2);transform:translateY(-4px);box-shadow:0 24px 48px rgba(0,0,0,.2)}
-    .feat-card:hover::after{opacity:1}
-    .feat-icon{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;margin-bottom:20px}
-    .feat-icon svg{width:24px;height:24px}
-    .feat-icon.v1{background:rgba(99,102,241,.12);color:#818cf8}
-    .feat-icon.v2{background:rgba(16,185,129,.12);color:#34d399}
-    .feat-icon.v3{background:rgba(245,158,11,.12);color:#fbbf24}
-    .feat-icon.v4{background:rgba(236,72,153,.12);color:#f472b6}
-    .feat-icon.v5{background:rgba(59,130,246,.12);color:#60a5fa}
-    .feat-icon.v6{background:rgba(239,68,68,.12);color:#f87171}
-    .feat-card h3{font-size:17px;font-weight:700;margin-bottom:10px}
-    .feat-card p{font-size:14px;color:var(--muted);line-height:1.7}
+    /* Gradient text */
+    .gt{background:linear-gradient(135deg,#16a34a,#25D366,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .gt-warm{background:linear-gradient(135deg,#f59e0b,#f97316,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .gt-cool{background:linear-gradient(135deg,#6366f1,#8b5cf6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
-    /* ---------- HOW ---------- */
-    .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;counter-reset:step}
-    .how-card{text-align:center;padding:40px 28px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);position:relative;counter-increment:step;transition:all .35s}
-    .how-card:hover{transform:translateY(-4px);border-color:rgba(99,102,241,.2)}
-    .how-num{width:56px;height:56px;border-radius:16px;background:var(--gradient);display:grid;place-items:center;font-size:22px;font-weight:800;margin:0 auto 24px;color:#fff}
-    .how-card h3{font-size:17px;font-weight:700;margin-bottom:10px}
-    .how-card p{font-size:14px;color:var(--muted);line-height:1.7}
-    .how-line{position:absolute;top:28px;right:-16px;width:32px;height:2px;background:var(--border)}
-    .how-card:last-child .how-line{display:none}
+    /* Wa gradient */
+    .wa-g{background:linear-gradient(135deg,#25D366,#128C7E)}
+    .wa-g-warm{background:linear-gradient(135deg,#25D366 0%,#0ea5e9 100%)}
 
-    /* ---------- PRICING ---------- */
-    .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1050px;margin:0 auto}
-    .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px 32px;display:flex;flex-direction:column;transition:all .35s;position:relative}
-    .price-card:hover{transform:translateY(-4px)}
-    .price-card.pop{border-color:rgba(99,102,241,.4);box-shadow:0 0 80px rgba(99,102,241,.08)}
-    .price-card.pop::before{content:'En Pop\u00fcler';position:absolute;top:-13px;left:50%;transform:translateX(-50%);padding:5px 22px;border-radius:100px;background:var(--gradient);color:#fff;font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
-    .price-head{margin-bottom:28px}
-    .price-name{font-size:18px;font-weight:700;margin-bottom:4px}
-    .price-sub{font-size:13px;color:var(--dim)}
-    .price-val{font-size:48px;font-weight:900;letter-spacing:-2px;margin:20px 0 4px}
-    .price-val span{font-size:16px;font-weight:500;color:var(--muted);letter-spacing:0}
-    .price-per{font-size:12px;color:var(--dim)}
-    .price-divider{height:1px;background:var(--border);margin:24px 0}
-    .price-list{list-style:none;flex:1;margin-bottom:28px}
-    .price-list li{font-size:14px;color:var(--muted);padding:8px 0;display:flex;align-items:flex-start;gap:10px}
-    .price-list li::before{content:'';width:18px;height:18px;flex-shrink:0;border-radius:50%;background:rgba(16,185,129,.12);border:1.5px solid rgba(16,185,129,.3);margin-top:2px;position:relative}
-    .price-list li::after{content:'';position:absolute}
-    .price-check{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(16,185,129,.15);flex-shrink:0;margin-top:2px}
-    .price-check svg{width:10px;height:10px;stroke:#34d399;stroke-width:3;fill:none}
-    .price-btn{display:block;text-align:center;padding:14px;border-radius:12px;font-size:14px;font-weight:700;transition:all .3s;border:none;cursor:pointer;width:100%}
-    .price-btn.main{background:var(--gradient);color:#fff;box-shadow:0 4px 20px rgba(99,102,241,.2)}
-    .price-btn.main:hover{box-shadow:0 8px 32px rgba(99,102,241,.3);transform:translateY(-1px)}
-    .price-btn.alt{background:rgba(99,102,241,.08);color:var(--accent);border:1px solid rgba(99,102,241,.15)}
-    .price-btn.alt:hover{background:rgba(99,102,241,.14)}
+    /* Shimmer */
+    .shimmer{background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 50%,transparent 100%);background-size:200% 100%;animation:shimmer 3s ease-in-out infinite}
 
-    /* ---------- TESTIMONIALS ---------- */
-    .test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-    .test-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px}
-    .test-stars{color:#fbbf24;font-size:14px;letter-spacing:2px;margin-bottom:20px}
-    .test-card blockquote{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:24px;font-style:italic}
-    .test-author{display:flex;align-items:center;gap:12px}
-    .test-avatar{width:40px;height:40px;border-radius:50%;background:var(--gradient);display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff}
-    .test-name{font-size:14px;font-weight:600}
-    .test-role{font-size:12px;color:var(--dim)}
+    /* Nav */
+    .nav-blur{backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
 
-    /* ---------- FAQ ---------- */
-    .faq{max-width:680px;margin:0 auto}
-    .faq-item{border-bottom:1px solid var(--border)}
-    .faq-q{width:100%;padding:24px 0;background:none;border:none;color:var(--text);font-family:inherit;font-size:16px;font-weight:600;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-    .faq-icon{width:24px;height:24px;border-radius:8px;background:var(--surface2);display:grid;place-items:center;flex-shrink:0;transition:transform .3s,background .3s}
-    .faq-icon svg{width:12px;height:12px;stroke:var(--muted);stroke-width:2.5;fill:none;transition:transform .3s}
-    .faq-item.open .faq-icon{background:var(--primary)}
-    .faq-item.open .faq-icon svg{stroke:#fff;transform:rotate(45deg)}
-    .faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease,padding .35s ease}
-    .faq-a p{font-size:14px;color:var(--muted);line-height:1.8;padding-bottom:24px}
-    .faq-item.open .faq-a{max-height:300px}
+    /* Chat bubble */
+    .chat-msg{opacity:0;animation:chat-in .5s cubic-bezier(.16,1,.3,1) forwards}
+    .typing-dot{animation:typing 1.4s ease-in-out infinite}
+    .typing-dot:nth-child(2){animation-delay:.2s}
+    .typing-dot:nth-child(3){animation-delay:.4s}
 
-    /* ---------- CTA ---------- */
-    .cta-block{position:relative;border-radius:24px;padding:80px 48px;text-align:center;overflow:hidden;border:1px solid rgba(99,102,241,.15)}
-    .cta-block::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(167,139,250,.04));pointer-events:none}
-    .cta-block .container{position:relative;z-index:2}
-    .cta-block h2{font-size:clamp(28px,4vw,40px);font-weight:800;margin-bottom:16px}
-    .cta-block p{color:var(--muted);font-size:17px;max-width:480px;margin:0 auto 32px;line-height:1.7}
+    /* Pulse ring */
+    .pulse-r{animation:pulse-ring 2s ease-out infinite}
 
-    /* ---------- FOOTER ---------- */
-    footer{border-top:1px solid var(--border);padding:64px 0 32px;margin-top:120px}
-    .foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
-    .foot-brand .brand{margin-bottom:12px;display:inline-block}
-    .foot-brand p{color:var(--dim);font-size:13px;line-height:1.7;max-width:280px}
-    .foot-col h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:20px}
-    .foot-col a{display:block;font-size:14px;color:var(--muted);padding:5px 0;transition:color .2s}
-    .foot-col a:hover{color:var(--text)}
-    .foot-bottom{border-top:1px solid var(--border);padding-top:24px;display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
-    .foot-bottom a{color:var(--dim);transition:color .2s}
-    .foot-bottom a:hover{color:var(--muted)}
+    /* Accordion */
+    .acc-body{max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(.16,1,.3,1)}
+    .acc-body.open{max-height:300px}
+    .acc-icon{transition:transform .3s ease}
+    .acc-icon.rot{transform:rotate(45deg)}
 
-    /* ---------- ANIMATIONS ---------- */
-    [data-anim]{opacity:0;transform:translateY(28px);transition:all .65s cubic-bezier(.22,1,.36,1)}
-    [data-anim].vis{opacity:1;transform:translateY(0)}
-    [data-anim]:nth-child(2){transition-delay:.08s}
-    [data-anim]:nth-child(3){transition-delay:.16s}
-    [data-anim]:nth-child(4){transition-delay:.24s}
-    [data-anim]:nth-child(5){transition-delay:.32s}
-    [data-anim]:nth-child(6){transition-delay:.4s}
+    /* Mobile menu */
+    .mob-menu{transform:translateX(100%);transition:transform .4s cubic-bezier(.16,1,.3,1)}
+    .mob-menu.open{transform:translateX(0)}
 
-    /* ---------- RESPONSIVE ---------- */
-    @media(max-width:1024px){
-      .hero-grid{grid-template-columns:1fr;gap:48px;text-align:center}
-      .hero-content{max-width:100%}
-      .hero .sub{margin-left:auto;margin-right:auto}
-      .hero-actions{justify-content:center}
-      .trust-row{justify-content:center}
-      .hero-visual{order:-1}
-      .hero-mockup{max-width:380px}
-    }
-    @media(max-width:768px){
-      .container{padding:0 20px}
-      .nav-links{display:none}
-      .hamburger{display:block}
-      .feat-grid,.how-grid,.price-grid,.test-grid{grid-template-columns:1fr}
-      .price-grid{max-width:400px;margin:0 auto}
-      .foot-grid{grid-template-columns:1fr 1fr;gap:32px}
-      .foot-bottom{flex-direction:column;gap:12px;text-align:center}
-      .trust-row{gap:24px}
-      .trust-item .val{font-size:22px}
-      .how-line{display:none}
-      .sec{padding:80px 0}
-      .cta-block{padding:48px 24px;border-radius:16px}
-    }
+    /* Toast */
+    .toast{transform:translateY(100px);opacity:0;transition:all .5s cubic-bezier(.16,1,.3,1)}
+    .toast.show{transform:translateY(0);opacity:1}
+
+    /* Cursor glow */
+    #cursor-glow{pointer-events:none;position:fixed;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(37,211,102,.06) 0%,transparent 70%);transform:translate(-50%,-50%);z-index:1;transition:opacity .3s}
+
+    /* Horizontal scroll */
+    .h-scroll{scrollbar-width:none;-ms-overflow-style:none}
+    .h-scroll::-webkit-scrollbar{display:none}
+
+    /* Rotating border */
+    .rotating-border{position:relative;overflow:hidden}
+    .rotating-border::before{content:'';position:absolute;inset:-2px;background:conic-gradient(from var(--angle,0deg),transparent,#25D366,transparent,#25D366,transparent);border-radius:inherit;animation:spin-slow 4s linear infinite;z-index:-1}
+    .rotating-border::after{content:'';position:absolute;inset:2px;background:inherit;border-radius:inherit;z-index:-1}
+
+    /* Feature card hover glow */
+    .feat-card{position:relative;overflow:hidden}
+    .feat-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(37,211,102,.08) 0%,transparent 50%);opacity:0;transition:opacity .5s}
+    .feat-card:hover::before{opacity:1}
+
+    /* Bento item */
+    .bento{transition:all .6s cubic-bezier(.16,1,.3,1)}
+    .bento:hover{transform:translateY(-4px);box-shadow:0 20px 60px -15px rgba(0,0,0,.15)}
+
+    /* Pricing popular */
+    .price-pop{position:relative}
+    .price-pop::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;background:linear-gradient(135deg,#25D366,#0ea5e9,#25D366);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;background-size:200% 200%;animation:gradient-x 3s ease infinite}
   </style>
 </head>
 <body>
 
-  <!-- NAV -->
-  <header id="hd">
-    <div class="container">
-      <nav class="nav">
-        <a href="#" class="brand">Sıra<i>GO</i></a>
-        <div class="nav-links">
-          <a href="#ozellikler">Özellikler</a>
-          <a href="#nasil">Nasıl Çalışır</a>
-          <a href="#fiyat">Fiyatlandırma</a>
-          <a href="#sss">SSS</a>
-          <a href="https://admin.xn--srago-n4a.com" class="nav-cta">Giriş Yap</a>
-        </div>
-        <button class="hamburger" aria-label="Menu">&#9776;</button>
-      </nav>
-    </div>
-  </header>
+<!-- Cursor Glow -->
+<div id="cursor-glow"></div>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-bg">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
+<!-- Toast -->
+<div id="toast" class="toast fixed bottom-6 right-6 z-[200] bg-dark-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+  <span class="iconify text-wa-500 text-xl" data-icon="mdi:check-circle"></span>
+  <span id="toast-msg" class="text-sm font-medium"></span>
+</div>
+
+<!-- ===== NAVBAR ===== -->
+<nav id="nav" class="fixed top-0 left-0 right-0 z-[100] h-20 flex items-center px-6 transition-all duration-500">
+  <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2.5 group">
+      <div class="w-10 h-10 rounded-xl wa-g flex items-center justify-center shadow-lg shadow-wa-500/25 group-hover:scale-110 group-hover:shadow-wa-500/40 transition-all duration-300">
+        <span class="iconify text-white text-xl" data-icon="mdi:robot-happy-outline"></span>
+      </div>
+      <span class="text-xl font-extrabold tracking-tight text-dark-950">Sıra<span class="gt">GO</span></span>
+    </a>
+    <div class="hidden lg:flex items-center gap-1">
+      <a href="#nasil" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">Nasıl Çalışır</a>
+      <a href="#ozellikler" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">Özellikler</a>
+      <a href="#sektorler" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">Sektörler</a>
+      <a href="#fiyat" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">Fiyatlar</a>
+      <a href="#sss" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">SSS</a>
+      <div class="ml-4 flex items-center gap-3">
+        <a href="https://admin.xn--srago-n4a.com" class="text-sm text-dark-500 hover:text-dark-900 font-medium transition-colors">Giriş</a>
+        <a href="#iletisim" class="px-5 py-2.5 wa-g text-white text-sm font-bold rounded-xl hover:scale-105 hover:shadow-lg hover:shadow-wa-500/25 transition-all duration-200">Ücretsiz Dene</a>
+      </div>
     </div>
-    <div class="container">
-      <div class="hero-grid">
-        <div class="hero-content">
-          <div class="hero-tag"><span class="dot"></span> Türkiye'nin ilk akıllı randevu platformu</div>
-          <h1>Müşterileriniz <span class="hl">WhatsApp'tan randevu</span> alsın</h1>
-          <p class="sub">SıraGO, işletmenize 7/24 çalışan yapay zeka destekli bir randevu asistanı kazandırır. WhatsApp ve Telegram üzerinden otomatik randevu alır, hatırlatma yapar.</p>
-          <div class="hero-actions">
-            <a href="https://admin.xn--srago-n4a.com" class="btn btn-p">
-              Hemen Başla
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
-            <a href="#nasil" class="btn btn-g">Nasıl Çalışır?</a>
+    <button id="menuBtn" class="lg:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5">
+      <span id="b1" class="w-6 h-[2px] bg-dark-900 transition-all duration-300 origin-center"></span>
+      <span id="b2" class="w-5 h-[2px] bg-dark-900 transition-all duration-300"></span>
+      <span id="b3" class="w-6 h-[2px] bg-dark-900 transition-all duration-300 origin-center"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu -->
+<div id="mobMenu" class="mob-menu fixed inset-0 z-[99] bg-white/98 nav-blur flex flex-col items-center justify-center gap-6">
+  <a href="#nasil" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">Nasıl Çalışır</a>
+  <a href="#ozellikler" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">Özellikler</a>
+  <a href="#sektorler" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">Sektörler</a>
+  <a href="#fiyat" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">Fiyatlar</a>
+  <a href="#sss" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">SSS</a>
+  <a href="https://admin.xn--srago-n4a.com" class="mt-4 px-8 py-3 wa-g text-white font-bold rounded-xl" onclick="closeMenu()">Ücretsiz Dene</a>
+</div>
+
+<!-- ===== HERO ===== -->
+<section class="relative min-h-screen flex items-center overflow-hidden">
+  <!-- Animated BG -->
+  <div class="absolute inset-0 bg-gradient-to-br from-wa-50 via-white to-blue-50/30"></div>
+  <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-wa-500/[.07] rounded-full blur-[120px] anim-morph"></div>
+  <div class="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/[.05] rounded-full blur-[100px] anim-morph" style="animation-delay:-4s"></div>
+  <div class="absolute top-1/3 left-1/4 w-[300px] h-[300px] bg-amber-500/[.04] rounded-full blur-[80px]"></div>
+
+  <!-- Grid dots -->
+  <div class="absolute inset-0 opacity-[0.035]" style="background-image:radial-gradient(circle,#000 1px,transparent 1px);background-size:32px 32px"></div>
+
+  <!-- Floating shapes -->
+  <div class="absolute top-32 left-[10%] w-16 h-16 rounded-2xl border-2 border-wa-200/40 anim-float opacity-40" style="animation-delay:-1s"></div>
+  <div class="absolute top-1/2 right-[8%] w-12 h-12 rounded-full border-2 border-blue-200/40 anim-float opacity-30" style="animation-delay:-3s"></div>
+  <div class="absolute bottom-32 left-[20%] w-8 h-8 rounded-lg bg-wa-200/30 anim-float opacity-40" style="animation-delay:-2s"></div>
+  <div class="absolute top-40 right-[25%] w-6 h-6 rounded-full bg-blue-200/30 anim-float opacity-30" style="animation-delay:-4s"></div>
+
+  <div class="max-w-7xl mx-auto px-6 w-full relative z-10 pt-24 pb-16">
+    <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+      <!-- LEFT -->
+      <div class="lg:w-[55%] text-center lg:text-left">
+        <div class="anim-fade-up">
+          <span class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/80 border border-wa-200/60 text-xs uppercase tracking-[0.2em] text-wa-700 mb-8 font-bold shadow-sm shadow-wa-500/5">
+            <span class="relative flex h-2 w-2">
+              <span class="pulse-r absolute inline-flex h-full w-full rounded-full bg-wa-500"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-wa-500"></span>
+            </span>
+            Türkiye'nin İlk AI Randevu Platformu
+          </span>
+        </div>
+
+        <h1 class="anim-fade-up d2 text-[2.75rem] sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.02] tracking-tight text-dark-950 mb-7">
+          Müşterileriniz<br>
+          <span class="relative inline-block">
+            <span class="gt">WhatsApp'tan</span>
+            <svg class="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none"><path d="M2 8C50 2 150 2 298 8" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-dasharray="300" stroke-dashoffset="300" style="animation:dash 1.5s .8s ease forwards"/></svg>
+          </span><br>
+          randevu alsın
+        </h1>
+
+        <p class="anim-fade-up d4 text-lg md:text-xl text-dark-400 font-light leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">
+          7/24 kesintisiz çalışan yapay zeka asistanınız. Telefon trafiğini sonlandırın, <strong class="font-semibold text-dark-600">randevu kaçırma oranını %80 azaltın.</strong>
+        </p>
+
+        <div class="anim-fade-up d6 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+          <a href="#iletisim" class="group w-full sm:w-auto relative">
+            <div class="absolute -inset-1 wa-g rounded-2xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity duration-300"></div>
+            <div class="relative px-8 py-4 wa-g text-white font-bold text-sm uppercase tracking-wide rounded-2xl flex items-center justify-center gap-2.5 hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200">
+              <span class="iconify text-lg" data-icon="mdi:whatsapp"></span>
+              14 Gün Ücretsiz Dene
+              <span class="iconify group-hover:translate-x-1 transition-transform duration-300" data-icon="mdi:arrow-right"></span>
+            </div>
+          </a>
+          <a href="#nasil" class="w-full sm:w-auto px-8 py-4 bg-white/80 border border-dark-200 text-dark-700 font-semibold text-sm rounded-2xl hover:border-wa-300 hover:bg-white transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
+            <span class="iconify text-lg text-dark-400" data-icon="mdi:play-circle-outline"></span>
+            Demo İzle
+          </a>
+        </div>
+
+        <!-- Trust -->
+        <div class="anim-fade-up d8 mt-12 flex flex-col sm:flex-row items-center gap-6 justify-center lg:justify-start">
+          <div class="flex -space-x-2.5">
+            <img src="https://picsum.photos/seed/face1/48/48.jpg" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+            <img src="https://picsum.photos/seed/face2/48/48.jpg" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+            <img src="https://picsum.photos/seed/face3/48/48.jpg" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+            <img src="https://picsum.photos/seed/face4/48/48.jpg" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+            <img src="https://picsum.photos/seed/face5/48/48.jpg" class="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover">
+            <div class="w-10 h-10 rounded-full border-2 border-white bg-wa-100 flex items-center justify-center text-[10px] font-extrabold text-wa-700 shadow-sm">+495</div>
           </div>
-          <div class="trust-row">
-            <div class="trust-item"><div class="val">7/24</div><div class="lbl">Kesintisiz çalışır</div></div>
-            <div class="trust-item"><div class="val">30sn</div><div class="lbl">Kurulum süresi</div></div>
-            <div class="trust-item"><div class="val">%95</div><div class="lbl">Müşteri memnuniyeti</div></div>
+          <div class="text-left">
+            <div class="flex items-center gap-0.5 mb-0.5">
+              <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
+              <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
+              <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
+              <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
+              <span class="iconify text-amber-400 text-sm" data-icon="mdi:star-half-full"></span>
+              <span class="text-xs font-bold text-dark-600 ml-1">4.9</span>
+            </div>
+            <p class="text-xs text-dark-400"><strong class="text-dark-500">500+</strong> işletme tarafından tercih edildi</p>
           </div>
         </div>
-        <div class="hero-visual">
-          <div class="hero-mockup">
-            <div class="mockup-header">
-              <div class="mockup-dot"></div>
-              <div class="mockup-dot"></div>
-              <div class="mockup-dot"></div>
-            </div>
-            <div class="mockup-body">
-              <div class="chat-msg chat-user" style="animation-delay:.3s">Merhaba, yarın saç kesimi için müsait misiniz?</div>
-              <div class="chat-msg chat-bot d1">Merhaba! Tabii, yarın için müsait saatlerimiz:</div>
-              <div class="chat-msg chat-bot d2">
-                <div class="chat-slots">
-                  <span class="chat-slot">09:00</span>
-                  <span class="chat-slot">10:30</span>
-                  <span class="chat-slot">13:00</span>
-                  <span class="chat-slot">15:30</span>
-                  <span class="chat-slot">17:00</span>
+      </div>
+
+      <!-- RIGHT: Chat -->
+      <div class="lg:w-[45%] anim-scale-in d5">
+        <div class="relative max-w-[380px] mx-auto">
+          <!-- Glow behind phone -->
+          <div class="absolute -inset-8 wa-g opacity-10 rounded-[3rem] blur-3xl anim-glow"></div>
+
+          <!-- Phone -->
+          <div class="relative bg-dark-950 rounded-[2.8rem] p-3 shadow-2xl shadow-dark-950/30">
+            <!-- Notch -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-dark-950 rounded-b-2xl z-30"></div>
+
+            <div class="bg-[#e5ddd5] rounded-[2.3rem] overflow-hidden">
+              <!-- WA Header -->
+              <div class="wa-g px-4 pt-8 pb-3">
+                <div class="flex items-center gap-3">
+                  <span class="iconify text-white/70 text-lg" data-icon="mdi:arrow-left"></span>
+                  <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/20">
+                    <span class="iconify text-white text-xl" data-icon="mdi:robot-happy-outline"></span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-white text-sm font-bold">SiraGO Asistan</p>
+                    <p class="text-white/70 text-[11px] flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 bg-white/80 rounded-full"></span> çevrimiçi
+                    </p>
+                  </div>
+                  <span class="iconify text-white/70 text-xl" data-icon="mdi:video-outline"></span>
+                  <span class="iconify text-white/70 text-xl" data-icon="mdi:phone-outline"></span>
+                  <span class="iconify text-white/70 text-xl" data-icon="mdi:dots-vertical"></span>
                 </div>
               </div>
-              <div class="chat-msg chat-user d2">10:30 olsun</div>
-              <div class="chat-msg chat-bot d3">Randevunuz oluşturuldu. Yarın 10:30'da bekleriz. İyi günler!</div>
+
+              <!-- Chat -->
+              <div id="chat" class="px-4 py-4 space-y-2.5 min-h-[430px] max-h-[430px] overflow-y-auto" style="background-color:#e5ddd5;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2220%22 height=%2220%22><rect width=%2220%22 height=%2220%22 fill=%22%23e5ddd5%22/><circle cx=%222%22 cy=%222%22 r=%220.5%22 fill=%22%23d4cec3%22 opacity=%220.25%22/></svg>');background-size:20px 20px">
+              </div>
+
+              <!-- Input -->
+              <div class="bg-[#f0f0f0] px-3 py-2.5 flex items-center gap-2">
+                <span class="iconify text-dark-400 text-xl" data-icon="mdi:emoticon-happy-outline"></span>
+                <div class="flex-1 bg-white rounded-full px-4 py-2.5 text-sm text-dark-300 border border-dark-200/50">Mesaj yazın...</div>
+                <span class="iconify text-dark-400 text-xl" data-icon="mdi:attachment"></span>
+                <div class="w-10 h-10 rounded-full wa-g flex items-center justify-center shadow-md shadow-wa-500/20">
+                  <span class="iconify text-white text-xl" data-icon="mdi:microphone"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Floating cards -->
+          <div class="absolute -left-6 sm:-left-16 top-28 bg-white rounded-2xl p-4 shadow-xl shadow-dark-900/8 border border-dark-100/50 opacity-0" style="animation:chat-in .6s 3.5s cubic-bezier(.16,1,.3,1) forwards" id="floatCard1">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-wa-100 flex items-center justify-center">
+                <span class="iconify text-wa-600 text-xl" data-icon="mdi:calendar-check"></span>
+              </div>
+              <div>
+                <p class="text-[13px] font-bold text-dark-900">Yeni Randevu!</p>
+                <p class="text-[11px] text-dark-400">Ahmet • 14:30 • Perşembe</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="absolute -right-4 sm:-right-12 bottom-28 bg-white rounded-2xl px-4 py-3 shadow-xl shadow-dark-900/8 border border-dark-100/50 opacity-0" style="animation:chat-in .6s 4.5s cubic-bezier(.16,1,.3,1) forwards" id="floatCard2">
+            <div class="flex items-center gap-2">
+              <div class="flex -space-x-1">
+                <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
+                <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
+                <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
+              </div>
+              <span class="text-xs font-extrabold text-dark-700">%95 Memnuniyet</span>
+            </div>
+          </div>
+
+          <div class="absolute -left-4 sm:-left-12 bottom-16 bg-white rounded-xl px-3 py-2 shadow-lg shadow-dark-900/5 border border-dark-100/50 opacity-0" style="animation:chat-in .6s 5.5s cubic-bezier(.16,1,.3,1) forwards">
+            <div class="flex items-center gap-2">
+              <span class="iconify text-red-500 text-sm" data-icon="mdi:bell-ring"></span>
+              <span class="text-[11px] font-bold text-dark-600">Hatırlatma gönderildi</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- LOGOS -->
-  <section class="logos-section">
-    <div class="container">
-      <div class="logos-label">Her sektörden işletmenin tercihi</div>
-      <div class="logos-row">
-        <span>Berber</span>
-        <span>Kuaför</span>
-        <span>Güzellik Salonu</span>
-        <span>Diş Kliniği</span>
-        <span>Veteriner</span>
-        <span>Spa</span>
-        <span>Diyetisyen</span>
+  <!-- Scroll indicator -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 anim-fade-in d16">
+    <div class="flex flex-col items-center gap-2">
+      <span class="text-[10px] uppercase tracking-[0.3em] text-dark-400 font-medium">Keşfet</span>
+      <div class="w-5 h-8 border-2 border-dark-300 rounded-full flex items-start justify-center p-1">
+        <div class="w-1 h-2 bg-wa-500 rounded-full animate-bounce"></div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- FEATURES -->
-  <section class="sec" id="ozellikler">
-    <div class="container">
-      <div class="sec-head" data-anim>
-        <div class="sec-label">Özellikler</div>
-        <h2 class="sec-title">İşletmenizi dijitale taşıyacak her şey</h2>
-        <p class="sec-desc">Rakipleriniz telefon çalarken kaçırdığı müşterileri siz WhatsApp'tan kazanın.</p>
+<!-- ===== MARQUEE LOGOS ===== -->
+<section class="py-10 bg-white border-y border-dark-100/50 overflow-hidden">
+  <p class="text-center text-[10px] uppercase tracking-[0.3em] text-dark-300 font-bold mb-8">500+ İşletme Güveniyor</p>
+  <div class="flex anim-marquee whitespace-nowrap">
+    <div class="flex items-center gap-16 mx-8">
+      <span class="text-2xl font-black text-dark-200 tracking-tight">DENTCLINIC</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">STYLEHAUS</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">FITZONE</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">VETPALS</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">AUTOCARE</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">EDULEARN</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">BEAUTYLAB</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">PHYSIO+</span>
+    </div>
+    <div class="flex items-center gap-16 mx-8">
+      <span class="text-2xl font-black text-dark-200 tracking-tight">DENTCLINIC</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">STYLEHAUS</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">FITZONE</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">VETPALS</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">AUTOCARE</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">EDULEARN</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">BEAUTYLAB</span>
+      <span class="text-2xl font-black text-dark-200 tracking-tight">PHYSIO+</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== STATS ===== -->
+<section class="py-20 px-6 bg-white">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="rv text-center p-8 rounded-3xl bg-gradient-to-br from-wa-50 to-white border border-wa-100/50" style="transition-delay:.05s">
+        <div class="text-4xl md:text-5xl font-black gt mb-1">7/24</div>
+        <p class="text-sm text-dark-500 font-medium">Kesintisiz Çalışır</p>
+        <p class="text-[11px] text-dark-300 mt-1">Gece gündüz demez</p>
       </div>
-      <div class="feat-grid">
-        <div class="feat-card" data-anim>
-          <div class="feat-icon v2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
-          <h3>WhatsApp Bot</h3>
-          <p>Müşterileriniz WhatsApp'tan mesaj atarak anında randevu alabilir. Yapay zeka destekli doğal dil işleme ile sohbet eder gibi randevu oluşturur.</p>
-        </div>
-        <div class="feat-card" data-anim>
-          <div class="feat-icon v1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg></div>
-          <h3>Telegram Bot</h3>
-          <p>Telegram kullanıcıları için otomatik randevu botu. Buton tabanlı kolay arayüz ile hizmet seçimi, tarih ve saat belirleme.</p>
-        </div>
-        <div class="feat-card" data-anim>
-          <div class="feat-icon v3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2V6a4 4 0 0 1 4-4z"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div>
-          <h3>Yapay Zeka Asistan</h3>
-          <p>DeepSeek AI destekli akıllı sohbet. Müşteri "yarın saçımı kestirmek istiyorum" dese bile anlar ve uygun saatleri sunar.</p>
-        </div>
-        <div class="feat-card" data-anim>
-          <div class="feat-icon v4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
-          <h3>Admin Panel</h3>
-          <p>Tüm randevuları, müşterileri ve çalışanları tek ekrandan yönetin. Gerçek zamanlı takvim, gelir analizi ve daha fazlası.</p>
-        </div>
-        <div class="feat-card" data-anim>
-          <div class="feat-icon v5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <h3>Çoklu Çalışan</h3>
-          <p>Her çalışana özel takvim ve müsaitlik yönetimi. Müşteri randevu alırken istediği çalışanı seçebilir.</p>
-        </div>
-        <div class="feat-card" data-anim>
-          <div class="feat-icon v6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-          <h3>Akıllı Zamanlama</h3>
-          <p>Mola saatleri, tatil günleri, hizmet süreleri — hepsini otomatik hesaplar. Çakışma olmaz, boş kalan slot kalmaz.</p>
-        </div>
+      <div class="rv text-center p-8 rounded-3xl bg-gradient-to-br from-blue-50 to-white border border-blue-100/50" style="transition-delay:.1s">
+        <div class="text-4xl md:text-5xl font-black text-dark-900 mb-1">30<span class="text-lg font-bold text-dark-400">sn</span></div>
+        <p class="text-sm text-dark-500 font-medium">Kurulum Süresi</p>
+        <p class="text-[11px] text-dark-300 mt-1">Tek tıkla başla</p>
+      </div>
+      <div class="rv text-center p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100/50" style="transition-delay:.15s">
+        <div class="text-4xl md:text-5xl font-black gt-warm mb-1">%95</div>
+        <p class="text-sm text-dark-500 font-medium">Müşteri Memnuniyeti</p>
+        <p class="text-[11px] text-dark-300 mt-1">Kanıklanan başarı</p>
+      </div>
+      <div class="rv text-center p-8 rounded-3xl bg-gradient-to-br from-purple-50 to-white border border-purple-100/50" style="transition-delay:.2s">
+        <div class="text-4xl md:text-5xl font-black gt-cool mb-1">500<span class="text-lg font-bold text-dark-400">+</span></div>
+        <p class="text-sm text-dark-500 font-medium">Aktif İşletme</p>
+        <p class="text-[11px] text-dark-300 mt-1">Her geçen gün artıyor</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- HOW IT WORKS -->
-  <section class="sec sec-alt" id="nasil">
-    <div class="container">
-      <div class="sec-head" data-anim>
-        <div class="sec-label">Nasıl Çalışır</div>
-        <h2 class="sec-title">3 adımda hazır olun</h2>
-        <p class="sec-desc">Teknik bilgi gerekmez. Kayıt ol, ayarla, müşteri kabul etmeye başla.</p>
-      </div>
-      <div class="how-grid">
-        <div class="how-card" data-anim>
-          <div class="how-num">1</div>
-          <h3>İşletmenizi tanımlayın</h3>
-          <p>İşletme adınızı, çalışma saatlerinizi, hizmetlerinizi ve çalışanlarınızı ekleyin. 2 dakikadan az sürer.</p>
-          <div class="how-line"></div>
-        </div>
-        <div class="how-card" data-anim>
-          <div class="how-num">2</div>
-          <h3>Kanalı bağlayın</h3>
-          <p>Admin panelden QR kod okutarak WhatsApp'ınızı bağlayın. Telegram için token yapıştırın.</p>
-          <div class="how-line"></div>
-        </div>
-        <div class="how-card" data-anim>
-          <div class="how-num">3</div>
-          <h3>Randevu almaya başlayın</h3>
-          <p>Artık müşterileriniz WhatsApp veya Telegram'dan 7/24 randevu alabilir. Siz sadece takip edin.</p>
-        </div>
-      </div>
+<!-- ===== NASIL ÇALIŞIR ===== -->
+<section id="nasil" class="py-32 px-6 bg-dark-950 relative overflow-hidden">
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-wa-500/[.05] rounded-full blur-[150px]"></div>
+  <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blue-500/[.03] rounded-full blur-[100px]"></div>
+
+  <div class="max-w-6xl mx-auto relative z-10">
+    <div class="text-center mb-20 rv">
+      <span class="text-[11px] font-black uppercase tracking-[0.3em] text-wa-400 mb-4 block">Nasıl Çalışır?</span>
+      <h2 class="text-4xl md:text-6xl font-serif font-medium leading-[0.9] tracking-tighter text-white mb-6">
+        3 basit adımda<br><span class="italic text-wa-400">hayata geçirin</span>
+      </h2>
+      <p class="text-lg text-dark-400 font-light max-w-lg mx-auto">Karmaşık kurulum süreçleri tarihe karıştı. Dakikalar içinde AI asistanınız çalışmaya başlar.</p>
     </div>
-  </section>
 
-  <!-- PRICING -->
-  <section class="sec" id="fiyat">
-    <div class="container">
-      <div class="sec-head" data-anim>
-        <div class="sec-label">Fiyatlandırma</div>
-        <h2 class="sec-title">Her bütçeye uygun plan</h2>
-        <p class="sec-desc">İşletmenizin büyüklüğüne göre doğru planı seçin.</p>
-      </div>
-      <div class="price-grid">
-        <div class="price-card" data-anim>
-          <div class="price-head">
-            <div class="price-name">Başlangıç</div>
-            <div class="price-sub">Küçük işletmeler için ideal</div>
+    <div class="grid md:grid-cols-3 gap-6">
+      <!-- Card 1: WhatsApp Bağla -->
+      <div class="rv group rounded-3xl p-8 bg-white/[.03] border border-white/[.06] hover:border-wa-500/20 hover:bg-white/[.06] transition-all duration-500 relative overflow-hidden" style="transition-delay:.05s">
+        <div class="shimmer absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10">
+          <!-- Icon + Badge -->
+          <div class="relative inline-block mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-wa-500/20 to-wa-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+              <span class="iconify text-wa-400 text-3xl" data-icon="mdi:whatsapp"></span>
+            </div>
+            <div class="absolute -top-2 -right-2 w-7 h-7 rounded-full wa-g flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-wa-500/30">01</div>
           </div>
-          <div class="price-val">299&#x20BA; <span>/ ay</span></div>
-          <div class="price-per">KDV dahil</div>
-          <div class="price-divider"></div>
-          <ul class="price-list">
-            <li>2 çalışan</li>
-            <li>500 randevu / ay</li>
-            <li>WhatsApp Bot</li>
-            <li>Otomatik Hatırlatma</li>
-            <li>Temel Analitik</li>
-          </ul>
-          <a href="https://admin.xn--srago-n4a.com" class="price-btn alt">Hemen Başla</a>
-        </div>
-        <div class="price-card pop" data-anim>
-          <div class="price-head">
-            <div class="price-name">Profesyonel</div>
-            <div class="price-sub">Büyüyen işletmeler için</div>
-          </div>
-          <div class="price-val">699&#x20BA; <span>/ ay</span></div>
-          <div class="price-per">KDV dahil</div>
-          <div class="price-divider"></div>
-          <ul class="price-list">
-            <li>5 çalışan</li>
-            <li>Sınırsız randevu</li>
-            <li>Kasa Takibi & Prim Raporu</li>
-            <li>Sadakat Puan Sistemi</li>
-            <li>Kayıp Müşteri Kurtarma</li>
-            <li>Yorum Avcısı</li>
-            <li>Gece Raporu</li>
-            <li>3 Dil Desteği</li>
-          </ul>
-          <a href="https://admin.xn--srago-n4a.com" class="price-btn main">Hemen Başla</a>
-        </div>
-        <div class="price-card" data-anim>
-          <div class="price-head">
-            <div class="price-name">Kurumsal</div>
-            <div class="price-sub">Büyük işletmeler ve zincirler</div>
-          </div>
-          <div class="price-val">1499&#x20BA; <span>/ ay</span></div>
-          <div class="price-per">KDV dahil</div>
-          <div class="price-divider"></div>
-          <ul class="price-list">
-            <li>Sınırsız çalışan</li>
-            <li>Sınırsız randevu</li>
-            <li>SMS Hatırlatma</li>
-            <li>Öncelikli Destek</li>
-            <li>API Erişimi</li>
-            <li>Özel Eğitim & Onboarding</li>
-            <li>Tüm Profesyonel Özellikler</li>
-          </ul>
-          <a href="https://admin.xn--srago-n4a.com" class="price-btn alt">Hemen Başla</a>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- TESTIMONIALS -->
-  <section class="sec sec-alt">
-    <div class="container">
-      <div class="sec-head" data-anim>
-        <div class="sec-label">Kullanıcı Yorumları</div>
-        <h2 class="sec-title">İşletme sahipleri ne diyor?</h2>
+          <h3 class="text-xl font-bold text-white mb-3">WhatsApp Business'i Bağlayın</h3>
+          <p class="text-sm text-dark-400 leading-relaxed mb-6">SıraGO panelinden tek tıkla WhatsApp Business API numaranızı bağlayın. Teknik bilgi gerekmez.</p>
+
+          <!-- Mini visual -->
+          <div class="bg-white/[.04] rounded-2xl p-4 border border-white/[.06]">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl wa-g/20 flex items-center justify-center">
+                <span class="iconify text-wa-400 text-lg" data-icon="mdi:link-variant"></span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[12px] font-bold text-white">Bağlantı Başarılı</p>
+                <p class="text-[11px] text-dark-500">+90 5XX XXX XX XX</p>
+              </div>
+              <span class="iconify text-wa-500 text-xl" data-icon="mdi:check-circle"></span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="test-grid">
-        <div class="test-card" data-anim>
-          <div class="test-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-          <blockquote>"Müşterilerim artık WhatsApp'tan randevu alıyor. Telefon çalmalarından kurtuldum, odaklanmam gereken işe odaklanıyorum."</blockquote>
-          <div class="test-author">
-            <div class="test-avatar">A</div>
-            <div><div class="test-name">Ahmet Y.</div><div class="test-role">Berber Ali, Kadıköy</div></div>
+
+      <!-- Card 2: Ayarlarınızı Yapın -->
+      <div class="rv group rounded-3xl p-8 bg-white/[.03] border border-white/[.06] hover:border-purple-500/20 hover:bg-white/[.06] transition-all duration-500 relative overflow-hidden" style="transition-delay:.15s">
+        <div class="shimmer absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10">
+          <div class="relative inline-block mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+              <span class="iconify text-purple-400 text-3xl" data-icon="mdi:tune-vertical"></span>
+            </div>
+            <div class="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-purple-500/30">02</div>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-3">Ayarlarınızı Yapın</h3>
+          <p class="text-sm text-dark-400 leading-relaxed mb-6">Çalışma saatlerinizi, hizmetlerinizi ve müsaitlik durumunuzu panel üzerinden belirleyin.</p>
+
+          <!-- Mini visual: time slots -->
+          <div class="bg-white/[.04] rounded-2xl p-4 border border-white/[.06]">
+            <p class="text-[10px] font-black uppercase tracking-wider text-dark-400 mb-3">Çalışma Saatleri</p>
+            <div class="grid grid-cols-4 gap-1.5">
+              <div class="px-2 py-1.5 rounded-lg bg-white/[.06] border border-white/[.06] text-[11px] font-bold text-dark-300 text-center">09:00</div>
+              <div class="px-2 py-1.5 rounded-lg bg-white/[.06] border border-white/[.06] text-[11px] font-bold text-dark-300 text-center">11:00</div>
+              <div class="px-2 py-1.5 rounded-lg bg-white/[.06] border border-white/[.06] text-[11px] font-bold text-dark-300 text-center">14:00</div>
+              <div class="px-2 py-1.5 rounded-lg bg-white/[.06] border border-white/[.06] text-[11px] font-bold text-dark-300 text-center">16:00</div>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5 mt-1.5">
+              <div class="px-2 py-1.5 rounded-lg wa-g text-[11px] font-bold text-white text-center shadow-sm shadow-wa-500/20">17:30</div>
+              <div class="px-2 py-1.5 rounded-lg bg-white/[.06] border border-white/[.06] text-[11px] font-bold text-dark-300 text-center">18:30</div>
+              <div class="px-2 py-1.5 rounded-lg bg-white/[.06] border border-white/[.06] text-[11px] font-bold text-dark-300 text-center">19:00</div>
+              <div class="px-2 py-1.5 rounded-lg bg-white/[.06] border border-white/[.06] text-[11px] font-bold text-dark-400 text-center opacity-40">20:00</div>
+            </div>
           </div>
         </div>
-        <div class="test-card" data-anim>
-          <div class="test-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-          <blockquote>"Kurulum 5 dakikamı aldı. Aynı gün 3 randevu geldi. Yapay zeka müşterilerle benden iyi konuşuyor."</blockquote>
-          <div class="test-author">
-            <div class="test-avatar">S</div>
-            <div><div class="test-name">Selin K.</div><div class="test-role">Beauty Box, Beşiktaş</div></div>
+      </div>
+
+      <!-- Card 3: Otomatik Randevu Alın -->
+      <div class="rv group rounded-3xl p-8 bg-white/[.03] border border-white/[.06] hover:border-cyan-500/20 hover:bg-white/[.06] transition-all duration-500 relative overflow-hidden" style="transition-delay:.25s">
+        <div class="shimmer absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10">
+          <div class="relative inline-block mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+              <span class="iconify text-cyan-400 text-3xl" data-icon="mdi:rocket-launch-outline"></span>
+            </div>
+            <div class="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-cyan-500/30">03</div>
           </div>
-        </div>
-        <div class="test-card" data-anim>
-          <div class="test-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-          <blockquote>"3 çalışanım var, hepsinin takvimini ayrı yönetmek kabustu. SıraGO ile her şey otomatik."</blockquote>
-          <div class="test-author">
-            <div class="test-avatar">M</div>
-            <div><div class="test-name">Mehmet D.</div><div class="test-role">Diş Polikliniği, Ataşehir</div></div>
+
+          <h3 class="text-xl font-bold text-white mb-3">Otomatik Randevu Alın</h3>
+          <p class="text-sm text-dark-400 leading-relaxed mb-6">AI asistanınız müşterilerle konuşur, uygun saati bulur ve randevuyu otomatik onaylar.</p>
+
+          <!-- Mini visual: AI status -->
+          <div class="bg-white/[.04] rounded-2xl p-4 border border-white/[.06]">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/15 flex items-center justify-center">
+                <span class="iconify text-cyan-400 text-lg" data-icon="mdi:robot-happy-outline"></span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[12px] font-bold text-white flex items-center gap-1.5">
+                  AI Çalışıyor
+                  <span class="flex gap-0.5"><span class="w-1 h-1 rounded-full bg-wa-500 animate-pulse"></span><span class="w-1 h-1 rounded-full bg-wa-500 animate-pulse" style="animation-delay:.2s"></span><span class="w-1 h-1 rounded-full bg-wa-500 animate-pulse" style="animation-delay:.4s"></span></span>
+                </p>
+                <p class="text-[11px] text-dark-500">bugün <strong class="text-wa-400">3</strong> randevu alındı</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- FAQ -->
-  <section class="sec" id="sss">
-    <div class="container">
-      <div class="sec-head" data-anim>
-        <div class="sec-label">SSS</div>
-        <h2 class="sec-title">Merak ettikleriniz</h2>
+<!-- ===== ÖZELLİKLER - BENTO GRID ===== -->
+<section id="ozellikler" class="py-32 px-6 bg-dark-950 rounded-t-[3rem] relative overflow-hidden">
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-wa-500/[.06] rounded-full blur-[150px]"></div>
+  <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blue-500/[.04] rounded-full blur-[100px]"></div>
+
+  <div class="max-w-7xl mx-auto relative z-10">
+    <div class="text-center mb-20 rv">
+      <span class="text-[11px] font-black uppercase tracking-[0.3em] text-wa-400 mb-4 block">Özellikler</span>
+      <h2 class="text-4xl md:text-6xl font-serif font-medium leading-[0.9] tracking-tighter text-white mb-6">
+        Tek bir platformda<br><span class="italic text-wa-400">her şey</span>
+      </h2>
+      <p class="text-lg text-dark-400 font-light max-w-lg mx-auto">Randevu yönetiminizden müşteri ilişkilerinize kadar tüm süreçleri otomatikleştirin.</p>
+    </div>
+
+    <!-- Bento Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+      <!-- Large: AI Asistan -->
+      <div class="rv bento col-span-2 row-span-2 rounded-3xl p-8 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card relative overflow-hidden" style="transition-delay:.05s">
+        <div class="shimmer absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10">
+          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-wa-500/20 to-wa-500/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
+            <span class="iconify text-wa-400 text-3xl" data-icon="mdi:robot-happy-outline"></span>
+          </div>
+          <h3 class="text-2xl font-bold text-white mb-3">AI Destekli Asistan</h3>
+          <p class="text-sm text-dark-400 leading-relaxed mb-8 max-w-sm">Doğal dil işleme ile müşterilerinizle insan gibi konuşur. Türkçe, İngilizce, Arapça ve daha fazla dilde akıcı iletişim kurar.</p>
+          <div class="bg-white/[.03] rounded-2xl p-5 border border-white/[.04]">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-8 h-8 rounded-full bg-wa-500/20 flex items-center justify-center">
+                <span class="iconify text-wa-400 text-sm" data-icon="mdi:robot-happy-outline"></span>
+              </div>
+              <span class="text-xs text-dark-400">SiraGO</span>
+            </div>
+            <p class="text-sm text-dark-300 bg-white/[.04] rounded-xl px-4 py-3">Randevu için müsait saatlerimi kontrol ediyorum... 🤔</p>
+            <p class="text-[10px] text-dark-500 mt-2 text-right">yazıyor...</p>
+          </div>
+        </div>
       </div>
-      <div class="faq" data-anim>
-        <div class="faq-item">
-          <button class="faq-q">SıraGO nedir?<span class="faq-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
-          <div class="faq-a"><p>SıraGO, WhatsApp ve Telegram üzerinden çalışan yapay zeka destekli bir randevu platformudur. Müşterileriniz mesaj atarak 7/24 randevu alabilir. Berber, kuaför, güzellik salonu, dişçi ve tüm randevu bazlı işletmeler için tasarlanmıştır.</p></div>
+
+      <!-- WhatsApp & Telegram -->
+      <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.1s">
+        <span class="iconify text-wa-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:whatsapp"></span>
+        <h4 class="text-sm font-bold text-white mb-1">WhatsApp</h4>
+        <p class="text-[11px] text-dark-400 leading-relaxed">Business API ile kusursuz entegrasyon</p>
+      </div>
+
+      <!-- Telegram -->
+      <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.15s">
+        <span class="iconify text-blue-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:send"></span>
+        <h4 class="text-sm font-bold text-white mb-1">Telegram</h4>
+        <p class="text-[11px] text-dark-400 leading-relaxed">Bot entegrasyonu ile çift kanal</p>
+      </div>
+
+      <!-- Akıllı Takvim -->
+      <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.2s">
+        <span class="iconify text-amber-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:calendar-sync-outline"></span>
+        <h4 class="text-sm font-bold text-white mb-1">Akıllı Takvim</h4>
+        <p class="text-[11px] text-dark-400 leading-relaxed">Google Calendar ile senkron</p>
+      </div>
+
+      <!-- Hatırlatma -->
+      <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.25s">
+        <span class="iconify text-red-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:bell-ring-outline"></span>
+        <h4 class="text-sm font-bold text-white mb-1">Hatırlatma</h4>
+        <p class="text-[11px] text-dark-400 leading-relaxed">Otomatik SMS & WA hatırlatma</p>
+      </div>
+
+      <!-- Wide: Analitik -->
+      <div class="rv bento col-span-2 rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.3s">
+        <div class="flex items-start gap-5">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
+            <span class="iconify text-purple-400 text-xl" data-icon="mdi:chart-areaspline"></span>
+          </div>
+          <div class="flex-1">
+            <h4 class="text-sm font-bold text-white mb-1">Detaylı Analitik</h4>
+            <p class="text-[11px] text-dark-400 leading-relaxed mb-4">Yoğunluk saatleri, iptal oranları, müşteri demografisi</p>
+            <!-- Mini chart -->
+            <div class="flex items-end gap-1.5 h-12">
+              <div class="flex-1 bg-wa-500/20 rounded-t-sm" style="height:40%"></div>
+              <div class="flex-1 bg-wa-500/30 rounded-t-sm" style="height:60%"></div>
+              <div class="flex-1 bg-wa-500/40 rounded-t-sm" style="height:45%"></div>
+              <div class="flex-1 bg-wa-500/50 rounded-t-sm" style="height:80%"></div>
+              <div class="flex-1 bg-wa-500/60 rounded-t-sm" style="height:70%"></div>
+              <div class="flex-1 bg-wa-500/70 rounded-t-sm" style="height:90%"></div>
+              <div class="flex-1 bg-wa-500 rounded-t-sm" style="height:100%"></div>
+              <div class="flex-1 bg-wa-500/80 rounded-t-sm" style="height:85%"></div>
+              <div class="flex-1 bg-wa-500/60 rounded-t-sm" style="height:65%"></div>
+              <div class="flex-1 bg-wa-500/40 rounded-t-sm" style="height:50%"></div>
+              <div class="flex-1 bg-wa-500/30 rounded-t-sm" style="height:35%"></div>
+              <div class="flex-1 bg-wa-500/20 rounded-t-sm" style="height:25%"></div>
+            </div>
+          </div>
         </div>
-        <div class="faq-item">
-          <button class="faq-q">WhatsApp numaram değişir mi?<span class="faq-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
-          <div class="faq-a"><p>Hayır. Mevcut WhatsApp Business veya normal WhatsApp numaranızı kullanırsınız. Admin panelden QR kod okutarak bağlarsınız. Numaranız, mesajlarınız ve kişileriniz aynı kalır.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q">Teknik bilgi gerekiyor mu?<span class="faq-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
-          <div class="faq-a"><p>Kesinlikle hayır. Kayıt olun, işletme bilgilerinizi girin, QR kodu okutun. Telefon kullanabiliyorsanız SıraGO'yu kullanabilirsiniz.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q">Ödeme nasıl yapılır?<span class="faq-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
-          <div class="faq-a"><p>Aylık abonelik sistemiyle çalışıyoruz. Başlangıç paketi 299₺, Profesyonel 699₺, Kurumsal 1499₺. İşletmenizin büyüklüğüne göre size en uygun planı seçebilirsiniz.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q">Hangi sektörler kullanabilir?<span class="faq-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
-          <div class="faq-a"><p>Berber, kuaför, güzellik salonu, dişçi, veteriner, diyetisyen, psikolog, fizyoterapi, spa, pilates, oto yıkama — randevu bazlı çalışan her işletme kullanabilir.</p></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q">Verilerim güvenli mi?<span class="faq-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
-          <div class="faq-a"><p>Tüm veriler SSL şifreli bağlantı üzerinden iletilir ve güvenli bulut sunucularda saklanır. KVKK uyumlu altyapımız ile verileriniz her zaman güvende.</p></div>
+      </div>
+
+      <!-- Wide: Çok Dilli -->
+      <div class="rv bento col-span-2 rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.35s">
+        <div class="flex items-center gap-5">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
+            <span class="iconify text-cyan-400 text-xl" data-icon="mdi:translate"></span>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white mb-1">Çok Dilli Destek</h4>
+            <p class="text-[11px] text-dark-400 leading-relaxed">Otomatik dil algılama ile 12+ dilde randevu alma</p>
+          </div>
+          <div class="ml-auto flex items-center gap-1">
+            <span class="text-lg">🇹🇷</span><span class="text-lg">🇬🇧</span><span class="text-lg">🇸🇦</span><span class="text-lg">🇩🇪</span><span class="text-lg">🇫🇷</span>
+          </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- CTA -->
-  <section class="sec">
-    <div class="container">
-      <div class="cta-block" data-anim>
-        <h2>Hala telefon mu açıyorsunuz?</h2>
-        <p>Müşterileriniz WhatsApp'tan randevu almayı bekliyor. SıraGO ile işletmenizi dijitale taşıyın.</p>
-        <a href="https://admin.xn--srago-n4a.com" class="btn btn-p">Hemen Başla <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+<!-- ===== SEKTÖRLER ===== -->
+<section id="sektorler" class="py-32 px-6 bg-dark-950">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-16 gap-6">
+      <div class="rv-l">
+        <span class="text-[11px] font-black uppercase tracking-[0.3em] text-wa-400 mb-4 block">Sektörler</span>
+        <h2 class="text-4xl md:text-5xl font-serif font-medium leading-[0.9] tracking-tighter text-white">
+          Her sektör için<br><span class="italic text-wa-400">tasarlandı</span>
+        </h2>
+      </div>
+      <p class="rv-r text-sm text-dark-400 max-w-xs">İster kuaför, ister diş kliniği — SiraGO her işletmeye uyar.</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-wa-500/10 hover:border-wa-500/20 transition-all duration-500 text-center" style="transition-delay:.05s">
+        <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-wa-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
+          <span class="iconify text-2xl text-dark-400 group-hover:text-wa-400 transition-colors duration-500" data-icon="mdi:tooth-outline"></span>
+        </div>
+        <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Diş Kliniği</p>
+      </div>
+      <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-pink-500/10 hover:border-pink-500/20 transition-all duration-500 text-center" style="transition-delay:.1s">
+        <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-pink-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
+          <span class="iconify text-2xl text-dark-400 group-hover:text-pink-400 transition-colors duration-500" data-icon="mdi:hair-dryer-outline"></span>
+        </div>
+        <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Kuaför</p>
+      </div>
+      <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-orange-500/10 hover:border-orange-500/20 transition-all duration-500 text-center" style="transition-delay:.15s">
+        <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-orange-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
+          <span class="iconify text-2xl text-dark-400 group-hover:text-orange-400 transition-colors duration-500" data-icon="mdi:dumbbell"></span>
+        </div>
+        <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Fitness</p>
+      </div>
+      <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-blue-500/10 hover:border-blue-500/20 transition-all duration-500 text-center" style="transition-delay:.2s">
+        <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-blue-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
+          <span class="iconify text-2xl text-dark-400 group-hover:text-blue-400 transition-colors duration-500" data-icon="mdi:stethoscope"></span>
+        </div>
+        <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Sağlık</p>
+      </div>
+      <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-red-500/10 hover:border-red-500/20 transition-all duration-500 text-center" style="transition-delay:.25s">
+        <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-red-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
+          <span class="iconify text-2xl text-dark-400 group-hover:text-red-400 transition-colors duration-500" data-icon="mdi:car-outline"></span>
+        </div>
+        <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Oto Servis</p>
+      </div>
+      <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-amber-500/10 hover:border-amber-500/20 transition-all duration-500 text-center" style="transition-delay:.3s">
+        <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-amber-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
+          <span class="iconify text-2xl text-dark-400 group-hover:text-amber-400 transition-colors duration-500" data-icon="mdi:dog-side"></span>
+        </div>
+        <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Veteriner</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- FOOTER -->
-  <footer>
-    <div class="container">
-      <div class="foot-grid">
-        <div class="foot-brand">
-          <a href="#" class="brand">Sıra<i>GO</i></a>
-          <p>İşletmeniz için tasarlanmış yapay zeka destekli randevu asistanı. WhatsApp ve Telegram üzerinden 7/24 otomatik randevu yönetimi.</p>
+<!-- ===== FİYATLANDIRMA ===== -->
+<section id="fiyat" class="py-32 px-6 bg-dark-950 rounded-b-[3rem] relative overflow-hidden">
+  <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-wa-500/[.05] rounded-full blur-[120px]"></div>
+
+  <div class="max-w-5xl mx-auto relative z-10">
+    <div class="text-center mb-16 rv">
+      <span class="text-[11px] font-black uppercase tracking-[0.3em] text-wa-400 mb-4 block">Fiyatlandırma</span>
+      <h2 class="text-4xl md:text-6xl font-serif font-medium leading-[0.9] tracking-tighter text-white mb-6">
+        Şeffaf <span class="italic text-wa-400">fiyatlar</span>
+      </h2>
+      <p class="text-lg text-dark-400 font-light">Gizli ücret yok. İstediğiniz zaman iptal edin.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 items-start">
+      <!-- Starter -->
+      <div class="rv rounded-3xl p-8 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500" style="transition-delay:.1s">
+        <div class="mb-8">
+          <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Başlangıç</p>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-black text-white">₺499</span>
+            <span class="text-sm text-dark-500">/ay</span>
+          </div>
+          <p class="text-xs text-dark-500 mt-2">Küçük işletmeler için ideal</p>
         </div>
-        <div class="foot-col">
-          <h4>Ürün</h4>
-          <a href="#ozellikler">Özellikler</a>
-          <a href="#fiyat">Fiyatlandırma</a>
-          <a href="#nasil">Nasıl Çalışır</a>
-          <a href="#sss">SSS</a>
-        </div>
-        <div class="foot-col">
-          <h4>Sektörler</h4>
-          <a href="#">Berber ve Kuaför</a>
-          <a href="#">Güzellik Salonu</a>
-          <a href="#">Diş Kliniği</a>
-          <a href="#">Veteriner</a>
-          <a href="#">Spa ve Wellness</a>
-        </div>
-        <div class="foot-col">
-          <h4>İletişim</h4>
-          <a href="mailto:info@sirago.com">info@sirago.com</a>
-          <a href="#">Instagram</a>
-          <a href="#">X (Twitter)</a>
-          <a href="#">LinkedIn</a>
-        </div>
+        <div class="w-full h-px bg-white/[.06] mb-8"></div>
+        <ul class="space-y-3.5 mb-8">
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>1 WhatsApp Numarası</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>200 Randevu/Ay</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Otomatik Hatırlatma</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Temel Analitik</li>
+          <li class="flex items-center gap-3 text-sm text-dark-500"><span class="iconify text-dark-600 text-base flex-shrink-0" data-icon="mdi:close-circle-outline"></span>Telegram Desteği</li>
+          <li class="flex items-center gap-3 text-sm text-dark-500"><span class="iconify text-dark-600 text-base flex-shrink-0" data-icon="mdi:close-circle-outline"></span>Çok Dilli Destek</li>
+        </ul>
+        <a href="#iletisim" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Başla</a>
       </div>
-      <div class="foot-bottom">
-        <span>2025 SıraGO. Tüm hakları saklıdır.</span>
-        <div><a href="#">Gizlilik Politikası</a> &middot; <a href="#">Kullanım Şartları</a> &middot; <a href="#">KVKK</a></div>
+
+      <!-- Pro -->
+      <div class="rv md:-mt-4 md:mb-[-1rem] price-pop rounded-3xl p-8 bg-dark-900 transition-all duration-500 relative" style="transition-delay:.2s">
+        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-5 py-1.5 wa-g text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-lg shadow-wa-500/30 flex items-center gap-1.5">
+          <span class="iconify text-sm" data-icon="mdi:fire"></span> En Popüler
+        </div>
+        <div class="mb-8 mt-2">
+          <p class="text-[11px] font-black uppercase tracking-[0.2em] text-wa-400 mb-3">Profesyonel</p>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-black text-white">₺999</span>
+            <span class="text-sm text-dark-500">/ay</span>
+          </div>
+          <p class="text-xs text-dark-500 mt-2">Büyüyen işletmeler için</p>
+        </div>
+        <div class="w-full h-px bg-white/[.06] mb-8"></div>
+        <ul class="space-y-3.5 mb-8">
+          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span><strong>3</strong> WhatsApp Numarası</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span><strong>Sınırsız</strong> Randevu</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Telegram Desteği</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Gelişmiş Analitik</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Google Calendar Sync</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>5 Dil Desteği</li>
+        </ul>
+        <a href="#iletisim" class="block text-center py-3.5 wa-g text-white font-bold text-sm rounded-2xl hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200 shadow-lg shadow-wa-500/25">Hemen Başla</a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="rv rounded-3xl p-8 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500" style="transition-delay:.3s">
+        <div class="mb-8">
+          <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Kurumsal</p>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-black text-white">Özel</span>
+          </div>
+          <p class="text-xs text-dark-500 mt-2">Büyük ölçekli operasyonlar</p>
+        </div>
+        <div class="w-full h-px bg-white/[.06] mb-8"></div>
+        <ul class="space-y-3.5 mb-8">
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Sınırsız Numara</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Sınırsız Randevu</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Özel API Entegrasyonu</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Özel Eğitim & Onboarding</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>SLA Garantisi</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>12+ Dil Desteği</li>
+        </ul>
+        <a href="#iletisim" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Satışla Görüş</a>
       </div>
     </div>
-  </footer>
+  </div>
+</section>
 
-  <script>
-    // Navbar
-    addEventListener('scroll',()=>document.getElementById('hd').classList.toggle('scrolled',scrollY>40));
-    // Scroll anim
-    const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')}),{threshold:.12});
-    document.querySelectorAll('[data-anim]').forEach(el=>io.observe(el));
-    // FAQ
-    document.querySelectorAll('.faq-item').forEach(item=>{
-      item.querySelector('.faq-q').addEventListener('click',()=>{
-        const open=item.classList.contains('open');
-        document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
-        if(!open)item.classList.add('open');
-      });
+<!-- ===== YORUMLAR ===== -->
+<section class="py-32 px-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-16 rv">
+      <span class="text-[11px] font-black uppercase tracking-[0.3em] text-wa-600 mb-4 block">Müşteri Yorumları</span>
+      <h2 class="text-4xl md:text-5xl font-serif font-medium leading-[0.9] tracking-tighter text-dark-950">
+        İşletmeler ne <span class="italic text-dark-400">diyor?</span>
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="rv glass rounded-3xl p-8 hover:shadow-xl hover:shadow-dark-900/5 transition-all duration-500" style="transition-delay:.1s">
+        <div class="flex items-center gap-1 mb-5">
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+        </div>
+        <p class="text-sm text-dark-600 leading-relaxed mb-8">"Randevu kayıp oranımız <strong class="text-dark-900">%80 azaldı</strong>. Müşterilerimiz WhatsApp'tan randevu almayı çok seviyor. Sekreter maliyetinden tamamen kurtulduk."</p>
+        <div class="flex items-center gap-4">
+          <img src="https://picsum.photos/seed/dr1/56/56.jpg" class="w-12 h-12 rounded-full object-cover ring-2 ring-wa-100">
+          <div>
+            <p class="text-sm font-bold text-dark-900">Dr. Elif Yılmaz</p>
+            <p class="text-xs text-dark-400">Diş Kliniği · İstanbul</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rv glass rounded-3xl p-8 hover:shadow-xl hover:shadow-dark-900/5 transition-all duration-500" style="transition-delay:.2s">
+        <div class="flex items-center gap-1 mb-5">
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+        </div>
+        <p class="text-sm text-dark-600 leading-relaxed mb-8">"Günde 50+ telefon çağrısından kurtulduk. SiraGO sayesinde müşterilerimiz <strong class="text-dark-900">gece 2'de bile</strong> randevu alabiliyor. Mucize!"</p>
+        <div class="flex items-center gap-4">
+          <img src="https://picsum.photos/seed/sln2/56/56.jpg" class="w-12 h-12 rounded-full object-cover ring-2 ring-wa-100">
+          <div>
+            <p class="text-sm font-bold text-dark-900">Ayşe Kaya</p>
+            <p class="text-xs text-dark-400">Kuaför Salonu · Ankara</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rv glass rounded-3xl p-8 hover:shadow-xl hover:shadow-dark-900/5 transition-all duration-500" style="transition-delay:.3s">
+        <div class="flex items-center gap-1 mb-5">
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star"></span>
+          <span class="iconify text-amber-400" data-icon="mdi:star-half-full"></span>
+        </div>
+        <p class="text-sm text-dark-600 leading-relaxed mb-8">"Arapça dil desteği sayesinde <strong class="text-dark-900">yabancı turist müşterilerim</strong> rahatça randevu alıyor. Kurulum 5 dakika sürdü, inanılır değil."</p>
+        <div class="flex items-center gap-4">
+          <img src="https://picsum.photos/seed/ptr3/56/56.jpg" class="w-12 h-12 rounded-full object-cover ring-2 ring-wa-100">
+          <div>
+            <p class="text-sm font-bold text-dark-900">Mehmet Demir</p>
+            <p class="text-xs text-dark-400">PT Studio · Antalya</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SSS ===== -->
+<section id="sss" class="py-32 px-6 bg-stone-50">
+  <div class="max-w-3xl mx-auto">
+    <div class="text-center mb-16 rv">
+      <span class="text-[11px] font-black uppercase tracking-[0.3em] text-wa-600 mb-4 block">Sıkça Sorulan Sorular</span>
+      <h2 class="text-4xl md:text-5xl font-serif font-medium leading-[0.9] tracking-tighter text-dark-950">
+        Merak <span class="italic text-dark-400">edilenler</span>
+      </h2>
+    </div>
+
+    <div class="space-y-3 rv">
+      <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
+        <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
+          <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">SiraGO'yu kurmak ne kadar sürer?</span>
+          <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
+            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+          </div>
+        </button>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">30 saniyeden kısa sürede WhatsApp numaranızı bağlayarak sistemi aktif edebilirsiniz. Hizmet ve saat ayarlarınızı panel üzerinden dakikalar içinde tamamlayabilirsiniz.</p></div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
+        <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
+          <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Müşterilerim herhangi bir uygulama indirmeli mi?</span>
+          <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
+            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+          </div>
+        </button>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Kesinlikle hayır. Müşterileriniz zaten kullandığı WhatsApp veya Telegram üzerinden direkt randevu alabilir. Ekstra bir uygulama yüklemelerine gerek yoktur.</p></div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
+        <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
+          <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Randevu iptallerini nasıl yönetiyor?</span>
+          <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
+            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+          </div>
+        </button>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Müşterileriniz WhatsApp üzerinden doğrudan iptal edebilir. İptal edilen slotlar otomatik olarak müsait duruma geçer. Ayrıca otomatik hatırlatma mesajları sayesinde iptal oranı %70'e kadar azalır.</p></div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
+        <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
+          <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Var olan sistemimle entegre olabilir mi?</span>
+          <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
+            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+          </div>
+        </button>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Evet! Google Calendar, Outlook ve özel API entegrasyonları ile mevcut sisteminizle sorunsuz çalışır. Kurumsal paketimizde özel entegrasyon desteği de sunuyoruz.</p></div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
+        <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
+          <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Ücretsiz deneme süresi var mı?</span>
+          <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
+            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+          </div>
+        </button>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">14 gün tamamen ücretsiz deneyebilirsiniz. Kredi kartı gerekmez, risksiz başlayın. Memnun kalırsanız istediğiniz plana geçebilir, kalmasanız hiçbir ücret ödemezsiniz.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section id="iletisim" class="py-32 px-6 relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-wa-50 via-white to-blue-50/30"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-wa-500/[.07] rounded-full blur-[150px] anim-morph"></div>
+  <div class="absolute inset-0 opacity-[0.02]" style="background-image:radial-gradient(circle,#000 1px,transparent 1px);background-size:32px 32px"></div>
+
+  <div class="max-w-4xl mx-auto relative z-10">
+    <div class="rv bg-dark-950 rounded-[2.5rem] p-10 md:p-16 text-center relative overflow-hidden">
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[250px] bg-wa-500/10 rounded-full blur-[100px]"></div>
+      <div class="absolute inset-0 shimmer pointer-events-none"></div>
+
+      <div class="relative z-10">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[.06] border border-white/[.08] text-[10px] uppercase tracking-[0.25em] text-wa-400 font-bold mb-8">
+          <span class="w-1.5 h-1.5 bg-wa-500 rounded-full animate-pulse"></span>
+          14 Gün Ücretsiz
+        </div>
+
+        <h2 class="text-3xl md:text-5xl lg:text-6xl font-serif font-medium leading-[0.95] tracking-tighter text-white mb-6">
+          Randevu kaçırmaya<br><span class="italic text-wa-400">son verin</span>
+        </h2>
+        <p class="text-lg text-dark-400 font-light max-w-lg mx-auto mb-10">
+          Hemen başlayın, kredi kartı gerekmez. Dakikalar içinde AI asistanınız çalışmaya başlar.
+        </p>
+
+        <form id="form" class="flex flex-col sm:flex-row items-center gap-3 max-w-lg mx-auto mb-8">
+          <div class="relative flex-1 w-full">
+            <span class="iconify absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" data-icon="mdi:account-outline"></span>
+            <input type="text" id="fname" placeholder="Adınız" class="w-full pl-12 pr-5 py-4 bg-white/[.07] border border-white/[.1] rounded-2xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-wa-500/50 focus:bg-white/[.1] transition-all duration-300">
+          </div>
+          <div class="relative flex-1 w-full">
+            <span class="iconify absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" data-icon="mdi:phone-outline"></span>
+            <input type="tel" id="phone" placeholder="5XX XXX XX XX" class="w-full pl-12 pr-5 py-4 bg-white/[.07] border border-white/[.1] rounded-2xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-wa-500/50 focus:bg-white/[.1] transition-all duration-300">
+          </div>
+          <button type="submit" class="w-full sm:w-auto px-8 py-4 wa-g text-white font-bold text-sm uppercase tracking-wide rounded-2xl hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200 shadow-xl shadow-wa-500/25 flex items-center justify-center gap-2 whitespace-nowrap">
+            <span class="iconify text-lg" data-icon="mdi:whatsapp"></span>
+            Başla
+          </button>
+        </form>
+
+        <div class="flex flex-wrap items-center justify-center gap-6 text-xs text-dark-500">
+          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>14 gün ücretsiz</span>
+          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>Kredi kartı gerekmez</span>
+          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>İstediğiniz zaman iptal</span>
+          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>KVKK uyumlu</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="py-16 px-6 bg-dark-950">
+  <div class="max-w-7xl mx-auto">
+    <div class="grid md:grid-cols-5 gap-12 mb-16">
+      <div class="md:col-span-2">
+        <a href="#" class="flex items-center gap-2.5 mb-5">
+          <div class="w-9 h-9 rounded-lg wa-g flex items-center justify-center">
+            <span class="iconify text-white text-lg" data-icon="mdi:robot-happy-outline"></span>
+          </div>
+          <span class="text-lg font-extrabold text-white">Sira<span class="text-wa-400">GO</span></span>
+        </a>
+        <p class="text-sm text-dark-400 leading-relaxed mb-6 max-w-xs">Türkiye'nin ilk akıllı randevu asistanı. WhatsApp ve Telegram üzerinden otomatik randevu yönetimi ile işletmenizi büyütün.</p>
+        <div class="flex items-center gap-2.5">
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:instagram"></span></a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:twitter"></span></a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:linkedin"></span></a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:youtube"></span></a>
+        </div>
+      </div>
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-dark-400 mb-5">Ürün</p>
+        <ul class="space-y-3"><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Özellikler</a></li><li><a href="#fiyat" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Fiyatlar</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Entegrasyonlar</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">API Docs</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Changelog</a></li></ul>
+      </div>
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-dark-400 mb-5">Şirket</p>
+        <ul class="space-y-3"><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Hakkımızda</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Blog</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Kariyer</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Basın Kiti</a></li><li><a href="#iletisim" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">İletişim</a></li></ul>
+      </div>
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-dark-400 mb-5">Yasal</p>
+        <ul class="space-y-3"><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Gizlilik Politikası</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Kullanım Şartları</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">KVKK Aydınlatma</a></li><li><a href="#" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Çerez Politikası</a></li></ul>
+      </div>
+    </div>
+    <div class="border-t border-white/[.05] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-xs text-dark-500">© 2025 SiraGO. Tüm hakları saklıdır.</p>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-1.5 text-xs text-dark-400"><span class="iconify text-wa-500" data-icon="mdi:shield-check"></span>KVKK Uyumlu</div>
+        <div class="flex items-center gap-1.5 text-xs text-dark-400"><span class="iconify text-wa-500" data-icon="mdi:lock-outline"></span>SSL Güvenli</div>
+        <div class="flex items-center gap-1.5 text-xs text-dark-400"><span class="iconify text-wa-500" data-icon="mdi:earth"></span>GDPR</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// === CURSOR GLOW ===
+const cg = document.getElementById('cursor-glow');
+if(window.innerWidth > 768){
+  document.addEventListener('mousemove', e => {
+    cg.style.left = e.clientX + 'px';
+    cg.style.top = e.clientY + 'px';
+  });
+} else { cg.style.display = 'none'; }
+
+// === FEATURE CARD MOUSE TRACKING ===
+document.querySelectorAll('.feat-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+    card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+  });
+});
+
+// === NAV ===
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  if(window.scrollY > 50){
+    nav.classList.add('bg-white/90','nav-blur','shadow-sm','border-b','border-dark-100/40');
+  } else {
+    nav.classList.remove('bg-white/90','nav-blur','shadow-sm','border-b','border-dark-100/40');
+  }
+});
+
+// === MOBILE MENU ===
+const menuBtn = document.getElementById('menuBtn');
+const mobMenu = document.getElementById('mobMenu');
+let mOpen = false;
+menuBtn.addEventListener('click', () => {
+  mOpen = !mOpen;
+  mobMenu.classList.toggle('open');
+  document.getElementById('b1').style.transform = mOpen ? 'rotate(45deg) translateY(5px)' : '';
+  document.getElementById('b2').style.opacity = mOpen ? '0' : '';
+  document.getElementById('b3').style.transform = mOpen ? 'rotate(-45deg) translateY(-5px)' : '';
+});
+function closeMenu(){
+  mOpen=false; mobMenu.classList.remove('open');
+  document.getElementById('b1').style.transform='';
+  document.getElementById('b2').style.opacity='';
+  document.getElementById('b3').style.transform='';
+}
+
+// === SCROLL REVEAL ===
+const rvObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('on'); });
+}, {threshold:.1, rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.rv,.rv-l,.rv-r').forEach(el => rvObs.observe(el));
+
+// === CHAT ANIMATION ===
+function getTime(){const n=new Date();return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0')}
+function runChat(){
+  const c=document.getElementById('chat');
+  const msgs=[
+    {t:'bot',txt:'Merhaba! 👋 Ben SiraGO asistanıyım.\nSize nasıl yardımcı olabilirim?',dl:400},
+    {t:'user',txt:'Randevu almak istiyorum',dl:2200},
+    {t:'bot',txt:'Harika! Hangi hizmeti almak istersiniz?\n\n1️⃣ Saç Kesimi\n2️⃣ Saç Boyama\n3️⃣ Bakım Paketi',dl:3800},
+    {t:'user',txt:'2 - Saç boyama',dl:6000},
+    {t:'bot',txt:'Tamam! 📅 Müsait saatlerimiz:',dl:7500},
+    {t:'times',dl:9000},
+    {t:'user',txt:'14:30 olur',dl:11200},
+    {t:'success',dl:12800},
+  ];
+  msgs.forEach(m=>{
+    setTimeout(()=>{
+      let d;
+      if(m.t==='bot'){
+        d=document.createElement('div');
+        d.className='chat-msg flex justify-start';
+        d.innerHTML=`<div class="bg-white rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[82%] shadow-sm"><p class="text-[13px] text-dark-800 leading-relaxed whitespace-pre-line">${m.txt}</p><p class="text-[10px] text-dark-400 mt-1.5 text-right">${getTime()}</p></div>`;
+      } else if(m.t==='user'){
+        d=document.createElement('div');
+        d.className='chat-msg flex justify-end';
+        d.innerHTML=`<div class="bg-[#dcf8c6] rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[82%] shadow-sm"><p class="text-[13px] text-dark-800">${m.txt}</p><p class="text-[10px] text-dark-400 mt-1.5 text-right flex items-center justify-end gap-1">${getTime()} <span class="iconify text-blue-500 text-xs" data-icon="mdi:check-all"></span></p></div>`;
+      } else if(m.t==='times'){
+        d=document.createElement('div');
+        d.className='chat-msg flex justify-start';
+        d.innerHTML=`<div class="bg-white rounded-2xl rounded-tl-md p-3 shadow-sm max-w-[88%]"><div class="grid grid-cols-3 gap-1.5"><button class="px-2 py-2 bg-wa-50 border border-wa-200 rounded-xl text-[11px] font-bold text-wa-700 hover:bg-wa-100 transition-colors">09:00</button><button class="px-2 py-2 bg-wa-50 border border-wa-200 rounded-xl text-[11px] font-bold text-wa-700 hover:bg-wa-100 transition-colors">11:30</button><button class="px-2 py-2 bg-wa-500 border border-wa-500 rounded-xl text-[11px] font-bold text-white shadow-sm shadow-wa-500/30">14:30 ✓</button><button class="px-2 py-2 bg-wa-50 border border-wa-200 rounded-xl text-[11px] font-bold text-wa-700 hover:bg-wa-100 transition-colors">16:00</button><button class="px-2 py-2 bg-wa-50 border border-wa-200 rounded-xl text-[11px] font-bold text-wa-700 hover:bg-wa-100 transition-colors">17:30</button><button class="px-2 py-2 bg-wa-50 border border-wa-200 rounded-xl text-[11px] font-bold text-wa-700 hover:bg-wa-100 transition-colors">19:00</button></div></div>`;
+      } else if(m.t==='success'){
+        d=document.createElement('div');
+        d.className='chat-msg flex justify-start';
+        d.innerHTML=`<div class="bg-white rounded-2xl rounded-tl-md px-4 py-3 max-w-[88%] shadow-sm"><div class="flex items-center gap-2.5 mb-2.5"><div class="w-9 h-9 rounded-full bg-wa-100 flex items-center justify-center"><span class="iconify text-wa-600 text-lg" data-icon="mdi:check-circle"></span></div><p class="text-[13px] font-bold text-dark-800">Randevu Onaylandı! ✅</p></div><div class="bg-gradient-to-br from-wa-50 to-blue-50 rounded-xl p-3.5 text-[11px] text-dark-600 space-y-1.5 border border-wa-100/50"><p>📋 <strong>Hizmet:</strong> Saç Boyama</p><p>📅 <strong>Tarih:</strong> Perşembe, 15 Ocak</p><p>🕐 <strong>Saat:</strong> 14:30</p></div><p class="text-[10px] text-dark-400 mt-2 text-right">${getTime()}</p></div>`;
+      }
+      c.appendChild(d);
+      c.scrollTop=c.scrollHeight;
+    },m.dl);
+  });
+}
+const chatObs=new IntersectionObserver(entries=>{if(entries[0].isIntersecting){setTimeout(runChat,1200);chatObs.disconnect();}});
+chatObs.observe(document.getElementById('chat'));
+
+// === ACCORDION ===
+function toggleAcc(btn){
+  const body=btn.nextElementSibling;
+  const icon=btn.querySelector('.acc-icon');
+  const open=body.classList.contains('open');
+  document.querySelectorAll('.acc-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.acc-icon').forEach(i=>i.classList.remove('rot'));
+  if(!open){body.classList.add('open');icon.classList.add('rot');}
+}
+
+// === TOAST ===
+function showToast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+document.getElementById('form').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const isim=document.getElementById('fname').value.trim();
+  const p=document.getElementById('phone').value.replace(/\D/g,'');
+  if(!isim){showToast('Lütfen adınızı girin.');return;}
+  if(p.length<10){showToast('Lütfen geçerli bir telefon numarası girin.');return;}
+  const btn=e.target.querySelector('button[type="submit"]');
+  btn.disabled=true;btn.textContent='Gönderiliyor...';
+  try{
+    const res=await fetch('https://randevugo-api.onrender.com/api/iletisim',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({isim,telefon:p,kaynak:'landing'})
     });
-  </script>
+    const d=await res.json();
+    if(res.ok){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('fname').value='';document.getElementById('phone').value='';}
+    else{showToast(d.hata||'Bir hata oluştu.');}
+  }catch(err){showToast('Bağlantı hatası, lütfen tekrar deneyin.');}
+  btn.disabled=false;btn.innerHTML='<span class="iconify text-lg" data-icon="mdi:send"></span> Başla';
+});
+
+// === SMOOTH SCROLL ===
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
+  });
+});
+
+// === STEP HOVER INTERACTION ===
+document.querySelectorAll('[data-step]').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{
+    const s=el.dataset.step;
+    document.querySelectorAll('[id^="step-vis-"]').forEach(v=>v.style.transform='scale(1)');
+    const target=document.getElementById('step-vis-'+s);
+    if(target)target.style.transform='scale(1.03)';
+  });
+  el.addEventListener('mouseleave',()=>{
+    document.querySelectorAll('[id^="step-vis-"]').forEach(v=>v.style.transform='scale(1)');
+  });
+});
+</script>
 </body>
 </html>
