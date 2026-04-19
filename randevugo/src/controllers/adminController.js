@@ -1410,12 +1410,36 @@ class AdminController {
       const isletmeId = req.kullanici.isletme_id;
       const buAy = new Date().toISOString().slice(0, 7);
 
-      const odeme = (await pool.query(
+      const isletme = (await pool.query('SELECT paket, isim, grup_id, paket_bitis_tarihi, deneme_bitis_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+
+      // Grup şubesi: kendi ödemesi yoksa merkez şubenin ödemesini + bitiş tarihlerini inherit et
+      let odemeIsletmeId = isletmeId;
+      let etkiliBitis = isletme?.paket_bitis_tarihi || null;
+      if (isletme && isletme.grup_id) {
+        const merkezOdeme = (await pool.query(
+          'SELECT id FROM odemeler WHERE isletme_id = $1 AND donem = $2 LIMIT 1', [isletmeId, buAy]
+        )).rows[0];
+        if (!merkezOdeme) {
+          const merkez = (await pool.query(
+            'SELECT id, paket_bitis_tarihi FROM isletmeler WHERE grup_id=$1 ORDER BY id LIMIT 1', [isletme.grup_id]
+          )).rows[0];
+          if (merkez) {
+            odemeIsletmeId = merkez.id;
+            if (!etkiliBitis) etkiliBitis = merkez.paket_bitis_tarihi;
+          }
+        }
+      }
+
+      let odeme = (await pool.query(
         'SELECT * FROM odemeler WHERE isletme_id = $1 AND donem = $2 ORDER BY olusturma_tarihi DESC LIMIT 1',
-        [isletmeId, buAy]
+        [odemeIsletmeId, buAy]
       )).rows[0];
 
-      const isletme = (await pool.query('SELECT paket, isim FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      // Ödeme kaydı yoksa ama paket_bitis_tarihi future ise → virtual "ödendi" göster
+      // (SuperAdmin manuel uzatma veya grup alt şubesinin bitiş tarihi inherit edilmiş durumu)
+      if (!odeme && etkiliBitis && new Date(etkiliBitis) > new Date()) {
+        odeme = { durum: 'odendi', donem: buAy, virtual: true, paket_bitis_tarihi: etkiliBitis };
+      }
       const paketBilgi = await paketGetir(isletme?.paket);
 
       // Rastgele ödeme referans kodu üret (her istek için sabit kalması için isletme_id + dönem bazlı)
