@@ -1229,7 +1229,7 @@ function Dashboard({ kullanici }) {
   ];
 
   // Rol bazlı gizlenen sayfalar (sube_muduru için)
-  const subeMuduruGizli = ['finans','botbaglanti','bottest','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
+  const subeMuduruGizli = ['finans','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
 
   // Alt şubede mi? (grup_sahibi farklı bir şubeye geçmişse Şubelerim gizlenir)
   const aktifIsletmeLS = localStorage.getItem('aktifIsletme');
