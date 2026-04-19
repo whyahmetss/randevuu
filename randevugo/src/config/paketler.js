@@ -165,6 +165,8 @@ async function paketleriYukle() {
           sms_hatirlatma: row.sms_hatirlatma !== undefined ? !!row.sms_hatirlatma : (fallback.sms_hatirlatma || false),
           oncelikli_destek: row.oncelikli_destek !== undefined ? !!row.oncelikli_destek : (fallback.oncelikli_destek || false),
           api_erisimi: row.api_erisimi !== undefined ? !!row.api_erisimi : (fallback.api_erisimi || false),
+          sube_yonetimi: row.sube_yonetimi !== undefined ? !!row.sube_yonetimi : (fallback.sube_yonetimi || false),
+          sube_limit: row.sube_limit !== undefined ? row.sube_limit : (fallback.sube_limit || 1),
           ozellikler: row.ozellikler ? row.ozellikler.split('\n').filter(Boolean) : [],
         };
       }
