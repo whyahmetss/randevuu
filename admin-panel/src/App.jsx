@@ -1231,8 +1231,9 @@ function Dashboard({ kullanici }) {
   // Rol bazlı gizlenen sayfalar (sube_muduru için)
   const subeMuduruGizli = ['finans','botbaglanti','bottest','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
 
-  // Alt şubede mi? (grup_sahibi aktif bir şubeye geçmişse Şubelerim gizlenir)
-  const altSubeModu = kullanici?.rol === 'grup_sahibi' && !!localStorage.getItem('aktifIsletme');
+  // Alt şubede mi? (grup_sahibi farklı bir şubeye geçmişse Şubelerim gizlenir)
+  const aktifIsletmeLS = localStorage.getItem('aktifIsletme');
+  const altSubeModu = kullanici?.rol === 'grup_sahibi' && !!aktifIsletmeLS && String(aktifIsletmeLS) !== String(kullanici?.isletme_id);
 
   // Item filtresi (rol + sube_muduru kısıtı + alt şube modu)
   const itemGorunur = (m) => {

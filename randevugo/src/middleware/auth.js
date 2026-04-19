@@ -114,10 +114,23 @@ const odemeKontrol = async (req, res, next) => {
     }
 
     const buAy = new Date().toISOString().slice(0, 7);
-    const odeme = (await pool.query(
+    let odeme = (await pool.query(
       "SELECT durum FROM odemeler WHERE isletme_id = $1 AND donem = $2 ORDER BY olusturma_tarihi DESC LIMIT 1",
       [isletmeId, buAy]
     )).rows[0];
+
+    // Grup şubesi: kendi ödemesi yoksa merkez ödemesine bak
+    if (!odeme && isletme?.grup_id) {
+      const merkez = (await pool.query(
+        'SELECT id FROM isletmeler WHERE grup_id=$1 ORDER BY id LIMIT 1', [isletme.grup_id]
+      )).rows[0];
+      if (merkez && merkez.id !== isletmeId) {
+        odeme = (await pool.query(
+          "SELECT durum FROM odemeler WHERE isletme_id = $1 AND donem = $2 ORDER BY olusturma_tarihi DESC LIMIT 1",
+          [merkez.id, buAy]
+        )).rows[0];
+      }
+    }
 
     if (odeme && odeme.durum === 'odendi') return next();
 
