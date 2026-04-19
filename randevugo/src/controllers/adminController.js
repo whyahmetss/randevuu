@@ -5088,7 +5088,7 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://sirago.com/book/${slug}`;
+        hedefUrl = `https://sırago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
@@ -5131,7 +5131,7 @@ class AdminController {
 
       let hedefUrl;
       if (type === 'booking') {
-        hedefUrl = `https://sirago.com/book/${slug}`;
+        hedefUrl = `https://sırago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
         const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
