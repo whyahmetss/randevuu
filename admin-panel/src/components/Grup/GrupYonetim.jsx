@@ -496,8 +496,15 @@ function GrupRapor({ api }) {
     setYukleniyor(true);
     try {
       const d = await api.get(`/grup/raporlar?baslangic=${baslangic}&bitis=${bitis}`);
-      setRapor(d);
-    } catch {}
+      // Hata veya eksik veri → güvenli default
+      if (d && d.toplam && Array.isArray(d.subeler)) {
+        setRapor(d);
+      } else {
+        setRapor({ toplam: { ciro: 0, randevu: 0, no_show: 0 }, subeler: [], top_calisan: [] });
+      }
+    } catch {
+      setRapor({ toplam: { ciro: 0, randevu: 0, no_show: 0 }, subeler: [], top_calisan: [] });
+    }
     setYukleniyor(false);
   }
 

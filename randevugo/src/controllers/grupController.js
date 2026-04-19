@@ -278,10 +278,11 @@ class GrupController {
       const subeMetrik = (await pool.query(
         `SELECT i.id, i.isim, i.sube_etiketi, i.sehir,
                 COUNT(r.id)::int AS randevu_sayisi,
-                COALESCE(SUM(CASE WHEN r.durum='tamamlandi' THEN r.toplam_fiyat ELSE 0 END),0) AS ciro,
+                COALESCE(SUM(CASE WHEN r.durum='tamamlandi' THEN h.fiyat ELSE 0 END),0) AS ciro,
                 COUNT(CASE WHEN r.durum='iptal' OR r.durum='gelmedi' THEN 1 END)::int AS no_show
            FROM isletmeler i
            LEFT JOIN randevular r ON r.isletme_id=i.id AND r.tarih BETWEEN $2 AND $3
+           LEFT JOIN hizmetler h ON h.id=r.hizmet_id
           WHERE i.grup_id=$1
           GROUP BY i.id
           ORDER BY ciro DESC`,
@@ -290,10 +291,11 @@ class GrupController {
 
       const topCalisan = (await pool.query(
         `SELECT c.id, c.isim, i.isim AS sube, COUNT(r.id)::int AS randevu_sayisi,
-                COALESCE(SUM(CASE WHEN r.durum='tamamlandi' THEN r.toplam_fiyat ELSE 0 END),0) AS ciro
+                COALESCE(SUM(CASE WHEN r.durum='tamamlandi' THEN h.fiyat ELSE 0 END),0) AS ciro
            FROM calisanlar c
            JOIN isletmeler i ON i.id=c.isletme_id AND i.grup_id=$1
            LEFT JOIN randevular r ON r.calisan_id=c.id AND r.tarih BETWEEN $2 AND $3
+           LEFT JOIN hizmetler h ON h.id=r.hizmet_id
           GROUP BY c.id, i.isim
           ORDER BY ciro DESC
           LIMIT 5`,
