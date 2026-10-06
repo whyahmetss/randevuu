@@ -5446,8 +5446,10 @@ class AdminController {
     try {
       const googleCalendar = require('../services/googleCalendar');
       const { code, state, error } = req.query;
+      // Sorgu parametreleri ve hata metinleri HTML'e kaçışsız basılıyordu (yansıyan XSS).
+      const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       if (error) {
-        return res.status(400).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Yetkilendirme iptal edildi</h2><p>${error}</p><p><a href="/">Admin Panel'e dön</a></p></body></html>`);
+        return res.status(400).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Yetkilendirme iptal edildi</h2><p>${esc(error)}</p><p><a href="/">Admin Panel'e dön</a></p></body></html>`);
       }
       if (!code || !state) return res.status(400).send('Geçersiz callback');
       const sonuc = await googleCalendar.callbackHandle(code, state);
@@ -5457,15 +5459,15 @@ class AdminController {
         <div style="background:#1e293b;padding:30px;border-radius:16px;max-width:400px;margin:0 auto;border:1px solid rgba(16,185,129,.3)">
           <div style="font-size:48px">✅</div>
           <h2 style="margin:10px 0">Google Calendar bağlandı!</h2>
-          <p style="color:#94a3b8">${sonuc.email}</p>
+          <p style="color:#94a3b8">${esc(sonuc.email)}</p>
           <p style="color:#94a3b8;font-size:13px">Bu pencereyi kapatabilirsiniz.</p>
           <a href="${redirectUrl}" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#10b981;color:white;text-decoration:none;border-radius:10px;font-weight:600">Admin Panel'e Dön</a>
         </div>
-        <script>setTimeout(()=>{ try { window.opener?.postMessage({ type: 'gcal-connected', email: '${sonuc.email}' }, '*'); } catch(e) {} if (!window.opener) window.location.href='${redirectUrl}'; }, 1000);</script>
+        <script>setTimeout(()=>{ try { window.opener?.postMessage({ type: 'gcal-connected' }, '*'); } catch(e) {} if (!window.opener) window.location.href='${redirectUrl}'; }, 1000);</script>
       </body></html>`);
     } catch (e) {
       console.error('Google Calendar callback hatası:', e);
-      res.status(500).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Bağlantı başarısız</h2><p>${e.message}</p></body></html>`);
+      res.status(500).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Bağlantı başarısız</h2><p>Lütfen panelden tekrar deneyin.</p></body></html>`);
     }
   }
 

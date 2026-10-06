@@ -26,10 +26,33 @@ function getOAuthClient() {
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
 
+// OAuth state: HMAC imzalı + 15 dk geçerli
+function stateImzala(veri) {
+  const crypto = require('crypto');
+  const { jwtSecret } = require('../middleware/auth');
+  const govde = Buffer.from(JSON.stringify(veri)).toString('base64url');
+  const imza = crypto.createHmac('sha256', jwtSecret).update('gcal:' + govde).digest('base64url');
+  return `${govde}.${imza}`;
+}
+
+function stateDogrula(state) {
+  const crypto = require('crypto');
+  const { jwtSecret } = require('../middleware/auth');
+  const [govde, imza] = String(state || '').split('.');
+  if (!govde || !imza) return null;
+  const beklenen = crypto.createHmac('sha256', jwtSecret).update('gcal:' + govde).digest('base64url');
+  if (imza.length !== beklenen.length || !crypto.timingSafeEqual(Buffer.from(imza), Buffer.from(beklenen))) return null;
+  try {
+    const veri = JSON.parse(Buffer.from(govde, 'base64url').toString());
+    if (!veri.ts || Date.now() - veri.ts > 15 * 60 * 1000) return null;
+    return veri;
+  } catch { return null; }
+}
+
 // OAuth URL üret
 function authUrl(isletmeId) {
   const oauth2 = getOAuthClient();
-  const state = Buffer.from(JSON.stringify({ isletmeId, ts: Date.now() })).toString('base64');
+  const state = stateImzala({ isletmeId, ts: Date.now(), n: require('crypto').randomBytes(8).toString('hex') });
   return oauth2.generateAuthUrl({
     access_type: 'offline',        // refresh_token için kritik
     prompt: 'consent',             // her defasında refresh_token dönmesi için
@@ -42,8 +65,8 @@ function authUrl(isletmeId) {
 async function callbackHandle(code, state) {
   const oauth2 = getOAuthClient();
 
-  let stateData;
-  try { stateData = JSON.parse(Buffer.from(state, 'base64').toString()); } catch {}
+  // İmzasız state ile saldırgan kendi Google hesabını başka bir işletmeye bağlayabiliyordu.
+  const stateData = stateDogrula(state);
   if (!stateData?.isletmeId) throw new Error('Geçersiz state');
   const isletmeId = parseInt(stateData.isletmeId);
 
