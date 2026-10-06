@@ -302,6 +302,9 @@ class AdminController {
 
   async calisanSil(req, res) {
     try {
+      // Önce sahiplik: başka işletmenin çalışanının eşleşmeleri silinebiliyordu
+      const sahip = (await pool.query('SELECT id FROM calisanlar WHERE id=$1 AND isletme_id=$2', [req.params.id, req.kullanici.isletme_id])).rows[0];
+      if (!sahip) return res.status(404).json({ hata: 'Çalışan bulunamadı' });
       await pool.query('DELETE FROM calisan_hizmetler WHERE calisan_id=$1', [req.params.id]);
       await pool.query('DELETE FROM calisanlar WHERE id=$1 AND isletme_id=$2', [req.params.id, req.kullanici.isletme_id]);
       res.json({ mesaj: 'Silindi' });
@@ -331,14 +334,22 @@ class AdminController {
     try {
       const { id } = req.params;
       const { hizmet_idler } = req.body; // [1, 3, 5]
+      // Sahiplik kontrolü yoktu: başka işletmenin çalışan/hizmet eşleşmeleri değiştirilebiliyordu
+      const sahip = (await pool.query('SELECT id FROM calisanlar WHERE id=$1 AND isletme_id=$2', [id, req.kullanici.isletme_id])).rows[0];
+      if (!sahip) return res.status(404).json({ hata: 'Çalışan bulunamadı' });
+      const idler = Array.isArray(hizmet_idler) ? hizmet_idler.map(x => parseInt(x)).filter(Boolean) : [];
+      if (idler.length) {
+        const gecerli = (await pool.query('SELECT COUNT(*)::int AS c FROM hizmetler WHERE id = ANY($1::int[]) AND isletme_id=$2', [idler, req.kullanici.isletme_id])).rows[0].c;
+        if (gecerli !== new Set(idler).size) return res.status(400).json({ hata: 'Geçersiz hizmet' });
+      }
       // Önce mevcut eşleştirmeleri sil
       await pool.query('DELETE FROM calisan_hizmetler WHERE calisan_id=$1', [id]);
       // Yenilerini ekle
-      if (hizmet_idler && hizmet_idler.length > 0) {
-        const values = hizmet_idler.map((hId, i) => `($1, $${i + 2})`).join(', ');
+      if (idler.length > 0) {
+        const values = idler.map((hId, i) => `($1, $${i + 2})`).join(', ');
         await pool.query(
           `INSERT INTO calisan_hizmetler (calisan_id, hizmet_id) VALUES ${values} ON CONFLICT DO NOTHING`,
-          [id, ...hizmet_idler]
+          [id, ...idler]
         );
       }
       res.json({ mesaj: 'Güncellendi' });
@@ -3103,9 +3114,16 @@ class AdminController {
 
   async referansKullan(req, res) {
     try {
-      const { referans_kodu, yeni_isletme_id } = req.body;
+      // Eskiden herkese açıktı ve yeni_isletme_id gövdeden geliyordu: herkes istediği işletmeyi
+      // istediği referansa bağlayıp davet sayısını şişirebiliyordu. Artık giriş yapmış işletme kendi adına kullanır.
+      const { referans_kodu } = req.body;
+      const yeni_isletme_id = req.kullanici.isletme_id;
+      if (!yeni_isletme_id) return res.status(400).json({ hata: 'İşletme bulunamadı' });
       const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referans_kodu])).rows[0];
       if (!ref) return res.status(404).json({ hata: 'Geçersiz referans kodu' });
+      if (ref.sahip_isletme_id === yeni_isletme_id) return res.status(400).json({ hata: 'Kendi referans kodunuzu kullanamazsınız' });
+      const mevcut = (await pool.query('SELECT referans_ile_gelen FROM isletmeler WHERE id=$1', [yeni_isletme_id])).rows[0];
+      if (mevcut?.referans_ile_gelen) return res.status(400).json({ hata: 'Bu işletme zaten bir referans kodu kullanmış' });
       // Davet sayısını artır + referans bağlantısını kaydet (ödül ilk ödeme anında verilecek)
       await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
       await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, yeni_isletme_id]);
@@ -3308,6 +3326,8 @@ class AdminController {
       if (!paketB.export_aktif) return res.status(403).json({ hata: `Bu özellik ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       const { musteri_telefon, etiket_id } = req.body;
       if (!musteri_telefon || !etiket_id) return res.status(400).json({ hata: 'Telefon ve etiket ID gerekli' });
+      const etiket = (await pool.query('SELECT id FROM musteri_etiketler WHERE id=$1 AND isletme_id=$2', [etiket_id, isletmeId])).rows[0];
+      if (!etiket) return res.status(404).json({ hata: 'Etiket bulunamadı' });
       await pool.query(
         'INSERT INTO musteri_etiket_atamalari (musteri_telefon, etiket_id, isletme_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
         [musteri_telefon, etiket_id, isletmeId]
