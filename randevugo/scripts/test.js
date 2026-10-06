@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const BASE=process.argv.find(a=>a.startsWith('--base-url='))?.split('=')[1]||'https://randevugo-api.onrender.com';
-const SA_E='randevugo@gmail.com',SA_S='11512Aydogar',IA_E='test@isletme.com',IA_S='123456';
+const SA_E=process.env.TEST_SA_EMAIL||'',SA_S=process.env.TEST_SA_SIFRE||'',IA_E=process.env.TEST_ISLETME_EMAIL||'',IA_S=process.env.TEST_ISLETME_SIFRE||'';
 const C={r:'\x1b[0m',b:'\x1b[1m',d:'\x1b[2m',R:'\x1b[31m',G:'\x1b[32m',Y:'\x1b[33m',C:'\x1b[36m',M:'\x1b[35m'};
 const P=`${C.G}✅ PASS${C.r}`,F=`${C.R}❌ FAIL${C.r}`,S=s=>console.log(`\n${C.C}${C.b}═══ ${s} ═══${C.r}`),R=[];
 async function H(m,p,{body:b,token:t,timeout:to=15000}={}){
