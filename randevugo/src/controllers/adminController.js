@@ -1527,15 +1527,17 @@ class AdminController {
       const rawBody = req.rawBody || JSON.stringify(req.body);
 
       if (!shopierService.webhookToken) {
-        console.warn('⚠️ SHOPIER_WEBHOOK_TOKEN tanımlı değil! Webhook doğrulama atlanıyor — GÜVENLİK RİSKİ');
+        // Doğrulanamayan webhook kabul edilmez: sahte 'paid' isteğiyle bedava abonelik/kapora onayı mümkündü.
+        console.error('❌ SHOPIER_WEBHOOK_TOKEN tanımlı değil — webhook reddedildi');
+        return res.status(503).send('Webhook token not configured');
       }
-      if (shopierService.webhookToken && signature) {
+      if (signature) {
         const gecerli = shopierService.webhookDogrula(rawBody, signature);
         if (!gecerli) {
           console.log('❌ Shopier webhook signature geçersiz');
           return res.status(401).send('Invalid signature');
         }
-      } else if (shopierService.webhookToken && !signature) {
+      } else {
         console.log('❌ Shopier webhook: signature header eksik');
         return res.status(401).send('Missing signature');
       }
@@ -2466,7 +2468,7 @@ class AdminController {
     try {
       const isletmeId = parseInt(req.params.id);
       const jwt = require('jsonwebtoken');
-      const impersonateSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
+      const impersonateSecret = require('../middleware/auth').jwtSecret;
       
       // İşletme admin kullanıcısını bul
       const kullanici = (await pool.query(
