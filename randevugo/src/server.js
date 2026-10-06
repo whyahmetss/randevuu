@@ -923,7 +923,8 @@ const PORT = process.env.PORT || 3000;
 })();
 
 // Middleware - Güvenlik
-app.set('trust proxy', 1); // Render reverse proxy
+// Render iç ağı (10.x) ve yerel adresler güvenilir proxy; istemci IP'si utils/istemciIp.js
+app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
 const allowedOrigins = [
@@ -955,11 +956,14 @@ app.use(cors({
 }));
 
 // Rate limiting
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } });
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } });
-const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { hata: 'Çok fazla istek. Lütfen bekleyin.' } });
-const bookingLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { hata: 'Çok fazla randevu isteği.' } });
-const webhookLimiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 100, message: 'Too many requests' });
+// İstek sınırı gerçek istemci IP'sine göre (eskiden Render iç IP'si → herkes ortak kova)
+const { ipKeyGenerator } = require('express-rate-limit');
+const limitAnahtari = (req) => ipKeyGenerator(require('./utils/istemciIp').istemciIp(req));
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
+const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { hata: 'Çok fazla istek. Lütfen bekleyin.' } , keyGenerator: limitAnahtari });
+const bookingLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { hata: 'Çok fazla randevu isteği.' } , keyGenerator: limitAnahtari });
+const webhookLimiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 100, message: 'Too many requests' , keyGenerator: limitAnahtari });
 
 app.use(express.json({
   limit: '10mb',

@@ -58,7 +58,7 @@ class AdminController {
         'UPDATE randevular SET durum = $1 WHERE id = $2 AND isletme_id = $3 RETURNING *',
         [durum, id, isletmeId]
       );
-      await this.auditLogYaz(req.kullanici, `randevu_${durum}`, `Randevu #${id} durumu: ${durum}`, 'randevular', parseInt(id), req.ip);
+      await this.auditLogYaz(req.kullanici, `randevu_${durum}`, `Randevu #${id} durumu: ${durum}`, 'randevular', parseInt(id), require('../utils/istemciIp').istemciIp(req));
 
       // Randevu tamamlandığında otomatik kasa gelir kaydı oluştur
       if (durum === 'tamamlandi' && result.rows[0]) {
@@ -896,7 +896,7 @@ class AdminController {
       }
       await pool.query('DELETE FROM referanslar WHERE sahip_isletme_id = $1', [id]).catch(() => {});
       await pool.query('DELETE FROM isletmeler WHERE id = $1', [id]);
-      await this.auditLogYaz(req.kullanici, 'isletme_silindi', `${isletme?.isim || id} silindi (tüm verileriyle)`, 'isletmeler', parseInt(id), req.ip);
+      await this.auditLogYaz(req.kullanici, 'isletme_silindi', `${isletme?.isim || id} silindi (tüm verileriyle)`, 'isletmeler', parseInt(id), require('../utils/istemciIp').istemciIp(req));
       res.json({ mesaj: 'İşletme ve tüm verileri silindi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -1096,7 +1096,7 @@ class AdminController {
           [odeme.isletme_id]
         );
       }
-      try { await this.auditLogYaz(req.kullanici, `odeme_${durum}`, `Ödeme #${req.params.id} durumu: ${durum}`, 'odemeler', parseInt(req.params.id), req.ip); } catch(e) {}
+      try { await this.auditLogYaz(req.kullanici, `odeme_${durum}`, `Ödeme #${req.params.id} durumu: ${durum}`, 'odemeler', parseInt(req.params.id), require('../utils/istemciIp').istemciIp(req)); } catch(e) {}
       res.json({ odeme: result.rows[0] });
     } catch (error) {
       console.error('❌ odemeGuncelle hatası:', error);
@@ -2489,7 +2489,7 @@ class AdminController {
 
       if (!kullanici) return res.status(404).json({ hata: 'Bu işletme için admin kullanıcı bulunamadı' });
 
-      await this.auditLogYaz(req.kullanici, 'impersonate', `SuperAdmin ${req.kullanici.email} → İşletme #${isletmeId} (${kullanici.email}) impersonate`, 'admin_kullanicilar', kullanici.id, req.ip);
+      await this.auditLogYaz(req.kullanici, 'impersonate', `SuperAdmin ${req.kullanici.email} → İşletme #${isletmeId} (${kullanici.email}) impersonate`, 'admin_kullanicilar', kullanici.id, require('../utils/istemciIp').istemciIp(req));
 
       const token = jwt.sign(
         { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, impersonated: true, impersonator: req.kullanici.email },
