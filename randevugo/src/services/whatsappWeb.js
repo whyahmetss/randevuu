@@ -1462,6 +1462,19 @@ class WhatsAppWebService extends EventEmitter {
   async _teyitZinciriKontrol(metinKucuk, metin, musteriTelefon, isletmeId, remoteJid) {
     const randevuService = require('./randevu');
 
+    // Müşteri botla aktif bir akışın ortasındaysa (son 30 dk) cevabı teyit/anket sanma:
+    // menüde '2' yazan müşterinin bugünkü randevusu iptal oluyordu. Rakamlar ana menüde de
+    // menü seçimi olduğu için orada da yakalanmaz.
+    try {
+      const bd = (await pool.query(
+        `SELECT asama, son_aktivite > NOW() - INTERVAL '30 minutes' AS yeni FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2`,
+        [musteriTelefon, isletmeId])).rows[0];
+      if (bd?.yeni && bd.asama && bd.asama !== 'baslangic') {
+        const rakam = /^\d+$/.test(metinKucuk.trim());
+        if (rakam || bd.asama !== 'ana_menu') return null;
+      }
+    } catch (e) { /* bot_durum okunamazsa eski davranış */ }
+
     // ─── Aşama 1: Teyit yanıtı (Geliyorum / İptal) ───
     // Müşterinin bugün teyit_gonderildi=true olan onaylı randevusu var mı?
     const geliyorumIntents = ['geliyorum', '1', 'evet', 'geleceğim', 'gelecegim', 'gelicem', 'tamam', 'ok', 'geliyoruz', '✅'];
