@@ -385,6 +385,9 @@ class WhatsAppWebService extends EventEmitter {
   async mesajIsle(msg, isletmeId) {
     const metin = (this._getMsgText(msg) || '').trim();
     const remoteJid = msg.key.remoteJid;
+    // Grup, kanal ve durum güncellemeleri müşteri değil: kaydetme, cevap verme
+    if (!remoteJid || remoteJid.endsWith('@g.us') || remoteJid.endsWith('@newsletter') ||
+        remoteJid.endsWith('@broadcast')) return;
     console.log(`🔄 mesajIsle: isletme=${isletmeId}, metin="${metin}", jid=${remoteJid}, keys=${msg.message ? Object.keys(msg.message).join(',') : 'null'}`);
     if (!metin) return;
 
@@ -421,7 +424,7 @@ class WhatsAppWebService extends EventEmitter {
       } else {
         // Alt JID yoksa store'dan dene
         try {
-          const sock = this.connections.get(isletmeId)?.sock;
+          const sock = this.isletmeler[isletmeId]?.sock;
           if (sock?.store) {
             const contact = sock.store.contacts?.[remoteJid];
             if (contact?.id?.endsWith('@s.whatsapp.net')) {
@@ -466,8 +469,17 @@ class WhatsAppWebService extends EventEmitter {
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
         if (isletme.mesai_disi_mod === 'sessiz') return;
         if (isletme.mesai_disi_mod === 'kapali_mesaj') {
-          const mesaj = isletme.mesai_disi_mesaj || botMesajlar.get(isletme, 'mesaiDisi', { basSaat, bitSaat });
-          return { metin: mesaj, butonlar: null };
+          // Dönüş değeri çağıran yerde kullanılmıyordu → mesaj hiç gitmiyordu; burada gönder.
+          // Aynı kişiye 6 saatte en fazla bir kez gönder (her mesaja tekrar etmesin).
+          if (!this._kapaliMesajSon) this._kapaliMesajSon = new Map();
+          const kmKey = `${isletmeId}:${remoteJid}`;
+          const sonGonderim = this._kapaliMesajSon.get(kmKey) || 0;
+          if (Date.now() - sonGonderim > 6 * 60 * 60 * 1000) {
+            this._kapaliMesajSon.set(kmKey, Date.now());
+            const mesaj = isletme.mesai_disi_mesaj || botMesajlar.get(isletme, 'mesaiDisi', { basSaat, bitSaat });
+            await this.mesajGonder(isletmeId, remoteJid, mesaj);
+          }
+          return;
         }
       }
     } catch (e) { /* mesai dışı kontrolü başarısız — devam et */ }
