@@ -916,6 +916,8 @@ const PORT = process.env.PORT || 3000;
   const ekKolonlar = [
     `ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS iptal_randevu_id INTEGER`,
     `ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS notlar TEXT`,
+    // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
+    `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
   ];
   for (const sql of ekKolonlar) {
     try { await pool.query(sql); } catch (e) { console.log('⚠️ Kolon eklenemedi:', sql, e.message); }

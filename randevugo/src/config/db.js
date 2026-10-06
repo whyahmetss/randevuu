@@ -1,4 +1,9 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// DATE (OID 1082) değerleri 'YYYY-MM-DD' metni olarak kalsın. Varsayılan ayrıştırıcı yerel
+// gece yarısı Date üretiyordu; toISOString/JSON'da bir önceki güne kayıyordu (bot saatleri,
+// kasa grafiği, canlı randevu listesi).
+types.setTypeParser(1082, (v) => v);
 require('dotenv').config();
 
 // ═══════════════════════════════════════════════════════════════════
@@ -13,7 +18,9 @@ const pool = new Pool({
   max: 10, // Neon Free plan: 10 eşzamanlı connection üst sınırı
 });
 
-pool.on('connect', () => {
+pool.on('connect', (client) => {
+  // Oturum saat dilimi: CURRENT_DATE / NOW()::time İstanbul'a göre çalışsın (hatırlatma, no-show).
+  client.query("SET TIME ZONE 'Europe/Istanbul'").catch(() => {});
   console.log('📦 PostgreSQL bağlantısı kuruldu');
 });
 

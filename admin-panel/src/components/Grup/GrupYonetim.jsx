@@ -487,9 +487,9 @@ function GrupRapor({ api }) {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [baslangic, setBaslangic] = useState(() => {
     const d = new Date(); d.setDate(1);
-    return d.toISOString().slice(0, 10);
+    return d.toLocaleDateString('sv-SE');
   });
-  const [bitis, setBitis] = useState(() => new Date().toISOString().slice(0, 10));
+  const [bitis, setBitis] = useState(() => new Date().toLocaleDateString('sv-SE'));
 
   useEffect(() => { yukle(); }, [baslangic, bitis]);
   async function yukle() {

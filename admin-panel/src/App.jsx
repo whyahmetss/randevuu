@@ -3306,7 +3306,7 @@ function SuperAdminPanel({ kullanici }) {
   const [isletmeKategoriFiltre, setIsletmeKategoriFiltre] = useState("hepsi");
   const [isletmeGorunum, setIsletmeGorunum] = useState("kategori");
   const [odemeFiltre, setOdemeFiltre] = useState("hepsi");
-  const [yeniOdeme, setYeniOdeme] = useState({ isletme_id: "", tutar: "", donem: new Date().toISOString().slice(0, 7) });
+  const [yeniOdeme, setYeniOdeme] = useState({ isletme_id: "", tutar: "", donem: new Date().toLocaleDateString('sv-SE').slice(0, 7) });
   const [odemeFormAcik, setOdemeFormAcik] = useState(false);
   // SaaS Metrikleri
   const [saasMetrik, setSaasMetrik] = useState(null);
@@ -3852,7 +3852,7 @@ function SuperAdminPanel({ kullanici }) {
   const odemeEkle = async (e) => {
     e.preventDefault();
     await api.post("/admin/odemeler", yeniOdeme);
-    setYeniOdeme({ isletme_id: "", tutar: "", donem: new Date().toISOString().slice(0, 7) });
+    setYeniOdeme({ isletme_id: "", tutar: "", donem: new Date().toLocaleDateString('sv-SE').slice(0, 7) });
     setOdemeFormAcik(false);
     odemeleriYukle();
   };
@@ -3912,7 +3912,7 @@ function SuperAdminPanel({ kullanici }) {
   const odemeRenk = { odendi: "#10b981", bekliyor: "#f59e0b", gecikti: "#ef4444", havale_bekliyor: "#818cf8", basarisiz: "#ef4444", odeme_bekliyor: "#f59e0b" };
   const odemeLabel = { odendi: "Ödendi ✓", bekliyor: "Bekliyor", gecikti: "Gecikti!", havale_bekliyor: "Havale Onay Bekliyor", basarisiz: "Başarısız", odeme_bekliyor: "Ödeme Bekliyor" };
 
-  const buAy = new Date().toISOString().slice(0, 7);
+  const buAy = new Date().toLocaleDateString('sv-SE').slice(0, 7);
   const buAyOdeyenler = odemeler.filter(o => o.donem === buAy && o.durum === "odendi");
   const buAyOdemeyenler = isletmeler.filter(i => i.aktif && !odemeler.find(o => o.isletme_id == i.id && o.donem === buAy && o.durum === "odendi"));
   const toplamGelir = odemeler.filter(o => o.durum === "odendi").reduce((s, o) => s + parseFloat(o.tutar || 0), 0);

@@ -15,7 +15,7 @@ export default function Kasa({ api }) {
   const [tab, setTab] = useState('kasa'); // 'kasa' | 'prim'
 
   // Form
-  const [form, setForm] = useState({ tip: 'gelir', tutar: '', aciklama: '', kategori: 'hizmet', odeme_yontemi: 'nakit', tarih: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ tip: 'gelir', tutar: '', aciklama: '', kategori: 'hizmet', odeme_yontemi: 'nakit', tarih: new Date().toLocaleDateString('sv-SE') });
 
   const yukle = async () => {
     setYukleniyor(true);
@@ -38,7 +38,7 @@ export default function Kasa({ api }) {
     if (!form.tutar || parseFloat(form.tutar) <= 0) return;
     await api.post('/kasa', form);
     setModal(null);
-    setForm({ tip: 'gelir', tutar: '', aciklama: '', kategori: 'hizmet', odeme_yontemi: 'nakit', tarih: new Date().toISOString().slice(0, 10) });
+    setForm({ tip: 'gelir', tutar: '', aciklama: '', kategori: 'hizmet', odeme_yontemi: 'nakit', tarih: new Date().toLocaleDateString('sv-SE') });
     yukle();
   };
 
@@ -61,7 +61,7 @@ export default function Kasa({ api }) {
     const giderler = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
-      const str = d.toISOString().slice(0, 10);
+      const str = d.toLocaleDateString('sv-SE');
       labels.push(d.toLocaleDateString('tr-TR', { weekday: 'short', day: 'numeric' }));
       const g = ozet.gunlukGrafik.filter(r => r.tarih?.slice?.(0,10) === str || (r.tarih instanceof Date ? r.tarih.toISOString().slice(0,10) : String(r.tarih).slice(0,10)) === str);
       gelirler.push(g.find(r => r.tip === 'gelir')?.toplam || 0);

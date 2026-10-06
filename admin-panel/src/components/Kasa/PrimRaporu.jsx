@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 export default function PrimRaporu({ api }) {
   const [rapor, setRapor] = useState(null);
-  const [donem, setDonem] = useState(new Date().toISOString().slice(0, 7));
+  const [donem, setDonem] = useState(new Date().toLocaleDateString('sv-SE').slice(0, 7));
   const [yukleniyor, setYukleniyor] = useState(true);
 
   const yukle = async () => {
