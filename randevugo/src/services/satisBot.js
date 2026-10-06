@@ -297,7 +297,7 @@ class SatisBot extends EventEmitter {
             if (jid === 'status@broadcast') continue;
             
             const text = this._getMsgText(msg);
-            console.log(`📨 [#${numaraId}] Mesaj: jid=${jid}, text="${(text || '').slice(0, 80)}"`);
+            console.log(`📨 [#${numaraId}] Mesaj alındı (uzunluk=${(text || '').length})`); // metin loglanmaz: kayıt şifresi içerebilir
             await this.gelenMesajIsle(msg, numaraId);
           }
         } catch (err) {
@@ -1491,7 +1491,7 @@ class SatisBot extends EventEmitter {
       telefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
     }
 
-    console.log(`📩 [#${numaraId || 'tek'}] Satış Bot cevap aldı: ${telefon} → "${metin}"`);
+    console.log(`📩 [#${numaraId || 'tek'}] Satış Bot cevap aldı: …${String(telefon).slice(-4)} (uzunluk=${(metin || '').length})`);
 
     // Mod kontrolü — kapali modunda hiçbir şey yapma
     if (this.ayarlar.mod === 'kapali') {

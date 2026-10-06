@@ -89,7 +89,7 @@ export default function SmsAyarlari({ api }) {
               </div>
               <div>
                 <label style={S.label}>NetGSM Şifre</label>
-                <input type="password" value={ayarlar.netgsm_sifre || ''} onChange={e => setAyarlar({...ayarlar, netgsm_sifre: e.target.value})} className="input" placeholder="••••••••" />
+                <input type="password" value={ayarlar.netgsm_sifre || ''} onChange={e => setAyarlar({...ayarlar, netgsm_sifre: e.target.value})} placeholder={ayarlar.netgsm_sifre_kayitli ? 'Kayıtlı (değiştirmek için yazın)' : ''} className="input" />
               </div>
               <div>
                 <label style={S.label}>SMS Başlığı</label>

@@ -4364,7 +4364,9 @@ class AdminController {
         'SELECT sms_aktif, netgsm_kullanici_adi, netgsm_sifre, netgsm_baslik, sms_hatirlatma_dk, sms_onay_aktif FROM isletmeler WHERE id=$1',
         [isletmeId]
       )).rows[0];
-      res.json({ ayarlar: isletme || {} });
+      // Şifre panele geri gönderilmez; yalnız kayıtlı olup olmadığı bildirilir
+      const ayarlar = { ...(isletme || {}), netgsm_sifre: '', netgsm_sifre_kayitli: !!isletme?.netgsm_sifre };
+      res.json({ ayarlar });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
@@ -4373,7 +4375,7 @@ class AdminController {
       const isletmeId = req.kullanici.isletme_id;
       const { sms_aktif, netgsm_kullanici_adi, netgsm_sifre, netgsm_baslik, sms_hatirlatma_dk, sms_onay_aktif } = req.body;
       await pool.query(
-        `UPDATE isletmeler SET sms_aktif=$1, netgsm_kullanici_adi=$2, netgsm_sifre=$3, netgsm_baslik=$4, sms_hatirlatma_dk=$5, sms_onay_aktif=$6 WHERE id=$7`,
+        `UPDATE isletmeler SET sms_aktif=$1, netgsm_kullanici_adi=$2, netgsm_sifre=COALESCE(NULLIF($3, ''), netgsm_sifre), netgsm_baslik=$4, sms_hatirlatma_dk=$5, sms_onay_aktif=$6 WHERE id=$7`,
         [!!sms_aktif, netgsm_kullanici_adi || null, netgsm_sifre || null, netgsm_baslik || null, sms_hatirlatma_dk || 60, !!sms_onay_aktif, isletmeId]
       );
       res.json({ mesaj: 'SMS ayarları güncellendi' });

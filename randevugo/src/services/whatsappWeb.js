@@ -256,7 +256,8 @@ class WhatsAppWebService extends EventEmitter {
         console.log(`📩 [${isletmeIsim}] messages.upsert tetiklendi: type=${upsert.type}, mesaj_sayisi=${upsert.messages?.length}`);
         if (upsert.type !== 'notify') return;
         for (const msg of upsert.messages) {
-          console.log(`📩 [${isletmeIsim}] Mesaj: fromMe=${msg.key.fromMe}, jid=${msg.key.remoteJid}, metin=${this._getMsgText(msg)?.slice(0, 50)}`);
+          // Müşteri mesaj metni loglanmaz (KVKK); yalnız uzunluk
+          console.log(`📩 [${isletmeIsim}] Mesaj: fromMe=${msg.key.fromMe}, uzunluk=${(this._getMsgText(msg) || '').length}`);
           if (msg.key.fromMe) continue;
           if (!msg.message) continue;
           try {
@@ -388,7 +389,7 @@ class WhatsAppWebService extends EventEmitter {
     // Grup, kanal ve durum güncellemeleri müşteri değil: kaydetme, cevap verme
     if (!remoteJid || remoteJid.endsWith('@g.us') || remoteJid.endsWith('@newsletter') ||
         remoteJid.endsWith('@broadcast')) return;
-    console.log(`🔄 mesajIsle: isletme=${isletmeId}, metin="${metin}", jid=${remoteJid}, keys=${msg.message ? Object.keys(msg.message).join(',') : 'null'}`);
+    console.log(`🔄 mesajIsle: isletme=${isletmeId}, uzunluk=${metin.length}`);
     if (!metin) return;
 
     // ═══ Anti-spam: aynı kişi dakikada 15+ mesaj atıyorsa 10dk mute ═══
