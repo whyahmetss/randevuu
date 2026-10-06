@@ -77,7 +77,7 @@ class GrupController {
       const subeler = (await pool.query(
         `SELECT i.id, i.isim, i.slug, i.sube_etiketi, i.sehir, i.ilce, i.adres, i.telefon,
                 i.aktif, i.grup_sira, i.calisma_baslangic, i.calisma_bitis,
-                (SELECT COUNT(*)::int FROM randevular r WHERE r.isletme_id=i.id AND r.tarih >= CURRENT_DATE) AS aktif_randevu
+                (SELECT COUNT(*)::int FROM randevular r WHERE r.isletme_id=i.id AND r.tarih = CURRENT_DATE AND r.durum NOT IN ('iptal','gelmedi')) AS aktif_randevu
            FROM isletmeler i
           WHERE i.grup_id=$1
           ORDER BY i.grup_sira, i.id`,

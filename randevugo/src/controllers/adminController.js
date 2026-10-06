@@ -374,7 +374,7 @@ class AdminController {
   async musterileriGetir(req, res) {
     try {
       const result = await pool.query(`
-        SELECT m.*, COUNT(r.id) as randevu_sayisi, MAX(r.tarih) as son_randevu
+        SELECT m.*, COUNT(r.id) as randevu_sayisi, MAX(r.tarih) FILTER (WHERE r.tarih <= CURRENT_DATE) as son_randevu
         FROM musteriler m
         JOIN randevular r ON r.musteri_id = m.id
         WHERE r.isletme_id = $1
@@ -3189,8 +3189,16 @@ class AdminController {
   // Müşteri paneli: sadece aktif duyurular
   async aktifDuyurular(req, res) {
     try {
+      // Hedef seçimi uygulanıyor (eskiden tüm aktif duyurular herkese gidiyordu).
+      // 'profesyonel' = Profesyonel ve üstü; 'premium' (eski seçenek) = Kurumsal.
+      const isl = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
+      const paket = isl?.paket || 'baslangic';
       const result = await pool.query(
-        "SELECT * FROM duyurular WHERE aktif = true ORDER BY olusturma_tarihi DESC LIMIT 5"
+        `SELECT * FROM duyurular WHERE aktif = true
+           AND (COALESCE(hedef, 'hepsi') = 'hepsi'
+                OR (hedef = 'profesyonel' AND $1 IN ('profesyonel', 'kurumsal'))
+                OR (hedef IN ('premium', 'kurumsal') AND $1 = 'kurumsal'))
+         ORDER BY olusturma_tarihi DESC LIMIT 5`, [paket]
       );
       res.json({ duyurular: result.rows });
     } catch (error) {

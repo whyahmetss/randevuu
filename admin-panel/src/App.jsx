@@ -241,20 +241,27 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   const [formAcik, setFormAcik] = useState(false);
   const [form, setForm] = useState({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" });
   const [hata, setHata] = useState("");
+  const [duzenleId, setDuzenleId] = useState(null); // düzenlenen hizmet (yoksa yeni ekleme)
+
+  const duzenleAc = (h) => {
+    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), aktif: h.aktif !== false });
+    setDuzenleId(h.id); setHata(""); setFormAcik(true);
+  };
 
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api.post("/hizmetler", { isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0 });
+    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0 });
     if (res.hata) { setHata(res.hata); return; }
     setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" });
-    setFormAcik(false);
+    setFormAcik(false); setDuzenleId(null);
     yukle();
   };
 
   const sil = async (id) => {
     if (!confirm("Bu hizmeti silmek istediğinize emin misiniz?")) return;
-    await api.del(`/hizmetler/${id}`);
+    const r = await api.del(`/hizmetler/${id}`);
+    if (r?.hata) alert(/foreign|violates|referans/i.test(r.hata) ? "Bu hizmet geçmiş randevularda kullanıldığı için silinemez. Düzenleyip pasife alabilirsiniz." : "Silinemedi: " + r.hata);
     yukle();
   };
 
@@ -271,7 +278,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               {hizmetler.length}/{limit >= 999 ? "∞" : limit} kullanıldı
             </span>
           )}
-          <button onClick={() => setFormAcik(!formAcik)} className="btn btn-primary">+ Yeni Hizmet</button>
+          <button onClick={() => { setDuzenleId(null); setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" }); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>
         </div>
       </div>
 
@@ -319,7 +326,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">Kaydet</button>
-            <button type="button" onClick={() => { setFormAcik(false); setHata(""); }} className="btn btn-ghost">İptal</button>
+            <button type="button" onClick={() => { setFormAcik(false); setHata(""); setDuzenleId(null); }} className="btn btn-ghost">İptal</button>
           </div>
         </form>
       )}
@@ -340,6 +347,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
             {h.kapora_yuzdesi > 0 && <span className="tag-sm" style={{ background: "rgba(245,158,11,.12)", color: "var(--amber)", fontWeight: 600 }}>💳 %{h.kapora_yuzdesi} kapora</span>}
             {h.tampon_dk > 0 && <span className="tag-sm" style={{ background: "rgba(139,92,246,.1)", color: "#8b5cf6", fontWeight: 600 }}>⏳ {h.tampon_dk}dk tampon</span>}
           </div>
+          <button onClick={() => duzenleAc(h)} title="Düzenle" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", fontSize: 15 }}>✏️</button>
           <button onClick={() => sil(h.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", transition: "all .2s" }} onMouseOver={e => { e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-s)"; }} onMouseOut={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "none"; }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div>
       ))}
@@ -1144,8 +1152,8 @@ function Dashboard({ kullanici }) {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [testCevaplar]);
 
-  const DR = { onaylandi: "#2cb872", bekliyor: "#f59e0b", iptal: "#ef4444", tamamlandi: "#3b82f6", gelmedi: "#6b7280", kapora_bekliyor: "#f59e0b" };
-  const DL = { onaylandi: "Onaylı ✓", bekliyor: "Bekliyor", iptal: "İptal", tamamlandi: "Tamamlandı", gelmedi: "Gelmedi", kapora_bekliyor: "💳 Kapora Bekleniyor" };
+  const DR = { onaylandi: "#2cb872", onay_bekliyor: "#f59e0b", bekliyor: "#f59e0b", iptal: "#ef4444", tamamlandi: "#3b82f6", gelmedi: "#6b7280", kapora_bekliyor: "#f59e0b" };
+  const DL = { onaylandi: "Onaylı ✓", onay_bekliyor: "Onay Bekliyor", bekliyor: "Bekliyor", iptal: "İptal", tamamlandi: "Tamamlandı", gelmedi: "Gelmedi", kapora_bekliyor: "💳 Kapora Bekleniyor" };
 
   const botTest = async () => {
     if (!testMesaj.trim()) return;
@@ -1735,7 +1743,7 @@ function Dashboard({ kullanici }) {
                 <div className="dash-mid-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
                   {/* Bekleyen Randevular */}
                   {(() => {
-                    const bekleyen = randevular.filter(r => r.durum === "bekliyor").length;
+                    const bekleyen = randevular.filter(r => r.durum === "onay_bekliyor" || r.durum === "bekliyor").length; // gerçek akış onay_bekliyor kullanır
                     return (
                       <div style={{ background: bekleyen > 0 ? "rgba(245,158,11,.04)" : "var(--surface)", borderRadius: 16, padding: "18px 22px", border: `1px solid ${bekleyen > 0 ? "rgba(245,158,11,.15)" : "var(--border)"}`, cursor: "pointer" }} onClick={() => setSayfa("randevular")}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -2059,7 +2067,7 @@ function Dashboard({ kullanici }) {
                           label: "Gelir (₺)", data: (grafikVeri.aylikGelir || []).map(g => parseFloat(g.gelir)),
                           borderColor: "#54E097", backgroundColor: "rgba(84,224,151,.06)", fill: true, tension: .4, pointRadius: 3, pointBackgroundColor: "#54E097", pointBorderColor: "#fff", pointBorderWidth: 2, borderWidth: 2.5,
                         }]
-                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { display: false } }, y: { ticks: { color: "#9ca3af", font: { size: 10 }, callback: v => v + "₺" }, grid: { color: "rgba(22,5,39,.04)" } } } }} />
+                      }} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: "#9ca3af", font: { size: 10 }, autoSkip: true, maxTicksLimit: 8, maxRotation: 0 }, grid: { display: false } }, y: { ticks: { color: "#9ca3af", font: { size: 10 }, callback: v => v + "₺" }, grid: { color: "rgba(22,5,39,.04)" } } } }} />
                     </div>
                   </div>
 
@@ -2160,8 +2168,9 @@ function Dashboard({ kullanici }) {
                           </div>
                         </div>
                       )}
-                      <span className={`tag ${odemeBilgi.odeme?.durum === 'odendi' ? 'tag-green' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? 'tag-amber' : 'tag-red'}`} style={{ padding: "4px 14px", fontSize: 12 }}>
-                        {odemeBilgi.odeme?.durum === 'odendi' ? '✅ Ödendi' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '⏳ Onay Bekliyor' : '❌ Ödenmedi'}
+                      <span className={`tag ${odemeBilgi.odeme?.durum === 'odendi' ? 'tag-green' : (odemeBilgi.odeme?.durum === 'havale_bekliyor' || (dashEkstra?.paketDurumTipi === 'deneme' && dashEkstra?.paketKalanGun > 0)) ? 'tag-amber' : 'tag-red'}`} style={{ padding: "4px 14px", fontSize: 12 }}>
+                        {/* Deneme süresindeki işletmeye 'Ödenmedi' gösterilmiyor */}
+                        {odemeBilgi.odeme?.durum === 'odendi' ? '✅ Ödendi' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '⏳ Onay Bekliyor' : (dashEkstra?.paketDurumTipi === 'deneme' && dashEkstra?.paketKalanGun > 0) ? '🧪 Deneme Sürümü' : '❌ Ödenmedi'}
                       </span>
                     </div>
                   </div>
@@ -2233,7 +2242,7 @@ function Dashboard({ kullanici }) {
               return d.toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
             };
 
-            const durumSayac = { onaylandi: 0, bekliyor: 0, tamamlandi: 0, gelmedi: 0, iptal: 0, kapora_bekliyor: 0 };
+            const durumSayac = { onaylandi: 0, onay_bekliyor: 0, bekliyor: 0, tamamlandi: 0, gelmedi: 0, iptal: 0, kapora_bekliyor: 0 };
             randevular.forEach(r => { if (durumSayac[r.durum] !== undefined) durumSayac[r.durum]++; else durumSayac.bekliyor++; });
 
             const bitmisDurum = ['iptal', 'tamamlandi', 'gelmedi'];
@@ -3919,7 +3928,11 @@ function SuperAdminPanel({ kullanici }) {
   const kategoriRenk = { berber: "#3b82f6", kuafor: "#8b5cf6", guzellik: "#ec4899", spa: "#f59e0b", disci: "#10b981", veteriner: "#ef4444", diyetisyen: "#06b6d4", psikolog: "#8b5cf6", fizyoterapi: "#0ea5e9", restoran: "#f97316", cafe: "#a16207", spor: "#16a34a", egitim: "#6366f1", foto: "#d946ef", dovme: "#e11d48", oto: "#64748b", hukuk: "#475569", genel: "#94a3b8" };
   const kategoriLabel = { berber: "💈 Berber", kuafor: "✂️ Kuaför", guzellik: "💅 Güzellik", spa: "🧖 Spa", disci: "🦷 Diş Kliniği", veteriner: "🐾 Veteriner", diyetisyen: "🥗 Diyetisyen", psikolog: "🧠 Psikolog", fizyoterapi: "🏥 Fizyoterapi", restoran: "🍽️ Restoran", cafe: "☕ Kafe", spor: "🏋️ Spor", egitim: "📚 Eğitim", foto: "📸 Fotoğraf", dovme: "🎨 Dövme", oto: "🚗 Oto Servis", hukuk: "⚖️ Hukuk", genel: "🏢 Genel" };
   const paketRenk = { baslangic: "#64748b", profesyonel: "#3b82f6", premium: "#f59e0b" };
-  const paketFiyat = { baslangic: 299, profesyonel: 599, premium: 999 };
+  // Fiyatlar veritabanındaki paket tanımlarından (eskiden sabit 299/599/999 ve 'premium' anahtarı vardı;
+  // Kurumsal undefined görünüyor, '+ Bekliyor Oluştur' yanlış tutarla kayıt açıyordu)
+  useEffect(() => { paketleriYukle(); }, []);
+  const paketFiyat = { baslangic: 299, profesyonel: 699, kurumsal: 1499,
+    ...Object.fromEntries((paketTanimlar || []).map(p => [p.kod, parseFloat(p.fiyat) || 0])) };
   const odemeRenk = { odendi: "#10b981", bekliyor: "#f59e0b", gecikti: "#ef4444", havale_bekliyor: "#818cf8", basarisiz: "#ef4444", odeme_bekliyor: "#f59e0b" };
   const odemeLabel = { odendi: "Ödendi ✓", bekliyor: "Bekliyor", gecikti: "Gecikti!", havale_bekliyor: "Havale Onay Bekliyor", basarisiz: "Başarısız", odeme_bekliyor: "Ödeme Bekliyor" };
 
@@ -4470,11 +4483,11 @@ function SuperAdminPanel({ kullanici }) {
                 <div className="row gap-8" style={{ alignItems: "center" }}>
                   <span style={{ fontSize: 18 }}>🔗</span>
                   <div>
-                    <div style={{ color: "#10b981", fontWeight: 700, fontSize: 14 }}>Shopier Otomatik Tahsilat Aktif</div>
+                    <div style={{ color: "#10b981", fontWeight: 700, fontSize: 14 }}>Shopier Otomatik Tahsilat</div>
                     <div style={{ color: "var(--dim)", fontSize: 12 }}>Müşteri karttan ödeyince webhook ile otomatik "Ödendi" düşer.</div>
                   </div>
                 </div>
-                <span className="tag" style={{ background: "rgba(16,185,129,.15)", color: "#10b981", fontWeight: 700, fontSize: 11 }}>Webhook Aktif</span>
+                <span className="tag" style={{ background: "rgba(100,116,139,.15)", color: "#64748b", fontWeight: 700, fontSize: 11 }}>Webhook (Render: SHOPIER_WEBHOOK_TOKEN)</span>
               </div>
             </div>
 
@@ -5808,7 +5821,7 @@ function SuperAdminPanel({ kullanici }) {
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                       {crmDetay.randevular.map((r, idx) => {
-                        const durumRenk = { tamamlandi: "#10b981", bekliyor: "#f59e0b", onaylandi: "#3b82f6", iptal: "#ef4444" };
+                        const durumRenk = { tamamlandi: "#10b981", bekliyor: "#f59e0b", onay_bekliyor: "#f59e0b", onaylandi: "#3b82f6", iptal: "#ef4444", gelmedi: "#6b7280" };
                         return (
                           <div key={idx} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--bg)", display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
                             <span style={{ width: 6, height: 6, borderRadius: 3, background: durumRenk[r.durum] || "var(--dim)", flexShrink: 0 }} />
@@ -6183,7 +6196,7 @@ function SuperAdminPanel({ kullanici }) {
                     <label className="form-label">Hedef</label>
                     <select value={yeniDuyuru.hedef} onChange={e => setYeniDuyuru({...yeniDuyuru, hedef: e.target.value})} className="input">
                       <option value="hepsi">Tüm Müşteriler</option>
-                      <option value="premium">Sadece Premium</option>
+                      <option value="kurumsal">Sadece Kurumsal</option>
                       <option value="profesyonel">Profesyonel+</option>
                     </select>
                   </div>
@@ -6242,15 +6255,15 @@ function SuperAdminPanel({ kullanici }) {
                 {/* Özet Kartları */}
                 <div className="row row-wrap gap-12 mb-24">
                   <StatCard icon="📈" baslik="Ort. Aktivite Skoru" deger={`%${aktiviteVeri.ozet?.ortSkor || 0}`} renk="#3b82f6" />
-                  <StatCard icon="✅" baslik="Aktif İşletme" deger={aktiviteVeri.ozet?.aktifSayi || 0} renk="#10b981" />
-                  <StatCard icon="😴" baslik="Pasif İşletme" deger={aktiviteVeri.ozet?.pasifSayi || 0} renk="#ef4444" />
+                  <StatCard icon="✅" baslik="Aktivitesi Yüksek" deger={aktiviteVeri.ozet?.aktifSayi || 0} renk="#10b981" />
+                  <StatCard icon="😴" baslik="Aktivitesi Düşük" deger={aktiviteVeri.ozet?.pasifSayi || 0} renk="#ef4444" />
                   <StatCard icon="📅" baslik="Bu Ay Randevu" deger={aktiviteVeri.ozet?.toplamRandevu || 0} renk="#8b5cf6" />
                   <StatCard icon="👥" baslik="Toplam Müşteri" deger={aktiviteVeri.ozet?.toplamMusteri || 0} renk="#f59e0b" />
                 </div>
 
                 {/* Filtre */}
                 <div className="row gap-8 mb-16">
-                  {[["hepsi","Tümü"],["aktif","Aktif (Skor>20)"],["pasif","Pasif (Skor≤20)"],["odenmedi","Ödenmemiş"]].map(([k,l]) => (
+                  {[["hepsi","Tümü"],["aktif","Aktivitesi Yüksek (Skor>20)"],["pasif","Aktivitesi Düşük (Skor≤20)"],["odenmedi","Ödenmemiş"]].map(([k,l]) => (
                     <button key={k} onClick={() => setAktiviteFiltre(k)} className="btn btn-sm"
                       style={{ background: aktiviteFiltre === k ? "rgba(59,130,246,.15)" : "var(--bg)", color: aktiviteFiltre === k ? "#3b82f6" : "var(--muted)", fontWeight: aktiviteFiltre === k ? 700 : 500, border: "none" }}>{l}</button>
                   ))}
