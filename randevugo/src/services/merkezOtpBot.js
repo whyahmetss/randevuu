@@ -175,7 +175,7 @@ class MerkezOtpBot {
           console.log(`✅ Merkez OTP #${numaraId} bağlandı: +${numara}`);
         }
 
-        if (connection === 'close') {
+        if (connection === 'close') { if (global.__kapaniyor) return; // kapanırken yeniden bağlanma (deploy çakışması)
           const statusCode = lastDisconnect?.error?.output?.statusCode;
           state.durum = 'kapali';
 

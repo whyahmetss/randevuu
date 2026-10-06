@@ -1146,4 +1146,23 @@ httpServer.listen(PORT, () => {
   console.log('🏓 Keep-alive başlatıldı (14dk aralıklarla)');
 });
 
+// Düzgün kapanış: Render yeni sürümü açarken eskisine SIGTERM gönderir. WhatsApp soketleri
+// kapatılmadan iki sunucu aynı oturuma bağlanıyor (440 conflict, yeniden bağlanma döngüsü).
+let _kapanis = false;
+async function kapan(sinyal) {
+  if (_kapanis) return; _kapanis = true; global.__kapaniyor = true;
+  console.log(`🛑 ${sinyal} alındı — düzgün kapanış`);
+  setTimeout(() => process.exit(0), 10000).unref();
+  try { httpServer.close(); } catch (e) {}
+  try {
+    for (const st of Object.values(whatsappWebService.isletmeler || {})) {
+      try { st?.sock?.end?.(undefined); } catch (e) {}
+    }
+  } catch (e) {}
+  try { const sb = require('./services/satisBot'); sb.sock?.end?.(undefined); } catch (e) {}
+  setTimeout(() => process.exit(0), 3000).unref();
+}
+process.on('SIGTERM', () => kapan('SIGTERM'));
+process.on('SIGINT', () => kapan('SIGINT'));
+
 module.exports = app;

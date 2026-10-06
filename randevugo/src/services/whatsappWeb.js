@@ -173,7 +173,7 @@ class WhatsAppWebService extends EventEmitter {
           socketServer.emitToIsletme(isletmeId, 'wa:bagli', { numara, durum: 'bagli' });
         }
 
-        if (connection === 'close') {
+        if (connection === 'close') { if (global.__kapaniyor) return; // kapanırken yeniden bağlanma (deploy çakışması)
           const statusCode = lastDisconnect?.error?.output?.statusCode;
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
           console.log(`❌ WhatsApp ayrıldı: ${isletmeIsim} - kod: ${statusCode}`);
