@@ -2292,7 +2292,9 @@ class AdminController {
 
       // Deneme süresi hesaplama
       const olusturmaGun = isletme.olusturma_tarihi ? Math.floor((new Date() - new Date(isletme.olusturma_tarihi)) / 86400000) : 0;
-      const denemeSuresiKalan = Math.max(0, 7 - olusturmaGun);
+      const denemeSuresiKalan = isletme.deneme_bitis_tarihi
+        ? Math.max(0, Math.ceil((new Date(isletme.deneme_bitis_tarihi) - Date.now()) / 86400000))
+        : Math.max(0, 7 - olusturmaGun);
 
       // Son 30 gün günlük randevu sayısı
       let gunlukRandevu = [];
@@ -2333,12 +2335,14 @@ class AdminController {
   async isletmeDenemeUzat(req, res) {
     try {
       const id = parseInt(req.params.id);
-      const { gun } = req.body; // kaç gün uzatılacak
-      // olusturma_tarihi'ni geri çekerek deneme süresini uzat
-      const yeniTarih = new Date();
-      yeniTarih.setDate(yeniTarih.getDate() - (7 - (gun || 7)));
-      await pool.query('UPDATE isletmeler SET olusturma_tarihi = $1 WHERE id = $2', [yeniTarih.toISOString(), id]);
-      res.json({ mesaj: `Deneme süresi ${gun || 7} gün olarak ayarlandı` });
+      const gun = parseInt(req.body.gun) || 7; // kaç gün uzatılacak
+      // Ödeme kapısı (odemeKontrol) deneme_bitis_tarihi'ne bakar; eskiden olusturma_tarihi
+      // değiştiriliyordu → deneme uzamıyor, kayıt tarihi geleceğe kayıyordu.
+      const r = await pool.query(
+        `UPDATE isletmeler SET deneme_bitis_tarihi = GREATEST(COALESCE(deneme_bitis_tarihi, NOW()), NOW()) + make_interval(days => $1)
+         WHERE id = $2 RETURNING deneme_bitis_tarihi`, [gun, id]);
+      if (!r.rows[0]) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      res.json({ mesaj: `Deneme süresi ${gun} gün uzatıldı`, deneme_bitis_tarihi: r.rows[0].deneme_bitis_tarihi });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
@@ -2359,7 +2363,7 @@ class AdminController {
       const buAy = new Date().toISOString().slice(0, 7);
 
       // İşletme bilgileri
-      const isletme = (await pool.query('SELECT id, isim, paket, aktif, olusturma_tarihi, ilce, kategori FROM isletmeler WHERE id = $1', [id])).rows[0];
+      const isletme = (await pool.query('SELECT id, isim, paket, aktif, olusturma_tarihi, deneme_bitis_tarihi, ilce, kategori FROM isletmeler WHERE id = $1', [id])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
       // Tüm ödeme geçmişi (son 24 ay)
@@ -2377,7 +2381,9 @@ class AdminController {
 
       // Deneme süresi
       const olusturmaGun = Math.floor((new Date() - new Date(isletme.olusturma_tarihi)) / 86400000);
-      const denemeSuresiKalan = Math.max(0, 7 - olusturmaGun);
+      const denemeSuresiKalan = isletme.deneme_bitis_tarihi
+        ? Math.max(0, Math.ceil((new Date(isletme.deneme_bitis_tarihi) - Date.now()) / 86400000))
+        : Math.max(0, 7 - olusturmaGun);
 
       // Ödeme istatistikleri
       const toplamOdenen = odemeler.filter(o => o.durum === 'odendi').reduce((s, o) => s + parseFloat(o.tutar || 0), 0);
@@ -4591,7 +4597,7 @@ class AdminController {
       const gunlukTrend = [];
       for (let i = 6; i >= 0; i--) {
         try {
-          const r = await pool.query(`SELECT COUNT(*) as c FROM randevular WHERE tarih = CURRENT_DATE - $1`, [i]);
+          const r = await pool.query(`SELECT COUNT(*) as c FROM randevular WHERE tarih = CURRENT_DATE - $1::int`, [i]);
           const gun = new Date(); gun.setDate(gun.getDate() - i);
           gunlukTrend.push({ gun: gun.toLocaleDateString("tr-TR", { weekday: "short" }), sayi: parseInt(r.rows[0].c) || 0 });
         } catch(e) { gunlukTrend.push({ gun: "?", sayi: 0 }); }
@@ -5091,7 +5097,8 @@ class AdminController {
         hedefUrl = `https://randevu.sırago.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
-        const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
+        const yerel = telefon.replace(/^0+/, ''); // baştaki 0 silinmezse wa.me/9005… oluyordu
+        const uluslararasi = (yerel.startsWith('90') && yerel.length === 12) ? yerel : '90' + yerel;
         hedefUrl = `https://wa.me/${uluslararasi}?text=Merhaba`;
       }
 
@@ -5135,7 +5142,8 @@ class AdminController {
         qrUrl = `https://randevu.xn--srago-n4a.com/book/${slug}`;
       } else {
         const telefon = (isletme.telefon || '').replace(/\D/g, '');
-        const uluslararasi = telefon.startsWith('90') ? telefon : '90' + telefon;
+        const yerel = telefon.replace(/^0+/, ''); // baştaki 0 silinmezse wa.me/9005… oluyordu
+        const uluslararasi = (yerel.startsWith('90') && yerel.length === 12) ? yerel : '90' + yerel;
         hedefUrl = `https://wa.me/${uluslararasi}?text=Merhaba`;
         qrUrl = hedefUrl;
       }
@@ -5205,7 +5213,7 @@ class AdminController {
         try {
           const netgsm = require('../services/netgsm');
           const kisa = `SıraGO: ${baslik}`.slice(0, 160);
-          await netgsm.smsGonder(isletme.telefon, kisa, isletmeId);
+          await netgsm.smsGonder(isletmeId, isletme.telefon, kisa, 'bildirim');
         } catch(e) { /* SMS gönderilemezse geç */ }
       }
     } catch(e) {
