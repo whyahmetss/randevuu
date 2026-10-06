@@ -1734,7 +1734,7 @@ class SatisBot extends EventEmitter {
       'bi düşüneyim', 'bakayım', 'bakalım', 'sonra'];
     if (kibarRedKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sirago.com`,
+        mesaj: `Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sırago.com`,
         durum: 'bekliyor'
       };
     }
@@ -1779,7 +1779,7 @@ class SatisBot extends EventEmitter {
     const musaitKelimeler = ['müsait değilim', 'musait degilim', 'meşgulüm', 'mesgulum', 'yoğunum', 'yogunum', 'şimdi olmaz', 'sonra yaz'];
     if (musaitKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sirago.com`,
+        mesaj: `Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sırago.com`,
         durum: 'bekliyor'
       };
     }
@@ -1788,7 +1788,7 @@ class SatisBot extends EventEmitter {
     const merakKelimeler = ['nedir', 'nasıl', 'nasil', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'ne yapıyor', 'ne yapiyor', 'özellik'];
     if (merakKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Müşterilerin WhatsApp'tan 7/24 randevu alıyor, otomatik hatırlatma gidiyor. ${ad} için ilk ay ücretsiz 👉 sirago.com`,
+        mesaj: `Müşterilerin WhatsApp'tan 7/24 randevu alıyor, otomatik hatırlatma gidiyor. ${ad} için ilk ay ücretsiz 👉 sırago.com`,
         durum: 'sicak'
       };
     }
@@ -1797,7 +1797,7 @@ class SatisBot extends EventEmitter {
     const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'süper', 'harika', 'güzel'];
     if (olumluKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Süper! sirago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz 👍`,
+        mesaj: `Süper! sırago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz 👍`,
         durum: 'sicak'
       };
     }
@@ -1813,7 +1813,7 @@ class SatisBot extends EventEmitter {
 
     // ─── GENEL ───
     return {
-      mesaj: `Teşekkürler! Merak ettiğin olursa yaz, link burada 👉 sirago.com`,
+      mesaj: `Teşekkürler! Merak ettiğin olursa yaz, link burada 👉 sırago.com`,
       durum: 'bekliyor'
     };
   }
@@ -1869,17 +1869,17 @@ Mesaj sayısı: ${mesajSayisi}
 "Fiyatı ne / ne kadar" → "İlk ay sıfır lira. Sonrası günde 10₺. Bir müşteri kaçırmak bundan pahalı."
 "Telefonla hallediyorum" → "Telefonla hallediyorsun ama müşteri işlemdeyken çalan telefona bakamıyorsun. O arayan rakibe gidiyor."
 "Teknoloji bilmem" → "WhatsApp kullanıyorsan yeterli. Biz kuruyoruz, sen sadece telefondan bakıyorsun. 5 dakika."
-"Düşüneyim / sonra bakarım" → "Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sirago.com"
+"Düşüneyim / sonra bakarım" → "Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sırago.com"
 "Pahalı / param yok" → "Günde 1 müşteri kaçırmak ayda 3000₺ kayıp. Sistem ayda 299₺. Kendini 3 günde amorti ediyor."
-"Şimdi müsait değilim / meşgulüm" → "Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sirago.com"
+"Şimdi müsait değilim / meşgulüm" → "Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sırago.com"
 "Hayır / istemiyorum / gerek yok" → Kibarca veda et, ISRAR ETME: "Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏"
-"Arayın / ben dönerim / ben ararım" → Bu KİBAR REDDİR: "Tamam, link bırakıyorum lazım olursa 👉 sirago.com. İyi çalışmalar!"
+"Arayın / ben dönerim / ben ararım" → Bu KİBAR REDDİR: "Tamam, link bırakıyorum lazım olursa 👉 sırago.com. İyi çalışmalar!"
 
 ═══ SATIŞ STRATEJİN ═══
-1. İlgi varsa → tek fayda söyle + "kayıt yaz veya sirago.com'a gir" de
+1. İlgi varsa → tek fayda söyle + "kayıt yaz veya sırago.com'a gir" de
 2. Soru varsa → kısa cevap ver, 1-2 cümle
 3. İtiraz gelirse → yukarıdaki hazır cevapları BİREBİR kullan
-4. ${mesajSayisi} > 3 ve karar vermemişse → "Link bırakıyorum, vaktin olunca bakarsın 👉 sirago.com" yaz ve bırak
+4. ${mesajSayisi} > 3 ve karar vermemişse → "Link bırakıyorum, vaktin olunca bakarsın 👉 sırago.com" yaz ve bırak
 5. Müşteri reddettiyse → kibarca veda et, bir daha yazma
 
 ═══ HANDOFF (DEVRETME) KURALI — ÇOK ÖNEMLİ ═══
@@ -1895,7 +1895,7 @@ Bu durumda KISA bir cevap yaz + durum'u "sicak" olarak dön. Biz aranıp devam e
 - Tek seferde tek mesaj yaz, maddeli liste YAPMA, paragraf YAPMA.
 - Emoji max 1, abartma.
 - Samimi ol — esnaf gibi konuş, "siz" değil "sen" de.
-- Kayıt linki: sirago.com. ASLA "admin.sirago.com" yazma.
+- Kayıt linki: sırago.com. ASLA "admin.sırago.com" yazma.
 - ASLA "yapay zeka" veya "bot" olduğunu söyleme.
 - Uzun özellik listesi DÖKME. Tek fayda söyle, bitir.
 - Fiyat/itiraz gelirse HAZIR cevapları BİREBİR kullan, kendinden cümle KURMA.
