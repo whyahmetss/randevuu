@@ -834,15 +834,15 @@ class AdminController {
         let mevcut = (await pool.query('SELECT id FROM musteriler WHERE telefon=$1', [m.telefon])).rows[0];
         if (!mevcut) {
           mevcut = (await pool.query(
-            'INSERT INTO musteriler (isim, telefon) VALUES ($1,$2) RETURNING id',
-            [m.isim, m.telefon]
+            'INSERT INTO musteriler (isim, telefon, son_gelinen_isletme_id) VALUES ($1,$2,$3) RETURNING id',
+            [m.isim, m.telefon, id]
           )).rows[0];
         }
         musteriIds.push(mevcut.id);
       }
 
       // ─── RANDEVULAR (son 30 gün + gelecek 7 gün) ───
-      const durumlar = ['tamamlandi', 'tamamlandi', 'tamamlandi', 'tamamlandi', 'iptal', 'tamamlandi', 'bekliyor'];
+      const durumlar = ['tamamlandi', 'tamamlandi', 'tamamlandi', 'tamamlandi', 'iptal', 'tamamlandi', 'gelmedi'];
       const saatler = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];
       let randevuSayisi = 0;
       for (let gun = -30; gun <= 7; gun++) {
@@ -857,11 +857,17 @@ class AdminController {
           const [sh, sm] = saat.split(':').map(Number);
           const bitDk = sh * 60 + sm + sureDk;
           const bitisSaati = `${String(Math.floor(bitDk / 60)).padStart(2, '0')}:${String(bitDk % 60).padStart(2, '0')}`;
-          const durum = gun > 0 ? 'bekliyor' : durumlar[Math.floor(Math.random() * durumlar.length)];
-          await pool.query(
+          // 'bekliyor' gerçek akışta kullanılmayan bir durum: gelir/doluluk hesaplarına girmiyordu
+          const durum = gun > 0 ? 'onaylandi' : durumlar[Math.floor(Math.random() * durumlar.length)];
+          const yeniR = await pool.query(
             `INSERT INTO randevular (isletme_id, musteri_id, calisan_id, hizmet_id, tarih, saat, bitis_saati, durum, kaynak, olusturma_tarihi)
-             VALUES ($1,$2,$3,$4, CURRENT_DATE + $5::int, $6, $7, $8, $9, NOW() - INTERVAL '1 day' * (30 - $5::int))`,
+             VALUES ($1,$2,$3,$4, CURRENT_DATE + $5::int, $6, $7, $8, $9, NOW() - INTERVAL '1 day' * (30 - $5::int)) RETURNING id`,
             [id, musteriId, calisanId, hizmetId, gun, saat, bitisSaati, durum, ['bot','online','manuel'][Math.floor(Math.random()*3)]]
+          );
+          // Fiyat listede randevu_hizmetleri'nden toplanıyor; satır yoksa 0₺ görünüyordu
+          await pool.query(
+            'INSERT INTO randevu_hizmetleri (randevu_id, hizmet_id, sira, fiyat, sure_dk) SELECT $1, id, 0, fiyat, sure_dk FROM hizmetler WHERE id=$2',
+            [yeniR.rows[0].id, hizmetId]
           );
           randevuSayisi++;
         }
@@ -889,7 +895,7 @@ class AdminController {
         'kasa_hareketleri', 'prim_odemeleri', 'sms_log', 'gece_rapor_log',
         'yorum_talepleri', 'winback_log', 'puan_hareketleri', 'referans_log',
         'google_yorum_talepleri', 'musteri_etiketler', 'audit_log',
-        'odemeler', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'admin_kullanicilar'
+        'odemeler', 'randevular', 'hizmetler', 'calisanlar', 'admin_kullanicilar'
       ];
       for (const t of silTablolari) {
         await pool.query(`DELETE FROM ${t} WHERE isletme_id = $1`, [id]).catch(() => {});
@@ -2272,7 +2278,7 @@ class AdminController {
 
       // Müşteriler
       let musteriSayisi = 0;
-      try { musteriSayisi = parseInt((await pool.query('SELECT COUNT(*) as sayi FROM musteriler WHERE isletme_id = $1', [id])).rows[0]?.sayi) || 0; } catch(e) { console.error('Detay musteri hatası:', e.message); }
+      try { musteriSayisi = parseInt((await pool.query('SELECT COUNT(*) as sayi FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))', [id])).rows[0]?.sayi) || 0; } catch(e) { console.error('Detay musteri hatası:', e.message); }
 
       // Randevu istatistikleri
       let randevuStats = { toplam: 0, bu_ay: 0, onaylanan: 0, bekleyen: 0, iptal: 0 };
@@ -3479,7 +3485,7 @@ class AdminController {
           try { buAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { gecenAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE) - interval '1 month' AND tarih < date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { toplamR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
-          try { toplamM = parseInt((await pool.query("SELECT COUNT(*) as c FROM musteriler WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { toplamM = parseInt((await pool.query("SELECT COUNT(*) as c FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { hizmetS = parseInt((await pool.query("SELECT COUNT(*) as c FROM hizmetler WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { calisanS = parseInt((await pool.query("SELECT COUNT(*) as c FROM calisanlar WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           
@@ -3981,7 +3987,7 @@ class AdminController {
         SELECT m.id, m.isim, m.telefon, m.referans_kodu,
           (SELECT COUNT(*) FROM referans_log rl WHERE rl.davet_eden_id = m.id AND rl.isletme_id = $1 AND rl.durum = 'tamamlandi') as basarili,
           (SELECT COUNT(*) FROM referans_log rl WHERE rl.davet_eden_id = m.id AND rl.isletme_id = $1) as toplam
-        FROM musteriler m WHERE m.isletme_id=$1 AND m.referans_kodu IS NOT NULL
+        FROM musteriler m WHERE (m.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = $1)) AND m.referans_kodu IS NOT NULL
         ORDER BY basarili DESC
       `, [isletmeId])).rows;
 
@@ -4035,7 +4041,7 @@ class AdminController {
         `SELECT 
           COUNT(*) FILTER (WHERE dogum_tarihi IS NOT NULL) as dogum_var,
           COUNT(*) FILTER (WHERE dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != '') as dogum_eksik
-         FROM musteriler WHERE isletme_id = $1`,
+         FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))`,
         [isletmeId]
       )).rows[0];
 
@@ -4081,7 +4087,7 @@ class AdminController {
       dogumGunu.topluProfilGuncelleme(isletmeId).catch(e => console.error('Toplu güncelleme hatası:', e.message));
       // Müşteri sayısını hızlı sorgula
       const sayi = (await pool.query(
-        "SELECT COUNT(*) as c FROM musteriler WHERE isletme_id=$1 AND dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != ''",
+        "SELECT COUNT(*) as c FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1)) AND dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != ''",
         [isletmeId]
       )).rows[0];
       res.json({ basarili: true, mesaj: 'Toplu profil güncelleme başlatıldı', tahmini_gonderim: parseInt(sayi.c || 0) });
@@ -4119,7 +4125,7 @@ class AdminController {
       const isletmeId = req.kullanici.isletme_id;
       const result = await pool.query(`
         SELECT m.id, m.isim, m.telefon, m.puan_bakiye, m.toplam_kazanilan_puan, m.toplam_harcanan_puan
-        FROM musteriler m WHERE m.isletme_id=$1 AND m.toplam_kazanilan_puan > 0
+        FROM musteriler m WHERE (m.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = $1)) AND m.toplam_kazanilan_puan > 0
         ORDER BY m.puan_bakiye DESC
       `, [isletmeId]);
       const toplam = (await pool.query(
@@ -4193,7 +4199,7 @@ class AdminController {
           (SELECT MAX(wl.gonderim_tarihi) FROM winback_log wl WHERE wl.musteri_id = m.id AND wl.isletme_id = $1) as son_mesaj
         FROM musteriler m
         JOIN randevular r ON r.musteri_id = m.id AND r.isletme_id = $1 AND r.durum = 'tamamlandi'
-        WHERE m.isletme_id = $1
+        WHERE (m.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = $1))
         GROUP BY m.id, m.isim, m.telefon
         HAVING CURRENT_DATE - MAX(r.tarih)::date >= $2
         ORDER BY gun_sayisi DESC
@@ -4213,7 +4219,7 @@ class AdminController {
           CURRENT_DATE - MAX(r.tarih)::date as gun_sayisi
         FROM musteriler m
         JOIN randevular r ON r.musteri_id = m.id AND r.isletme_id = $1 AND r.durum = 'tamamlandi'
-        WHERE m.id = $2 AND m.isletme_id = $1
+        WHERE m.id = $2 AND (m.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = $1))
         GROUP BY m.id, m.isim, m.telefon
       `, [isletmeId, musteri_id])).rows[0];
 
@@ -4670,7 +4676,7 @@ class AdminController {
           COALESCE((SELECT SUM(o.tutar::numeric) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id), 0) as randevu_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= CURRENT_DATE - INTERVAL '30 days'), 0) as aylik_randevu,
-          COALESCE((SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id), 0) as musteri_sayisi,
+          COALESCE((SELECT COUNT(*) FROM musteriler m WHERE (m.son_gelinen_isletme_id = i.id OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = i.id))), 0) as musteri_sayisi,
           COALESCE((SELECT COUNT(*) FROM hizmetler h WHERE h.isletme_id = i.id), 0) as hizmet_sayisi,
           COALESCE((SELECT COUNT(*) FROM calisanlar c WHERE c.isletme_id = i.id), 0) as calisan_sayisi,
           (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id) as son_randevu,
@@ -4733,7 +4739,7 @@ class AdminController {
           COALESCE((SELECT SUM(o.tutar::numeric) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as toplam_gelir,
           COALESCE((SELECT COUNT(*) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as odeme_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id), 0) as randevu_sayisi,
-          COALESCE((SELECT COUNT(*) FROM musteriler m WHERE m.isletme_id = i.id), 0) as musteri_sayisi,
+          COALESCE((SELECT COUNT(*) FROM musteriler m WHERE (m.son_gelinen_isletme_id = i.id OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = i.id))), 0) as musteri_sayisi,
           (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id) as son_randevu
         FROM isletmeler i
         WHERE i.aktif = true
@@ -5069,7 +5075,7 @@ class AdminController {
       const { id } = req.params;
       const musteri = (await pool.query(`
         SELECT m.*, i.isim as isletme_isim, i.kategori, i.paket
-        FROM musteriler m LEFT JOIN isletmeler i ON m.isletme_id = i.id
+        FROM musteriler m LEFT JOIN isletmeler i ON i.id = m.son_gelinen_isletme_id
         WHERE m.id = $1
       `, [id])).rows[0];
 

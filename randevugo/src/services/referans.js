@@ -25,13 +25,13 @@ class ReferansService {
 
       // Kodu kimin kullandığını bul
       const davetEden = (await pool.query(
-        'SELECT id, isim FROM musteriler WHERE referans_kodu=$1 AND isletme_id=$2',
+        'SELECT id, isim FROM musteriler WHERE referans_kodu=$1 AND (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2))',
         [referansKodu.toUpperCase(), isletmeId]
       )).rows[0];
       if (!davetEden) return { hata: 'Geçersiz referans kodu' };
 
       // Kendini davet edemez
-      const davetli = (await pool.query('SELECT id FROM musteriler WHERE telefon=$1 AND isletme_id=$2', [davetliTelefon, isletmeId])).rows[0];
+      const davetli = (await pool.query('SELECT id FROM musteriler WHERE telefon=$1 AND (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2))', [davetliTelefon, isletmeId])).rows[0];
       if (davetli && davetli.id === davetEden.id) return { hata: 'Kendi kodunuzu kullanamazsınız' };
 
       // Daha önce referansla gelmiş mi?
@@ -150,7 +150,7 @@ class ReferansService {
   // Bot'tan referans kodu sorgulama
   async kodSorgula(isletmeId, musteriTelefon) {
     const musteri = (await pool.query(
-      'SELECT id, referans_kodu FROM musteriler WHERE telefon=$1 AND isletme_id=$2',
+      'SELECT id, referans_kodu FROM musteriler WHERE telefon=$1 AND (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2))',
       [musteriTelefon, isletmeId]
     )).rows[0];
     if (!musteri) return null;

@@ -487,8 +487,11 @@ class WhatsAppWebService extends EventEmitter {
     // Müşteriyi kaydet / bul (pushName varsa gerçek isim kullan)
     const musteriIsim = msg.pushName || musteriTelefon;
     await pool.query(
-      'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) ON CONFLICT (telefon) DO UPDATE SET isim = EXCLUDED.isim WHERE musteriler.isim = musteriler.telefon',
-      [musteriTelefon, musteriIsim]
+      // son_gelinen_isletme_id: müşteri tablosu global; işletmeye ait müşteri sorguları bu kolona ve randevulara bakar
+      `INSERT INTO musteriler (telefon, isim, son_gelinen_isletme_id) VALUES ($1, $2, $3) ON CONFLICT (telefon) DO UPDATE
+         SET isim = CASE WHEN musteriler.isim = musteriler.telefon THEN EXCLUDED.isim ELSE musteriler.isim END,
+             son_gelinen_isletme_id = EXCLUDED.son_gelinen_isletme_id`,
+      [musteriTelefon, musteriIsim, isletmeId]
     );
 
     // Sohbeti kaydet
@@ -641,7 +644,7 @@ class WhatsAppWebService extends EventEmitter {
     try {
       if (!isletme?.dogum_gunu_aktif) return onayMesaji;
       const musteri = (await pool.query(
-        'SELECT id, dogum_tarihi FROM musteriler WHERE telefon=$1 AND isletme_id=$2',
+        'SELECT id, dogum_tarihi FROM musteriler WHERE telefon=$1 AND (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2))',
         [musteriTelefon, isletmeId]
       )).rows[0];
       if (!musteri || musteri.dogum_tarihi) return onayMesaji; // Zaten var, sorma
@@ -663,7 +666,7 @@ class WhatsAppWebService extends EventEmitter {
       const { parseDogumTarihi, formatDogumTarihi } = require('../utils/dogumTarihi');
       const parsed = parseDogumTarihi(metin);
       if (parsed) {
-        await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND isletme_id=$3',
+        await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND (musteriler.son_gelinen_isletme_id = $3 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $3))',
           [parsed, musteriTelefon, isletmeId]);
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
         return { metin: `✅ Teşekkürler! Doğum tarihiniz kaydedildi (*${formatDogumTarihi(parsed)}*). O gün size özel sürprizimiz olacak 🎂`, butonlar: null };

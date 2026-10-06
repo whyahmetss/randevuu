@@ -161,8 +161,9 @@ class TelegramService {
     // Müşteriyi kaydet / bul
     const musteriIsim = from ? [from.first_name, from.last_name].filter(Boolean).join(' ') : 'Telegram Kullanıcısı';
     await pool.query(
-      'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) ON CONFLICT (telefon) DO NOTHING',
-      [musteriTelefon, musteriIsim]
+      `INSERT INTO musteriler (telefon, isim, son_gelinen_isletme_id) VALUES ($1, $2, $3)
+       ON CONFLICT (telefon) DO UPDATE SET son_gelinen_isletme_id = EXCLUDED.son_gelinen_isletme_id`,
+      [musteriTelefon, musteriIsim, isletme.id]
     );
 
     // Bot durumunu al / oluştur

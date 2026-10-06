@@ -316,7 +316,7 @@ class BookingController {
           const { parseDogumTarihi } = require('../utils/dogumTarihi');
           const parsed = parseDogumTarihi(musteriDogum);
           if (parsed) {
-            await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND isletme_id=$3 AND dogum_tarihi IS NULL',
+            await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND (musteriler.son_gelinen_isletme_id = $3 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $3)) AND dogum_tarihi IS NULL',
               [parsed, musteriTelefon, isletme.id]);
           }
         } catch(e) { /* ignore */ }
