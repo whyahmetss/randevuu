@@ -79,14 +79,20 @@ const TAKIP_SABLONLARI = {
   // İlk takip (12 saat sonra)
   1: [
     (ad) => `Tekrar merhaba 🙂\n\n${ad} için yazmıştım — hızla dönemediyseniz sorun değil!\n\nSadece şunu bilmenizi isterim: Sektörünüzdeki işletmeler online randevuya geçiyor ve müşteri kaybını ciddi azaltıyor.\n\nÜcretsiz deneme hakkınız hâlâ aktif 👉 sırago.com`,
-    (ad) => `Merhaba tekrar 🙂\n\nDaha önce ${ad} için online randevu sisteminden bahsetmiştim.\n\nBugün 3 yeni işletme daha sisteme katıldı! İlk ay ücretsiz deneme hakkınız devam ediyor.\n\nMerak ettikleriniz varsa yazabilirsiniz 👉 sırago.com`,
+    (ad) => `Merhaba tekrar 🙂\n\nDaha önce ${ad} için online randevu sisteminden bahsetmiştim.\n\nÜcretsiz deneme hakkınız devam ediyor.\n\nMerak ettikleriniz varsa yazabilirsiniz 👉 sırago.com`,
     (ad) => `İyi günler 🙂\n\n${ad} hakkında geçen yazmıştım. Müşterilerinizin 7/24 randevu alabildiği bir sistem — telefonla arama derdi biter.\n\nÜcretsiz deneme hâlâ geçerli, 2 dakikada kurulum 👉 sırago.com`,
   ],
   // İkinci takip (24 saat sonra)
   2: [
-    (ad) => `Son bir mesaj bırakayım 🙏\n\n${ad} için online randevu sistemi gerçekten fark yaratır. Rakipleriniz zaten kullanmaya başladı.\n\nSize özel: İlk 2 ay tamamen ücretsiz! Bu teklif sınırlı süre.\n\n👉 sırago.com`,
-    (ad) => `${ad} için son hatırlatma 🙂\n\nOnline randevu sistemiyle müşteri kaybınız %80 azalır, WhatsApp hatırlatmayla randevu kaçırma biter.\n\nSon teklif: 2 ay ücretsiz deneme! Karar sizin.\n\n👉 sırago.com`,
-    (ad) => `Merhaba, sizi rahatsız etmek istemem 🙏\n\nAma ${ad} gibi işletmeler için bu sistem gerçekten dönüm noktası. Müşterileriniz 7/24 randevu alır, siz rahat edersiniz.\n\nSon teklifim: 2 ay ücretsiz. Fırsatı kaçırmayın 👉 sırago.com`,
+    (ad) => `Son bir mesaj bırakayım 🙏
+
+${ad} için online randevu sistemi gerçekten fark yaratır.
+
+Ücretsiz deneyebilirsiniz, kurulum 2 dakika. İstemezseniz "istemiyorum" yazmanız yeterli, bir daha yazmam.
+
+👉 sırago.com`,
+    (ad) => `${ad} için son hatırlatma 🙂\n\nOnline randevu sistemiyle müşteri kaybınız azalır, WhatsApp hatırlatmayla randevu kaçırma biter.\n\nÜcretsiz deneme ile hemen görebilirsiniz. İstemezseniz "istemiyorum" yazmanız yeterli.\n\n👉 sırago.com`,
+    (ad) => `Merhaba, sizi rahatsız etmek istemem 🙏\n\nAma ${ad} gibi işletmeler için bu sistem gerçekten dönüm noktası. Müşterileriniz 7/24 randevu alır, siz rahat edersiniz.\n\nÜcretsiz deneyebilirsiniz; istemezseniz "istemiyorum" yazmanız yeterli 👉 sırago.com`,
   ]
 };
 
@@ -1896,7 +1902,7 @@ Bu durumda KISA bir cevap yaz + durum'u "sicak" olarak dön. Biz aranıp devam e
 - Emoji max 1, abartma.
 - Samimi ol — esnaf gibi konuş, "siz" değil "sen" de.
 - Kayıt linki: sırago.com. ASLA "admin.sırago.com" yazma.
-- ASLA "yapay zeka" veya "bot" olduğunu söyleme.
+- Bot/yapay zeka olup olmadığın sorulursa dürüstçe SıraGO'nun dijital asistanı olduğunu söyle; kendini insan gibi tanıtma.
 - Uzun özellik listesi DÖKME. Tek fayda söyle, bitir.
 - Fiyat/itiraz gelirse HAZIR cevapları BİREBİR kullan, kendinden cümle KURMA.
 - "minimize eder", "optimize eder", "entegre" gibi kurumsal kelimeler YASAK.
