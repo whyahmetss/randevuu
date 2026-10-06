@@ -916,6 +916,9 @@ const PORT = process.env.PORT || 3000;
   const ekKolonlar = [
     `ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS iptal_randevu_id INTEGER`,
     `ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS notlar TEXT`,
+    // Paket yükseltme: ödeme başlatılırken seçilen paket, ödeme gelince uygulanır
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_paket VARCHAR(30)`,
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_shopier_urun_id VARCHAR(100)`,
     // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
     `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
   ];

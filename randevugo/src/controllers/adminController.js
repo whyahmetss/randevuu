@@ -1098,7 +1098,8 @@ class AdminController {
       if (durum === 'odendi' && result.rows[0]) {
         const odeme = result.rows[0];
         await pool.query(
-          "UPDATE isletmeler SET paket_bitis_tarihi = NOW() + INTERVAL '30 days' WHERE id = $1",
+          // Kalan günler silinmesin: mevcut bitiş gelecekteyse onun üzerine ekle
+          "UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + INTERVAL '30 days' WHERE id = $1",
           [odeme.isletme_id]
         );
       }
@@ -1509,12 +1510,13 @@ class AdminController {
         [isletmeId, buAy]
       )).rows[0];
 
+      // Seçilen paket ve ürün işletmede saklanır; ödeme gelince paket bu bilgiyle değişir
+      // (eskiden ödeme paketi hiç değiştirmiyordu → yükseltme işe yaramıyordu).
+      await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2 WHERE id=$3', [secilenPaket, String(urun.id), isletmeId]);
+
       if (mevcut && ['odendi', 'havale_bekliyor'].includes(mevcut.durum)) {
-        // Mevcut ödeme odendi veya havale bekliyor — dokunma, ayrı kayıt oluştur
-        await pool.query(
-          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu, shopier_urun_id) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4, $5)",
-          [isletmeId, paketBilgi.fiyat, buAy, refKod, urun.id]
-        );
+        // Bu ay zaten kayıt var (yükseltme/erken yenileme). (isletme_id, donem) benzersiz olduğundan
+        // ikinci INSERT 500 veriyordu; eşleşme bekleyen_shopier_urun_id üzerinden yapılır.
       } else if (mevcut) {
         await pool.query(
           "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1, shopier_urun_id = $2, tutar = $3 WHERE id = $4",
