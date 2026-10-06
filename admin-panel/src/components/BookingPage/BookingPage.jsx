@@ -84,6 +84,7 @@ export default function BookingPage({ slug }) {
   // otpStage: 'giris' (ad+telefon formu) | 'kod' (OTP input)
   const [otpStage, setOtpStage] = useState('giris');
   const [otpKod, setOtpKod] = useState('');
+  const [otpToken, setOtpToken] = useState(''); // sunucunun verdiği doğrulama kanıtı
   const [otpGonderiliyor, setOtpGonderiliyor] = useState(false);
   const [otpDogrulaniyor, setOtpDogrulaniyor] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0); // saniye
@@ -210,6 +211,7 @@ export default function BookingPage({ slug }) {
           saat: secilenSaat,
           musteriIsim: musteriIsim.trim(),
           musteriTelefon: musteriTelefon.trim(),
+          otpToken,
           // Bot koruma alanları
           website: honeypot,
           email_confirm: emailConfirm,
@@ -219,6 +221,7 @@ export default function BookingPage({ slug }) {
       });
       const d = await res.json();
       if (d.basarili) { setSonuc(d); setAdim(7); }
+      else if (d.otpGerekli) { setOtpToken(''); setOtpStage('giris'); setAdim(5); setHata(d.hata || t('genericError')); }
       else setHata(d.hata || t('genericError'));
     } catch { setHata(t('connError')); }
     setYukleniyor(false);
@@ -232,7 +235,8 @@ export default function BookingPage({ slug }) {
     d.setDate(d.getDate() + i);
     if (kapaliGunler.includes(d.getDay())) continue;
     tarihler.push({
-      str: d.toISOString().slice(0, 10),
+      // Yerel tarih: toISOString UTC'dir, gece 00-03 arası bir önceki günü veriyordu
+      str: d.toLocaleDateString('sv-SE'),
       gun: d.toLocaleDateString(locale, { weekday: 'short' }),
       gunSayi: d.getDate(),
       ay: d.toLocaleDateString(locale, { month: 'short' }),
@@ -242,7 +246,7 @@ export default function BookingPage({ slug }) {
   }
 
   const tarihFormat = (str) => {
-    const d = new Date(str);
+    const d = new Date(str + 'T12:00:00');
     return d.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
@@ -369,6 +373,7 @@ export default function BookingPage({ slug }) {
       });
       const d = await res.json();
       if (d.basarili && d.dogrulandi) {
+        setOtpToken(d.otpToken || '');
         setOtpStage('dogrulandi');
         setAdim(6);
       } else {
@@ -382,6 +387,7 @@ export default function BookingPage({ slug }) {
 
   const telefonuDegistir = () => {
     setOtpStage('giris');
+    setOtpToken('');
     setOtpKod('');
     setOtpCooldown(0);
     setHata('');

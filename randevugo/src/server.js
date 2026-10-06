@@ -981,21 +981,17 @@ app.use('/api/book', bookingLimiter);
 app.use('/api/webhook', webhookLimiter);
 app.use('/api', apiLimiter, apiRoutes);
 
-// Online Booking sayfası — /book/:slug
+// Online Booking — eski public/booking.html emekli: OTP'siz captcha modu ve kaçışsız
+// innerHTML içeriyordu. QR (randevu.sırago.com), Google Business (onrender) ve diğer tüm
+// /book linkleri tek React rezervasyon sayfasına yönlenir.
+const BOOKING_BASE_URL = (process.env.BOOKING_BASE_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '');
 app.get('/book/:slug', (req, res) => {
-  const dosya = require('path').join(__dirname, 'public', 'booking.html');
-  const fs = require('fs');
-  if (!fs.existsSync(dosya)) {
-    console.error('❌ booking.html bulunamadı:', dosya);
-    return res.status(404).send('Booking sayfası bulunamadı. Path: ' + dosya);
-  }
-  res.sendFile(dosya);
+  res.redirect(302, `${BOOKING_BASE_URL}/book/${encodeURIComponent(req.params.slug)}`);
 });
 
 // Grup Booking sayfası — /g/:slug
 app.get('/g/:slug', (req, res) => {
-  const dosya = require('path').join(__dirname, 'public', 'booking.html');
-  res.sendFile(dosya);
+  res.redirect(302, `${BOOKING_BASE_URL}/g/${encodeURIComponent(req.params.slug)}`);
 });
 
 // Ana sayfa - Landing page
