@@ -16,7 +16,8 @@ export default function GeceRaporu({ api }) {
   }, [tab]);
 
   const kaydet = async () => {
-    await api.put('/gece-raporu/ayarlar', ayarlar);
+    const r = await api.put('/gece-raporu/ayarlar', ayarlar);
+    if (r?.hata) { alert('Kaydedilemedi: ' + r.hata); return; }
     setKaydedildi(true);
     setTimeout(() => setKaydedildi(false), 3000);
   };

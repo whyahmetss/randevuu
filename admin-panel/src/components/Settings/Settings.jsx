@@ -50,7 +50,11 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   };
 
   const kaydet = async () => {
-    await api.put("/ayarlar", ayarlar);
+    const r = await api.put("/ayarlar", ayarlar);
+    if (r?.hata) {
+      alert("Ayarlar kaydedilemedi: " + (/slug|duplicate|unique/i.test(r.hata) ? "Bu online randevu linki (slug) başka bir işletmede kullanılıyor." : r.hata));
+      return;
+    }
     setKaydedildi(true);
     setTimeout(() => setKaydedildi(false), 3000);
   };

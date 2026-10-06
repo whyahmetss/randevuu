@@ -17,7 +17,8 @@ export default function YorumAvcisi({ api }) {
   }, [tab]);
 
   const kaydet = async () => {
-    await api.put('/yorum-avcisi/ayarlar', ayarlar);
+    const r = await api.put('/yorum-avcisi/ayarlar', ayarlar);
+    if (r?.hata) { alert('Kaydedilemedi: ' + r.hata); return; }
     setKaydedildi(true);
     setTimeout(() => setKaydedildi(false), 3000);
   };

@@ -27,8 +27,16 @@ import DukkanModuPopup from './components/DukkanModuPopup';
 import GrupYonetim from './components/Grup/GrupYonetim';
 import SubeSwitcher from './components/Grup/SubeSwitcher';
 
+// "Müşteri olarak giriş" token'ı sekmeye özel (sessionStorage) tutulur; eskiden localStorage'daki
+// süper admin token'ını eziyordu ve süper admin oturumu tüm sekmelerde işletme hesabına dönüşüyordu.
+const oturumTokeni = () => sessionStorage.getItem("randevugo_imp_token") || localStorage.getItem("randevugo_token");
+const oturumuKapat = () => {
+  if (sessionStorage.getItem("randevugo_imp_token")) sessionStorage.removeItem("randevugo_imp_token");
+  else localStorage.removeItem("randevugo_token");
+};
+
 const api = {
-  token: localStorage.getItem("randevugo_token"),
+  token: oturumTokeni(),
 
   async fetch(endpoint, options = {}) {
     try {
@@ -44,7 +52,7 @@ const api = {
       });
       if (res.status === 401) {
         this.token = null;
-        localStorage.removeItem("randevugo_token");
+        oturumuKapat();
         window.location.reload();
       }
       if (res.status === 403) {
@@ -52,7 +60,7 @@ const api = {
         if (data.pasif) {
           alert("İşletmeniz pasif duruma alınmıştır. Lütfen destek ile iletişime geçin.");
           this.token = null;
-          localStorage.removeItem("randevugo_token");
+          oturumuKapat();
           window.location.reload();
           return data;
         }
@@ -67,7 +75,10 @@ const api = {
         const data = await res.json();
         return { ...data, _odemeGerekli: true };
       }
-      return res.json();
+      const data = await res.json().catch(() => ({}));
+      // 500 vb. hatalar başarılı cevap gibi dönüyordu (ör. "Ayarlar kaydedildi" ama kaydedilmemiş)
+      if (!res.ok && !data.hata) data.hata = `Sunucu hatası (${res.status})`;
+      return data;
     } catch (err) {
       console.error("API bağlantı hatası:", endpoint, err.message);
       return { hata: "Sunucuya bağlanılamadı", _networkError: true };
@@ -1155,7 +1166,7 @@ function Dashboard({ kullanici }) {
     setTestYukleniyor(false);
   };
 
-  const cikisYap = () => { try { socketDisconnect(); } catch(e){} localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
+  const cikisYap = () => { try { socketDisconnect(); } catch(e){} oturumuKapat(); api.token = null; window.location.reload(); };
 
   const qrKodOlustur = async () => {
     setQrYukleniyor(true);
@@ -2160,7 +2171,7 @@ function Dashboard({ kullanici }) {
                     <div>
                       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
                         <button onClick={() => {
-                          const token = localStorage.getItem("randevugo_token");
+                          const token = api.token;
                           window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
                         }} style={{ flex: 1, padding: "14px 20px", borderRadius: 14, border: "none", background: "linear-gradient(135deg,#54E097,#2cb872)", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                           🚀 Tek Tıkla Paketini Uzat — {odemeBilgi.tutar}₺
@@ -3206,7 +3217,7 @@ function Dashboard({ kullanici }) {
                     </div>
                     {!aktif && p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        const token = localStorage.getItem("randevugo_token");
+                        const token = api.token;
                         window.open(`${API_URL}/odeme/shopier/baslat?token=${token}&paket=${p.key}`, "_blank");
                         setPaketModal(false);
                       }}>
@@ -3273,7 +3284,7 @@ function Dashboard({ kullanici }) {
                 cursor: "pointer", fontFamily: "inherit"
               }}>Dashboard'a Dön</button>
               <button onClick={() => {
-                const token = localStorage.getItem("randevugo_token");
+                const token = api.token;
                 window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
               }} style={{
                 padding: "12px 24px", borderRadius: 12, border: "none",
@@ -3859,7 +3870,7 @@ function SuperAdminPanel({ kullanici }) {
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const cikisYap = () => { try { socketDisconnect(); } catch(e){} localStorage.removeItem("randevugo_token"); api.token = null; window.location.reload(); };
+  const cikisYap = () => { try { socketDisconnect(); } catch(e){} oturumuKapat(); api.token = null; window.location.reload(); };
 
   const SVGA = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -4638,7 +4649,8 @@ function SuperAdminPanel({ kullanici }) {
                       <div className="row gap-8">
                         <button onClick={async () => {
                           if (!ertelemeDonem) { alert("Yeni dönem seçin"); return; }
-                          await api.post(`/admin/odemeler/${ertelemeModal.id}/ertele`, { yeni_donem: ertelemeDonem, sebep: ertelemeSebep });
+                          const r = await api.post(`/admin/odemeler/${ertelemeModal.id}/ertele`, { yeni_donem: ertelemeDonem, sebep: ertelemeSebep });
+                          if (r?.hata) { alert("Ertelenemedi: " + r.hata); return; }
                           setErtelemeModal(null);
                           odemeProfiliYukle(odemeProfil.isletme.id);
                           odemeleriYukle();
@@ -7912,7 +7924,7 @@ function SuperAdminPanel({ kullanici }) {
                       </div>
 
                       {/* Müşteri Olarak Giriş */}
-                      <button onClick={async () => { const res = await api.post(`/admin/impersonate/${isl.id}`); if (res.token) { window.open(`${window.location.origin}?impersonate=${res.token}`, '_blank'); } else { alert(res.hata || "Impersonate başarısız"); }}} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: "rgba(245,158,11,.06)", textAlign: "left" }}>
+                      <button onClick={async () => { const res = await api.post(`/admin/impersonate/${isl.id}`); if (res.token) { localStorage.setItem("randevugo_impersonate_token", res.token); window.open(`${window.location.origin}?impersonate=1`, '_blank'); } else { alert(res.hata || "Impersonate başarısız"); }}} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: "rgba(245,158,11,.06)", textAlign: "left" }}>
                         <div style={{ fontSize: 24, marginBottom: 6 }}>👤</div>
                         <div style={{ fontWeight: 700, fontSize: 14, color: "#f59e0b" }}>Müşteri Olarak Giriş</div>
                         <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İşletmenin panelini gör</div>
@@ -7947,14 +7959,14 @@ export default function App() {
     if (params.get("impersonate") === "1") {
       const impToken = localStorage.getItem("randevugo_impersonate_token");
       if (impToken) {
-        localStorage.setItem("randevugo_token", impToken);
-        localStorage.setItem("randevugo_impersonated", "true");
+        sessionStorage.setItem("randevugo_imp_token", impToken);
+        api.token = impToken;
         localStorage.removeItem("randevugo_impersonate_token");
         window.history.replaceState({}, "", window.location.pathname);
       }
     }
 
-    const token = localStorage.getItem("randevugo_token");
+    const token = api.token;
     if (token) {
       api.token = token;
       api.get("/auth/profil").then(d => {
@@ -7969,7 +7981,7 @@ export default function App() {
   // Kullanıcı set olunca Socket.IO bağlantısı kur (canlı panel için)
   useEffect(() => {
     if (kullanici) {
-      const token = localStorage.getItem("randevugo_token");
+      const token = api.token;
       if (token) socketConnect(token);
     }
     return () => { /* app unmount: */ };
@@ -7983,5 +7995,15 @@ export default function App() {
 
   if (!kullanici) return <Login onLogin={setKullanici} />;
   if (kullanici.rol === "superadmin") return <SuperAdminPanel kullanici={kullanici} />;
+  if (sessionStorage.getItem("randevugo_imp_token")) {
+    // Müşteri olarak giriş sekmesi: görünür uyarı + çıkış (oturum yalnız bu sekmede)
+    return (<>
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10000, background: "#f59e0b", color: "#000", padding: "6px 12px", fontSize: 13, fontWeight: 700, textAlign: "center" }}>
+        👤 Müşteri olarak görüntülüyorsunuz: {kullanici.isletme_isim || kullanici.email}{" "}
+        <button onClick={() => { sessionStorage.removeItem("randevugo_imp_token"); window.close(); window.location.reload(); }} style={{ marginLeft: 8, padding: "2px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 700 }}>Çıkış</button>
+      </div>
+      <Dashboard kullanici={kullanici} />
+    </>);
+  }
   return <Dashboard kullanici={kullanici} />;
 }
