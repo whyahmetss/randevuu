@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { bugunTarih, simdiSaat } = require('../utils/tarih');
+const { bugunTarih, simdiSaat, tarihFormatla } = require('../utils/tarih');
 const socketServer = require('./socketServer');
 const pushService = require('./pushService');
 const googleCalendar = require('./googleCalendar');
@@ -23,7 +23,7 @@ class RandevuService {
 
     // tarih parametresi Date objesi olabilir (PostgreSQL), string'e çevir
     if (tarih instanceof Date) {
-      tarih = tarih.toISOString().slice(0, 10);
+      tarih = tarihFormatla(tarih); // toISOString UTC'ye çevirip bir önceki günü veriyordu
     } else if (tarih && typeof tarih !== 'string') {
       tarih = String(tarih);
     }

@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const pool = require('../config/db');
-const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
+const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla } = require('../utils/tarih');
 const botMesajlar = require('../utils/botMesajlar');
 
 class TelegramService {
@@ -762,7 +762,7 @@ class TelegramService {
               try {
                 const rCheck = (await pool.query('SELECT tarih, saat FROM randevular WHERE id=$1', [iptalId])).rows[0];
                 if (rCheck) {
-                  const rTarih = new Date(rCheck.tarih).toISOString().split('T')[0];
+                  const rTarih = tarihFormatla(rCheck.tarih);
                   const rSaat = String(rCheck.saat).substring(0,5);
                   const randevuZamani = new Date(`${rTarih}T${rSaat}:00`);
                   const kalanSaat = (randevuZamani - Date.now()) / 3600000;

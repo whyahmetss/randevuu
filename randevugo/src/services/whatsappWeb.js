@@ -3,7 +3,7 @@ const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
 const pino = require('pino');
-const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
+const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla } = require('../utils/tarih');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
 const botMesajlar = require('../utils/botMesajlar');
 const socketServer = require('./socketServer');
@@ -1188,7 +1188,7 @@ class WhatsAppWebService extends EventEmitter {
           const iptalSinir = isletme.iptal_sinir_saat || 0;
           if (iptalSinir > 0) {
             try {
-              const rTarih = new Date(secilenRandevu.tarih).toISOString().split('T')[0];
+              const rTarih = tarihFormatla(secilenRandevu.tarih);
               const rSaat = String(secilenRandevu.saat).substring(0,5);
               const randevuZamani = new Date(`${rTarih}T${rSaat}:00`);
               const kalanSaat = (randevuZamani - Date.now()) / 3600000;
@@ -1538,7 +1538,7 @@ class WhatsAppWebService extends EventEmitter {
   // Bekleme listesi — iptal olduğunda ilk sıradaki müşteriye bildir
   async _beklemeListesiBildir(isletmeId, isletme, tarih, saat, hizmetId) {
     try {
-      const tarihStr = typeof tarih === 'string' ? tarih : new Date(tarih).toISOString().slice(0, 10);
+      const tarihStr = typeof tarih === 'string' ? tarih : tarihFormatla(tarih);
       const bekleyen = (await pool.query(`
         SELECT bl.*, h.isim as hizmet_isim
         FROM bekleme_listesi bl
