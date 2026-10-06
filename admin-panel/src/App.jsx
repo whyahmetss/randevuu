@@ -2246,14 +2246,14 @@ function Dashboard({ kullanici }) {
             randevular.forEach(r => { if (durumSayac[r.durum] !== undefined) durumSayac[r.durum]++; else durumSayac.bekliyor++; });
 
             const bitmisDurum = ['iptal', 'tamamlandi', 'gelmedi'];
-            const onayBekle = (r) => r.durum === 'bekliyor' || r.durum === 'onay_bekliyor';
+            const onayBekle = (r) => r.durum === 'onay_bekliyor'; // 'bekliyor' yalnız eski demo verisi; sayaç anlamsız '0:00' gösteriyordu
             const timeoutDk = ayarlar?.onay_timeout_dk || 30;
 
             const kalanSure = (r) => {
               if (!onayBekle(r) || !r.olusturma_tarihi) return null;
               const bitis = new Date(r.olusturma_tarihi).getTime() + timeoutDk * 60000;
               const kalan = Math.max(0, bitis - Date.now());
-              if (kalan <= 0) return "0:00";
+              if (kalan <= 0) return "süresi doldu";
               const dk = Math.floor(kalan / 60000);
               const sn = Math.floor((kalan % 60000) / 1000);
               return `${dk}:${String(sn).padStart(2, "0")}`;
@@ -2451,7 +2451,7 @@ function Dashboard({ kullanici }) {
                     const bitmis = bitmisDurum.includes(r.durum);
                     const bekle = onayBekle(r);
                     const kalan = kalanSure(r);
-                    const kalanDk = kalan ? parseInt(kalan.split(":")[0]) : 999;
+                    const kalanDk = kalan ? (kalan.includes(":") ? parseInt(kalan.split(":")[0]) : 0) : 999;
 
                     return (
                     <div key={r.id}

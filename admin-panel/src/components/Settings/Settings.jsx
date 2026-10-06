@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { pushIzinDurumu, pushAc, pushKapat, pushTest, pushDesteklenir } from '../../lib/push';
 import { ayarOku as bildirimAyarOku, ayarYaz as bildirimAyarYaz, sesListesi, bildirimCal, sesKilidiAc } from '../../lib/bildirim';
 import GoogleCalendar from './GoogleCalendar';
+import { bookingUrl, BOOKING_BASE } from '../../lib/config';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -346,7 +347,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           <div>
             <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Slug (URL Kısaltması)</label>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontSize: 13, color: "var(--dim)", whiteSpace: "nowrap" }}>{window.location.origin}/book/</span>
+              <span style={{ fontSize: 13, color: "var(--dim)", whiteSpace: "nowrap" }}>{BOOKING_BASE}/book/</span>
               <input
                 value={ayarlar.slug || ""}
                 onChange={e => setAyarlar({...ayarlar, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '').slice(0, 50)})}
@@ -364,10 +365,10 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                 border: "1px solid rgba(16,185,129,.15)", fontSize: 13, fontWeight: 600,
                 color: "#10b981", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
               }}>
-                {window.location.origin}/book/{ayarlar.slug}
+                {bookingUrl(ayarlar.slug)}
               </div>
               <button onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/book/${ayarlar.slug}`);
+                navigator.clipboard.writeText(bookingUrl(ayarlar.slug));
                 setSlugKopyalandi(true);
                 setTimeout(() => setSlugKopyalandi(false), 2000);
               }} style={{
@@ -379,7 +380,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               }}>
                 {slugKopyalandi ? "Kopyalandı!" : "Kopyala"}
               </button>
-              <a href={`${window.location.origin}/book/${ayarlar.slug}`} target="_blank" rel="noopener noreferrer" style={{
+              <a href={bookingUrl(ayarlar.slug)} target="_blank" rel="noopener noreferrer" style={{
                 padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)",
                 background: "var(--surface)", color: "var(--text)",
                 fontWeight: 700, fontSize: 12, cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap",

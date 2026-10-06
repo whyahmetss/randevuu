@@ -21,7 +21,10 @@ export const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
 export const API_ORIGIN = API_URL.replace(/\/api\/?$/, '');
 
 // Rezervasyon linki oluşturucu (backend /book/:slug endpoint'ini sunar)
-export const bookingUrl = (slug) => `${API_ORIGIN}/book/${slug}`;
+// Müşteriye verilen tek rezervasyon adresi. Eskiden üç farklı adres vardı (onrender.com, punycode
+// admin.xn--…, randevu.sırago.com); API'deki /book artık React sayfasına yönlendiriyor.
+export const BOOKING_BASE = import.meta.env.VITE_BOOKING_BASE || 'https://randevu.sırago.com';
+export const bookingUrl = (slug) => `${BOOKING_BASE}/book/${slug}`;
 
 // Socket.IO bağlantı URL'i
 export const SOCKET_URL = API_ORIGIN;
