@@ -2467,7 +2467,7 @@ function Dashboard({ kullanici }) {
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 12, color: "var(--dim)" }}>
                             <span>📞 {r.musteri_telefon}</span>
-                            {(r.hizmetler_adlari || r.hizmet_isim) && <span>✂️ {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}{(Number(r.toplam_fiyat) || Number(r.fiyat)) ? ` · ${Number(r.toplam_fiyat || r.fiyat).toLocaleString("tr-TR")}₺` : ""}</span>}
+                            {(r.hizmetler_adlari || r.hizmet_isim) && <span>✂️ {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}{(Number(r.toplam_fiyat) || Number(r.fiyat)) ? ` · ${(Number(r.toplam_fiyat) || Number(r.fiyat)).toLocaleString("tr-TR")}₺` : ""}</span>}
                             {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
                             {r.kapora_durumu && r.kapora_durumu !== 'yok' && (
                               <span style={{ color: r.kapora_durumu === 'odendi' ? '#2cb872' : '#f59e0b', fontWeight: 600 }}>

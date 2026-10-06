@@ -910,6 +910,18 @@ const PORT = process.env.PORT || 3000;
   }
 })();
 
+// Eksik kolonlar — büyük migration bloğu tek try içinde olduğundan bir hata sonrakileri atlıyor;
+// kritik kolonlar burada her biri bağımsız eklenir.
+(async () => {
+  const ekKolonlar = [
+    `ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS iptal_randevu_id INTEGER`,
+    `ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS notlar TEXT`,
+  ];
+  for (const sql of ekKolonlar) {
+    try { await pool.query(sql); } catch (e) { console.log('⚠️ Kolon eklenemedi:', sql, e.message); }
+  }
+})();
+
 // Middleware - Güvenlik
 app.set('trust proxy', 1); // Render reverse proxy
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
