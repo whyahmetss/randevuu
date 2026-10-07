@@ -994,6 +994,8 @@ app.use('/api/iletisim', publicFormLimiter);
 app.use('/api/referans/kullan', publicFormLimiter);
 app.use('/api/book', bookingLimiter);
 app.use('/api/webhook', webhookLimiter);
+// Venüs okuma uçları (kendi anahtarı ve limiti var; VENUS_API_ANAHTAR yoksa 404)
+app.use('/api/venus/v1', require('./routes/venus'));
 app.use('/api', apiLimiter, apiRoutes);
 
 // Online Booking — eski public/booking.html emekli: OTP'siz captcha modu ve kaçışsız
