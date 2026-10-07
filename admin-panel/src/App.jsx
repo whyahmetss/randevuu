@@ -7,6 +7,7 @@ import Kasa from "./components/Kasa/Kasa";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
+import EkipYonetimi from "./components/Ekip/EkipYonetimi";
 import SmsAyarlari from "./components/Settings/SmsAyarlari";
 import GeceRaporu from "./components/Settings/GeceRaporu";
 import YorumAvcisi from "./components/Settings/YorumAvcisi";
@@ -1170,7 +1171,12 @@ function Dashboard({ kullanici }) {
     try {
       const d = await api.post("/bot/test", { telefon: testTelefon, mesaj: testMesaj });
       if (d && d.cevaplar && d.cevaplar.length > 0) {
-        d.cevaplar.forEach(c => setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: c }]));
+        // Bot düğmeli cevapta {metin, butonlar} döndürür; React nesneyi çizemez (hata #31) → metne çevir
+        d.cevaplar.forEach(c => {
+          const mesaj = typeof c === "string" ? c : String(c?.metin ?? c?.mesaj ?? c?.text ?? "");
+          const butonlar = Array.isArray(c?.butonlar) ? c.butonlar.map(b => typeof b === "string" ? b : (b?.text || b?.body || b?.baslik || "")).filter(Boolean) : [];
+          setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj, butonlar }]);
+        });
       } else {
         setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: d?.hata || "Bot yanıt veremedi. Loglara bakın." }]);
       }
@@ -1871,7 +1877,12 @@ function Dashboard({ kullanici }) {
                         fontSize: 12, maxWidth: "85%", lineHeight: 1.4,
                         border: m.yon === "giden" ? "none" : "1px solid var(--border)"
                       }}>
-                        {m.mesaj}
+                        <span style={{ whiteSpace: "pre-wrap" }}>{String(m.mesaj ?? "")}</span>
+                        {m.butonlar?.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                            {m.butonlar.map((b, j) => <span key={j} className="pill pill-xs">{b}</span>)}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2586,7 +2597,17 @@ function Dashboard({ kullanici }) {
                     <div className="chat-empty">Müşteri gibi mesaj yazarak botu test edin...</div>
                   )}
                   {testCevaplar.map((c, i) => (
-                    <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>{c.mesaj}</div>
+                    <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>
+                      <span style={{ whiteSpace: "pre-wrap" }}>{String(c.mesaj ?? "")}</span>
+                      {c.butonlar?.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                          {c.butonlar.map((b, j) => (
+                            <button key={j} type="button" className="pill pill-xs" style={{ cursor: "pointer" }}
+                              onClick={() => setTestMesaj(String(j + 1))} title="Müşteri bu seçeneği seçerse">{j + 1}. {b}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                   {testYukleniyor && (
                     <div className="chat-typing"><span>●</span><span style={{ margin: "0 3px" }}>●</span><span>●</span></div>
@@ -3294,6 +3315,11 @@ function Dashboard({ kullanici }) {
 
 // ==================== SUPER ADMIN PANEL ====================
 function SuperAdminPanel({ kullanici }) {
+  // Ekip yetkisi (config/ekip.js ile aynı anahtarlar). ekip_yetkileri yoksa kurucu: her şey açık.
+  // Asıl kontrol sunucuda; burada yalnız görmediği bölümü menüde göstermemek için.
+  const ekipYetki = Array.isArray(kullanici?.ekip_yetkileri) ? kullanici.ekip_yetkileri : null;
+  const izinli = (y) => !ekipYetki || (y !== 'kurucu' && ekipYetki.includes(y));
+  const GOREV_AD = { satis: 'SATIŞ', destek: 'DESTEK & KURULUM', finans: 'FİNANS & OPERASYON' };
   const [sayfa, setSayfa] = useState("dashboard");
   const [isletmeler, setIsletmeler] = useState([]);
   const [odemeler, setOdemeler] = useState([]);
@@ -3529,10 +3555,9 @@ function SuperAdminPanel({ kullanici }) {
 
   useEffect(() => {
     isletmeleriYukle();
-    odemeleriYukle();
+    if (izinli('odemeler')) odemeleriYukle();
     saasMetrikleriYukle();
-    destekYukle();
-    iletisimYukle();
+    if (izinli('destek')) { destekYukle(); iletisimYukle(); }
     bildirimleriYukle();
   }, []);
 
@@ -3881,7 +3906,15 @@ function SuperAdminPanel({ kullanici }) {
 
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
 
-  const menuItems = [
+  const MENU_YETKI = {
+    dashboard: 'genel', bildirimler: 'genel', aktivite: 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
+    isletmeler: 'genel', zombiler: 'isletmeler', onboarding: 'isletmeler',
+    destek: 'destek', duyurular: 'destek', iletisim: 'destek',
+    avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
+    odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza',
+    apiDash: 'sistem', sistemDurum: 'sistem', auditLog: 'kurucu', ekip: 'kurucu',
+  };
+  const tumMenu = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
     { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
     { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
@@ -3904,7 +3937,9 @@ function SuperAdminPanel({ kullanici }) {
     { id: "apiDash", icon: SVGA.sistemDurum, label: "API Dashboard" },
     { id: "auditLog", icon: SVGA.auditLog, label: "Audit Log" },
     { id: "sistemDurum", icon: SVGA.sistemDurum, label: "Sistem Durumu" },
+    { id: "ekip", icon: SVGA.referanslar, label: "Ekip" },
   ];
+  const menuItems = tumMenu.filter(m => izinli(MENU_YETKI[m.id] || 'kurucu'));
 
   const kategoriRenk = { berber: "#2f56c6", kuafor: "#5d4bb5", guzellik: "#ec4899", spa: "#a8590c", disci: "#1f6f4a", veteriner: "#b42318", diyetisyen: "#2f56c6", psikolog: "#5d4bb5", fizyoterapi: "#2f56c6", restoran: "#a8590c", cafe: "#a16207", spor: "#1f6f4a", egitim: "#5d4bb5", foto: "#d946ef", dovme: "#b42318", oto: "#6f6a62", hukuk: "#475569", genel: "#94a3b8" };
   const kategoriLabel = { berber: "💈 Berber", kuafor: "✂️ Kuaför", guzellik: "💅 Güzellik", spa: "🧖 Spa", disci: "🦷 Diş Kliniği", veteriner: "🐾 Veteriner", diyetisyen: "🥗 Diyetisyen", psikolog: "🧠 Psikolog", fizyoterapi: "🏥 Fizyoterapi", restoran: "🍽️ Restoran", cafe: "☕ Kafe", spor: "🏋️ Spor", egitim: "📚 Eğitim", foto: "📸 Fotoğraf", dovme: "🎨 Dövme", oto: "🚗 Oto Servis", hukuk: "⚖️ Hukuk", genel: "🏢 Genel" };
@@ -3977,7 +4012,7 @@ function SuperAdminPanel({ kullanici }) {
         </div>
         <div className="sidebar-user">
           <div className="u-email">{kullanici.email}</div>
-          <span className="sidebar-badge gold">SÜPER ADMİN</span>
+          <span className="sidebar-badge gold">{ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
         </div>
         <nav className="sidebar-nav">
           {menuItems.map(m => (
@@ -4213,7 +4248,8 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             </div>
 
-            {/* Ödeme durumu + Son işletmeler */}
+            {/* Ödeme durumu — yalnız ödeme yetkisi olana (yoksa liste boş gelir, "herkes ödedi" yanıltır) */}
+            {izinli('odemeler') && (
             <div className="grid-2">
               <div className="card-dark">
                 <h3 style={{ color: "var(--green)", fontSize: 15, fontWeight: 600 }} className="mb-12">Bu Ay Ödeyen ({buAyOdeyenler.length})</h3>
@@ -4238,6 +4274,7 @@ function SuperAdminPanel({ kullanici }) {
                   ))}
               </div>
             </div>
+            )}
 
             {/* Son işletmeler */}
             <div className="card-dark">
@@ -4775,6 +4812,11 @@ function SuperAdminPanel({ kullanici }) {
               </>
             )}
           </>
+        )}
+
+        {/* EKİP (yalnız kurucu) */}
+        {sayfa === "ekip" && izinli('kurucu') && (
+          <EkipYonetimi api={api} />
         )}
 
         {/* MAĞAZA PİLOTU */}
