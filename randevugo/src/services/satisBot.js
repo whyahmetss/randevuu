@@ -2005,7 +2005,8 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
     try {
     const [gonderilen, bekleyen, olumlu, olumsuz, wpYok, sicak] = await Promise.all([
       pool.query("SELECT COUNT(*) as c FROM potansiyel_musteriler WHERE wp_mesaj_durumu = 'gonderildi'"),
-      pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'bekliyor'"),
+      // "Cevap bekliyor" = hiç cevap gelmemiş; kendisi yazan ya da cevap verip AI'ın 'bekliyor' dediği kişiler sayılmaz
+      pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'bekliyor' AND (gelen_mesajlar IS NULL OR gelen_mesajlar = '')"),
       pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'olumlu'"),
       pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'olumsuz'"),
       pool.query("SELECT COUNT(*) as c FROM potansiyel_musteriler WHERE wp_mesaj_durumu = 'wp_yok'"),

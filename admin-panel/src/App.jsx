@@ -6452,7 +6452,7 @@ function SuperAdminPanel({ kullanici }) {
             <div style={{ display: "flex", gap: 4, background: "var(--bg)", borderRadius: 14, padding: 4, marginBottom: 20 }}>
               {[
                 { key: "gunluk", label: `📞 Bugün Ara (${avciGunluk.length})`, onClick: () => setAvciTab("gunluk") },
-                { key: "liste-hepsi", label: `📋 Tümü (${avciListe.length})`, onClick: () => { setAvciTab("liste"); setAvciKaynak("hepsi"); } },
+                { key: "liste-hepsi", label: `📋 Tümü (${avciStats?.toplam ?? avciListe.length})`, onClick: () => { setAvciTab("liste"); setAvciKaynak("hepsi"); } },
                 { key: "liste-maps", label: "🗺️ Maps", onClick: () => { setAvciTab("liste"); setAvciKaynak("maps"); } },
                 { key: "liste-sosyal", label: "📱 Sosyal", onClick: () => { setAvciTab("liste"); setAvciKaynak("sosyal"); } }
               ].map(t => {
