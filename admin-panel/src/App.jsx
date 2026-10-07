@@ -1171,7 +1171,12 @@ function Dashboard({ kullanici }) {
     try {
       const d = await api.post("/bot/test", { telefon: testTelefon, mesaj: testMesaj });
       if (d && d.cevaplar && d.cevaplar.length > 0) {
-        d.cevaplar.forEach(c => setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: c }]));
+        // Bot düğmeli cevapta {metin, butonlar} döndürür; React nesneyi çizemez (hata #31) → metne çevir
+        d.cevaplar.forEach(c => {
+          const mesaj = typeof c === "string" ? c : String(c?.metin ?? c?.mesaj ?? c?.text ?? "");
+          const butonlar = Array.isArray(c?.butonlar) ? c.butonlar.map(b => typeof b === "string" ? b : (b?.text || b?.body || b?.baslik || "")).filter(Boolean) : [];
+          setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj, butonlar }]);
+        });
       } else {
         setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: d?.hata || "Bot yanıt veremedi. Loglara bakın." }]);
       }
@@ -1872,7 +1877,12 @@ function Dashboard({ kullanici }) {
                         fontSize: 12, maxWidth: "85%", lineHeight: 1.4,
                         border: m.yon === "giden" ? "none" : "1px solid var(--border)"
                       }}>
-                        {m.mesaj}
+                        <span style={{ whiteSpace: "pre-wrap" }}>{String(m.mesaj ?? "")}</span>
+                        {m.butonlar?.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                            {m.butonlar.map((b, j) => <span key={j} className="pill pill-xs">{b}</span>)}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2587,7 +2597,17 @@ function Dashboard({ kullanici }) {
                     <div className="chat-empty">Müşteri gibi mesaj yazarak botu test edin...</div>
                   )}
                   {testCevaplar.map((c, i) => (
-                    <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>{c.mesaj}</div>
+                    <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>
+                      <span style={{ whiteSpace: "pre-wrap" }}>{String(c.mesaj ?? "")}</span>
+                      {c.butonlar?.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                          {c.butonlar.map((b, j) => (
+                            <button key={j} type="button" className="pill pill-xs" style={{ cursor: "pointer" }}
+                              onClick={() => setTestMesaj(String(j + 1))} title="Müşteri bu seçeneği seçerse">{j + 1}. {b}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                   {testYukleniyor && (
                     <div className="chat-typing"><span>●</span><span style={{ margin: "0 3px" }}>●</span><span>●</span></div>
