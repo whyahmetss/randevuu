@@ -1006,6 +1006,10 @@ app.get('/book/:slug', (req, res) => {
   res.redirect(302, `${BOOKING_BASE_URL}/book/${encodeURIComponent(req.params.slug)}`);
 });
 
+// Mağaza öneri linki — /m/:kod (tıklanmayı sayar, tedarikçinin ürün sayfasına yönlendirir)
+const magazaLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: 'Çok fazla istek', keyGenerator: limitAnahtari });
+app.get('/m/:kod', magazaLimiter, (req, res) => require('./controllers/magazaController').yonlendir(req, res));
+
 // Grup Booking sayfası — /g/:slug
 app.get('/g/:slug', (req, res) => {
   res.redirect(302, `${BOOKING_BASE_URL}/g/${encodeURIComponent(req.params.slug)}`);

@@ -4,6 +4,8 @@ import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoFull from "./assets/logo2.png";
 import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
+import Magaza from "./components/Magaza/Magaza";
+import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SmsAyarlari from "./components/Settings/SmsAyarlari";
 import GeceRaporu from "./components/Settings/GeceRaporu";
 import YorumAvcisi from "./components/Settings/YorumAvcisi";
@@ -845,6 +847,7 @@ function Dashboard({ kullanici }) {
   const [stats, setStats] = useState(null);
   const [randevular, setRandevular] = useState([]);
   const [sayfa, setSayfa] = useState("anasayfa");
+  const [magazaRandevu, setMagazaRandevu] = useState(null); // "Ürün öner" kısayolu: öneriyi randevuya bağlar
   const [hizmetler, setHizmetler] = useState([]);
   const [musteriler, setMusteriler] = useState([]);
   const [ayarlar, setAyarlar] = useState(null);
@@ -1186,7 +1189,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1203,6 +1206,7 @@ function Dashboard({ kullanici }) {
 
   // SVG ikonları (grup + items)
   const ICON = {
+    magaza: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
     kasa: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
     sms: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>,
     gece: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
@@ -1237,6 +1241,7 @@ function Dashboard({ kullanici }) {
       { id: "sadakat", icon: ICON.sadakat, label: "Sadakat", featureKey: "sadakat" },
       { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
       { id: "yorumavcisi", icon: ICON.yorum, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
+      { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
     ]},
     { type: 'group', id: 'gr_bot', icon: ICON.bot, label: 'Bot & Sistem', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
@@ -1334,7 +1339,7 @@ function Dashboard({ kullanici }) {
             const renderItem = (m, indent = false) => {
               const kilitli = m.featureKey && !ozellikAcik(m.featureKey);
               return (
-                <div key={m.id} onClick={() => { if (kilitli) { setPaketModal(true); } else { setSayfa(m.id); setMobileOpen(false); } }} className={`nav-item${sayfa === m.id ? ' active' : ''}${kilitli ? ' locked' : ''}`} style={indent ? { paddingLeft: 32 } : undefined} title={kilitli ? 'Bu özellik paketinizde yok — yükseltmek için tıklayın' : ''}>
+                <div key={m.id} onClick={() => { if (kilitli) { setPaketModal(true); } else { setSayfa(m.id); setMagazaRandevu(null); setMobileOpen(false); } }} className={`nav-item${sayfa === m.id ? ' active' : ''}${kilitli ? ' locked' : ''}`} style={indent ? { paddingLeft: 32 } : undefined} title={kilitli ? 'Bu özellik paketinizde yok — yükseltmek için tıklayın' : ''}>
                   <span className="nav-icon">{m.icon}</span>
                   <span>{m.label}</span>
                   {kilitli && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', opacity: 0.5 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
@@ -2498,6 +2503,11 @@ function Dashboard({ kullanici }) {
                           ))}
                         </div>
                       )}
+                      {r.durum === "tamamlandi" && ozellikAcik("magaza") && (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => { setMagazaRandevu(r.id); setSayfa("magaza"); }}>Ürün öner</button>
+                        </div>
+                      )}
                     </div>
                     );
                   })}
@@ -2847,6 +2857,11 @@ function Dashboard({ kullanici }) {
           {/* ── KASA ── */}
           {sayfa === "kasa" && (
             <Kasa api={api} />
+          )}
+
+          {/* ── MAĞAZA (ürün önerisi) ── */}
+          {sayfa === "magaza" && (
+            <Magaza api={api} randevuId={magazaRandevu} />
           )}
 
           {/* ── QR KOD ── */}
@@ -3859,6 +3874,7 @@ function SuperAdminPanel({ kullanici }) {
     auditLog: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
     sistemDurum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
     aktivite: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+    magaza: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>,
     bildirimler: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><circle cx="18" cy="3" r="3" fill="currentColor"/></svg>,
   };
 
@@ -3882,6 +3898,7 @@ function SuperAdminPanel({ kullanici }) {
     { id: "avci", icon: SVGA.avci, label: "Avcı Bot" },
     { id: "satisBot", icon: SVGA.satisBot, label: "Satış Bot" },
     { id: "musteriCRM", icon: SVGA.odemeler, label: "Müşteri CRM" },
+    { id: "magaza", icon: SVGA.magaza, label: "Mağaza" },
     { id: "qrKod", icon: SVGA.iletisim, label: "QR Kod" },
     { id: "apiDash", icon: SVGA.sistemDurum, label: "API Dashboard" },
     { id: "auditLog", icon: SVGA.auditLog, label: "Audit Log" },
@@ -4757,6 +4774,11 @@ function SuperAdminPanel({ kullanici }) {
               </>
             )}
           </>
+        )}
+
+        {/* MAĞAZA PİLOTU */}
+        {sayfa === "magaza" && (
+          <MagazaAdmin api={api} isletmeler={isletmeler} />
         )}
 
         {/* İLETİŞİM MESAJLARI */}
