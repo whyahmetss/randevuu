@@ -31,7 +31,9 @@ class AuthController {
         );
       } catch(e) { /* audit log opsiyonel */ }
 
-      res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null } });
+      if (kullanici.rol === 'superadmin') pool.query('UPDATE admin_kullanicilar SET son_giris = NOW() WHERE id = $1', [kullanici.id]).catch(() => {});
+      res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null,
+        ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null } });
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);
       res.status(500).json({ hata: 'Sunucu hatası oluştu' });
@@ -112,6 +114,10 @@ class AuthController {
         'SELECT ak.id, ak.isim, ak.email, ak.rol, ak.isletme_id, ak.aktif, ak.olusturma_tarihi, i.isim as isletme_isim FROM admin_kullanicilar ak LEFT JOIN isletmeler i ON ak.isletme_id = i.id WHERE ak.id = $1',
         [req.kullanici.id]
       )).rows[0];
+      if (kullanici && kullanici.rol === 'superadmin') {
+        kullanici.ekip_gorev = req.kullanici.ekip_gorev || null;
+        kullanici.ekip_yetkileri = req.kullanici.ekip_yetkileri || null;
+      }
       res.json({ kullanici });
     } catch (error) {
       res.status(500).json({ hata: error.message });

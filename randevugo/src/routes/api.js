@@ -427,4 +427,10 @@ router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodK
 router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
 router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
 
+// ==================== EKİP (yalnız kurucu — config/ekip.js: 'ekip' → 'kurucu') ====================
+const ekipController = require('../controllers/ekipController');
+router.get('/admin/ekip', ...saMw, (req, res) => ekipController.liste(req, res));
+router.post('/admin/ekip', ...saMw, (req, res) => ekipController.ekle(req, res));
+router.put('/admin/ekip/:id', ...saMw, (req, res) => ekipController.guncelle(req, res));
+
 module.exports = router;

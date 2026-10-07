@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { yolYetkisi, yetkiVar } = require('../config/ekip');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) console.warn('⚠️ CRITICAL: JWT_SECRET env variable tanımlı değil! Varsayılan secret kullanılıyor. Production ortamında mutlaka güçlü bir secret ayarlayın.');
@@ -25,6 +26,19 @@ const authMiddleware = async (req, res, next) => {
           if (k.grup_id) req.kullanici.grup_id = k.grup_id;
         }
       } catch (e) { /* ignore — JWT değerleri kullanılmaya devam eder */ }
+    }
+
+    // Ekip üyesi (süper admin): yetkiler ve aktiflik her istekte DB'den — kapatılan hesap anında düşer
+    if (decoded.rol === 'superadmin' && decoded.id) {
+      try {
+        const k = (await pool.query('SELECT aktif, ekip_yetkileri, ekip_gorev FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
+        if (!k || k.aktif === false) return res.status(401).json({ hata: 'Hesap kapatılmış' });
+        req.kullanici.ekip_yetkileri = Array.isArray(k.ekip_yetkileri) ? k.ekip_yetkileri : null;
+        req.kullanici.ekip_gorev = k.ekip_gorev || null;
+      } catch (e) {
+        // Kolon henüz yoksa (migration öncesi) tam yetkiyle devam; başka hatada güvenli taraf: kapalı
+        if (!/ekip_/.test(e.message)) return res.status(503).json({ hata: 'Yetki kontrol edilemedi' });
+      }
     }
 
     // Grup sahibi ise aktif şube header'ı işle
@@ -81,6 +95,11 @@ const rolKontrol = (...izinliRoller) => (req, res, next) => {
 const superAdminMiddleware = (req, res, next) => {
   if (req.kullanici.rol !== 'superadmin') {
     return res.status(403).json({ hata: 'Bu işlem için yetkiniz yok' });
+  }
+  // Ekip yetkisi: hangi bölüm (config/ekip.js); bilinmeyen yol yalnız kurucuya açık
+  const gerek = yolYetkisi(req.method, req.originalUrl);
+  if (!yetkiVar(req.kullanici, gerek)) {
+    return res.status(403).json({ hata: 'Bu bölüm için yetkiniz yok', yetki: gerek });
   }
   next();
 };
