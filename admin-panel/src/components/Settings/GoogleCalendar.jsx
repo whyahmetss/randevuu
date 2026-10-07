@@ -95,11 +95,11 @@ export default function GoogleCalendar({ api }) {
       <div className="row gap-10 mb-16" style={{ alignItems: "center" }}>
         <div style={{
           width: 44, height: 44, borderRadius: 12,
-          background: "linear-gradient(135deg, #4285F4 0%, #34A853 50%, #FBBC05 100%)",
+          background: "#4285F4",
           display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
         }}>📅</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: "var(--text)" }}>Google Calendar Senkronizasyonu</div>
+          <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>Google Calendar Senkronizasyonu</div>
           <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>
             Randevularınız otomatik Google Takvim'e yazılır. Google'daki özel eventleriniz booking'i otomatik bloke eder.
           </div>
@@ -109,15 +109,15 @@ export default function GoogleCalendar({ api }) {
       {!durum.bagli ? (
         <>
           <div style={{
-            background: "rgba(59,130,246,.08)",
-            border: "1px solid rgba(59,130,246,.2)",
+            background: "rgba(47,86,198,.08)",
+            border: "1px solid rgba(47,86,198,.2)",
             borderRadius: 12,
             padding: "14px 18px",
             marginBottom: 16,
             fontSize: 13,
             color: "var(--text)",
           }}>
-            <div style={{ fontWeight: 700, marginBottom: 8 }}>🔄 İki yönlü takvim senkronizasyonu</div>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>🔄 İki yönlü takvim senkronizasyonu</div>
             <div style={{ display: "grid", gap: 6, color: "var(--dim)" }}>
               <div>✅ SıraGO'da randevu açıldığında → Google Takvim'e event olarak eklenir</div>
               <div>✅ Randevu iptal olunca → Google'dan otomatik silinir</div>
@@ -165,8 +165,8 @@ export default function GoogleCalendar({ api }) {
       ) : (
         <>
           <div style={{
-            background: "rgba(16,185,129,.08)",
-            border: "1px solid rgba(16,185,129,.3)",
+            background: "rgba(31,111,74,.08)",
+            border: "1px solid rgba(31,111,74,.3)",
             borderRadius: 12,
             padding: "14px 18px",
             marginBottom: 16,
@@ -174,7 +174,7 @@ export default function GoogleCalendar({ api }) {
             <div className="row gap-10" style={{ alignItems: "center" }}>
               <div style={{ fontSize: 28 }}>✅</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, color: "#10b981", fontSize: 14 }}>Google Takvim bağlı</div>
+                <div style={{ fontWeight: 600, color: "#1f6f4a", fontSize: 14 }}>Google Takvim bağlı</div>
                 <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{durum.email}</div>
                 {durum.son_senkron && (
                   <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>
@@ -208,9 +208,9 @@ export default function GoogleCalendar({ api }) {
               width: "100%",
               padding: "12px 18px",
               borderRadius: 10,
-              border: "1px solid rgba(239,68,68,.3)",
-              background: "rgba(239,68,68,.08)",
-              color: "#ef4444",
+              border: "1px solid rgba(180,35,24,.3)",
+              background: "rgba(180,35,24,.08)",
+              color: "#b42318",
               fontSize: 13,
               fontWeight: 600,
               cursor: yukleniyor ? "wait" : "pointer",
@@ -240,7 +240,7 @@ function AyarSatiri({ aktif, onToggle, baslik, aciklama }) {
         onClick={onToggle}
         style={{
           width: 44, height: 24, borderRadius: 12,
-          background: aktif ? "#10b981" : "var(--border)",
+          background: aktif ? "#1f6f4a" : "var(--border)",
           border: "none",
           cursor: "pointer",
           position: "relative",

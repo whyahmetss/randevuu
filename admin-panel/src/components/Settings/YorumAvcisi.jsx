@@ -25,7 +25,7 @@ export default function YorumAvcisi({ api }) {
 
   const S = {
     card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' },
-    label: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
+    label: { fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
   };
 
   const varsayilanSablon = `Merhaba {musteri_adi}! 😊\n\n{isletme_adi}'deki deneyiminiz nasıldı?\n\nBizi Google'da değerlendirirseniz çok mutlu oluruz ⭐\n{google_maps_link}\n\nTeşekkürler, iyi günler! 🙏`;
@@ -37,8 +37,8 @@ export default function YorumAvcisi({ api }) {
         {[['ayarlar', '⚙️ Ayarlar'], ['log', '📋 Gönderim Log']].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
-            background: tab === id ? 'var(--gradient, linear-gradient(135deg,#54E097,#2cb872))' : 'transparent',
-            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 700, fontSize: 13,
+            background: tab === id ? 'var(--gradient, #1f6f4a)' : 'transparent',
+            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 600, fontSize: 13,
             cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s',
           }}>{label}</button>
         ))}
@@ -48,16 +48,16 @@ export default function YorumAvcisi({ api }) {
       {istatistik && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 16 }} className="settings-grid-3">
           <div style={S.card}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bu Ay Toplam</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#f59e0b' }}>{istatistik.toplam}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bu Ay Toplam</div>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#a8590c' }}>{istatistik.toplam}</div>
           </div>
           <div style={S.card}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Gönderilen</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#22c55e' }}>{istatistik.gonderilen}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Gönderilen</div>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#1f6f4a' }}>{istatistik.gonderilen}</div>
           </div>
           <div style={S.card}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bekleyen</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#3b82f6' }}>{istatistik.bekleyen}</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bekleyen</div>
+            <div style={{ fontSize: 24, fontWeight: 600, color: '#2f56c6' }}>{istatistik.bekleyen}</div>
           </div>
         </div>
       )}
@@ -65,7 +65,7 @@ export default function YorumAvcisi({ api }) {
       {tab === 'ayarlar' && (
         <>
           {kaydedildi && (
-            <div style={{ background: 'rgba(84,224,151,.1)', border: '1px solid rgba(84,224,151,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#2cb872', fontSize: 13, fontWeight: 700 }}>
+            <div style={{ background: 'rgba(31,111,74,.1)', border: '1px solid rgba(31,111,74,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#1f6f4a', fontSize: 13, fontWeight: 600 }}>
               Yorum avcısı ayarları kaydedildi
             </div>
           )}
@@ -74,14 +74,14 @@ export default function YorumAvcisi({ api }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
               <span style={{ fontSize: 28 }}>⭐</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>Yorum Avcısı (Google Review Botu)</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Yorum Avcısı (Google Review Botu)</div>
                 <div style={{ fontSize: 12, color: 'var(--dim)' }}>Randevu tamamlandıktan sonra otomatik Google yorum linki gönder</div>
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input type="checkbox" checked={!!ayarlar.yorum_avcisi_aktif} onChange={e => setAyarlar({...ayarlar, yorum_avcisi_aktif: e.target.checked})}
-                    style={{ accentColor: '#f59e0b', width: 20, height: 20 }} />
-                  <span style={{ fontWeight: 700, fontSize: 14, color: ayarlar.yorum_avcisi_aktif ? '#f59e0b' : 'var(--dim)' }}>
+                    style={{ accentColor: '#a8590c', width: 20, height: 20 }} />
+                  <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.yorum_avcisi_aktif ? '#a8590c' : 'var(--dim)' }}>
                     {ayarlar.yorum_avcisi_aktif ? 'Aktif' : 'Kapalı'}
                   </span>
                 </label>
@@ -118,9 +118,9 @@ export default function YorumAvcisi({ api }) {
 
           <button onClick={kaydet} style={{
             width: '100%', padding: '14px', borderRadius: 14, border: 'none',
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(245,158,11,.3)', fontFamily: 'inherit',
+            background: '#a8590c',
+            color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(168,89,12,.3)', fontFamily: 'inherit',
           }}>
             Kaydet
           </button>
@@ -129,7 +129,7 @@ export default function YorumAvcisi({ api }) {
 
       {tab === 'log' && (
         <div style={S.card}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>Gönderim Geçmişi</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>Gönderim Geçmişi</div>
           {talepler.length === 0 ? (
             <div style={{ padding: 30, textAlign: 'center', color: 'var(--dim)', fontSize: 13 }}>Henüz yorum talebi gönderilmemiş</div>
           ) : (
@@ -138,7 +138,7 @@ export default function YorumAvcisi({ api }) {
                 <thead>
                   <tr style={{ background: 'var(--bg)' }}>
                     {['Müşteri', 'Telefon', 'Planlanan', 'Gönderim', 'Durum'].map((h, i) => (
-                      <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
+                      <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -151,9 +151,9 @@ export default function YorumAvcisi({ api }) {
                       <td style={{ padding: '10px 12px', fontSize: 12, whiteSpace: 'nowrap' }}>{t.gonderim_tarihi ? new Date(t.gonderim_tarihi).toLocaleString('tr-TR') : '—'}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <span style={{
-                          padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                          background: t.durum === 'gonderildi' ? 'rgba(34,197,94,.1)' : t.durum === 'bekliyor' ? 'rgba(59,130,246,.1)' : 'rgba(239,68,68,.1)',
-                          color: t.durum === 'gonderildi' ? '#22c55e' : t.durum === 'bekliyor' ? '#3b82f6' : '#ef4444'
+                          padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                          background: t.durum === 'gonderildi' ? 'rgba(31,111,74,.1)' : t.durum === 'bekliyor' ? 'rgba(47,86,198,.1)' : 'rgba(180,35,24,.1)',
+                          color: t.durum === 'gonderildi' ? '#1f6f4a' : t.durum === 'bekliyor' ? '#2f56c6' : '#b42318'
                         }}>{t.durum === 'gonderildi' ? 'Gönderildi' : t.durum === 'bekliyor' ? 'Bekliyor' : t.durum}</span>
                       </td>
                     </tr>

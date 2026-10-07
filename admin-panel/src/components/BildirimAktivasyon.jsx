@@ -70,15 +70,14 @@ export default function BildirimAktivasyon() {
     <div style={{
       position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
       zIndex: 9998, maxWidth: 540, width: '92%',
-      background: 'linear-gradient(135deg, #2cb872, #10b981)',
+      background: '#1b1a17',
       color: '#fff', borderRadius: 16, padding: '14px 18px',
-      boxShadow: '0 14px 40px rgba(16,185,129,.35)',
+      boxShadow: '0 14px 40px rgba(31,111,74,.35)',
       display: 'flex', alignItems: 'center', gap: 14,
       animation: 'slideDown .4s ease'
     }}>
-      <div style={{ fontSize: 30, lineHeight: 1 }}>🔔</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 3 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>
           Sesli bildirimleri aktifleştirin
         </div>
         <div style={{ fontSize: 12, opacity: .92, lineHeight: 1.4 }}>
@@ -87,7 +86,7 @@ export default function BildirimAktivasyon() {
       </div>
       <button onClick={aktifEt} disabled={yukleniyor} style={{
         padding: '10px 18px', borderRadius: 10, border: 'none',
-        background: '#fff', color: '#10b981', fontWeight: 800, fontSize: 13,
+        background: '#f6f5f2', color: '#1b1a17', fontWeight: 500, fontSize: 13,
         cursor: 'pointer', whiteSpace: 'nowrap',
         boxShadow: '0 2px 8px rgba(0,0,0,.1)',
         opacity: yukleniyor ? 0.6 : 1

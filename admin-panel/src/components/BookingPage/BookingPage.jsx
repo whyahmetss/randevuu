@@ -510,7 +510,7 @@ export default function BookingPage({ slug }) {
         {/* ═══ HEADER ═══ */}
         <div className="bk-header">
           <div className="bk-header-row">
-            <div className="bk-logo">{kategoriIcon[isletme?.kategori] || '🏢'}</div>
+            <div className="bk-logo">{(isletme?.isim || 'S').trim().charAt(0).toLocaleUpperCase('tr')}</div>
             <div className="bk-info">
               <h1 className="bk-title">{isletme?.isim}</h1>
               {(isletme?.adres || isletme?.ilce) && (

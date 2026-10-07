@@ -36,11 +36,11 @@ export default function BackendHealth({ compact = false }) {
   }, []);
 
   const cfg = {
-    checking: { renk: '#64748b', label: 'Kontrol…', ikon: '⏳' },
-    ok:       { renk: '#10b981', label: 'Canlı',    ikon: '✅' },
-    slow:     { renk: '#f59e0b', label: 'Yavaş',    ikon: '⚠️' },
-    down:     { renk: '#ef4444', label: 'Kapalı',   ikon: '❌' }
-  }[durum.status] || { renk: '#64748b', label: '?', ikon: '?' };
+    checking: { renk: '#6f6a62', label: 'Kontrol…', ikon: '⏳' },
+    ok:       { renk: '#1f6f4a', label: 'Canlı',    ikon: '✅' },
+    slow:     { renk: '#a8590c', label: 'Yavaş',    ikon: '⚠️' },
+    down:     { renk: '#b42318', label: 'Kapalı',   ikon: '❌' }
+  }[durum.status] || { renk: '#6f6a62', label: '?', ikon: '?' };
 
   const tip = `Backend: ${cfg.label}${durum.latency ? ` · ${durum.latency}ms` : ''}${durum.lastCheck ? ` · ${durum.lastCheck.toLocaleTimeString('tr-TR')}` : ''}`;
 
@@ -53,7 +53,7 @@ export default function BackendHealth({ compact = false }) {
           display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10,
           padding: '3px 8px', borderRadius: 999,
           background: `${cfg.renk}15`, color: cfg.renk, cursor: 'pointer',
-          fontWeight: 700, userSelect: 'none'
+          fontWeight: 600, userSelect: 'none'
         }}
       >
         <span style={{
@@ -74,7 +74,7 @@ export default function BackendHealth({ compact = false }) {
         display: 'inline-flex', alignItems: 'center', gap: 8,
         padding: '6px 12px', borderRadius: 999,
         background: `${cfg.renk}12`, color: cfg.renk, cursor: 'pointer',
-        fontSize: 11, fontWeight: 700, userSelect: 'none',
+        fontSize: 11, fontWeight: 600, userSelect: 'none',
         border: `1px solid ${cfg.renk}30`
       }}
     >

@@ -52,10 +52,10 @@ export default function DukkanModuPopup() {
     }}>
       <div style={{
         maxWidth: 680, width: '100%',
-        background: 'linear-gradient(135deg, #54E097 0%, #2cb872 100%)',
+        background: '#1f6f4a',
         borderRadius: 32, padding: '48px 40px',
         textAlign: 'center', color: '#fff',
-        boxShadow: '0 30px 80px rgba(84,224,151,.5), 0 0 100px rgba(16,185,129,.4)',
+        boxShadow: '0 30px 80px rgba(31,111,74,.5), 0 0 100px rgba(31,111,74,.4)',
         animation: 'zoomIn .6s cubic-bezier(.34, 1.56, .64, 1)'
       }}>
         <div style={{
@@ -63,11 +63,11 @@ export default function DukkanModuPopup() {
           animation: 'bounce 1s ease-in-out infinite'
         }}>🎉</div>
         <div style={{
-          fontSize: 28, fontWeight: 800, letterSpacing: '.3em',
+          fontSize: 28, fontWeight: 600, letterSpacing: '.3em',
           opacity: .9, marginBottom: 8, textTransform: 'uppercase'
         }}>Yeni Randevu</div>
         <div style={{
-          fontSize: 48, fontWeight: 900, marginBottom: 14, letterSpacing: '-.5px',
+          fontSize: 48, fontWeight: 600, marginBottom: 14, letterSpacing: '-.5px',
           textShadow: '0 2px 20px rgba(0,0,0,.2)'
         }}>{musteri?.isim || 'Müşteri'}</div>
         <div style={{
@@ -76,10 +76,10 @@ export default function DukkanModuPopup() {
           backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,.2)'
         }}>
           <span style={{ fontSize: 28 }}>🕒</span>
-          <span style={{ fontSize: 44, fontWeight: 900 }}>{saatStr}</span>
+          <span style={{ fontSize: 44, fontWeight: 600 }}>{saatStr}</span>
         </div>
         {hizmet?.isim && (
-          <div style={{ fontSize: 20, fontWeight: 700, opacity: .95, marginBottom: 8 }}>
+          <div style={{ fontSize: 20, fontWeight: 600, opacity: .95, marginBottom: 8 }}>
             ✂️ {hizmet.isim}
             {hizmet.fiyat ? ` · ${Number(hizmet.fiyat).toLocaleString('tr-TR')}₺` : ''}
           </div>
@@ -93,8 +93,8 @@ export default function DukkanModuPopup() {
           onClick={() => setRandevu(null)}
           style={{
             padding: '18px 48px', borderRadius: 18, border: 'none',
-            background: '#fff', color: '#2cb872',
-            fontWeight: 900, fontSize: 20, cursor: 'pointer',
+            background: '#fff', color: '#1f6f4a',
+            fontWeight: 600, fontSize: 20, cursor: 'pointer',
             boxShadow: '0 10px 30px rgba(0,0,0,.15)',
             letterSpacing: '.5px'
           }}
