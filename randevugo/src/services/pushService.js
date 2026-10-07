@@ -18,7 +18,7 @@ const pool = require('../config/db');
 
 const PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 const PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
-const CONTACT = process.env.VAPID_CONTACT || 'mailto:destek@sirago.com';
+const CONTACT = process.env.VAPID_CONTACT || 'mailto:destek@xn--srago-n4a.com';
 
 let enabled = false;
 if (PUBLIC_KEY && PRIVATE_KEY) {

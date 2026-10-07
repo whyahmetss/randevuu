@@ -51,7 +51,7 @@ class IyzicoService {
           name: isletme.isim || 'İşletme',
           surname: 'Yönetici',
           gsmNumber: isletme.telefon ? `+90${isletme.telefon.replace(/^0/, '')}` : '+905000000000',
-          email: admin?.email || 'info@sirago.com',
+          email: admin?.email || 'info@xn--srago-n4a.com',
           identityNumber: '11111111111',
           registrationAddress: isletme.adres || 'Türkiye',
           ip: '85.34.78.112',

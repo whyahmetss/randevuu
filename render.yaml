@@ -38,7 +38,7 @@ services:
       - key: VAPID_PRIVATE_KEY
         sync: false
       - key: VAPID_CONTACT
-        value: mailto:destek@sirago.com
+        value: mailto:destek@xn--srago-n4a.com
 
   # PostgreSQL Database
   - type: pserv
