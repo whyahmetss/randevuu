@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KVKK Aydınlatma Metni — SıraGO</title>
-  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script>
@@ -13,13 +13,36 @@
     }
   </script>
   <style>body{font-family:'Inter',sans-serif}</style>
+
+  <!-- Tasarım sistemi v2 — panel ve rezervasyon sayfasıyla aynı dil -->
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style id="tasarim-v2">
+    body{font-family:'Geist',system-ui,sans-serif!important;background:#f6f5f2!important;color:#1b1a17}
+    h1,h2,h3,h4{letter-spacing:-0.025em}
+    .font-black,.font-extrabold{font-weight:600!important}
+    .font-bold{font-weight:600!important}
+    .font-light{font-weight:400!important}
+    .font-serif{font-family:'Geist',system-ui,sans-serif!important;font-style:normal!important}
+    .gt,.gt-warm,.gt-cool,[class*="bg-clip-text"]{background:none!important;-webkit-text-fill-color:currentColor!important;color:#1f6f4a!important}
+    .wa-g{background:#1f6f4a!important}
+    .wa-g:hover{background:#185a3c!important}
+    [class^="blur-"],[class*=" blur-"],.anim-float,.anim-morph,.pulse-r{display:none!important}
+    .rv,.rv-l,.rv-r{filter:none!important}
+    [class*="hover:scale"]:hover,[class*="hover:-translate"]:hover{transform:none!important}
+    [class*="shadow-wa"],[class*="shadow-blue"],[class*="shadow-purple"],[class*="shadow-amber"]{box-shadow:none!important}
+    .bg-gradient-to-br,.bg-gradient-to-b,.bg-gradient-to-r,.bg-gradient-to-t,.bg-gradient-to-l,.bg-gradient-to-bl,.bg-gradient-to-tr,.bg-gradient-to-tl{background-image:none!important}
+    .rounded-3xl,.rounded-4xl,.rounded-5xl{border-radius:16px!important}
+    section.min-h-screen{min-height:auto!important}
+    .bg-dark-950{background:#1b1a17!important}
+    .bg-dark-950 .gt,.bg-dark-950 .gt-warm,.bg-dark-950 .gt-cool,.bg-dark-950 [class*="bg-clip-text"],.bg-dark-900 .gt{color:#8fd0ad!important}
+  </style>
 </head>
 <body class="bg-white text-dark-800">
 
 <nav class="h-16 flex items-center px-6 border-b border-dark-100">
   <div class="max-w-4xl mx-auto w-full flex items-center justify-between">
     <a href="/" class="flex items-center gap-2">
-      <img src="/logo.png" class="w-8 h-8 rounded-lg" alt="SıraGO">
+      <span class="inline-grid place-items-center w-9 h-9 rounded-lg" style="background:#1b1a17;color:#f6f5f2;font-weight:600;font-size:17px" aria-label="SıraGO">S</span>
       <span class="text-lg font-extrabold text-dark-900">Sıra<span class="text-wa-500">GO</span></span>
     </a>
     <a href="/" class="text-sm text-dark-500 hover:text-dark-900 transition-colors">← Ana Sayfa</a>

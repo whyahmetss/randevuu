@@ -3996,12 +3996,12 @@ function SuperAdminPanel({ kullanici }) {
             <div className="metric-grid">
               {/* MRR Kartı — Sparkline ile */}
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "#1f6f4a" }} />
+                
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>MRR (Aylık Gelir)</div>
                     <div style={{ fontSize: 28, fontWeight: 600, color: "var(--text)", marginTop: 4 }}>{Number(saasMetrik?.mrr ?? buAyGelir ?? 0).toLocaleString("tr-TR")} ₺</div>
-                    {saasMetrik && saasMetrik.mrrBuyume !== 0 && (
+                    {saasMetrik && Number.isFinite(saasMetrik.mrrBuyume) && saasMetrik.mrrBuyume !== 0 && (
                       <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 6, marginTop: 6, fontSize: 11, fontWeight: 600, background: saasMetrik.mrrBuyume > 0 ? "rgba(31,111,74,.1)" : "rgba(180,35,24,.1)", color: saasMetrik.mrrBuyume > 0 ? "#1f6f4a" : "#b42318" }}>
                         {saasMetrik.mrrBuyume > 0 ? "▲" : "▼"} %{Math.abs(saasMetrik.mrrBuyume)}
                       </div>
@@ -4062,11 +4062,11 @@ function SuperAdminPanel({ kullanici }) {
 
               {/* ARPU Kartı — Değişim */}
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "#5d4bb5" }} />
+                
                 <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".5px" }}>ARPU (Kullanıcı Başına Gelir)</div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
                   <span style={{ fontSize: 28, fontWeight: 600, color: "var(--text)" }}>{saasMetrik?.arpu || 0} ₺</span>
-                  {saasMetrik && saasMetrik.arpuDegisim !== 0 && (
+                  {saasMetrik && Number.isFinite(saasMetrik.arpuDegisim) && saasMetrik.arpuDegisim !== 0 && (
                     <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: saasMetrik.arpuDegisim > 0 ? "rgba(31,111,74,.1)" : "rgba(180,35,24,.1)", color: saasMetrik.arpuDegisim > 0 ? "#1f6f4a" : "#b42318" }}>
                       {saasMetrik.arpuDegisim > 0 ? "▲" : "▼"} %{Math.abs(saasMetrik.arpuDegisim)}
                     </span>
