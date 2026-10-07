@@ -6796,6 +6796,16 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             </div>
 
+            {/* Otomatik fren: bot kendi kendini durdurduysa sebebi */}
+            {satisBotDurum?.fren && !satisBotDurum?.aktif && (
+              <div className="alert alert-error" style={{ marginBottom: 20 }}>
+                <b>Gönderim otomatik olarak durduruldu.</b> {satisBotDurum.fren.mesaj}
+                <div style={{ fontSize: 12, marginTop: 4, opacity: .85 }}>
+                  {new Date(satisBotDurum.fren.zaman).toLocaleString("tr-TR")} · Sebebi kontrol edip gönderimi yeniden başlatın; başlatınca bu uyarı kalkar.
+                </div>
+              </div>
+            )}
+
             {/* ─── ANA TAB BAR ─── */}
             <div className="row gap-8" style={{ marginBottom: 20 }}>
               {[{id:"bot",icon:"🤖",label:"Bot & Şablonlar"},{id:"kampanyalar",icon:"🎯",label:"Kampanyalar"},{id:"dagilim",icon:"📊",label:"Kategori Dağılımı"}].map(t => (

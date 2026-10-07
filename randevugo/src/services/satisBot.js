@@ -119,6 +119,9 @@ class SatisBot extends EventEmitter {
     this.konusmalar = {};
     this.maxReconnectAttempts = 5;
     this.roundRobinIndex = 0; // round-robin gönderimde sıra (gelen mesaj cevabı için)
+    // Otomatik fren: numara çıkışı/ban, günlük olumsuz cevap eşiği, art arda aynı hata → gönderim durur
+    this.fren = null; // { sebep, mesaj, zaman }
+    this._sonHata = { mesaj: null, sayi: 0 };
     // SuperAdmin'den kontrol edilebilir ayarlar
     this.ayarlar = {
       mesaiBaslangic: 9,   // saat
@@ -139,6 +142,8 @@ class SatisBot extends EventEmitter {
       typingIndicator: true, // "yazıyor..." göstersin mi (anti-ban)
       typingMinMs: 2000,     // Minimum typing süresi ms
       typingMaxMs: 6000,     // Maximum typing süresi ms
+      frenOlumsuzLimit: 3,   // günde bundan fazla olumsuz cevap gelirse gönderim durur
+      frenAyniHata: 3,       // aynı gönderim hatası art arda bu kadar tekrar ederse gönderim durur
     };
   }
 
@@ -386,10 +391,12 @@ class SatisBot extends EventEmitter {
           ns.durum = 'kapali';
           ns.sock = null;
           ns._reconnectTimer = setTimeout(() => this.numaraBaslat(numaraId), 1500);
-        } else if (statusCode === DisconnectReason.loggedOut) {
+        } else if (statusCode === DisconnectReason.loggedOut || statusCode === 403) {
           ns.durum = 'kapali';
           ns.qrBase64 = null;
           ns.sock = null;
+          // Numara çıkış yaptırıldı ya da yasaklandı: kalan numaralarla gönderime devam etmek de riskli
+          this._frenle('numara_cikis', `Numara #${numaraId} WhatsApp oturumu kapandı (kod ${statusCode}) — ban olabilir.`);
           try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {}
           try { await pool.query("UPDATE satis_bot_numaralar SET durum='bekliyor' WHERE id=$1", [numaraId]); } catch(e) {}
           console.log(`🗑️ [#${numaraId}] Oturum kapatıldı. Panelden yeniden QR tarayın.`);
@@ -712,6 +719,7 @@ class SatisBot extends EventEmitter {
       durum: this.durum,
       qrBase64: this.qrBase64,
       aktif: this.aktif,
+      fren: this.fren,
       gunlukGonderim: this.gunlukGonderim,
       sonGonderimTarihi: this.sonGonderimTarihi,
       ayarlar: this.ayarlar,
@@ -724,10 +732,32 @@ class SatisBot extends EventEmitter {
   // ═══════════════════════════════════════════════════
   // Mesaj Gönderim Döngüsü (Anti-Ban)
   // ═══════════════════════════════════════════════════
+  // Gönderimi durdurur, sebebi kaydeder (audit_log → Venüs uyarısı) ve Telegram'a bildirir.
+  // Yeniden başlatmak elle yapılır (panel ya da Venüs onayıyla); başlatınca fren kalkar.
+  async _frenle(sebep, mesaj) {
+    if (this.fren || !this.aktif) return;
+    this.gonderimDurdur();
+    this.fren = { sebep, mesaj, zaman: new Date().toISOString() };
+    console.log(`🛑 Satış Bot otomatik fren: ${mesaj}`);
+    try {
+      await pool.query("INSERT INTO audit_log (kullanici_email, islem, detay) VALUES ('sistem', 'satis_bot_fren', $1)",
+        [JSON.stringify(this.fren)]);
+    } catch (e) { /* log tablosu yoksa geç */ }
+    try { await this._telegramBildirimGonder(`🛑 *Satış botu durdu (otomatik fren)*\n\n${mesaj}\n\nKontrol edip panelden yeniden başlatın.`); } catch (e) {}
+  }
+
+  async _olumsuzBugun() {
+    const r = await pool.query(
+      "SELECT COUNT(*)::int AS c FROM satis_konusmalar WHERE durum = 'olumsuz' AND son_mesaj_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date");
+    return r.rows[0]?.c || 0;
+  }
+
   async gonderimBaslat() {
     if (this.durum !== 'bagli') return { hata: 'WhatsApp bağlı değil' };
     if (this.aktif) return { hata: 'Zaten çalışıyor' };
 
+    this.fren = null;
+    this._sonHata = { mesaj: null, sayi: 0 };
     this.aktif = true;
     // Her bağlı numara kendi paralel gönderim döngüsünü başlatır
     const baglilar = this._bagliSocklar();
@@ -823,6 +853,14 @@ class SatisBot extends EventEmitter {
     }
 
     try {
+      // Fren: bugün çok olumsuz cevap geldiyse mesaj dili/hedef kitle sorunlu olabilir
+      const olumsuz = await this._olumsuzBugun();
+      if (olumsuz > (this.ayarlar.frenOlumsuzLimit ?? 3)) {
+        await this._frenle('olumsuz', `Bugün ${olumsuz} olumsuz cevap geldi (eşik ${this.ayarlar.frenOlumsuzLimit ?? 3}).`);
+        this.numaraTimers.delete(numaraId);
+        return;
+      }
+
       // Kampanya bazlı lead seçimi
       const sonuc = await this.siradakiLeadGetir();
       if (!sonuc) {
@@ -850,6 +888,7 @@ class SatisBot extends EventEmitter {
 
       // Mesaj gönder — bu numaranın socket'i ile
       await this._numaraMesajGonder(ns, lead, kampanya);
+      this._sonHata = { mesaj: null, sayi: 0 };
       ng.gonderim++;
       this.numaraGunluk.set(numaraId, ng);
       this.gunlukGonderim++;
@@ -872,6 +911,13 @@ class SatisBot extends EventEmitter {
 
     } catch (err) {
       console.error(`❌ [#${numaraId}] Gönderim hatası:`, err.message);
+      const hm = String(err.message || err).slice(0, 200);
+      this._sonHata = this._sonHata.mesaj === hm ? { mesaj: hm, sayi: this._sonHata.sayi + 1 } : { mesaj: hm, sayi: 1 };
+      if (this._sonHata.sayi >= (this.ayarlar.frenAyniHata ?? 3)) {
+        await this._frenle('ayni_hata', `Aynı gönderim hatası ${this._sonHata.sayi} kez üst üste: ${hm}`);
+        this.numaraTimers.delete(numaraId);
+        return;
+      }
       this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 5 * 60 * 1000));
     }
   }
