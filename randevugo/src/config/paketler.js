@@ -15,6 +15,7 @@ const FALLBACK_PAKETLER = {
     // ─── Özellik flag'leri ───
     coklu_dil: false,       // ×
     kasa: false,             // ×
+    magaza: false,          // × Mağaza (ürün önerisi)
     prim: false,             // ×
     sadakat: false,          // ×
     winback: false,          // × Kayıp Müşteri
@@ -44,6 +45,7 @@ const FALLBACK_PAKETLER = {
     // ─── Özellik flag'leri ───
     coklu_dil: 3,            // ✓ (3 dil)
     kasa: true,              // ✓
+    magaza: true,           // ✓ Mağaza (ürün önerisi)
     prim: true,              // ✓
     sadakat: true,           // ✓
     winback: true,           // ✓ Kayıp Müşteri
@@ -76,6 +78,7 @@ const FALLBACK_PAKETLER = {
     // ─── Özellik flag'leri ───
     coklu_dil: 99,           // ✓ (12+ dil)
     kasa: true,              // ✓
+    magaza: true,           // ✓ Mağaza (ürün önerisi)
     prim: true,              // ✓
     sadakat: true,           // ✓
     winback: true,           // ✓
@@ -110,7 +113,7 @@ const FALLBACK_PAKETLER = {
     hatirlatma: true,
     istatistik: true,
     export_aktif: true,
-    coklu_dil: 99, kasa: true, prim: true, sadakat: true, winback: true,
+    coklu_dil: 99, kasa: true, magaza: true, prim: true, sadakat: true, winback: true,
     yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true,
     oncelikli_destek: true, api_erisimi: true, sube_yonetimi: true, sube_limit: 999,
     ozellikler: [
@@ -157,6 +160,7 @@ async function paketleriYukle() {
           export_aktif: !!row.export_aktif,
           coklu_dil: row.coklu_dil !== undefined ? row.coklu_dil : (fallback.coklu_dil || false),
           kasa: row.kasa !== undefined ? !!row.kasa : (fallback.kasa || false),
+          magaza: row.magaza !== undefined ? !!row.magaza : (fallback.magaza || false),
           prim: row.prim !== undefined ? !!row.prim : (fallback.prim || false),
           sadakat: row.sadakat !== undefined ? !!row.sadakat : (fallback.sadakat || false),
           winback: row.winback !== undefined ? !!row.winback : (fallback.winback || false),

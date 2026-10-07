@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { DENEME_GUN } = require('../config/deneme');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const socketServer = require('../services/socketServer');
@@ -54,8 +55,8 @@ class AuthController {
       // İşletme oluştur
       const isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
-         VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + INTERVAL '7 days') RETURNING *`,
-        [isletmeAdi, telefon || '']
+         VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + make_interval(days => $3)) RETURNING *`,
+        [isletmeAdi, telefon || '', DENEME_GUN]
       )).rows[0];
 
       // Admin kullanıcı oluştur

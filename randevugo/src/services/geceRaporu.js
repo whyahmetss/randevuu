@@ -1,3 +1,4 @@
+const { telefonNormalize } = require('../utils/telefon');
 const cron = require('node-cron');
 const pool = require('../config/db');
 const siragoImza = require('../utils/siragoImza');
@@ -150,10 +151,11 @@ class GeceRaporuService {
   // ═══════════════════════════════════════════════════════
   haftalikCronBaslat() {
     // Her Pazartesi sabah 09:00
+    // Sunucu UTC'de çalışıyor; saat dilimi verilmezse rapor 12:00'de gidiyordu
     cron.schedule('0 9 * * 1', async () => {
       console.log('📊 Haftalık rapor gönderimi başladı...');
       await this.haftalikRaporGonder();
-    });
+    }, { timezone: 'Europe/Istanbul' });
     console.log('📊 Haftalık rapor servisi başlatıldı (Pazartesi 09:00)');
   }
 
@@ -166,29 +168,27 @@ class GeceRaporuService {
       for (const isletme of isletmeler) {
         try {
           const mesaj = await this.haftalikRaporOlustur(isletme.id);
-          const telefon = isletme.telefon;
-          if (!telefon || !mesaj) continue;
+          const telefon = telefonNormalize(isletme.telefon);
+          if (!/^905\d{9}$/.test(telefon) || !mesaj) continue;
 
-          // Satış Bot üzerinden gönder
+          // Satış Bot numarasından gönder (SıraGO → işletme sahibi).
+          // Eskiden olmayan satisBot.mesajGonder çağrılıyordu ve getDurum beklenmiyordu: rapor hiç gitmiyordu.
           try {
             const satisBot = require('./satisBot');
-            const durum = satisBot.getDurum();
-            if (durum?.durum === 'bagli') {
-              await satisBot.mesajGonder(telefon, mesaj);
+            const ns = satisBot._aktifSock();
+            if (ns?.sock) {
+              await ns.sock.sendMessage(`${telefon}@s.whatsapp.net`, { text: mesaj });
               console.log(`📊 Haftalık rapor gönderildi (SatışBot): ${isletme.isim}`);
               continue;
             }
-          } catch (e) { /* satisBot yok veya bağlı değil */ }
+          } catch (e) { console.error(`Haftalık rapor SatışBot hatası (${isletme.isim}):`, e.message); }
 
-          // Fallback: işletmenin kendi WA bağlantısı
+          // Yedek: işletmenin kendi WhatsApp bağlantısı (kendi numarasına yazar)
           try {
             const whatsappWeb = require('./whatsappWeb');
-            const waDurum = whatsappWeb.getDurum(isletme.id);
-            if (waDurum?.durum === 'bagli') {
-              await whatsappWeb.mesajGonder(isletme.id, telefon, mesaj);
-              console.log(`📊 Haftalık rapor gönderildi (WA): ${isletme.isim}`);
-            }
-          } catch (e) { /* skip */ }
+            const sonuc = await whatsappWeb.mesajGonder(isletme.id, telefon, mesaj);
+            if (sonuc?.success) console.log(`📊 Haftalık rapor gönderildi (WA): ${isletme.isim}`);
+          } catch (e) { console.error(`Haftalık rapor WA hatası (${isletme.isim}):`, e.message); }
         } catch (e) {
           console.error(`❌ Haftalık rapor hatası (${isletme.isim}):`, e.message);
         }
@@ -268,7 +268,8 @@ class GeceRaporuService {
 
     const ok = (v) => v > 0 ? `📈 +${v}%` : v < 0 ? `📉 ${v}%` : '➖ aynı';
 
-    return `📊 *${isletme?.isim || 'İşletme'} — Haftalık Rapor*
+    // İmza satırı eklensin diye önce değişkene (eskiden return'den sonra kalıyordu, hiç çalışmıyordu)
+    const mesaj = `📊 *${isletme?.isim || 'İşletme'} — Haftalık Rapor*
 📅 ${this.tarihKisaFormat(gecenHaftaBas)} – ${this.tarihKisaFormat(gecenHaftaSon)}
 
 📋 *Randevu Özeti*

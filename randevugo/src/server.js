@@ -274,8 +274,8 @@ const PORT = process.env.PORT || 3000;
     await adim(`ALTER TABLE referanslar ADD COLUMN IF NOT EXISTS min_davet INTEGER DEFAULT 1`);
     await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS paket_bitis_tarihi TIMESTAMP`);
     await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS deneme_bitis_tarihi TIMESTAMP`);
-    // Mevcut işletmeler: deneme_bitis_tarihi boşsa olusturma_tarihi + 7 gün set et
-    await adim(`UPDATE isletmeler SET deneme_bitis_tarihi = olusturma_tarihi + INTERVAL '7 days' WHERE deneme_bitis_tarihi IS NULL AND olusturma_tarihi IS NOT NULL`);
+    // Mevcut işletmeler: deneme_bitis_tarihi boşsa olusturma_tarihi + deneme süresi (config/deneme.js)
+    await adim(`UPDATE isletmeler SET deneme_bitis_tarihi = olusturma_tarihi + make_interval(days => $1) WHERE deneme_bitis_tarihi IS NULL AND olusturma_tarihi IS NOT NULL`, [require('./config/deneme').DENEME_GUN]);
 
     // ─── DİNAMİK PAKETLER ───
     await adim(`CREATE TABLE IF NOT EXISTS paket_tanimlari (
@@ -530,7 +530,7 @@ const PORT = process.env.PORT || 3000;
     if (parseInt(mevcutSablon.c) === 0) {
       await adim(`INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES
         ('Acı Noktası', 'Selam {isletme_sahibi}, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel'),
-        ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')
+        ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. 14 gün ücretsiz için 5 dakikalık demo linki göndereyim mi?', 'genel')
       `);
     }
 
@@ -551,7 +551,7 @@ const PORT = process.env.PORT || 3000;
       }
       const kolaylik = (await adim("SELECT id FROM satis_bot_sablonlar WHERE isim = 'Kolaylık Odaklı'")).rows[0];
       if (!kolaylik) {
-        await adim("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')");
+        await adim("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. 14 gün ücretsiz için 5 dakikalık demo linki göndereyim mi?', 'genel')");
       }
       console.log('✅ Satış bot şablonları v2 güncellendi');
     } catch(e) { console.log('⚠️ Şablon güncelleme notu:', e.message); }
@@ -584,43 +584,43 @@ const PORT = process.env.PORT || 3000;
         const kampanyaSeed = [
           { isim:'Berber Kampanyası', kategori:'berber', gunler:'{1,2}', basla:10, bit:14, oncelik:10,
             s1:{ isim:'Berber — Telefon Kabusu', mesaj:'Selam, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir.\n\n{isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz?\n\nSistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.' },
-            s2:{ isim:'Berber — Kolay Sistem', mesaj:'Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz bir sistem kurduk.\n\n{isletme_adi} için ilk ay ücretsiz — demo linki göndereyim mi?' }
+            s2:{ isim:'Berber — Kolay Sistem', mesaj:'Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz bir sistem kurduk.\n\n{isletme_adi} için 14 gün ücretsiz — demo linki göndereyim mi?' }
           },
           { isim:'Kuaför Kampanyası', kategori:'kuaför', gunler:'{1,3}', basla:10, bit:14, oncelik:10,
-            s1:{ isim:'Kuaför — Telefon Çalıyor', mesaj:'Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi aktif ettik.\n\n{isletme_adi} için ilk ay ücretsiz geçiş — 5 dakikalık demo linki göndereyim mi?' },
-            s2:{ isim:'Kuaför — Müşteri Kaybı', mesaj:'Selam, müşteri saçını boyatırken telefon çalıyor, açamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n{isletme_adi} randevularını WhatsApp botu otomatik alsın. İlk ay ücretsiz, demo atayım mı?' }
+            s1:{ isim:'Kuaför — Telefon Çalıyor', mesaj:'Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi aktif ettik.\n\n{isletme_adi} için 14 gün ücretsiz — 5 dakikalık demo linki göndereyim mi?' },
+            s2:{ isim:'Kuaför — Müşteri Kaybı', mesaj:'Selam, müşteri saçını boyatırken telefon çalıyor, açamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n{isletme_adi} randevularını WhatsApp botu otomatik alsın. 14 gün ücretsiz, demo atayım mı?' }
           },
           { isim:'Güzellik Salonu Kampanyası', kategori:'güzellik salonu', gunler:'{2,4}', basla:11, bit:15, oncelik:8,
-            s1:{ isim:'Güzellik — Hizmet Seçimi', mesaj:'Selam, saçtan tırnağa 10 farklı hizmetiniz var ama müşteri telefon açıp "bugün müsait misiniz" diye soruyor değil mi?\n\n{isletme_adi} için hizmet seçimli online randevu botu kurduk. Müşteri kendisi seçiyor, siz onaylıyorsunuz. İlk ay ücretsiz — bakmak ister misiniz?' },
-            s2:{ isim:'Güzellik — Otomatik', mesaj:'Merhaba, müşterileriniz hizmet seçip WhatsApp\'tan kendi kendine randevu alsın, siz müşteriyle ilgilenin.\n\n{isletme_adi} için ilk ay ücretsiz. 2 dakikada aktif — demo atayım mı?' }
+            s1:{ isim:'Güzellik — Hizmet Seçimi', mesaj:'Selam, saçtan tırnağa 10 farklı hizmetiniz var ama müşteri telefon açıp "bugün müsait misiniz" diye soruyor değil mi?\n\n{isletme_adi} için hizmet seçimli online randevu botu kurduk. Müşteri kendisi seçiyor, siz onaylıyorsunuz. 14 gün ücretsiz — bakmak ister misiniz?' },
+            s2:{ isim:'Güzellik — Otomatik', mesaj:'Merhaba, müşterileriniz hizmet seçip WhatsApp\'tan kendi kendine randevu alsın, siz müşteriyle ilgilenin.\n\n{isletme_adi} için 14 gün ücretsiz. 2 dakikada aktif — demo atayım mı?' }
           },
           { isim:'Diyetisyen Kampanyası', kategori:'diyetisyen', gunler:'{3,5}', basla:9, bit:12, oncelik:7,
-            s1:{ isim:'Diyetisyen — Kontrol Kaçırma', mesaj:'Merhaba, danışanlarınız 7/24 WhatsApp\'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\n{isletme_adi} için ilk ay ücretsiz — demo atayım mı?' },
-            s2:{ isim:'Diyetisyen — 7/24 Randevu', mesaj:'Selam, danışanlarınız mesai dışında da randevu alabilsin. {isletme_adi} WhatsApp botu 7/24 çalışır, siz onaylarsınız.\n\nİlk ay ücretsiz — bakmak ister misiniz?' }
+            s1:{ isim:'Diyetisyen — Kontrol Kaçırma', mesaj:'Merhaba, danışanlarınız 7/24 WhatsApp\'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\n{isletme_adi} için 14 gün ücretsiz — demo atayım mı?' },
+            s2:{ isim:'Diyetisyen — 7/24 Randevu', mesaj:'Selam, danışanlarınız mesai dışında da randevu alabilsin. {isletme_adi} WhatsApp botu 7/24 çalışır, siz onaylarsınız.\n\n14 gün ücretsiz — bakmak ister misiniz?' }
           },
           { isim:'Diş Kliniği Kampanyası', kategori:'diş kliniği', gunler:'{2,4}', basla:12, bit:14, oncelik:9,
-            s1:{ isim:'Diş — Sekreter Yükü', mesaj:'Merhaba, hasta telefonla randevu alıp gelmiyor — sekreter gününün yarısını telefonda geçiriyor.\n\n{isletme_adi} için otomatik randevu + WhatsApp hatırlatma sistemi kurduk. İptal oranı %80 düşüyor. Demo atayım mı?' },
-            s2:{ isim:'Diş — Otomatik Hatırlatma', mesaj:'Selam, hastalarınız 7/24 online randevu alsın, randevu öncesi otomatik WhatsApp hatırlatma gitsin.\n\n{isletme_adi} için ilk ay ücretsiz — sekreter yükünü azaltmak ister misiniz?' }
+            s1:{ isim:'Diş — Sekreter Yükü', mesaj:'Merhaba, hasta telefonla randevu alıp gelmiyor — sekreter gününün yarısını telefonda geçiriyor.\n\n{isletme_adi} için otomatik randevu + WhatsApp hatırlatma sistemi kurduk. Demo atayım mı?' },
+            s2:{ isim:'Diş — Otomatik Hatırlatma', mesaj:'Selam, hastalarınız 7/24 online randevu alsın, randevu öncesi otomatik WhatsApp hatırlatma gitsin.\n\n{isletme_adi} için 14 gün ücretsiz — sekreter yükünü azaltmak ister misiniz?' }
           },
           { isim:'Veteriner Kampanyası', kategori:'veteriner', gunler:'{1,3}', basla:10, bit:13, oncelik:7,
-            s1:{ isim:'Veteriner — Muayene Telefon', mesaj:'Merhaba, evcil hayvan sahipleri genelde acil arıyor ama siz muayenedeyken telefona bakamıyorsunuz.\n\n{isletme_adi} için WhatsApp\'tan 7/24 otomatik randevu sistemi kurduk. İlk ay ücretsiz — demo atayım mı?' },
-            s2:{ isim:'Veteriner — Otomatik', mesaj:'Selam, {isletme_adi} müşterileri evcil dostları için WhatsApp\'tan randevu alsın, hatırlatma otomatik gitsin.\n\nİlk ay ücretsiz — bakmak ister misiniz?' }
+            s1:{ isim:'Veteriner — Muayene Telefon', mesaj:'Merhaba, evcil hayvan sahipleri genelde acil arıyor ama siz muayenedeyken telefona bakamıyorsunuz.\n\n{isletme_adi} için WhatsApp\'tan 7/24 otomatik randevu sistemi kurduk. 14 gün ücretsiz — demo atayım mı?' },
+            s2:{ isim:'Veteriner — Otomatik', mesaj:'Selam, {isletme_adi} müşterileri evcil dostları için WhatsApp\'tan randevu alsın, hatırlatma otomatik gitsin.\n\n14 gün ücretsiz — bakmak ister misiniz?' }
           },
           { isim:'Spa Kampanyası', kategori:'spa', gunler:'{1,2}', basla:11, bit:15, oncelik:6,
-            s1:{ isim:'Spa — Otomatik Randevu', mesaj:'Merhaba, müşterileriniz hizmet ve saat seçip WhatsApp\'tan kendi kendine randevu alsın. Siz rahat edin.\n\n{isletme_adi} için ilk ay ücretsiz — demo atayım mı?' },
-            s2:{ isim:'Spa — Doluluk', mesaj:'Selam, hafta içi boş kalan seanslarınız var mı? {isletme_adi} müşterileri WhatsApp\'tan anlık müsaitliği görüp randevu alsın.\n\nİlk ay ücretsiz — bakmak ister misiniz?' }
+            s1:{ isim:'Spa — Otomatik Randevu', mesaj:'Merhaba, müşterileriniz hizmet ve saat seçip WhatsApp\'tan kendi kendine randevu alsın. Siz rahat edin.\n\n{isletme_adi} için 14 gün ücretsiz — demo atayım mı?' },
+            s2:{ isim:'Spa — Doluluk', mesaj:'Selam, hafta içi boş kalan seanslarınız var mı? {isletme_adi} müşterileri WhatsApp\'tan anlık müsaitliği görüp randevu alsın.\n\n14 gün ücretsiz — bakmak ister misiniz?' }
           },
           { isim:'Dövme Kampanyası', kategori:'dövme', gunler:'{3,5}', basla:13, bit:17, oncelik:6,
-            s1:{ isim:'Dövme — DM Karışıklığı', mesaj:'Selam, dövme randevusu uzun süreç — mesajlaşma, tasarım onayı, tarih ayarlama. Hepsini tek yerden yönetebileceğiniz bir sistem kurduk.\n\n{isletme_adi} için ilk ay ücretsiz. Demo atayım mı?' },
-            s2:{ isim:'Dövme — Otomatik Hatırlatma', mesaj:'Merhaba, {isletme_adi} müşterileri WhatsApp\'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\nİlk ay ücretsiz — bakmak ister misiniz?' }
+            s1:{ isim:'Dövme — DM Karışıklığı', mesaj:'Selam, dövme randevusu uzun süreç — mesajlaşma, tasarım onayı, tarih ayarlama. Hepsini tek yerden yönetebileceğiniz bir sistem kurduk.\n\n{isletme_adi} için 14 gün ücretsiz. Demo atayım mı?' },
+            s2:{ isim:'Dövme — Otomatik Hatırlatma', mesaj:'Merhaba, {isletme_adi} müşterileri WhatsApp\'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\n14 gün ücretsiz — bakmak ister misiniz?' }
           },
           { isim:'Tırnak Salonu Kampanyası', kategori:'tırnak salonu', gunler:'{2,4}', basla:10, bit:14, oncelik:7,
-            s1:{ isim:'Tırnak — Müşteri Kaybı', mesaj:'Selam, müşteriniz işlem sırasında telefonunuza bakamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n{isletme_adi} için WhatsApp randevu botu kurduk. İlk ay ücretsiz — bakmak ister misiniz?' },
-            s2:{ isim:'Tırnak — Kolay Randevu', mesaj:'Merhaba, müşterileriniz hizmet seçip WhatsApp\'tan randevu alsın, hatırlatma otomatik gitsin.\n\n{isletme_adi} için ilk ay ücretsiz — demo atayım mı?' }
+            s1:{ isim:'Tırnak — Müşteri Kaybı', mesaj:'Selam, müşteriniz işlem sırasında telefonunuza bakamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n{isletme_adi} için WhatsApp randevu botu kurduk. 14 gün ücretsiz — bakmak ister misiniz?' },
+            s2:{ isim:'Tırnak — Kolay Randevu', mesaj:'Merhaba, müşterileriniz hizmet seçip WhatsApp\'tan randevu alsın, hatırlatma otomatik gitsin.\n\n{isletme_adi} için 14 gün ücretsiz — demo atayım mı?' }
           },
           { isim:'Cilt Bakım Kampanyası', kategori:'cilt bakım', gunler:'{3,5}', basla:10, bit:14, oncelik:7,
-            s1:{ isim:'Cilt Bakım — Düzenlilik', mesaj:'Selam, cilt bakımı düzenli seans gerektirir ama müşteriler unutuyor. {isletme_adi} için otomatik hatırlatmalı randevu sistemi kurduk.\n\nİlk ay ücretsiz — demo atayım mı?' },
-            s2:{ isim:'Cilt Bakım — Kolay Randevu', mesaj:'Merhaba, müşterileriniz WhatsApp\'tan hizmet seçip anında randevu alsın.\n\n{isletme_adi} için ilk ay ücretsiz. 2 dakikada aktif — bakmak ister misiniz?' }
+            s1:{ isim:'Cilt Bakım — Düzenlilik', mesaj:'Selam, cilt bakımı düzenli seans gerektirir ama müşteriler unutuyor. {isletme_adi} için otomatik hatırlatmalı randevu sistemi kurduk.\n\n14 gün ücretsiz — demo atayım mı?' },
+            s2:{ isim:'Cilt Bakım — Kolay Randevu', mesaj:'Merhaba, müşterileriniz WhatsApp\'tan hizmet seçip anında randevu alsın.\n\n{isletme_adi} için 14 gün ücretsiz. 2 dakikada aktif — bakmak ister misiniz?' }
           }
         ];
         for (const k of kampanyaSeed) {
@@ -1005,6 +1005,10 @@ const BOOKING_BASE_URL = (process.env.BOOKING_BASE_URL || 'https://admin.xn--sra
 app.get('/book/:slug', (req, res) => {
   res.redirect(302, `${BOOKING_BASE_URL}/book/${encodeURIComponent(req.params.slug)}`);
 });
+
+// Mağaza öneri linki — /m/:kod (tıklanmayı sayar, tedarikçinin ürün sayfasına yönlendirir)
+const magazaLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: 'Çok fazla istek', keyGenerator: limitAnahtari });
+app.get('/m/:kod', magazaLimiter, (req, res) => require('./controllers/magazaController').yonlendir(req, res));
 
 // Grup Booking sayfası — /g/:slug
 app.get('/g/:slug', (req, res) => {

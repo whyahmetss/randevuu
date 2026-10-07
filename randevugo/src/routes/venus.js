@@ -9,11 +9,11 @@ const router = express.Router();
 router.use(venusAuth);
 router.use(rateLimit({ windowMs: 60 * 1000, max: 60, message: { hata: 'Çok fazla istek' } }));
 
-// Her okuma audit log'a düşer (kim ne zaman baktı)
+// Her çağrı audit log'a düşer (kim ne zaman baktı / ne yaptı)
 router.use((req, res, next) => {
   pool.query(
-    "INSERT INTO audit_log (kullanici_email, islem, detay) VALUES ('venus', 'venus_okuma', $1)",
-    [req.path]
+    "INSERT INTO audit_log (kullanici_email, islem, detay) VALUES ('venus', $1, $2)",
+    [req.method === 'GET' ? 'venus_okuma' : 'venus_islem', req.path]
   ).catch(() => {});
   next();
 });
@@ -99,7 +99,35 @@ router.get('/aranacaklar', async (req, res) => {
 router.get('/satis-bot', async (req, res) => {
   try {
     const satisBot = require('../services/satisBot');
-    res.json({ durum: satisBot.durum || 'bilinmiyor', istatistikler: await satisBot.istatistikler() });
+    res.json({
+      durum: satisBot.durum || 'bilinmiyor',
+      gonderim_aktif: !!satisBot.aktif,
+      fren: satisBot.fren || null,
+      gunluk_gonderim: satisBot.gunlukGonderim || 0,
+      gunluk_limit: satisBot.ayarlar?.gunlukLimit ?? null,
+      istatistikler: await satisBot.istatistikler(),
+      huni_7g: await satisBot.huni(7).then(h => h.toplam).catch(() => null),
+    });
+  } catch (e) { hata(res, e); }
+});
+
+// ── Yazma (Venüs tarafında: durdur SARI, başlat TURUNCU = her seferinde kullanıcı onayı) ──
+// Yalnız satış botunun mesaj gönderimini açıp kapatır; mesaj içeriği, alıcı, limit Venüs'ten değiştirilemez.
+router.post('/satis-bot/durdur', async (req, res) => {
+  try {
+    const satisBot = require('../services/satisBot');
+    const onceAktif = !!satisBot.aktif;
+    satisBot.gonderimDurdur();
+    res.json({ tamam: true, mesaj: onceAktif ? 'Gönderim durduruldu' : 'Gönderim zaten durmuştu' });
+  } catch (e) { hata(res, e); }
+});
+
+router.post('/satis-bot/baslat', async (req, res) => {
+  try {
+    const satisBot = require('../services/satisBot');
+    const sonuc = await satisBot.gonderimBaslat();
+    if (sonuc?.hata) return res.status(409).json({ hata: sonuc.hata });
+    res.json({ tamam: true, mesaj: sonuc?.mesaj || 'Gönderim başladı', gunluk_limit: satisBot.ayarlar?.gunlukLimit ?? null });
   } catch (e) { hata(res, e); }
 });
 
@@ -128,6 +156,16 @@ router.get('/uyarilar', async (req, res) => {
         .map(([id]) => Number(id));
       if (kopuk.length) uyarilar.push({ tip: 'bot_kopuk', onem: 'yuksek', mesaj: `${kopuk.length} işletmenin WhatsApp botu kopuk`, isletmeler: kopuk });
     } catch (e) { /* WA servisi yoksa geç */ }
+    try {
+      const frenler = (await pool.query(
+        "SELECT detay, olusturma_tarihi FROM audit_log WHERE islem = 'satis_bot_fren' AND olusturma_tarihi > NOW() - make_interval(hours => $1) ORDER BY id DESC LIMIT 5",
+        [saat]
+      )).rows;
+      frenler.forEach(f => {
+        let d = {}; try { d = JSON.parse(f.detay); } catch (e) { /* bozuk kayıt */ }
+        uyarilar.push({ tip: 'satis_bot_fren', onem: 'yuksek', mesaj: `Satış botu durdu: ${d.mesaj || d.sebep || 'otomatik fren'}`, zaman: d.zaman || f.olusturma_tarihi });
+      });
+    } catch (e) { /* audit_log yoksa geç */ }
     res.json({ uyarilar });
   } catch (e) { hata(res, e); }
 });

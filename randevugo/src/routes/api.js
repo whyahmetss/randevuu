@@ -164,6 +164,7 @@ router.delete('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res
 router.post('/admin/satis-bot/baslat', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotBaslat(req, res));
 router.post('/admin/satis-bot/durdur', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotDurdur(req, res));
 router.get('/admin/satis-bot/durum', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotDurum(req, res));
+router.get('/admin/satis-bot/huni', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotHuni(req, res));
 router.post('/admin/satis-bot/gonderim-baslat', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotGonderimBaslat(req, res));
 router.post('/admin/satis-bot/gonderim-durdur', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotGonderimDurdur(req, res));
 router.get('/admin/satis-bot/konusmalar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotKonusmalar(req, res));
@@ -407,5 +408,23 @@ router.post('/book/:slug/randevu', ddosGuard, (req, res) => bookingController.ra
 router.post('/book/:slug/otp-gonder', (req, res) => bookingController.otpGonder(req, res));
 router.post('/book/:slug/otp-dogrula', (req, res) => bookingController.otpDogrula(req, res));
 router.get('/book/:slug/telegram-chat-durum', noCache, (req, res) => bookingController.telegramChatDurum(req, res));
+
+// ==================== MAĞAZA (berber önerisiyle ürün) ====================
+const magazaController = require('../controllers/magazaController');
+const magazaMw = [authMiddleware, odemeKontrol, featureGuard('magaza')];
+router.get('/magaza/urunler', ...magazaMw, (req, res) => magazaController.urunleriGetir(req, res));
+router.post('/magaza/oner', ...magazaMw, (req, res) => magazaController.oner(req, res));
+router.get('/magaza/kazanc', ...magazaMw, (req, res) => magazaController.kazanc(req, res));
+const saMw = [authMiddleware, superAdminMiddleware];
+router.get('/admin/magaza/tedarikciler', ...saMw, (req, res) => magazaController.tedarikcileriGetir(req, res));
+router.post('/admin/magaza/tedarikciler', ...saMw, (req, res) => magazaController.tedarikciKaydet(req, res));
+router.put('/admin/magaza/tedarikciler/:id', ...saMw, (req, res) => magazaController.tedarikciKaydet(req, res));
+router.get('/admin/magaza/urunler', ...saMw, (req, res) => magazaController.urunleriGetirAdmin(req, res));
+router.post('/admin/magaza/urunler', ...saMw, (req, res) => magazaController.urunKaydet(req, res));
+router.put('/admin/magaza/urunler/:id', ...saMw, (req, res) => magazaController.urunKaydet(req, res));
+router.get('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodlariGetir(req, res));
+router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodKaydet(req, res));
+router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
+router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
 
 module.exports = router;

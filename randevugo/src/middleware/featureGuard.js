@@ -14,6 +14,7 @@ const { paketGetir } = require('../config/paketler');
 function featureGuard(featureKey, ozelIsim) {
   const OZELLIK_ISIMLERI = {
     kasa: 'Kasa Takibi',
+    magaza: 'Mağaza (ürün önerisi)',
     prim: 'Prim Raporu',
     sadakat: 'Sadakat Puan Sistemi',
     winback: 'Kayıp Müşteri Kurtarma',
