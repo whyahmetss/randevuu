@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 
-// Renk paleti — admin panel koyu temasıyla tam uyumlu
+// Renk paleti — panelin genel temasına bağlı (eskiden sabit koyu temaydı, açık panelde ada gibi duruyordu)
 const C = {
-  bg: '#0c0e14',
-  card: '#141723',
-  cardHover: '#1a1e2c',
-  border: 'rgba(255,255,255,0.08)',
-  borderStrong: 'rgba(139,92,246,0.3)',
-  text: '#e4e7ef',
-  dim: 'rgba(228,231,239,0.6)',
-  muted: 'rgba(228,231,239,0.4)',
-  primary: '#8B5CF6',
-  primaryDim: 'rgba(139,92,246,0.12)',
-  success: '#10b981',
-  danger: '#ef4444',
-  warning: '#f59e0b',
+  bg: 'var(--bg)',
+  card: 'var(--surface)',
+  cardHover: 'var(--surface2)',
+  border: 'var(--border)',
+  borderStrong: 'var(--border2)',
+  text: 'var(--text)',
+  dim: 'var(--muted)',
+  muted: 'var(--dim)',
+  primary: '#1f6f4a',
+  primaryDim: 'var(--primary-soft)',
+  success: '#1f6f4a',
+  danger: '#b42318',
+  warning: '#a8590c',
 };
 
 export default function GrupYonetim({ api, onSubeSec }) {
@@ -59,7 +59,7 @@ export default function GrupYonetim({ api, onSubeSec }) {
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
       {/* ═══ HERO — Grup başlık kartı ═══ */}
       <div style={{
-        background: `linear-gradient(135deg, ${C.card} 0%, ${C.cardHover} 100%)`,
+        background: `${C.card}`,
         border: `1px solid ${C.borderStrong}`,
         borderRadius: 16,
         padding: 28,
@@ -78,10 +78,10 @@ export default function GrupYonetim({ api, onSubeSec }) {
           {/* Logo */}
           <div style={{
             width: 72, height: 72, borderRadius: 16,
-            background: grup.logo ? `url(${grup.logo}) center/cover` : `linear-gradient(135deg, ${grup.renk_tema || C.primary}, #3B82F6)`,
+            background: grup.logo ? `url(${grup.logo}) center/cover` : `${grup.renk_tema || C.primary}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 32, fontWeight: 800, color: '#fff',
-            boxShadow: `0 8px 32px ${grup.renk_tema || C.primary}33`,
+            fontSize: 32, fontWeight: 600, color: '#fff',
+            boxShadow: "none",
             flexShrink: 0,
           }}>
             {!grup.logo && grup.isim?.[0]?.toUpperCase()}
@@ -90,11 +90,11 @@ export default function GrupYonetim({ api, onSubeSec }) {
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase',
+                fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
                 color: C.primary, background: C.primaryDim, padding: '3px 8px', borderRadius: 4,
               }}>Kurumsal Grup</span>
             </div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.text }}>{grup.isim}</h1>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, color: C.text }}>{grup.isim}</h1>
             <div style={{ color: C.dim, fontSize: 13, marginTop: 4 }}>
               <code style={{ background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>/{grup.slug}</code>
               <span style={{ margin: '0 8px' }}>•</span>
@@ -151,7 +151,7 @@ function StatMini({ label, deger, renk }) {
       border: `1px solid ${C.border}`, minWidth: 90,
     }}>
       <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: renk, marginTop: 2 }}>{deger}</div>
+      <div style={{ fontSize: 22, fontWeight: 600, color: renk, marginTop: 2 }}>{deger}</div>
     </div>
   );
 }
@@ -191,11 +191,11 @@ function GrupKur({ api, onOk, hata: dishata }) {
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{
             width: 64, height: 64, borderRadius: 16, margin: '0 auto 16px',
-            background: `linear-gradient(135deg, ${C.primary}, #3B82F6)`,
+            background: `${C.primary}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 32, boxShadow: `0 12px 32px ${C.primary}44`,
+            fontSize: 32, boxShadow: "none",
           }}>🏢</div>
-          <h2 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 700 }}>Şube Grubu Kur</h2>
+          <h2 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 600 }}>Şube Grubu Kur</h2>
           <p style={{ color: C.dim, fontSize: 13, margin: '8px 0 0', lineHeight: 1.6 }}>
             Kurumsal paketteki zincir işletmeler için grup yönetimi.<br />
             Bu işletme ilk şube olarak gruba eklenecek.
@@ -211,7 +211,7 @@ function GrupKur({ api, onOk, hata: dishata }) {
 
           {hata && (
             <div style={{
-              background: 'rgba(239,68,68,0.1)', border: `1px solid ${C.danger}44`,
+              background: 'rgba(180,35,24,0.1)', border: `1px solid ${C.danger}44`,
               color: C.danger, padding: 12, borderRadius: 8, fontSize: 13, marginTop: 12, marginBottom: 4,
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
@@ -221,10 +221,10 @@ function GrupKur({ api, onOk, hata: dishata }) {
 
           <button type="submit" disabled={kurYukleniyor} style={{
             width: '100%', padding: 14, marginTop: 16,
-            background: kurYukleniyor ? C.muted : `linear-gradient(90deg, #3B82F6, ${C.primary})`,
-            color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15,
+            background: kurYukleniyor ? C.muted : `#3B82F6`,
+            color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 15,
             cursor: kurYukleniyor ? 'not-allowed' : 'pointer',
-            boxShadow: `0 8px 24px ${C.primary}33`,
+            boxShadow: "none",
           }}>
             {kurYukleniyor ? 'Kuruluyor…' : 'Grubu Kur'}
           </button>
@@ -243,14 +243,14 @@ function SubeListe({ api, subeler, onSubeSec, onYenile }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <h3 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 700 }}>Şubeleriniz</h3>
+          <h3 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 600 }}>Şubeleriniz</h3>
           <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{subeler.length} şube</div>
         </div>
         <button onClick={() => { setDuzenle(null); setModalAcik(true); }} style={{
-          padding: '10px 18px', background: `linear-gradient(90deg, #3B82F6, ${C.primary})`,
+          padding: '10px 18px', background: `#3B82F6`,
           color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 13,
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-          boxShadow: `0 6px 18px ${C.primary}33`,
+          boxShadow: "none",
         }}>
           <span style={{ fontSize: 16 }}>+</span> Yeni Şube
         </button>
@@ -300,21 +300,21 @@ function SubeKart({ sube, api, onSubeSec, onDuzenle, onYenile }) {
       {!sube.aktif && (
         <div style={{
           position: 'absolute', top: 12, right: 12,
-          background: 'rgba(239,68,68,0.15)', color: C.danger,
-          padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+          background: 'rgba(180,35,24,0.15)', color: C.danger,
+          padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600, letterSpacing: 0.5,
         }}>PASİF</div>
       )}
 
       <div style={{ display: 'flex', gap: 14, marginBottom: 14 }}>
         <div style={{
           width: 48, height: 48, borderRadius: 10,
-          background: `linear-gradient(135deg, ${C.primary}, #3B82F6)`,
+          background: `${C.primary}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, fontWeight: 800, color: '#fff', flexShrink: 0,
+          fontSize: 20, fontWeight: 600, color: '#fff', flexShrink: 0,
         }}>{sube.isim?.[0]?.toUpperCase()}</div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: C.text, fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sube.isim}</div>
+          <div style={{ color: C.text, fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sube.isim}</div>
           {sube.sube_etiketi && (
             <div style={{ color: C.primary, fontSize: 11, fontWeight: 600, marginTop: 2 }}>{sube.sube_etiketi}</div>
           )}
@@ -332,7 +332,7 @@ function SubeKart({ sube, api, onSubeSec, onDuzenle, onYenile }) {
       }}>
         <div>
           <div style={{ color: C.muted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Aktif Randevu</div>
-          <div style={{ color: C.text, fontSize: 16, fontWeight: 700 }}>{sube.aktif_randevu || 0}</div>
+          <div style={{ color: C.text, fontSize: 16, fontWeight: 600 }}>{sube.aktif_randevu || 0}</div>
         </div>
         <div>
           <div style={{ color: C.muted, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Telefon</div>
@@ -395,7 +395,7 @@ function SubeModal({ api, sube, onKapat, onOk }) {
         boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 700 }}>
+          <h3 style={{ margin: 0, color: C.text, fontSize: 20, fontWeight: 600 }}>
             {sube ? 'Şubeyi Düzenle' : 'Yeni Şube Ekle'}
           </h3>
           <button onClick={onKapat} style={{
@@ -457,7 +457,7 @@ function SubeModal({ api, sube, onKapat, onOk }) {
 
           {hata && (
             <div style={{
-              background: 'rgba(239,68,68,0.1)', border: `1px solid ${C.danger}44`,
+              background: 'rgba(180,35,24,0.1)', border: `1px solid ${C.danger}44`,
               color: C.danger, padding: 10, borderRadius: 8, fontSize: 13, margin: '12px 0',
             }}>⚠️ {hata}</div>
           )}
@@ -468,9 +468,9 @@ function SubeModal({ api, sube, onKapat, onOk }) {
               border: `1px solid ${C.border}`, borderRadius: 10, cursor: 'pointer', fontWeight: 600,
             }}>Vazgeç</button>
             <button type="submit" disabled={kaydediliyor} style={{
-              flex: 2, padding: 12, background: `linear-gradient(90deg, #3B82F6, ${C.primary})`,
+              flex: 2, padding: 12, background: `#3B82F6`,
               color: '#fff', border: 'none', borderRadius: 10, cursor: kaydediliyor ? 'wait' : 'pointer',
-              fontWeight: 700, fontSize: 14,
+              fontWeight: 600, fontSize: 14,
             }}>
               {kaydediliyor ? 'Kaydediliyor…' : sube ? 'Güncelle' : 'Şube Ekle'}
             </button>
@@ -487,9 +487,9 @@ function GrupRapor({ api }) {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [baslangic, setBaslangic] = useState(() => {
     const d = new Date(); d.setDate(1);
-    return d.toISOString().slice(0, 10);
+    return d.toLocaleDateString('sv-SE');
   });
-  const [bitis, setBitis] = useState(() => new Date().toISOString().slice(0, 10));
+  const [bitis, setBitis] = useState(() => new Date().toLocaleDateString('sv-SE'));
 
   useEffect(() => { yukle(); }, [baslangic, bitis]);
   async function yukle() {
@@ -534,7 +534,7 @@ function GrupRapor({ api }) {
 
           {/* Şube tablosu */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, color: C.text }}>
+            <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, fontWeight: 600, color: C.text }}>
               Şube Performansı
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -551,7 +551,7 @@ function GrupRapor({ api }) {
                       {s.sube_etiketi && <div style={{ fontSize: 11, color: C.primary }}>{s.sube_etiketi}</div>}
                     </Td>
                     <Td align="right">{s.randevu_sayisi}</Td>
-                    <Td align="right" style={{ color: C.success, fontWeight: 700 }}>{Number(s.ciro).toLocaleString('tr-TR')} ₺</Td>
+                    <Td align="right" style={{ color: C.success, fontWeight: 600 }}>{Number(s.ciro).toLocaleString('tr-TR')} ₺</Td>
                     <Td align="right" style={{ color: s.no_show > 0 ? C.danger : C.muted }}>{s.no_show}</Td>
                   </tr>
                 ))}
@@ -565,7 +565,7 @@ function GrupRapor({ api }) {
           {/* Top çalışanlar */}
           {rapor.top_calisan?.length > 0 && (
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, marginTop: 20, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, fontWeight: 700, color: C.text }}>
+              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}`, fontWeight: 600, color: C.text }}>
                 🏆 En İyi Çalışanlar
               </div>
               <div style={{ padding: 14, display: 'grid', gap: 8 }}>
@@ -578,13 +578,13 @@ function GrupRapor({ api }) {
                       width: 28, height: 28, borderRadius: '50%',
                       background: i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : C.muted,
                       color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 700, fontSize: 13,
+                      fontWeight: 600, fontSize: 13,
                     }}>{i + 1}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ color: C.text, fontWeight: 600 }}>{c.isim}</div>
                       <div style={{ color: C.muted, fontSize: 11 }}>{c.sube} • {c.randevu_sayisi} randevu</div>
                     </div>
-                    <div style={{ color: C.success, fontWeight: 700 }}>{Number(c.ciro).toLocaleString('tr-TR')} ₺</div>
+                    <div style={{ color: C.success, fontWeight: 600 }}>{Number(c.ciro).toLocaleString('tr-TR')} ₺</div>
                   </div>
                 ))}
               </div>
@@ -606,7 +606,7 @@ function Kpi({ label, deger, renk }) {
         position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: renk,
       }} />
       <div style={{ color: C.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: C.text, marginTop: 6 }}>{deger}</div>
+      <div style={{ fontSize: 26, fontWeight: 600, color: C.text, marginTop: 6 }}>{deger}</div>
     </div>
   );
 }
@@ -615,7 +615,7 @@ function Kpi({ label, deger, renk }) {
 function GrupAyar({ api, grup, onGuncelle }) {
   const [form, setForm] = useState({
     isim: grup.isim, slug: grup.slug, logo: grup.logo || '',
-    tanitim: grup.tanitim || '', renk_tema: grup.renk_tema || '#8B5CF6',
+    tanitim: grup.tanitim || '', renk_tema: grup.renk_tema || '#5d4bb5',
   });
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [mesaj, setMesaj] = useState(null);
@@ -660,15 +660,15 @@ function GrupAyar({ api, grup, onGuncelle }) {
         {mesaj && (
           <div style={{
             marginTop: 14, padding: 10, borderRadius: 8, fontSize: 13,
-            background: mesaj.tip === 'ok' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+            background: mesaj.tip === 'ok' ? 'rgba(31,111,74,0.1)' : 'rgba(180,35,24,0.1)',
             color: mesaj.tip === 'ok' ? C.success : C.danger,
             border: `1px solid ${mesaj.tip === 'ok' ? C.success : C.danger}44`,
           }}>{mesaj.metin}</div>
         )}
 
         <button type="submit" disabled={kaydediliyor} style={{
-          marginTop: 20, padding: '12px 28px', background: `linear-gradient(90deg, #3B82F6, ${C.primary})`,
-          color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer',
+          marginTop: 20, padding: '12px 28px', background: `#3B82F6`,
+          color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer',
         }}>{kaydediliyor ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}</button>
       </form>
     </div>
@@ -722,7 +722,7 @@ function btnSm(variant) {
     fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .15s',
   };
   if (variant === 'primary') return { ...base, background: C.primary, color: '#fff' };
-  if (variant === 'danger') return { ...base, background: 'rgba(239,68,68,0.1)', color: C.danger, border: `1px solid ${C.danger}33` };
+  if (variant === 'danger') return { ...base, background: 'rgba(180,35,24,0.1)', color: C.danger, border: `1px solid ${C.danger}33` };
   return { ...base, background: 'rgba(255,255,255,0.05)', color: C.dim };
 }
 

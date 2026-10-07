@@ -3,7 +3,7 @@ const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
 const pino = require('pino');
-const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
+const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla } = require('../utils/tarih');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
 const botMesajlar = require('../utils/botMesajlar');
 const socketServer = require('./socketServer');
@@ -173,7 +173,7 @@ class WhatsAppWebService extends EventEmitter {
           socketServer.emitToIsletme(isletmeId, 'wa:bagli', { numara, durum: 'bagli' });
         }
 
-        if (connection === 'close') {
+        if (connection === 'close') { if (global.__kapaniyor) return; // kapanırken yeniden bağlanma (deploy çakışması)
           const statusCode = lastDisconnect?.error?.output?.statusCode;
           const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
           console.log(`❌ WhatsApp ayrıldı: ${isletmeIsim} - kod: ${statusCode}`);
@@ -256,7 +256,8 @@ class WhatsAppWebService extends EventEmitter {
         console.log(`📩 [${isletmeIsim}] messages.upsert tetiklendi: type=${upsert.type}, mesaj_sayisi=${upsert.messages?.length}`);
         if (upsert.type !== 'notify') return;
         for (const msg of upsert.messages) {
-          console.log(`📩 [${isletmeIsim}] Mesaj: fromMe=${msg.key.fromMe}, jid=${msg.key.remoteJid}, metin=${this._getMsgText(msg)?.slice(0, 50)}`);
+          // Müşteri mesaj metni loglanmaz (KVKK); yalnız uzunluk
+          console.log(`📩 [${isletmeIsim}] Mesaj: fromMe=${msg.key.fromMe}, uzunluk=${(this._getMsgText(msg) || '').length}`);
           if (msg.key.fromMe) continue;
           if (!msg.message) continue;
           try {
@@ -385,7 +386,10 @@ class WhatsAppWebService extends EventEmitter {
   async mesajIsle(msg, isletmeId) {
     const metin = (this._getMsgText(msg) || '').trim();
     const remoteJid = msg.key.remoteJid;
-    console.log(`🔄 mesajIsle: isletme=${isletmeId}, metin="${metin}", jid=${remoteJid}, keys=${msg.message ? Object.keys(msg.message).join(',') : 'null'}`);
+    // Grup, kanal ve durum güncellemeleri müşteri değil: kaydetme, cevap verme
+    if (!remoteJid || remoteJid.endsWith('@g.us') || remoteJid.endsWith('@newsletter') ||
+        remoteJid.endsWith('@broadcast')) return;
+    console.log(`🔄 mesajIsle: isletme=${isletmeId}, uzunluk=${metin.length}`);
     if (!metin) return;
 
     // ═══ Anti-spam: aynı kişi dakikada 15+ mesaj atıyorsa 10dk mute ═══
@@ -421,7 +425,7 @@ class WhatsAppWebService extends EventEmitter {
       } else {
         // Alt JID yoksa store'dan dene
         try {
-          const sock = this.connections.get(isletmeId)?.sock;
+          const sock = this.isletmeler[isletmeId]?.sock;
           if (sock?.store) {
             const contact = sock.store.contacts?.[remoteJid];
             if (contact?.id?.endsWith('@s.whatsapp.net')) {
@@ -466,8 +470,17 @@ class WhatsAppWebService extends EventEmitter {
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
         if (isletme.mesai_disi_mod === 'sessiz') return;
         if (isletme.mesai_disi_mod === 'kapali_mesaj') {
-          const mesaj = isletme.mesai_disi_mesaj || botMesajlar.get(isletme, 'mesaiDisi', { basSaat, bitSaat });
-          return { metin: mesaj, butonlar: null };
+          // Dönüş değeri çağıran yerde kullanılmıyordu → mesaj hiç gitmiyordu; burada gönder.
+          // Aynı kişiye 6 saatte en fazla bir kez gönder (her mesaja tekrar etmesin).
+          if (!this._kapaliMesajSon) this._kapaliMesajSon = new Map();
+          const kmKey = `${isletmeId}:${remoteJid}`;
+          const sonGonderim = this._kapaliMesajSon.get(kmKey) || 0;
+          if (Date.now() - sonGonderim > 6 * 60 * 60 * 1000) {
+            this._kapaliMesajSon.set(kmKey, Date.now());
+            const mesaj = isletme.mesai_disi_mesaj || botMesajlar.get(isletme, 'mesaiDisi', { basSaat, bitSaat });
+            await this.mesajGonder(isletmeId, remoteJid, mesaj);
+          }
+          return;
         }
       }
     } catch (e) { /* mesai dışı kontrolü başarısız — devam et */ }
@@ -475,8 +488,11 @@ class WhatsAppWebService extends EventEmitter {
     // Müşteriyi kaydet / bul (pushName varsa gerçek isim kullan)
     const musteriIsim = msg.pushName || musteriTelefon;
     await pool.query(
-      'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) ON CONFLICT (telefon) DO UPDATE SET isim = EXCLUDED.isim WHERE musteriler.isim = musteriler.telefon',
-      [musteriTelefon, musteriIsim]
+      // son_gelinen_isletme_id: müşteri tablosu global; işletmeye ait müşteri sorguları bu kolona ve randevulara bakar
+      `INSERT INTO musteriler (telefon, isim, son_gelinen_isletme_id) VALUES ($1, $2, $3) ON CONFLICT (telefon) DO UPDATE
+         SET isim = CASE WHEN musteriler.isim = musteriler.telefon THEN EXCLUDED.isim ELSE musteriler.isim END,
+             son_gelinen_isletme_id = EXCLUDED.son_gelinen_isletme_id`,
+      [musteriTelefon, musteriIsim, isletmeId]
     );
 
     // Sohbeti kaydet
@@ -629,7 +645,7 @@ class WhatsAppWebService extends EventEmitter {
     try {
       if (!isletme?.dogum_gunu_aktif) return onayMesaji;
       const musteri = (await pool.query(
-        'SELECT id, dogum_tarihi FROM musteriler WHERE telefon=$1 AND isletme_id=$2',
+        'SELECT id, dogum_tarihi FROM musteriler WHERE telefon=$1 AND (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2))',
         [musteriTelefon, isletmeId]
       )).rows[0];
       if (!musteri || musteri.dogum_tarihi) return onayMesaji; // Zaten var, sorma
@@ -651,7 +667,7 @@ class WhatsAppWebService extends EventEmitter {
       const { parseDogumTarihi, formatDogumTarihi } = require('../utils/dogumTarihi');
       const parsed = parseDogumTarihi(metin);
       if (parsed) {
-        await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND isletme_id=$3',
+        await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND (musteriler.son_gelinen_isletme_id = $3 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $3))',
           [parsed, musteriTelefon, isletmeId]);
         await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
         return { metin: `✅ Teşekkürler! Doğum tarihiniz kaydedildi (*${formatDogumTarihi(parsed)}*). O gün size özel sürprizimiz olacak 🎂`, butonlar: null };
@@ -1188,7 +1204,7 @@ class WhatsAppWebService extends EventEmitter {
           const iptalSinir = isletme.iptal_sinir_saat || 0;
           if (iptalSinir > 0) {
             try {
-              const rTarih = new Date(secilenRandevu.tarih).toISOString().split('T')[0];
+              const rTarih = tarihFormatla(secilenRandevu.tarih);
               const rSaat = String(secilenRandevu.saat).substring(0,5);
               const randevuZamani = new Date(`${rTarih}T${rSaat}:00`);
               const kalanSaat = (randevuZamani - Date.now()) / 3600000;
@@ -1447,6 +1463,19 @@ class WhatsAppWebService extends EventEmitter {
   async _teyitZinciriKontrol(metinKucuk, metin, musteriTelefon, isletmeId, remoteJid) {
     const randevuService = require('./randevu');
 
+    // Müşteri botla aktif bir akışın ortasındaysa (son 30 dk) cevabı teyit/anket sanma:
+    // menüde '2' yazan müşterinin bugünkü randevusu iptal oluyordu. Rakamlar ana menüde de
+    // menü seçimi olduğu için orada da yakalanmaz.
+    try {
+      const bd = (await pool.query(
+        `SELECT asama, son_aktivite > NOW() - INTERVAL '30 minutes' AS yeni FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2`,
+        [musteriTelefon, isletmeId])).rows[0];
+      if (bd?.yeni && bd.asama && bd.asama !== 'baslangic') {
+        const rakam = /^\d+$/.test(metinKucuk.trim());
+        if (rakam || bd.asama !== 'ana_menu') return null;
+      }
+    } catch (e) { /* bot_durum okunamazsa eski davranış */ }
+
     // ─── Aşama 1: Teyit yanıtı (Geliyorum / İptal) ───
     // Müşterinin bugün teyit_gonderildi=true olan onaylı randevusu var mı?
     const geliyorumIntents = ['geliyorum', '1', 'evet', 'geleceğim', 'gelecegim', 'gelicem', 'tamam', 'ok', 'geliyoruz', '✅'];
@@ -1538,7 +1567,7 @@ class WhatsAppWebService extends EventEmitter {
   // Bekleme listesi — iptal olduğunda ilk sıradaki müşteriye bildir
   async _beklemeListesiBildir(isletmeId, isletme, tarih, saat, hizmetId) {
     try {
-      const tarihStr = typeof tarih === 'string' ? tarih : new Date(tarih).toISOString().slice(0, 10);
+      const tarihStr = typeof tarih === 'string' ? tarih : tarihFormatla(tarih);
       const bekleyen = (await pool.query(`
         SELECT bl.*, h.isim as hizmet_isim
         FROM bekleme_listesi bl

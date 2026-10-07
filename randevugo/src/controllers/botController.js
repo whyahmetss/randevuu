@@ -6,7 +6,7 @@ const randevuService = require('../services/randevu');
 class BotController {
 
   // Twilio webhook - gelen WhatsApp mesajı
-  async gelenMesaj(req, res) {
+  async gelenMesaj(req, res, isletmeOverride = null) {
     try {
       const { From, Body, To } = req.body;
       const musteriTelefon = From; // whatsapp:+905xxxxxxxxx
@@ -15,16 +15,13 @@ class BotController {
 
       console.log(`📩 Gelen: ${musteriTelefon} → "${mesaj}"`);
 
-      // İşletmeyi bul (To numarasına göre veya varsayılan)
-      let isletme = (await pool.query(
+      // İşletmeyi bul (test çağrısında override, webhook'ta To numarası).
+      // Eşleşmeyen istek artık 'ilk aktif işletme'ye düşmüyor: sahte istekle başka işletmeye randevu açılabiliyordu.
+      let isletme = isletmeOverride || (isletmeTelefon ? (await pool.query(
         'SELECT * FROM isletmeler WHERE whatsapp_no = $1 AND aktif = true',
         [isletmeTelefon]
-      )).rows[0];
-
-      // Varsayılan işletme (tek işletme varsa)
-      if (!isletme) {
-        isletme = (await pool.query('SELECT * FROM isletmeler WHERE aktif = true LIMIT 1')).rows[0];
-      }
+      )).rows[0] : null);
+      if (!isletme) return res.status(200).send('OK');
 
       if (!isletme) {
         await whatsappService.mesajGonder(musteriTelefon, 'Üzgünüz, şu an hizmet veremiyoruz. 🙏');
@@ -315,7 +312,12 @@ class BotController {
     const originalMesajGonder = whatsappService.mesajGonder.bind(whatsappService);
     try {
       const { telefon, mesaj, isletme_id } = req.body;
-      
+      if (!telefon || !mesaj) return res.status(400).json({ hata: 'Telefon ve mesaj gerekli' });
+      // Test edilen işletme: süper admin istediğini seçebilir, işletme yalnız kendisini
+      const hedefId = req.kullanici.rol === 'superadmin' ? (parseInt(isletme_id) || null) : req.kullanici.isletme_id;
+      const testIsletme = hedefId ? (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [hedefId])).rows[0] : null;
+      if (!testIsletme) return res.status(400).json({ hata: 'Test edilecek işletme bulunamadı' });
+
       // Fake webhook body oluştur
       req.body = {
         From: `whatsapp:+90${telefon.replace(/^0/, '')}`,
@@ -323,10 +325,6 @@ class BotController {
         To: ''
       };
 
-      if (isletme_id) {
-        const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletme_id])).rows[0];
-        if (isletme) req.body.To = isletme.whatsapp_no || '';
-      }
 
       // Cevabı yakalamak için res'i override et
       whatsappService.mesajGonder = async (hedef, msj) => {
@@ -334,7 +332,7 @@ class BotController {
         return { success: true, test: true };
       };
 
-      await this.gelenMesaj(req, { status: () => ({ send: () => {} }) });
+      await this.gelenMesaj(req, { status: () => ({ send: () => {}, json: () => {} }) }, testIsletme);
 
       // Original'e geri dön
       whatsappService.mesajGonder = originalMesajGonder;

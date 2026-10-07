@@ -28,7 +28,7 @@ class DogumGunuService {
         const musteriler = (await pool.query(
           `SELECT id, isim, telefon, dogum_tarihi
            FROM musteriler
-           WHERE isletme_id = $1
+           WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))
              AND dogum_tarihi IS NOT NULL
              AND EXTRACT(MONTH FROM dogum_tarihi) = $2
              AND EXTRACT(DAY FROM dogum_tarihi) = $3
@@ -116,7 +116,7 @@ class DogumGunuService {
       // Doğum tarihi henüz boş olan tüm müşteriler
       const musteriler = (await pool.query(
         `SELECT id, isim, telefon FROM musteriler
-         WHERE isletme_id = $1 AND dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != ''`,
+         WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1)) AND dogum_tarihi IS NULL AND telefon IS NOT NULL AND telefon != ''`,
         [isletmeId]
       )).rows;
 
@@ -190,7 +190,7 @@ class DogumGunuService {
 
       const musteriler = (await pool.query(
         `SELECT id, isim, telefon, dogum_tarihi FROM musteriler
-         WHERE isletme_id = $1 AND dogum_tarihi IS NOT NULL
+         WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1)) AND dogum_tarihi IS NOT NULL
            AND EXTRACT(MONTH FROM dogum_tarihi) = $2 AND EXTRACT(DAY FROM dogum_tarihi) = $3`,
         [isletmeId, ay, gun]
       )).rows;

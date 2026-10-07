@@ -19,7 +19,20 @@ router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim
 router.post('/iletisim', (req, res) => adminController.iletisimGonder(req, res));
 
 // ==================== WHATSAPP WEBHOOK ====================
-router.post('/webhook/whatsapp', numaraRateLimit, payloadDogrula, (req, res) => botController.gelenMesaj(req, res));
+// Twilio webhook imzası: eskiden doğrulanmıyordu. Twilio artık kullanılmıyorsa (token yok) uç kapalı.
+const twilioImzaDogrula = (req, res, next) => {
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  if (!token) return res.status(404).send('Not found');
+  try {
+    const twilio = require('twilio');
+    const url = `${(process.env.BASE_URL || '').replace(/\/$/, '')}${req.originalUrl}`;
+    if (!twilio.validateRequest(token, req.headers['x-twilio-signature'] || '', url, req.body || {})) {
+      return res.status(403).send('Invalid signature');
+    }
+  } catch (e) { return res.status(403).send('Invalid signature'); }
+  next();
+};
+router.post('/webhook/whatsapp', twilioImzaDogrula, numaraRateLimit, payloadDogrula, (req, res) => botController.gelenMesaj(req, res));
 router.post('/bot/test', authMiddleware, (req, res) => botController.testMesaj(req, res));
 
 // ==================== GOOGLE CALENDAR (public callback, diğerleri auth) ====================
@@ -230,7 +243,7 @@ router.get('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res
 router.post('/admin/referanslar', authMiddleware, superAdminMiddleware, (req, res) => adminController.referansOlustur(req, res));
 router.put('/admin/referanslar/:id/bedava-ay', authMiddleware, superAdminMiddleware, (req, res) => adminController.referansBedavaAyGuncelle(req, res));
 router.delete('/admin/referanslar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.referansSil(req, res));
-router.post('/referans/kullan', (req, res) => adminController.referansKullan(req, res));
+router.post('/referans/kullan', authMiddleware, (req, res) => adminController.referansKullan(req, res));
 
 // ==================== GLOBAL DUYURULAR ====================
 router.get('/admin/duyurular', authMiddleware, superAdminMiddleware, (req, res) => adminController.duyurulariGetir(req, res));

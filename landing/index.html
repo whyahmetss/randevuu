@@ -61,11 +61,11 @@
           colors: {
             cream: '#FDFCF8',
             savor: '#F3EFE0',
-            wa: { 50:'#f0fdf4',100:'#dcfce7',200:'#bbf7d0',300:'#86efac',400:'#4ade80',500:'#25D366',600:'#16a34a',700:'#15803d',800:'#166534',900:'#14532d' },
+            wa: { 50:'#eef6f1',100:'#d9ebe0',200:'#b5d6c3',300:'#86b99c',400:'#4f9471',500:'#1f6f4a',600:'#1a5f3f',700:'#164f35',800:'#123f2b',900:'#0e3021' },
             dark: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617' }
           },
           borderRadius: { '4xl':'2rem','5xl':'2.5rem' },
-          fontFamily: { sans:['Inter','sans-serif'], serif:['Playfair Display','serif'] }
+          fontFamily: { sans:['Geist','sans-serif'], serif:['Geist','sans-serif'] }
         }
       }
     }
@@ -190,6 +190,29 @@
     .price-pop{position:relative}
     .price-pop::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:2px;background:linear-gradient(135deg,#25D366,#0ea5e9,#25D366);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;background-size:200% 200%;animation:gradient-x 3s ease infinite}
   </style>
+
+  <!-- Tasarım sistemi v2 — panel ve rezervasyon sayfasıyla aynı dil -->
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style id="tasarim-v2">
+    body{font-family:'Geist',system-ui,sans-serif!important;background:#f6f5f2!important;color:#1b1a17}
+    h1,h2,h3,h4{letter-spacing:-0.025em}
+    .font-black,.font-extrabold{font-weight:600!important}
+    .font-bold{font-weight:600!important}
+    .font-light{font-weight:400!important}
+    .font-serif{font-family:'Geist',system-ui,sans-serif!important;font-style:normal!important}
+    .gt,.gt-warm,.gt-cool,[class*="bg-clip-text"]{background:none!important;-webkit-text-fill-color:currentColor!important;color:#1f6f4a!important}
+    .wa-g{background:#1f6f4a!important}
+    .wa-g:hover{background:#185a3c!important}
+    [class^="blur-"],[class*=" blur-"],.anim-float,.anim-morph,.pulse-r{display:none!important}
+    .rv,.rv-l,.rv-r{filter:none!important}
+    [class*="hover:scale"]:hover,[class*="hover:-translate"]:hover{transform:none!important}
+    [class*="shadow-wa"],[class*="shadow-blue"],[class*="shadow-purple"],[class*="shadow-amber"]{box-shadow:none!important}
+    .bg-gradient-to-br,.bg-gradient-to-b,.bg-gradient-to-r,.bg-gradient-to-t,.bg-gradient-to-l,.bg-gradient-to-bl,.bg-gradient-to-tr,.bg-gradient-to-tl{background-image:none!important}
+    .rounded-3xl,.rounded-4xl,.rounded-5xl{border-radius:16px!important}
+    section.min-h-screen{min-height:auto!important}
+    .bg-dark-950{background:#1b1a17!important}
+    .bg-dark-950 .gt,.bg-dark-950 .gt-warm,.bg-dark-950 .gt-cool,.bg-dark-950 [class*="bg-clip-text"],.bg-dark-900 .gt{color:#8fd0ad!important}
+  </style>
 </head>
 <body>
 
@@ -218,7 +241,7 @@
       <a href="#fiyat" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">Fiyatlar</a>
       <a href="#sss" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">SSS</a>
       <div class="ml-4 flex items-center gap-3">
-        <a href="https://admin.sirago.com" class="text-sm text-dark-500 hover:text-dark-900 font-medium transition-colors">Giriş</a>
+        <a href="https://admin.xn--srago-n4a.com" class="text-sm text-dark-500 hover:text-dark-900 font-medium transition-colors">Giriş</a>
         <a href="#iletisim" class="px-5 py-2.5 wa-g text-white text-sm font-bold rounded-xl hover:scale-105 hover:shadow-lg hover:shadow-wa-500/25 transition-all duration-200">Ücretsiz Dene</a>
       </div>
     </div>
@@ -237,7 +260,7 @@
   <a href="#sektorler" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">Sektörler</a>
   <a href="#fiyat" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">Fiyatlar</a>
   <a href="#sss" class="text-2xl font-serif text-dark-900 hover:text-wa-600 transition-colors" onclick="closeMenu()">SSS</a>
-  <a href="https://admin.sirago.com" class="mt-4 px-8 py-3 wa-g text-white font-bold rounded-xl" onclick="closeMenu()">Ücretsiz Dene</a>
+  <a href="https://admin.xn--srago-n4a.com" class="mt-4 px-8 py-3 wa-g text-white font-bold rounded-xl" onclick="closeMenu()">Ücretsiz Dene</a>
 </div>
 
 <!-- ===== HERO ===== -->
@@ -267,7 +290,7 @@
               <span class="pulse-r absolute inline-flex h-full w-full rounded-full bg-wa-500"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-wa-500"></span>
             </span>
-            Türkiye'nin İlk AI Randevu Platformu
+            WhatsApp'tan randevu
           </span>
         </div>
 
@@ -275,13 +298,13 @@
           Müşterileriniz<br>
           <span class="relative inline-block">
             <span class="gt">WhatsApp'tan</span>
-            <svg class="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none"><path d="M2 8C50 2 150 2 298 8" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-dasharray="300" stroke-dashoffset="300" style="animation:dash 1.5s .8s ease forwards"/></svg>
+            <svg class="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none"><path d="M2 8C50 2 150 2 298 8" stroke="#1f6f4a" stroke-width="3" stroke-linecap="round" stroke-dasharray="300" stroke-dashoffset="300" style="animation:dash 1.5s .8s ease forwards"/></svg>
           </span><br>
           randevu alsın
         </h1>
 
         <p class="anim-fade-up d4 text-lg md:text-xl text-dark-400 font-light leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">
-          7/24 kesintisiz çalışan yapay zeka asistanınız. Telefon trafiğini sonlandırın, <strong class="font-semibold text-dark-600">randevu kaçırma oranını %80 azaltın.</strong>
+          7/24 kesintisiz çalışan yapay zeka asistanınız. Telefon trafiğini sonlandırın, <strong class="font-semibold text-dark-600">unutulan randevuları otomatik hatırlatmayla azaltın.</strong>
         </p>
 
         <div class="anim-fade-up d6 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
@@ -453,9 +476,9 @@
         <p class="text-[11px] text-dark-300 mt-1">Tek tıkla başla</p>
       </div>
       <div class="rv text-center p-8 rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100/50" style="transition-delay:.15s">
-        <div class="text-4xl md:text-5xl font-black gt-warm mb-1">%80</div>
-        <p class="text-sm text-dark-500 font-medium">Daha Az İptal</p>
-        <p class="text-[11px] text-dark-300 mt-1">Otomatik hatırlatmayla</p>
+        <div class="text-4xl md:text-5xl font-black gt-warm mb-1">0</div>
+        <p class="text-sm text-dark-500 font-medium">Uygulama İndirme</p>
+        <p class="text-[11px] text-dark-300 mt-1">Müşteri WhatsApp'tan yazar</p>
       </div>
       <div class="rv text-center p-8 rounded-3xl bg-gradient-to-br from-purple-50 to-white border border-purple-100/50" style="transition-delay:.2s">
         <div class="text-4xl md:text-5xl font-black gt-cool mb-1">14<span class="text-lg font-bold text-dark-400"> gün</span></div>
@@ -924,7 +947,7 @@
             <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
           </div>
         </button>
-        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Müşterileriniz WhatsApp üzerinden doğrudan iptal edebilir. İptal edilen slotlar otomatik olarak müsait duruma geçer. Ayrıca otomatik hatırlatma mesajları sayesinde iptal oranı %70'e kadar azalır.</p></div>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Müşterileriniz WhatsApp üzerinden doğrudan iptal edebilir. İptal edilen slotlar otomatik olarak müsait duruma geçer. Ayrıca otomatik hatırlatma mesajları sayesinde iptal oranı belirgin şekilde azalır.</p></div>
       </div>
 
       <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
@@ -1025,7 +1048,7 @@
       </div>
       <div>
         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-dark-400 mb-5">Şirket</p>
-        <ul class="space-y-3"><li><a href="#iletisim" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">İletişim</a></li><li><a href="https://admin.sirago.com" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Giriş Yap</a></li></ul>
+        <ul class="space-y-3"><li><a href="#iletisim" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">İletişim</a></li><li><a href="https://admin.xn--srago-n4a.com" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Giriş Yap</a></li></ul>
       </div>
       <div>
         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-dark-400 mb-5">Yasal</p>

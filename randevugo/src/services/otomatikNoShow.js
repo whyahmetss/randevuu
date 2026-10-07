@@ -20,7 +20,7 @@ async function tara() {
       JOIN isletmeler i ON i.id = r.isletme_id
       JOIN musteriler m ON m.id = r.musteri_id
       WHERE i.no_show_otomatik = true
-        AND r.durum IN ('onaylandi', 'onay_bekliyor')
+        AND r.durum = 'onaylandi' -- onay_bekliyor: esnaf hiç onaylamamış, müşteri cezalandırılmamalı
         AND r.tarih <= CURRENT_DATE
         AND (r.tarih < CURRENT_DATE OR (r.tarih = CURRENT_DATE AND r.saat::time + INTERVAL '2 hours' < CURRENT_TIME))
       LIMIT 100

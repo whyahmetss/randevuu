@@ -25,13 +25,19 @@ const PORT = process.env.PORT || 3000;
 
 // Otomatik migration - eksik kolonları ekle
 (async () => {
+  // Her migration adımı bağımsız: eskiden tek try içindeydi, bir ALTER hata verince sonrakilerin
+  // hiçbiri çalışmıyordu (eksik kolonların kaynağı). Hata loglanır, boş sonuç döner, devam edilir.
+  const adim = async (...args) => {
+    try { return await pool.query(...args); }
+    catch (e) { console.log('⚠️ Migration adımı atlandı:', String(args[0]).replace(/\s+/g, ' ').slice(0, 90), '→', e.message); return { rows: [], rowCount: 0 }; }
+  };
   try {
-    await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_calisan_id INTEGER`);
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS not_text TEXT`);
-    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT true`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS mola_saatleri JSONB DEFAULT '[]'`);
+    await adim(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_calisan_id INTEGER`);
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS not_text TEXT`);
+    await adim(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT true`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS mola_saatleri JSONB DEFAULT '[]'`);
     // Avcı Bot - Potansiyel müşteri tablosu
-    await pool.query(`CREATE TABLE IF NOT EXISTS potansiyel_musteriler (
+    await adim(`CREATE TABLE IF NOT EXISTS potansiyel_musteriler (
       id SERIAL PRIMARY KEY,
       isletme_adi VARCHAR(255) NOT NULL,
       telefon VARCHAR(50),
@@ -52,14 +58,14 @@ const PORT = process.env.PORT || 3000;
       sonraki_arama TIMESTAMP,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS instagram VARCHAR(255)`);
-    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS kaynak VARCHAR(30) DEFAULT 'maps'`);
+    await adim(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS instagram VARCHAR(255)`);
+    await adim(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS kaynak VARCHAR(30) DEFAULT 'maps'`);
     // Mevcut sosyal medya kayıtlarını otomatik işaretle
-    await pool.query(`UPDATE potansiyel_musteriler SET kaynak = 'instagram' WHERE kaynak = 'maps' AND google_maps_id LIKE 'instagram_%'`);
-    await pool.query(`UPDATE potansiyel_musteriler SET kaynak = 'facebook' WHERE kaynak = 'maps' AND google_maps_id LIKE 'facebook_%'`);
-    await pool.query(`UPDATE potansiyel_musteriler SET kaynak = 'tiktok' WHERE kaynak = 'maps' AND google_maps_id LIKE 'tiktok_%'`);
+    await adim(`UPDATE potansiyel_musteriler SET kaynak = 'instagram' WHERE kaynak = 'maps' AND google_maps_id LIKE 'instagram_%'`);
+    await adim(`UPDATE potansiyel_musteriler SET kaynak = 'facebook' WHERE kaynak = 'maps' AND google_maps_id LIKE 'facebook_%'`);
+    await adim(`UPDATE potansiyel_musteriler SET kaynak = 'tiktok' WHERE kaynak = 'maps' AND google_maps_id LIKE 'tiktok_%'`);
     // Ödemeler tablosu - yeni kolonlar
-    await pool.query(`CREATE TABLE IF NOT EXISTS odemeler (
+    await adim(`CREATE TABLE IF NOT EXISTS odemeler (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER REFERENCES isletmeler(id),
       tutar DECIMAL(10,2) NOT NULL,
@@ -71,12 +77,12 @@ const PORT = process.env.PORT || 3000;
       havale_dekont TEXT,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS odeme_yontemi VARCHAR(30)`);
-    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS iyzico_token VARCHAR(255)`);
-    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS havale_dekont TEXT`);
-    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(30)`);
+    await adim(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS odeme_yontemi VARCHAR(30)`);
+    await adim(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS iyzico_token VARCHAR(255)`);
+    await adim(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS havale_dekont TEXT`);
+    await adim(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(30)`);
     // İletişim mesajları
-    await pool.query(`CREATE TABLE IF NOT EXISTS iletisim_mesajlari (
+    await adim(`CREATE TABLE IF NOT EXISTS iletisim_mesajlari (
       id SERIAL PRIMARY KEY,
       isim VARCHAR(255),
       email VARCHAR(255),
@@ -86,10 +92,10 @@ const PORT = process.env.PORT || 3000;
       okundu BOOLEAN DEFAULT false,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`ALTER TABLE iletisim_mesajlari ADD COLUMN IF NOT EXISTS telefon VARCHAR(20)`);
-    await pool.query(`ALTER TABLE iletisim_mesajlari ADD COLUMN IF NOT EXISTS kaynak VARCHAR(50) DEFAULT 'web'`);
+    await adim(`ALTER TABLE iletisim_mesajlari ADD COLUMN IF NOT EXISTS telefon VARCHAR(20)`);
+    await adim(`ALTER TABLE iletisim_mesajlari ADD COLUMN IF NOT EXISTS kaynak VARCHAR(50) DEFAULT 'web'`);
     // Satış Bot tablosu
-    await pool.query(`CREATE TABLE IF NOT EXISTS satis_konusmalar (
+    await adim(`CREATE TABLE IF NOT EXISTS satis_konusmalar (
       id SERIAL PRIMARY KEY,
       lead_id INTEGER,
       telefon VARCHAR(50),
@@ -101,29 +107,29 @@ const PORT = process.env.PORT || 3000;
       son_mesaj_tarihi TIMESTAMP,
       olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
     )`);
-    await pool.query(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS takip_sayisi INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS son_takip_tarihi TIMESTAMP`);
-    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_durumu VARCHAR(30)`);
-    await pool.query(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_tarihi TIMESTAMP`);
-    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_siparis_id VARCHAR(100)`);
-    await pool.query(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_urun_id VARCHAR(100)`);
+    await adim(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS takip_sayisi INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS son_takip_tarihi TIMESTAMP`);
+    await adim(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_durumu VARCHAR(30)`);
+    await adim(`ALTER TABLE potansiyel_musteriler ADD COLUMN IF NOT EXISTS wp_mesaj_tarihi TIMESTAMP`);
+    await adim(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_siparis_id VARCHAR(100)`);
+    await adim(`ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS shopier_urun_id VARCHAR(100)`);
     // WhatsApp LID formatı 20 karakterden uzun — telefon kolonlarını genişlet
-    await pool.query(`ALTER TABLE musteriler ALTER COLUMN telefon TYPE VARCHAR(50)`).catch(()=>{});
-    await pool.query(`ALTER TABLE bot_durum ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
-    await pool.query(`ALTER TABLE sohbet_gecmisi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
-    await pool.query(`ALTER TABLE bekleme_listesi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
+    await adim(`ALTER TABLE musteriler ALTER COLUMN telefon TYPE VARCHAR(50)`).catch(()=>{});
+    await adim(`ALTER TABLE bot_durum ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
+    await adim(`ALTER TABLE sohbet_gecmisi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
+    await adim(`ALTER TABLE bekleme_listesi ALTER COLUMN musteri_telefon TYPE VARCHAR(50)`).catch(()=>{});
     // Dil tercihi kalıcılığı
-    await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_dil VARCHAR(5)`);
-    await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_dilim VARCHAR(10)`);
+    await adim(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_dil VARCHAR(5)`);
+    await adim(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS secilen_dilim VARCHAR(10)`);
     // Telegram OTP — chat_id eşleşmesi (booking sayfası TG kanalı için)
-    await pool.query(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS chat_id VARCHAR(50)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_bot_durum_chat_id ON bot_durum(chat_id) WHERE chat_id IS NOT NULL`);
+    await adim(`ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS chat_id VARCHAR(50)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_bot_durum_chat_id ON bot_durum(chat_id) WHERE chat_id IS NOT NULL`);
     // Çok dilli hizmet isimleri
-    await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_en VARCHAR(100)`);
-    await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_ar VARCHAR(100)`);
+    await adim(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_en VARCHAR(100)`);
+    await adim(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS isim_ar VARCHAR(100)`);
 
     // ─── KURUMSAL PAKET: ŞUBE GRUPLARI ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS sube_gruplari (
+    await adim(`CREATE TABLE IF NOT EXISTS sube_gruplari (
       id SERIAL PRIMARY KEY,
       isim VARCHAR(200) NOT NULL,
       slug VARCHAR(100) UNIQUE NOT NULL,
@@ -134,19 +140,19 @@ const PORT = process.env.PORT || 3000;
       sehirlerarasi BOOLEAN DEFAULT FALSE,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sube_gruplari_slug ON sube_gruplari(slug)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id) ON DELETE SET NULL`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sube_etiketi VARCHAR(100)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS grup_sira INTEGER DEFAULT 0`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_isletmeler_grup_id ON isletmeler(grup_id)`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id) ON DELETE SET NULL`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS son_gelinen_isletme_id INTEGER REFERENCES isletmeler(id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_musteriler_grup_tel ON musteriler(grup_id, telefon) WHERE grup_id IS NOT NULL`);
-    await pool.query(`ALTER TABLE admin_kullanicilar ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_sube_gruplari_slug ON sube_gruplari(slug)`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id) ON DELETE SET NULL`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sube_etiketi VARCHAR(100)`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS grup_sira INTEGER DEFAULT 0`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_isletmeler_grup_id ON isletmeler(grup_id)`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id) ON DELETE SET NULL`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS son_gelinen_isletme_id INTEGER REFERENCES isletmeler(id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_musteriler_grup_tel ON musteriler(grup_id, telefon) WHERE grup_id IS NOT NULL`);
+    await adim(`ALTER TABLE admin_kullanicilar ADD COLUMN IF NOT EXISTS grup_id INTEGER REFERENCES sube_gruplari(id)`);
 
     // ─── BACKFILL: Grup alt şubelerinin NULL paket tarihlerini merkezden kopyala ───
     // (Yeni şube ekleme sırasında kopyalanmayan mevcut kayıtlar için tek seferlik fix)
-    await pool.query(`
+    await adim(`
       UPDATE isletmeler sube
          SET paket = COALESCE(sube.paket, merkez.paket),
              paket_bitis_tarihi = COALESCE(sube.paket_bitis_tarihi, merkez.paket_bitis_tarihi),
@@ -163,7 +169,7 @@ const PORT = process.env.PORT || 3000;
     `);
 
     // ─── Bozuk slug'ları düzelt (boşluk, büyük harf, Türkçe karakter içerenler) ───
-    await pool.query(`
+    await adim(`
       UPDATE isletmeler
          SET slug = LOWER(
            REGEXP_REPLACE(
@@ -180,21 +186,21 @@ const PORT = process.env.PORT || 3000;
     `);
 
     // ─── KAPORA SİSTEMİ ───
-    await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS kapora_yuzdesi INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS kapora_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_durumu VARCHAR(30) DEFAULT 'yok'`); // yok, bekliyor, odendi, iade
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_tutari DECIMAL(10,2) DEFAULT 0`);
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_link TEXT`);
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_shopier_urun_id VARCHAR(100)`);
+    await adim(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS kapora_yuzdesi INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS kapora_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_durumu VARCHAR(30) DEFAULT 'yok'`); // yok, bekliyor, odendi, iade
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_tutari DECIMAL(10,2) DEFAULT 0`);
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_link TEXT`);
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kapora_shopier_urun_id VARCHAR(100)`);
 
     // ─── PERSONEL BAZLI YÖNETİM ───
     // Çalışan kişisel mesai saatleri
-    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS calisma_baslangic TIME`);
-    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS calisma_bitis TIME`);
-    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS kapali_gunler VARCHAR(50) DEFAULT ''`);
-    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS mola_saatleri JSONB DEFAULT '[]'`);
+    await adim(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS calisma_baslangic TIME`);
+    await adim(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS calisma_bitis TIME`);
+    await adim(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS kapali_gunler VARCHAR(50) DEFAULT ''`);
+    await adim(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS mola_saatleri JSONB DEFAULT '[]'`);
     // Çalışan-hizmet eşleştirme tablosu
-    await pool.query(`CREATE TABLE IF NOT EXISTS calisan_hizmetler (
+    await adim(`CREATE TABLE IF NOT EXISTS calisan_hizmetler (
       id SERIAL PRIMARY KEY,
       calisan_id INTEGER REFERENCES calisanlar(id) ON DELETE CASCADE,
       hizmet_id INTEGER REFERENCES hizmetler(id) ON DELETE CASCADE,
@@ -202,7 +208,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── SATIŞ BOT ÇOKLU NUMARA ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS satis_bot_numaralar (
+    await adim(`CREATE TABLE IF NOT EXISTS satis_bot_numaralar (
       id SERIAL PRIMARY KEY,
       isim VARCHAR(100) DEFAULT 'Numara',
       telefon VARCHAR(50),
@@ -215,7 +221,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── AUDIT LOG (Sistem Logları) ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS audit_log (
+    await adim(`CREATE TABLE IF NOT EXISTS audit_log (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER,
       kullanici_id INTEGER,
@@ -229,7 +235,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── DESTEK TALEPLERİ (Ticket Sistemi) ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS destek_talepleri (
+    await adim(`CREATE TABLE IF NOT EXISTS destek_talepleri (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER REFERENCES isletmeler(id) ON DELETE CASCADE,
       kullanici_id INTEGER,
@@ -243,7 +249,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── GLOBAL DUYURULAR ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS duyurular (
+    await adim(`CREATE TABLE IF NOT EXISTS duyurular (
       id SERIAL PRIMARY KEY,
       baslik VARCHAR(300) NOT NULL,
       mesaj TEXT NOT NULL,
@@ -254,7 +260,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── REFERANS (Affiliate) SİSTEMİ ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS referanslar (
+    await adim(`CREATE TABLE IF NOT EXISTS referanslar (
       id SERIAL PRIMARY KEY,
       referans_kodu VARCHAR(50) UNIQUE NOT NULL,
       sahip_isletme_id INTEGER REFERENCES isletmeler(id) ON DELETE CASCADE,
@@ -262,17 +268,17 @@ const PORT = process.env.PORT || 3000;
       toplam_davet INTEGER DEFAULT 0,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(50)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_ile_gelen INTEGER`);
-    await pool.query(`ALTER TABLE referanslar ADD COLUMN IF NOT EXISTS bedava_gun INTEGER DEFAULT 30`);
-    await pool.query(`ALTER TABLE referanslar ADD COLUMN IF NOT EXISTS min_davet INTEGER DEFAULT 1`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS paket_bitis_tarihi TIMESTAMP`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS deneme_bitis_tarihi TIMESTAMP`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(50)`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_ile_gelen INTEGER`);
+    await adim(`ALTER TABLE referanslar ADD COLUMN IF NOT EXISTS bedava_gun INTEGER DEFAULT 30`);
+    await adim(`ALTER TABLE referanslar ADD COLUMN IF NOT EXISTS min_davet INTEGER DEFAULT 1`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS paket_bitis_tarihi TIMESTAMP`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS deneme_bitis_tarihi TIMESTAMP`);
     // Mevcut işletmeler: deneme_bitis_tarihi boşsa olusturma_tarihi + 7 gün set et
-    await pool.query(`UPDATE isletmeler SET deneme_bitis_tarihi = olusturma_tarihi + INTERVAL '7 days' WHERE deneme_bitis_tarihi IS NULL AND olusturma_tarihi IS NOT NULL`);
+    await adim(`UPDATE isletmeler SET deneme_bitis_tarihi = olusturma_tarihi + INTERVAL '7 days' WHERE deneme_bitis_tarihi IS NULL AND olusturma_tarihi IS NOT NULL`);
 
     // ─── DİNAMİK PAKETLER ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS paket_tanimlari (
+    await adim(`CREATE TABLE IF NOT EXISTS paket_tanimlari (
       id SERIAL PRIMARY KEY,
       kod VARCHAR(50) UNIQUE NOT NULL,
       isim VARCHAR(100) NOT NULL,
@@ -291,7 +297,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── WHATSAPP AUTH (Session verileri DB'de) ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS wa_auth_keys (
+    await adim(`CREATE TABLE IF NOT EXISTS wa_auth_keys (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL,
       key_id VARCHAR(500) NOT NULL,
@@ -300,10 +306,10 @@ const PORT = process.env.PORT || 3000;
       updated_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(isletme_id, key_id)
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_wa_auth_isletme ON wa_auth_keys(isletme_id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_wa_auth_isletme ON wa_auth_keys(isletme_id)`);
 
     // ─── MÜŞTERİ ETİKETLEME (Mini-CRM) ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS musteri_etiketler (
+    await adim(`CREATE TABLE IF NOT EXISTS musteri_etiketler (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       isim VARCHAR(100) NOT NULL,
@@ -311,7 +317,7 @@ const PORT = process.env.PORT || 3000;
       olusturma_tarihi TIMESTAMP DEFAULT NOW(),
       UNIQUE(isletme_id, isim)
     )`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS musteri_etiket_atamalari (
+    await adim(`CREATE TABLE IF NOT EXISTS musteri_etiket_atamalari (
       id SERIAL PRIMARY KEY,
       musteri_telefon VARCHAR(50) NOT NULL,
       etiket_id INTEGER NOT NULL REFERENCES musteri_etiketler(id) ON DELETE CASCADE,
@@ -321,7 +327,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── GOOGLE YORUM FEEDBACK ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS google_yorum_talepleri (
+    await adim(`CREATE TABLE IF NOT EXISTS google_yorum_talepleri (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       randevu_id INTEGER REFERENCES randevular(id) ON DELETE SET NULL,
@@ -331,27 +337,27 @@ const PORT = process.env.PORT || 3000;
       yildiz INTEGER,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_maps_url TEXT`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_yorum_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_maps_url TEXT`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_yorum_aktif BOOLEAN DEFAULT false`);
 
     // ─── KAMPANYA BROADCAST GELİŞTİRME ───
-    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS hedef_etiket_id INTEGER`);
-    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS kanal VARCHAR(20) DEFAULT 'hepsi'`);
-    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS toplam_hedef INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarili INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarisiz INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS hedef_etiket_id INTEGER`);
+    await adim(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS kanal VARCHAR(20) DEFAULT 'hepsi'`);
+    await adim(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS toplam_hedef INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarili INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE kampanyalar ADD COLUMN IF NOT EXISTS basarisiz INTEGER DEFAULT 0`);
 
     // ─── RANDEVU MODLARI ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS randevu_modu VARCHAR(20) DEFAULT 'sirali'`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS calisan_secim_modu VARCHAR(20) DEFAULT 'musteri'`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS randevu_onay_modu VARCHAR(20) DEFAULT 'otomatik'`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS randevu_modu VARCHAR(20) DEFAULT 'sirali'`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS calisan_secim_modu VARCHAR(20) DEFAULT 'musteri'`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS randevu_onay_modu VARCHAR(20) DEFAULT 'otomatik'`);
 
     // ─── ONLINE RANDEVU LİNKİ ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE`);
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kaynak VARCHAR(30) DEFAULT 'bot'`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE`);
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS kaynak VARCHAR(30) DEFAULT 'bot'`);
 
     // ─── KASA TAKİBİ (Adisyon) ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS kasa_hareketleri (
+    await adim(`CREATE TABLE IF NOT EXISTS kasa_hareketleri (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       tip VARCHAR(10) NOT NULL,
@@ -364,11 +370,11 @@ const PORT = process.env.PORT || 3000;
       olusturan_id INTEGER,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_kasa_isletme_tarih ON kasa_hareketleri(isletme_id, tarih)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_kasa_isletme_tarih ON kasa_hareketleri(isletme_id, tarih)`);
 
     // ─── PRİM HESAPLAMA ───
-    await pool.query(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS prim_yuzdesi INTEGER DEFAULT 10`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS prim_odemeleri (
+    await adim(`ALTER TABLE calisanlar ADD COLUMN IF NOT EXISTS prim_yuzdesi INTEGER DEFAULT 10`);
+    await adim(`CREATE TABLE IF NOT EXISTS prim_odemeleri (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       calisan_id INTEGER NOT NULL REFERENCES calisanlar(id) ON DELETE CASCADE,
@@ -382,14 +388,14 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── SMS HATIRLATMA (NetGSM) ───
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS sms_hatirlatma_gonderildi BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_kullanici_adi VARCHAR(100)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_sifre VARCHAR(100)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_baslik VARCHAR(20)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_hatirlatma_dk INTEGER DEFAULT 60`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_onay_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS sms_log (
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS sms_hatirlatma_gonderildi BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_kullanici_adi VARCHAR(100)`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_sifre VARCHAR(100)`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS netgsm_baslik VARCHAR(20)`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_hatirlatma_dk INTEGER DEFAULT 60`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sms_onay_aktif BOOLEAN DEFAULT false`);
+    await adim(`CREATE TABLE IF NOT EXISTS sms_log (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       telefon VARCHAR(20) NOT NULL,
@@ -401,11 +407,11 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── OTOMATİK GECE RAPORU ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_saat VARCHAR(5) DEFAULT '22:00'`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_kanal VARCHAR(20) DEFAULT 'whatsapp'`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_telefon VARCHAR(20)`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS gece_rapor_log (
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_saat VARCHAR(5) DEFAULT '22:00'`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_kanal VARCHAR(20) DEFAULT 'whatsapp'`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS gece_raporu_telefon VARCHAR(20)`);
+    await adim(`CREATE TABLE IF NOT EXISTS gece_rapor_log (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       tarih DATE DEFAULT CURRENT_DATE,
@@ -416,11 +422,11 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── YORUM AVCISI (Google Review) ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_avcisi_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_maps_link VARCHAR(500)`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_gecikme_dk INTEGER DEFAULT 60`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_mesaj_sablonu TEXT`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS yorum_talepleri (
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_avcisi_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS google_maps_link VARCHAR(500)`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_gecikme_dk INTEGER DEFAULT 60`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS yorum_mesaj_sablonu TEXT`);
+    await adim(`CREATE TABLE IF NOT EXISTS yorum_talepleri (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       randevu_id INTEGER REFERENCES randevular(id) ON DELETE SET NULL,
@@ -433,11 +439,11 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── KAYIP MÜŞTERİ KURTARMA (Win-back) ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_gun_esik INTEGER DEFAULT 45`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_indirim INTEGER DEFAULT 10`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_mesaj_sablonu TEXT`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS winback_log (
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_gun_esik INTEGER DEFAULT 45`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_indirim INTEGER DEFAULT 10`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS winback_mesaj_sablonu TEXT`);
+    await adim(`CREATE TABLE IF NOT EXISTS winback_log (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
@@ -451,15 +457,15 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── SADAKAT PUAN SİSTEMİ ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sadakat_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS puan_oran_tl INTEGER DEFAULT 1`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS puan_oran_puan INTEGER DEFAULT 1`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS odul_esik INTEGER DEFAULT 1000`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS odul_hizmet_id INTEGER`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS puan_bakiye INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS toplam_kazanilan_puan INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS toplam_harcanan_puan INTEGER DEFAULT 0`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS puan_hareketleri (
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sadakat_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS puan_oran_tl INTEGER DEFAULT 1`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS puan_oran_puan INTEGER DEFAULT 1`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS odul_esik INTEGER DEFAULT 1000`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS odul_hizmet_id INTEGER`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS puan_bakiye INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS toplam_kazanilan_puan INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS toplam_harcanan_puan INTEGER DEFAULT 0`);
+    await adim(`CREATE TABLE IF NOT EXISTS puan_hareketleri (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       musteri_id INTEGER NOT NULL REFERENCES musteriler(id) ON DELETE CASCADE,
@@ -471,13 +477,13 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── REFERANS AĞI ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_puan_davet INTEGER DEFAULT 200`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_puan_davetli INTEGER DEFAULT 100`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(10)`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS referans_ile_gelen BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS davet_eden_id INTEGER`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS referans_log (
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_puan_davet INTEGER DEFAULT 200`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_puan_davetli INTEGER DEFAULT 100`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS referans_kodu VARCHAR(10)`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS referans_ile_gelen BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS davet_eden_id INTEGER`);
+    await adim(`CREATE TABLE IF NOT EXISTS referans_log (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       davet_eden_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
@@ -490,11 +496,11 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── DOĞUM GÜNÜ PAZARLAMASI ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_aktif BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_indirim INTEGER DEFAULT 30`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_mesaj_sablonu TEXT`);
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS dogum_tarihi DATE`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS dogum_gunu_log (
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_aktif BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_indirim INTEGER DEFAULT 30`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dogum_gunu_mesaj_sablonu TEXT`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS dogum_tarihi DATE`);
+    await adim(`CREATE TABLE IF NOT EXISTS dogum_gunu_log (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       musteri_id INTEGER REFERENCES musteriler(id) ON DELETE SET NULL,
@@ -504,7 +510,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // ─── SATIŞ BOT ŞABLONLAR ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS satis_bot_sablonlar (
+    await adim(`CREATE TABLE IF NOT EXISTS satis_bot_sablonlar (
       id SERIAL PRIMARY KEY,
       isim VARCHAR(100) NOT NULL,
       mesaj TEXT NOT NULL,
@@ -517,12 +523,12 @@ const PORT = process.env.PORT || 3000;
       olumsuz INTEGER DEFAULT 0,
       olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
     )`);
-    await pool.query(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS sablon_id INTEGER`);
+    await adim(`ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS sablon_id INTEGER`);
 
     // Varsayılan şablonları ekle (yoksa)
-    const mevcutSablon = (await pool.query('SELECT COUNT(*) as c FROM satis_bot_sablonlar')).rows[0];
+    const mevcutSablon = (await adim('SELECT COUNT(*) as c FROM satis_bot_sablonlar')).rows[0];
     if (parseInt(mevcutSablon.c) === 0) {
-      await pool.query(`INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES
+      await adim(`INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES
         ('Acı Noktası', 'Selam {isletme_sahibi}, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel'),
         ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')
       `);
@@ -532,26 +538,26 @@ const PORT = process.env.PORT || 3000;
     // Eski düşük dönüşümlü şablonları pasifle, yeni A/B test şablonları ekle
     try {
       // "Soru Soran" → pasif
-      await pool.query("UPDATE satis_bot_sablonlar SET aktif = false WHERE isim = 'Soru Soran' AND aktif = true");
+      await adim("UPDATE satis_bot_sablonlar SET aktif = false WHERE isim = 'Soru Soran' AND aktif = true");
       // "Bey" kaldır — cinsiyet nötr
-      await pool.query("UPDATE satis_bot_sablonlar SET mesaj = REPLACE(mesaj, '{isletme_sahibi} Bey', '{isletme_sahibi}') WHERE mesaj LIKE '%{isletme_sahibi} Bey%'");
+      await adim("UPDATE satis_bot_sablonlar SET mesaj = REPLACE(mesaj, '{isletme_sahibi} Bey', '{isletme_sahibi}') WHERE mesaj LIKE '%{isletme_sahibi} Bey%'");
       // "Değer Öneren" ve "Rakip Müşterisi" → sil (0 gönderim veya düşük performans)
-      await pool.query("DELETE FROM satis_bot_sablonlar WHERE isim = 'Değer Öneren' AND gonderilen = 0");
-      await pool.query("DELETE FROM satis_bot_sablonlar WHERE isim = 'Rakip Müşterisi'");
+      await adim("DELETE FROM satis_bot_sablonlar WHERE isim = 'Değer Öneren' AND gonderilen = 0");
+      await adim("DELETE FROM satis_bot_sablonlar WHERE isim = 'Rakip Müşterisi'");
       // Yeni şablonlar (yoksa ekle)
-      const aciNokta = (await pool.query("SELECT id FROM satis_bot_sablonlar WHERE isim = 'Acı Noktası'")).rows[0];
+      const aciNokta = (await adim("SELECT id FROM satis_bot_sablonlar WHERE isim = 'Acı Noktası'")).rows[0];
       if (!aciNokta) {
-        await pool.query("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Acı Noktası', 'Selam {isletme_sahibi}, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel')");
+        await adim("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Acı Noktası', 'Selam {isletme_sahibi}, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. {isletme_adi} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.', 'genel')");
       }
-      const kolaylik = (await pool.query("SELECT id FROM satis_bot_sablonlar WHERE isim = 'Kolaylık Odaklı'")).rows[0];
+      const kolaylik = (await adim("SELECT id FROM satis_bot_sablonlar WHERE isim = 'Kolaylık Odaklı'")).rows[0];
       if (!kolaylik) {
-        await pool.query("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')");
+        await adim("INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori) VALUES ('Kolaylık Odaklı', 'Merhaba {isletme_sahibi}, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi {kategori} salonları için aktif ettik. İlk ay ücretsiz geçiş için 5 dakikalık demo linki göndereyim mi?', 'genel')");
       }
       console.log('✅ Satış bot şablonları v2 güncellendi');
     } catch(e) { console.log('⚠️ Şablon güncelleme notu:', e.message); }
 
     // ─── SATIŞ KAMPANYALARI (SEGMENTASYON MOTORU) ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS satis_kampanyalar (
+    await adim(`CREATE TABLE IF NOT EXISTS satis_kampanyalar (
       id SERIAL PRIMARY KEY,
       isim VARCHAR(100) NOT NULL,
       kategori VARCHAR(100) NOT NULL,
@@ -569,11 +575,11 @@ const PORT = process.env.PORT || 3000;
       olumlu INTEGER DEFAULT 0,
       olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
     )`);
-    await pool.query(`ALTER TABLE satis_bot_sablonlar ADD COLUMN IF NOT EXISTS kampanya_id INTEGER`);
+    await adim(`ALTER TABLE satis_bot_sablonlar ADD COLUMN IF NOT EXISTS kampanya_id INTEGER`);
 
     // Seed: Sektöre özel kampanyalar + şablonlar (yoksa)
     try {
-      const kampanyaVar = (await pool.query('SELECT COUNT(*) as c FROM satis_kampanyalar')).rows[0];
+      const kampanyaVar = (await adim('SELECT COUNT(*) as c FROM satis_kampanyalar')).rows[0];
       if (parseInt(kampanyaVar.c) === 0) {
         const kampanyaSeed = [
           { isim:'Berber Kampanyası', kategori:'berber', gunler:'{1,2}', basla:10, bit:14, oncelik:10,
@@ -618,17 +624,17 @@ const PORT = process.env.PORT || 3000;
           }
         ];
         for (const k of kampanyaSeed) {
-          const kRes = await pool.query(
+          const kRes = await adim(
             `INSERT INTO satis_kampanyalar (isim, kategori, gunler, mesai_baslangic, mesai_bitis, oncelik)
              VALUES ($1,$2,$3::int[],$4,$5,$6) RETURNING id`,
             [k.isim, k.kategori, k.gunler, k.basla, k.bit, k.oncelik]
           );
           const kId = kRes.rows[0].id;
-          await pool.query(
+          await adim(
             `INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori, kampanya_id) VALUES ($1,$2,$3,$4)`,
             [k.s1.isim, k.s1.mesaj, k.kategori, kId]
           );
-          await pool.query(
+          await adim(
             `INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori, kampanya_id) VALUES ($1,$2,$3,$4)`,
             [k.s2.isim, k.s2.mesaj, k.kategori, kId]
           );
@@ -638,16 +644,16 @@ const PORT = process.env.PORT || 3000;
     } catch(e) { console.log('⚠️ Kampanya seed notu:', e.message); }
 
     // ─── İŞLETME ONBOARDING ───
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_adim INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_tamamlandi BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_profil BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_hizmet BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_calisan BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_bot BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_randevu BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_adim INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_tamamlandi BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_profil BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_hizmet BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_calisan BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_bot BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS onboarding_randevu BOOLEAN DEFAULT false`);
 
     // ─── ZOMBİ OTOMATİK AKSİYON ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS zombi_aksiyonlar (
+    await adim(`CREATE TABLE IF NOT EXISTS zombi_aksiyonlar (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       aksiyon_tipi VARCHAR(30) NOT NULL,
@@ -657,11 +663,11 @@ const PORT = process.env.PORT || 3000;
       olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul'),
       uygulama_tarihi TIMESTAMP
     )`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_gonderildi BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_tarihi TIMESTAMP`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_gonderildi BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS zombi_uyari_tarihi TIMESTAMP`);
 
     // ─── İŞLETME BİLDİRİMLERİ ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS isletme_bildirimleri (
+    await adim(`CREATE TABLE IF NOT EXISTS isletme_bildirimleri (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       tip VARCHAR(30) NOT NULL,
@@ -671,19 +677,19 @@ const PORT = process.env.PORT || 3000;
       link VARCHAR(255),
       olusturma_tarihi TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Europe/Istanbul')
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_bildirim_isletme ON isletme_bildirimleri(isletme_id, okundu)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_bildirim_isletme ON isletme_bildirimleri(isletme_id, okundu)`);
     // Bildirim tercihleri
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_panel BOOLEAN DEFAULT true`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_whatsapp BOOLEAN DEFAULT true`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_sms BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_panel BOOLEAN DEFAULT true`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_whatsapp BOOLEAN DEFAULT true`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bildirim_sms BOOLEAN DEFAULT false`);
 
     // ─── DİNAMİK SÜRE + TAMPON ───
-    await pool.query(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS tampon_dk INTEGER DEFAULT 0`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS varsayilan_tampon_dk INTEGER DEFAULT 5`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slot_aralik_dk INTEGER DEFAULT 30`);
+    await adim(`ALTER TABLE hizmetler ADD COLUMN IF NOT EXISTS tampon_dk INTEGER DEFAULT 0`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS varsayilan_tampon_dk INTEGER DEFAULT 5`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS slot_aralik_dk INTEGER DEFAULT 30`);
 
     // ─── WEB PUSH ABONELİKLERİ ───
-    await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+    await adim(`CREATE TABLE IF NOT EXISTS push_subscriptions (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER REFERENCES isletmeler(id) ON DELETE CASCADE,
       kullanici_id INTEGER,
@@ -693,24 +699,24 @@ const PORT = process.env.PORT || 3000;
       user_agent TEXT,
       olusturma_tarihi TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_isletme ON push_subscriptions(isletme_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_kullanici ON push_subscriptions(kullanici_id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_push_isletme ON push_subscriptions(isletme_id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_push_kullanici ON push_subscriptions(kullanici_id)`);
 
     // Avcı Bot — arama/filtre için index'ler (her biri bağımsız try/catch, pg_trgm yoksa da çalışır)
-    try { await pool.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`); } catch (e) { console.log('⚠️ pg_trgm extension yok, trigram index atlanıyor:', e.message); }
-    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_isletme_adi_trgm ON potansiyel_musteriler USING gin (isletme_adi gin_trgm_ops)`); }
-    catch (e) { try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_isletme_adi_lower ON potansiyel_musteriler (LOWER(isletme_adi))`); } catch(_) {} }
-    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_telefon ON potansiyel_musteriler (telefon)`); } catch (e) {}
-    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_sehir_ilce ON potansiyel_musteriler (sehir, ilce)`); } catch (e) {}
-    try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_pm_kategori ON potansiyel_musteriler (kategori)`); } catch (e) {}
+    try { await adim(`CREATE EXTENSION IF NOT EXISTS pg_trgm`); } catch (e) { console.log('⚠️ pg_trgm extension yok, trigram index atlanıyor:', e.message); }
+    try { await adim(`CREATE INDEX IF NOT EXISTS idx_pm_isletme_adi_trgm ON potansiyel_musteriler USING gin (isletme_adi gin_trgm_ops)`); }
+    catch (e) { try { await adim(`CREATE INDEX IF NOT EXISTS idx_pm_isletme_adi_lower ON potansiyel_musteriler (LOWER(isletme_adi))`); } catch(_) {} }
+    try { await adim(`CREATE INDEX IF NOT EXISTS idx_pm_telefon ON potansiyel_musteriler (telefon)`); } catch (e) {}
+    try { await adim(`CREATE INDEX IF NOT EXISTS idx_pm_sehir_ilce ON potansiyel_musteriler (sehir, ilce)`); } catch (e) {}
+    try { await adim(`CREATE INDEX IF NOT EXISTS idx_pm_kategori ON potansiyel_musteriler (kategori)`); } catch (e) {}
 
     // Avcı Bot — ONE-TIME: kirli ilçe kayıtlarını adresten yeniden tespit et (idempotent, sadece ilk defa)
     try {
-      await pool.query(`CREATE TABLE IF NOT EXISTS _avci_migrations (
+      await adim(`CREATE TABLE IF NOT EXISTS _avci_migrations (
         flag TEXT PRIMARY KEY,
         applied_at TIMESTAMP DEFAULT NOW()
       )`);
-      const applied = await pool.query(
+      const applied = await adim(
         `INSERT INTO _avci_migrations (flag) VALUES ('ilce_repair_v1')
          ON CONFLICT (flag) DO NOTHING RETURNING flag`
       );
@@ -727,22 +733,22 @@ const PORT = process.env.PORT || 3000;
     // ═══════════════════════════════════════════════════
 
     // Booking Gate — işletme WA bağlayana kadar /book/:slug kapalı
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS booking_acik BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS booking_acik BOOLEAN DEFAULT false`);
 
     // Güvenlik ayarları (esnaf kontrol)
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS otp_zorunlu BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS no_show_otomatik BOOLEAN DEFAULT true`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS teyit_zincir_iptal BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dusuk_skor_manuel_onay BOOLEAN DEFAULT false`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ip_gunluk_limit INT DEFAULT 5`);
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS skor_esigi INT DEFAULT 30`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS otp_zorunlu BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS no_show_otomatik BOOLEAN DEFAULT true`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS teyit_zincir_iptal BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS dusuk_skor_manuel_onay BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ip_gunluk_limit INT DEFAULT 5`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS skor_esigi INT DEFAULT 30`);
 
     // Güven skoru (cross-business — müşteri global skoru)
-    await pool.query(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS guven_skoru INT DEFAULT 50`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_musteriler_guven ON musteriler(guven_skoru)`);
+    await adim(`ALTER TABLE musteriler ADD COLUMN IF NOT EXISTS guven_skoru INT DEFAULT 50`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_musteriler_guven ON musteriler(guven_skoru)`);
 
     // Merkez OTP Bot — SıraGO sistem numaraları (esnaf WA'sı yoksa fallback)
-    await pool.query(`CREATE TABLE IF NOT EXISTS merkez_otp_bot (
+    await adim(`CREATE TABLE IF NOT EXISTS merkez_otp_bot (
       id SERIAL PRIMARY KEY,
       numara TEXT UNIQUE,
       auth_id INT UNIQUE,
@@ -755,7 +761,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // IP bazlı günlük randevu sayacı
-    await pool.query(`CREATE TABLE IF NOT EXISTS ip_randevu_log (
+    await adim(`CREATE TABLE IF NOT EXISTS ip_randevu_log (
       id SERIAL PRIMARY KEY,
       ip TEXT NOT NULL,
       isletme_id INT,
@@ -764,10 +770,10 @@ const PORT = process.env.PORT || 3000;
       olusturma TIMESTAMP DEFAULT NOW(),
       UNIQUE(ip, isletme_id, tarih)
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_ip_randevu_ip_tarih ON ip_randevu_log(ip, tarih)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_ip_randevu_ip_tarih ON ip_randevu_log(ip, tarih)`);
 
     // Fingerprint bazlı spam tespiti
-    await pool.query(`CREATE TABLE IF NOT EXISTS fingerprint_log (
+    await adim(`CREATE TABLE IF NOT EXISTS fingerprint_log (
       hash TEXT NOT NULL,
       telefon TEXT,
       tarih DATE NOT NULL,
@@ -776,7 +782,7 @@ const PORT = process.env.PORT || 3000;
     )`);
 
     // Güvenlik olay log (dashboard istatistik)
-    await pool.query(`CREATE TABLE IF NOT EXISTS guvenlik_olay_log (
+    await adim(`CREATE TABLE IF NOT EXISTS guvenlik_olay_log (
       id SERIAL PRIMARY KEY,
       isletme_id INT,
       tip VARCHAR(30),
@@ -785,15 +791,15 @@ const PORT = process.env.PORT || 3000;
       telefon TEXT,
       zaman TIMESTAMP DEFAULT NOW()
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_guvenlik_olay_isletme_zaman ON guvenlik_olay_log(isletme_id, zaman)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_guvenlik_olay_isletme_zaman ON guvenlik_olay_log(isletme_id, zaman)`);
 
     // No-show basamaklı ceza için kara_liste'de sebep detayı
-    await pool.query(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS ilk_ihlal_zamani TIMESTAMP`);
-    await pool.query(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS son_ihlal_zamani TIMESTAMP`);
-    await pool.query(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS bloke_bitis TIMESTAMP`);
+    await adim(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS ilk_ihlal_zamani TIMESTAMP`);
+    await adim(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS son_ihlal_zamani TIMESTAMP`);
+    await adim(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS bloke_bitis TIMESTAMP`);
 
     // Hali hazırda WA bağlı işletmeler için booking_acik'i true yap
-    await pool.query(`
+    await adim(`
       UPDATE isletmeler SET booking_acik = true 
       WHERE id IN (SELECT DISTINCT isletme_id FROM wa_auth_keys) 
       AND booking_acik IS NOT true
@@ -802,7 +808,7 @@ const PORT = process.env.PORT || 3000;
     // ═══════════════════════════════════════════════════
     // 🚀 AVCI BOT — TOPLU TARAMA JOB SİSTEMİ (Manyak Mod)
     // ═══════════════════════════════════════════════════
-    await pool.query(`CREATE TABLE IF NOT EXISTS avci_tarama_joblari (
+    await adim(`CREATE TABLE IF NOT EXISTS avci_tarama_joblari (
       id SERIAL PRIMARY KEY,
       job_id TEXT UNIQUE NOT NULL,
       baslik TEXT,
@@ -823,9 +829,9 @@ const PORT = process.env.PORT || 3000;
       ayarlar JSONB DEFAULT '{}'::jsonb,
       hata_mesaji TEXT
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_job_durum ON avci_tarama_joblari(durum, baslangic_tarihi DESC)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_avci_job_durum ON avci_tarama_joblari(durum, baslangic_tarihi DESC)`);
 
-    await pool.query(`CREATE TABLE IF NOT EXISTS avci_tarama_detay (
+    await adim(`CREATE TABLE IF NOT EXISTS avci_tarama_detay (
       id SERIAL PRIMARY KEY,
       job_id TEXT NOT NULL,
       sehir TEXT NOT NULL,
@@ -839,13 +845,13 @@ const PORT = process.env.PORT || 3000;
       hata_mesaji TEXT,
       UNIQUE(job_id, sehir, kategori)
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_job ON avci_tarama_detay(job_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_durum ON avci_tarama_detay(durum)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_job ON avci_tarama_detay(job_id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_avci_tarama_detay_durum ON avci_tarama_detay(durum)`);
 
     // ═══════════════════════════════════════════════════
     // 🧾 ÇOKLU HİZMET (Saç + Sakal + ...) — Junction tablo
     // ═══════════════════════════════════════════════════
-    await pool.query(`CREATE TABLE IF NOT EXISTS randevu_hizmetleri (
+    await adim(`CREATE TABLE IF NOT EXISTS randevu_hizmetleri (
       id SERIAL PRIMARY KEY,
       randevu_id INTEGER NOT NULL REFERENCES randevular(id) ON DELETE CASCADE,
       hizmet_id INTEGER NOT NULL REFERENCES hizmetler(id) ON DELETE RESTRICT,
@@ -854,14 +860,14 @@ const PORT = process.env.PORT || 3000;
       sure_dk INTEGER,
       UNIQUE(randevu_id, hizmet_id)
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_randevu_hizmetleri_randevu ON randevu_hizmetleri(randevu_id)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_randevu_hizmetleri_hizmet ON randevu_hizmetleri(hizmet_id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_randevu_hizmetleri_randevu ON randevu_hizmetleri(randevu_id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_randevu_hizmetleri_hizmet ON randevu_hizmetleri(hizmet_id)`);
 
     // ⬇️ BACKFILL: Mevcut randevular için junction tabloya tek-hizmet kayıtları at.
     // Sadece junction'da hiç kaydı olmayan randevular için yapılır (idempotent).
     // Try-catch ile sarıldı — migration başarısız olursa diğer başlatmalar etkilenmesin.
     try {
-      const bf = await pool.query(`
+      const bf = await adim(`
         INSERT INTO randevu_hizmetleri (randevu_id, hizmet_id, sira, fiyat, sure_dk)
         SELECT r.id, r.hizmet_id, 0, h.fiyat, h.sure_dk
         FROM randevular r
@@ -875,13 +881,13 @@ const PORT = process.env.PORT || 3000;
     }
 
     // Premium paket için imza gizleme kolonu (ileride kullanılacak)
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS imza_gizle BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS imza_gizle BOOLEAN DEFAULT false`);
 
     // ═══════════════════════════════════════════════════
     // 📅 GOOGLE CALENDAR 2-WAY SYNC
     // ═══════════════════════════════════════════════════
-    await pool.query(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'Europe/Istanbul'`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS google_calendar_auth (
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'Europe/Istanbul'`);
+    await adim(`CREATE TABLE IF NOT EXISTS google_calendar_auth (
       id SERIAL PRIMARY KEY,
       isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
       google_email TEXT,
@@ -895,10 +901,10 @@ const PORT = process.env.PORT || 3000;
       olusturma_tarihi TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(isletme_id)
     )`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_gcal_auth_isletme ON google_calendar_auth(isletme_id)`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_gcal_auth_isletme ON google_calendar_auth(isletme_id)`);
     // Randevu ↔ Google event eşleşme
-    await pool.query(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS google_event_id TEXT`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_randevular_google_event ON randevular(google_event_id) WHERE google_event_id IS NOT NULL`);
+    await adim(`ALTER TABLE randevular ADD COLUMN IF NOT EXISTS google_event_id TEXT`);
+    await adim(`CREATE INDEX IF NOT EXISTS idx_randevular_google_event ON randevular(google_event_id) WHERE google_event_id IS NOT NULL`);
 
     console.log('✅ DB migration kontrolü tamamlandı (güvenlik v2 + avcı job + google calendar dahil)');
 
@@ -910,8 +916,26 @@ const PORT = process.env.PORT || 3000;
   }
 })();
 
+// Eksik kolonlar — büyük migration bloğu tek try içinde olduğundan bir hata sonrakileri atlıyor;
+// kritik kolonlar burada her biri bağımsız eklenir.
+(async () => {
+  const ekKolonlar = [
+    `ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS iptal_randevu_id INTEGER`,
+    `ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS notlar TEXT`,
+    // Paket yükseltme: ödeme başlatılırken seçilen paket, ödeme gelince uygulanır
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_paket VARCHAR(30)`,
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_shopier_urun_id VARCHAR(100)`,
+    // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
+    `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
+  ];
+  for (const sql of ekKolonlar) {
+    try { await pool.query(sql); } catch (e) { console.log('⚠️ Kolon eklenemedi:', sql, e.message); }
+  }
+})();
+
 // Middleware - Güvenlik
-app.set('trust proxy', 1); // Render reverse proxy
+// Render iç ağı (10.x) ve yerel adresler güvenilir proxy; istemci IP'si utils/istemciIp.js
+app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 
 const allowedOrigins = [
@@ -943,11 +967,14 @@ app.use(cors({
 }));
 
 // Rate limiting
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } });
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } });
-const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { hata: 'Çok fazla istek. Lütfen bekleyin.' } });
-const bookingLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { hata: 'Çok fazla randevu isteği.' } });
-const webhookLimiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 100, message: 'Too many requests' });
+// İstek sınırı gerçek istemci IP'sine göre (eskiden Render iç IP'si → herkes ortak kova)
+const { ipKeyGenerator } = require('express-rate-limit');
+const limitAnahtari = (req) => ipKeyGenerator(require('./utils/istemciIp').istemciIp(req));
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
+const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { hata: 'Çok fazla istek. Lütfen bekleyin.' } , keyGenerator: limitAnahtari });
+const bookingLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { hata: 'Çok fazla randevu isteği.' } , keyGenerator: limitAnahtari });
+const webhookLimiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 100, message: 'Too many requests' , keyGenerator: limitAnahtari });
 
 app.use(express.json({
   limit: '10mb',
@@ -969,21 +996,17 @@ app.use('/api/book', bookingLimiter);
 app.use('/api/webhook', webhookLimiter);
 app.use('/api', apiLimiter, apiRoutes);
 
-// Online Booking sayfası — /book/:slug
+// Online Booking — eski public/booking.html emekli: OTP'siz captcha modu ve kaçışsız
+// innerHTML içeriyordu. QR (randevu.sırago.com), Google Business (onrender) ve diğer tüm
+// /book linkleri tek React rezervasyon sayfasına yönlenir.
+const BOOKING_BASE_URL = (process.env.BOOKING_BASE_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '');
 app.get('/book/:slug', (req, res) => {
-  const dosya = require('path').join(__dirname, 'public', 'booking.html');
-  const fs = require('fs');
-  if (!fs.existsSync(dosya)) {
-    console.error('❌ booking.html bulunamadı:', dosya);
-    return res.status(404).send('Booking sayfası bulunamadı. Path: ' + dosya);
-  }
-  res.sendFile(dosya);
+  res.redirect(302, `${BOOKING_BASE_URL}/book/${encodeURIComponent(req.params.slug)}`);
 });
 
 // Grup Booking sayfası — /g/:slug
 app.get('/g/:slug', (req, res) => {
-  const dosya = require('path').join(__dirname, 'public', 'booking.html');
-  res.sendFile(dosya);
+  res.redirect(302, `${BOOKING_BASE_URL}/g/${encodeURIComponent(req.params.slug)}`);
 });
 
 // Ana sayfa - Landing page
@@ -1122,5 +1145,24 @@ httpServer.listen(PORT, () => {
   }, 14 * 60 * 1000); // 14 dakika
   console.log('🏓 Keep-alive başlatıldı (14dk aralıklarla)');
 });
+
+// Düzgün kapanış: Render yeni sürümü açarken eskisine SIGTERM gönderir. WhatsApp soketleri
+// kapatılmadan iki sunucu aynı oturuma bağlanıyor (440 conflict, yeniden bağlanma döngüsü).
+let _kapanis = false;
+async function kapan(sinyal) {
+  if (_kapanis) return; _kapanis = true; global.__kapaniyor = true;
+  console.log(`🛑 ${sinyal} alındı — düzgün kapanış`);
+  setTimeout(() => process.exit(0), 10000).unref();
+  try { httpServer.close(); } catch (e) {}
+  try {
+    for (const st of Object.values(whatsappWebService.isletmeler || {})) {
+      try { st?.sock?.end?.(undefined); } catch (e) {}
+    }
+  } catch (e) {}
+  try { const sb = require('./services/satisBot'); sb.sock?.end?.(undefined); } catch (e) {}
+  setTimeout(() => process.exit(0), 3000).unref();
+}
+process.on('SIGTERM', () => kapan('SIGTERM'));
+process.on('SIGINT', () => kapan('SIGINT'));
 
 module.exports = app;

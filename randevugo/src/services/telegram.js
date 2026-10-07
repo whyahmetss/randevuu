@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const pool = require('../config/db');
-const { bugunTarih, yarinTarih, gunSonraTarih } = require('../utils/tarih');
+const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla } = require('../utils/tarih');
 const botMesajlar = require('../utils/botMesajlar');
 
 class TelegramService {
@@ -161,8 +161,9 @@ class TelegramService {
     // Müşteriyi kaydet / bul
     const musteriIsim = from ? [from.first_name, from.last_name].filter(Boolean).join(' ') : 'Telegram Kullanıcısı';
     await pool.query(
-      'INSERT INTO musteriler (telefon, isim) VALUES ($1, $2) ON CONFLICT (telefon) DO NOTHING',
-      [musteriTelefon, musteriIsim]
+      `INSERT INTO musteriler (telefon, isim, son_gelinen_isletme_id) VALUES ($1, $2, $3)
+       ON CONFLICT (telefon) DO UPDATE SET son_gelinen_isletme_id = EXCLUDED.son_gelinen_isletme_id`,
+      [musteriTelefon, musteriIsim, isletme.id]
     );
 
     // Bot durumunu al / oluştur
@@ -762,7 +763,7 @@ class TelegramService {
               try {
                 const rCheck = (await pool.query('SELECT tarih, saat FROM randevular WHERE id=$1', [iptalId])).rows[0];
                 if (rCheck) {
-                  const rTarih = new Date(rCheck.tarih).toISOString().split('T')[0];
+                  const rTarih = tarihFormatla(rCheck.tarih);
                   const rSaat = String(rCheck.saat).substring(0,5);
                   const randevuZamani = new Date(`${rTarih}T${rSaat}:00`);
                   const kalanSaat = (randevuZamani - Date.now()) / 3600000;

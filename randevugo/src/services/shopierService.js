@@ -134,10 +134,15 @@ class ShopierService {
       }
     }
 
-    // İşletme ID'yi bul: ürün başlığından veya sipariş notundan
+    // İşletme ID'yi bul: önce ödeme başlatılırken saklanan ürün, sonra başlık/not
     let isletmeId = null;
+    let bekleyenPaket = null;
+    if (urunId) {
+      const b = (await pool.query('SELECT id, bekleyen_paket FROM isletmeler WHERE bekleyen_shopier_urun_id = $1', [String(urunId)])).rows[0];
+      if (b) { isletmeId = b.id; bekleyenPaket = b.bekleyen_paket; }
+    }
     const refMatch = (urunBaslik + ' ' + siparisNotu).match(/SRGO-(\d+)/);
-    if (refMatch) {
+    if (!isletmeId && refMatch) {
       isletmeId = parseInt(refMatch[1]);
     }
 
@@ -167,7 +172,7 @@ class ShopierService {
       if (pendingOdeme) isletmeId = pendingOdeme.isletme_id;
     }
 
-    const buAy = new Date().toISOString().slice(0, 7);
+    const buAy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
 
     if (isletmeId) {
       // Mevcut ödeme kaydını güncelle veya yeni kayıt oluştur
@@ -178,8 +183,10 @@ class ShopierService {
 
       if (mevcut) {
         await pool.query(
-          "UPDATE odemeler SET durum = 'odendi', odeme_yontemi = 'shopier', odeme_tarihi = NOW(), shopier_siparis_id = $1 WHERE id = $2",
-          [siparisId, mevcut.id]
+          // Ay içinde ikinci ödeme (yükseltme) ise tutar üzerine eklenir
+          `UPDATE odemeler SET tutar = CASE WHEN durum = 'odendi' THEN tutar + $3 ELSE $3 END,
+             durum = 'odendi', odeme_yontemi = 'shopier', odeme_tarihi = NOW(), shopier_siparis_id = $1 WHERE id = $2`,
+          [siparisId, mevcut.id, tutar]
         );
       } else {
         await pool.query(
@@ -217,10 +224,21 @@ class ShopierService {
         });
       } catch (e) {}
 
-      // Paket bitiş tarihini +30 gün yenile ve aktif yap
+      // Paket: ödeme başlatılırken seçilen paket uygulanır; tutar paket fiyatından düşükse paket değişmez
+      let yeniPaket = null;
+      if (bekleyenPaket) {
+        try {
+          const { paketGetir } = require('../config/paketler');
+          const p = await paketGetir(bekleyenPaket);
+          if (tutar + 1 >= (p.fiyat || 0)) yeniPaket = bekleyenPaket;
+          else console.warn(`⚠️ Shopier tutarı (${tutar}) ${bekleyenPaket} fiyatından (${p.fiyat}) düşük — paket değiştirilmedi`);
+        } catch (e) {}
+      }
+      // Bitiş tarihi: kalan günler silinmesin (eskiden NOW()+30 yazılıyordu)
       await pool.query(
-        "UPDATE isletmeler SET paket_bitis_tarihi = NOW() + INTERVAL '30 days', aktif = true WHERE id = $1",
-        [isletmeId]
+        `UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + INTERVAL '30 days',
+           aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL WHERE id = $1`,
+        [isletmeId, yeniPaket]
       );
 
       // Referans ödülü: ilk ödeme yapan davetli işletme ise, referans sahibine kazanilan_ay +1

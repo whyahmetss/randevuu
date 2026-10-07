@@ -78,7 +78,7 @@ class SadakatPuanService {
   // Puan harca (ödül kullan)
   async puanHarca(isletmeId, musteriId, puan, aciklama) {
     try {
-      const musteri = (await pool.query('SELECT puan_bakiye FROM musteriler WHERE id=$1 AND isletme_id=$2', [musteriId, isletmeId])).rows[0];
+      const musteri = (await pool.query('SELECT puan_bakiye FROM musteriler WHERE id=$1 AND (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2))', [musteriId, isletmeId])).rows[0];
       if (!musteri || musteri.puan_bakiye < puan) return { hata: 'Yetersiz puan' };
 
       await pool.query(
@@ -101,7 +101,7 @@ class SadakatPuanService {
   async puanSorgula(isletmeId, telefon) {
     try {
       const musteri = (await pool.query(
-        'SELECT puan_bakiye, toplam_kazanilan_puan FROM musteriler WHERE telefon=$1 AND isletme_id=$2',
+        'SELECT puan_bakiye, toplam_kazanilan_puan FROM musteriler WHERE telefon=$1 AND (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2))',
         [telefon, isletmeId]
       )).rows[0];
 

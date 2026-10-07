@@ -9,8 +9,7 @@ export default function MusteriGetir({ api }) {
     <div>
       {/* Başlık */}
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          🚀 Müşteri Getir
+        <h2 style={{ fontSize: 24, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>Müşteri Getir
         </h2>
         <div style={{ color: 'var(--dim)', fontSize: 13, marginTop: 4 }}>
           Mevcut müşterilerin sana yeni müşteri kazandırsın. İki otomatik kanal: Arkadaş Getir + Doğum Günü Pazarlaması.
@@ -23,9 +22,9 @@ export default function MusteriGetir({ api }) {
           onClick={() => setTab('referans')}
           style={{
             flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
-            background: tab === 'referans' ? 'linear-gradient(135deg,#54E097,#2cb872)' : 'transparent',
+            background: tab === 'referans' ? '#1f6f4a' : 'transparent',
             color: tab === 'referans' ? '#fff' : 'var(--dim)',
-            fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s'
+            fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s'
           }}
         >
           🎁 Arkadaş Getir
@@ -34,9 +33,9 @@ export default function MusteriGetir({ api }) {
           onClick={() => setTab('dogumgunu')}
           style={{
             flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
-            background: tab === 'dogumgunu' ? 'linear-gradient(135deg,#ec4899,#be185d)' : 'transparent',
+            background: tab === 'dogumgunu' ? '#ec4899' : 'transparent',
             color: tab === 'dogumgunu' ? '#fff' : 'var(--dim)',
-            fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s'
+            fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s'
           }}
         >
           🎂 Doğum Günü

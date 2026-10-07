@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const socketServer = require('../services/socketServer');
 const pushService = require('../services/pushService');
-const jwtSecret = process.env.JWT_SECRET || 'randevugo-default-secret-key-2024';
+const { jwtSecret } = require('../middleware/auth');
 
 class AuthController {
   async giris(req, res) {
@@ -26,7 +26,7 @@ class AuthController {
         await pool.query(
           `INSERT INTO audit_log (isletme_id, kullanici_id, kullanici_email, islem, detay, ip_adresi)
            VALUES ($1, $2, $3, 'giris', 'Panel girişi', $4)`,
-          [kullanici.isletme_id, kullanici.id, kullanici.email, req.ip]
+          [kullanici.isletme_id, kullanici.id, kullanici.email, require('../utils/istemciIp').istemciIp(req)]
         );
       } catch(e) { /* audit log opsiyonel */ }
 

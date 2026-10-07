@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
 const randevuService = require('./randevu');
+const { tarihFormatla } = require('../utils/tarih');
 
 class HatirlatmaService {
   baslat() {
@@ -179,7 +180,7 @@ class HatirlatmaService {
         WHERE bl.durum = 'bekliyor' AND bl.istenen_tarih >= CURRENT_DATE
       `);
       for (const b of bekleyenler.rows) {
-        const saatler = await randevuService.musaitSaatleriGetir(b.isletme_id, b.istenen_tarih.toISOString().split('T')[0]);
+        const saatler = await randevuService.musaitSaatleriGetir(b.isletme_id, tarihFormatla(b.istenen_tarih));
         if (saatler.length > 0) {
           const mesaj = `🔔 *Müjde!*\n\n📅 *${this.tarihFormat(b.istenen_tarih)}* tarihinde yer açıldı!\n${b.hizmet_isim ? '💊 ' + b.hizmet_isim + '\n' : ''}\nHemen randevu almak ister misiniz?`;
           // Telegram üzerinden bildirim

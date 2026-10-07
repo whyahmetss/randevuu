@@ -40,3 +40,7 @@ Thumbs.db
 
 # Render specific
 render.yaml.backup
+
+# WhatsApp Web oturum verisi — asla commit edilmez
+.wwebjs_auth/
+.wwebjs_cache/

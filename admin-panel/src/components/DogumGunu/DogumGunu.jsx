@@ -67,7 +67,7 @@ export default function DogumGunu({ api }) {
 
   const S = {
     card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' },
-    label: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
+    label: { fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
     input: { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 14, fontFamily: 'inherit' },
   };
 
@@ -85,8 +85,7 @@ Randevu için mesaj at, yerini ayarlayalım 💫`;
     <div style={{ maxWidth: 1000 }}>
       {/* Başlık */}
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          🎂 Doğum Günü Pazarlaması
+        <h2 style={{ fontSize: 24, fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>Doğum Günü Pazarlaması
         </h2>
         <div style={{ color: 'var(--dim)', fontSize: 13, marginTop: 4 }}>
           Müşterilerine doğum günlerinde otomatik kutlama + indirim mesajı gönder. Her sabah 10:00'da çalışır.
@@ -95,34 +94,34 @@ Randevu için mesaj at, yerini ayarlayalım 💫`;
 
       {/* İstatistik kartları */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-        <div style={{ ...S.card, background: 'linear-gradient(135deg, rgba(236,72,153,.08), rgba(236,72,153,.02))', border: '1px solid rgba(236,72,153,.2)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bugün Doğum Günü</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#ec4899' }}>{istatistik.bugun_dogum_gunu}</div>
+        <div style={{ ...S.card, background: 'rgba(236,72,153,.08)', border: '1px solid rgba(236,72,153,.2)' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Bugün Doğum Günü</div>
+          <div style={{ fontSize: 28, fontWeight: 600, color: '#ec4899' }}>{istatistik.bugun_dogum_gunu}</div>
           <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>{istatistik.bugun_dogum_gunu > 0 ? 'Mesaj gönderilecek' : 'Bugün kimse yok'}</div>
         </div>
         <div style={S.card}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Doğum Tarihi VAR</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#10b981' }}>{istatistik.dogum_tarihi_olan}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Doğum Tarihi VAR</div>
+          <div style={{ fontSize: 28, fontWeight: 600, color: '#1f6f4a' }}>{istatistik.dogum_tarihi_olan}</div>
           <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Kayıtlı müşteri</div>
         </div>
         <div style={S.card}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Doğum Tarihi EKSİK</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#f59e0b' }}>{istatistik.dogum_tarihi_eksik}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Doğum Tarihi EKSİK</div>
+          <div style={{ fontSize: 28, fontWeight: 600, color: '#a8590c' }}>{istatistik.dogum_tarihi_eksik}</div>
           <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Toplamak için ↓</div>
         </div>
         <div style={S.card}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Son 30 Gün Gönd.</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)' }}>{istatistik.son_30_gun}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 6 }}>Son 30 Gün Gönd.</div>
+          <div style={{ fontSize: 28, fontWeight: 600, color: 'var(--text)' }}>{istatistik.son_30_gun}</div>
           <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Kutlama mesajı</div>
         </div>
       </div>
 
       {/* Toplu Profil Güncelleme — Eski Müşterilerden Veri Topla */}
       {istatistik.dogum_tarihi_eksik > 0 && (
-        <div style={{ ...S.card, marginBottom: 20, background: 'linear-gradient(135deg, rgba(245,158,11,.06), rgba(245,158,11,.01))', border: '1px solid rgba(245,158,11,.25)' }}>
+        <div style={{ ...S.card, marginBottom: 20, background: 'rgba(168,89,12,.06)', border: '1px solid rgba(168,89,12,.25)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>📬 Eski Müşterilerden Doğum Tarihi Topla</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#a8590c', marginBottom: 4 }}>📬 Eski Müşterilerden Doğum Tarihi Topla</div>
               <div style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6 }}>
                 <strong>{istatistik.dogum_tarihi_eksik} müşteri</strong>nin doğum tarihi eksik. Tek seferlik bir kampanya ile WhatsApp'tan nazikçe sor, cevap verenlerin tarihi otomatik kaydedilsin.
               </div>
@@ -135,8 +134,8 @@ Randevu için mesaj at, yerini ayarlayalım 💫`;
               disabled={topluTetikleniyor}
               style={{
                 padding: '12px 24px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: '#f59e0b', color: '#fff',
-                fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+                background: '#a8590c', color: '#fff',
+                fontWeight: 600, fontSize: 13, fontFamily: 'inherit',
                 opacity: topluTetikleniyor ? 0.5 : 1, whiteSpace: 'nowrap'
               }}
             >
@@ -151,16 +150,16 @@ Randevu için mesaj at, yerini ayarlayalım 💫`;
         {/* Aktiflik */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>Otomatik Doğum Günü Mesajları</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Otomatik Doğum Günü Mesajları</div>
             <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 2 }}>Her sabah 10:00'da doğum günü olan müşterilere gönderilir</div>
           </div>
           <button
             onClick={() => setAyarlar({ ...ayarlar, dogum_gunu_aktif: !ayarlar.dogum_gunu_aktif })}
             style={{
               padding: '8px 18px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              background: ayarlar.dogum_gunu_aktif ? 'rgba(16,185,129,.12)' : 'rgba(239,68,68,.08)',
-              color: ayarlar.dogum_gunu_aktif ? '#10b981' : '#ef4444',
-              fontWeight: 700, fontSize: 12, fontFamily: 'inherit'
+              background: ayarlar.dogum_gunu_aktif ? 'rgba(31,111,74,.12)' : 'rgba(180,35,24,.08)',
+              color: ayarlar.dogum_gunu_aktif ? '#1f6f4a' : '#b42318',
+              fontWeight: 600, fontSize: 12, fontFamily: 'inherit'
             }}
           >
             {ayarlar.dogum_gunu_aktif ? '✅ AKTİF' : '⏸️ KAPALI'}
@@ -201,8 +200,8 @@ Randevu için mesaj at, yerini ayarlayalım 💫`;
             onClick={kaydet}
             style={{
               padding: '10px 24px', borderRadius: 10, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #54E097, #2cb872)', color: '#fff',
-              fontWeight: 700, fontSize: 13, fontFamily: 'inherit'
+              background: '#1f6f4a', color: '#fff',
+              fontWeight: 600, fontSize: 13, fontFamily: 'inherit'
             }}
           >
             💾 Kaydet
@@ -214,20 +213,20 @@ Randevu için mesaj at, yerini ayarlayalım 💫`;
               style={{
                 padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(236,72,153,.3)', cursor: 'pointer',
                 background: 'rgba(236,72,153,.1)', color: '#ec4899',
-                fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+                fontWeight: 600, fontSize: 13, fontFamily: 'inherit',
                 opacity: tetikleniyor ? 0.5 : 1
               }}
             >
               {tetikleniyor ? '⏳ Gönderiliyor...' : `🎂 Şimdi Gönder (${istatistik.bugun_dogum_gunu} kişi)`}
             </button>
           )}
-          {kaydedildi && <span style={{ color: '#10b981', fontSize: 12, fontWeight: 600 }}>✅ Kaydedildi</span>}
+          {kaydedildi && <span style={{ color: '#1f6f4a', fontSize: 12, fontWeight: 600 }}>✅ Kaydedildi</span>}
         </div>
       </div>
 
       {/* Bilgi kutusu */}
       <div style={{ ...S.card, marginTop: 16, background: 'rgba(66,133,244,.04)', border: '1px solid rgba(66,133,244,.15)' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#4285f4', marginBottom: 8 }}>💡 Nasıl çalışır?</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#4285f4', marginBottom: 8 }}>💡 Nasıl çalışır?</div>
         <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: 'var(--text)', lineHeight: 1.7 }}>
           <li>Sistem her sabah 10:00'da (Türkiye saati) otomatik çalışır</li>
           <li>O gün doğum günü olan müşterileri bulur ve WhatsApp/Telegram üzerinden kutlama + indirim mesajı gönderir</li>

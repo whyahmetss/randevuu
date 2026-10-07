@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { bugunTarih, simdiSaat } = require('../utils/tarih');
+const { bugunTarih, simdiSaat, tarihFormatla } = require('../utils/tarih');
 const socketServer = require('./socketServer');
 const pushService = require('./pushService');
 const googleCalendar = require('./googleCalendar');
@@ -23,7 +23,7 @@ class RandevuService {
 
     // tarih parametresi Date objesi olabilir (PostgreSQL), string'e çevir
     if (tarih instanceof Date) {
-      tarih = tarih.toISOString().slice(0, 10);
+      tarih = tarihFormatla(tarih); // toISOString UTC'ye çevirip bir önceki günü veriyordu
     } else if (tarih && typeof tarih !== 'string') {
       tarih = String(tarih);
     }
@@ -320,6 +320,22 @@ class RandevuService {
     // Aynı hizmet birden fazla girilmişse dedup
     const hizmetIdsUnique = [...new Set(hizmetIdListesi)];
 
+    // Geçmiş tarih/saat reddi — bot ve web aynı kuralı kullanır
+    const tarihStr = tarihFormatla(tarih);
+    const bugun = bugunTarih();
+    const [rsH, rsM] = String(saat).split(':').map(Number);
+    if (tarihStr < bugun || (tarihStr === bugun && rsH * 60 + rsM <= simdiSaat().toplam)) {
+      const err = new Error('Geçmiş bir tarih/saat için randevu oluşturulamaz');
+      err.code = 'GECMIS_TARIH';
+      throw err;
+    }
+
+    // Çalışan bu işletmeye ait olmalı (başka işletmenin çalışanıyla randevu açılabiliyordu)
+    if (calisanId) {
+      const c = (await pool.query('SELECT id FROM calisanlar WHERE id=$1 AND isletme_id=$2', [calisanId, isletmeId])).rows[0];
+      if (!c) { const err = new Error('Çalışan bulunamadı'); err.code = 'CALISAN_BULUNAMADI'; throw err; }
+    }
+
     // ─── AYLIK RANDEVU LİMİT KONTROLÜ ───
     const { paketGetir } = require('../config/paketler');
     const isletmePaket = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
@@ -363,8 +379,8 @@ class RandevuService {
 
     // Hizmetleri toplu çek (sıra korunsun — kullanıcının gönderdiği sıra)
     const hizmetlerRaw = (await pool.query(
-      'SELECT * FROM hizmetler WHERE id = ANY($1::int[])',
-      [hizmetIdsUnique]
+      'SELECT * FROM hizmetler WHERE id = ANY($1::int[]) AND isletme_id = $2',
+      [hizmetIdsUnique, isletmeId]
     )).rows;
     const hizmetMap = new Map(hizmetlerRaw.map(h => [h.id, h]));
     const hizmetler = hizmetIdsUnique.map(id => hizmetMap.get(id)).filter(Boolean);
@@ -409,6 +425,23 @@ class RandevuService {
     let randevu;
     try {
       await client.query('BEGIN');
+      // Aynı çalışan+gün için eşzamanlı istekleri sıraya sok; müsaitlik kontrolü transaction
+      // dışında yapıldığından iki istek aynı slotu alabiliyordu (double booking).
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`randevu:${isletmeId}:${calisanId || 'x'}:${tarihStr}`]);
+      if (calisanId) {
+        const cakisan = (await client.query(
+          `SELECT id FROM randevular
+            WHERE isletme_id=$1 AND calisan_id=$2 AND tarih=$3 AND durum NOT IN ('iptal','gelmedi')
+              AND saat < $5::time AND COALESCE(bitis_saati, saat + INTERVAL '30 minutes') > $4::time
+            LIMIT 1`,
+          [isletmeId, calisanId, tarihStr, saat, bitisSaat]
+        )).rows[0];
+        if (cakisan) {
+          const err = new Error('Seçilen saat artık müsait değil');
+          err.code = 'SLOT_DOLU';
+          throw err;
+        }
+      }
       randevu = (await client.query(
         `INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum, kapora_durumu, kapora_tutari, kaynak)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,

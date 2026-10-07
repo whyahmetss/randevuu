@@ -46,8 +46,8 @@ export default function SubeSwitcher({ api, onDegis, onGrupYonetim }) {
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button onClick={() => setAcik(!acik)} style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-        background: 'linear-gradient(90deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
-        border: '1px solid rgba(139,92,246,0.4)', borderRadius: 8,
+        background: 'rgba(47,86,198,0.15)',
+        border: '1px solid rgba(93,75,181,0.4)', borderRadius: 8,
         color: '#fff', cursor: 'pointer', fontWeight: 600
       }}>
         🏢 {aktif ? (aktif.sube_etiketi || aktif.isim) : 'Şube Seç'} <span style={{ fontSize: 10 }}>▼</span>
@@ -61,18 +61,18 @@ export default function SubeSwitcher({ api, onDegis, onGrupYonetim }) {
           {subeler.map(s => (
             <button key={s.id} onClick={() => sec(s)} style={{
               display: 'block', width: '100%', textAlign: 'left', padding: 12,
-              background: s.id === aktifId ? 'rgba(139,92,246,0.15)' : 'transparent',
+              background: s.id === aktifId ? 'rgba(93,75,181,0.15)' : 'transparent',
               color: '#fff', border: 'none', cursor: 'pointer',
               borderBottom: '1px solid #2a2a3e'
             }}>
               <div style={{ fontWeight: 600 }}>{s.isim}</div>
-              {s.sube_etiketi && <div style={{ fontSize: 12, color: '#8B5CF6' }}>{s.sube_etiketi}</div>}
+              {s.sube_etiketi && <div style={{ fontSize: 12, color: '#5d4bb5' }}>{s.sube_etiketi}</div>}
               {s.sehir && <div style={{ fontSize: 11, color: '#888' }}>{s.sehir}</div>}
             </button>
           ))}
           <button onClick={() => { setAcik(false); onGrupYonetim && onGrupYonetim(); }} style={{
             display: 'block', width: '100%', textAlign: 'left', padding: 12,
-            background: '#0f0f1e', color: '#8B5CF6', border: 'none', cursor: 'pointer', fontWeight: 600
+            background: '#0f0f1e', color: '#5d4bb5', border: 'none', cursor: 'pointer', fontWeight: 600
           }}>⚙ Grup Yönetimi</button>
         </div>
       )}

@@ -37,7 +37,7 @@ export default function SmsAyarlari({ api }) {
 
   const S = {
     card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' },
-    label: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
+    label: { fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
   };
 
   return (
@@ -47,8 +47,8 @@ export default function SmsAyarlari({ api }) {
         {[['ayarlar', '⚙️ Ayarlar'], ['log', '📋 SMS Log']].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
-            background: tab === id ? 'var(--gradient, linear-gradient(135deg,#54E097,#2cb872))' : 'transparent',
-            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 700, fontSize: 13,
+            background: tab === id ? 'var(--gradient, #1f6f4a)' : 'transparent',
+            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 600, fontSize: 13,
             cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s',
           }}>{label}</button>
         ))}
@@ -57,7 +57,7 @@ export default function SmsAyarlari({ api }) {
       {tab === 'ayarlar' && (
         <>
           {kaydedildi && (
-            <div style={{ background: 'rgba(84,224,151,.1)', border: '1px solid rgba(84,224,151,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#2cb872', fontSize: 13, fontWeight: 700 }}>
+            <div style={{ background: 'rgba(31,111,74,.1)', border: '1px solid rgba(31,111,74,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#1f6f4a', fontSize: 13, fontWeight: 600 }}>
               SMS ayarları kaydedildi
             </div>
           )}
@@ -67,14 +67,14 @@ export default function SmsAyarlari({ api }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
               <span style={{ fontSize: 28 }}>📱</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>SMS Hatırlatma (NetGSM)</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>SMS Hatırlatma (NetGSM)</div>
                 <div style={{ fontSize: 12, color: 'var(--dim)' }}>Müşterilerinize randevu hatırlatma SMS'i gönderin</div>
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input type="checkbox" checked={!!ayarlar.sms_aktif} onChange={e => setAyarlar({...ayarlar, sms_aktif: e.target.checked})}
-                    style={{ accentColor: '#10b981', width: 20, height: 20 }} />
-                  <span style={{ fontWeight: 700, fontSize: 14, color: ayarlar.sms_aktif ? '#10b981' : 'var(--dim)' }}>
+                    style={{ accentColor: '#1f6f4a', width: 20, height: 20 }} />
+                  <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.sms_aktif ? '#1f6f4a' : 'var(--dim)' }}>
                     {ayarlar.sms_aktif ? 'Aktif' : 'Kapalı'}
                   </span>
                 </label>
@@ -89,7 +89,7 @@ export default function SmsAyarlari({ api }) {
               </div>
               <div>
                 <label style={S.label}>NetGSM Şifre</label>
-                <input type="password" value={ayarlar.netgsm_sifre || ''} onChange={e => setAyarlar({...ayarlar, netgsm_sifre: e.target.value})} className="input" placeholder="••••••••" />
+                <input type="password" value={ayarlar.netgsm_sifre || ''} onChange={e => setAyarlar({...ayarlar, netgsm_sifre: e.target.value})} placeholder={ayarlar.netgsm_sifre_kayitli ? 'Kayıtlı (değiştirmek için yazın)' : ''} className="input" />
               </div>
               <div>
                 <label style={S.label}>SMS Başlığı</label>
@@ -108,7 +108,7 @@ export default function SmsAyarlari({ api }) {
                 <label style={S.label}>Randevu Onay SMS</label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 8 }}>
                   <input type="checkbox" checked={!!ayarlar.sms_onay_aktif} onChange={e => setAyarlar({...ayarlar, sms_onay_aktif: e.target.checked})}
-                    style={{ accentColor: '#10b981', width: 16, height: 16 }} />
+                    style={{ accentColor: '#1f6f4a', width: 16, height: 16 }} />
                   <span style={{ fontWeight: 600, fontSize: 13 }}>Randevu onaylandığında SMS gönder</span>
                 </label>
               </div>
@@ -118,29 +118,29 @@ export default function SmsAyarlari({ api }) {
           {/* Test + Bakiye */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }} className="settings-grid-2">
             <div style={S.card}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>Test SMS Gönder</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>Test SMS Gönder</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input value={testTel} onChange={e => setTestTel(e.target.value)} placeholder="05XXXXXXXXX" className="input" style={{ flex: 1 }} />
                 <button onClick={testGonder} style={{
                   padding: '10px 18px', borderRadius: 10, border: 'none',
-                  background: 'linear-gradient(135deg,#3b82f6,#2563eb)',
-                  color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap'
+                  background: '#2f56c6',
+                  color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap'
                 }}>Gönder</button>
               </div>
               {testSonuc && (
-                <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: testSonuc.basarili ? '#22c55e' : '#ef4444' }}>
+                <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: testSonuc.basarili ? '#1f6f4a' : '#b42318' }}>
                   {testSonuc.basarili ? 'Test SMS gönderildi!' : `Hata: ${testSonuc.hata}`}
                 </div>
               )}
             </div>
             <div style={S.card}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>NetGSM Bakiye</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>NetGSM Bakiye</div>
               <button onClick={bakiyeSorgula} style={{
                 padding: '10px 18px', borderRadius: 10, border: '1px solid var(--border)',
-                background: 'var(--surface)', color: 'var(--text)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit'
+                background: 'var(--surface)', color: 'var(--text)', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit'
               }}>Bakiye Sorgula</button>
               {bakiye && (
-                <div style={{ marginTop: 8, fontSize: 14, fontWeight: 800, color: bakiye.bakiye !== null ? '#22c55e' : '#ef4444' }}>
+                <div style={{ marginTop: 8, fontSize: 14, fontWeight: 600, color: bakiye.bakiye !== null ? '#1f6f4a' : '#b42318' }}>
                   {bakiye.bakiye !== null ? `${bakiye.bakiye} TL` : bakiye.hata}
                 </div>
               )}
@@ -150,9 +150,9 @@ export default function SmsAyarlari({ api }) {
           {/* Kaydet */}
           <button onClick={kaydet} style={{
             width: '100%', padding: '14px', borderRadius: 14, border: 'none',
-            background: 'linear-gradient(135deg, #54E097 0%, #2cb872 100%)',
-            color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(84,224,151,.3)', fontFamily: 'inherit',
+            background: '#1f6f4a',
+            color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(31,111,74,.3)', fontFamily: 'inherit',
           }}>
             Kaydet
           </button>
@@ -161,7 +161,7 @@ export default function SmsAyarlari({ api }) {
 
       {tab === 'log' && (
         <div style={S.card}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>SMS Geçmişi</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>SMS Geçmişi</div>
           {loglar.length === 0 ? (
             <div style={{ padding: 30, textAlign: 'center', color: 'var(--dim)', fontSize: 13 }}>Henüz SMS gönderilmemiş</div>
           ) : (
@@ -170,7 +170,7 @@ export default function SmsAyarlari({ api }) {
                 <thead>
                   <tr style={{ background: 'var(--bg)' }}>
                     {['Tarih', 'Telefon', 'Tip', 'Mesaj', 'Durum'].map((h, i) => (
-                      <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
+                      <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -180,14 +180,14 @@ export default function SmsAyarlari({ api }) {
                       <td style={{ padding: '10px 12px', whiteSpace: 'nowrap', fontSize: 12 }}>{new Date(l.tarih).toLocaleString('tr-TR')}</td>
                       <td style={{ padding: '10px 12px', fontWeight: 600 }}>{l.telefon}</td>
                       <td style={{ padding: '10px 12px' }}>
-                        <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(59,130,246,.1)', color: '#3b82f6' }}>{l.tip}</span>
+                        <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(47,86,198,.1)', color: '#2f56c6' }}>{l.tip}</span>
                       </td>
                       <td style={{ padding: '10px 12px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{l.mesaj}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <span style={{
-                          padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                          background: l.durum === 'gonderildi' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)',
-                          color: l.durum === 'gonderildi' ? '#22c55e' : '#ef4444'
+                          padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                          background: l.durum === 'gonderildi' ? 'rgba(31,111,74,.1)' : 'rgba(180,35,24,.1)',
+                          color: l.durum === 'gonderildi' ? '#1f6f4a' : '#b42318'
                         }}>{l.durum === 'gonderildi' ? 'Gönderildi' : 'Başarısız'}</span>
                       </td>
                     </tr>

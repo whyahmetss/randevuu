@@ -24,7 +24,7 @@ const LOGIN  = `${BASE}/api/auth/giris`;
 const BOT_TEST = `${BASE}/api/bot/test`;
 const TP1 = '905559990001', TP2 = '905559990002', TP3 = '905559990003';
 const ALL_TP = [TP1, TP2, TP3];
-const SA_E = 'randevugo@gmail.com', SA_S = '11512Aydogar';
+const SA_E=process.env.TEST_SA_EMAIL||'', SA_S=process.env.TEST_SA_SIFRE||'';
 
 const C = { r: '\x1b[0m', b: '\x1b[1m', d: '\x1b[2m', R: '\x1b[31m', G: '\x1b[32m', Y: '\x1b[33m', C: '\x1b[36m', M: '\x1b[35m' };
 const results = [];

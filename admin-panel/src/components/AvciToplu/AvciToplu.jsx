@@ -194,9 +194,9 @@ export default function AvciToplu({ api }) {
 
   // Grid hücre rengi
   const hucreRengi = (durum) => {
-    if (durum === "tamamlandi") return { bg: "#10b981", color: "#fff", icon: "✓" };
-    if (durum === "calisiyor") return { bg: "#f59e0b", color: "#fff", icon: "⚡" };
-    if (durum === "hata") return { bg: "#ef4444", color: "#fff", icon: "✗" };
+    if (durum === "tamamlandi") return { bg: "#1f6f4a", color: "#fff", icon: "✓" };
+    if (durum === "calisiyor") return { bg: "#a8590c", color: "#fff", icon: "⚡" };
+    if (durum === "hata") return { bg: "#b42318", color: "#fff", icon: "✗" };
     return { bg: "#1f2937", color: "#6b7280", icon: "·" };
   };
 
@@ -231,26 +231,26 @@ export default function AvciToplu({ api }) {
       {/* SOL: Yapılandırma formu (aktif job yoksa) */}
       {!aktifJob && (
         <div style={{
-          background: "linear-gradient(135deg, rgba(139,92,246,.06), rgba(139,92,246,.01))",
-          border: "1px solid rgba(139,92,246,.2)",
+          background: "rgba(93,75,181,.06)",
+          border: "1px solid rgba(93,75,181,.2)",
           borderRadius: 16,
           padding: "22px 24px",
         }}>
           <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              background: "rgba(139,92,246,.15)",
+              background: "rgba(93,75,181,.15)",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22
             }}>🚀</div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 17, color: "var(--text)" }}>Manyak Mod — Toplu Tarama</div>
+              <div style={{ fontWeight: 600, fontSize: 17, color: "var(--text)" }}>Manyak Mod — Toplu Tarama</div>
               <div style={{ fontSize: 12, color: "var(--dim)" }}>Çoklu il + paralel motor + canlı izleme</div>
             </div>
           </div>
 
           {/* Preset chipleri */}
           <div className="mb-16">
-            <label className="form-label mb-8" style={{ fontSize: 12, fontWeight: 700 }}>🎯 Hızlı Preset</label>
+            <label className="form-label mb-8" style={{ fontSize: 12, fontWeight: 600 }}>🎯 Hızlı Preset</label>
             <div className="row row-wrap gap-6">
               {Object.entries(presetler).map(([key, val]) => (
                 <button
@@ -259,9 +259,9 @@ export default function AvciToplu({ api }) {
                   style={{
                     padding: "8px 14px",
                     borderRadius: 10,
-                    border: aktifPreset === key ? "2px solid #8b5cf6" : "1px solid var(--border)",
-                    background: aktifPreset === key ? "rgba(139,92,246,.15)" : "var(--surface)",
-                    color: aktifPreset === key ? "#8b5cf6" : "var(--text)",
+                    border: aktifPreset === key ? "2px solid #5d4bb5" : "1px solid var(--border)",
+                    background: aktifPreset === key ? "rgba(93,75,181,.15)" : "var(--surface)",
+                    color: aktifPreset === key ? "#5d4bb5" : "var(--text)",
                     fontSize: 12,
                     fontWeight: aktifPreset === key ? 700 : 500,
                     cursor: "pointer",
@@ -277,7 +277,7 @@ export default function AvciToplu({ api }) {
 
           {/* Seçili iller */}
           <div className="mb-16">
-            <label className="form-label mb-8" style={{ fontSize: 12, fontWeight: 700 }}>
+            <label className="form-label mb-8" style={{ fontSize: 12, fontWeight: 600 }}>
               📍 Seçili İller ({secilenIller.length})
             </label>
             {secilenIller.length > 0 && (
@@ -286,21 +286,21 @@ export default function AvciToplu({ api }) {
                   <span key={il} style={{
                     padding: "4px 10px",
                     borderRadius: 999,
-                    background: "rgba(139,92,246,.12)",
-                    color: "#8b5cf6",
+                    background: "rgba(93,75,181,.12)",
+                    color: "#5d4bb5",
                     fontSize: 11, fontWeight: 600,
                     display: "inline-flex", alignItems: "center", gap: 4
                   }}>
                     {il}
                     <button onClick={() => ilToggle(il)} style={{
-                      border: "none", background: "none", color: "#8b5cf6", cursor: "pointer",
+                      border: "none", background: "none", color: "#5d4bb5", cursor: "pointer",
                       padding: 0, fontSize: 14, lineHeight: 1
                     }}>×</button>
                   </span>
                 ))}
                 <button onClick={() => { setSecilenIller([]); setAktifPreset(null); }} style={{
-                  padding: "4px 10px", borderRadius: 999, background: "rgba(239,68,68,.1)",
-                  color: "#ef4444", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer"
+                  padding: "4px 10px", borderRadius: 999, background: "rgba(180,35,24,.1)",
+                  color: "#b42318", fontSize: 11, fontWeight: 600, border: "none", cursor: "pointer"
                 }}>Temizle</button>
               </div>
             )}
@@ -315,7 +315,7 @@ export default function AvciToplu({ api }) {
                     fontSize: 11,
                     fontWeight: secilenIller.includes(il) ? 700 : 500,
                     cursor: "pointer",
-                    background: secilenIller.includes(il) ? "#8b5cf6" : "var(--bg)",
+                    background: secilenIller.includes(il) ? "#5d4bb5" : "var(--bg)",
                     color: secilenIller.includes(il) ? "#fff" : "var(--dim)",
                   }}>
                     {il}
@@ -327,7 +327,7 @@ export default function AvciToplu({ api }) {
 
           {/* Kategoriler */}
           <div className="mb-16">
-            <label className="form-label mb-8" style={{ fontSize: 12, fontWeight: 700 }}>
+            <label className="form-label mb-8" style={{ fontSize: 12, fontWeight: 600 }}>
               🏷 Kategoriler ({secilenKategoriler.length})
             </label>
             <div className="row row-wrap gap-6">
@@ -339,7 +339,7 @@ export default function AvciToplu({ api }) {
                   fontSize: 12,
                   fontWeight: secilenKategoriler.includes(k) ? 700 : 500,
                   cursor: "pointer",
-                  background: secilenKategoriler.includes(k) ? "#8b5cf6" : "var(--bg)",
+                  background: secilenKategoriler.includes(k) ? "#5d4bb5" : "var(--bg)",
                   color: secilenKategoriler.includes(k) ? "#fff" : "var(--dim)",
                 }}>
                   {k}
@@ -351,17 +351,17 @@ export default function AvciToplu({ api }) {
           {/* Paralel + hardLimit */}
           <div className="row gap-16 mb-16" style={{ flexWrap: "wrap" }}>
             <div>
-              <label className="form-label" style={{ fontSize: 12, fontWeight: 700 }}>⚡ Paralel sorgu (1-20)</label>
+              <label className="form-label" style={{ fontSize: 12, fontWeight: 600 }}>⚡ Paralel sorgu (1-20)</label>
               <div className="row gap-8" style={{ alignItems: "center" }}>
                 <input type="range" min="1" max="20" value={paralel} onChange={e => setParalel(parseInt(e.target.value))} style={{ width: 160 }} />
-                <span style={{ minWidth: 32, fontSize: 14, fontWeight: 700, color: "#8b5cf6" }}>{paralel}</span>
+                <span style={{ minWidth: 32, fontSize: 14, fontWeight: 600, color: "#5d4bb5" }}>{paralel}</span>
               </div>
             </div>
             <div>
-              <label className="form-label" style={{ fontSize: 12, fontWeight: 700 }}>🎯 Max sorgu/hücre (5-500)</label>
+              <label className="form-label" style={{ fontSize: 12, fontWeight: 600 }}>🎯 Max sorgu/hücre (5-500)</label>
               <div className="row gap-8" style={{ alignItems: "center" }}>
                 <input type="range" min="5" max="500" step="5" value={hardLimit} onChange={e => setHardLimit(parseInt(e.target.value))} style={{ width: 200 }} />
-                <span style={{ minWidth: 48, fontSize: 14, fontWeight: 700, color: "#8b5cf6" }}>{hardLimit}</span>
+                <span style={{ minWidth: 48, fontSize: 14, fontWeight: 600, color: "#5d4bb5" }}>{hardLimit}</span>
               </div>
             </div>
           </div>
@@ -372,7 +372,7 @@ export default function AvciToplu({ api }) {
           }}>
             📊 <strong style={{ color: "var(--text)" }}>{tahmin.hucre}</strong> hücre (sehir×kategori) ·
             <strong style={{ color: "var(--text)" }}> {tahmin.toplamSorgu}</strong> sorgu ·
-            Tahmini süre: <strong style={{ color: "#8b5cf6" }}>~{tahmin.dakika}dk</strong>
+            Tahmini süre: <strong style={{ color: "#5d4bb5" }}>~{tahmin.dakika}dk</strong>
           </div>
 
           <button
@@ -383,12 +383,12 @@ export default function AvciToplu({ api }) {
               padding: "14px 20px",
               borderRadius: 12,
               border: "none",
-              background: baslatYukleniyor ? "var(--bg)" : "linear-gradient(135deg, #8b5cf6, #7c3aed)",
+              background: baslatYukleniyor ? "var(--bg)" : "#5d4bb5",
               color: "#fff",
               fontSize: 15,
-              fontWeight: 800,
+              fontWeight: 600,
               cursor: baslatYukleniyor ? "not-allowed" : "pointer",
-              boxShadow: "0 4px 14px rgba(139,92,246,.25)",
+              boxShadow: "none",
               opacity: (!secilenIller.length || !secilenKategoriler.length) ? 0.5 : 1,
             }}>
             {baslatYukleniyor ? "⏳ Başlatılıyor..." : `🚀 Manyak Modu Başlat (${tahmin.hucre} hücre)`}
@@ -400,12 +400,12 @@ export default function AvciToplu({ api }) {
       {aktifJob && jobDurum && (
         <div style={{
           background: "var(--surface)",
-          border: "1px solid rgba(16,185,129,.3)",
+          border: "1px solid rgba(31,111,74,.3)",
           borderRadius: 16, padding: 20,
         }}>
           <div className="row row-between mb-16" style={{ alignItems: "center" }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 16, color: "var(--text)" }}>
+              <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>
                 🎯 {jobDurum.baslik || "Toplu Tarama"}
               </div>
               <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>Job: {aktifJob}</div>
@@ -413,14 +413,14 @@ export default function AvciToplu({ api }) {
             <div className="row gap-8">
               {(jobDurum.durum === "calisiyor" || jobDurum.durum === "bekliyor") && (
                 <button onClick={jobIptal} style={{
-                  padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,.3)",
-                  background: "rgba(239,68,68,.1)", color: "#ef4444", fontWeight: 700, cursor: "pointer", fontSize: 12
+                  padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(180,35,24,.3)",
+                  background: "rgba(180,35,24,.1)", color: "#b42318", fontWeight: 600, cursor: "pointer", fontSize: 12
                 }}>⏹ İptal</button>
               )}
               {(jobDurum.durum === "tamamlandi" || jobDurum.durum === "iptal" || jobDurum.durum === "hata") && (
                 <button onClick={() => { setAktifJob(null); setJobDurum(null); setFeed([]); }} style={{
                   padding: "8px 14px", borderRadius: 10, border: "none",
-                  background: "var(--bg)", color: "var(--text)", fontWeight: 700, cursor: "pointer", fontSize: 12
+                  background: "var(--bg)", color: "var(--text)", fontWeight: 600, cursor: "pointer", fontSize: 12
                 }}>✖ Kapat</button>
               )}
             </div>
@@ -433,11 +433,11 @@ export default function AvciToplu({ api }) {
               jobDurum.durum === "tamamlandi" ? "✅ Bitti" :
               jobDurum.durum === "iptal" ? "⏹ İptal" :
               jobDurum.durum === "hata" ? "❌ Hata" : "⏸ Bekliyor"
-            } renk="#8b5cf6" />
-            <MetricCard label="Sorgu" deger={`${jobDurum.tamamlanan_sorgu || 0} / ${jobDurum.toplam_sorgu || 0}`} renk="#3b82f6" />
-            <MetricCard label="Yeni Lead" deger={jobDurum.yeni_eklenen || 0} renk="#10b981" vurgu />
+            } renk="#5d4bb5" />
+            <MetricCard label="Sorgu" deger={`${jobDurum.tamamlanan_sorgu || 0} / ${jobDurum.toplam_sorgu || 0}`} renk="#2f56c6" />
+            <MetricCard label="Yeni Lead" deger={jobDurum.yeni_eklenen || 0} renk="#1f6f4a" vurgu />
             <MetricCard label="Zaten Var" deger={jobDurum.zaten_var || 0} renk="#6b7280" />
-            <MetricCard label="Hız" deger={`${hiz}/dk`} renk="#f59e0b" />
+            <MetricCard label="Hız" deger={`${hiz}/dk`} renk="#a8590c" />
             <MetricCard label="ETA" deger={eta} renk="#ec4899" />
           </div>
 
@@ -445,19 +445,19 @@ export default function AvciToplu({ api }) {
           <div style={{ marginBottom: 14 }}>
             <div className="row row-between mb-4">
               <span style={{ fontSize: 12, color: "var(--dim)", fontWeight: 600 }}>İlerleme</span>
-              <span style={{ fontSize: 12, color: "#8b5cf6", fontWeight: 700 }}>{progressYuzde}%</span>
+              <span style={{ fontSize: 12, color: "#5d4bb5", fontWeight: 600 }}>{progressYuzde}%</span>
             </div>
-            <div style={{ height: 10, background: "rgba(139,92,246,.1)", borderRadius: 999, overflow: "hidden" }}>
+            <div style={{ height: 10, background: "rgba(93,75,181,.1)", borderRadius: 999, overflow: "hidden" }}>
               <div style={{
                 height: "100%", width: `${progressYuzde}%`,
-                background: "linear-gradient(90deg, #8b5cf6, #ec4899)",
+                background: "#5d4bb5",
                 transition: "width .4s",
-                boxShadow: "0 0 12px rgba(139,92,246,.5)"
+                boxShadow: "none"
               }} />
             </div>
             {aktifSorgu && jobDurum.durum === "calisiyor" && (
               <div style={{ marginTop: 8, fontSize: 11, color: "var(--dim)" }}>
-                🔎 Şu an: <span style={{ color: "#8b5cf6", fontWeight: 600 }}>{aktifSorgu}</span>
+                🔎 Şu an: <span style={{ color: "#5d4bb5", fontWeight: 600 }}>{aktifSorgu}</span>
               </div>
             )}
           </div>
@@ -492,12 +492,12 @@ export default function AvciToplu({ api }) {
                       transition: "all .3s",
                       cursor: d.durum === "hata" ? "help" : "default",
                     }}>
-                      <div style={{ fontWeight: 800, fontSize: 11, marginBottom: 2 }}>
+                      <div style={{ fontWeight: 600, fontSize: 11, marginBottom: 2 }}>
                         {renk.icon} {d.sehir.slice(0, 8)}
                       </div>
                       <div style={{ fontSize: 9, opacity: 0.85 }}>{d.kategori}</div>
                       {(d.yeni_eklenen > 0 || d.durum === "tamamlandi") && (
-                        <div style={{ fontSize: 10, fontWeight: 800, marginTop: 2 }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, marginTop: 2 }}>
                           +{d.yeni_eklenen || 0}
                         </div>
                       )}
@@ -507,9 +507,9 @@ export default function AvciToplu({ api }) {
               </div>
               <div className="row gap-12" style={{ marginTop: 8, fontSize: 10, color: "var(--dim)" }}>
                 <span>⬛ Bekliyor</span>
-                <span style={{ color: "#f59e0b" }}>⚡ Çalışıyor</span>
-                <span style={{ color: "#10b981" }}>✓ Bitti</span>
-                <span style={{ color: "#ef4444" }}>✗ Hata</span>
+                <span style={{ color: "#a8590c" }}>⚡ Çalışıyor</span>
+                <span style={{ color: "#1f6f4a" }}>✓ Bitti</span>
+                <span style={{ color: "#b42318" }}>✗ Hata</span>
               </div>
             </div>
           )}
@@ -531,7 +531,7 @@ export default function AvciToplu({ api }) {
                 fontFamily: "monospace",
               }}>
                 {feed.map((f, i) => (
-                  <div key={i} style={{ marginBottom: 4, color: f.tip === "bitti" ? "#10b981" : "var(--text)" }}>
+                  <div key={i} style={{ marginBottom: 4, color: f.tip === "bitti" ? "#1f6f4a" : "var(--text)" }}>
                     <span style={{ opacity: 0.5 }}>[{f.zaman}]</span> {f.mesaj}
                   </div>
                 ))}
@@ -549,7 +549,7 @@ export default function AvciToplu({ api }) {
           borderRadius: 16, padding: "18px 20px",
         }}>
           <div className="row row-between mb-12" style={{ alignItems: "center" }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)" }}>📜 Geçmiş Taramalar (son {gecmis.length})</div>
+            <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>📜 Geçmiş Taramalar (son {gecmis.length})</div>
             <button onClick={yukleGecmis} style={{
               padding: "4px 10px", borderRadius: 8, border: "1px solid var(--border)",
               background: "var(--bg)", color: "var(--dim)", fontSize: 11, cursor: "pointer"
@@ -557,7 +557,7 @@ export default function AvciToplu({ api }) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {gecmis.map(j => {
-              const durumRenk = j.durum === "tamamlandi" ? "#10b981" : j.durum === "iptal" ? "#f59e0b" : j.durum === "hata" ? "#ef4444" : "#3b82f6";
+              const durumRenk = j.durum === "tamamlandi" ? "#1f6f4a" : j.durum === "iptal" ? "#a8590c" : j.durum === "hata" ? "#b42318" : "#2f56c6";
               const sure = j.baslangic_tarihi && j.bitis_tarihi ?
                 Math.round((new Date(j.bitis_tarihi) - new Date(j.baslangic_tarihi)) / 60000) + "dk" : "—";
               return (
@@ -576,11 +576,11 @@ export default function AvciToplu({ api }) {
                   <div className="row row-between">
                     <div style={{ flex: 1 }}>
                       <div className="row gap-8" style={{ alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{j.baslik}</span>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{j.baslik}</span>
                         <span style={{
                           padding: "2px 8px", borderRadius: 6,
                           background: `${durumRenk}20`, color: durumRenk,
-                          fontSize: 10, fontWeight: 700
+                          fontSize: 10, fontWeight: 600
                         }}>{j.durum}</span>
                       </div>
                       <div style={{ fontSize: 11, color: "var(--dim)" }}>
@@ -588,7 +588,7 @@ export default function AvciToplu({ api }) {
                       </div>
                     </div>
                     <div style={{ textAlign: "right", minWidth: 120 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>+{j.yeni_eklenen || 0} yeni</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#1f6f4a" }}>+{j.yeni_eklenen || 0} yeni</div>
                       <div style={{ fontSize: 10, color: "var(--dim)" }}>{j.tamamlanan_sorgu || 0}/{j.toplam_sorgu || 0} sorgu</div>
                     </div>
                   </div>
@@ -611,7 +611,7 @@ function MetricCard({ label, deger, renk, vurgu }) {
       border: `1px solid ${vurgu ? renk + "40" : "var(--border)"}`,
     }}>
       <div style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 800, color: renk, marginTop: 2 }}>{deger}</div>
+      <div style={{ fontSize: 18, fontWeight: 600, color: renk, marginTop: 2 }}>{deger}</div>
     </div>
   );
 }

@@ -16,7 +16,8 @@ export default function GeceRaporu({ api }) {
   }, [tab]);
 
   const kaydet = async () => {
-    await api.put('/gece-raporu/ayarlar', ayarlar);
+    const r = await api.put('/gece-raporu/ayarlar', ayarlar);
+    if (r?.hata) { alert('Kaydedilemedi: ' + r.hata); return; }
     setKaydedildi(true);
     setTimeout(() => setKaydedildi(false), 3000);
   };
@@ -29,7 +30,7 @@ export default function GeceRaporu({ api }) {
 
   const S = {
     card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' },
-    label: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
+    label: { fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
   };
 
   // Saat seçenekleri oluştur
@@ -46,8 +47,8 @@ export default function GeceRaporu({ api }) {
         {[['ayarlar', '⚙️ Ayarlar'], ['log', '📋 Rapor Geçmişi']].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
-            background: tab === id ? 'var(--gradient, linear-gradient(135deg,#54E097,#2cb872))' : 'transparent',
-            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 700, fontSize: 13,
+            background: tab === id ? 'var(--gradient, #1f6f4a)' : 'transparent',
+            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 600, fontSize: 13,
             cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s',
           }}>{label}</button>
         ))}
@@ -56,7 +57,7 @@ export default function GeceRaporu({ api }) {
       {tab === 'ayarlar' && (
         <>
           {kaydedildi && (
-            <div style={{ background: 'rgba(84,224,151,.1)', border: '1px solid rgba(84,224,151,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#2cb872', fontSize: 13, fontWeight: 700 }}>
+            <div style={{ background: 'rgba(31,111,74,.1)', border: '1px solid rgba(31,111,74,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#1f6f4a', fontSize: 13, fontWeight: 600 }}>
               Gece raporu ayarları kaydedildi
             </div>
           )}
@@ -65,14 +66,14 @@ export default function GeceRaporu({ api }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
               <span style={{ fontSize: 28 }}>🌙</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>Otomatik Gece Raporu</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Otomatik Gece Raporu</div>
                 <div style={{ fontSize: 12, color: 'var(--dim)' }}>Her gün belirlediğiniz saatte günlük özet rapor alın</div>
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input type="checkbox" checked={!!ayarlar.gece_raporu_aktif} onChange={e => setAyarlar({...ayarlar, gece_raporu_aktif: e.target.checked})}
-                    style={{ accentColor: '#10b981', width: 20, height: 20 }} />
-                  <span style={{ fontWeight: 700, fontSize: 14, color: ayarlar.gece_raporu_aktif ? '#10b981' : 'var(--dim)' }}>
+                    style={{ accentColor: '#1f6f4a', width: 20, height: 20 }} />
+                  <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.gece_raporu_aktif ? '#1f6f4a' : 'var(--dim)' }}>
                     {ayarlar.gece_raporu_aktif ? 'Aktif' : 'Kapalı'}
                   </span>
                 </label>
@@ -103,10 +104,10 @@ export default function GeceRaporu({ api }) {
           {/* Önizle */}
           <div style={{ ...S.card, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Rapor Önizleme</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Rapor Önizleme</div>
               <button onClick={raporOnizle} style={{
                 padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border)',
-                background: 'var(--surface)', color: 'var(--text)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit'
+                background: 'var(--surface)', color: 'var(--text)', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit'
               }}>Bugünkü Raporu Önizle</button>
             </div>
             {onizle && (
@@ -120,9 +121,9 @@ export default function GeceRaporu({ api }) {
 
           <button onClick={kaydet} style={{
             width: '100%', padding: '14px', borderRadius: 14, border: 'none',
-            background: 'linear-gradient(135deg, #54E097 0%, #2cb872 100%)',
-            color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(84,224,151,.3)', fontFamily: 'inherit',
+            background: '#1f6f4a',
+            color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(31,111,74,.3)', fontFamily: 'inherit',
           }}>
             Kaydet
           </button>
@@ -131,7 +132,7 @@ export default function GeceRaporu({ api }) {
 
       {tab === 'log' && (
         <div style={S.card}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 14 }}>Rapor Geçmişi</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 14 }}>Rapor Geçmişi</div>
           {loglar.length === 0 ? (
             <div style={{ padding: 30, textAlign: 'center', color: 'var(--dim)', fontSize: 13 }}>Henüz rapor gönderilmemiş</div>
           ) : (
@@ -139,13 +140,13 @@ export default function GeceRaporu({ api }) {
               {loglar.map(l => (
                 <div key={l.id} style={{ background: 'var(--bg)', borderRadius: 12, padding: 14, border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dim)' }}>{new Date(l.gonderim_tarihi).toLocaleString('tr-TR')}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--dim)' }}>{new Date(l.gonderim_tarihi).toLocaleString('tr-TR')}</span>
                     <span style={{
-                      padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                      background: l.durum === 'gonderildi' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)',
-                      color: l.durum === 'gonderildi' ? '#22c55e' : '#ef4444'
+                      padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      background: l.durum === 'gonderildi' ? 'rgba(31,111,74,.1)' : 'rgba(180,35,24,.1)',
+                      color: l.durum === 'gonderildi' ? '#1f6f4a' : '#b42318'
                     }}>{l.durum === 'gonderildi' ? 'Gönderildi' : l.durum}</span>
-                    <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(59,130,246,.1)', color: '#3b82f6' }}>{l.kanal}</span>
+                    <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(47,86,198,.1)', color: '#2f56c6' }}>{l.kanal}</span>
                   </div>
                   <pre style={{
                     fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',

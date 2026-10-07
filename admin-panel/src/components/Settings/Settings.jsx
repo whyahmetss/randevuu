@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { pushIzinDurumu, pushAc, pushKapat, pushTest, pushDesteklenir } from '../../lib/push';
 import { ayarOku as bildirimAyarOku, ayarYaz as bildirimAyarYaz, sesListesi, bildirimCal, sesKilidiAc } from '../../lib/bildirim';
 import GoogleCalendar from './GoogleCalendar';
+import { bookingUrl, BOOKING_BASE } from '../../lib/config';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -50,7 +51,11 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   };
 
   const kaydet = async () => {
-    await api.put("/ayarlar", ayarlar);
+    const r = await api.put("/ayarlar", ayarlar);
+    if (r?.hata) {
+      alert("Ayarlar kaydedilemedi: " + (/slug|duplicate|unique/i.test(r.hata) ? "Bu online randevu linki (slug) başka bir işletmede kullanılıyor." : r.hata));
+      return;
+    }
     setKaydedildi(true);
     setTimeout(() => setKaydedildi(false), 3000);
   };
@@ -88,13 +93,13 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       width: 40, height: 40, borderRadius: 12, background: `${color}14`,
       display: "flex", alignItems: "center", justifyContent: "center", fontSize: 19, flexShrink: 0,
     }),
-    title: { margin: 0, fontSize: 15, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.2px" },
+    title: { margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.2px" },
     desc: { color: "var(--dim)", fontSize: 12, lineHeight: 1.5 },
     section: { borderTop: "1px solid var(--border)", paddingTop: 16, marginTop: 16 },
-    sectionLabel: { fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 10 },
+    sectionLabel: { fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 10 },
   };
 
-  const CardHead = ({ emoji, title, color = "#8b5cf6", desc }) => (
+  const CardHead = ({ emoji, title, color = "#5d4bb5", desc }) => (
     <div style={{ marginBottom: desc ? 12 : 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: desc ? 6 : 0 }}>
         <div style={S.iconWrap(color)}>{emoji}</div>
@@ -108,9 +113,9 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
     <div style={{ maxWidth: 1100 }}>
       {/* Kaydet banner */}
       {kaydedildi && (
-        <div style={{ background: "rgba(84,224,151,.1)", border: "1px solid rgba(84,224,151,.25)", borderRadius: 14, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: "rgba(31,111,74,.1)", border: "1px solid rgba(31,111,74,.25)", borderRadius: 14, padding: "14px 20px", marginBottom: 20, display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 18 }}>✅</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#2cb872" }}>Ayarlar kaydedildi</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#1f6f4a" }}>Ayarlar kaydedildi</span>
         </div>
       )}
 
@@ -123,16 +128,16 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }} className="settings-grid-3">
         {/* İşletme Bilgileri */}
         <div style={S.card}>
-          <CardHead emoji="🏢" title="İşletme Bilgileri" color="#3b82f6" />
+          <CardHead emoji="🏢" title="İşletme Bilgileri" color="#2f56c6" />
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {[{ label: "İşletme Adı", key: "isim" }, { label: "Adres", key: "adres" }].map(f => (
               <div key={f.key}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>{f.label}</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>{f.label}</label>
                 <input value={ayarlar[f.key] || ""} onChange={e => setAyarlar({...ayarlar, [f.key]: e.target.value})} className="input" />
               </div>
             ))}
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Kategori</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Kategori</label>
               <select value={ayarlar.kategori || "genel"} onChange={e => setAyarlar({...ayarlar, kategori: e.target.value})} className="input" style={{ width: "100%" }}>
                 {[
                   ["berber", "💈 Berber"],
@@ -163,14 +168,14 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
         {/* Çalışma Saatleri */}
         <div style={S.card}>
-          <CardHead emoji="🕐" title="Çalışma Saatleri" color="#10b981" />
+          <CardHead emoji="🕐" title="Çalışma Saatleri" color="#1f6f4a" />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Açılış</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Açılış</label>
               <input type="time" value={ayarlar.calisma_baslangic || "09:00"} onChange={e => setAyarlar({...ayarlar, calisma_baslangic: e.target.value})} className="input" />
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Kapanış</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Kapanış</label>
               <input type="time" value={ayarlar.calisma_bitis || "19:00"} onChange={e => setAyarlar({...ayarlar, calisma_bitis: e.target.value})} className="input" />
             </div>
           </div>
@@ -196,7 +201,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
         {/* Mola Saatleri */}
         <div style={S.card}>
-          <CardHead emoji="☕" title="Mola Saatleri" color="#f59e0b" desc="Bu saatlerde randevu alınamaz" />
+          <CardHead emoji="☕" title="Mola Saatleri" color="#a8590c" desc="Bu saatlerde randevu alınamaz" />
           {(ayarlar.mola_saatleri || []).map((mola, idx) => (
             <div key={idx} className="mola-row">
               <input value={mola.isim || ""} placeholder="Yemek Arası" onChange={e => {
@@ -218,7 +223,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               <button onClick={() => {
                 const yeni = (ayarlar.mola_saatleri || []).filter((_, i) => i !== idx);
                 setAyarlar({...ayarlar, mola_saatleri: yeni});
-              }} style={{ background: "rgba(239,68,68,.08)", color: "#ef4444", border: "none", borderRadius: 8, width: 30, height: 30, cursor: "pointer", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+              }} style={{ background: "rgba(180,35,24,.08)", color: "#b42318", border: "none", borderRadius: 8, width: 30, height: 30, cursor: "pointer", fontWeight: 600, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
             </div>
           ))}
           <button onClick={() => {
@@ -233,7 +238,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       {/* Tampon & Slot Ayarları */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <div style={S.card}>
-          <CardHead emoji="⏳" title="Varsayılan Tampon Süre" color="#8b5cf6" desc="Randevular arası hazırlık/temizlik süresi" />
+          <CardHead emoji="⏳" title="Varsayılan Tampon Süre" color="#5d4bb5" desc="Randevular arası hazırlık/temizlik süresi" />
           <select value={ayarlar.varsayilan_tampon_dk || 5} onChange={e => setAyarlar({...ayarlar, varsayilan_tampon_dk: parseInt(e.target.value)})} className="input" style={{ width: "100%" }}>
             <option value={0}>Tampon yok (0 dk)</option>
             <option value={5}>5 dakika</option>
@@ -245,7 +250,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Hizmet bazlı tampon ayarlanmamışsa bu değer kullanılır</div>
         </div>
         <div style={S.card}>
-          <CardHead emoji="🔲" title="Slot Aralığı" color="#06b6d4" desc="Randevu saatleri arasındaki temel aralık" />
+          <CardHead emoji="🔲" title="Slot Aralığı" color="#2f56c6" desc="Randevu saatleri arasındaki temel aralık" />
           <select value={ayarlar.slot_aralik_dk || 30} onChange={e => setAyarlar({...ayarlar, slot_aralik_dk: parseInt(e.target.value)})} className="input" style={{ width: "100%" }}>
             <option value={10}>10 dakika</option>
             <option value={15}>15 dakika</option>
@@ -261,7 +266,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 16 }} className="settings-grid-3">
         {/* Randevu Modu */}
         <div style={S.card}>
-          <CardHead emoji="📋" title="Randevu Modu" color="#3b82f6" desc="Randevuların nasıl planlanacağını belirler" />
+          <CardHead emoji="📋" title="Randevu Modu" color="#2f56c6" desc="Randevuların nasıl planlanacağını belirler" />
           <select value={ayarlar.randevu_modu || 'sirali'} onChange={e => setAyarlar({...ayarlar, randevu_modu: e.target.value})} className="input" style={{ width: "100%" }}>
             <option value="sirali">Sıralı (arka arkaya slot)</option>
             <option value="seans">Seans (grup randevu)</option>
@@ -271,7 +276,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
         {/* Çalışan Seçim */}
         <div style={S.card}>
-          <CardHead emoji="👥" title="Çalışan Seçimi" color="#6366f1" desc="Müşteri randevu alırken çalışan nasıl belirlenir" />
+          <CardHead emoji="👥" title="Çalışan Seçimi" color="#5d4bb5" desc="Müşteri randevu alırken çalışan nasıl belirlenir" />
           <select value={ayarlar.calisan_secim_modu || 'musteri'} onChange={e => setAyarlar({...ayarlar, calisan_secim_modu: e.target.value})} className="input" style={{ width: "100%" }}>
             <option value="musteri">Müşteri Seçer</option>
             <option value="otomatik">Otomatik (Boş Slot Bazlı)</option>
@@ -281,7 +286,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
         {/* Randevu Onay */}
         <div style={S.card}>
-          <CardHead emoji="✅" title="Randevu Onay Modu" color="#10b981" desc="Otomatik onay mı, yoksa siz mi onaylayacaksınız" />
+          <CardHead emoji="✅" title="Randevu Onay Modu" color="#1f6f4a" desc="Otomatik onay mı, yoksa siz mi onaylayacaksınız" />
           <select value={ayarlar.randevu_onay_modu || 'otomatik'} onChange={e => setAyarlar({...ayarlar, randevu_onay_modu: e.target.value})} className="input" style={{ width: "100%", marginBottom: (ayarlar.randevu_onay_modu === 'manuel') ? 12 : 0 }}>
             <option value="otomatik">Otomatik Onay</option>
             <option value="manuel">Manuel Onay</option>
@@ -297,7 +302,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ═══════════════  ROW 3: AI & Bot Yapılandırması (Konuşma Stili + Mesai Dışı)  ═══════════════ */}
       <div style={{ ...S.card, marginBottom: 16 }}>
-        <CardHead emoji="🤖" title="AI & Bot Yapılandırması" color="#8b5cf6" desc="Botun konuşma stili ve mesai dışı davranışı" />
+        <CardHead emoji="🤖" title="AI & Bot Yapılandırması" color="#5d4bb5" desc="Botun konuşma stili ve mesai dışı davranışı" />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }} className="settings-grid-2">
           {/* Konuşma Stili */}
@@ -308,10 +313,10 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                 <button key={val} onClick={() => setAyarlar({...ayarlar, bot_konusma_stili: val})}
                   style={{
                     flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer",
-                    fontSize: 13, fontWeight: 700, textAlign: "center", transition: "all .2s",
-                    background: (ayarlar.bot_konusma_stili || 'samimi') === val ? "rgba(139,92,246,.12)" : "var(--surface2)",
-                    color: (ayarlar.bot_konusma_stili || 'samimi') === val ? "#8b5cf6" : "var(--dim)",
-                    outline: (ayarlar.bot_konusma_stili || 'samimi') === val ? "2px solid rgba(139,92,246,.3)" : "1px solid var(--border)",
+                    fontSize: 13, fontWeight: 600, textAlign: "center", transition: "all .2s",
+                    background: (ayarlar.bot_konusma_stili || 'samimi') === val ? "rgba(93,75,181,.12)" : "var(--surface2)",
+                    color: (ayarlar.bot_konusma_stili || 'samimi') === val ? "#5d4bb5" : "var(--dim)",
+                    outline: (ayarlar.bot_konusma_stili || 'samimi') === val ? "2px solid rgba(93,75,181,.3)" : "1px solid var(--border)",
                   }}>
                   {label}
                 </button>
@@ -337,18 +342,18 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ═══════════════  ROW 3.5: Online Randevu Linki  ═══════════════ */}
       <div style={{ ...S.card, marginBottom: 16 }}>
-        <CardHead emoji="🔗" title="Online Randevu Linki" color="#10b981" desc="Müşterileriniz bu link ile doğrudan randevu alabilir" />
+        <CardHead emoji="🔗" title="Online Randevu Linki" color="#1f6f4a" desc="Müşterileriniz bu link ile doğrudan randevu alabilir" />
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Slug (URL Kısaltması)</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Slug (URL Kısaltması)</label>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontSize: 13, color: "var(--dim)", whiteSpace: "nowrap" }}>{window.location.origin}/book/</span>
+              <span style={{ fontSize: 13, color: "var(--dim)", whiteSpace: "nowrap" }}>{BOOKING_BASE}/book/</span>
               <input
                 value={ayarlar.slug || ""}
                 onChange={e => setAyarlar({...ayarlar, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, '').slice(0, 50)})}
                 className="input"
                 placeholder="isletme-adi"
-                style={{ flex: 1, fontWeight: 700 }}
+                style={{ flex: 1, fontWeight: 600 }}
               />
             </div>
             <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Sadece küçük harf, rakam ve tire (-) kullanabilirsiniz</div>
@@ -356,29 +361,29 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           {ayarlar.slug && (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <div style={{
-                flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(16,185,129,.06)",
-                border: "1px solid rgba(16,185,129,.15)", fontSize: 13, fontWeight: 600,
-                color: "#10b981", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(31,111,74,.06)",
+                border: "1px solid rgba(31,111,74,.15)", fontSize: 13, fontWeight: 600,
+                color: "#1f6f4a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
               }}>
-                {window.location.origin}/book/{ayarlar.slug}
+                {bookingUrl(ayarlar.slug)}
               </div>
               <button onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/book/${ayarlar.slug}`);
+                navigator.clipboard.writeText(bookingUrl(ayarlar.slug));
                 setSlugKopyalandi(true);
                 setTimeout(() => setSlugKopyalandi(false), 2000);
               }} style={{
                 padding: "10px 18px", borderRadius: 10, border: "none",
-                background: slugKopyalandi ? "#10b981" : "rgba(16,185,129,.1)",
-                color: slugKopyalandi ? "#fff" : "#10b981",
-                fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
+                background: slugKopyalandi ? "#1f6f4a" : "rgba(31,111,74,.1)",
+                color: slugKopyalandi ? "#fff" : "#1f6f4a",
+                fontWeight: 600, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
                 transition: "all .2s", fontFamily: "inherit",
               }}>
                 {slugKopyalandi ? "Kopyalandı!" : "Kopyala"}
               </button>
-              <a href={`${window.location.origin}/book/${ayarlar.slug}`} target="_blank" rel="noopener noreferrer" style={{
+              <a href={bookingUrl(ayarlar.slug)} target="_blank" rel="noopener noreferrer" style={{
                 padding: "10px 18px", borderRadius: 10, border: "1px solid var(--border)",
                 background: "var(--surface)", color: "var(--text)",
-                fontWeight: 700, fontSize: 12, cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap",
+                fontWeight: 600, fontSize: 12, cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap",
               }}>
                 Önizle
               </a>
@@ -391,11 +396,11 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }} className="settings-grid-2">
         {/* Kara Liste */}
         <div style={S.card}>
-          <CardHead emoji="🛡️" title="Kara Liste" color="#ef4444" desc="Engellenen numaralar bota mesaj atsa bile cevap almaz" />
+          <CardHead emoji="🛡️" title="Kara Liste" color="#b42318" desc="Engellenen numaralar bota mesaj atsa bile cevap almaz" />
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
               <input type="checkbox" checked={!!ayarlar.kara_liste_otomatik} onChange={e => setAyarlar({...ayarlar, kara_liste_otomatik: e.target.checked})}
-                style={{ accentColor: "#ef4444", width: 16, height: 16 }} />
+                style={{ accentColor: "#b42318", width: 16, height: 16 }} />
               <span style={{ fontWeight: 600, fontSize: 13 }}>Otomatik No-Show Engelleme</span>
             </label>
             {!!ayarlar.kara_liste_otomatik && (
@@ -413,23 +418,23 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               <option value="kotu_davranis">Kötü Davranış</option>
               <option value="spam">Spam</option>
             </select>
-            <button onClick={karaEkle} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#ef4444,#dc2626)", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>+ Ekle</button>
+            <button onClick={karaEkle} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#b42318", color: "#fff", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>+ Ekle</button>
           </div>
           {karaListe.length > 0 ? (
             <div style={{ maxHeight: 200, overflowY: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
               <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                 <thead><tr style={{ background: 'var(--surface2)' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Telefon</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Sebep</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Telefon</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Sebep</th>
                   <th style={{ padding: '8px 12px', width: 50 }}></th>
                 </tr></thead>
                 <tbody>
                   {karaListe.map(k => (
                     <tr key={k.id} style={{ borderTop: '1px solid var(--border)' }}>
                       <td style={{ padding: '8px 12px', fontWeight: 600 }}>{k.telefon}</td>
-                      <td style={{ padding: '8px 12px' }}><span style={{ background: 'rgba(239,68,68,.08)', color: '#ef4444', padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{k.sebep}</span></td>
+                      <td style={{ padding: '8px 12px' }}><span style={{ background: 'rgba(180,35,24,.08)', color: '#b42318', padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{k.sebep}</span></td>
                       <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                        <button onClick={() => karaSil(k.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>✕</button>
+                        <button onClick={() => karaSil(k.id)} style={{ background: 'none', border: 'none', color: '#b42318', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>✕</button>
                       </td>
                     </tr>
                   ))}
@@ -444,7 +449,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         {/* Bot Dilleri + İptal Sınırı + Kapora (sağ kolon) */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={S.card}>
-            <CardHead emoji="🌐" title="Bot Dilleri" color="#0ea5e9" desc="Bot hangi dillerde cevap verebilsin" />
+            <CardHead emoji="🌐" title="Bot Dilleri" color="#2f56c6" desc="Bot hangi dillerde cevap verebilsin" />
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {[['tr', '🇹🇷 Türkçe'], ['en', '🇬🇧 English'], ['ar', '🇸🇦 العربية']].map(([kod, label]) => {
                 const diller = (ayarlar.bot_diller || 'tr').split(',').map(s => s.trim()).filter(Boolean);
@@ -456,10 +461,10 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                     setAyarlar({...ayarlar, bot_diller: yeni.join(',')});
                   }} style={{
                     flex: 1, padding: "10px 8px", borderRadius: 10, border: "none", cursor: "pointer",
-                    fontSize: 13, fontWeight: 700, textAlign: "center", transition: "all .2s",
-                    background: aktif ? "rgba(14,165,233,.1)" : "var(--surface2)",
-                    color: aktif ? "#0ea5e9" : "var(--dim)",
-                    outline: aktif ? "2px solid rgba(14,165,233,.25)" : "1px solid var(--border)",
+                    fontSize: 13, fontWeight: 600, textAlign: "center", transition: "all .2s",
+                    background: aktif ? "rgba(47,86,198,.1)" : "var(--surface2)",
+                    color: aktif ? "#2f56c6" : "var(--dim)",
+                    outline: aktif ? "2px solid rgba(47,86,198,.25)" : "1px solid var(--border)",
                   }}>
                     {label}
                   </button>
@@ -468,23 +473,23 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
             </div>
           </div>
           <div style={S.card}>
-            <CardHead emoji="🚫" title="İptal Sınırı" color="#ef4444" />
+            <CardHead emoji="🚫" title="İptal Sınırı" color="#b42318" />
             <div style={S.desc}>Müşteri randevuya en az kaç saat kala iptal edebilir</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-              <input type="number" min="0" max="72" value={ayarlar.iptal_sinir_saat || 0} onChange={e => setAyarlar({...ayarlar, iptal_sinir_saat: parseInt(e.target.value) || 0})} className="input" style={{ width: 80, textAlign: "center", fontSize: 16, fontWeight: 800 }} />
+              <input type="number" min="0" max="72" value={ayarlar.iptal_sinir_saat || 0} onChange={e => setAyarlar({...ayarlar, iptal_sinir_saat: parseInt(e.target.value) || 0})} className="input" style={{ width: 80, textAlign: "center", fontSize: 16, fontWeight: 600 }} />
               <span style={{ color: "var(--dim)", fontSize: 13, fontWeight: 600 }}>saat</span>
             </div>
             <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 6 }}>0 = sınır yok</div>
           </div>
           <div style={S.card}>
-            <CardHead emoji="💳" title="Kapora / Ön Ödeme" color="#10b981" />
+            <CardHead emoji="💳" title="Kapora / Ön Ödeme" color="#1f6f4a" />
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
               <input type="checkbox" checked={!!ayarlar.kapora_aktif} onChange={async (e) => {
                 const yeniDurum = e.target.checked;
                 setAyarlar({...ayarlar, kapora_aktif: yeniDurum});
                 await api.put("/kapora", { kapora_aktif: yeniDurum });
-              }} style={{ accentColor: "#10b981", width: 18, height: 18 }} />
-              <span style={{ fontWeight: 700, fontSize: 14, color: ayarlar.kapora_aktif ? "#10b981" : "var(--dim)" }}>
+              }} style={{ accentColor: "#1f6f4a", width: 18, height: 18 }} />
+              <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.kapora_aktif ? "#1f6f4a" : "var(--dim)" }}>
                 {ayarlar.kapora_aktif ? "Aktif" : "Kapalı"}
               </span>
             </label>
@@ -494,15 +499,15 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       </div>
 
       {/* ═══════════════  🔊 BİLDİRİM SESLERİ (Dükkan için ideal)  ═══════════════ */}
-      <div style={{ ...S.card, marginBottom: 16, background: "linear-gradient(135deg, rgba(84,224,151,.04), rgba(22,5,39,0))", borderColor: "rgba(84,224,151,.25)" }}>
-        <CardHead emoji="🔊" title="Bildirim Sesleri" color="#2cb872" desc="Tabletini dükkana koy — randevu gelince ziiink diye ötsün, sen sadece hazırlan." />
+      <div style={{ ...S.card, marginBottom: 16, background: "rgba(31,111,74,.04)", borderColor: "rgba(31,111,74,.25)" }}>
+        <CardHead emoji="🔊" title="Bildirim Sesleri" color="#1f6f4a" desc="Tabletini dükkana koy — randevu gelince ziiink diye ötsün, sen sadece hazırlan." />
 
         {/* Sessiz mod toggle */}
-        <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: sesAyar.sessiz ? "rgba(239,68,68,.06)" : "var(--surface2)", cursor: "pointer", marginBottom: 14, border: sesAyar.sessiz ? "1px solid rgba(239,68,68,.2)" : "1px solid var(--border)" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: sesAyar.sessiz ? "rgba(180,35,24,.06)" : "var(--surface2)", cursor: "pointer", marginBottom: 14, border: sesAyar.sessiz ? "1px solid rgba(180,35,24,.2)" : "1px solid var(--border)" }}>
           <input type="checkbox" checked={!sesAyar.sessiz} onChange={e => sesGuncelle({ sessiz: !e.target.checked })}
-            style={{ accentColor: "#2cb872", width: 18, height: 18 }} />
+            style={{ accentColor: "#1f6f4a", width: 18, height: 18 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
               {sesAyar.sessiz ? "🔕 Sessiz Mod — Ses Çalmaz" : "🔔 Ses Açık"}
             </div>
             <div style={{ fontSize: 11, color: "var(--dim)" }}>
@@ -514,7 +519,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         {/* Ses seçici */}
         {!sesAyar.sessiz && (
           <>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 10 }}>Ses Türü</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 10 }}>Ses Türü</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 16 }}>
               {sesListesi().map(s => {
                 const aktif = sesAyar.ses === s.id;
@@ -523,17 +528,17 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                     onClick={() => sesGuncelle({ ses: s.id })}
                     style={{
                       padding: "12px 14px", borderRadius: 12, cursor: "pointer",
-                      background: aktif ? "rgba(84,224,151,.12)" : "var(--surface2)",
-                      border: aktif ? "2px solid #2cb872" : "1px solid var(--border)",
+                      background: aktif ? "rgba(31,111,74,.12)" : "var(--surface2)",
+                      border: aktif ? "2px solid #1f6f4a" : "1px solid var(--border)",
                       transition: "all .15s", position: "relative"
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: aktif ? "#2cb872" : "var(--text)", marginBottom: 2 }}>{s.ad}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: aktif ? "#1f6f4a" : "var(--text)", marginBottom: 2 }}>{s.ad}</div>
                     <div style={{ fontSize: 10, color: "var(--dim)" }}>{s.aciklama}</div>
                     <button onClick={(e) => { e.stopPropagation(); sesTestEt(s.id); }}
                       style={{
-                        position: "absolute", top: 8, right: 8, background: "rgba(84,224,151,.1)",
-                        border: "none", color: "#2cb872", width: 24, height: 24, borderRadius: "50%",
+                        position: "absolute", top: 8, right: 8, background: "rgba(31,111,74,.1)",
+                        border: "none", color: "#1f6f4a", width: 24, height: 24, borderRadius: "50%",
                         cursor: "pointer", fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center"
                       }}
                       title="Bu sesi çal"
@@ -546,12 +551,12 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
             {/* Ses Seviyesi */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px" }}>Ses Seviyesi</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: "#2cb872" }}>%{Math.round(sesAyar.volume * 100)}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px" }}>Ses Seviyesi</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#1f6f4a" }}>%{Math.round(sesAyar.volume * 100)}</span>
               </div>
               <input type="range" min="0" max="100" value={Math.round(sesAyar.volume * 100)}
                 onChange={e => sesGuncelle({ volume: parseInt(e.target.value) / 100 })}
-                style={{ width: "100%", accentColor: "#2cb872" }} />
+                style={{ width: "100%", accentColor: "#1f6f4a" }} />
             </div>
           </>
         )}
@@ -559,19 +564,19 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         {/* Titreşim toggle (mobil) */}
         <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer", marginBottom: 14 }}>
           <input type="checkbox" checked={!!sesAyar.titresim} onChange={e => sesGuncelle({ titresim: e.target.checked })}
-            style={{ accentColor: "#2cb872", width: 18, height: 18 }} />
+            style={{ accentColor: "#1f6f4a", width: 18, height: 18 }} />
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>📳 Titreşim (Telefon/Tablet)</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>📳 Titreşim (Telefon/Tablet)</div>
             <div style={{ fontSize: 11, color: "var(--dim)" }}>Mobil cihazlarda ses ile birlikte titreşim çalışsın</div>
           </div>
         </label>
 
         {/* Dükkan Modu otomatik aç */}
-        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "rgba(139,92,246,.06)", cursor: "pointer", marginBottom: 14, border: "1px solid rgba(139,92,246,.2)" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, background: "rgba(93,75,181,.06)", cursor: "pointer", marginBottom: 14, border: "1px solid rgba(93,75,181,.2)" }}>
           <input type="checkbox" checked={!!sesAyar.dukkanModuAuto} onChange={e => sesGuncelle({ dukkanModuAuto: e.target.checked })}
-            style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+            style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🛍️ Dükkan Modu — Fullscreen Popup</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>🛍️ Dükkan Modu — Fullscreen Popup</div>
             <div style={{ fontSize: 11, color: "var(--dim)", lineHeight: 1.4 }}>
               Yeni randevu geldiğinde tüm ekranı kaplayan büyük "YENİ RANDEVU" ekranı açılsın. Ses 3 kere tekrar eder, 1 metreden bile kaçırmazsın.
             </div>
@@ -581,8 +586,8 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         {/* Test butonu */}
         <button onClick={() => sesTestEt()} style={{
           width: "100%", padding: "12px", borderRadius: 10, border: "none",
-          background: "linear-gradient(135deg,#2cb872,#10b981)", color: "#fff",
-          fontWeight: 700, fontSize: 13, cursor: "pointer",
+          background: "#1f6f4a", color: "#fff",
+          fontWeight: 600, fontSize: 13, cursor: "pointer",
         }}>
           🔔 Şimdi Test Et {sesAyar.sessiz ? "(Sessiz moda rağmen)" : ""}
         </button>
@@ -590,32 +595,32 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ═══════════════  Bildirim Tercihleri  ═══════════════ */}
       <div style={S.card}>
-        <CardHead emoji="🔔" title="Bildirim Tercihleri" color="#f59e0b" desc="Hangi kanallardan bildirim almak istersiniz?" />
+        <CardHead emoji="🔔" title="Bildirim Tercihleri" color="#a8590c" desc="Hangi kanallardan bildirim almak istersiniz?" />
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
           {/* 🆕 Push Bildirim (Tablet/Masaüstü) */}
-          <div style={{ padding: "14px 16px", borderRadius: 12, background: "linear-gradient(135deg, rgba(16,185,129,.08), rgba(16,185,129,.02))", border: "1px solid rgba(16,185,129,.2)" }}>
+          <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(31,111,74,.08)", border: "1px solid rgba(31,111,74,.2)" }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
                   📱 Tablet/Masaüstü Push Bildirim
-                  {pushDurum.aboneMi && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#10b981", color: "#fff", fontWeight: 700 }}>AKTİF</span>}
+                  {pushDurum.aboneMi && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#1f6f4a", color: "#fff", fontWeight: 600 }}>AKTİF</span>}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4, lineHeight: 1.5 }}>
                   Tablet açık ama panel kapalı olsa bile yeni randevu/bildirim geldiğinde ekran uyanır ve bildirim görünür. Dükkandaki tablet için ideal.
                 </div>
                 {!pushDurum.desteklenir && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: "#ef4444", fontWeight: 600 }}>⚠️ Tarayıcınız push bildirimleri desteklemiyor (Chrome, Edge, Firefox önerilir)</div>
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#b42318", fontWeight: 600 }}>⚠️ Tarayıcınız push bildirimleri desteklemiyor (Chrome, Edge, Firefox önerilir)</div>
                 )}
                 {pushDurum.izin === 'denied' && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: "#ef4444", fontWeight: 600 }}>⚠️ Bildirim izni engelli — tarayıcı site ayarlarından "Bildirimler: İzin Ver" yapın</div>
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#b42318", fontWeight: 600 }}>⚠️ Bildirim izni engelli — tarayıcı site ayarlarından "Bildirimler: İzin Ver" yapın</div>
                 )}
               </div>
               {pushDurum.desteklenir && pushDurum.izin !== 'denied' && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 120 }}>
                   <button onClick={pushToggle} disabled={pushYukleniyor} style={{
-                    padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
-                    background: pushDurum.aboneMi ? "rgba(239,68,68,.12)" : "linear-gradient(135deg,#10b981,#059669)",
-                    color: pushDurum.aboneMi ? "#ef4444" : "#fff",
+                    padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600,
+                    background: pushDurum.aboneMi ? "rgba(180,35,24,.12)" : "#1f6f4a",
+                    color: pushDurum.aboneMi ? "#b42318" : "#fff",
                     opacity: pushYukleniyor ? 0.6 : 1
                   }}>
                     {pushYukleniyor ? "..." : (pushDurum.aboneMi ? "🔕 Kapat" : "🔔 Etkinleştir")}
@@ -640,9 +645,9 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               <input type="checkbox" checked={ayarlar[k.key] !== undefined ? !!ayarlar[k.key] : k.varsayilan} onChange={async (e) => {
                 setAyarlar({ ...ayarlar, [k.key]: e.target.checked });
                 await api.put("/bildirim-tercihleri", { [k.key]: e.target.checked });
-              }} style={{ accentColor: "#f59e0b", width: 18, height: 18 }} />
+              }} style={{ accentColor: "#a8590c", width: 18, height: 18 }} />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{k.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{k.label}</div>
                 <div style={{ fontSize: 11, color: "var(--dim)" }}>{k.desc}</div>
               </div>
             </label>
@@ -652,32 +657,32 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ═══════════════  Akıllı Özellikler  ═══════════════ */}
       <div style={S.card}>
-        <CardHead emoji="🤖" title="Akıllı Özellikler" color="#8b5cf6" desc="Bot ve hatırlatma otomasyonları" />
+        <CardHead emoji="🤖" title="Akıllı Özellikler" color="#5d4bb5" desc="Bot ve hatırlatma otomasyonları" />
         <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 8 }}>
           {/* Hatırlatma Zinciri */}
           <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
             <input type="checkbox" checked={ayarlar.hatirlatma_zinciri_aktif !== false} onChange={e => setAyarlar({...ayarlar, hatirlatma_zinciri_aktif: e.target.checked})}
-              style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+              style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>⏰ Hatırlatma Zinciri (24h + 1h + 15dk)</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>⏰ Hatırlatma Zinciri (24h + 1h + 15dk)</div>
               <div style={{ fontSize: 11, color: "var(--dim)" }}>Randevudan 24 saat, 1 saat ve 15 dakika önce WhatsApp hatırlatma gönderir.</div>
             </div>
           </label>
           {/* Haftalık Rapor */}
           <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
             <input type="checkbox" checked={!!ayarlar.haftalik_rapor_aktif} onChange={e => setAyarlar({...ayarlar, haftalik_rapor_aktif: e.target.checked})}
-              style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+              style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>📊 Haftalık Rapor</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>📊 Haftalık Rapor</div>
               <div style={{ fontSize: 11, color: "var(--dim)" }}>Her Pazartesi 09:00'da WhatsApp'tan haftalık özet rapor alın.</div>
             </div>
           </label>
           {/* Otomatik Rebook */}
           <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
             <input type="checkbox" checked={ayarlar.rebook_aktif !== false} onChange={e => setAyarlar({...ayarlar, rebook_aktif: e.target.checked})}
-              style={{ accentColor: "#8b5cf6", width: 18, height: 18 }} />
+              style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>📅 Otomatik Rebook</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>📅 Otomatik Rebook</div>
               <div style={{ fontSize: 11, color: "var(--dim)" }}>Randevu tamamlandıktan 2 saat sonra tekrar randevu teklifi gönderir. (2 haftada 1 max)</div>
             </div>
           </label>
@@ -685,14 +690,14 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       </div>
 
       {/* ═══════════════  🛡️ Güvenlik & Koruma  ═══════════════ */}
-      <div style={{ ...S.card, marginTop: 16, borderLeft: "3px solid #ef4444" }}>
-        <CardHead emoji="🛡️" title="Güvenlik & Koruma" color="#ef4444" desc="Troll, spam, no-show ve yanlış numaraya karşı çok katmanlı koruma. Tüm ayarlar her an değiştirilebilir." />
+      <div style={{ ...S.card, marginTop: 16, borderLeft: "3px solid #b42318" }}>
+        <CardHead emoji="🛡️" title="Güvenlik & Koruma" color="#b42318" desc="Troll, spam, no-show ve yanlış numaraya karşı çok katmanlı koruma. Tüm ayarlar her an değiştirilebilir." />
 
         {/* Booking durumu */}
-        <div style={{ padding: "12px 14px", borderRadius: 10, background: ayarlar.booking_acik ? "rgba(84,224,151,.1)" : "rgba(239,68,68,.1)", border: `1px solid ${ayarlar.booking_acik ? "rgba(84,224,151,.25)" : "rgba(239,68,68,.25)"}`, marginBottom: 14 }}>
+        <div style={{ padding: "12px 14px", borderRadius: 10, background: ayarlar.booking_acik ? "rgba(31,111,74,.1)" : "rgba(180,35,24,.1)", border: `1px solid ${ayarlar.booking_acik ? "rgba(31,111,74,.25)" : "rgba(180,35,24,.25)"}`, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
                 {ayarlar.booking_acik ? "✅ Online randevu açık" : "🚧 Online randevu kapalı"}
               </div>
               <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>
@@ -702,7 +707,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               </div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!ayarlar.booking_acik} onChange={e => setAyarlar({...ayarlar, booking_acik: e.target.checked})} style={{ accentColor: "#54E097", width: 18, height: 18 }} />
+              <input type="checkbox" checked={!!ayarlar.booking_acik} onChange={e => setAyarlar({...ayarlar, booking_acik: e.target.checked})} style={{ accentColor: "#1f6f4a", width: 18, height: 18 }} />
             </label>
           </div>
         </div>
@@ -710,27 +715,27 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Otomatik No-show */}
           <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
-            <input type="checkbox" checked={ayarlar.no_show_otomatik !== false} onChange={e => setAyarlar({...ayarlar, no_show_otomatik: e.target.checked})} style={{ accentColor: "#ef4444", width: 18, height: 18 }} />
+            <input type="checkbox" checked={ayarlar.no_show_otomatik !== false} onChange={e => setAyarlar({...ayarlar, no_show_otomatik: e.target.checked})} style={{ accentColor: "#b42318", width: 18, height: 18 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🕛 Otomatik No-show Tespiti</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>🕛 Otomatik No-show Tespiti</div>
               <div style={{ fontSize: 11, color: "var(--dim)" }}>Randevu saati +2 saat geçmiş randevular otomatik "gelmedi" olarak işaretlenir. Müşteriye basamaklı uyarı gider (1. uyarı → 2. 7gün bloke → 3. kalıcı).</div>
             </div>
           </label>
 
           {/* Düşük skor manuel onay */}
           <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
-            <input type="checkbox" checked={!!ayarlar.dusuk_skor_manuel_onay} onChange={e => setAyarlar({...ayarlar, dusuk_skor_manuel_onay: e.target.checked})} style={{ accentColor: "#ef4444", width: 18, height: 18 }} />
+            <input type="checkbox" checked={!!ayarlar.dusuk_skor_manuel_onay} onChange={e => setAyarlar({...ayarlar, dusuk_skor_manuel_onay: e.target.checked})} style={{ accentColor: "#b42318", width: 18, height: 18 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>🧠 Düşük Güven Skorlu Müşteriye Manuel Onay</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>🧠 Düşük Güven Skorlu Müşteriye Manuel Onay</div>
               <div style={{ fontSize: 11, color: "var(--dim)" }}>Sistem-geneli güven skoru eşik altındaki müşterilerin randevuları siz onaylamadan geçmez. Yeni müşterileri etkilemez.</div>
             </div>
           </label>
 
           {/* Teyit zincirini kapatma */}
           <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
-            <input type="checkbox" checked={!!ayarlar.teyit_zincir_iptal} onChange={e => setAyarlar({...ayarlar, teyit_zincir_iptal: e.target.checked})} style={{ accentColor: "#ef4444", width: 18, height: 18 }} />
+            <input type="checkbox" checked={!!ayarlar.teyit_zincir_iptal} onChange={e => setAyarlar({...ayarlar, teyit_zincir_iptal: e.target.checked})} style={{ accentColor: "#b42318", width: 18, height: 18 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>⛓️ Teyit Zincirini Pasifleştir</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>⛓️ Teyit Zincirini Pasifleştir</div>
               <div style={{ fontSize: 11, color: "var(--dim)" }}>Hatırlatma sonrası "evet/iptal" teyit zincirini kapatır. No-show oranı düşer ama müşteriye otomatik iptal imkânı kalmaz.</div>
             </div>
           </label>
@@ -739,18 +744,18 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
         {/* Numeric ayarlar */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14 }}>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>IP başına günlük limit</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>IP başına günlük limit</label>
             <input type="number" min={1} max={100} value={ayarlar.ip_gunluk_limit ?? 5} onChange={e => setAyarlar({...ayarlar, ip_gunluk_limit: parseInt(e.target.value || '5', 10)})} className="input" style={{ width: "100%" }} />
             <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 4 }}>Aynı IP'den günde max kaç randevu (varsayılan 5)</div>
           </div>
           <div>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Güven skoru eşiği</label>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Güven skoru eşiği</label>
             <input type="number" min={0} max={100} value={ayarlar.skor_esigi ?? 30} onChange={e => setAyarlar({...ayarlar, skor_esigi: parseInt(e.target.value || '30', 10)})} className="input" style={{ width: "100%" }} />
             <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 4 }}>Bu skor altı = şüpheli (varsayılan 30)</div>
           </div>
         </div>
 
-        <div style={{ fontSize: 11, color: "var(--muted)", padding: "10px 12px", background: "rgba(59,130,246,.08)", borderRadius: 10, marginTop: 14, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: "var(--muted)", padding: "10px 12px", background: "rgba(47,86,198,.08)", borderRadius: 10, marginTop: 14, lineHeight: 1.5 }}>
           💡 <strong>OTP Kaynağı:</strong> Esnaf WhatsApp'ınız bağlıysa doğrulama kodları oradan gider (müşteri "siz" olarak görür). Bağlı değilken otomatik olarak SıraGO Merkez OTP Servisi devreye girer — müşteri yine kod alır, bu sayede her randevu doğrulanmış olur.
         </div>
       </div>
@@ -758,9 +763,9 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
       {/* ═══════════════  Kaydet Butonu  ═══════════════ */}
       <button onClick={kaydet} style={{
         width: "100%", padding: "16px", borderRadius: 14, border: "none",
-        background: "linear-gradient(135deg, #54E097 0%, #2cb872 100%)",
-        color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer",
-        boxShadow: "0 4px 16px rgba(84,224,151,.3)", transition: "all .2s",
+        background: "#1f6f4a",
+        color: "#fff", fontWeight: 600, fontSize: 16, cursor: "pointer",
+        boxShadow: "none", transition: "all .2s",
         fontFamily: "inherit", letterSpacing: "-0.3px",
         marginTop: 16,
       }}

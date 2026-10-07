@@ -3,7 +3,9 @@ const pool = require('../config/db');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) console.warn('⚠️ CRITICAL: JWT_SECRET env variable tanımlı değil! Varsayılan secret kullanılıyor. Production ortamında mutlaka güçlü bir secret ayarlayın.');
-const jwtSecret = JWT_SECRET || 'randevugo-default-secret-key-2024';
+// Sabit yedek anahtar public repoda olduğu için herkes token üretebilirdi. Env yoksa her
+// açılışta rastgele anahtar: oturumlar yeniden başlatmada düşer ama sahte token üretilemez.
+const jwtSecret = JWT_SECRET || require('crypto').randomBytes(48).toString('hex');
 
 const authMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1] || req.query.token;

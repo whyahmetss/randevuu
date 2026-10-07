@@ -34,7 +34,7 @@ export default function Winback({ api }) {
 
   const S = {
     card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' },
-    label: { fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
+    label: { fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.4px', marginBottom: 6, display: 'block' },
   };
 
   const varsayilanSablon = `Merhaba {musteri_adi}! 👋\nSizi özledik! Son ziyaretinizin üzerinden {gun_sayisi} gün geçti.\nBu hafta size özel %{indirim} indirim hazırladık! 🎉\nHemen randevu almak için yazın veya arayın.\n{isletme_adi} ❤️`;
@@ -46,8 +46,8 @@ export default function Winback({ api }) {
         {[['liste', '👋 Kayıp Müşteriler'], ['ayarlar', '⚙️ Ayarlar'], ['log', '📋 Gönderim Log']].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)} style={{
             flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
-            background: tab === id ? 'var(--gradient, linear-gradient(135deg,#54E097,#2cb872))' : 'transparent',
-            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 700, fontSize: 13,
+            background: tab === id ? 'var(--gradient, #1f6f4a)' : 'transparent',
+            color: tab === id ? '#fff' : 'var(--dim)', fontWeight: 600, fontSize: 13,
             cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s',
           }}>{label}</button>
         ))}
@@ -57,16 +57,16 @@ export default function Winback({ api }) {
         <>
           {/* Filtre */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Son randevusu</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Son randevusu</span>
             {[30, 45, 60, 90].map(g => (
               <button key={g} onClick={() => setGunFiltre(g)} style={{
                 padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)',
-                background: gunFiltre === g ? 'var(--gradient, linear-gradient(135deg,#FE5796,#e8407a))' : 'var(--surface)',
-                color: gunFiltre === g ? '#fff' : 'var(--dim)', fontWeight: 700, fontSize: 12,
+                background: gunFiltre === g ? 'var(--gradient, #b42318)' : 'var(--surface)',
+                color: gunFiltre === g ? '#fff' : 'var(--dim)', fontWeight: 600, fontSize: 12,
                 cursor: 'pointer', fontFamily: 'inherit',
               }}>{g}+ gün</button>
             ))}
-            <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: 'var(--muted)' }}>{musteriler.length} müşteri</span>
+            <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>{musteriler.length} müşteri</span>
           </div>
 
           {/* Liste */}
@@ -79,21 +79,21 @@ export default function Winback({ api }) {
                   <thead>
                     <tr style={{ background: 'var(--bg)' }}>
                       {['Müşteri', 'Telefon', 'Son Randevu', 'Gün', 'Toplam Randevu', 'Son Mesaj', ''].map((h, i) => (
-                        <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
+                        <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {musteriler.map(m => (
                       <tr key={m.id} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '12px', fontWeight: 700 }}>{m.isim || '—'}</td>
+                        <td style={{ padding: '12px', fontWeight: 600 }}>{m.isim || '—'}</td>
                         <td style={{ padding: '12px', fontSize: 12 }}>{m.telefon}</td>
                         <td style={{ padding: '12px', fontSize: 12 }}>{m.son_tarih ? new Date(m.son_tarih).toLocaleDateString('tr-TR') : '—'}</td>
                         <td style={{ padding: '12px' }}>
                           <span style={{
-                            padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                            background: m.gun_sayisi > 60 ? 'rgba(239,68,68,.1)' : 'rgba(245,158,11,.1)',
-                            color: m.gun_sayisi > 60 ? '#ef4444' : '#f59e0b'
+                            padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                            background: m.gun_sayisi > 60 ? 'rgba(180,35,24,.1)' : 'rgba(168,89,12,.1)',
+                            color: m.gun_sayisi > 60 ? '#b42318' : '#a8590c'
                           }}>{m.gun_sayisi} gün</span>
                         </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>{m.toplam_randevu}</td>
@@ -101,8 +101,8 @@ export default function Winback({ api }) {
                         <td style={{ padding: '12px' }}>
                           <button onClick={() => mesajGonder(m.id)} disabled={gonderiliyor === m.id} style={{
                             padding: '6px 14px', borderRadius: 8, border: 'none',
-                            background: 'linear-gradient(135deg,#FE5796,#e8407a)',
-                            color: '#fff', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+                            background: '#b42318',
+                            color: '#fff', fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
                             opacity: gonderiliyor === m.id ? .5 : 1
                           }}>{gonderiliyor === m.id ? '...' : '📩 Mesaj Gönder'}</button>
                         </td>
@@ -119,7 +119,7 @@ export default function Winback({ api }) {
       {tab === 'ayarlar' && (
         <>
           {kaydedildi && (
-            <div style={{ background: 'rgba(84,224,151,.1)', border: '1px solid rgba(84,224,151,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#2cb872', fontSize: 13, fontWeight: 700 }}>
+            <div style={{ background: 'rgba(31,111,74,.1)', border: '1px solid rgba(31,111,74,.25)', borderRadius: 14, padding: '12px 18px', marginBottom: 16, color: '#1f6f4a', fontSize: 13, fontWeight: 600 }}>
               Win-back ayarları kaydedildi
             </div>
           )}
@@ -128,14 +128,14 @@ export default function Winback({ api }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
               <span style={{ fontSize: 28 }}>🔄</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>Kayıp Müşteri Kurtarma</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Kayıp Müşteri Kurtarma</div>
                 <div style={{ fontSize: 12, color: 'var(--dim)' }}>Uzun süredir gelmeyen müşterilere otomatik mesaj gönder</div>
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input type="checkbox" checked={!!ayarlar.winback_aktif} onChange={e => setAyarlar({...ayarlar, winback_aktif: e.target.checked})}
-                    style={{ accentColor: '#FE5796', width: 20, height: 20 }} />
-                  <span style={{ fontWeight: 700, fontSize: 14, color: ayarlar.winback_aktif ? '#FE5796' : 'var(--dim)' }}>
+                    style={{ accentColor: '#b42318', width: 20, height: 20 }} />
+                  <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.winback_aktif ? '#b42318' : 'var(--dim)' }}>
                     {ayarlar.winback_aktif ? 'Aktif' : 'Kapalı'}
                   </span>
                 </label>
@@ -178,9 +178,9 @@ export default function Winback({ api }) {
 
           <button onClick={kaydet} style={{
             width: '100%', padding: '14px', borderRadius: 14, border: 'none',
-            background: 'linear-gradient(135deg, #FE5796 0%, #e8407a 100%)',
-            color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(254,87,150,.3)', fontFamily: 'inherit',
+            background: '#b42318',
+            color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(180,35,24,.3)', fontFamily: 'inherit',
           }}>Kaydet</button>
         </>
       )}
@@ -188,8 +188,8 @@ export default function Winback({ api }) {
       {tab === 'log' && (
         <div style={S.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>Gönderim Geçmişi</div>
-            <span style={{ padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(34,197,94,.1)', color: '#22c55e' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Gönderim Geçmişi</div>
+            <span style={{ padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: 'rgba(31,111,74,.1)', color: '#1f6f4a' }}>
               ✅ {kurtarilanSayisi} müşteri kurtarıldı
             </span>
           </div>
@@ -201,7 +201,7 @@ export default function Winback({ api }) {
                 <thead>
                   <tr style={{ background: 'var(--bg)' }}>
                     {['Müşteri', 'Gün', 'Tarih', 'Durum', 'Kurtarıldı'].map((h, i) => (
-                      <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
+                      <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -213,14 +213,14 @@ export default function Winback({ api }) {
                       <td style={{ padding: '10px 12px', fontSize: 12 }}>{new Date(l.gonderim_tarihi).toLocaleDateString('tr-TR')}</td>
                       <td style={{ padding: '10px 12px' }}>
                         <span style={{
-                          padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                          background: l.durum === 'gonderildi' ? 'rgba(34,197,94,.1)' : 'rgba(239,68,68,.1)',
-                          color: l.durum === 'gonderildi' ? '#22c55e' : '#ef4444'
+                          padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                          background: l.durum === 'gonderildi' ? 'rgba(31,111,74,.1)' : 'rgba(180,35,24,.1)',
+                          color: l.durum === 'gonderildi' ? '#1f6f4a' : '#b42318'
                         }}>{l.durum === 'gonderildi' ? 'Gönderildi' : l.durum}</span>
                       </td>
                       <td style={{ padding: '10px 12px' }}>
                         {l.kurtarildi ? (
-                          <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(34,197,94,.1)', color: '#22c55e' }}>✅ Kurtarıldı</span>
+                          <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'rgba(31,111,74,.1)', color: '#1f6f4a' }}>✅ Kurtarıldı</span>
                         ) : '—'}
                       </td>
                     </tr>

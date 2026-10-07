@@ -41,15 +41,15 @@ export class ErrorBoundary extends Component {
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 24, fontFamily: 'system-ui, -apple-system, sans-serif',
-        background: 'linear-gradient(135deg, #fef2f2 0%, #fff 100%)'
+        background: '#fef2f2'
       }}>
         <div style={{
           maxWidth: 560, width: '100%', background: '#fff', borderRadius: 16,
-          padding: '32px 36px', boxShadow: '0 10px 40px rgba(239,68,68,.15)',
+          padding: '32px 36px', boxShadow: '0 10px 40px rgba(180,35,24,.15)',
           border: '1px solid #fecaca'
         }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px', color: '#111' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 600, margin: '0 0 8px', color: '#111' }}>
             Bir şeyler ters gitti
           </h1>
           <p style={{ fontSize: 14, color: '#666', margin: '0 0 20px', lineHeight: 1.6 }}>
@@ -68,9 +68,9 @@ export class ErrorBoundary extends Component {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button onClick={this.reload} style={{
               flex: 1, minWidth: 140, padding: '12px 18px', borderRadius: 10, border: 'none',
-              background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(239,68,68,.25)'
+              background: '#b42318', color: '#fff',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(180,35,24,.25)'
             }}>🔄 Sayfayı Yenile</button>
             <button onClick={this.reset} style={{
               flex: 1, minWidth: 140, padding: '12px 18px', borderRadius: 10,

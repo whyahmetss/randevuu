@@ -1,6 +1,8 @@
 const pool = require('../config/db');
 const randevuService = require('../services/randevu');
 const { ddosSayacArtir, _olayLogla } = require('../middleware/ddosGuard');
+const { telefonNormalize } = require('../utils/telefon');
+const otpToken = require('../utils/otpToken');
 
 /* ─── In-memory OTP store ─── */
 const otpStore = new Map(); // key: "isletmeId:telefon" → { kod, olusturma, deneme, kaynak }
@@ -191,7 +193,7 @@ class BookingController {
       }
 
       // Input validasyon
-      const telefonTemiz = String(musteriTelefon).replace(/[^\d+]/g, '');
+      const telefonTemiz = telefonNormalize(musteriTelefon);
       if (telefonTemiz.length < 10 || telefonTemiz.length > 15) return res.status(400).json({ hata: 'Geçersiz telefon numarası' });
       if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih)) return res.status(400).json({ hata: 'Geçersiz tarih formatı' });
       if (!/^\d{2}:\d{2}$/.test(saat)) return res.status(400).json({ hata: 'Geçersiz saat formatı' });
@@ -208,6 +210,11 @@ class BookingController {
       // Booking gate kontrolü (ddosGuard zaten kontrol etti ama double-check)
       if (!isletme.booking_acik) {
         return res.status(423).json({ hata: 'Bu işletme henüz randevu kabul etmiyor', bookingKapali: true });
+      }
+
+      // Telefon doğrulaması sunucuda zorunlu: OTP doğrulamada verilen imzalı kanıt aranır.
+      if (!otpToken.dogrula(req.body.otpToken, isletme.id, telefonTemiz)) {
+        return res.status(403).json({ hata: 'Telefon doğrulaması gerekli. Lütfen kodu tekrar isteyin.', otpGerekli: true });
       }
 
       // Kara liste kontrolü (aktif veya bloke_bitis > NOW)
@@ -287,7 +294,7 @@ class BookingController {
       // Randevu oluştur (multi-hizmet)
       const sonuc = await randevuService.randevuOlustur({
         isletmeId: isletme.id,
-        musteriTelefon,
+        musteriTelefon: telefonTemiz,
         musteriIsim: musteriIsim || 'Online Müşteri',
         hizmetIds: hizmetListesi,
         calisanId: secilenCalisanId,
@@ -309,7 +316,7 @@ class BookingController {
           const { parseDogumTarihi } = require('../utils/dogumTarihi');
           const parsed = parseDogumTarihi(musteriDogum);
           if (parsed) {
-            await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND isletme_id=$3 AND dogum_tarihi IS NULL',
+            await pool.query('UPDATE musteriler SET dogum_tarihi=$1 WHERE telefon=$2 AND (musteriler.son_gelinen_isletme_id = $3 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $3)) AND dogum_tarihi IS NULL',
               [parsed, musteriTelefon, isletme.id]);
           }
         } catch(e) { /* ignore */ }
@@ -345,6 +352,9 @@ class BookingController {
       });
     } catch (error) {
       console.error('❌ Booking randevu oluşturma hatası:', error.message, error.stack);
+      if (['SLOT_DOLU', 'GECMIS_TARIH', 'CALISAN_BULUNAMADI', 'HIZMET_BULUNAMADI'].includes(error.code)) {
+        return res.status(error.code === 'SLOT_DOLU' ? 409 : 400).json({ hata: error.message });
+      }
       if (error.code === 'LIMIT_ASIMI') {
         return res.status(403).json({ hata: 'Bu işletmenin aylık randevu kapasitesi dolmuştur. Lütfen daha sonra tekrar deneyin.', limit_asimi: true });
       }
@@ -358,7 +368,7 @@ class BookingController {
       const { telefon, kanal } = req.body;  // kanal: 'whatsapp' | 'telegram' (default 'whatsapp')
       if (!telefon) return res.status(400).json({ hata: 'Telefon numarası gerekli' });
 
-      const telefonTemiz = String(telefon).replace(/[^\d]/g, '');
+      const telefonTemiz = telefonNormalize(telefon);
       if (telefonTemiz.length < 10 || telefonTemiz.length > 15) return res.status(400).json({ hata: 'Geçersiz telefon numarası' });
 
       const isletme = (await pool.query(
@@ -382,7 +392,7 @@ class BookingController {
       }
 
       // 6 haneli kod üret
-      const kod = String(Math.floor(100000 + Math.random() * 900000));
+      const kod = String(require('crypto').randomInt(100000, 1000000));
 
       // Numara formatı: 90XXXXXXXXXX veya XXXXXXXXXX → JID
       let jidTel = telefonTemiz;
@@ -475,7 +485,7 @@ class BookingController {
       // Store'a kaydet
       otpStore.set(storeKey, { kod, olusturma: Date.now(), deneme: 0, kaynak });
 
-      console.log(`📤 OTP gönderildi (${kaynak}): ${telefonTemiz} → ${isletme.isim} (${kod})`);
+      console.log(`📤 OTP gönderildi (${kaynak}): ${telefonTemiz} → ${isletme.isim}`);
       res.json({ basarili: true, kaynak });
     } catch (error) {
       console.error('❌ OTP gönderme hatası:', error.message);
@@ -490,7 +500,7 @@ class BookingController {
       const { slug } = req.params;
       const { tel } = req.query;
       if (!tel) return res.status(400).json({ hata: 'Telefon gerekli' });
-      const telefonTemiz = String(tel).replace(/[^\d]/g, '');
+      const telefonTemiz = telefonNormalize(tel);
 
       const isletme = (await pool.query('SELECT id FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
@@ -510,7 +520,7 @@ class BookingController {
       const { telefon, kod } = req.body;
       if (!telefon || !kod) return res.status(400).json({ hata: 'Telefon ve kod gerekli' });
 
-      const telefonTemiz = String(telefon).replace(/[^\d]/g, '');
+      const telefonTemiz = telefonNormalize(telefon);
 
       const isletme = (await pool.query('SELECT id FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
@@ -554,7 +564,7 @@ class BookingController {
         }
       } catch {}
       console.log(`✅ OTP doğrulandı: ${telefonTemiz} (kaynak=${kayit.kaynak || 'bilinmiyor'})`);
-      res.json({ basarili: true, dogrulandi: true });
+      res.json({ basarili: true, dogrulandi: true, otpToken: otpToken.olustur(isletme.id, telefonTemiz) });
     } catch (error) {
       console.error('❌ OTP doğrulama hatası:', error.message);
       res.status(500).json({ hata: 'Doğrulama hatası' });

@@ -34,10 +34,7 @@ const BOT_UA_PATTERNS = [
 ];
 
 function _clientIp(req) {
-  // Trust proxy (Render) → X-Forwarded-For'un ilk IP'sini al
-  const xff = req.headers['x-forwarded-for'];
-  if (xff) return String(xff).split(',')[0].trim();
-  return req.ip || req.connection?.remoteAddress || 'unknown';
+  return require('../utils/istemciIp').istemciIp(req);
 }
 
 function _fingerprint(req) {

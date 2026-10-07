@@ -27,7 +27,7 @@ class WinbackService {
           CURRENT_DATE - MAX(r.tarih)::date as gun_sayisi
         FROM musteriler m
         JOIN randevular r ON r.musteri_id = m.id AND r.isletme_id = $1 AND r.durum = 'tamamlandi'
-        WHERE m.isletme_id = $1
+        WHERE (m.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = $1))
         GROUP BY m.id, m.isim, m.telefon
         HAVING CURRENT_DATE - MAX(r.tarih)::date >= $2
       `, [isletme.id, esik])).rows;

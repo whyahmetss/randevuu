@@ -79,14 +79,20 @@ const TAKIP_SABLONLARI = {
   // İlk takip (12 saat sonra)
   1: [
     (ad) => `Tekrar merhaba 🙂\n\n${ad} için yazmıştım — hızla dönemediyseniz sorun değil!\n\nSadece şunu bilmenizi isterim: Sektörünüzdeki işletmeler online randevuya geçiyor ve müşteri kaybını ciddi azaltıyor.\n\nÜcretsiz deneme hakkınız hâlâ aktif 👉 sırago.com`,
-    (ad) => `Merhaba tekrar 🙂\n\nDaha önce ${ad} için online randevu sisteminden bahsetmiştim.\n\nBugün 3 yeni işletme daha sisteme katıldı! İlk ay ücretsiz deneme hakkınız devam ediyor.\n\nMerak ettikleriniz varsa yazabilirsiniz 👉 sırago.com`,
+    (ad) => `Merhaba tekrar 🙂\n\nDaha önce ${ad} için online randevu sisteminden bahsetmiştim.\n\nÜcretsiz deneme hakkınız devam ediyor.\n\nMerak ettikleriniz varsa yazabilirsiniz 👉 sırago.com`,
     (ad) => `İyi günler 🙂\n\n${ad} hakkında geçen yazmıştım. Müşterilerinizin 7/24 randevu alabildiği bir sistem — telefonla arama derdi biter.\n\nÜcretsiz deneme hâlâ geçerli, 2 dakikada kurulum 👉 sırago.com`,
   ],
   // İkinci takip (24 saat sonra)
   2: [
-    (ad) => `Son bir mesaj bırakayım 🙏\n\n${ad} için online randevu sistemi gerçekten fark yaratır. Rakipleriniz zaten kullanmaya başladı.\n\nSize özel: İlk 2 ay tamamen ücretsiz! Bu teklif sınırlı süre.\n\n👉 sırago.com`,
-    (ad) => `${ad} için son hatırlatma 🙂\n\nOnline randevu sistemiyle müşteri kaybınız %80 azalır, WhatsApp hatırlatmayla randevu kaçırma biter.\n\nSon teklif: 2 ay ücretsiz deneme! Karar sizin.\n\n👉 sırago.com`,
-    (ad) => `Merhaba, sizi rahatsız etmek istemem 🙏\n\nAma ${ad} gibi işletmeler için bu sistem gerçekten dönüm noktası. Müşterileriniz 7/24 randevu alır, siz rahat edersiniz.\n\nSon teklifim: 2 ay ücretsiz. Fırsatı kaçırmayın 👉 sırago.com`,
+    (ad) => `Son bir mesaj bırakayım 🙏
+
+${ad} için online randevu sistemi gerçekten fark yaratır.
+
+Ücretsiz deneyebilirsiniz, kurulum 2 dakika. İstemezseniz "istemiyorum" yazmanız yeterli, bir daha yazmam.
+
+👉 sırago.com`,
+    (ad) => `${ad} için son hatırlatma 🙂\n\nOnline randevu sistemiyle müşteri kaybınız azalır, WhatsApp hatırlatmayla randevu kaçırma biter.\n\nÜcretsiz deneme ile hemen görebilirsiniz. İstemezseniz "istemiyorum" yazmanız yeterli.\n\n👉 sırago.com`,
+    (ad) => `Merhaba, sizi rahatsız etmek istemem 🙏\n\nAma ${ad} gibi işletmeler için bu sistem gerçekten dönüm noktası. Müşterileriniz 7/24 randevu alır, siz rahat edersiniz.\n\nÜcretsiz deneyebilirsiniz; istemezseniz "istemiyorum" yazmanız yeterli 👉 sırago.com`,
   ]
 };
 
@@ -297,7 +303,7 @@ class SatisBot extends EventEmitter {
             if (jid === 'status@broadcast') continue;
             
             const text = this._getMsgText(msg);
-            console.log(`📨 [#${numaraId}] Mesaj: jid=${jid}, text="${(text || '').slice(0, 80)}"`);
+            console.log(`📨 [#${numaraId}] Mesaj alındı (uzunluk=${(text || '').length})`); // metin loglanmaz: kayıt şifresi içerebilir
             await this.gelenMesajIsle(msg, numaraId);
           }
         } catch (err) {
@@ -365,7 +371,7 @@ class SatisBot extends EventEmitter {
         }
       }
 
-      if (connection === 'close') {
+      if (connection === 'close') { if (global.__kapaniyor) return; // kapanırken yeniden bağlanma (deploy çakışması)
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const errorMsg = lastDisconnect?.error?.message || '';
         console.log(`❌ [#${numaraId}] Bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}`);
@@ -472,7 +478,7 @@ class SatisBot extends EventEmitter {
     const { connection, lastDisconnect, qr } = update;
     if (qr) { this.durum = 'qr_bekleniyor'; try { this.qrBase64 = await qrcode.toDataURL(qr); } catch(e) {} }
     if (connection === 'open') { this.durum = 'bagli'; this.qrBase64 = null; this.reconnectAttempts = 0; this.basariliOturumVardi = true; console.log('✅ Satış Bot WhatsApp bağlandı'); this.takipTimerBaslat(); if (this.aktif && !this.gonderimTimer) this.sonrakiGonderim(); }
-    if (connection === 'close') {
+    if (connection === 'close') { if (global.__kapaniyor) return; // kapanırken yeniden bağlanma (deploy çakışması)
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       if (statusCode === DisconnectReason.loggedOut) { this.durum = 'kapali'; this.sock = null; try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {} }
       else if (this.basariliOturumVardi && (this.reconnectAttempts || 0) < this.maxReconnectAttempts) { this.reconnectAttempts = (this.reconnectAttempts || 0) + 1; this.durum = 'kapali'; this.sock = null; setTimeout(() => this._tekNumaraBaslat(authId), 3000 * this.reconnectAttempts); }
@@ -1491,7 +1497,7 @@ class SatisBot extends EventEmitter {
       telefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
     }
 
-    console.log(`📩 [#${numaraId || 'tek'}] Satış Bot cevap aldı: ${telefon} → "${metin}"`);
+    console.log(`📩 [#${numaraId || 'tek'}] Satış Bot cevap aldı: …${String(telefon).slice(-4)} (uzunluk=${(metin || '').length})`);
 
     // Mod kontrolü — kapali modunda hiçbir şey yapma
     if (this.ayarlar.mod === 'kapali') {
@@ -1734,7 +1740,7 @@ class SatisBot extends EventEmitter {
       'bi düşüneyim', 'bakayım', 'bakalım', 'sonra'];
     if (kibarRedKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sirago.com`,
+        mesaj: `Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sırago.com`,
         durum: 'bekliyor'
       };
     }
@@ -1779,7 +1785,7 @@ class SatisBot extends EventEmitter {
     const musaitKelimeler = ['müsait değilim', 'musait degilim', 'meşgulüm', 'mesgulum', 'yoğunum', 'yogunum', 'şimdi olmaz', 'sonra yaz'];
     if (musaitKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sirago.com`,
+        mesaj: `Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sırago.com`,
         durum: 'bekliyor'
       };
     }
@@ -1788,7 +1794,7 @@ class SatisBot extends EventEmitter {
     const merakKelimeler = ['nedir', 'nasıl', 'nasil', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'ne yapıyor', 'ne yapiyor', 'özellik'];
     if (merakKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Müşterilerin WhatsApp'tan 7/24 randevu alıyor, otomatik hatırlatma gidiyor. ${ad} için ilk ay ücretsiz 👉 sirago.com`,
+        mesaj: `Müşterilerin WhatsApp'tan 7/24 randevu alıyor, otomatik hatırlatma gidiyor. ${ad} için ilk ay ücretsiz 👉 sırago.com`,
         durum: 'sicak'
       };
     }
@@ -1797,7 +1803,7 @@ class SatisBot extends EventEmitter {
     const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'süper', 'harika', 'güzel'];
     if (olumluKelimeler.some(k => mesajLower.includes(k))) {
       return {
-        mesaj: `Süper! sirago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz 👍`,
+        mesaj: `Süper! sırago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz 👍`,
         durum: 'sicak'
       };
     }
@@ -1813,7 +1819,7 @@ class SatisBot extends EventEmitter {
 
     // ─── GENEL ───
     return {
-      mesaj: `Teşekkürler! Merak ettiğin olursa yaz, link burada 👉 sirago.com`,
+      mesaj: `Teşekkürler! Merak ettiğin olursa yaz, link burada 👉 sırago.com`,
       durum: 'bekliyor'
     };
   }
@@ -1869,17 +1875,17 @@ Mesaj sayısı: ${mesajSayisi}
 "Fiyatı ne / ne kadar" → "İlk ay sıfır lira. Sonrası günde 10₺. Bir müşteri kaçırmak bundan pahalı."
 "Telefonla hallediyorum" → "Telefonla hallediyorsun ama müşteri işlemdeyken çalan telefona bakamıyorsun. O arayan rakibe gidiyor."
 "Teknoloji bilmem" → "WhatsApp kullanıyorsan yeterli. Biz kuruyoruz, sen sadece telefondan bakıyorsun. 5 dakika."
-"Düşüneyim / sonra bakarım" → "Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sirago.com"
+"Düşüneyim / sonra bakarım" → "Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sırago.com"
 "Pahalı / param yok" → "Günde 1 müşteri kaçırmak ayda 3000₺ kayıp. Sistem ayda 299₺. Kendini 3 günde amorti ediyor."
-"Şimdi müsait değilim / meşgulüm" → "Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sirago.com"
+"Şimdi müsait değilim / meşgulüm" → "Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sırago.com"
 "Hayır / istemiyorum / gerek yok" → Kibarca veda et, ISRAR ETME: "Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏"
-"Arayın / ben dönerim / ben ararım" → Bu KİBAR REDDİR: "Tamam, link bırakıyorum lazım olursa 👉 sirago.com. İyi çalışmalar!"
+"Arayın / ben dönerim / ben ararım" → Bu KİBAR REDDİR: "Tamam, link bırakıyorum lazım olursa 👉 sırago.com. İyi çalışmalar!"
 
 ═══ SATIŞ STRATEJİN ═══
-1. İlgi varsa → tek fayda söyle + "kayıt yaz veya sirago.com'a gir" de
+1. İlgi varsa → tek fayda söyle + "kayıt yaz veya sırago.com'a gir" de
 2. Soru varsa → kısa cevap ver, 1-2 cümle
 3. İtiraz gelirse → yukarıdaki hazır cevapları BİREBİR kullan
-4. ${mesajSayisi} > 3 ve karar vermemişse → "Link bırakıyorum, vaktin olunca bakarsın 👉 sirago.com" yaz ve bırak
+4. ${mesajSayisi} > 3 ve karar vermemişse → "Link bırakıyorum, vaktin olunca bakarsın 👉 sırago.com" yaz ve bırak
 5. Müşteri reddettiyse → kibarca veda et, bir daha yazma
 
 ═══ HANDOFF (DEVRETME) KURALI — ÇOK ÖNEMLİ ═══
@@ -1895,8 +1901,8 @@ Bu durumda KISA bir cevap yaz + durum'u "sicak" olarak dön. Biz aranıp devam e
 - Tek seferde tek mesaj yaz, maddeli liste YAPMA, paragraf YAPMA.
 - Emoji max 1, abartma.
 - Samimi ol — esnaf gibi konuş, "siz" değil "sen" de.
-- Kayıt linki: sirago.com. ASLA "admin.sirago.com" yazma.
-- ASLA "yapay zeka" veya "bot" olduğunu söyleme.
+- Kayıt linki: sırago.com. ASLA "admin.sırago.com" yazma.
+- Bot/yapay zeka olup olmadığın sorulursa dürüstçe SıraGO'nun dijital asistanı olduğunu söyle; kendini insan gibi tanıtma.
 - Uzun özellik listesi DÖKME. Tek fayda söyle, bitir.
 - Fiyat/itiraz gelirse HAZIR cevapları BİREBİR kullan, kendinden cümle KURMA.
 - "minimize eder", "optimize eder", "entegre" gibi kurumsal kelimeler YASAK.

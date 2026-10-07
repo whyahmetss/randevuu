@@ -55,7 +55,7 @@ class GrupController {
         [grup.id, kullaniciId]);
 
       // Mevcut müşterilere grup_id backfill
-      await pool.query('UPDATE musteriler SET grup_id=$1 WHERE isletme_id=$2 AND grup_id IS NULL',
+      await pool.query('UPDATE musteriler SET grup_id=$1 WHERE (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2)) AND grup_id IS NULL',
         [grup.id, isletmeId]);
 
       res.json({ ok: true, grup, mesaj: 'Grup kuruldu. Yeniden giriş yapmanız gerekebilir.' });
@@ -77,7 +77,7 @@ class GrupController {
       const subeler = (await pool.query(
         `SELECT i.id, i.isim, i.slug, i.sube_etiketi, i.sehir, i.ilce, i.adres, i.telefon,
                 i.aktif, i.grup_sira, i.calisma_baslangic, i.calisma_bitis,
-                (SELECT COUNT(*)::int FROM randevular r WHERE r.isletme_id=i.id AND r.tarih >= CURRENT_DATE) AS aktif_randevu
+                (SELECT COUNT(*)::int FROM randevular r WHERE r.isletme_id=i.id AND r.tarih = CURRENT_DATE AND r.durum NOT IN ('iptal','gelmedi')) AS aktif_randevu
            FROM isletmeler i
           WHERE i.grup_id=$1
           ORDER BY i.grup_sira, i.id`,

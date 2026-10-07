@@ -45,11 +45,12 @@ class OdemeService {
   }
 
   async aylikOdemeleriOlustur() {
-    const buAy = new Date().toISOString().slice(0, 7);
+    const buAy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
     console.log(`💰 Aylık ödeme kontrol: ${buAy}`);
 
     const isletmeler = (await pool.query(
-      `SELECT * FROM isletmeler WHERE aktif = true`
+      // Deneme süresindekiler hariç: onlara 'bekliyor' kaydı açılınca panelde 'Ödenmedi' görünüyordu
+      `SELECT * FROM isletmeler WHERE aktif = true AND (deneme_bitis_tarihi IS NULL OR deneme_bitis_tarihi <= NOW())`
     )).rows;
 
     let olusturulan = 0;
@@ -110,17 +111,8 @@ class OdemeService {
       }
       if (yakinda.length > 0) console.log(`⚠️ ${yakinda.length} işletmeye paket bitiş uyarısı gönderildi`);
 
-      // Süresi dolanları pasife çek
-      const bitenlerin = await pool.query(`
-        UPDATE isletmeler SET aktif = false
-        WHERE aktif = true
-          AND paket_bitis_tarihi IS NOT NULL
-          AND paket_bitis_tarihi < NOW()
-        RETURNING id, isim
-      `);
-      if (bitenlerin.rowCount > 0) {
-        console.log(`🔒 ${bitenlerin.rowCount} işletme paketi dolduğu için pasife alındı: ${bitenlerin.rows.map(r => r.isim).join(', ')}`);
-      }
+      // Süresi dolan işletme artık pasife ALINMIYOR: pasif işletme panelden atılıyor ve ödeme
+      // ekranına bile ulaşamıyordu. Erişim odemeKontrol (402 → ödeme ekranı) ile kısıtlanır.
     } catch (err) {
       console.error('❌ Paket bitiş kontrol hatası:', err.message);
     }
