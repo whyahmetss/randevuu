@@ -6,6 +6,7 @@ import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
+import SatisHuni from "./components/SatisBot/SatisHuni";
 import SmsAyarlari from "./components/Settings/SmsAyarlari";
 import GeceRaporu from "./components/Settings/GeceRaporu";
 import YorumAvcisi from "./components/Settings/YorumAvcisi";
@@ -3281,7 +3282,7 @@ function Dashboard({ kullanici }) {
               }}>💳 Hemen Öde</button>
             </div>
             <div style={{ marginTop: 16, fontSize: 11, color: "var(--dim)" }}>
-              İlk 7 gün ücretsiz deneme süresi dahildir
+              İlk 14 gün ücretsiz deneme süresi dahildir
             </div>
           </div>
         </div>
@@ -3478,7 +3479,7 @@ function SuperAdminPanel({ kullanici }) {
   };
 
   const merkezOtpYukle = async () => {
-    try { const d = await api.get("/admin/merkez-otp/numaralar"); setMerkezOtp(d || { durum: 'kapali', numaralar: [] }); }
+    try { const d = await api.get("/admin/merkez-otp/numaralar"); setMerkezOtp(d && Array.isArray(d.numaralar) ? d : { durum: 'kapali', numaralar: [] }); }
     catch (e) { console.log("Merkez OTP yükleme hatası:", e); }
   };
 
@@ -4503,7 +4504,7 @@ function SuperAdminPanel({ kullanici }) {
                       <div className="row row-between row-wrap gap-8">
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#2f56c6" }}>⏰ Deneme Süresi: {odemeProfil.deneme_suresi_kalan} gün kaldı</div>
-                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İlk 7 gün ücretsiz — ödeme yapılmasa da erişim açık.</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İlk 14 gün ücretsiz — ödeme yapılmasa da erişim açık.</div>
                         </div>
                         <div className="row gap-6">
                           {[7, 14, 30].map(g => (
@@ -6880,6 +6881,7 @@ function SuperAdminPanel({ kullanici }) {
                   { icon: "⏳", label: "Cevap Bekliyor", val: satisBotDurum.istatistikler.bekleyen, color: "#a8590c", bg: "rgba(168,89,12,.08)" },
                   { icon: "🔥", label: "Sıcak (Ara!)", val: satisBotDurum.istatistikler.sicak || 0, color: "#a8590c", bg: "rgba(168,89,12,.12)" },
                   { icon: "✅", label: "Olumlu", val: satisBotDurum.istatistikler.olumlu, color: "#1f6f4a", bg: "rgba(31,111,74,.08)" },
+                  { icon: "🎉", label: "Kayıt (WhatsApp)", val: satisBotDurum.istatistikler.kayit || 0, color: "#1f6f4a", bg: "rgba(31,111,74,.12)" },
                   { icon: "❌", label: "Olumsuz", val: satisBotDurum.istatistikler.olumsuz, color: "#b42318", bg: "rgba(180,35,24,.08)" },
                   { icon: "📵", label: "WP Yok", val: satisBotDurum.istatistikler.wp_yok, color: "#6f6a62", bg: "rgba(111,106,98,.08)" }
                 ].map((s, i) => (
@@ -6891,6 +6893,9 @@ function SuperAdminPanel({ kullanici }) {
                 ))}
               </div>
             )}
+
+            {/* Satış hunisi: hangi şablon müşteri getiriyor */}
+            <SatisHuni api={api} />
 
             {/* ═══ KAPSAMLI BOT AYARLARI PANELİ ═══ */}
             {satisBotDurum?.ayarlar && (() => {
@@ -7248,7 +7253,7 @@ function SuperAdminPanel({ kullanici }) {
 
               {/* Değişkenler Bilgisi */}
               <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(47,86,198,.04)", border: "1px solid rgba(47,86,198,.1)", marginBottom: 16, fontSize: 12, color: "var(--dim)" }}>
-                <strong style={{ color: "#2f56c6" }}>Kullanılabilir Değişkenler:</strong> <code>{"{isletme_adi}"}</code> · <code>{"{isletme_sahibi}"}</code> · <code>{"{kategori}"}</code> · <code>{"{telefon}"}</code>
+                <strong style={{ color: "#2f56c6" }}>Kullanılabilir Değişkenler:</strong> <code>{"{isletme_adi}"}</code> · <code>{"{isletme_sahibi}"}</code> · <code>{"{kategori}"}</code> · <code>{"{telefon}"}</code> · <code>{"{kisisel}"}</code> <span style={{ color: "var(--dim)" }}>(Google puanı/yorum sayısından tek cümle, veri yoksa boş)</span> · <code>{"{puan}"}</code> · <code>{"{yorum_sayisi}"}</code>. İlk mesajın sonuna "dur" satırı otomatik eklenir.
               </div>
 
               {/* Şablon Form Modal */}

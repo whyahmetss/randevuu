@@ -32,67 +32,125 @@ function turkiyeSaati() {
 // ═══════════════════════════════════════════════════
 // Mesaj Varyasyonları — Her seferinde farklı mesaj
 // ═══════════════════════════════════════════════════
+const { DENEME_GUN } = require('../config/deneme');
+const { telefonNormalize } = require('../utils/telefon');
+const G = DENEME_GUN;
+
+// İlk mesajın sonuna eklenen ret satırı — istemeyen şikâyet etmek yerine "dur" yazsın (ban riskini düşürür)
+const RET_SATIRI = '\n\n_İstemezseniz "dur" yazmanız yeterli, bir daha yazmam._';
+
+// Avcı verisinden dürüst kişisel cümle (uydurma yok: yalnız Google puanı/yorum sayısı/site bilgisi)
+function kisiselSatir(lead = {}) {
+  const puan = parseFloat(lead.puan);
+  const yorum = parseInt(lead.yorum_sayisi);
+  if (puan >= 4.5 && yorum >= 50) {
+    return `\n\nGoogle'da ${String(puan).replace('.', ',')} puan ve ${yorum} yorumunuz var; bu kadar müşterinin randevuyu kendisinin alabilmesi işinizi epey kolaylaştırır.`;
+  }
+  if (lead.web_sitesi === null || lead.web_sitesi === '') {
+    return `\n\nAyrı bir web sitesine gerek kalmadan size özel bir online randevu sayfası da açılıyor.`;
+  }
+  return '';
+}
+
+// WhatsApp'ta tıklanır link: sırago.com → https://sırago.com (ASCII sirago.com başkasına ait park alanı)
+function linkDuzelt(m) {
+  return String(m || '')
+    .replace(/(https?:\/\/)?(admin\.)?sirago\.com/gi, (x, sema, alt) => `${sema || ''}${alt || ''}sırago.com`)
+    .replace(/(^|[^\/\w.])((?:admin\.)?sırago\.com)/g, '$1https://$2');
+}
+
+// Türkçe küçük harf + noktalama temizliği; kelime sınırıyla arama için başa/sona boşluk
+function sadeMetin(m) {
+  return ' ' + String(m || '').toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim() + ' ';
+}
+const ifadeVar = (sade, liste) => liste.some(k => sade.includes(` ${k} `));
+
+// Ret türleri: sert = "yazma/spam/şikâyet" (ban sinyali), kibar = "ben dönerim/düşüneyim", normal = "hayır/gerek yok".
+// Kelime sınırıyla bakılır: "hayırlı olsun", "yazmak istiyorum", "neden olmaz" ret SAYILMAZ.
+const RED_SERT = ['spam', 'engel', 'engellerim', 'engelleyeceğim', 'engelliyorum', 'şikayet', 'sikayet', 'şikayet ederim',
+  'rahatsız etmeyin', 'rahatsiz etmeyin', 'rahatsız etme', 'rahatsiz etme', 'rahatsız ediyorsunuz', 'yazmayın', 'yazmayin',
+  'yazma', 'bir daha yazma', 'mesaj atmayın', 'mesaj atmayin', 'mesaj atma', 'darlamayın', 'darlama', 'numaramı silin',
+  'numaramı sil', 'listeden çıkarın', 'beni listeden çıkar'];
+const RED_SERT_TEK = ['dur', 'durun', 'stop', 'iptal'];          // yalnız kısa mesajda ("dur bi dakika" ret değil)
+const RED_KIBAR = ['ben dönerim', 'ben donerim', 'ben döneceğim', 'size dönerim', 'size döneriz', 'ben ararım', 'ben ararim',
+  'biz ararız', 'biz arariz', 'sizi ararız', 'sizi ararım', 'gerekirse ararız', 'gerekirse döneriz', 'düşüneyim', 'dusuneyim',
+  'düşüneceğim', 'düşünelim', 'düşünürüz', 'sonra bakarım', 'sonra bakarim', 'sonra bakarız', 'şimdilik gerek yok',
+  'simdilik gerek yok', 'şimdilik istemiyorum', 'şu an ilgilenmiyorum', 'şuan ilgilenmiyorum', 'su an ilgilenmiyorum',
+  'şu an gerek yok', 'şimdilik değil', 'şu an değil', 'müsait değilim', 'musait degilim', 'meşgulüm', 'mesgulum', 'yoğunum', 'yogunum'];
+const RED_NORMAL = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'istemem', 'istemeyiz', 'gerek yok', 'gerekmez',
+  'ilgilenmiyorum', 'ilgilenmiyoruz', 'ilgilenmem', 'ilgilenmeyiz', 'yok teşekkürler', 'yok tesekkurler', 'teşekkürler gerek yok',
+  'sağol gerek yok', 'sağolun gerek yok', 'ihtiyacımız yok', 'ihtiyacım yok', 'ihtiyacimiz yok', 'kullanmayız', 'boş ver', 'bos ver'];
+
+function redTipi(metin) {
+  const sade = sadeMetin(metin);
+  const kelime = sade.trim().split(' ').filter(Boolean).length;
+  if (ifadeVar(sade, RED_SERT) || (kelime <= 2 && ifadeVar(sade, RED_SERT_TEK))) return 'sert';
+  if (ifadeVar(sade, RED_KIBAR)) return 'kibar';
+  if (ifadeVar(sade, RED_NORMAL)) return 'normal';
+  return null;
+}
+
+// Açık niyet: kayıt akışını hemen başlatır
+const KAYIT_NIYET = ['kayıt', 'kayit', 'kaydol', 'kayıt ol', 'üye ol', 'uye ol', 'hesap aç', 'hesap ac', 'hesap açalım',
+  'hesap acalim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'deneyelim', 'deneyeyim', 'denemek istiyorum', 'açalım', 'acalim'];
+// Tanıtım videosu isteği / ilgi
+const VIDEO_NIYET = ['video', 'demo', 'göster', 'goster', 'gönder', 'gonder', 'gönderin', 'at', 'atın', 'atin', 'atabilirsiniz',
+  'olur', 'evet', 'tamam', 'nasıl çalışıyor', 'nasil calisiyor', 'bakalım', 'bakayım', 'izleyeyim'];
+const EVET = ['evet', 'tamam', 'olur', 'doğru', 'dogru', 'aynen', 'kalsın', 'kalsin', 'e', 'he', 'evt'];
+
+// Satış konuşmasındaki sektör adı → işletme kategori kodu
+const KATEGORI_KOD = { berber: 'berber', 'kuaför': 'kuafor', kuafor: 'kuafor', 'güzellik salonu': 'guzellik', 'tırnak salonu': 'guzellik',
+  'diş kliniği': 'disci', veteriner: 'veteriner', diyetisyen: 'diyetisyen', spa: 'spa', 'dövme': 'dovme', psikolog: 'psikolog' };
+
+// ═══════════════════════════════════════════════════
+// İlk mesaj şablonları (DB'de şablon yoksa). l = { ad, k } — k: kişisel cümle (boş olabilir)
+// Doğrulanamayan iddia ("%80 azalır", "rakipleriniz geçti") YOK; sonunda tek soru: video.
+// ═══════════════════════════════════════════════════
 const MESAJ_SABLONLARI = {
   berber: [
-    (ad) => `Selam, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir.\n\n${ad} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz?\n\nSistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.`,
-    (ad) => `Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz bir sistem kurduk.\n\n${ad} için ilk ay ücretsiz — demo linki göndereyim mi?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşteri koltuktayken çalan telefona yetişemediğiniz anlarda randevuyu WhatsApp botu alsın, size sadece onaylamak kalsın.${l.k}\n\n${G} gün ücretsiz deneyebilirsiniz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
+    (l) => `Merhaba, müşterileriniz uygulama indirmeden WhatsApp'tan kendi randevusunu alsın, randevudan önce hatırlatma otomatik gitsin.${l.k}\n\n${l.ad} için ${G} gün ücretsiz. Kısa bir tanıtım videosu atayım mı?`,
   ],
   'kuaför': [
-    (ad) => `Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi aktif ettik.\n\n${ad} için ilk ay ücretsiz geçiş — 5 dakikalık demo linki göndereyim mi?`,
-    (ad) => `Selam, müşteri saçını boyatırken telefon çalıyor, açamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n${ad} randevularını WhatsApp botu otomatik alsın. İlk ay ücretsiz, demo atayım mı?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Boya ya da fön sırasında telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
+    (l) => `Merhaba, müşterileriniz WhatsApp'tan hizmet ve saat seçip kendi randevusunu alsın, hatırlatma otomatik gitsin.${l.k}\n\n${l.ad} için ${G} gün ücretsiz. Kısa bir video atayım mı?`,
   ],
   'güzellik salonu': [
-    (ad) => `Selam, saçtan tırnağa 10 farklı hizmetiniz var ama müşteri telefon açıp "bugün müsait misiniz" diye soruyor değil mi?\n\n${ad} için hizmet seçimli online randevu botu kurduk. Müşteri kendisi seçiyor, siz onaylıyorsunuz. İlk ay ücretsiz — bakmak ister misiniz?`,
-    (ad) => `Merhaba, müşterileriniz hizmet seçip WhatsApp'tan kendi kendine randevu alsın, siz müşteriyle ilgilenin.\n\n${ad} için ilk ay ücretsiz. 2 dakikada aktif — demo atayım mı?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz hizmeti ve saati seçip WhatsApp'tan kendi randevusunu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
   ],
   'dövme': [
-    (ad) => `Selam, dövme randevusu uzun süreç — mesajlaşma, tasarım onayı, tarih ayarlama. Hepsini tek yerden yönetebileceğiniz bir sistem kurduk.\n\n${ad} için ilk ay ücretsiz. Demo atayım mı?`,
-    (ad) => `Merhaba, ${ad} müşterileri WhatsApp'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\nİlk ay ücretsiz — bakmak ister misiniz?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Randevu ve kapora takibini WhatsApp'tan tek yerden yönetebileceğiniz bir sistem var; müşteri saati kendisi seçiyor.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
   ],
   'diş kliniği': [
-    (ad) => `Merhaba, hasta telefonla randevu alıp gelmiyor — sekreter gününün yarısını telefonda geçiriyor.\n\n${ad} için otomatik randevu + WhatsApp hatırlatma sistemi kurduk. İptal oranı %80 düşüyor. Demo atayım mı?`,
-    (ad) => `Selam, hastalarınız 7/24 online randevu alsın, randevu öncesi otomatik WhatsApp hatırlatma gitsin.\n\n${ad} için ilk ay ücretsiz — sekreter yükünü azaltmak ister misiniz?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Hastalarınız 7/24 online randevu alsın, randevudan önce WhatsApp hatırlatması otomatik gitsin; telefon trafiği azalsın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
   ],
   'veteriner': [
-    (ad) => `Merhaba, evcil hayvan sahipleri genelde acil arıyor ama siz muayenedeyken telefona bakamıyorsunuz.\n\n${ad} için WhatsApp'tan 7/24 otomatik randevu sistemi kurduk. İlk ay ücretsiz — demo atayım mı?`,
-    (ad) => `Selam, ${ad} müşterileri evcil dostları için WhatsApp'tan randevu alsın, hatırlatma otomatik gitsin.\n\nİlk ay ücretsiz — bakmak ister misiniz?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Muayenedeyken telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, aşı ve kontrol hatırlatmaları otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
   ],
   'spa': [
-    (ad) => `Merhaba, müşterileriniz hizmet ve saat seçip WhatsApp'tan kendi kendine randevu alsın. Siz rahat edin.\n\n${ad} için ilk ay ücretsiz — demo atayım mı?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz hizmet ve saat seçip WhatsApp'tan kendi randevusunu alsın, hatırlatma otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
   ],
   'tırnak salonu': [
-    (ad) => `Selam, müşteriniz işlem sırasında telefonunuza bakamıyorsunuz — o arayan müşteri başka salona gidiyor.\n\n${ad} için WhatsApp randevu botu kurduk. İlk ay ücretsiz — bakmak ister misiniz?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. İşlem sırasında telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
   ],
   'diyetisyen': [
-    (ad) => `Merhaba, danışanlarınız 7/24 WhatsApp'tan randevu alsın, otomatik hatırlatma gitsin, randevu kaçırma bitsin.\n\n${ad} için ilk ay ücretsiz — demo atayım mı?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Danışanlarınız 7/24 WhatsApp'tan randevu alsın, kontrol hatırlatmaları otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
   ],
   default: [
-    (ad) => `Selam, müşteri işlemdeyken çalan telefonlara bakmak veya mesajlara yetişmek vakit ve müşteri kaybettirir. ${ad} randevularını 7/24 otomatik veren WhatsApp botumuza devretmek ister misiniz? Sistemin nasıl çalıştığını gösteren 1 dakikalık kısa bir video iletebilirim.`,
-    (ad) => `Merhaba, müşterilerinize uygulama indirtmeden, sadece WhatsApp üzerinden kendi kendilerine randevu aldırabileceğiniz AI sistemimizi aktif ettik. ${ad} için ilk ay ücretsiz geçiş — 5 dakikalık demo linki göndereyim mi?`,
+    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz uygulama indirmeden WhatsApp'tan kendi randevusunu alsın, hatırlatma otomatik gitsin; siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz deneyebilirsiniz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
   ]
 };
 
 // ═══════════════════════════════════════════════════
-// Takip Mesajları — 12 saat cevap vermeyenlere
+// Takip mesajları — cevap vermeyenlere (en fazla maxTakipSayisi kez)
 // ═══════════════════════════════════════════════════
 const TAKIP_SABLONLARI = {
-  // İlk takip (12 saat sonra)
   1: [
-    (ad) => `Tekrar merhaba 🙂\n\n${ad} için yazmıştım — hızla dönemediyseniz sorun değil!\n\nSadece şunu bilmenizi isterim: Sektörünüzdeki işletmeler online randevuya geçiyor ve müşteri kaybını ciddi azaltıyor.\n\nÜcretsiz deneme hakkınız hâlâ aktif 👉 sırago.com`,
-    (ad) => `Merhaba tekrar 🙂\n\nDaha önce ${ad} için online randevu sisteminden bahsetmiştim.\n\nÜcretsiz deneme hakkınız devam ediyor.\n\nMerak ettikleriniz varsa yazabilirsiniz 👉 sırago.com`,
-    (ad) => `İyi günler 🙂\n\n${ad} hakkında geçen yazmıştım. Müşterilerinizin 7/24 randevu alabildiği bir sistem — telefonla arama derdi biter.\n\nÜcretsiz deneme hâlâ geçerli, 2 dakikada kurulum 👉 sırago.com`,
+    (ad) => `Merhaba, ${ad} için yazmıştım; yoğun olduğunuzu tahmin ediyorum 🙂\n\nKısaca: müşterileriniz WhatsApp'tan 7/24 randevu alır, hatırlatma otomatik gider. ${G} gün ücretsiz; isterseniz *kayıt* yazın, hesabınızı buradan 1 dakikada açayım.`,
+    (ad) => `Tekrar merhaba, ${ad} için online randevu sisteminden bahsetmiştim.\n\nMerak ettiğiniz bir şey varsa buradan sorabilirsiniz. Denemek isterseniz *kayıt* yazmanız yeterli (${G} gün ücretsiz).`,
   ],
-  // İkinci takip (24 saat sonra)
   2: [
-    (ad) => `Son bir mesaj bırakayım 🙏
-
-${ad} için online randevu sistemi gerçekten fark yaratır.
-
-Ücretsiz deneyebilirsiniz, kurulum 2 dakika. İstemezseniz "istemiyorum" yazmanız yeterli, bir daha yazmam.
-
-👉 sırago.com`,
-    (ad) => `${ad} için son hatırlatma 🙂\n\nOnline randevu sistemiyle müşteri kaybınız azalır, WhatsApp hatırlatmayla randevu kaçırma biter.\n\nÜcretsiz deneme ile hemen görebilirsiniz. İstemezseniz "istemiyorum" yazmanız yeterli.\n\n👉 sırago.com`,
-    (ad) => `Merhaba, sizi rahatsız etmek istemem 🙏\n\nAma ${ad} gibi işletmeler için bu sistem gerçekten dönüm noktası. Müşterileriniz 7/24 randevu alır, siz rahat edersiniz.\n\nÜcretsiz deneyebilirsiniz; istemezseniz "istemiyorum" yazmanız yeterli 👉 sırago.com`,
+    (ad) => `Son kez yazıyorum 🙏 ${ad} için randevu sistemini ${G} gün ücretsiz deneyebilirsiniz; *kayıt* yazmanız yeterli.\n\nİlgilenmiyorsanız sorun değil, bir daha yazmayacağım.`,
   ]
 };
 
@@ -142,7 +200,9 @@ class SatisBot extends EventEmitter {
       typingIndicator: true, // "yazıyor..." göstersin mi (anti-ban)
       typingMinMs: 2000,     // Minimum typing süresi ms
       typingMaxMs: 6000,     // Maximum typing süresi ms
-      frenOlumsuzLimit: 3,   // günde bundan fazla olumsuz cevap gelirse gönderim durur
+      frenSertRedLimit: 3,   // günde bundan fazla sert ret ("yazma", "spam", "şikayet") gelirse gönderim durur
+      frenOlumsuzMin: 8,     // ya da günde en az bu kadar olumsuz VE
+      frenOlumsuzOran: 0.25, // bugün gönderilenlerin bu oranından fazlası olumsuzsa durur
       frenAyniHata: 3,       // aynı gönderim hatası art arda bu kadar tekrar ederse gönderim durur
     };
   }
@@ -622,7 +682,7 @@ class SatisBot extends EventEmitter {
     const takipNo = (konusma.takip_sayisi || 0) + 1;
     const sablonlar = TAKIP_SABLONLARI[takipNo] || TAKIP_SABLONLARI[2];
     const sablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
-    const mesaj = sablon(konusma.isletme_adi || 'işletmeniz');
+    const mesaj = linkDuzelt(sablon(konusma.isletme_adi || 'işletmeniz'));
 
     const telefon = konusma.telefon;
     const jid = `${telefon}@s.whatsapp.net`;
@@ -746,10 +806,18 @@ class SatisBot extends EventEmitter {
     try { await this._telegramBildirimGonder(`🛑 *Satış botu durdu (otomatik fren)*\n\n${mesaj}\n\nKontrol edip panelden yeniden başlatın.`); } catch (e) {}
   }
 
-  async _olumsuzBugun() {
-    const r = await pool.query(
-      "SELECT COUNT(*)::int AS c FROM satis_konusmalar WHERE durum = 'olumsuz' AND son_mesaj_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date");
-    return r.rows[0]?.c || 0;
+  // Bugünkü ret sayıları ve bugün açılan (bizim yazdığımız) konuşma sayısı
+  async _redBugun() {
+    let r = {};
+    try {
+    r = (await pool.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE durum = 'olumsuz' AND son_mesaj_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date)::int AS olumsuz,
+        COUNT(*) FILTER (WHERE durum = 'olumsuz' AND red_tipi = 'sert' AND son_mesaj_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date)::int AS sert,
+        COUNT(*) FILTER (WHERE olusturma_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date AND gonderilen_mesaj <> 'Müşteri kendisi yazdı')::int AS gonderilen
+      FROM satis_konusmalar`)).rows[0] || {};
+    } catch (e) { console.log('⚠️ Ret sayımı okunamadı (fren bu tur atlandı):', e.message); }
+    return { olumsuz: r.olumsuz || 0, sert: r.sert || 0, gonderilen: r.gonderilen || 0 };
   }
 
   async gonderimBaslat() {
@@ -853,11 +921,23 @@ class SatisBot extends EventEmitter {
     }
 
     try {
-      // Fren: bugün çok olumsuz cevap geldiyse mesaj dili/hedef kitle sorunlu olabilir
-      const olumsuz = await this._olumsuzBugun();
-      if (olumsuz > (this.ayarlar.frenOlumsuzLimit ?? 3)) {
-        await this._frenle('olumsuz', `Bugün ${olumsuz} olumsuz cevap geldi (eşik ${this.ayarlar.frenOlumsuzLimit ?? 3}).`);
+      // Fren: sert ret (şikâyet/spam) ban sinyalidir; olumsuz oranı çok yükselirse mesaj/hedef kitle sorunludur
+      const red = await this._redBugun();
+      const sertLimit = this.ayarlar.frenSertRedLimit ?? 3;
+      const oranAsildi = red.olumsuz >= (this.ayarlar.frenOlumsuzMin ?? 8)
+        && red.olumsuz > red.gonderilen * (this.ayarlar.frenOlumsuzOran ?? 0.25);
+      if (red.sert > sertLimit || oranAsildi) {
+        await this._frenle(red.sert > sertLimit ? 'sert_ret' : 'olumsuz_oran',
+          red.sert > sertLimit
+            ? `Bugün ${red.sert} kişi "yazmayın/spam" dedi (eşik ${sertLimit}) — şikâyet ve ban riski.`
+            : `Bugün ${red.olumsuz} olumsuz cevap, ${red.gonderilen} gönderim (oran eşiği %${Math.round((this.ayarlar.frenOlumsuzOran ?? 0.25) * 100)}).`);
         this.numaraTimers.delete(numaraId);
+        return;
+      }
+      // Yumuşak fren: 2 sert ret geldiyse günün kalanında limit yarıya iner
+      if (red.sert >= 2 && this.gunlukGonderim >= Math.ceil(this.ayarlar.gunlukLimit / 2)) {
+        console.log(`📉 [#${numaraId}] ${red.sert} sert ret — bugünkü limit yarıya indi`);
+        this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 60 * 60 * 1000));
         return;
       }
 
@@ -1058,15 +1138,20 @@ class SatisBot extends EventEmitter {
           .replace(/{isletme_adi}/g, lead.isletme_adi || '')
           .replace(/{isletme_sahibi}/g, lead.isletme_sahibi || lead.isletme_adi || '')
           .replace(/{kategori}/g, lead.kategori || 'işletme')
-          .replace(/{telefon}/g, lead.telefon || '');
+          .replace(/{telefon}/g, lead.telefon || '')
+          .replace(/{kisisel}/g, kisiselSatir(lead).trim())
+          .replace(/{puan}/g, lead.puan ? String(lead.puan).replace('.', ',') : '')
+          .replace(/{yorum_sayisi}/g, lead.yorum_sayisi || '');
         await pool.query('UPDATE satis_bot_sablonlar SET gonderilen = gonderilen + 1 WHERE id = $1', [sablonId]);
       }
     } catch(e) { console.log('DB şablon hatası (fallback):', e.message); }
     if (!mesaj) {
       const sablonlar = MESAJ_SABLONLARI[kategori] || MESAJ_SABLONLARI.default;
       const rastgeleSablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
-      mesaj = rastgeleSablon(lead.isletme_adi);
+      mesaj = rastgeleSablon({ ad: lead.isletme_adi || 'işletmeniz', k: kisiselSatir(lead) });
     }
+    mesaj = linkDuzelt(mesaj);
+    if (!/"dur"/i.test(mesaj)) mesaj += RET_SATIRI;
 
     // Numaranın WhatsApp'ta olduğunu ÖN KONTROL ET — gerçek hedef JID'i al
     let jid;
@@ -1113,8 +1198,8 @@ class SatisBot extends EventEmitter {
       const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
       console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
 
-      // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder (link yerine medya)
-      await this._tanitimVideosuGonder(sock, jid, kategori, ns.numaraId);
+      // Tanıtım videosu artık ilk mesajla gitmiyor: tanımadığı numaradan gelen video şikâyet/ban riskini artırıyordu.
+      // İlgi gösterene (gelenMesajIsle → _videoGerekirse) gönderilir.
 
       await pool.query(
         "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
@@ -1129,126 +1214,17 @@ class SatisBot extends EventEmitter {
     } catch (err) {
       console.error(`❌ [#${ns.numaraId}] Mesaj gönderme hatası (${lead.isletme_adi}):`, err.message);
       await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'hata' WHERE id = $1", [lead.id]);
+      throw err; // döngü saysın: aynı hata art arda tekrar ederse otomatik fren
     }
   }
 
   // Eski uyumluluk: leadeMesajGonder (gelen mesaj cevabı vb. için)
   async leadeMesajGonder(lead, kampanya = null) {
     const ns = this._aktifSock();
-    const sock = ns?.sock || this.sock;
-    if (!sock) { console.log('⚠️ Aktif socket yok, mesaj gönderilemedi'); return; }
-
-    const telefon = this.telefonDuzelt(lead.telefon);
-    if (!telefon) {
-      await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gecersiz_numara' WHERE id = $1", [lead.id]);
-      return;
-    }
-
-    // Kategoriye göre mesaj şablonu seç — kampanya varsa kampanyaya bağlı A/B, yoksa fallback
-    const kategori = (lead.kategori || '').toLowerCase();
-    let mesaj = '';
-    let sablonId = null;
-    try {
-      let dbSablonlar;
-      if (kampanya) {
-        // A/B test: kampanyaya bağlı şablonlardan rastgele birini seç
-        dbSablonlar = (await pool.query(
-          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id = $1 ORDER BY RANDOM() LIMIT 1",
-          [kampanya.id]
-        )).rows;
-      }
-      // Kampanya şablonu yoksa kategori veya genel şablonlara düş
-      if (!dbSablonlar || dbSablonlar.length === 0) {
-        dbSablonlar = (await pool.query(
-          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id IS NULL AND (kategori = $1 OR kategori = 'genel') ORDER BY RANDOM() LIMIT 1",
-          [kategori || 'genel']
-        )).rows;
-      }
-      if (dbSablonlar.length > 0) {
-        const s = dbSablonlar[0];
-        sablonId = s.id;
-        mesaj = s.mesaj
-          .replace(/{isletme_adi}/g, lead.isletme_adi || '')
-          .replace(/{isletme_sahibi}/g, lead.isletme_sahibi || lead.isletme_adi || '')
-          .replace(/{kategori}/g, lead.kategori || 'işletme')
-          .replace(/{telefon}/g, lead.telefon || '');
-        await pool.query('UPDATE satis_bot_sablonlar SET gonderilen = gonderilen + 1 WHERE id = $1', [sablonId]);
-      }
-    } catch(e) { console.log('DB şablon hatası (fallback kullanılacak):', e.message); }
-    if (!mesaj) {
-      const sablonlar = MESAJ_SABLONLARI[kategori] || MESAJ_SABLONLARI.default;
-      const rastgeleSablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
-      mesaj = rastgeleSablon(lead.isletme_adi);
-    }
-
-    // Numaranın WhatsApp'ta olduğunu ÖN KONTROL ET — gerçek hedef JID'i al
-    let jid;
-    const numaraInfo = ns ? `#${ns.numaraId}` : 'tek';
-    try {
-      const check = await sock.onWhatsApp(`${telefon}@s.whatsapp.net`);
-      if (!check || !check.length || !check[0]?.exists) {
-        console.log(`📵 [${numaraInfo}] WP YOK (onWhatsApp=false): ${lead.isletme_adi} (${telefon}) — atlanıyor`);
-        await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'wp_yok' WHERE id = $1", [lead.id]);
-        return;
-      }
-      jid = check[0].jid || `${telefon}@s.whatsapp.net`;
-    } catch (e) {
-      console.log(`⚠️ [${numaraInfo}] onWhatsApp kontrolü başarısız (${telefon}): ${e.message} — default JID ile devam`);
-      jid = `${telefon}@s.whatsapp.net`;
-    }
-
-    // Anti-ban: Typing indicator
-    try {
-      await sock.presenceSubscribe(jid);
-      await sock.sendPresenceUpdate('composing', jid);
-      const typingMs = (this.ayarlar.typingMinMs || 2000) + Math.random() * ((this.ayarlar.typingMaxMs || 6000) - (this.ayarlar.typingMinMs || 2000));
-      await new Promise(r => setTimeout(r, typingMs));
-      await sock.sendPresenceUpdate('paused', jid);
-    } catch (e) { /* presence hataları önemsiz */ }
-
-    // Mesaj gönder
-    try {
-      if (!sock?.user) {
-        throw new Error('Socket bağlı değil — mesaj gönderilemez');
-      }
-
-      const sent = await sock.sendMessage(jid, { text: mesaj });
-      if (!sent?.key?.id) {
-        throw new Error('sendMessage boş response döndü (mesaj gönderilmemiş olabilir)');
-      }
-
-      // Retry store'a kaydet (5dk sonra temizle)
-      if (sent.message) {
-        this.msgStore.set(sent.key.id, sent.message);
-        setTimeout(() => this.msgStore.delete(sent.key.id), 5 * 60 * 1000);
-      }
-
-      const kampInfo = kampanya ? ` [${kampanya.isim}]` : '';
-      console.log(`✅ [${numaraInfo}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
-
-      // Tanıtım videosunu .mp4 olarak doğrudan sohbete gönder
-      await this._tanitimVideosuGonder(sock, jid, kategori, numaraInfo);
-
-      // DB güncelle
-      await pool.query(
-        "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
-        [lead.id]
-      );
-
-      // Konuşma kaydı oluştur
-      await pool.query(
-        `INSERT INTO satis_konusmalar (lead_id, telefon, isletme_adi, kategori, gonderilen_mesaj, durum, sablon_id) 
-         VALUES ($1, $2, $3, $4, $5, 'bekliyor', $6)`,
-        [lead.id, telefon, lead.isletme_adi, lead.kategori, mesaj, sablonId]
-      );
-
-    } catch (err) {
-      console.error(`❌ Mesaj gönderme hatası (${lead.isletme_adi}):`, err.message);
-      await pool.query("UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'hata' WHERE id = $1", [lead.id]);
-    }
+    if (!ns) { console.log('⚠️ leadeMesajGonder: bağlı numara yok'); return; }
+    return this._numaraMesajGonder(ns, lead, kampanya);
   }
 
-  // Tanıtım videosunu .mp4 olarak doğrudan WhatsApp sohbetine gönder (link yerine medya)
   async _tanitimVideosuGonder(sock, jid, kategori, numaraTag) {
     try {
       const videoFile = TANITIM_VIDEOLARI[kategori] || TANITIM_VIDEOLARI.default;
@@ -1330,194 +1306,213 @@ class SatisBot extends EventEmitter {
   // ═══════════════════════════════════════════════════
   // Kayıt Akışı — Bot üzerinden hesap açma
   // ═══════════════════════════════════════════════════
-  async kayitAkisi(remoteJid, telefon, metin, sock) {
-    const kayitDurum = this.konusmalar[telefon]?.kayit;
-    
-    if (!kayitDurum) return false; // Kayıt akışında değil
-
-    const _sock = sock || this.sock;
-    const mesajGonder = async (txt) => {
+  // ═══════════════════════════════════════════════════
+  // Yardımcılar: yazma, kayıt
+  // ═══════════════════════════════════════════════════
+  async _yaz(sock, jid, metin, { yaziyor = true } = {}) {
+    const txt = linkDuzelt(metin);
+    if (yaziyor && this.ayarlar.typingIndicator !== false) {
       try {
-        await _sock.sendPresenceUpdate('composing', remoteJid);
-        await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
-        await _sock.sendPresenceUpdate('paused', remoteJid);
-      } catch(e) {}
-      await _sock.sendMessage(remoteJid, { text: txt });
-    };
+        await sock.sendPresenceUpdate('composing', jid);
+        const min = this.ayarlar.typingMinMs || 2000, max = this.ayarlar.typingMaxMs || 6000;
+        await new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
+        await sock.sendPresenceUpdate('paused', jid);
+      } catch (e) { /* presence önemsiz */ }
+    }
+    const sent = await sock.sendMessage(jid, { text: txt });
+    if (sent?.message) {
+      this.msgStore.set(sent.key.id, sent.message);
+      setTimeout(() => this.msgStore.delete(sent.key.id), 5 * 60 * 1000);
+    }
+    return txt;
+  }
 
-    const metinKucuk = metin.toLowerCase().trim();
+  async _botKaydet(konusmaId, metin, guncelle = {}) {
+    const alanlar = ["gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1"];
+    const deger = [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${metin}`];
+    for (const [k, v] of Object.entries(guncelle)) { deger.push(v); alanlar.push(`${k} = $${deger.length}`); }
+    deger.push(konusmaId);
+    await pool.query(`UPDATE satis_konusmalar SET ${alanlar.join(', ')} WHERE id = $${deger.length}`, deger);
+  }
 
-    // Vazgeç kontrolü (sadece açıkça iptal/vazgeç yazarsa)
-    if (metinKucuk === 'iptal' || metinKucuk === 'vazgeç' || metinKucuk === 'vazgec') {
+  _mdKacis(x) { return String(x ?? '').replace(/([_*`\[])/g, '\\$1'); }
+
+  // Paket fiyatları (10 dk önbellek) — AI talimatı ve yedek cevaplar uydurma rakam kullanmasın
+  async _fiyatlar() {
+    if (this._fiyatOnbellek && Date.now() - this._fiyatOnbellek.t < 10 * 60 * 1000) return this._fiyatOnbellek;
+    let enUcuz = null, liste = '';
+    try {
+      const { paketleriYukle } = require('../config/paketler');
+      const paketler = await paketleriYukle();
+      const satirlar = [];
+      for (const p of Object.values(paketler)) {
+        const fiyat = parseFloat(p.fiyat);
+        if (fiyat > 0 && (enUcuz === null || fiyat < enUcuz)) enUcuz = fiyat;
+        const oz = [`${p.calisan_limit >= 999 ? 'sınırsız' : p.calisan_limit} çalışan`,
+          `aylık ${p.aylik_randevu_limit >= 9999 ? 'sınırsız' : p.aylik_randevu_limit} randevu`];
+        if (p.bot_aktif) oz.push('WhatsApp botu');
+        if (p.hatirlatma) oz.push('otomatik hatırlatma');
+        satirlar.push(`- ${p.isim}: ${fiyat}₺/ay (${oz.join(', ')})`);
+      }
+      liste = satirlar.join('\n');
+    } catch (e) { /* paket tablosu okunamazsa fiyat söylenmez */ }
+    this._fiyatOnbellek = { t: Date.now(), enUcuz, liste };
+    return this._fiyatOnbellek;
+  }
+
+  // Kayıt durumu deploy/yeniden başlatmada kaybolmasın (şifre ASLA saklanmaz)
+  async _kayitDurumKaydet(telefon, d) {
+    try {
+      await pool.query(
+        `UPDATE satis_konusmalar SET kayit_durum = $1
+         WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $2 ORDER BY olusturma_tarihi DESC LIMIT 1)`,
+        [d ? JSON.stringify({ adim: d.adim, onerilenAd: d.onerilenAd || null, isletmeAdi: d.isletmeAdi || null,
+          email: d.email || null, kategori: d.kategori || null, t: Date.now() }) : null, telefon]);
+    } catch (e) { /* kolon yoksa bellekte devam */ }
+  }
+
+  async _kayitDurumYukle(telefon) {
+    try {
+      const r = (await pool.query(
+        "SELECT kayit_durum FROM satis_konusmalar WHERE telefon = $1 AND kayit_durum IS NOT NULL ORDER BY olusturma_tarihi DESC LIMIT 1",
+        [telefon])).rows[0];
+      const d = typeof r?.kayit_durum === 'string' ? JSON.parse(r.kayit_durum) : r?.kayit_durum;
+      if (d && Date.now() - (d.t || 0) < 24 * 3600 * 1000) return d;
+    } catch (e) { /* yok say */ }
+    return null;
+  }
+
+  async _kayitBaslat(remoteJid, telefon, sock, konusma) {
+    const onerilenAd = konusma && konusma.gonderilen_mesaj !== 'Müşteri kendisi yazdı' ? konusma.isletme_adi : null;
+    const d = { adim: 'isletme_adi', onerilenAd, kategori: konusma?.kategori || null };
+    this.konusmalar[telefon] = { ...(this.konusmalar[telefon] || {}), kayit: d };
+    await this._kayitDurumKaydet(telefon, d);
+    const giris = `Harika, hesabınızı hemen açalım: ${DENEME_GUN} gün ücretsiz, kart bilgisi istemiyoruz.`;
+    const txt = onerilenAd
+      ? `${giris}\n\nİşletme adı *${onerilenAd}* olarak kalsın mı? Doğruysa *evet* yazın, değilse doğru adı yazın.`
+      : `${giris}\n\nİşletmenizin adını yazın:`;
+    await this._yaz(sock, remoteJid, txt);
+    if (konusma?.id) { try { await this._botKaydet(konusma.id, txt, { durum: 'kayit' }); } catch (e) {} }
+  }
+
+  async kayitAkisi(remoteJid, telefon, metin, sock) {
+    const d = this.konusmalar[telefon]?.kayit;
+    if (!d) return false;
+    const yaz = (txt) => this._yaz(sock || this.sock, remoteJid, txt);
+    const ham = String(metin || '').trim();
+    const sade = sadeMetin(ham);
+
+    if (ifadeVar(sade, ['iptal', 'vazgeç', 'vazgec', 'vazgeçtim'])) {
       delete this.konusmalar[telefon].kayit;
-      await mesajGonder(`❌ Kayıt işlemi iptal edildi.\n\nTekrar denemek için *kayıt* yazın.`);
+      await this._kayitDurumKaydet(telefon, null);
+      await yaz(`Tamam, kaydı durdurdum. İstediğiniz zaman *kayıt* yazarak devam edebilirsiniz.`);
       return true;
     }
 
-    switch (kayitDurum.adim) {
-      case 'isletme_adi': {
-        if (metin.length < 2) {
-          await mesajGonder(`⚠️ İşletme adı çok kısa. Lütfen geçerli bir isim yazın:`);
-          return true;
-        }
-        this.konusmalar[telefon].kayit.isletmeAdi = metin.trim();
-        this.konusmalar[telefon].kayit.adim = 'email';
-        await mesajGonder(`✅ İşletme adı: *${metin.trim()}*\n\n📧 Şimdi giriş için kullanacağınız *e-posta adresinizi* yazın:`);
+    if (d.adim === 'isletme_adi') {
+      let ad = null;
+      if (d.onerilenAd && ifadeVar(sade, EVET) && sade.trim().split(' ').length <= 3) ad = d.onerilenAd;
+      else if (ham.length >= 2 && ham.length <= 100 && !(ifadeVar(sade, EVET) && sade.trim().split(' ').length <= 2)) ad = ham;
+      if (!ad) { await yaz(`İşletmenizin adını yazar mısınız? (Kaydı bırakmak için *iptal*)`); return true; }
+      d.isletmeAdi = ad; d.adim = 'email';
+      await this._kayitDurumKaydet(telefon, d);
+      await yaz(`👍 *${ad}*\n\nPanele giriş için *e-posta adresinizi* yazın:`);
+      return true;
+    }
+
+    if (d.adim === 'email') {
+      const email = ham.toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 150) {
+        await yaz(`Bu bir e-posta adresine benzemiyor. Örnek: isim@gmail.com\n(Kaydı bırakmak için *iptal*)`);
         return true;
       }
-
-      case 'email': {
-        // Basit email kontrolü
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(metin.trim())) {
-          await mesajGonder(`⚠️ Geçerli bir e-posta adresi yazın.\n\nÖrnek: isim@email.com`);
-          return true;
-        }
-        // Email zaten kayıtlı mı?
-        const mevcut = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [metin.trim().toLowerCase()])).rows[0];
-        if (mevcut) {
-          await mesajGonder(`⚠️ Bu e-posta zaten kayıtlı!\n\nFarklı bir e-posta yazın veya *admin.sırago.com* adresinden giriş yapın.`);
-          return true;
-        }
-        this.konusmalar[telefon].kayit.email = metin.trim().toLowerCase();
-        this.konusmalar[telefon].kayit.adim = 'sifre';
-        await mesajGonder(`✅ E-posta: *${metin.trim()}*\n\n🔒 Şimdi bir *şifre* belirleyin (en az 6 karakter):`);
+      const mevcut = (await pool.query('SELECT id FROM admin_kullanicilar WHERE LOWER(email) = $1', [email])).rows[0];
+      if (mevcut) {
+        await yaz(`Bu e-postayla zaten bir hesap var; https://admin.sırago.com adresinden giriş yapabilirsiniz. Şifrenizi hatırlamıyorsanız buraya yazın, yardımcı olalım.\n\nYeni hesap için farklı bir e-posta yazabilirsiniz.`);
         return true;
       }
+      d.email = email; d.adim = 'sifre';
+      await this._kayitDurumKaydet(telefon, d);
+      await yaz(`Son adım: panel için bir *şifre* belirleyin (en az 6 karakter):`);
+      return true;
+    }
 
-      case 'sifre': {
-        if (metin.trim().length < 6) {
-          await mesajGonder(`⚠️ Şifre en az 6 karakter olmalı. Tekrar deneyin:`);
-          return true;
-        }
-        this.konusmalar[telefon].kayit.sifre = metin.trim();
-        this.konusmalar[telefon].kayit.adim = 'onay';
-        const k = this.konusmalar[telefon].kayit;
-        await mesajGonder(
-          `📋 *Kayıt Özeti*\n\n` +
-          `🏪 İşletme: *${k.isletmeAdi}*\n` +
-          `📧 E-posta: *${k.email}*\n` +
-          `🔒 Şifre: *${'•'.repeat(k.sifre.length)}*\n\n` +
-          `Her şey doğru mu?\n\n` +
-          `*1.* ✅ Onayla ve hesabı oluştur\n` +
-          `*2.* ❌ İptal et`
-        );
+    if (d.adim === 'sifre') {
+      if (ham.length < 6 || ham.length > 72) {
+        await yaz(`Şifre 6 ile 72 karakter arasında olmalı. Tekrar yazar mısınız?`);
         return true;
       }
-
-      case 'onay': {
-        if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla')) {
-          // Onaylandı — referans kodu adımına geç
-          this.konusmalar[telefon].kayit.adim = 'referans_kodu';
-          await mesajGonder(
-            `✅ Bilgiler onaylandı!\n\n` +
-            `🎟️ *Referans kodunuz* var mı?\n\n` +
-            `Varsa kodu yazın, yoksa *hayır* yazın.`
-          );
-          return true;
-        }
-        // Sadece "2" veya açıkça iptal/vazgeç yazıldığında iptal et
-        if (metin === '2' || metinKucuk === 'iptal' || metinKucuk === 'vazgeç' || metinKucuk === 'vazgec') {
-          delete this.konusmalar[telefon].kayit;
-          await mesajGonder(`❌ Kayıt işlemi iptal edildi.\n\nTekrar denemek için *kayıt* yazın.`);
-          return true;
-        }
-        // Referans kodum var gibi şeyler yazarsa da referans adımına yönlendir
-        if (metinKucuk.includes('ref') || metinKucuk.includes('kod')) {
-          this.konusmalar[telefon].kayit.adim = 'referans_kodu';
-          await mesajGonder(
-            `🎟️ Harika! Referans kodunuzu yazın:`
-          );
-          return true;
-        }
-        // Tanınmayan cevap — tekrar onay iste
-        await mesajGonder(
-          `Lütfen bir seçenek belirleyin:\n\n` +
-          `*1.* ✅ Onayla ve hesabı oluştur\n` +
-          `*2.* ❌ İptal et`
-        );
+      if (!d.isletmeAdi || !d.email) {          // yeniden başlatmada eksik kalmışsa baştan al
+        d.adim = d.isletmeAdi ? 'email' : 'isletme_adi';
+        await this._kayitDurumKaydet(telefon, d);
+        await yaz(d.isletmeAdi ? `E-posta adresinizi tekrar yazar mısınız?` : `İşletmenizin adını tekrar yazar mısınız?`);
         return true;
       }
-
-      case 'referans_kodu': {
-        // Referans kodu atla
-        const atlaCevaplari = ['hayır', 'hayir', 'yok', 'atla', 'geç', 'gec', 'pas'];
-        let referansKodu = null;
-
-        if (!atlaCevaplari.includes(metinKucuk)) {
-          // Referans kodunu doğrula
-          const kodDenemesi = metin.trim().toUpperCase();
-          const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [kodDenemesi])).rows[0];
-          if (!ref) {
-            await mesajGonder(
-              `⚠️ *${kodDenemesi}* geçerli bir referans kodu değil.\n\n` +
-              `Tekrar deneyin veya atlamak için *hayır* yazın:`
-            );
-            return true;
-          }
-          referansKodu = kodDenemesi;
-        }
-
-        // Hesabı oluştur
-        const k = this.konusmalar[telefon].kayit;
-        try {
-          const bcrypt = require('bcryptjs');
-          // Telefonu +90XXXXXXXXXX formatına çevir
-          let telFormatli = telefon;
-          if (telFormatli.startsWith('90')) telFormatli = '+' + telFormatli;
-          else if (!telFormatli.startsWith('+')) telFormatli = '+90' + telFormatli;
-          // Aynı telefon varsa farklı yap (timestamp ekle)
-          const telMevcut = (await pool.query('SELECT id FROM isletmeler WHERE telefon = $1', [telFormatli])).rows[0];
-          if (telMevcut) telFormatli = telFormatli + '_' + Date.now();
-          const isletme = (await pool.query(
-            `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
-             VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + INTERVAL '7 days') RETURNING *`,
-            [k.isletmeAdi, telFormatli]
-          )).rows[0];
-
-          // Admin kullanıcı oluştur
-          const hashSifre = await bcrypt.hash(k.sifre, 10);
-          await pool.query(
-            `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) 
-             VALUES ($1, $2, $3, 'admin', $4, true)`,
-            [k.isletmeAdi, k.email, hashSifre, isletme.id]
-          );
-
-          // Referans kodu varsa kaydet
-          let referansMesaj = '';
-          if (referansKodu) {
-            try {
-              const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referansKodu])).rows[0];
-              if (ref) {
-                await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
-                await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, isletme.id]);
-                referansMesaj = `\n🎟️ Referans kodu *${referansKodu}* uygulandı!`;
-                console.log(`🤝 Referans kaydedildi: ${referansKodu}, yeni: ${isletme.id}, sahip: ${ref.sahip_isletme_id}`);
-              }
-            } catch(e) { console.error('Referans uygulama hatası:', e.message); }
-          }
-
-          console.log(`🎉 Bot kayıt tamamlandı: ${k.isletmeAdi} (${k.email}) - isletme_id: ${isletme.id} - kanal: WhatsApp${referansKodu ? ' - ref: ' + referansKodu : ''}`);
-
-          delete this.konusmalar[telefon].kayit;
-          await mesajGonder(
-            `🎉 *Tebrikler! Hesabınız oluşturuldu!*\n\n` +
-            `🏪 İşletme: *${k.isletmeAdi}*\n` +
-            `📧 E-posta: *${k.email}*${referansMesaj}\n\n` +
-            `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
-            `🔗 *admin.sırago.com*\n\n` +
-            `E-posta ve şifrenizle giriş yapın. İlk ay tamamen ücretsiz! 🚀\n\n` +
-            `Yardıma ihtiyacınız olursa bize yazın 💪`
-          );
-        } catch (err) {
-          console.error('❌ Bot kayıt hatası:', err.message);
-          await mesajGonder(`❌ Kayıt sırasında bir hata oluştu: ${err.message}\n\nTekrar denemek için *kayıt* yazın.`);
-          delete this.konusmalar[telefon].kayit;
-        }
-        return true;
-      }
+      return this._hesapOlustur(remoteJid, telefon, ham, d, yaz);
     }
     return false;
+  }
+
+  async _hesapOlustur(remoteJid, telefon, sifre, d, yaz) {
+    let isletme = null;
+    try {
+      const bcrypt = require('bcryptjs');
+      const tel = telefonNormalize(telefon) || telefon;
+      const kategori = KATEGORI_KOD[String(d.kategori || '').toLocaleLowerCase('tr')] || 'genel';
+      isletme = (await pool.query(
+        `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi)
+         VALUES ($1, $2, $3, true, 'baslangic', NOW(), NOW() + make_interval(days => $4)) RETURNING *`,
+        [d.isletmeAdi, tel, kategori, DENEME_GUN])).rows[0];
+      const hash = await bcrypt.hash(sifre, 10);
+      await pool.query(
+        `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) VALUES ($1, $2, $3, 'admin', $4, true)`,
+        [d.isletmeAdi, d.email, hash, isletme.id]);
+
+      delete this.konusmalar[telefon].kayit;
+      await pool.query(
+        `UPDATE satis_konusmalar SET kayit_isletme_id = $1, durum = 'musteri', kayit_durum = NULL
+         WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $2 ORDER BY olusturma_tarihi DESC LIMIT 1)`,
+        [isletme.id, telefon]).catch(() => {});
+      await pool.query(
+        `UPDATE potansiyel_musteriler SET durum = 'musteri'
+         WHERE id = (SELECT lead_id FROM satis_konusmalar WHERE telefon = $1 AND lead_id IS NOT NULL ORDER BY olusturma_tarihi DESC LIMIT 1)`,
+        [telefon]).catch(() => {});
+      console.log(`🎉 WhatsApp kaydı: ${d.isletmeAdi} (isletme_id ${isletme.id})`);
+
+      await yaz(
+        `🎉 Hesabınız hazır! ${DENEME_GUN} gün boyunca tüm özellikler ücretsiz.\n\n` +
+        `Giriş: https://admin.sırago.com\nE-posta: ${d.email}\n\n` +
+        `İlk 3 adım (10 dakika):\n1. Hizmetlerinizi ve çalışanlarınızı ekleyin\n2. WhatsApp botunu bağlayın (QR okutmanız yeterli)\n3. Randevu linkinizi müşterilerinize gönderin\n\n` +
+        `Takıldığınız yerde buraya yazın, birlikte kuralım. Güvenliğiniz için şifrenizi yazdığınız mesajı silebilirsiniz.`);
+      try {
+        await this._telegramBildirimGonder(
+          `🎉 *WhatsApp'tan yeni kayıt*\n\n🏪 ${this._mdKacis(d.isletmeAdi)}\n🏷️ ${this._mdKacis(kategori)}\n📞 +${this._mdKacis(tel)}\n📧 ${this._mdKacis(d.email)}\n\n👉 İlk 24 saatte arayıp kurulumu birlikte yapın.`);
+      } catch (e) { /* bildirim önemsiz */ }
+      return true;
+    } catch (err) {
+      console.error('❌ WhatsApp kayıt hatası:', err.message);
+      if (isletme?.id) { try { await pool.query('DELETE FROM isletmeler WHERE id = $1', [isletme.id]); } catch (e) {} }
+      if (err.code === '23505') {
+        d.adim = 'email'; await this._kayitDurumKaydet(telefon, d);
+        await yaz(`Bu e-posta az önce kullanılmış görünüyor. Farklı bir e-posta yazar mısınız?`);
+      } else {
+        await yaz(`Hesabı açarken bir sorun oldu, ekibimize ilettim; kısa süre içinde size buradan dönüyoruz.`);
+        try { await this._telegramBildirimGonder(`⚠️ *WhatsApp kaydı başarısız*\n📞 +${this._mdKacis(telefon)}\n${this._mdKacis(err.message)}`); } catch (e) {}
+      }
+      return true;
+    }
+  }
+
+  // İlgi gösterene tanıtım videosu (konuşma başına bir kez)
+  async _videoGerekirse(sock, jid, konusma, metin, durum) {
+    if (konusma.video_gonderildi) return;
+    const ilgi = durum === 'sicak' || durum === 'olumlu' || ifadeVar(sadeMetin(metin), VIDEO_NIYET);
+    if (!ilgi) return;
+    try {
+      await pool.query('UPDATE satis_konusmalar SET video_gonderildi = true WHERE id = $1', [konusma.id]);
+    } catch (e) { /* kolon yoksa yine de bir kez gönder */ }
+    konusma.video_gonderildi = true;
+    await this._tanitimVideosuGonder(sock, jid, (konusma.kategori || '').toLowerCase(), 'video');
   }
 
   // ═══════════════════════════════════════════════════
@@ -1527,7 +1522,7 @@ class SatisBot extends EventEmitter {
     const metin = this._getMsgText(msg);
     if (!metin) return;
 
-    // Hangi socket'ten geldi? O socket'i kullan (cevap aynı numaradan gitsin)
+    // Hangi socket'ten geldi? Cevap aynı numaradan gitsin
     const ns = numaraId ? this.numaraSockets.get(numaraId) : null;
     const sock = ns?.sock || this.sock;
     if (!sock) return;
@@ -1538,456 +1533,233 @@ class SatisBot extends EventEmitter {
     let telefon;
     if (remoteJid.endsWith('@lid') && altJid.includes('@s.whatsapp.net')) {
       telefon = altJid.replace('@s.whatsapp.net', '');
-      console.log(`📩 LID → telefon çevrildi: ${remoteJid} → ${telefon}`);
     } else {
       telefon = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
     }
-
     console.log(`📩 [#${numaraId || 'tek'}] Satış Bot cevap aldı: …${String(telefon).slice(-4)} (uzunluk=${(metin || '').length})`);
 
-    // Mod kontrolü — kapali modunda hiçbir şey yapma
-    if (this.ayarlar.mod === 'kapali') {
-      console.log(`⏸️ Mod: kapali — gelen mesaj işlenmiyor`);
-      return;
-    }
+    if (this.ayarlar.mod === 'kapali') return;
 
-    // Gelen mesajlara cevap verme ayarı kapalıysa atla
-    if (!this.ayarlar.gelenMesajCevap && this.ayarlar.mod !== 'sadece_kayit') {
-      console.log(`⏸️ Gelen mesaj cevap kapalı — mesaj loglanıyor ama cevap verilmiyor`);
-    }
-
-    // ─── Kayıt akışı kontrolü ───
+    // ─── Kayıt akışı devam ediyorsa (bellekte ya da DB'de) ───
     if (!this.konusmalar[telefon]) this.konusmalar[telefon] = {};
-    
-    // Kayıt akışı devam ediyorsa ona yönlendir (kayıt aktifse)
+    if (!this.konusmalar[telefon].kayit && this.ayarlar.kayitAktif) {
+      const d = await this._kayitDurumYukle(telefon);
+      if (d) this.konusmalar[telefon].kayit = d;
+    }
     if (this.konusmalar[telefon].kayit && this.ayarlar.kayitAktif) {
       const handled = await this.kayitAkisi(remoteJid, telefon, metin, sock);
       if (handled) return;
     }
 
-    // Kayıt komutu — akışı başlat (kayıt aktifse)
-    const metinKucuk = metin.toLowerCase().trim();
-    const kayitKomutlari = ['kayıt', 'kayit', '/kayit', '/kayıt', 'hesap aç', 'hesap ac', 'kaydol', 'üye ol', 'uye ol', 'register'];
-    if (this.ayarlar.kayitAktif && kayitKomutlari.some(k => metinKucuk.includes(k))) {
-      this.konusmalar[telefon].kayit = { adim: 'isletme_adi' };
-      try {
-        await sock.sendPresenceUpdate('composing', remoteJid);
-        await new Promise(r => setTimeout(r, 1500));
-        await sock.sendPresenceUpdate('paused', remoteJid);
-      } catch(e) {}
-      await sock.sendMessage(remoteJid, { text: 
-        `🎉 *SıraGO'ya Hoş Geldiniz!*\n\n` +
-        `Hemen ücretsiz hesabınızı oluşturalım 🚀\n\n` +
-        `Adım 1/3\n` +
-        `🏪 *İşletmenizin adını* yazın:`
-      });
-      return;
-    }
-
-    // ─── Normal satış akışı ───
-    // Bu lead'in konuşma kaydını bul — birden fazla format dene
-    const son10 = telefon.slice(-10);
+    // ─── Konuşma kaydını bul (yoksa oluştur) ───
     let konusma = (await pool.query(
-      "SELECT * FROM satis_konusmalar WHERE telefon = $1 ORDER BY olusturma_tarihi DESC LIMIT 1",
-      [telefon]
+      "SELECT * FROM satis_konusmalar WHERE telefon = $1 OR telefon = $2 OR telefon LIKE $3 ORDER BY (telefon = $1) DESC, olusturma_tarihi DESC LIMIT 1",
+      [telefon, '+' + telefon, '%' + telefon.slice(-10)]
     )).rows[0];
-
     if (!konusma) {
-      // +90 prefix ile dene
-      konusma = (await pool.query(
-        "SELECT * FROM satis_konusmalar WHERE telefon = $1 ORDER BY olusturma_tarihi DESC LIMIT 1",
-        ['+' + telefon]
-      )).rows[0];
-    }
-    if (!konusma) {
-      // Son 10 hane ile dene (LIKE)
-      konusma = (await pool.query(
-        "SELECT * FROM satis_konusmalar WHERE telefon LIKE $1 ORDER BY olusturma_tarihi DESC LIMIT 1",
-        ['%' + son10]
-      )).rows[0];
-    }
-
-    if (!konusma) {
-      console.log(`📝 Yeni numara, konuşma oluşturuluyor: ${telefon}`);
-      // Bilinmeyen numaradan gelen mesaj — yeni konuşma oluştur ve cevap ver
       try {
-        const pushName = msg.pushName || 'Müşteri';
-        const yeniKonusma = (await pool.query(
-          `INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, gonderilen_mesaj, durum, gelen_mesajlar)
-           VALUES ($1, $2, 'genel', 'Müşteri kendisi yazdı', 'bekliyor', $3) RETURNING *`,
-          [telefon, pushName, `\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`]
-        )).rows[0];
-        konusma = yeniKonusma;
-        console.log(`✅ Yeni konuşma oluşturuldu: id=${konusma.id}, telefon=${telefon}, isim=${pushName}`);
+        konusma = (await pool.query(
+          `INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, gonderilen_mesaj, durum)
+           VALUES ($1, $2, 'genel', 'Müşteri kendisi yazdı', 'bekliyor') RETURNING *`,
+          [telefon, msg.pushName || 'Müşteri'])).rows[0];
       } catch (dbErr) {
-        console.error(`❌ Yeni konuşma oluşturma hatası:`, dbErr.message);
+        console.error('❌ Yeni konuşma oluşturma hatası:', dbErr.message);
         return;
       }
     }
+    const ilkCevap = konusma.durum === 'bekliyor' && !konusma.gelen_mesajlar;
 
-    // Gelen mesajı kaydet + takip sekansını durdur (ai_devrede)
+    // Gelen mesajı kaydet; cevap geldi → takip sekansı durur
     await pool.query(
       "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, son_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul'), durum = CASE WHEN durum = 'bekliyor' THEN 'ai_devrede' ELSE durum END WHERE id = $2",
       [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, konusma.id]
     );
+    if (ilkCevap && konusma.sablon_id) {
+      try { await pool.query('UPDATE satis_bot_sablonlar SET cevap_gelen = cevap_gelen + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {}
+    }
 
-    // Şablon performansı güncelle — ilk cevap geldiğinde
-    if (konusma.durum === 'bekliyor' && konusma.sablon_id) {
+    // ─── Kayıtlı müşteri yazdı → satış değil destek: ekibe ilet ───
+    if (konusma.durum === 'musteri') {
       try {
-        await pool.query('UPDATE satis_bot_sablonlar SET cevap_gelen = cevap_gelen + 1 WHERE id = $1', [konusma.sablon_id]);
-      } catch(e) {}
-    }
-
-    // Olumsuz konuşma — müşteri red etmişse bir daha yazma
-    if (konusma.durum === 'olumsuz') {
-      console.log(`🚫 Olumsuz konuşma, cevap verilmiyor: ${telefon}`);
-      return;
-    }
-
-    // Red / ilgilenmiyorum algılama — AI'dan önce yakala
-    const metinLower = metin.toLowerCase().replace(/[?!.,]/g, '');
-    const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz',
-      'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın', 'yazmayin', 'engel',
-      'beni arama', 'aramayın', 'aramayin', 'mesaj atma', 'mesaj atmayin', 'rahatsız', 'darlamayın', 'darlama',
-      'ilgilenmem', 'istemem', 'yok teşekkürler', 'teşekkür ederim gerek yok', 'sağol gerek yok',
-      'ben dönerim', 'ben döneceğim', 'ben donerim', 'ben size döneceğim', 'ben ararım', 'ben ararim',
-      'sizi ararız', 'biz ararız', 'gerekirse ararız', 'gerekirse döneriz',
-      'şu an ilgilenmiyorum', 'şuan ilgilenmiyorum', 'şimdilik gerek yok', 'şimdilik istemiyorum',
-      'anlamıyorum bu konulardan', 'bilgilenemiyo', 'anlamıyo'];
-    if (redKelimeler.some(k => metinLower.includes(k))) {
-      console.log(`🚫 Red algılandı: ${telefon} → "${metin}"`);
-      const ad = konusma.isletme_adi || '';
-      const vedaMesaj = 'Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏';
-      try {
-        await sock.sendPresenceUpdate('composing', remoteJid);
-        await new Promise(r => setTimeout(r, 1500));
-        await sock.sendPresenceUpdate('paused', remoteJid);
-      } catch(e) {}
-      await sock.sendMessage(remoteJid, { text: vedaMesaj });
-      await pool.query(
-        "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = 'olumsuz' WHERE id = $2",
-        [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${vedaMesaj}`, konusma.id]
-      );
-      if (konusma.lead_id) {
-        await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
-      }
-      // Şablon olumsuz sayacı
-      if (konusma.sablon_id) {
-        try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {}
-      }
-      return;
-    }
-
-    // Sadece kayıt modundaysa veya gelen mesaj cevap kapalıysa — buraya kadar gel, loglayıp dur
-    if (this.ayarlar.mod === 'sadece_kayit' || this.ayarlar.mod === 'sadece_satis') {
-      console.log(`⏸️ Mod: ${this.ayarlar.mod} — AI cevap verilmiyor (mesaj loglandı)`);
-      return;
-    }
-    if (!this.ayarlar.gelenMesajCevap) {
-      console.log(`⏸️ Gelen mesaj cevap kapalı — mesaj loglandı ama cevap verilmiyor`);
-      return;
-    }
-
-    // DeepSeek AI ile satış cevabı oluştur
-    if (!this.ayarlar.aiCevapAktif) {
-      console.log(`⏸️ AI cevap kapalı — fallback cevap kullanılacak`);
-      const fallback = this.fallbackCevapUret(metin, konusma);
-      if (fallback) {
-        if (this.ayarlar.typingIndicator) {
-          try {
-            await sock.sendPresenceUpdate('composing', remoteJid);
-            const typingMs = (this.ayarlar.typingMinMs || 2000) + Math.random() * ((this.ayarlar.typingMaxMs || 6000) - (this.ayarlar.typingMinMs || 2000));
-            await new Promise(r => setTimeout(r, typingMs));
-            await sock.sendPresenceUpdate('paused', remoteJid);
-          } catch(e) {}
-        }
-        await sock.sendMessage(remoteJid, { text: fallback.mesaj });
-        await pool.query(
-          "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
-          [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${fallback.mesaj}`, fallback.durum || 'ai_devrede', konusma.id]
-        );
-        // 🔥 Sıcak lead — Telegram bildirim gönder
-        if (fallback.durum === 'sicak') {
-          this._sicakLeadBildirim(konusma, metin);
-        }
-      }
-      return;
-    }
-
-    console.log(`🤖 AI cevap üretiliyor: konusma_id=${konusma.id}, isletme=${konusma.isletme_adi}`);
-    const aiCevap = await this.deepseekSatisCevabi(metin, konusma);
-    console.log(`🤖 AI cevap sonuç:`, aiCevap ? `mesaj="${aiCevap.mesaj?.slice(0, 50)}..." durum=${aiCevap.durum}` : 'NULL');
-
-    if (aiCevap) {
-      // Anti-ban: Typing indicator
-      try {
-        await sock.sendPresenceUpdate('composing', remoteJid);
-        const typingMs = 2000 + Math.random() * 4000;
-        await new Promise(r => setTimeout(r, typingMs));
-        await sock.sendPresenceUpdate('paused', remoteJid);
+        await this._telegramBildirimGonder(`💬 *Kayıtlı müşteri yazdı* (${this._mdKacis(konusma.isletme_adi)})\n📞 +${this._mdKacis(telefon)}\n"${this._mdKacis(metin.slice(0, 500))}"`);
       } catch (e) {}
-
-      // Cevap gönder
-      try {
-        console.log(`📤 sendMessage başlıyor: jid=${remoteJid}, text=${aiCevap.mesaj.slice(0, 30)}...`);
-        const sentReply = await sock.sendMessage(remoteJid, { text: aiCevap.mesaj });
-        console.log(`💬 Satış Bot cevap gönderdi: ${telefon} → "${aiCevap.mesaj.slice(0, 60)}..." msgId=${sentReply?.key?.id || 'YOK'} status=${sentReply?.status || 'bilinmiyor'}`);
-        if (sentReply?.message) {
-          this.msgStore.set(sentReply.key.id, sentReply.message);
-          setTimeout(() => this.msgStore.delete(sentReply.key.id), 5 * 60 * 1000);
-        }
-      } catch (sendErr) {
-        console.error(`❌ CEVAP GÖNDERME HATASI: ${telefon} → ${sendErr.message}`, sendErr.stack?.split('\n').slice(0, 3).join(' | '));
+      const son = this._destekCevap?.[telefon] || 0;
+      if (Date.now() - son > 60 * 60 * 1000) {
+        this._destekCevap = { ...(this._destekCevap || {}), [telefon]: Date.now() };
+        const txt = `Mesajınızı ekibimize ilettim, en kısa sürede buradan dönüyoruz 🙏`;
+        await this._yaz(sock, remoteJid, txt);
+        await this._botKaydet(konusma.id, txt);
       }
-
-      // Konuşma kaydını güncelle
-      await pool.query(
-        "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, durum = $2 WHERE id = $3",
-        [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Bot: ${aiCevap.mesaj}`, aiCevap.durum || 'ai_devrede', konusma.id]
-      );
-
-      // Lead durumunu güncelle
-      if (aiCevap.durum === 'sicak' || aiCevap.durum === 'olumlu') {
-        await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);
-        if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumlu = olumlu + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {} }
-        // 🔥 Sıcak lead — Telegram bildirim gönder
-        if (aiCevap.durum === 'sicak') {
-          this._sicakLeadBildirim(konusma, metin);
-        }
-      } else if (aiCevap.durum === 'olumsuz') {
-        await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
-        if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch(e) {} }
-      }
+      return;
     }
+
+    // ─── Açık kayıt niyeti → hemen hesap aç (daha önce "hayır" demiş olsa bile) ───
+    if (this.ayarlar.kayitAktif && ifadeVar(sadeMetin(metin), KAYIT_NIYET)) {
+      await this._kayitBaslat(remoteJid, telefon, sock, konusma);
+      if (konusma.durum !== 'olumsuz' && konusma.sablon_id && !['olumlu', 'sicak'].includes(konusma.durum)) {
+        try { await pool.query('UPDATE satis_bot_sablonlar SET olumlu = olumlu + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {}
+      }
+      if (konusma.lead_id) { try { await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]); } catch (e) {} }
+      return;
+    }
+
+    // Reddetmiş kişiye bir daha yazılmaz
+    if (konusma.durum === 'olumsuz') return;
+
+    // ─── Ret (AI'dan önce, kelime sınırıyla) ───
+    const ret = redTipi(metin);
+    if (ret) {
+      const veda = {
+        sert: 'Anlaşıldı, sizi listeden çıkardım; bir daha yazmayacağım. İyi çalışmalar.',
+        normal: 'Tamam, sorun değil. Fikriniz değişirse buraya *kayıt* yazmanız yeterli. İyi çalışmalar 🙏',
+        kibar: `Tabii, acelesi yok. Vaktiniz olunca bakarsınız: https://sırago.com (${DENEME_GUN} gün ücretsiz). İyi çalışmalar 🙏`,
+      }[ret];
+      const yeniDurum = ret === 'kibar' ? 'sonra' : 'olumsuz';
+      try { await this._yaz(sock, remoteJid, veda); } catch (e) { console.error('Veda gönderilemedi:', e.message); }
+      await this._botKaydet(konusma.id, veda, { durum: yeniDurum, red_tipi: ret });
+      if (konusma.lead_id && yeniDurum === 'olumsuz') {
+        await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
+      }
+      if (konusma.sablon_id && yeniDurum === 'olumsuz') {
+        try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {}
+      }
+      return;
+    }
+
+    if (this.ayarlar.mod === 'sadece_kayit' || this.ayarlar.mod === 'sadece_satis' || !this.ayarlar.gelenMesajCevap) {
+      console.log(`⏸️ Mod: ${this.ayarlar.mod} / cevap ${this.ayarlar.gelenMesajCevap ? 'açık' : 'kapalı'} — mesaj loglandı`);
+      return;
+    }
+
+    // ─── Cevap: AI (yoksa yedek kurallar) ───
+    const cevap = this.ayarlar.aiCevapAktif
+      ? await this.deepseekSatisCevabi(metin, konusma)
+      : await this.fallbackCevapUret(metin, konusma);
+    if (!cevap?.mesaj) return;
+    // Kişi cevap verdi: AI 'bekliyor' dese de takip sırasına geri düşmesin
+    const durum = ['olumlu', 'sicak', 'olumsuz'].includes(cevap.durum) ? cevap.durum : 'ai_devrede';
+
+    let giden = cevap.mesaj;
+    try {
+      giden = await this._yaz(sock, remoteJid, cevap.mesaj);
+    } catch (sendErr) {
+      console.error(`❌ Cevap gönderilemedi: …${String(telefon).slice(-4)} → ${sendErr.message}`);
+      return;
+    }
+    await this._botKaydet(konusma.id, giden, durum === 'olumsuz' ? { durum, red_tipi: 'normal' } : { durum });
+
+    if (durum === 'sicak' || durum === 'olumlu') {
+      if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);
+      if (konusma.sablon_id && !['olumlu', 'sicak'].includes(konusma.durum)) {
+        try { await pool.query('UPDATE satis_bot_sablonlar SET olumlu = olumlu + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {}
+      }
+      if (durum === 'sicak' && konusma.durum !== 'sicak') this._sicakLeadBildirim(konusma, metin);
+    } else if (durum === 'olumsuz') {
+      if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
+      if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {} }
+    }
+    if (durum !== 'olumsuz') await this._videoGerekirse(sock, remoteJid, konusma, metin, durum);
   }
 
-  // ─── Fallback cevap şablonları (AI çalışmazsa) ───
-  fallbackCevapUret(musteriMesaj, konusma) {
-    const mesajLower = musteriMesaj.toLowerCase().replace(/[?!.,]/g, '');
-    const ad = konusma.isletme_adi || 'işletmeniz';
-
-    // ─── RED / OLUMSUZ ───
-    const redKelimeler = ['hayır', 'hayir', 'istemiyorum', 'istemiyoruz', 'gerek yok', 'ilgilenmiyorum', 'ilgilenmiyoruz',
-      'boş ver', 'bos ver', 'rahatsız etmeyin', 'spam', 'yazma', 'yazmayın', 'yazmayin',
-      'beni arama', 'aramayın', 'aramayin', 'mesaj atma', 'engel', 'darlamayın', 'darlama',
-      'ilgilenmem', 'istemem', 'yok teşekkürler', 'teşekkür ederim gerek yok', 'sağol gerek yok',
-      'şu an ilgilenmiyorum', 'şimdilik gerek yok', 'şimdilik istemiyorum'];
-    if (redKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏`,
-        durum: 'olumsuz'
-      };
-    }
-
-    // ─── KİBAR RED (ben ararım / düşüneyim / dönerim) ───
-    const kibarRedKelimeler = ['ben dönerim', 'ben döneceğim', 'ben donerim', 'ben ararım', 'ben ararim',
-      'sizi ararız', 'biz ararız', 'gerekirse ararız', 'gerekirse döneriz',
-      'düşüneyim', 'dusuneyim', 'düşüneceğim', 'sonra bakarım', 'sonra bakarim',
-      'bi düşüneyim', 'bakayım', 'bakalım', 'sonra'];
-    if (kibarRedKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sırago.com`,
-        durum: 'bekliyor'
-      };
-    }
-
-    // ─── FİYAT SORUSU ───
-    const fiyatKelimeler = ['fiyat', 'ücret', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'para', 'maliyet', 'aylık', 'aylik'];
-    if (fiyatKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `İlk ay sıfır lira. Sonrası günde 10₺. Bir müşteri kaçırmak bundan pahalı.`,
-        durum: 'sicak'
-      };
-    }
-
-    // ─── PAHALI İTİRAZI ───
-    const pahaliKelimeler = ['pahalı', 'pahali', 'çok para', 'cok para', 'param yok', 'bütçe', 'butce', 'ekonomi', 'karşılayamam'];
-    if (pahaliKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Günde 1 müşteri kaçırmak ayda 3000₺ kayıp. Sistem ayda 299₺. Kendini 3 günde amorti ediyor.`,
-        durum: 'olumlu'
-      };
-    }
-
-    // ─── TEKNOLOJİ İTİRAZI ───
-    const teknolojiKelimeler = ['bilmem', 'anlamam', 'teknoloji', 'bilgisayar', 'zor', 'yapamam', 'kurulum', 'anlamıyorum'];
-    if (teknolojiKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `WhatsApp kullanıyorsan yeterli. Biz kuruyoruz, sen sadece telefondan bakıyorsun. 5 dakika.`,
-        durum: 'olumlu'
-      };
-    }
-
-    // ─── TELEFONLA HALLEDİYORUM İTİRAZI ───
-    const telefonKelimeler = ['telefonla', 'zaten yapıyoruz', 'zaten yapiyoruz', 'hallediyoruz', 'hallediyorum', 'gerek duymuyoruz', 'ihtiyacımız yok'];
-    if (telefonKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Telefonla hallediyorsun ama müşteri işlemdeyken çalan telefona bakamıyorsun. O arayan rakibe gidiyor.`,
-        durum: 'olumlu'
-      };
-    }
-
-    // ─── MÜSAİT DEĞİLİM ───
-    const musaitKelimeler = ['müsait değilim', 'musait degilim', 'meşgulüm', 'mesgulum', 'yoğunum', 'yogunum', 'şimdi olmaz', 'sonra yaz'];
-    if (musaitKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sırago.com`,
-        durum: 'bekliyor'
-      };
-    }
-
-    // ─── MERAK / BİLGİ ───
-    const merakKelimeler = ['nedir', 'nasıl', 'nasil', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'ne yapıyor', 'ne yapiyor', 'özellik'];
-    if (merakKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Müşterilerin WhatsApp'tan 7/24 randevu alıyor, otomatik hatırlatma gidiyor. ${ad} için ilk ay ücretsiz 👉 sırago.com`,
-        durum: 'sicak'
-      };
-    }
-
-    // ─── OLUMLU / İLGİ ───
-    const olumluKelimeler = ['tamam', 'olur', 'evet', 'ilgileniyorum', 'deneyelim', 'göster', 'goster', 'demo', 'denerim', 'deneyim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'süper', 'harika', 'güzel'];
-    if (olumluKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Süper! sırago.com'a gir, 2 dakikada aktif. İlk ay ücretsiz. Kurulumda takılırsan yaz 👍`,
-        durum: 'sicak'
-      };
-    }
-
-    // ─── SELAM ───
-    const selamKelimeler = ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'gunaydin', 'günaydın'];
-    if (selamKelimeler.some(k => mesajLower.includes(k))) {
-      return {
-        mesaj: `Selam! ${ad} için randevu sistemi hakkında yazmıştım. Müşterilerin WhatsApp'tan randevu alsın, ilk ay ücretsiz. Bakmak ister misin?`,
-        durum: 'bekliyor'
-      };
-    }
-
-    // ─── GENEL ───
-    return {
-      mesaj: `Teşekkürler! Merak ettiğin olursa yaz, link burada 👉 sırago.com`,
-      durum: 'bekliyor'
-    };
+  // ─── Yedek cevaplar (AI kapalı/çalışmazsa) — kelime sınırıyla, uydurma rakam yok ───
+  async fallbackCevapUret(musteriMesaj, konusma) {
+    const sade = sadeMetin(musteriMesaj);
+    const { enUcuz } = await this._fiyatlar();
+    const fiyat = enUcuz ? `sonrası aylık ${enUcuz}₺'den başlıyor` : 'sonrası için paketleri sitede görebilirsiniz';
+    const kayit = `İsterseniz hesabınızı buradan 1 dakikada açayım, *kayıt* yazmanız yeterli.`;
+    const ret = redTipi(musteriMesaj);
+    if (ret === 'kibar') return { mesaj: `Tabii, acelesi yok. Vaktiniz olunca bakarsınız: https://sırago.com (${DENEME_GUN} gün ücretsiz).`, durum: 'bekliyor' };
+    if (ret) return { mesaj: `Tamam, sorun değil. Fikriniz değişirse buraya *kayıt* yazmanız yeterli. İyi çalışmalar 🙏`, durum: 'olumsuz' };
+    if (ifadeVar(sade, ['fiyat', 'fiyatı', 'ücret', 'ücreti', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'aylık', 'aylik', 'paket', 'paketler']))
+      return { mesaj: `${DENEME_GUN} gün ücretsiz, kart bilgisi istemiyoruz; ${fiyat}. ${kayit}`, durum: 'sicak' };
+    if (ifadeVar(sade, ['pahalı', 'pahali', 'çok para', 'cok para', 'param yok', 'bütçe', 'butce', 'karşılayamam']))
+      return { mesaj: `Ayda birkaç kaçan randevu bile ücretini çıkarır; önce ${DENEME_GUN} gün ücretsiz deneyip kendiniz görün. ${kayit}`, durum: 'olumlu' };
+    if (ifadeVar(sade, ['bilmem', 'anlamam', 'anlamıyorum', 'teknoloji', 'bilgisayar', 'zor', 'yapamam', 'kurulum']))
+      return { mesaj: `WhatsApp kullanabiliyorsanız yeterli; kurulumda da birlikte yardımcı oluyoruz. ${kayit}`, durum: 'olumlu' };
+    if (ifadeVar(sade, ['telefonla', 'zaten yapıyoruz', 'zaten yapiyoruz', 'hallediyoruz', 'hallediyorum', 'defter', 'deftere']))
+      return { mesaj: `Siz işlemdeyken telefona bakamadığınız anlarda randevuyu sistem alır, siz sadece onaylarsınız. ${DENEME_GUN} gün ücretsiz deneyebilirsiniz.`, durum: 'olumlu' };
+    if (ifadeVar(sade, ['nedir', 'nasıl', 'nasil', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'özellik', 'ozellik', 'video', 'demo', 'göster', 'goster']))
+      return { mesaj: `Müşterileriniz WhatsApp'tan ya da size özel linkten 7/24 randevu alır, randevudan önce hatırlatma otomatik gider. Kısa videoyu gönderiyorum; ${kayit.charAt(0).toLowerCase() + kayit.slice(1)}`, durum: 'sicak' };
+    if (ifadeVar(sade, ['tamam', 'olur', 'evet', 'ilgileniyorum', 'denerim', 'süper', 'harika', 'güzel', 'guzel', 'at', 'atın', 'gönder']))
+      return { mesaj: `Süper! Kısa tanıtım videosunu gönderiyorum. ${kayit}`, durum: 'sicak' };
+    if (ifadeVar(sade, ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'günaydın', 'gunaydin', 'kimsiniz', 'kim']))
+      return { mesaj: `Merhaba, ben SıraGO'nun dijital asistanıyım. ${konusma.isletme_adi || 'İşletmeniz'} için WhatsApp'tan otomatik randevu sistemi hakkında yazmıştım; ${DENEME_GUN} gün ücretsiz. Kısa bir video göndereyim mi?`, durum: 'bekliyor' };
+    return { mesaj: `Teşekkürler! Merak ettiğiniz bir şey olursa buradan sorabilirsiniz; denemek isterseniz *kayıt* yazmanız yeterli.`, durum: 'bekliyor' };
   }
 
   async deepseekSatisCevabi(musteriMesaj, konusma) {
     const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      console.log('⚠️ DEEPSEEK_API_KEY yok, fallback şablon kullanılıyor');
-      return this.fallbackCevapUret(musteriMesaj, konusma);
-    }
+    if (!apiKey) return this.fallbackCevapUret(musteriMesaj, konusma);
 
-    const konusmaGecmisi = konusma.gelen_mesajlar || '';
-    const mesajSayisi = (konusmaGecmisi.match(/Müşteri:/g) || []).length;
+    const gecmis = konusma.gelen_mesajlar || '';
+    const mesajSayisi = (gecmis.match(/Müşteri:/g) || []).length + 1;
+    const { enUcuz, liste } = await this._fiyatlar();
+    const fiyatCumle = enUcuz ? `${DENEME_GUN} gün ücretsiz, sonrası aylık ${enUcuz}₺'den başlıyor.` : `${DENEME_GUN} gün ücretsiz; paketler https://sırago.com sayfasında.`;
 
-    // DB'den güncel paket bilgilerini çek
-    let paketBilgiStr = '';
-    try {
-      const { paketleriYukle } = require('../config/paketler');
-      const paketler = await paketleriYukle();
-      const paketListesi = Object.entries(paketler).map(([kod, p]) => {
-        const ozellikler = [];
-        ozellikler.push(`${p.calisan_limit >= 999 ? 'Sınırsız' : p.calisan_limit} çalışan`);
-        ozellikler.push(`${p.hizmet_limit >= 999 ? 'Sınırsız' : p.hizmet_limit} hizmet`);
-        ozellikler.push(`Aylık ${p.aylik_randevu_limit >= 9999 ? 'sınırsız' : p.aylik_randevu_limit} randevu`);
-        if (p.bot_aktif) ozellikler.push('WhatsApp & Telegram botu');
-        if (p.hatirlatma) ozellikler.push('Otomatik hatırlatma');
-        if (p.istatistik) ozellikler.push('Gelişmiş istatistik & analiz');
-        if (p.export_aktif) ozellikler.push('Excel dışa aktarma, CRM, toplu kampanya');
-        return `📦 ${p.isim} (${p.fiyat}₺/ay): ${ozellikler.join(' • ')}`;
-      });
-      paketBilgiStr = paketListesi.join('\n');
-    } catch (e) {
-      paketBilgiStr = `📦 Başlangıç (299₺/ay): 1 çalışan, 5 hizmet, 200 randevu/ay, WhatsApp bot
-📦 Profesyonel (999₺/ay): 3 çalışan, 20 hizmet, sınırsız randevu, Telegram, istatistik, export`;
-    }
+    const prompt = `Sen SıraGO'nun WhatsApp satış asistanısın. Bir esnafla konuşuyorsun: kısa, saygılı ve samimi yaz, "siz" diye hitap et.
 
-    const prompt = `Sen SıraGO satış asistanısın. Esnafla WhatsApp'tan konuşuyorsun. Gerçek bir insan gibi yaz.
+İŞLETME: ${konusma.isletme_adi || '-'} (${konusma.kategori || '-'})
 
-═══ İŞLETME ═══
-${konusma.isletme_adi} (${konusma.kategori})
+PAKETLER:
+${liste || '(fiyat bilgisi yok — fiyat sorulursa sitede yazdığını söyle)'}
+Deneme: ${DENEME_GUN} gün ücretsiz, kart bilgisi istenmez. Kurulum telefondan birkaç dakika.
 
-═══ PAKETLER ═══
-${paketBilgiStr}
-İlk ay tamamen ücretsiz — kart bilgisi yok, 2 dakikada kurulum.
+ÜRÜN (yalnız bunları söyle, başka özellik uydurma):
+- Müşteriler WhatsApp'tan ya da işletmeye özel linkten 7/24 kendi randevusunu alır.
+- Randevudan önce müşteriye otomatik WhatsApp hatırlatması gider.
+- İşletme randevuları telefondan panelde görür, onaylar. Uygulama indirmek gerekmez.
 
-═══ KONUŞMA ═══
-İlk mesajımız: ${konusma.gonderilen_mesaj?.slice(0, 200)}
-Geçmiş: ${konusmaGecmisi.slice(-800)}
-MÜŞTERİ SON MESAJ: "${musteriMesaj}"
-Mesaj sayısı: ${mesajSayisi}
+KONUŞMA
+İlk mesajımız: ${(konusma.gonderilen_mesaj || '').slice(0, 300)}
+Geçmiş: ${gecmis.slice(-900)}
+MÜŞTERİNİN SON MESAJI: "${musteriMesaj}"
+Bu müşterinin ${mesajSayisi}. mesajı.
 
-═══ İTİRAZ KIRICI HAZIR CEVAPLAR (BİREBİR KULLAN) ═══
-"Fiyatı ne / ne kadar" → "İlk ay sıfır lira. Sonrası günde 10₺. Bir müşteri kaçırmak bundan pahalı."
-"Telefonla hallediyorum" → "Telefonla hallediyorsun ama müşteri işlemdeyken çalan telefona bakamıyorsun. O arayan rakibe gidiyor."
-"Teknoloji bilmem" → "WhatsApp kullanıyorsan yeterli. Biz kuruyoruz, sen sadece telefondan bakıyorsun. 5 dakika."
-"Düşüneyim / sonra bakarım" → "Tabi düşün. Demo linki bırakıyorum, vaktin olunca 2 dk bakarsın 👉 sırago.com"
-"Pahalı / param yok" → "Günde 1 müşteri kaçırmak ayda 3000₺ kayıp. Sistem ayda 299₺. Kendini 3 günde amorti ediyor."
-"Şimdi müsait değilim / meşgulüm" → "Tamam, link bırakıyorum. İstediğin zaman 2 dakikada aktif 👉 sırago.com"
-"Hayır / istemiyorum / gerek yok" → Kibarca veda et, ISRAR ETME: "Tamam, sorun değil. Fikrin değişirse buradan yazabilirsin. İyi çalışmalar 🙏"
-"Arayın / ben dönerim / ben ararım" → Bu KİBAR REDDİR: "Tamam, link bırakıyorum lazım olursa 👉 sırago.com. İyi çalışmalar!"
+NASIL CEVAP VERİRSİN
+1. En fazla 2 kısa cümle. Liste ve paragraf yok. En fazla 1 emoji.
+2. İlgi gösterirse (evet, olur, tamam, at, gönder, nasıl, göster, demo): tek fayda söyle, "kısa tanıtım videosunu gönderiyorum" de ve "İsterseniz hesabınızı buradan 1 dakikada açayım, *kayıt* yazmanız yeterli." diye bitir. durum: "sicak".
+3. Fiyat sorarsa: "${fiyatCumle}" + kayıt teklifi. durum: "sicak".
+4. "Pahalı" derse: ayda birkaç kaçan randevunun bile ücreti çıkardığını söyle, önce ücretsiz denemesini öner. durum: "olumlu".
+5. "Telefonla/defterle hallediyorum" derse: işlemdeyken telefona bakamadığı anlarda randevuyu sistemin aldığını söyle. durum: "olumlu".
+6. "Teknolojiden anlamam" derse: WhatsApp kullanabiliyorsa yeterli olduğunu, kurulumda birlikte yardımcı olacağımızı söyle. durum: "olumlu".
+7. Cevabını bilmediğin bir soru sorarsa uydurma: "Bunu ekibimiz size net söylesin; sizi bugün arayalım mı?" de. durum: "sicak".
+8. Reddederse ısrar etme, kibarca vedalaş. durum: "olumsuz".
+9. 4. mesajdan sonra hâlâ karar vermediyse linki bırak (https://sırago.com) ve vedalaş. durum: "bekliyor".
 
-═══ SATIŞ STRATEJİN ═══
-1. İlgi varsa → tek fayda söyle + "kayıt yaz veya sırago.com'a gir" de
-2. Soru varsa → kısa cevap ver, 1-2 cümle
-3. İtiraz gelirse → yukarıdaki hazır cevapları BİREBİR kullan
-4. ${mesajSayisi} > 3 ve karar vermemişse → "Link bırakıyorum, vaktin olunca bakarsın 👉 sırago.com" yaz ve bırak
-5. Müşteri reddettiyse → kibarca veda et, bir daha yazma
+KESİN KURALLAR
+- Rakam, yüzde, müşteri sayısı, "rakipleriniz kullanıyor", "iptaller %X azalır" gibi doğrulanamayan iddia YOK.
+- Bot olup olmadığın sorulursa SıraGO'nun dijital asistanı olduğunu söyle; kendini insan gibi tanıtma.
+- Link yalnız https://sırago.com; kayıt için *kayıt* yazmalarını iste.
+- "optimize", "entegre", "minimize" gibi kurumsal kelimeler yok.
 
-═══ HANDOFF (DEVRETME) KURALI — ÇOK ÖNEMLİ ═══
-Müşteri aşağıdakilerden birini derse durum'u "sicak" yap:
-- Fiyat sorusu: "ne kadar", "fiyatı ne", "ücret"
-- İlgi: "nasıl çalışıyor", "anlat", "göster", "demo", "video"
-- Olumlu sinyal: "ilgileniyorum", "deneyelim", "kuralım", "başlayalım", "tamam"
-- Paket sorusu: "paket", "karşılaştır", "fark ne"
-Bu durumda KISA bir cevap yaz + durum'u "sicak" olarak dön. Biz aranıp devam edeceğiz.
-
-═══ KESİN KURALLAR ═══
-- ASLA 2 CÜMLEDEN UZUN CEVAP VERME. Bu en önemli kural. 2 cümle = HARD LİMİT.
-- Tek seferde tek mesaj yaz, maddeli liste YAPMA, paragraf YAPMA.
-- Emoji max 1, abartma.
-- Samimi ol — esnaf gibi konuş, "siz" değil "sen" de.
-- Kayıt linki: sırago.com. ASLA "admin.sırago.com" yazma.
-- Bot/yapay zeka olup olmadığın sorulursa dürüstçe SıraGO'nun dijital asistanı olduğunu söyle; kendini insan gibi tanıtma.
-- Uzun özellik listesi DÖKME. Tek fayda söyle, bitir.
-- Fiyat/itiraz gelirse HAZIR cevapları BİREBİR kullan, kendinden cümle KURMA.
-- "minimize eder", "optimize eder", "entegre" gibi kurumsal kelimeler YASAK.
-
-CEVABINI SADECE ŞU JSON FORMATINDA VER:
-{"mesaj": "müşteriye gönderilecek mesaj", "durum": "olumlu" veya "olumsuz" veya "bekliyor" veya "sicak"}`;
+Yalnızca JSON döndür: {"mesaj": "...", "durum": "olumlu" | "olumsuz" | "bekliyor" | "sicak"}`;
 
     try {
       const response = await axios.post('https://api.deepseek.com/chat/completions', {
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: 'Sen SıraGO satış asistanısın. Esnafla WhatsApp\'tan konuşuyorsun. ASLA 2 cümleden uzun yazma — bu en önemli kural. Kurumsal dil ve paragraf YASAK. Esnaf kısa mesaj okur. Müşteri reddetmişse ISRAR ETME. Sadece JSON formatında yanıt ver.' },
+          { role: 'system', content: 'Sen SıraGO satış asistanısın. En fazla 2 kısa cümle, "siz" hitabı, uydurma iddia yok, reddedene ısrar yok. Yalnızca JSON döndür.' },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.5,
+        temperature: 0.4,
         max_tokens: 250
       }, {
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         timeout: 20000
       });
-
       const content = response.data.choices[0]?.message?.content || '';
-      console.log(`🤖 DeepSeek raw response: ${content.slice(0, 200)}`);
-      
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.mesaj) {
-          // Post-processing: yanlış domain varsa düzelt
-          parsed.mesaj = parsed.mesaj.replace(/admin\.sirago\.com/gi, 'sırago.com').replace(/sirago\.com/gi, 'sırago.com');
+        if (parsed.mesaj && String(parsed.mesaj).length <= 600) {
+          parsed.mesaj = linkDuzelt(parsed.mesaj);
           return parsed;
         }
       }
-      // JSON parse başarısız — fallback
-      console.log('⚠️ DeepSeek JSON parse hatası, fallback kullanılıyor');
+      console.log('⚠️ DeepSeek cevabı kullanılamadı, yedek cevap');
       return this.fallbackCevapUret(musteriMesaj, konusma);
     } catch (err) {
       console.error('❌ DeepSeek satış hatası:', err.message);
-      // AI hata verirse fallback şablonlarla cevap ver
       return this.fallbackCevapUret(musteriMesaj, konusma);
     }
   }
@@ -2001,6 +1773,41 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
   // ═══════════════════════════════════════════════════
   // İstatistikler
   // ═══════════════════════════════════════════════════
+  // Satış hunisi: gönderim → cevap → ilgi → kayıt → ödeme (şablon şablon).
+  // Kayıt: WhatsApp akışıyla açılan hesap YA DA aynı telefonla sonradan siteden açılan hesap.
+  async huni(gun = 30) {
+    gun = Math.min(Math.max(parseInt(gun) || 30, 1), 365);
+    const satirlar = (await pool.query(`
+      WITH k AS (
+        SELECT sk.*,
+          COALESCE(sk.kayit_isletme_id, (
+            SELECT i.id FROM isletmeler i
+            WHERE RIGHT(regexp_replace(COALESCE(i.telefon, ''), '[^0-9]', '', 'g'), 10) = RIGHT(regexp_replace(sk.telefon, '[^0-9]', '', 'g'), 10)
+              AND LENGTH(regexp_replace(COALESCE(i.telefon, ''), '[^0-9]', '', 'g')) >= 10
+              AND i.olusturma_tarihi >= sk.olusturma_tarihi - INTERVAL '1 day'
+            ORDER BY i.olusturma_tarihi LIMIT 1)) AS isletme_id
+        FROM satis_konusmalar sk
+        WHERE sk.olusturma_tarihi >= (NOW() AT TIME ZONE 'Europe/Istanbul') - make_interval(days => $1)
+          AND sk.gonderilen_mesaj <> 'Müşteri kendisi yazdı'
+      )
+      SELECT k.sablon_id, COALESCE(s.isim, 'Hazır metin (şablonsuz)') AS sablon,
+        COUNT(*)::int AS gonderilen,
+        COUNT(*) FILTER (WHERE COALESCE(k.gelen_mesajlar, '') <> '')::int AS cevap,
+        COUNT(*) FILTER (WHERE k.durum IN ('olumlu', 'sicak', 'kayit', 'musteri') OR k.isletme_id IS NOT NULL)::int AS ilgi,
+        COUNT(*) FILTER (WHERE k.durum = 'olumsuz')::int AS olumsuz,
+        COUNT(*) FILTER (WHERE k.red_tipi = 'sert')::int AS sert_ret,
+        COUNT(*) FILTER (WHERE k.isletme_id IS NOT NULL)::int AS kayit,
+        COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM odemeler o WHERE o.isletme_id = k.isletme_id AND o.durum = 'odendi'))::int AS odeme
+      FROM k LEFT JOIN satis_bot_sablonlar s ON s.id = k.sablon_id
+      GROUP BY k.sablon_id, s.isim
+      ORDER BY gonderilen DESC`, [gun])).rows;
+    const toplam = satirlar.reduce((t, r) => {
+      for (const a of ['gonderilen', 'cevap', 'ilgi', 'olumsuz', 'sert_ret', 'kayit', 'odeme']) t[a] = (t[a] || 0) + r[a];
+      return t;
+    }, {});
+    return { gun, toplam, sablonlar: satirlar };
+  }
+
   async istatistikler() {
     try {
     const [gonderilen, bekleyen, olumlu, olumsuz, wpYok, sicak] = await Promise.all([
@@ -2012,6 +1819,8 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
       pool.query("SELECT COUNT(*) as c FROM potansiyel_musteriler WHERE wp_mesaj_durumu = 'wp_yok'"),
       pool.query("SELECT COUNT(*) as c FROM satis_konusmalar WHERE durum = 'sicak'"),
     ]);
+    let kayit = 0;
+    try { kayit = parseInt((await pool.query("SELECT COUNT(*) AS c FROM satis_konusmalar WHERE kayit_isletme_id IS NOT NULL")).rows[0].c) || 0; } catch (e) {}
 
     return {
       gonderilen: parseInt(gonderilen.rows[0].c),
@@ -2020,6 +1829,7 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
       olumsuz: parseInt(olumsuz.rows[0].c),
       wp_yok: parseInt(wpYok.rows[0].c),
       sicak: parseInt(sicak.rows[0].c),
+      kayit,
       gunluk_gonderim: this.gunlukGonderim,
       gunluk_limit: this.ayarlar.gunlukLimit || 80
     };
@@ -2044,3 +1854,4 @@ CEVABINI SADECE ŞU JSON FORMATINDA VER:
 }
 
 module.exports = new SatisBot();
+module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, RET_SATIRI };

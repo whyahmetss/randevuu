@@ -106,6 +106,7 @@ router.get('/satis-bot', async (req, res) => {
       gunluk_gonderim: satisBot.gunlukGonderim || 0,
       gunluk_limit: satisBot.ayarlar?.gunlukLimit ?? null,
       istatistikler: await satisBot.istatistikler(),
+      huni_7g: await satisBot.huni(7).then(h => h.toplam).catch(() => null),
     });
   } catch (e) { hata(res, e); }
 });

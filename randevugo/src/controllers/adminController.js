@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { DENEME_GUN } = require('../config/deneme');
 const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
@@ -721,8 +722,8 @@ class AdminController {
       const { isim, telefon, adres, ilce, kategori, email, sifre } = req.body;
       
       const isletme = (await pool.query(
-        `INSERT INTO isletmeler (isim, telefon, adres, ilce, kategori, olusturma_tarihi, deneme_bitis_tarihi) VALUES ($1, $2, $3, $4, $5, NOW(), NOW() + INTERVAL '7 days') RETURNING *`,
-        [isim, telefon, adres, ilce, kategori]
+        `INSERT INTO isletmeler (isim, telefon, adres, ilce, kategori, olusturma_tarihi, deneme_bitis_tarihi) VALUES ($1, $2, $3, $4, $5, NOW(), NOW() + make_interval(days => $6)) RETURNING *`,
+        [isim, telefon, adres, ilce, kategori, DENEME_GUN]
       )).rows[0];
 
       if (email && sifre) {
@@ -2003,6 +2004,15 @@ class AdminController {
     } catch (error) {
       console.error('❌ satisBotDurum hatası:', error);
       res.json({ durum: 'kapali', qrBase64: null, aktif: false, istatistikler: { gonderilen: 0, bekleyen: 0, olumlu: 0, olumsuz: 0, wp_yok: 0, sicak: 0, gunluk_gonderim: 0, gunluk_limit: 80 } });
+    }
+  }
+
+  async satisBotHuni(req, res) {
+    try {
+      const satisBot = require('../services/satisBot');
+      res.json(await satisBot.huni(req.query.gun));
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
     }
   }
 
