@@ -226,6 +226,7 @@ class WhatsAppWebService extends EventEmitter {
             }
             try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch (e) {}
             const sebep = statusCode === 401 ? 'unauthorized' : 'logged_out';
+            require('../utils/alarm').alarm(`WhatsApp çıkış: ${isletmeIsim}`, `İşletme #${isletmeId} WhatsApp oturumu kapandı (${sebep}). Bot bu işletmede çalışmıyor; esnafın tekrar QR okutması gerekiyor, arayın.`);
             this.emit(`ayrildi_${isletmeId}`, sebep);
             socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', {
               sebep,
@@ -241,6 +242,7 @@ class WhatsAppWebService extends EventEmitter {
               // Anahtarları SİLME: ağ/WhatsApp kesintisi geçicidir; yalnız gerçek çıkışta (401/loggedOut)
               // silinir. 5 dakikada bir sessizce yeniden dene.
               console.log(`⏸️ ${isletmeIsim} — ${ra - 1} hızlı deneme başarısız, 5 dk'da bir denenecek`);
+              require('../utils/alarm').alarm(`WhatsApp bağlanamıyor: ${isletmeIsim}`, `İşletme #${isletmeId} 5 denemede bağlanamadı, 5 dk'da bir tekrar deneniyor.`);
               this.isletmeler[isletmeId].durum = 'bagli_degil';
               this.isletmeler[isletmeId]._baslatiliyor = false;
               this.isletmeler[isletmeId].sock = null;
