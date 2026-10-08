@@ -113,6 +113,13 @@ const odemeKontrol = async (req, res, next) => {
 
     // Deneme süresi ve paket bitiş kontrolü
     const isletme = (await pool.query('SELECT deneme_bitis_tarihi, paket_bitis_tarihi, grup_id FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    if (isletme?.grup_id && !(await require('../utils/subeLimit').subeIzinli(isletmeId, isletme.grup_id))) {
+      return res.status(402).json({
+        hata: 'Şube limiti aşıldı',
+        mesaj: 'Merkezin paketi bu kadar şubeyi kapsamıyor. Bu şubeyi kullanmak için paketi yükseltin ya da başka bir şubeyi kapatın.',
+        limit_asimi: true,
+      });
+    }
     if (isletme) {
       const now = new Date();
       // Deneme süresi devam ediyorsa geç
