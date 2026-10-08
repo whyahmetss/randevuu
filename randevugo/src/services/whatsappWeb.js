@@ -1328,7 +1328,12 @@ class WhatsAppWebService extends EventEmitter {
       }
     } catch(e) {}
 
-    const msg = botMesajlar.get(isletme, 'anaMenu', { musteriAd, isletmeAd: isletme.isim });
+    // Online randevu açıksa menüye tek dokunuşluk randevu linki (WhatsApp düğmesi yerine — risksiz)
+    let link = null;
+    if (isletme.booking_acik !== false) {
+      try { link = await require('../utils/randevuLinki').randevuLinki(isletme); } catch (e) { /* linksiz menü */ }
+    }
+    const msg = botMesajlar.get(isletme, 'anaMenu', { musteriAd, isletmeAd: isletme.isim, link });
     return { metin: msg, butonlar: null };
   }
 
