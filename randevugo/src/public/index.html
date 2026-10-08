@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SıraGO — WhatsApp Randevu Sistemi | Online Randevu Yazılımı & Otomatik Randevu Botu</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#25D366">
   <meta name="description" content="SıraGO ile WhatsApp üzerinden 7/24 otomatik randevu alın. Türkiye'nin en akıllı online randevu takip yazılımı. Berber, kuaför, diş kliniği, psikolog ve tüm hizmet sektörleri için yapay zeka destekli randevu yönetim platformu.">
   <meta name="keywords" content="whatsapp randevu sistemi, online randevu yazılımı, otomatik randevu botu, randevu takip programı, randevu yönetim platformu, berber randevu sistemi, kuaför randevu yazılımı, diş kliniği randevu, psikolog randevu sistemi, güzellik salonu randevu, veteriner randevu, telegram randevu botu, yapay zeka randevu asistanı, SıraGO, işletme randevu yönetimi, online appointment booking, whatsapp appointment bot">
   <meta name="author" content="SıraGO">
   <meta name="robots" content="index, follow">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="canonical" href="https://xn--srago-n4a.com/">
 
   <!-- Open Graph / Facebook -->
@@ -316,6 +320,17 @@
     .bg-dark-950{background:#1b1a17!important}
     .bg-dark-950 .gt,.bg-dark-950 .gt-warm,.bg-dark-950 .gt-cool,.bg-dark-950 [class*="bg-clip-text"],.bg-dark-900 .gt{color:#8fd0ad!important}
   </style>
+
+  <style>
+    @keyframes foxFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
+    @keyframes foxIn{from{opacity:0;transform:translate(-40px,30px) scale(.8)}to{opacity:1;transform:none}}
+    @keyframes bubblePop{0%,8%{opacity:0;transform:scale(.6) translateY(8px)}14%,86%{opacity:1;transform:none}94%,100%{opacity:0;transform:scale(.9)}}
+    .fox-wrap{animation:foxIn .9s .9s cubic-bezier(.2,1.4,.4,1) both}
+    .fox-float{animation:foxFloat 4s ease-in-out infinite;filter:drop-shadow(0 18px 24px rgba(27,26,23,.25))}
+    .fox-bubble{animation:bubblePop 5s 1.8s ease-in-out infinite both;transform-origin:bottom left}
+    .logo-fox{transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+    a:hover>.logo-fox{transform:rotate(-8deg) scale(1.12)}
+  </style>
 </head>
 <body>
 
@@ -332,7 +347,7 @@
 <nav id="nav" class="fixed top-0 left-0 right-0 z-[100] h-20 flex items-center px-6 transition-all duration-500">
   <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
     <a href="#" class="flex items-center gap-2.5 group">
-      <span class="inline-grid place-items-center w-9 h-9 rounded-lg" style="background:#1b1a17;color:#f6f5f2;font-weight:600;font-size:17px" aria-label="SıraGO">S</span>
+      <img src="/img/tilki-ikon.webp" alt="SıraGO" width="44" height="44" class="logo-fox w-11 h-11 rounded-xl shadow-lg shadow-wa-500/25">
       <span class="text-xl font-extrabold tracking-tight text-dark-950">Sıra<span class="gt">GO</span></span>
     </a>
     <div class="hidden lg:flex items-center gap-1">
@@ -445,6 +460,11 @@
       <!-- RIGHT: Chat -->
       <div class="lg:w-[45%] anim-scale-in d5">
         <div class="relative max-w-[380px] mx-auto">
+          <!-- SıraGO maskotu -->
+          <div class="fox-wrap absolute z-40 -left-6 -bottom-10 w-28 sm:-left-36 sm:bottom-6 sm:w-44 pointer-events-none">
+            <div class="fox-bubble absolute -top-12 left-6 sm:-top-14 sm:left-10 whitespace-nowrap bg-white text-dark-950 text-xs sm:text-sm font-bold px-3 py-2 rounded-2xl rounded-bl-sm shadow-xl">Randevun hazır! ✅</div>
+            <img src="/img/tilki-maskot.webp" alt="SıraGO tilkisi" class="fox-float w-full" loading="eager">
+          </div>
           <!-- Glow behind phone -->
           <div class="absolute -inset-8 wa-g opacity-10 rounded-[3rem] blur-3xl anim-glow"></div>
 
@@ -458,8 +478,7 @@
               <div class="wa-g px-4 pt-8 pb-3">
                 <div class="flex items-center gap-3">
                   <span class="iconify text-white/70 text-lg" data-icon="mdi:arrow-left"></span>
-                  <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/20">
-                    <span class="iconify text-white text-xl" data-icon="mdi:robot-happy-outline"></span>
+                  <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/20"><img src="/img/tilki-ikon.webp" alt="" class="w-full h-full rounded-full object-cover">
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-white text-sm font-bold">SıraGO Asistan</p>
@@ -1145,7 +1164,7 @@
     <div class="grid md:grid-cols-5 gap-12 mb-16">
       <div class="md:col-span-2">
         <a href="#" class="flex items-center gap-2.5 mb-5">
-          <span class="inline-grid place-items-center w-9 h-9 rounded-lg" style="background:#1b1a17;color:#f6f5f2;font-weight:600;font-size:17px" aria-label="SıraGO">S</span>
+          <img src="/img/tilki-ikon.webp" alt="SıraGO" width="40" height="40" class="logo-fox w-10 h-10 rounded-xl">
           <span class="text-lg font-extrabold text-white">Sıra<span class="text-wa-400">GO</span></span>
         </a>
         <p class="text-sm text-dark-400 leading-relaxed mb-6 max-w-xs">WhatsApp öncelikli AI randevu asistanı. WhatsApp ve Telegram üzerinden otomatik randevu yönetimi ile işletmenizi büyütün.</p>
