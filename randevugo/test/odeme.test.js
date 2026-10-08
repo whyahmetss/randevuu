@@ -36,7 +36,7 @@ test('bitiş hatırlatması: 3 gün kala link gider, aynı aşama tekrar gitmez,
   assert.strictEqual(await o.hatirlatmalariGonder({ gonder }), 1);
   assert.strictEqual(giden[0][0], '905321112233');
   assert.match(giden[0][1], /ücretsiz denemeniz/);
-  assert.match(giden[0][1], /699₺/);
+  assert.match(giden[0][1], /499₺/);
   assert.match(giden[0][1], /\/api\/odeme\/ode\//);
   assert.strictEqual(await o.hatirlatmalariGonder({ gonder }), 0);
 
