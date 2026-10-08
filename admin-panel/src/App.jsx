@@ -7,6 +7,7 @@ import Kasa from "./components/Kasa/Kasa";
 import LiteBugun from "./components/Lite/LiteBugun";
 import KurulumKarti from "./components/Kurulum/KurulumKarti";
 import Buyume from "./components/Buyume/Buyume";
+import EsnafGetir from "./components/Davet/EsnafGetir";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -141,7 +142,9 @@ function Login({ onLogin }) {
   const [sifre, setSifre] = useState("");
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
-  const [ekran, setEkran] = useState("giris"); // giris | kayit
+  // Davet linki: ?davet=KOD (&k=randevu_sayfasi) → doğrudan kayıt ekranı, kod otomatik
+  const davetParam = (() => { try { const q = new URLSearchParams(window.location.search); return { kod: q.get("davet") || "", kanal: q.get("k") === "randevu_sayfasi" ? "randevu_sayfasi" : "davet" }; } catch { return { kod: "", kanal: "web" }; } })();
+  const [ekran, setEkran] = useState(davetParam.kod ? "kayit" : "giris"); // giris | kayit
   const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "" });
 
   const giris = async (e) => {
@@ -163,10 +166,11 @@ function Login({ onLogin }) {
     e.preventDefault();
     setHata("");
     if (!kayitForm.isletmeAdi || !kayitForm.email || !kayitForm.sifre) return setHata("Tüm alanları doldurun");
-    if (kayitForm.sifre.length < 6) return setHata("Şifre en az 6 karakter olmalı");
+    if (kayitForm.sifre.length < 8) return setHata("Şifre en az 8 karakter olmalı");
     if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
     setYukleniyor(true);
-    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre, kayitKanal: "web" });
+    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: davetParam.kod || undefined });
     if (data.basarili) {
       setHata("");
       setEkran("giris");
@@ -244,6 +248,11 @@ function Login({ onLogin }) {
           ) : (
             <>
               <form onSubmit={kayitOl}>
+                {davetParam.kod && (
+                  <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(31,111,74,.08)", color: "#1f6f4a", fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                    🎁 Bir esnaf sizi davet etti — 14 gün ücretsiz, kart istemiyoruz.
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">İşletme Adı</label>
                   <input type="text" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} onChange={e => setKayitForm(p => ({ ...p, isletmeAdi: e.target.value }))} className="input" />
@@ -254,7 +263,7 @@ function Login({ onLogin }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre</label>
-                  <input type="password" placeholder="En az 6 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
+                  <input type="password" placeholder="En az 8 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre Tekrar</label>
@@ -895,6 +904,7 @@ function Dashboard({ kullanici }) {
   const [musteriler, setMusteriler] = useState([]);
   const [ayarlar, setAyarlar] = useState(null);
   const [paketDurum, setPaketDurum] = useState(null);
+  const [oncu, setOncu] = useState(null);   // Öncü Esnaf: { no, kalan, kilitli_fiyat }
   const [testMesaj, setTestMesaj] = useState("");
   const [testCevaplar, setTestCevaplar] = useState([]);
   const [testTelefon] = useState("05531112233");
@@ -965,6 +975,7 @@ function Dashboard({ kullanici }) {
     api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
     api.get("/yorum-avcisi/istatistik").then(d => { if (!d?.hata) setYorumIstat(d); }).catch(() => {});
     api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
+    api.get("/oncu").then(d => { if (d && !d.hata) setOncu(d); }).catch(() => {});
     // Bildirimler
     api.get("/bildirimler?limit=5").then(d => setBildirimler(d.bildirimler || [])).catch(() => {});
     api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
@@ -1243,7 +1254,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1305,6 +1316,7 @@ function Dashboard({ kullanici }) {
     { type: 'flat', items: [
       { id: "geceraporu", icon: ICON.gece, label: "Gece Raporu", featureKey: "gece_raporu" },
       { id: "grup", icon: ICON.sube, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['admin', 'isletme', 'grup_sahibi'] },
+      { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
@@ -1323,6 +1335,7 @@ function Dashboard({ kullanici }) {
     { type: 'flat', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
       { id: "qrkod", icon: ICON.qr, label: "Randevu Linki & QR" },
+      { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
@@ -1728,6 +1741,7 @@ function Dashboard({ kullanici }) {
 
           {/* ── DASHBOARD ── */}
           {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
+          {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
           {sayfa === "anasayfa" && liteMod && (
             <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
@@ -3289,6 +3303,15 @@ function Dashboard({ kullanici }) {
               <h2>Paketler</h2>
               <button onClick={() => setPaketModal(false)} className="modal-close">✕</button>
             </div>
+            {oncu?.no ? (
+              <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14, fontWeight: 600 }}>
+                🏆 Öncü Esnaf #{oncu.no} — {oncu.kilitli_fiyat ? `fiyatınız ömür boyu ${Number(oncu.kilitli_fiyat).toLocaleString("tr-TR")}₺` : "fiyatınız ömür boyu sabit"}
+              </div>
+            ) : oncu?.kalan > 0 ? (
+              <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14 }}>
+                <b>🏆 Öncü Esnaf: son {oncu.kalan} yer.</b> İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır — zam gelse bile.
+              </div>
+            ) : null}
             <div className="price-grid-modal">
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },

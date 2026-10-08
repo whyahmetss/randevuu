@@ -216,6 +216,14 @@ router.get('/admin/karsilastirma', authMiddleware, superAdminMiddleware, (req, r
 router.get('/admin/segmentasyon', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriSegmentasyon(req, res));
 
 // ==================== İŞLETME ONBOARDING ====================
+router.get('/davet', authMiddleware, async (req, res) => {
+  try { res.json(await require('../utils/davet').davetBilgi(req.kullanici.isletme_id)); }
+  catch (e) { res.status(500).json({ hata: e.message }); }
+});
+router.get('/oncu', authMiddleware, async (req, res) => {
+  try { res.json(await require('../utils/oncu').oncuDurum(req.kullanici.isletme_id)); }
+  catch (e) { res.status(500).json({ hata: e.message }); }
+});
 router.get('/kurulum', authMiddleware, async (req, res) => {
   try {
     const d = await require('../services/kurulum').kurulumDurum(req.kullanici.isletme_id);

@@ -76,8 +76,10 @@ class ShopierService {
       merkez = (await pool.query('SELECT * FROM isletmeler WHERE grup_id = $1 ORDER BY id LIMIT 1', [isletme.grup_id])).rows[0] || isletme;
     }
     const secilenPaket = (paketIstek && FALLBACK_PAKETLER[paketIstek]) ? paketIstek : (merkez.paket || 'baslangic');
-    const paketBilgi = await paketGetir(secilenPaket);
+    const paketBilgi = { ...(await paketGetir(secilenPaket)) };
     if (!(paketBilgi.fiyat > 0)) throw new Error('Paket fiyatı tanımsız');
+    // Öncü Esnaf: kilitli paket için kilitli fiyat
+    paketBilgi.fiyat = require('../utils/oncu').etkinFiyat(merkez, secilenPaket, paketBilgi.fiyat);
     const buAy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
     const refKod = `SRGO-${merkez.id}`;
     const paketLabel = paketBilgi.isim || secilenPaket;
@@ -274,7 +276,8 @@ class ShopierService {
         try {
           const { paketGetir } = require('../config/paketler');
           const p = await paketGetir(bekleyenPaket);
-          if (tutar + 1 >= (p.fiyat || 0)) yeniPaket = bekleyenPaket;
+          const isl = (await pool.query('SELECT oncu_no, kilitli_paket, kilitli_fiyat FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+          if (tutar + 1 >= require('../utils/oncu').etkinFiyat(isl, bekleyenPaket, p.fiyat || 0)) yeniPaket = bekleyenPaket;
           else console.warn(`⚠️ Shopier tutarı (${tutar}) ${bekleyenPaket} fiyatından (${p.fiyat}) düşük — paket değiştirilmedi`);
         } catch (e) {}
       }
@@ -284,6 +287,14 @@ class ShopierService {
            aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL WHERE id = $1`,
         [isletmeId, yeniPaket]
       );
+
+      // Öncü Esnaf: ilk 100 ödeyenin paketi ve o günkü fiyatı kilitlenir
+      try {
+        const { paketGetir } = require('../config/paketler');
+        const son = (await pool.query('SELECT paket FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+        const no = await require('../utils/oncu').oncuOdeme(isletmeId, son.paket, (await paketGetir(son.paket)).fiyat);
+        if (no) console.log(`🏆 Öncü Esnaf #${no}: işletme ${isletmeId}`);
+      } catch (e) { console.error('Öncü atama hatası:', e.message); }
 
       require('./odemeOtomasyon').odemeAlindiBildir(isletmeId, tutar);
 

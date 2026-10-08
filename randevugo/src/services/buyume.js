@@ -1,19 +1,21 @@
 // Büyüme ekranı (2026-10-08): esnaflar hangi kanaldan geliyor, kaçı kuruyor, kaçı ödüyor.
-// Yeni kolon yok: kanal mevcut veriden çıkarılır (Telegram tg_ telefonu, Venüs demosu, satış botu
+// Kanal: kayit_kanali (randevu sayfası / davet) ya da mevcut veriden (Telegram tg_ telefonu, Venüs demosu, satış botu
 // konuşması, referans kodu; kalanı web/panel).
 const pool = require('../config/db');
 
-const KANAL_AD = { whatsapp: 'WhatsApp satış botu', demo: 'Kişisel demo (Venüs)', telegram: 'Telegram botu', referans: 'Referans', web: 'Web sitesi / panel' };
+const KANAL_AD = { whatsapp: 'WhatsApp satış botu', demo: 'Kişisel demo (Venüs)', telegram: 'Telegram botu', referans: 'Esnaf daveti',
+  randevu_sayfasi: 'Randevu sayfası (müşteriden)', web: 'Web sitesi / panel' };
 
 async function buyumeRaporu(gun = 30) {
   gun = Math.min(Math.max(parseInt(gun) || 30, 1), 365);
   const rows = (await pool.query(`
     SELECT i.id,
       CASE
+        WHEN i.kayit_kanali = 'randevu_sayfasi' THEN 'randevu_sayfasi'
         WHEN i.telefon LIKE 'tg\_%' THEN 'telegram'
         WHEN i.demo_lead_id IS NOT NULL THEN 'demo'
         WHEN EXISTS (SELECT 1 FROM satis_konusmalar k WHERE k.kayit_isletme_id = i.id) THEN 'whatsapp'
-        WHEN COALESCE(i.referans_kodu, '') <> '' THEN 'referans'
+        WHEN i.referans_ile_gelen IS NOT NULL OR i.kayit_kanali = 'davet' THEN 'referans'
         ELSE 'web' END AS kanal,
       (EXISTS (SELECT 1 FROM hizmetler h WHERE h.isletme_id = i.id)
         AND EXISTS (SELECT 1 FROM calisanlar c WHERE c.isletme_id = i.id)

@@ -29,6 +29,7 @@ test('bitiş hatırlatması: 3 gün kala link gider, aynı aşama tekrar gitmez,
       ('Merkez', '905321112235', 'proplus', NOW() + INTERVAL '30 days', false, 9),
       ('Şube', '905321112236', 'proplus', NOW() + INTERVAL '2 days 20 hours', false, 9);`);
   await db.exec(fs.readFileSync(SRC + '/migrations/027_odeme_hatirlatma.sql', 'utf8'));
+  await db.exec(fs.readFileSync(SRC + '/migrations/029_davet_oncu.sql', 'utf8'));
   const o = require(SRC + '/services/odemeOtomasyon');
   const giden = [];
   const gonder = async (tel, m) => { giden.push([tel, m]); return { success: true }; };
