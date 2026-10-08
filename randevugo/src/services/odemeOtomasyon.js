@@ -45,7 +45,7 @@ async function hatirlatmalariGonder({ gonder, simdi = new Date() } = {}) {
   if (!gonder && (saat < 10 || saat >= 20)) return 0;
   const gonderFn = gonder || ((tel, m) => require('./merkezOtpBot').mesajGonder(tel, m));
   const adaylar = (await pool.query(`
-    SELECT i.id, i.isim, i.telefon, i.paket,
+    SELECT i.id, i.isim, i.telefon, i.paket, i.oncu_no, i.kilitli_paket, i.kilitli_fiyat,
       GREATEST(COALESCE(i.deneme_bitis_tarihi, 'epoch'), COALESCE(i.paket_bitis_tarihi, 'epoch')) AS bitis,
       (i.paket_bitis_tarihi IS NULL OR i.paket_bitis_tarihi < COALESCE(i.deneme_bitis_tarihi, 'epoch')) AS deneme
     FROM isletmeler i
@@ -64,7 +64,8 @@ async function hatirlatmalariGonder({ gonder, simdi = new Date() } = {}) {
     if (!kayit.rows.length) continue;
     const p = await paketGetir(a.paket);
     if (!(p.fiyat > 0)) continue;
-    const metin = asama.metin({ isim: a.isim, deneme: a.deneme, tarih: tarih(a.bitis), paketAd: p.isim, fiyat: p.fiyat });
+    const fiyat = require('../utils/oncu').etkinFiyat(a, a.paket, p.fiyat);
+    const metin = asama.metin({ isim: a.isim, deneme: a.deneme, tarih: tarih(a.bitis), paketAd: p.isim, fiyat });
     const sonuc = await gonderFn(a.telefon, `${metin}\n${odemeLinki(a.id, a.paket)}`);
     if (sonuc?.success) {
       n++;

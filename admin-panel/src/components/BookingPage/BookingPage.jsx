@@ -1032,6 +1032,12 @@ export default function BookingPage({ slug }) {
             <span className="bk-footer-logo">S</span>
             {t('poweredBy')}
           </a>
+          {/* Ürün kendini dağıtsın: sayfayı açan esnaf da kurabilsin; kayıt bu işletmenin davetine bağlanır */}
+          {isletme?.davet_kodu && dil === 'tr' && (
+            <a className="bk-footer-cta" href={`https://admin.xn--srago-n4a.com/?davet=${encodeURIComponent(isletme.davet_kodu)}&k=randevu_sayfasi`} target="_blank" rel="noopener">
+              İşletmeniz için ücretsiz kurun →
+            </a>
+          )}
         </div>
 
       </div>

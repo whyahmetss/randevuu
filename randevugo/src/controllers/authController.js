@@ -43,7 +43,7 @@ class AuthController {
   // Bot üzerinden kayıt (WP/TG bot çağırır)
   async botKayit(req, res) {
     try {
-      const { isletmeAdi, email, sifre, telefon, kayitKanal, referans_kodu } = req.body;
+      const { isletmeAdi, email, sifre, telefon, kayitKanal, referans_kodu, davet } = req.body;
       if (!isletmeAdi || !email || !sifre) {
         return res.status(400).json({ hata: 'İşletme adı, email ve şifre zorunlu' });
       }
@@ -78,18 +78,23 @@ class AuthController {
         [isletmeAdi, email, hashSifre, isletme.id]
       )).rows[0];
 
-      // Referans kodu varsa sadece kaydet — ödül ilk ödeme anında verilecek (suistimal koruması)
+      // Davet/referans kodu varsa yalnız bağla — ödül davet edilen ilk ödemesini yapınca (suistimal koruması)
       let referansMesaj = '';
-      if (referans_kodu) {
+      const davetKod = davet || referans_kodu;
+      const { davetUygula, KANALLAR } = require('../utils/davet');
+      if (davetKod) {
         try {
-          const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referans_kodu.toUpperCase()])).rows[0];
-          if (ref) {
-            await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
-            await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, isletme.id]);
-            referansMesaj = ` (Referans: ${referans_kodu} kaydedildi — ödül ilk ödeme sonrası verilecek)`;
-            console.log(`🤝 Referans kaydedildi (ödül beklemede): ${referans_kodu}, yeni: ${isletme.id}, sahip: ${ref.sahip_isletme_id}`);
+          const sahip = await davetUygula(davetKod, isletme.id);
+          if (sahip) {
+            referansMesaj = ` (Davet: ${String(davetKod).toUpperCase()} kaydedildi — ödül ilk ödeme sonrası)`;
+            console.log(`🤝 Davet kaydedildi: yeni #${isletme.id}, davet eden #${sahip}`);
           }
-        } catch(e) { console.error('Referans uygulama hatası:', e.message); }
+        } catch(e) { console.error('Davet uygulama hatası:', e.message); }
+      }
+      // Kayıt kanalı (Büyüme ekranı): randevu sayfasından mı, davet linkinden mi, düz web mi
+      const kanal = KANALLAR.includes(kayitKanal) ? kayitKanal : null;
+      if (kanal) {
+        try { await pool.query('UPDATE isletmeler SET kayit_kanali = $1 WHERE id = $2', [davetKod && kanal === 'web' ? 'davet' : kanal, isletme.id]); } catch (e) { /* kolon yoksa */ }
       }
 
       console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}${referansMesaj}`);
