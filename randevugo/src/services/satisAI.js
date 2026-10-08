@@ -1,5 +1,5 @@
-// Satış botunun yapay zekâsı (Claude). Kullanıcı kararı 2026-10-08: bot gibi değil gerçek bir temsilci gibi
-// konuşsun, parça parça yazan esnafı doğru anlasın. ANTHROPIC_API_KEY yoksa null döner → DeepSeek / kural yedeği.
+// Satış botunun yapay zekâsı (Claude → Gemini → DeepSeek yedekli). Kullanıcı kararı 2026-10-08: bot gibi değil gerçek bir temsilci gibi
+// konuşsun, parça parça yazan esnafı doğru anlasın. Hiçbir anahtar yoksa null döner → kural yedeği.
 const AnthropicSDK = require('@anthropic-ai/sdk');
 const Anthropic = AnthropicSDK.default || AnthropicSDK;
 const { z } = require('zod');
@@ -17,7 +17,7 @@ const Cevap = z.object({
 
 let _istemci = null;
 const istemci = () => (process.env.ANTHROPIC_API_KEY ? (_istemci ||= new Anthropic()) : null);
-const aktifMi = () => !!process.env.ANTHROPIC_API_KEY;
+const aktifMi = () => !!(process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || process.env.DEEPSEEK_API_KEY);
 
 // Sabit kısım (önbelleğe alınır): kim olduğu, nasıl yazdığı, ürünün gerçekleri
 const SISTEM = `Sen SıraGO'nun WhatsApp satış temsilcisisin. Türkiye'deki berber, kuaför, güzellik salonu, klinik gibi
@@ -85,10 +85,77 @@ function gecmistenMesajlar(gecmisMetin, sonMusteriMesaji) {
   return out.slice(-30);                                              // son ~30 tur yeterli
 }
 
-// { mesajlar, durum, arama_istiyor } | null  (null → çağıran yedeğe düşer)
+// Gemini / DeepSeek için JSON çıktı talimatı (Claude'da şema zaten zorunlu)
+const JSON_TALIMAT = `
+
+ÇIKTI: Yalnız şu JSON'u döndür, başka hiçbir şey yazma:
+{"mesajlar": ["1-3 kısa WhatsApp mesajı"], "durum": "olumlu|olumsuz|bekliyor|sicak", "arama_istiyor": true|false}`;
+
+function temizle(ham) {
+  try {
+    const t = String(ham || '').replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
+    const p = Cevap.safeParse(JSON.parse(t));
+    if (!p.success) return null;
+    const mesajlar = p.data.mesajlar.map(m => String(m).trim()).filter(Boolean).slice(0, 3);
+    return mesajlar.length ? { ...p.data, mesajlar } : null;
+  } catch (e) { return null; }
+}
+
+async function geminiCevap(sistem, messages) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: sistem + JSON_TALIMAT }] },
+        contents: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
+        generationConfig: {
+          temperature: 0.7, maxOutputTokens: 1500, responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              mesajlar: { type: 'ARRAY', items: { type: 'STRING' } },
+              durum: { type: 'STRING', enum: ['olumlu', 'olumsuz', 'bekliyor', 'sicak'] },
+              arama_istiyor: { type: 'BOOLEAN' },
+            },
+            required: ['mesajlar', 'durum', 'arama_istiyor'],
+          },
+        },
+      }),
+    });
+    if (!r.ok) { console.error('Satış AI (Gemini) hatası', r.status); return null; }
+    const j = await r.json();
+    return temizle(j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join(''));
+  } catch (e) { console.error('Satış AI (Gemini) hatası:', e.message); return null; }
+}
+
+async function deepseekCevap(sistem, messages) {
+  const key = process.env.DEEPSEEK_API_KEY;
+  if (!key) return null;
+  try {
+    const r = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(30000),
+      body: JSON.stringify({
+        model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+        temperature: 0.7, max_tokens: 1000, response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: sistem + JSON_TALIMAT }, ...messages],
+      }),
+    });
+    if (!r.ok) { console.error('Satış AI (DeepSeek) hatası', r.status); return null; }
+    const j = await r.json();
+    return temizle(j.choices?.[0]?.message?.content);
+  } catch (e) { console.error('Satış AI (DeepSeek) hatası:', e.message); return null; }
+}
+
+// { mesajlar, durum, arama_istiyor } | null. Sıra: Claude → Gemini → DeepSeek (anahtarı olan);
+// biri çökerse ya da bozuk cevap verirse sıradaki devreye girer. Hepsi null → kural yedeği.
 async function cevapUret({ konusma, paketListesi, sonMesaj }) {
-  const c = istemci();
-  if (!c) return null;
   const messages = gecmistenMesajlar(konusma.gelen_mesajlar, sonMesaj);
   if (!messages.length) return null;
   const baglam = [
@@ -98,6 +165,19 @@ async function cevapUret({ konusma, paketListesi, sonMesaj }) {
       : 'Bu kişi bize kendisi yazdı (biz önce yazmadık).',
     `PAKETLER:\n${paketListesi || '(fiyat bilgisi yok — fiyat sorulursa sitede yazdığını söyle)'}`,
   ].join('\n\n');
+  const sirali = (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek').split(',').map(x => x.trim());
+  for (const ad of sirali) {
+    const sonuc = ad === 'claude' ? await claudeCevap(baglam, messages)
+      : ad === 'gemini' ? await geminiCevap(SISTEM + '\n\n' + baglam, messages)
+      : ad === 'deepseek' ? await deepseekCevap(SISTEM + '\n\n' + baglam, messages) : null;
+    if (sonuc) return sonuc;
+  }
+  return null;
+}
+
+async function claudeCevap(baglam, messages) {
+  const c = istemci();
+  if (!c) return null;
   try {
     const r = await c.messages.parse({
       model: MODEL,
