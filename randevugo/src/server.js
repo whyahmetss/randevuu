@@ -1002,18 +1002,49 @@ app.use('/api', apiLimiter, apiRoutes);
 // innerHTML içeriyordu. QR (randevu.sırago.com), Google Business (onrender) ve diğer tüm
 // /book linkleri tek React rezervasyon sayfasına yönlenir.
 const BOOKING_BASE_URL = (process.env.BOOKING_BASE_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '');
-app.get('/book/:slug', (req, res) => {
-  res.redirect(302, `${BOOKING_BASE_URL}/book/${encodeURIComponent(req.params.slug)}`);
+// Randevu sayfası randevu.sırago.com adresinde KALIR: yönlendirme yerine panel sitesindeki React
+// uygulamasını buradan sunuyoruz. (Eskiden admin.sırago.com/book/… adresine 302 atılıyordu; Render
+// statik sitesi _redirects okumadığı için doğrudan açılan link 404 veriyordu, adres de admin'e dönüyordu.)
+let _spa = { t: 0, html: null };
+const _varlik = new Map();   // hash'li dosyalar değişmez → bellekte tut (en fazla 40)
+async function spaHtml() {
+  if (_spa.html && Date.now() - _spa.t < 5 * 60 * 1000) return _spa.html;
+  const r = await fetch(`${BOOKING_BASE_URL}/`, { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error(`SPA ${r.status}`);
+  _spa = { t: Date.now(), html: await r.text() };
+  return _spa.html;
+}
+async function spaSun(req, res) {
+  try {
+    res.set('Cache-Control', 'no-cache').type('html').send(await spaHtml());
+  } catch (e) {
+    console.error('Randevu sayfası sunulamadı, yönlendiriliyor:', e.message);
+    res.redirect(302, `${BOOKING_BASE_URL}${req.path}`);
+  }
+}
+app.get('/assets/:dosya', async (req, res) => {
+  const ad = req.params.dosya;
+  if (!/^[\w.-]+$/.test(ad)) return res.status(404).end();
+  try {
+    let v = _varlik.get(ad);
+    if (!v) {
+      const r = await fetch(`${BOOKING_BASE_URL}/assets/${ad}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return res.status(r.status).end();
+      v = { tip: r.headers.get('content-type') || 'application/octet-stream', veri: Buffer.from(await r.arrayBuffer()) };
+      if (_varlik.size >= 40) _varlik.delete(_varlik.keys().next().value);
+      _varlik.set(ad, v);
+    }
+    res.set('Content-Type', v.tip).set('Cache-Control', 'public, max-age=31536000, immutable').send(v.veri);
+  } catch (e) { res.status(502).end(); }
 });
+app.get('/book/:slug', spaSun);
 
 // Mağaza öneri linki — /m/:kod (tıklanmayı sayar, tedarikçinin ürün sayfasına yönlendirir)
 const magazaLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: 'Çok fazla istek', keyGenerator: limitAnahtari });
 app.get('/m/:kod', magazaLimiter, (req, res) => require('./controllers/magazaController').yonlendir(req, res));
 
 // Grup Booking sayfası — /g/:slug
-app.get('/g/:slug', (req, res) => {
-  res.redirect(302, `${BOOKING_BASE_URL}/g/${encodeURIComponent(req.params.slug)}`);
-});
+app.get('/g/:slug', spaSun);
 
 // Ana sayfa - Landing page
 app.get('/', (req, res) => {
