@@ -661,8 +661,12 @@ class AdminController {
         'google_maps_reserve_url','musteri_formu',
         // Güvenlik & Koruma v2
         'booking_acik','otp_zorunlu','no_show_otomatik','teyit_zincir_iptal',
-        'dusuk_skor_manuel_onay','ip_gunluk_limit','skor_esigi'
+        'dusuk_skor_manuel_onay','ip_gunluk_limit','skor_esigi',
+        'panel_modu'
       ];
+      if (req.body.panel_modu !== undefined && ![null, 'lite', 'pro'].includes(req.body.panel_modu)) {
+        return res.status(400).json({ hata: 'Geçersiz panel görünümü' });
+      }
       const jsonAlanlar = ['mola_saatleri','musteri_formu'];
       const setClauses = [];
       const values = [];

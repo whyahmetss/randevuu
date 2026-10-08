@@ -4,6 +4,7 @@ import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoFull from "./assets/logo2.png";
 import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
+import LiteBugun from "./components/Lite/LiteBugun";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -1230,7 +1231,7 @@ function Dashboard({ kullanici }) {
   // Menü grupları — hiyerarşik yapı
   // type: 'flat' = divider'lar arasında direkt item'lar
   // type: 'group' = açılır/kapanır accordion
-  const menuGroups = [
+  const tamMenu = [
     { type: 'flat', items: [
       { id: "anasayfa", icon: SVG.dashboard, label: "Dashboard" },
       { id: "randevular", icon: SVG.randevular, label: "Randevular" },
@@ -1262,6 +1263,25 @@ function Dashboard({ kullanici }) {
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
   ];
+
+  // SıraGO Lite (kullanıcı kararı 2026-10-08): esnafın önünde yalnız günlük iş. NULL → pakete göre.
+  const proPaket = ['proplus', 'kurumsal', 'premium'].includes(paketDurum?.paket);
+  const liteMod = ayarlar?.panel_modu ? ayarlar.panel_modu === 'lite' : (paketDurum ? !proPaket : false);
+  const liteMenu = [
+    { type: 'flat', items: [
+      { id: "anasayfa", icon: SVG.dashboard, label: "Bugün" },
+      { id: "randevular", icon: SVG.randevular, label: "Randevular" },
+      { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler & Fiyatlar" },
+      { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+    ]},
+    { type: 'flat', items: [
+      { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
+      { id: "qrkod", icon: ICON.qr, label: "Randevu Linki & QR" },
+      { id: "destek", icon: ICON.destek, label: "Destek" },
+      { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
+    ]},
+  ];
+  const menuGroups = liteMod ? liteMenu : tamMenu;
 
   // Rol bazlı gizlenen sayfalar (sube_muduru için)
   const subeMuduruGizli = ['finans','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
@@ -1452,7 +1472,7 @@ function Dashboard({ kullanici }) {
       <div className="main-wrap">
         <div className="top-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{sayfaBaslik[sayfa]}</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{liteMod && sayfa === "anasayfa" ? "Bugün" : sayfaBaslik[sayfa]}</h1>
             {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
           </div>
           <div className="top-bar-right" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -1661,7 +1681,10 @@ function Dashboard({ kullanici }) {
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
-          {sayfa === "anasayfa" && (() => {
+          {sayfa === "anasayfa" && liteMod && (
+            <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
+          )}
+          {sayfa === "anasayfa" && !liteMod && (() => {
             const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
             const haftaRandevu = stats?.hafta?.toplam_randevu || 0;
             const toplamMusteri = stats?.toplam_musteri || 0;
@@ -2990,6 +3013,23 @@ function Dashboard({ kullanici }) {
           )}
 
           {/* ── AYARLAR ── */}
+          {sayfa === "ayarlar" && ayarlar && (
+            <div className="card" style={{ padding: 18, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <b>Panel görünümü: {liteMod ? "Sade (Lite)" : "Tam (Pro)"}</b>
+                <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 4 }}>
+                  {liteMod ? "Sadece günlük iş: bugünkü randevular, WhatsApp, fiyatlar. Kasa, pazarlama ve raporlar gizli."
+                           : "Tüm modüller açık: kasa, finans, pazarlama, raporlar, şubeler."}
+                </div>
+              </div>
+              <button className="btn btn-secondary" onClick={async () => {
+                const mod = liteMod ? "pro" : "lite";
+                const d = await api.put("/ayarlar", { panel_modu: mod });
+                if (!d?.hata) { setAyarlar(a => ({ ...a, panel_modu: mod })); setSayfa("anasayfa"); }
+                else alert(d.hata);
+              }}>{liteMod ? "Tüm özellikleri göster" : "Sade görünüme geç"}</button>
+            </div>
+          )}
           {sayfa === "ayarlar" && (
             <Settings ayarlar={ayarlar} setAyarlar={setAyarlar} paketDurum={paketDurum} api={api} />
           )}

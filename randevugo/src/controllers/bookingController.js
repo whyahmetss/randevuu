@@ -37,7 +37,7 @@ class BookingController {
       const isletme = (await pool.query(
         `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
-                google_maps_reserve_url, booking_acik, telegram_token
+                google_maps_reserve_url, booking_acik, telegram_token, demo
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
         [slug]
       )).rows[0];
@@ -45,6 +45,8 @@ class BookingController {
       if (!isletme) {
         return res.status(404).json({ hata: 'İşletme bulunamadı' });
       }
+      // Venüs demosu: esnaf sayfayı açtı → sayaç (Venüs uyarısı buradan)
+      if (isletme.demo) require('../services/demo').demoGoruntulendi(isletme.id);
 
       // Booking Gate — henüz aktif değilse özel response
       if (!isletme.booking_acik) {

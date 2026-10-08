@@ -50,7 +50,7 @@ class OdemeService {
 
     const isletmeler = (await pool.query(
       // Deneme süresindekiler hariç: onlara 'bekliyor' kaydı açılınca panelde 'Ödenmedi' görünüyordu
-      `SELECT * FROM isletmeler WHERE aktif = true AND (deneme_bitis_tarihi IS NULL OR deneme_bitis_tarihi <= NOW())`
+      `SELECT * FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE AND (deneme_bitis_tarihi IS NULL OR deneme_bitis_tarihi <= NOW())`
     )).rows;
 
     let olusturulan = 0;
