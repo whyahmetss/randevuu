@@ -85,6 +85,18 @@ router.delete('/kara-liste/:id', authMiddleware, (req, res) => adminController.k
 // Güvenlik & Koruma istatistikleri
 router.get('/guvenlik/istatistik', authMiddleware, (req, res) => adminController.guvenlikIstatistik(req, res));
 router.get('/guvenlik/son-olaylar', authMiddleware, (req, res) => adminController.guvenlikSonOlaylar(req, res));
+// Tanıtım sitesi fiyatları buradan okur: panelden değişen fiyat sitede de güncellenir
+router.get('/paketler/fiyatlar', async (req, res) => {
+  try {
+    const paketler = await require('../config/paketler').paketleriYukle();
+    const fiyatlar = {};
+    for (const k of ['baslangic', 'profesyonel', 'proplus', 'kurumsal']) {
+      const f = parseFloat(paketler[k]?.fiyat);
+      if (f > 0) fiyatlar[k] = f;
+    }
+    res.set('Cache-Control', 'public, max-age=300').json({ fiyatlar });
+  } catch (e) { res.status(500).json({ hata: 'Fiyatlar alınamadı' }); }
+});
 router.get('/paket', authMiddleware, (req, res) => adminController.paketBilgisi(req, res));
 router.get('/bot/durum', authMiddleware, (req, res) => adminController.botDurum(req, res));
 router.put('/bot/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.botAyarlarGuncelle(req, res));

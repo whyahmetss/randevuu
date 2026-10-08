@@ -34,7 +34,7 @@ const FALLBACK_PAKETLER = {
   },
   profesyonel: {
     isim: 'Standart',
-    fiyat: 699,
+    fiyat: 499,
     calisan_limit: 5,
     hizmet_limit: 50,
     aylik_randevu_limit: 99999,
@@ -65,7 +65,7 @@ const FALLBACK_PAKETLER = {
       '3 Dil Desteği',
     ]
   },
-  // Pro+ (kullanıcı kararı 2026-10-08): Standart (699) ile Kurumsal (4999) arası 7 kat sıçrama yerine
+  // Pro+ (kullanıcı kararı 2026-10-08): Standart (499; 2026-10-09'a kadar 699) ile Kurumsal (4999) arası 7 kat sıçrama yerine
   proplus: {
     isim: 'Pro+',
     fiyat: 1499,
