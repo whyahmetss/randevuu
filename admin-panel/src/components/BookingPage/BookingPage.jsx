@@ -589,8 +589,10 @@ export default function BookingPage({ slug }) {
                       </div>
                     </div>
                     <div className="bk-item-price">
-                      <span className="bk-price-num">{Number(h.fiyat).toLocaleString(locale)}</span>
-                      <span className="bk-price-lira">₺</span>
+                      {Number(h.fiyat) > 0 ? (<>
+                        <span className="bk-price-num">{Number(h.fiyat).toLocaleString(locale)}</span>
+                        <span className="bk-price-lira">₺</span>
+                      </>) : <span className="bk-price-lira" style={{ fontSize: 12 }}>{locale === 'tr-TR' || locale === 'tr' ? 'fiyat dükkanda' : '—'}</span>}
                     </div>
                   </button>
                 );
@@ -946,7 +948,7 @@ export default function BookingPage({ slug }) {
                   <span className="bk-summary-val">
                     {h.isim}
                     <span style={{ opacity: 0.6, marginLeft: 8 }}>
-                      {h.sure_dk}{t('minutes')} • {Number(h.fiyat).toLocaleString(locale)}₺
+                      {h.sure_dk}{t('minutes')}{Number(h.fiyat) > 0 ? ` • ${Number(h.fiyat).toLocaleString(locale)}₺` : ''}
                     </span>
                   </span>
                 </div>
@@ -1030,6 +1032,12 @@ export default function BookingPage({ slug }) {
             <span className="bk-footer-logo">S</span>
             {t('poweredBy')}
           </a>
+          {/* Ürün kendini dağıtsın: sayfayı açan esnaf da kurabilsin; kayıt bu işletmenin davetine bağlanır */}
+          {isletme?.davet_kodu && dil === 'tr' && (
+            <a className="bk-footer-cta" href={`https://admin.xn--srago-n4a.com/?davet=${encodeURIComponent(isletme.davet_kodu)}&k=randevu_sayfasi`} target="_blank" rel="noopener">
+              İşletmeniz için ücretsiz kurun →
+            </a>
+          )}
         </div>
 
       </div>

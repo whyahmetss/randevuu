@@ -15,6 +15,11 @@ const STILLER = {
 const tr = {
   anaMenu: (s, p) => {
     const selam = p.musteriAd ? ` ${p.musteriAd}` : '';
+    // Randevu linki varsa önce tek dokunuşla randevu; numaralı menü yazışmayı seven için kalır
+    if (p.link) {
+      const giris = s.kisa ? `Merhaba${selam}!\n*${p.isletmeAd}*` : `Merhaba${selam}!${s.emoji ? ' 👋' : ''}\n*${p.isletmeAd}*'e hoş geldiniz.`;
+      return `${giris}\n\n${s.emoji ? '📅 ' : ''}*Hemen randevu alın (tek dokunuş):*\n${p.link}\n\nYa da yazarak seçin:\n*1.* Randevu Al\n*2.* Randevularım\n*3.* Randevu İptal`;
+    }
     if (s.kisa) return `Merhaba${selam}!\n*${p.isletmeAd}*\n\n*1.* Randevu Al\n*2.* Randevularım\n*3.* İptal`;
     if (!s.emoji) return `Merhaba${selam}, *${p.isletmeAd}*'e hoş geldiniz.\n\nSize nasıl yardımcı olabiliriz?\n\n*1.* Randevu Al\n*2.* Randevularım\n*3.* Randevu İptal\n\nNumara yazarak seçiniz.`;
     return `Merhaba${selam}! 👋\n*${p.isletmeAd}*'e hoş geldiniz.\n\nSize nasıl yardımcı olabilirim?\n\n*1.* 📅 Randevu Al\n*2.* 📋 Randevularım\n*3.* ❌ Randevu İptal\n\nNumara yazarak seçin:`;
@@ -216,6 +221,9 @@ const tr = {
 const en = {
   anaMenu: (s, p) => {
     const selam = p.musteriAd ? ` ${p.musteriAd}` : '';
+    if (p.link) {
+      return `Hi${selam}!${s.emoji ? ' 👋' : ''}\nWelcome to *${p.isletmeAd}*.\n\n${s.emoji ? '📅 ' : ''}*Book instantly (one tap):*\n${p.link}\n\nOr type a number:\n*1.* Book Appointment\n*2.* My Appointments\n*3.* Cancel Appointment`;
+    }
     if (s.kisa) return `Hi${selam}!\n*${p.isletmeAd}*\n\n*1.* Book\n*2.* My Appointments\n*3.* Cancel`;
     if (!s.emoji) return `Hello${selam}, welcome to *${p.isletmeAd}*.\n\nHow can we help you?\n\n*1.* Book Appointment\n*2.* My Appointments\n*3.* Cancel Appointment\n\nPlease type a number.`;
     return `Hi${selam}! 👋\nWelcome to *${p.isletmeAd}*.\n\nHow can I help you?\n\n*1.* 📅 Book Appointment\n*2.* 📋 My Appointments\n*3.* ❌ Cancel Appointment\n\nType a number:`;
@@ -386,6 +394,9 @@ const en = {
 const ar = {
   anaMenu: (s, p) => {
     const selam = p.musteriAd ? ` ${p.musteriAd}` : '';
+    if (p.link) {
+      return `مرحباً${selam}${s.emoji ? '! 👋' : ','}\nأهلاً بك في *${p.isletmeAd}*.\n\n${s.emoji ? '📅 ' : ''}*احجز فوراً (بلمسة واحدة):*\n${p.link}\n\nأو اكتب رقماً:\n*1.* حجز موعد\n*2.* مواعيدي\n*3.* إلغاء موعد`;
+    }
     if (s.kisa) return `مرحباً${selam}!\n*${p.isletmeAd}*\n\n*1.* حجز موعد\n*2.* مواعيدي\n*3.* إلغاء`;
     return `مرحباً${selam}${s.emoji ? '! 👋' : ','}\nأهلاً بك في *${p.isletmeAd}*.\n\nكيف يمكنني مساعدتك؟\n\n*1.* ${s.emoji ? '📅 ' : ''}حجز موعد\n*2.* ${s.emoji ? '📋 ' : ''}مواعيدي\n*3.* ${s.emoji ? '❌ ' : ''}إلغاء موعد\n\nاكتب رقماً:`;
   },

@@ -1,4 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
+const { DENEME_GUN } = require('../config/deneme');
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
@@ -58,11 +59,19 @@ class TelegramSatisBot {
     if (metinKucuk === '/start' || metinKucuk === '/start kayit' || metinKucuk === '/start kayıt') {
       return await this.hosgeldin(chatId, msg.from.first_name);
     }
+    // Davet derin linki: t.me/siragoapp_bot?start=SG7K2M9Q
+    const { kodYakala, kodGecerli } = require('../utils/davet');
+    if (metinKucuk.startsWith('/start ')) {
+      const kod = kodYakala(metin);
+      if (kod && await kodGecerli(kod)) this.davetler = { ...(this.davetler || {}), [chatId]: kod };
+      return await this.hosgeldin(chatId, msg.from.first_name);
+    }
 
     // Kayıt komutu
     const kayitKomutlari = ['kayıt', 'kayit', '/kayit', '/kayıt', 'hesap aç', 'hesap ac', 'kaydol', 'üye ol', 'register'];
     if (kayitKomutlari.some(k => metinKucuk.includes(k))) {
-      this.kayitlar[chatId] = { adim: 'isletme_adi' };
+      const ilkKod = kodYakala(metin);
+      this.kayitlar[chatId] = { adim: 'isletme_adi', davet: (ilkKod && await kodGecerli(ilkKod)) ? ilkKod : this.davetler?.[chatId] };
       return await this.bot.sendMessage(chatId,
         `🎉 *SıraGO'ya Hoş Geldiniz!*\n\n` +
         `Hemen ücretsiz hesabınızı oluşturalım 🚀\n\n` +
@@ -89,7 +98,7 @@ class TelegramSatisBot {
       `✅ 7/24 online randevu\n` +
       `✅ WhatsApp hatırlatma\n` +
       `✅ Kolay yönetim paneli\n` +
-      `✅ İlk ay tamamen ücretsiz!\n\n` +
+      `✅ ${DENEME_GUN} gün ücretsiz, kart bilgisi yok.\n\n` +
       `Hemen başlamak için aşağıdaki butona tıklayın 👇`,
       {
         parse_mode: 'Markdown',
@@ -107,8 +116,13 @@ class TelegramSatisBot {
     const chatId = query.message.chat.id;
     const data = query.data;
 
+    if (data === 'kayit_davetsiz') {
+      const k = this.kayitlar[chatId];
+      if (k && k.adim === 'davet') { k.adim = 'sifre'; await this.sifreSor(chatId); }
+    }
+
     if (data === 'kayit_baslat') {
-      this.kayitlar[chatId] = { adim: 'isletme_adi' };
+      this.kayitlar[chatId] = { adim: 'isletme_adi', davet: this.davetler?.[chatId] };
       await this.bot.sendMessage(chatId,
         `🎉 *Harika! Başlayalım!*\n\n` +
         `*Adım 1/3*\n` +
@@ -168,19 +182,36 @@ class TelegramSatisBot {
           );
         }
         this.kayitlar[chatId].email = metin.trim().toLowerCase();
+        if (this.kayitlar[chatId].davet) {
+          this.kayitlar[chatId].adim = 'sifre';
+          await this.sifreSor(chatId);
+        } else {
+          this.kayitlar[chatId].adim = 'davet';
+          await this.bot.sendMessage(chatId,
+            `✅ E-posta: *${metin.trim()}*\n\n` +
+            `🎁 Sizi bir esnaf mı davet etti? *Davet kodunu* yazın (SG ile başlar).`,
+            { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: 'Davet kodum yok', callback_data: 'kayit_davetsiz' }], [{ text: '❌ İptal', callback_data: 'kayit_iptal' }]] } }
+          );
+        }
+        break;
+      }
+
+      case 'davet': {
+        const { kodYakala, kodGecerli } = require('../utils/davet');
+        const kod = kodYakala(metin);
+        if (!kod || !(await kodGecerli(kod))) {
+          return await this.bot.sendMessage(chatId, `⚠️ Bu kodu bulamadım. Kontrol edip tekrar yazın ya da *Davet kodum yok* butonuna basın.`,
+            { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: 'Davet kodum yok', callback_data: 'kayit_davetsiz' }]] } });
+        }
+        this.kayitlar[chatId].davet = kod;
         this.kayitlar[chatId].adim = 'sifre';
-        await this.bot.sendMessage(chatId,
-          `✅ E-posta: *${metin.trim()}*\n\n` +
-          `*Adım 3/3*\n` +
-          `🔒 Bir *şifre* belirleyin (en az 6 karakter):`,
-          { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ İptal', callback_data: 'kayit_iptal' }]] } }
-        );
+        await this.sifreSor(chatId, `🎁 Davet kodu alındı: *${kod}*\n\n`);
         break;
       }
 
       case 'sifre': {
-        if (metin.trim().length < 6) {
-          return await this.bot.sendMessage(chatId, `⚠️ Şifre en az 6 karakter olmalı. Tekrar deneyin:`);
+        if (metin.trim().length < 8) {
+          return await this.bot.sendMessage(chatId, `⚠️ Şifre en az 8 karakter olmalı. Tekrar deneyin:`);
         }
         this.kayitlar[chatId].sifre = metin.trim();
         this.kayitlar[chatId].adim = 'onay';
@@ -189,6 +220,7 @@ class TelegramSatisBot {
           `📋 *Kayıt Özeti*\n\n` +
           `🏪 İşletme: *${k.isletmeAdi}*\n` +
           `📧 E-posta: *${k.email}*\n` +
+          (k.davet ? `🎁 Davet kodu: *${k.davet}*\n` : '') +
           `🔒 Şifre: *${'•'.repeat(k.sifre.length)}*\n\n` +
           `Her şey doğru mu?`,
           {
@@ -212,6 +244,13 @@ class TelegramSatisBot {
     }
   }
 
+  async sifreSor(chatId, onEk = '') {
+    await this.bot.sendMessage(chatId,
+      `${onEk}*Son adım*\n🔒 Bir *şifre* belirleyin (en az 8 karakter):`,
+      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ İptal', callback_data: 'kayit_iptal' }]] } }
+    );
+  }
+
   async kayitTamamla(chatId) {
     const k = this.kayitlar[chatId];
     if (!k || !k.isletmeAdi || !k.email || !k.sifre) {
@@ -226,8 +265,8 @@ class TelegramSatisBot {
       // İşletme oluştur
       const isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
-         VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + INTERVAL '7 days') RETURNING *`,
-        [k.isletmeAdi, telFormatli]
+         VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + make_interval(days => $3)) RETURNING *`,
+        [k.isletmeAdi, telFormatli, DENEME_GUN]
       )).rows[0];
 
       // Admin kullanıcı oluştur
@@ -239,6 +278,10 @@ class TelegramSatisBot {
       );
 
       console.log(`🎉 TG Bot kayıt tamamlandı: ${k.isletmeAdi} (${k.email}) - isletme_id: ${isletme.id}`);
+      if (k.davet) {
+        try { await require('../utils/davet').kayittaUygula(k.davet, isletme.id); } catch (e) { console.error('Davet bağlanamadı:', e.message); }
+        if (this.davetler) delete this.davetler[chatId];
+      }
 
       delete this.kayitlar[chatId];
 
@@ -248,7 +291,7 @@ class TelegramSatisBot {
         `📧 E-posta: *${k.email}*\n\n` +
         `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
         `🔗 *admin.sırago.com*\n\n` +
-        `E-posta ve şifrenizle giriş yapın.\nİlk ay tamamen ücretsiz! 🚀`,
+        `E-posta ve şifrenizle giriş yapın.\n${DENEME_GUN} gün ücretsiz deneyebilirsiniz 🚀`,
         {
           parse_mode: 'Markdown',
           reply_markup: {

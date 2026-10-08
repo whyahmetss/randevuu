@@ -54,6 +54,9 @@ class AdminController {
     try {
       const { id } = req.params;
       const { durum } = req.body;
+      if (!['onaylandi', 'onay_bekliyor', 'bekliyor', 'kapora_bekliyor', 'tamamlandi', 'gelmedi', 'iptal'].includes(durum)) {
+        return res.status(400).json({ hata: 'Geçersiz durum' });
+      }
       const isletmeId = req.kullanici.isletme_id;
       const result = await pool.query(
         'UPDATE randevular SET durum = $1 WHERE id = $2 AND isletme_id = $3 RETURNING *',
@@ -661,8 +664,12 @@ class AdminController {
         'google_maps_reserve_url','musteri_formu',
         // Güvenlik & Koruma v2
         'booking_acik','otp_zorunlu','no_show_otomatik','teyit_zincir_iptal',
-        'dusuk_skor_manuel_onay','ip_gunluk_limit','skor_esigi'
+        'dusuk_skor_manuel_onay','ip_gunluk_limit','skor_esigi',
+        'panel_modu'
       ];
+      if (req.body.panel_modu !== undefined && ![null, 'lite', 'pro'].includes(req.body.panel_modu)) {
+        return res.status(400).json({ hata: 'Geçersiz panel görünümü' });
+      }
       const jsonAlanlar = ['mola_saatleri','musteri_formu'];
       const setClauses = [];
       const values = [];
@@ -886,27 +893,15 @@ class AdminController {
     const id = req.params.id;
     try {
       const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id=$1', [id])).rows[0];
-      // Bağımlı tabloları sırayla temizle (her biri catch ile — tablo yoksa sessizce geç)
-      // Etiket atamaları (özel sorgu — etiket tablosuna bağlı)
-      await pool.query('DELETE FROM musteri_etiket_atamalari WHERE etiket_id IN (SELECT id FROM musteri_etiketler WHERE isletme_id = $1)', [id]).catch(() => {});
-      // Standart tablolar
-      const silTablolari = [
-        'isletme_bildirimleri', 'zombi_aksiyonlar', 'wa_auth_keys', 'destek_talepleri',
-        'sohbet_gecmisi', 'bot_durum', 'bekleme_listesi',
-        'kasa_hareketleri', 'prim_odemeleri', 'sms_log', 'gece_rapor_log',
-        'yorum_talepleri', 'winback_log', 'puan_hareketleri', 'referans_log',
-        'google_yorum_talepleri', 'musteri_etiketler', 'audit_log',
-        'odemeler', 'randevular', 'hizmetler', 'calisanlar', 'admin_kullanicilar'
-      ];
-      for (const t of silTablolari) {
-        await pool.query(`DELETE FROM ${t} WHERE isletme_id = $1`, [id]).catch(() => {});
-      }
-      await pool.query('DELETE FROM referanslar WHERE sahip_isletme_id = $1', [id]).catch(() => {});
-      await pool.query('DELETE FROM isletmeler WHERE id = $1', [id]);
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      // Bağlı tüm kayıtlar veritabanının FK kayıtlarından bulunur; tek transaction (yarım silme yok).
+      // Eskiden sabit liste + sessiz catch: listede olmayan bağlı tablo yüzünden silme hata veriyordu.
+      await require('../utils/isletmeSil').isletmeTamSil(pool, parseInt(id));
       await this.auditLogYaz(req.kullanici, 'isletme_silindi', `${isletme?.isim || id} silindi (tüm verileriyle)`, 'isletmeler', parseInt(id), require('../utils/istemciIp').istemciIp(req));
       res.json({ mesaj: 'İşletme ve tüm verileri silindi' });
     } catch (error) {
-      res.status(500).json({ hata: error.message });
+      console.error('İşletme silinemedi:', error.message, error.table || '', error.constraint || '');
+      res.status(500).json({ hata: `Silinemedi: ${error.message}` });
     }
   }
 
@@ -1487,56 +1482,12 @@ class AdminController {
 
   async shopierOdemeBaslat(req, res) {
     try {
-      const isletmeId = req.kullanici.isletme_id;
-      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
-      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
-
-      // Seçilen paket (query param veya mevcut paket)
-      const secilenPaket = req.query.paket || isletme.paket || 'baslangic';
-      const paketBilgi = await paketGetir(secilenPaket);
-      const buAy = new Date().toISOString().slice(0, 7);
-      const refKod = `SRGO-${isletmeId}`;
-      const paketLabel = paketBilgi.isim || secilenPaket;
-
-      // Shopier'da dinamik dijital ürün oluştur
-      const urun = await shopierService.urunOlustur({
-        baslik: `SıraGO ${paketLabel} Paket [${refKod}]`,
-        aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket Aylık Abonelik (${buAy})\nİşletme: ${isletme.isim}\nRef: ${refKod}`,
-        fiyat: paketBilgi.fiyat,
-      });
-
-      // Bekleyen ödeme kaydı oluştur (shopier_urun_id ile eşleştirme için)
-      const mevcut = (await pool.query(
-        "SELECT id, durum FROM odemeler WHERE isletme_id = $1 AND donem = $2",
-        [isletmeId, buAy]
-      )).rows[0];
-
-      // Seçilen paket ve ürün işletmede saklanır; ödeme gelince paket bu bilgiyle değişir
-      // (eskiden ödeme paketi hiç değiştirmiyordu → yükseltme işe yaramıyordu).
-      await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2 WHERE id=$3', [secilenPaket, String(urun.id), isletmeId]);
-
-      if (mevcut && ['odendi', 'havale_bekliyor'].includes(mevcut.durum)) {
-        // Bu ay zaten kayıt var (yükseltme/erken yenileme). (isletme_id, donem) benzersiz olduğundan
-        // ikinci INSERT 500 veriyordu; eşleşme bekleyen_shopier_urun_id üzerinden yapılır.
-      } else if (mevcut) {
-        await pool.query(
-          "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1, shopier_urun_id = $2, tutar = $3 WHERE id = $4",
-          [refKod, urun.id, paketBilgi.fiyat, mevcut.id]
-        );
-      } else {
-        await pool.query(
-          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu, shopier_urun_id) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4, $5)",
-          [isletmeId, paketBilgi.fiyat, buAy, refKod, urun.id]
-        );
-      }
-
-      console.log(`💳 Shopier ödeme başlatıldı: ${isletme.isim} - ${secilenPaket} - ${paketBilgi.fiyat}₺ → ${urun.url}`);
-
-      // Shopier ürün sayfasına yönlendir
-      res.redirect(urun.url);
+      const url = await shopierService.odemeBaslat(req.kullanici.isletme_id, req.query.paket);
+      if (!url) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      res.redirect(url);
     } catch (error) {
-      console.error('❌ Shopier ödeme başlatma hatası:', error);
-      res.status(500).json({ hata: 'Ödeme sayfası oluşturulamadı: ' + error.message });
+      console.error('❌ Shopier ödeme başlatma hatası:', error.message);
+      res.status(500).json({ hata: 'Ödeme sayfası oluşturulamadı, lütfen tekrar deneyin.' });
     }
   }
 
@@ -1631,6 +1582,13 @@ class AdminController {
           url: '/',
           tag: `iletisim-${kaydi.id}`,
         });
+      } catch (e) {}
+      // Telegram (satış botu kanalı): sıcak başvuru, beklemeden aranmalı
+      try {
+        const k = (x) => String(x || '').replace(/([_*`[])/g, '\\$1');
+        require('../services/satisBot')._telegramBildirimGonder(
+          `📩 *Yeni başvuru* (${k(kaynak || 'web')})\n\n👤 ${k(isim || '-')}\n📞 ${k(telefon || '-')}${email ? `\n📧 ${k(email)}` : ''}\n\n👉 Bugün arayın.`
+        ).catch(() => {});
       } catch (e) {}
 
       res.json({ mesaj: 'Mesajınız başarıyla gönderildi.' });
@@ -1783,7 +1741,7 @@ class AdminController {
         FROM randevular r
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id = $1 AND r.tarih BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
-          AND r.durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+          AND r.durum IN ('onaylandi','onay_bekliyor','bekliyor','kapora_bekliyor')
         GROUP BY r.tarih ORDER BY r.tarih
       `, [isletmeId])).rows;
 
@@ -1837,13 +1795,13 @@ class AdminController {
       // Yarınki dolu slot sayısı
       const yarinDolu = (await pool.query(`
         SELECT COUNT(*) as sayi FROM randevular
-        WHERE isletme_id=$1 AND tarih = CURRENT_DATE + 1 AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+        WHERE isletme_id=$1 AND tarih = CURRENT_DATE + 1 AND durum IN ('onaylandi','onay_bekliyor','bekliyor','kapora_bekliyor')
       `, [isletmeId])).rows[0];
 
       // Bugünkü dolu slot sayısı
       const bugunDolu = (await pool.query(`
         SELECT COUNT(*) as sayi FROM randevular
-        WHERE isletme_id=$1 AND tarih = CURRENT_DATE AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor','tamamlandi')
+        WHERE isletme_id=$1 AND tarih = CURRENT_DATE AND durum IN ('onaylandi','onay_bekliyor','bekliyor','kapora_bekliyor','tamamlandi')
       `, [isletmeId])).rows[0];
 
       const yarinDoluluk = toplamKapasite > 0 ? Math.round((parseInt(yarinDolu.sayi) / toplamKapasite) * 100) : 0;
@@ -2439,7 +2397,9 @@ class AdminController {
       }
 
       // Paket fiyat bilgisi
-      const paketFiyat = { baslangic: 299, profesyonel: 699, kurumsal: 1499, premium: 1499 };
+      // Fiyatlar paket tanımlarından (panelden değişen fiyat burada da geçerli)
+      const tumPaketler = await paketleriYukle();
+      const paketFiyat = Object.fromEntries(Object.entries(tumPaketler).map(([k, p]) => [k, parseFloat(p.fiyat) || 0]));
 
       res.json({
         isletme,
@@ -2476,18 +2436,6 @@ class AdminController {
       );
       
       res.json({ mesaj: `Ödeme ${yeni_donem} dönemine ertelendi` });
-    } catch (error) { res.status(500).json({ hata: error.message }); }
-  }
-
-  async odemeSuresiUzat(req, res) {
-    try {
-      const id = parseInt(req.params.id);
-      const { gun } = req.body;
-      // olusturma_tarihi'ni ileriye taşı (deneme süresini uzat)
-      const yeniTarih = new Date();
-      yeniTarih.setDate(yeniTarih.getDate() - (7 - (gun || 7)));
-      await pool.query('UPDATE isletmeler SET olusturma_tarihi = $1 WHERE id = $2', [yeniTarih.toISOString(), id]);
-      res.json({ mesaj: `Deneme süresi ${gun || 7} güne uzatıldı` });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
@@ -3206,7 +3154,7 @@ class AdminController {
       const result = await pool.query(
         `SELECT * FROM duyurular WHERE aktif = true
            AND (COALESCE(hedef, 'hepsi') = 'hepsi'
-                OR (hedef = 'profesyonel' AND $1 IN ('profesyonel', 'kurumsal'))
+                OR (hedef = 'profesyonel' AND $1 IN ('profesyonel', 'proplus', 'kurumsal'))
                 OR (hedef IN ('premium', 'kurumsal') AND $1 = 'kurumsal'))
          ORDER BY olusturma_tarihi DESC LIMIT 5`, [paket]
       );
@@ -3505,7 +3453,7 @@ class AdminController {
           try { buAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { gecenAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE) - interval '1 month' AND tarih < date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { toplamR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
-          try { toplamM = parseInt((await pool.query("SELECT COUNT(*) as c FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { toplamM = parseInt((await pool.query("SELECT COUNT(*) as c FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))", [i.id])).rows[0]?.c) || 0; } catch(e) { console.error(`Aktivite: müşteri sayısı okunamadı (işletme ${i.id}):`, e.message); }
           try { hizmetS = parseInt((await pool.query("SELECT COUNT(*) as c FROM hizmetler WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { calisanS = parseInt((await pool.query("SELECT COUNT(*) as c FROM calisanlar WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           

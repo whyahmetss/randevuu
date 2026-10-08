@@ -968,7 +968,7 @@ select.input { appearance: none; }
 .modal-close:hover { color: var(--text); }
 
 /* ── PRICE GRID ── */
-.price-grid-modal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.price-grid-modal { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
 .price-item { background: var(--surface2); border: 2px solid var(--border); border-radius: 16px; padding: 24px 20px; text-align: center; position: relative; transition: all .2s; }
 .price-item:hover { box-shadow: 0 4px 16px rgba(22,5,39,.06); }
 .price-item.active { border-color: currentColor; }

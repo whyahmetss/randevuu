@@ -35,9 +35,9 @@ function turkiyeSaati() {
 const { DENEME_GUN } = require('../config/deneme');
 const { telefonNormalize } = require('../utils/telefon');
 const G = DENEME_GUN;
+const satisAI = require('./satisAI');
 
 // İlk mesajın sonuna eklenen ret satırı — istemeyen şikâyet etmek yerine "dur" yazsın (ban riskini düşürür)
-const RET_SATIRI = '\n\n_İstemezseniz "dur" yazmanız yeterli, bir daha yazmam._';
 
 // Avcı verisinden dürüst kişisel cümle (uydurma yok: yalnız Google puanı/yorum sayısı/site bilgisi)
 function kisiselSatir(lead = {}) {
@@ -93,9 +93,18 @@ function redTipi(metin) {
 // Açık niyet: kayıt akışını hemen başlatır
 const KAYIT_NIYET = ['kayıt', 'kayit', 'kaydol', 'kayıt ol', 'üye ol', 'uye ol', 'hesap aç', 'hesap ac', 'hesap açalım',
   'hesap acalim', 'kuralım', 'kuralim', 'başlayalım', 'baslayalim', 'deneyelim', 'deneyeyim', 'denemek istiyorum', 'açalım', 'acalim'];
-// Tanıtım videosu isteği / ilgi
-const VIDEO_NIYET = ['video', 'demo', 'göster', 'goster', 'gönder', 'gonder', 'gönderin', 'at', 'atın', 'atin', 'atabilirsiniz',
-  'olur', 'evet', 'tamam', 'nasıl çalışıyor', 'nasil calisiyor', 'bakalım', 'bakayım', 'izleyeyim'];
+// Yalnız kapanış/nezaket ("teşekkürler", "sağ olun", "kolay gelsin", 👍): buna cevap yazmak
+// "biz de teşekkür ederiz" döngüsü yaratıyor, esnaf ısrarcı/bot sanıyor → sessiz kal.
+const NEZAKET = /^(çok )?(teşekkür(ler| ederim| ederiz)?|tesekkur(ler| ederim)?|tşk|tsk|tşkler|tskler|sağ ?ol(un|unuz)?|sag ?ol(un)?|eyvallah|eyv|rica ederim|kolay gelsin|iyi çalışmalar|iyi calismalar|hayırlı işler|hayirli isler|size de|siz de|sizede|iyi günler|iyi gunler|iyi akşamlar|iyi aksamlar)( (abi|abla|hocam|kardeşim|kardesim|usta|ustam|efendim))?$/;
+function yalnizNezaket(metin) {
+  const t = String(metin || '').toLocaleLowerCase('tr-TR')
+    .replace(/[\p{Extended_Pictographic}\uFE0F\u200d]/gu, ' ')
+    .replace(/[.,!?;:'"()\-]/g, ' ');
+  const parcalar = t.split(/\n/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  if (!parcalar.length) return true;   // yalnız emoji (👍🙏)
+  return parcalar.every(x => x.split(/ ve | /).length <= 5 && x.split(/ ve /).every(y => NEZAKET.test(y.trim())));
+}
+
 const EVET = ['evet', 'tamam', 'olur', 'doğru', 'dogru', 'aynen', 'kalsın', 'kalsin', 'e', 'he', 'evt'];
 
 // Satış konuşmasındaki sektör adı → işletme kategori kodu
@@ -106,51 +115,56 @@ const KATEGORI_KOD = { berber: 'berber', 'kuaför': 'kuafor', kuafor: 'kuafor', 
 // İlk mesaj şablonları (DB'de şablon yoksa). l = { ad, k } — k: kişisel cümle (boş olabilir)
 // Doğrulanamayan iddia ("%80 azalır", "rakipleriniz geçti") YOK; sonunda tek soru: video.
 // ═══════════════════════════════════════════════════
+// İlk mesaj KISA ve insanca: gerçek bir temsilci önce selam verip doğru kişiye ulaştığını sorar.
+// Tanıtımı, kişi cevap verince satış temsilcisi (satisAI) konuşarak yapar. l.k (kişisel satır) burada
+// kullanılmaz; uzun ilk mesaj toplu reklam gibi görünür.
+const ACILIS_GENEL = [
+  (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+  (l) => `Merhabalar, ${l.ad} işletme sahibine ulaştım mı acaba?`,
+  (l) => `İyi günler, ${l.ad} için yazıyorum. Randevuları siz mi takip ediyorsunuz?`,
+  (l) => `Merhaba 🙂 ${l.ad} randevuları telefondan mı alıyor, yoksa bir sistem kullanıyor musunuz?`,
+];
 const MESAJ_SABLONLARI = {
   berber: [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşteri koltuktayken çalan telefona yetişemediğiniz anlarda randevuyu WhatsApp botu alsın, size sadece onaylamak kalsın.${l.k}\n\n${G} gün ücretsiz deneyebilirsiniz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-    (l) => `Merhaba, müşterileriniz uygulama indirmeden WhatsApp'tan kendi randevusunu alsın, randevudan önce hatırlatma otomatik gitsin.${l.k}\n\n${l.ad} için ${G} gün ücretsiz. Kısa bir tanıtım videosu atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `Selamlar, ${l.ad} için yazıyorum. Müşteri koltuktayken gelen randevu telefonlarına nasıl yetişiyorsunuz?`,
+    (l) => `Merhaba ustam, ${l.ad} randevuları telefondan mı alıyor?`,
   ],
   'kuaför': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Boya ya da fön sırasında telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-    (l) => `Merhaba, müşterileriniz WhatsApp'tan hizmet ve saat seçip kendi randevusunu alsın, hatırlatma otomatik gitsin.${l.k}\n\n${l.ad} için ${G} gün ücretsiz. Kısa bir video atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `Merhabalar, ${l.ad} için yazıyorum. Boya ya da fön yaparken gelen randevu mesajlarına kim bakıyor?`,
+    (l) => `İyi günler, ${l.ad} randevuları WhatsApp'tan mı alıyor?`,
   ],
   'güzellik salonu': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz hizmeti ve saati seçip WhatsApp'tan kendi randevusunu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-  ],
-  'dövme': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Randevu ve kapora takibini WhatsApp'tan tek yerden yönetebileceğiniz bir sistem var; müşteri saati kendisi seçiyor.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `Merhabalar, ${l.ad} için yazıyorum. Randevuları siz mi ayarlıyorsunuz, yoksa bir sekreteriniz mi var?`,
+    (l) => `İyi günler, ${l.ad} randevuları telefondan mı alıyor?`,
   ],
   'diş kliniği': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Hastalarınız 7/24 online randevu alsın, randevudan önce WhatsApp hatırlatması otomatik gitsin; telefon trafiği azalsın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `İyi günler, ${l.ad} için yazıyorum. Hasta randevularını kim takip ediyor, sizinle mi görüşmem gerekir?`,
+    (l) => `Merhabalar, ${l.ad} online randevu alıyor mu?`,
   ],
   'veteriner': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Muayenedeyken telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, aşı ve kontrol hatırlatmaları otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
-  ],
-  'spa': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz hizmet ve saat seçip WhatsApp'tan kendi randevusunu alsın, hatırlatma otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-  ],
-  'tırnak salonu': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. İşlem sırasında telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `İyi günler, ${l.ad} için yazıyorum. Muayene ve aşı randevularını telefondan mı alıyorsunuz?`,
   ],
   'diyetisyen': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Danışanlarınız 7/24 WhatsApp'tan randevu alsın, kontrol hatırlatmaları otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `İyi günler, danışan randevularınızı WhatsApp'tan mı ayarlıyorsunuz?`,
   ],
-  default: [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz uygulama indirmeden WhatsApp'tan kendi randevusunu alsın, hatırlatma otomatik gitsin; siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz deneyebilirsiniz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-  ]
+  default: ACILIS_GENEL,
 };
-
-// ═══════════════════════════════════════════════════
-// Takip mesajları — cevap vermeyenlere (en fazla maxTakipSayisi kez)
-// ═══════════════════════════════════════════════════
+for (const k of ['dövme', 'spa', 'tırnak salonu']) MESAJ_SABLONLARI[k] = ACILIS_GENEL;
 const TAKIP_SABLONLARI = {
   1: [
-    (ad) => `Merhaba, ${ad} için yazmıştım; yoğun olduğunuzu tahmin ediyorum 🙂\n\nKısaca: müşterileriniz WhatsApp'tan 7/24 randevu alır, hatırlatma otomatik gider. ${G} gün ücretsiz; isterseniz *kayıt* yazın, hesabınızı buradan 1 dakikada açayım.`,
-    (ad) => `Tekrar merhaba, ${ad} için online randevu sisteminden bahsetmiştim.\n\nMerak ettiğiniz bir şey varsa buradan sorabilirsiniz. Denemek isterseniz *kayıt* yazmanız yeterli (${G} gün ücretsiz).`,
+    (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${G} gün ücretsiz, merak ederseniz yazın, ilgilenmiyorsanız söylemeniz yeterli.`,
+    (ad) => `Tekrar merhaba, ${ad} için yazmıştım. Randevuları otomatik alan bir sistemimiz var, ${G} gün ücretsiz denenebiliyor. Sorunuz olursa buradayım; ilgilenmiyorsanız söylemeniz yeterli.`,
+    (ad) => `Merhaba, mesajım arada kaybolmuş olabilir. ${ad} için online randevu sistemini göstermek isterim, uygun olunca yazın; ilgilenmiyorsanız söylemeniz yeterli.`,
   ],
   2: [
-    (ad) => `Son kez yazıyorum 🙏 ${ad} için randevu sistemini ${G} gün ücretsiz deneyebilirsiniz; *kayıt* yazmanız yeterli.\n\nİlgilenmiyorsanız sorun değil, bir daha yazmayacağım.`,
+    (ad) => `Son kez rahatsız ediyorum. Denemek isterseniz *kayıt* yazmanız yeterli, ${G} gün ücretsiz. İlgilenmiyorsanız hiç sorun değil, iyi çalışmalar.`,
+    (ad) => `Son bir not bırakayım: ${ad} için ${G} günlük ücretsiz deneme hâlâ açık, *kayıt* yazarsanız hesabı buradan açarım. İlgilenmiyorsanız söylemeniz yeterli, kolay gelsin.`,
   ]
 };
 
@@ -442,7 +456,12 @@ class SatisBot extends EventEmitter {
         console.log(`❌ [#${numaraId}] Bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}`);
 
         if (statusCode === 440) {
+          // Oturum başka yerde açık (deploy sırasında eski sunucu). Eskisi kapanınca geri bağlan.
           ns.sock = null;
+          ns.durum = 'kapali';
+          ns.cakisma = (ns.cakisma || 0) + 1;
+          clearTimeout(ns._reconnectTimer);
+          ns._reconnectTimer = setTimeout(() => this.numaraBaslat(numaraId), Math.min(60000 * ns.cakisma, 5 * 60000));
           this._senkronEt();
           return;
         }
@@ -1151,7 +1170,6 @@ class SatisBot extends EventEmitter {
       mesaj = rastgeleSablon({ ad: lead.isletme_adi || 'işletmeniz', k: kisiselSatir(lead) });
     }
     mesaj = linkDuzelt(mesaj);
-    if (!/"dur"/i.test(mesaj)) mesaj += RET_SATIRI;
 
     // Numaranın WhatsApp'ta olduğunu ÖN KONTROL ET — gerçek hedef JID'i al
     let jid;
@@ -1199,7 +1217,7 @@ class SatisBot extends EventEmitter {
       console.log(`✅ [#${ns.numaraId}]${kampInfo} Mesaj gönderildi: ${lead.isletme_adi} (${telefon}) [${kategori}] skor:${lead.skor} msgId=${sent.key.id}`);
 
       // Tanıtım videosu artık ilk mesajla gitmiyor: tanımadığı numaradan gelen video şikâyet/ban riskini artırıyordu.
-      // İlgi gösterene (gelenMesajIsle → _videoGerekirse) gönderilir.
+      // Video gönderimi tamamen kapalı (kullanıcı kararı 2026-10-08).
 
       await pool.query(
         "UPDATE potansiyel_musteriler SET wp_mesaj_durumu = 'gonderildi', wp_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $1",
@@ -1277,6 +1295,58 @@ class SatisBot extends EventEmitter {
     }
   }
 
+  // ─── Kişiye özel demo (kullanıcı kararı 2026-10-08: "panel gezdirme, kendi sayfasını göster") ───
+  async _demoIsletme(konusma) {
+    if (!konusma?.lead_id) return null;
+    const r = (await pool.query(
+      `SELECT i.* FROM potansiyel_musteriler p JOIN isletmeler i ON i.id = p.demo_isletme_id WHERE p.id = $1`, [konusma.lead_id])).rows[0];
+    return r || null;
+  }
+
+  async _demoDurum(konusma) {
+    try {
+      if (!konusma?.lead_id) return null;
+      const i = await this._demoIsletme(konusma);
+      if (!i || !konusma.demo_gonderildi) return { gonderildi: false };
+      const hz = (await pool.query('SELECT isim, fiyat FROM hizmetler WHERE isletme_id = $1 AND aktif = true ORDER BY id', [i.id])).rows;
+      const { randevuLinki } = require('../utils/randevuLinki');
+      return {
+        gonderildi: true, link: await randevuLinki(i),
+        hizmetler: hz.map(h => `${h.isim} ${Number(h.fiyat) > 0 ? Number(h.fiyat) + '₺' : '(fiyat yok)'}`).join(', '),
+      };
+    } catch (e) { return null; }
+  }
+
+  // Demo linkini hazırla; konuşma başına bir kez. Mesaj metni döner (göndermeyi çağıran yapar).
+  async _demoGonder(konusma) {
+    if (!konusma?.lead_id || konusma.demo_gonderildi) return null;
+    const { demoOlustur } = require('./demo');
+    const d = await demoOlustur(konusma.lead_id);
+    await pool.query('UPDATE satis_konusmalar SET demo_gonderildi = true WHERE id = $1', [konusma.id]);
+    konusma.demo_gonderildi = true;
+    return `${d.isletme.isim} için randevu sayfanız:\n${d.link}`;
+  }
+
+  // Esnafın sohbette yazdığı fiyatlar → demo sayfasındaki hizmetler (yalnız demo işletmede; fiyat uydurulmaz)
+  async _demoFiyatYaz(konusma, fiyatlar) {
+    try {
+      const i = await this._demoIsletme(konusma);
+      if (!i || !i.demo) return;
+      for (const f of fiyatlar.slice(0, 12)) {
+        const isim = String(f.hizmet || '').trim().slice(0, 80);
+        const fiyat = Math.round(Number(f.fiyat));
+        if (!isim || !(fiyat > 0 && fiyat < 100000)) continue;
+        const g = await pool.query(
+          'UPDATE hizmetler SET fiyat = $3 WHERE id = (SELECT id FROM hizmetler WHERE isletme_id = $1 AND LOWER(isim) = LOWER($2) LIMIT 1) RETURNING id',
+          [i.id, isim, fiyat]);
+        if (!g.rows.length) {
+          await pool.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aktif) VALUES ($1, $2, 30, $3, true)', [i.id, isim, fiyat]);
+        }
+      }
+      console.log(`💈 Demo #${i.id} fiyatları esnafın mesajından güncellendi (${fiyatlar.length})`);
+    } catch (e) { console.error('Demo fiyat yazılamadı:', e.message); }
+  }
+
   async _telegramBildirimGonder(mesaj) {
     const botToken = process.env.TELEGRAM_SATIS_BOT_TOKEN || process.env.SATIS_TELEGRAM_BOT_TOKEN;
     const chatId = process.env.SATIS_TELEGRAM_CHAT_ID;
@@ -1314,8 +1384,9 @@ class SatisBot extends EventEmitter {
     if (yaziyor && this.ayarlar.typingIndicator !== false) {
       try {
         await sock.sendPresenceUpdate('composing', jid);
-        const min = this.ayarlar.typingMinMs || 2000, max = this.ayarlar.typingMaxMs || 6000;
-        await new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
+        // İnsan gibi: uzun cevap daha uzun yazılır (≈ 25 harf/sn), 1,2–9 sn arası
+        const sure = Math.min(9000, 1200 + txt.length * 40) * (0.8 + Math.random() * 0.4);
+        await new Promise(r => setTimeout(r, sure));
         await sock.sendPresenceUpdate('paused', jid);
       } catch (e) { /* presence önemsiz */ }
     }
@@ -1367,7 +1438,7 @@ class SatisBot extends EventEmitter {
         `UPDATE satis_konusmalar SET kayit_durum = $1
          WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $2 ORDER BY olusturma_tarihi DESC LIMIT 1)`,
         [d ? JSON.stringify({ adim: d.adim, onerilenAd: d.onerilenAd || null, isletmeAdi: d.isletmeAdi || null,
-          email: d.email || null, kategori: d.kategori || null, t: Date.now() }) : null, telefon]);
+          email: d.email || null, kategori: d.kategori || null, davet: d.davet || null, t: Date.now() }) : null, telefon]);
     } catch (e) { /* kolon yoksa bellekte devam */ }
   }
 
@@ -1401,6 +1472,22 @@ class SatisBot extends EventEmitter {
     const yaz = (txt) => this._yaz(sock || this.sock, remoteJid, txt);
     const ham = String(metin || '').trim();
     const sade = sadeMetin(ham);
+    const { kodYakala, kodGecerli } = require('../utils/davet');
+    // Davet kodu herhangi bir adımda yazılırsa al ("kayıt SG7K2M9Q" gibi)
+    const yakalanan = kodYakala(ham);
+    if (yakalanan && !d.davet && await kodGecerli(yakalanan)) {
+      d.davet = yakalanan;
+      await this._kayitDurumKaydet(telefon, d);
+      if (d.adim === 'davet') {
+        d.adim = 'sifre'; await this._kayitDurumKaydet(telefon, d);
+        await yaz(`🎁 Davet kodu alındı (${yakalanan}). Son adım: panel için bir *şifre* belirleyin (en az 8 karakter):`);
+        return true;
+      }
+      if (ham.toUpperCase().replace(/\s+/g, '') === yakalanan) {
+        await yaz(`🎁 Davet kodu alındı (${yakalanan}). Devam edelim.`);
+        return true;
+      }
+    }
 
     if (ifadeVar(sade, ['iptal', 'vazgeç', 'vazgec', 'vazgeçtim'])) {
       delete this.konusmalar[telefon].kayit;
@@ -1431,15 +1518,29 @@ class SatisBot extends EventEmitter {
         await yaz(`Bu e-postayla zaten bir hesap var; https://admin.sırago.com adresinden giriş yapabilirsiniz. Şifrenizi hatırlamıyorsanız buraya yazın, yardımcı olalım.\n\nYeni hesap için farklı bir e-posta yazabilirsiniz.`);
         return true;
       }
-      d.email = email; d.adim = 'sifre';
+      d.email = email;
+      d.adim = d.davet ? 'sifre' : 'davet';
       await this._kayitDurumKaydet(telefon, d);
-      await yaz(`Son adım: panel için bir *şifre* belirleyin (en az 6 karakter):`);
+      await yaz(d.davet
+        ? `Son adım: panel için bir *şifre* belirleyin (en az 8 karakter):`
+        : `Sizi bize bir esnaf mı yönlendirdi? *Davet kodunu* yazın (SG ile başlar), yoksa *yok* yazın.`);
+      return true;
+    }
+
+    if (d.adim === 'davet') {
+      if (yakalanan) {   // yazdı ama geçersiz
+        await yaz(`*${yakalanan}* kodunu bulamadım. Kontrol edip tekrar yazar mısınız? Kod yoksa *yok* yazın.`);
+        return true;
+      }
+      d.adim = 'sifre';
+      await this._kayitDurumKaydet(telefon, d);
+      await yaz(`Tamam. Son adım: panel için bir *şifre* belirleyin (en az 8 karakter):`);
       return true;
     }
 
     if (d.adim === 'sifre') {
-      if (ham.length < 6 || ham.length > 72) {
-        await yaz(`Şifre 6 ile 72 karakter arasında olmalı. Tekrar yazar mısınız?`);
+      if (ham.length < 8 || ham.length > 72) {
+        await yaz(`Şifre 8 ile 72 karakter arasında olmalı. Tekrar yazar mısınız?`);
         return true;
       }
       if (!d.isletmeAdi || !d.email) {          // yeniden başlatmada eksik kalmışsa baştan al
@@ -1455,11 +1556,21 @@ class SatisBot extends EventEmitter {
 
   async _hesapOlustur(remoteJid, telefon, sifre, d, yaz) {
     let isletme = null;
+    let demodan = false;
     try {
       const bcrypt = require('bcryptjs');
       const tel = telefonNormalize(telefon) || telefon;
       const kategori = KATEGORI_KOD[String(d.kategori || '').toLocaleLowerCase('tr')] || 'genel';
-      isletme = (await pool.query(
+      // Venüs bu numara için demo hazırladıysa onu sahiplen (hizmetler, link, çalışan hazır)
+      demodan = false;
+      try {
+        isletme = (await pool.query(
+          `UPDATE isletmeler SET isim = $1, demo = false, olusturma_tarihi = NOW(), deneme_bitis_tarihi = NOW() + make_interval(days => $3)
+           WHERE id = (SELECT id FROM isletmeler WHERE demo = true AND telefon = $2 ORDER BY id DESC LIMIT 1) RETURNING *`,
+          [d.isletmeAdi, tel, DENEME_GUN])).rows[0];
+        demodan = !!isletme;
+      } catch (e) { /* demo kolonu yoksa yeni hesap */ }
+      if (!isletme) isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi)
          VALUES ($1, $2, $3, true, 'baslangic', NOW(), NOW() + make_interval(days => $4)) RETURNING *`,
         [d.isletmeAdi, tel, kategori, DENEME_GUN])).rows[0];
@@ -1478,9 +1589,12 @@ class SatisBot extends EventEmitter {
          WHERE id = (SELECT lead_id FROM satis_konusmalar WHERE telefon = $1 AND lead_id IS NOT NULL ORDER BY olusturma_tarihi DESC LIMIT 1)`,
         [telefon]).catch(() => {});
       console.log(`🎉 WhatsApp kaydı: ${d.isletmeAdi} (isletme_id ${isletme.id})`);
+      if (d.davet) {
+        try { await require('../utils/davet').kayittaUygula(d.davet, isletme.id); } catch (e) { console.error('Davet bağlanamadı:', e.message); }
+      }
 
       await yaz(
-        `🎉 Hesabınız hazır! ${DENEME_GUN} gün boyunca tüm özellikler ücretsiz.\n\n` +
+        `🎉 Hesabınız hazır! ${DENEME_GUN} gün ücretsiz deneyebilirsiniz, kart bilgisi istemiyoruz.\n\n` +
         `Giriş: https://admin.sırago.com\nE-posta: ${d.email}\n\n` +
         `İlk 3 adım (10 dakika):\n1. Hizmetlerinizi ve çalışanlarınızı ekleyin\n2. WhatsApp botunu bağlayın (QR okutmanız yeterli)\n3. Randevu linkinizi müşterilerinize gönderin\n\n` +
         `Takıldığınız yerde buraya yazın, birlikte kuralım. Güvenliğiniz için şifrenizi yazdığınız mesajı silebilirsiniz.`);
@@ -1491,7 +1605,7 @@ class SatisBot extends EventEmitter {
       return true;
     } catch (err) {
       console.error('❌ WhatsApp kayıt hatası:', err.message);
-      if (isletme?.id) { try { await pool.query('DELETE FROM isletmeler WHERE id = $1', [isletme.id]); } catch (e) {} }
+      if (isletme?.id && !demodan) { try { await pool.query('DELETE FROM isletmeler WHERE id = $1', [isletme.id]); } catch (e) {} }
       if (err.code === '23505') {
         d.adim = 'email'; await this._kayitDurumKaydet(telefon, d);
         await yaz(`Bu e-posta az önce kullanılmış görünüyor. Farklı bir e-posta yazar mısınız?`);
@@ -1503,23 +1617,38 @@ class SatisBot extends EventEmitter {
     }
   }
 
-  // İlgi gösterene tanıtım videosu (konuşma başına bir kez)
-  async _videoGerekirse(sock, jid, konusma, metin, durum) {
-    if (konusma.video_gonderildi) return;
-    const ilgi = durum === 'sicak' || durum === 'olumlu' || ifadeVar(sadeMetin(metin), VIDEO_NIYET);
-    if (!ilgi) return;
-    try {
-      await pool.query('UPDATE satis_konusmalar SET video_gonderildi = true WHERE id = $1', [konusma.id]);
-    } catch (e) { /* kolon yoksa yine de bir kez gönder */ }
-    konusma.video_gonderildi = true;
-    await this._tanitimVideosuGonder(sock, jid, (konusma.kategori || '').toLowerCase(), 'video');
-  }
-
   // ═══════════════════════════════════════════════════
   // Gelen Mesaj İşleme + DeepSeek AI Satış
   // ═══════════════════════════════════════════════════
+  // Esnaf çoğu zaman tek düşünceyi birkaç mesajda yazar ("selam" / "fiyat ne" / "nasıl çalışıyo").
+  // Her birine ayrı cevap vermek bot gibi durur: son mesajdan 8 sn sonra (en geç 25 sn) hepsine birlikte cevap.
+  // Kayıt akışı (ad/e-posta/şifre adımları) beklemeden işlenir.
   async gelenMesajIsle(msg, numaraId) {
     const metin = this._getMsgText(msg);
+    if (!metin) return;
+    const ns = numaraId ? this.numaraSockets.get(numaraId) : null;
+    const sock = ns?.sock || this.sock;
+    try { await sock?.readMessages?.([msg.key]); } catch (e) { /* okundu önemsiz */ }
+    const anahtar = msg.key.remoteJid;
+    const alt = msg.key.remoteJidAlt || '';
+    const telefon = (anahtar.endsWith('@lid') && alt.includes('@s.whatsapp.net') ? alt : anahtar).replace(/@.*$/, '');
+    const kayitIstegi = /^\s*kay[ıi]t\s*$/i.test(metin);
+    if (this.konusmalar[telefon]?.kayit || kayitIstegi || this.ayarlar.mesajBirlestir === false) return this._mesajIsle(msg, numaraId, metin);
+
+    this._tampon = this._tampon || new Map();
+    const t = this._tampon.get(anahtar) || { metinler: [], ilk: Date.now(), zaman: null };
+    t.metinler.push(metin); t.msg = msg; t.numaraId = numaraId;
+    clearTimeout(t.zaman);
+    const bekle = Date.now() - t.ilk > 17000 ? 0 : (this.ayarlar.mesajBekleMs ?? 8000);
+    t.zaman = setTimeout(() => {
+      this._tampon.delete(anahtar);
+      this._mesajIsle(t.msg, t.numaraId, t.metinler.join('\n')).catch(e => console.error('Satış mesajı işlenemedi:', e.message));
+    }, bekle);
+    this._tampon.set(anahtar, t);
+  }
+
+  async _mesajIsle(msg, numaraId, birlesikMetin) {
+    const metin = birlesikMetin ?? this._getMsgText(msg);
     if (!metin) return;
 
     // Hangi socket'ten geldi? Cevap aynı numaradan gitsin
@@ -1626,27 +1755,62 @@ class SatisBot extends EventEmitter {
       return;
     }
 
+    if (yalnizNezaket(metin)) {
+      console.log(`🤝 …${String(telefon).slice(-4)} yalnız teşekkür/kapanış yazdı — cevap verilmedi`);
+      return;
+    }
+
     if (this.ayarlar.mod === 'sadece_kayit' || this.ayarlar.mod === 'sadece_satis' || !this.ayarlar.gelenMesajCevap) {
       console.log(`⏸️ Mod: ${this.ayarlar.mod} / cevap ${this.ayarlar.gelenMesajCevap ? 'açık' : 'kapalı'} — mesaj loglandı`);
       return;
     }
 
     // ─── Cevap: AI (yoksa yedek kurallar) ───
-    const cevap = this.ayarlar.aiCevapAktif
-      ? await this.deepseekSatisCevabi(metin, konusma)
-      : await this.fallbackCevapUret(metin, konusma);
-    if (!cevap?.mesaj) return;
+    let cevap = null;
+    if (this.ayarlar.aiCevapAktif && satisAI.aktifMi()) {
+      const { liste } = await this._fiyatlar();
+      const ai = await satisAI.cevapUret({ konusma, paketListesi: liste, sonMesaj: metin, demo: await this._demoDurum(konusma) });
+      if (ai) cevap = { mesajlar: ai.mesajlar, durum: ai.durum, arama: ai.arama_istiyor, demo: ai.demo_gonder, fiyatlar: ai.fiyatlar };
+    }
+    if (!cevap) {
+      const eski = this.ayarlar.aiCevapAktif
+        ? await this.deepseekSatisCevabi(metin, konusma)
+        : await this.fallbackCevapUret(metin, konusma);
+      // Yedek yollar: ilgi gösterene demo yine gitsin
+      if (eski?.mesaj) cevap = { mesajlar: [eski.mesaj], durum: eski.durum, arama: false, demo: ['olumlu', 'sicak'].includes(eski.durum) };
+    }
+    if (!cevap) return;
     // Kişi cevap verdi: AI 'bekliyor' dese de takip sırasına geri düşmesin
     const durum = ['olumlu', 'sicak', 'olumsuz'].includes(cevap.durum) ? cevap.durum : 'ai_devrede';
 
-    let giden = cevap.mesaj;
+    const gidenler = [];
     try {
-      giden = await this._yaz(sock, remoteJid, cevap.mesaj);
+      for (const [i, m] of cevap.mesajlar.entries()) {
+        if (i) await new Promise(r => setTimeout(r, 700 + Math.random() * 1300));
+        gidenler.push(await this._yaz(sock, remoteJid, m));
+      }
     } catch (sendErr) {
       console.error(`❌ Cevap gönderilemedi: …${String(telefon).slice(-4)} → ${sendErr.message}`);
-      return;
+      if (!gidenler.length) return;
     }
+    // Kişiye özel demo: ilk ilgide onun adına açılmış randevu sayfası (konuşma başına bir kez)
+    if (cevap.demo && gidenler.length) {
+      try {
+        const d = await this._demoGonder(konusma);
+        if (d) {
+          await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+          gidenler.push(await this._yaz(sock, remoteJid, d));
+        }
+      } catch (e) { console.error('Demo gönderilemedi:', e.message); }
+    }
+    if (cevap.fiyatlar?.length) await this._demoFiyatYaz(konusma, cevap.fiyatlar);
+    const giden = gidenler.join('\n');
     await this._botKaydet(konusma.id, giden, durum === 'olumsuz' ? { durum, red_tipi: 'normal' } : { durum });
+    if (cevap.arama) {
+      try {
+        await this._telegramBildirimGonder(`📞 *Aranmak istiyor*\n\n🏪 ${this._mdKacis(konusma.isletme_adi)}\n📞 +${this._mdKacis(telefon)}\n💬 "${this._mdKacis(metin.slice(0, 300))}"\n\n👉 Bugün arayın.`);
+      } catch (e) { /* bildirim önemsiz */ }
+    }
 
     if (durum === 'sicak' || durum === 'olumlu') {
       if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);
@@ -1658,7 +1822,7 @@ class SatisBot extends EventEmitter {
       if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
       if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {} }
     }
-    if (durum !== 'olumsuz') await this._videoGerekirse(sock, remoteJid, konusma, metin, durum);
+    // Tanıtım videosu kapalı (kullanıcı kararı 2026-10-08: tanımadığı numaradan video bot gibi duruyor)
   }
 
   // ─── Yedek cevaplar (AI kapalı/çalışmazsa) — kelime sınırıyla, uydurma rakam yok ───
@@ -1679,12 +1843,12 @@ class SatisBot extends EventEmitter {
     if (ifadeVar(sade, ['telefonla', 'zaten yapıyoruz', 'zaten yapiyoruz', 'hallediyoruz', 'hallediyorum', 'defter', 'deftere']))
       return { mesaj: `Siz işlemdeyken telefona bakamadığınız anlarda randevuyu sistem alır, siz sadece onaylarsınız. ${DENEME_GUN} gün ücretsiz deneyebilirsiniz.`, durum: 'olumlu' };
     if (ifadeVar(sade, ['nedir', 'nasıl', 'nasil', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'özellik', 'ozellik', 'video', 'demo', 'göster', 'goster']))
-      return { mesaj: `Müşterileriniz WhatsApp'tan ya da size özel linkten 7/24 randevu alır, randevudan önce hatırlatma otomatik gider. Kısa videoyu gönderiyorum; ${kayit.charAt(0).toLowerCase() + kayit.slice(1)}`, durum: 'sicak' };
+      return { mesaj: `Müşterileriniz WhatsApp'tan ya da size özel linkten 7/24 randevu alır, randevudan önce hatırlatma otomatik gider. ${kayit}`, durum: 'sicak' };
     if (ifadeVar(sade, ['tamam', 'olur', 'evet', 'ilgileniyorum', 'denerim', 'süper', 'harika', 'güzel', 'guzel', 'at', 'atın', 'gönder']))
-      return { mesaj: `Süper! Kısa tanıtım videosunu gönderiyorum. ${kayit}`, durum: 'sicak' };
+      return { mesaj: `Güzel. ${kayit}`, durum: 'sicak' };
     if (ifadeVar(sade, ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'günaydın', 'gunaydin', 'kimsiniz', 'kim']))
-      return { mesaj: `Merhaba, ben SıraGO'nun dijital asistanıyım. ${konusma.isletme_adi || 'İşletmeniz'} için WhatsApp'tan otomatik randevu sistemi hakkında yazmıştım; ${DENEME_GUN} gün ücretsiz. Kısa bir video göndereyim mi?`, durum: 'bekliyor' };
-    return { mesaj: `Teşekkürler! Merak ettiğiniz bir şey olursa buradan sorabilirsiniz; denemek isterseniz *kayıt* yazmanız yeterli.`, durum: 'bekliyor' };
+      return { mesaj: `Merhaba, ben SıraGO'nun dijital asistanıyım. ${konusma.isletme_adi || 'İşletmeniz'} için WhatsApp'tan otomatik randevu sistemi hakkında yazmıştım; ${DENEME_GUN} gün ücretsiz. Randevuları şu an nasıl alıyorsunuz?`, durum: 'bekliyor' };
+    return { mesaj: `Merak ettiğiniz bir şey olursa buradan sorabilirsiniz; denemek isterseniz *kayıt* yazmanız yeterli.`, durum: 'bekliyor' };
   }
 
   async deepseekSatisCevabi(musteriMesaj, konusma) {
@@ -1717,7 +1881,7 @@ Bu müşterinin ${mesajSayisi}. mesajı.
 
 NASIL CEVAP VERİRSİN
 1. En fazla 2 kısa cümle. Liste ve paragraf yok. En fazla 1 emoji.
-2. İlgi gösterirse (evet, olur, tamam, at, gönder, nasıl, göster, demo): tek fayda söyle, "kısa tanıtım videosunu gönderiyorum" de ve "İsterseniz hesabınızı buradan 1 dakikada açayım, *kayıt* yazmanız yeterli." diye bitir. durum: "sicak".
+2. İlgi gösterirse (evet, olur, tamam, at, gönder, nasıl, göster, demo): tek fayda söyle ve "İsterseniz hesabınızı buradan 1 dakikada açayım, *kayıt* yazmanız yeterli." diye bitir. durum: "sicak".
 3. Fiyat sorarsa: "${fiyatCumle}" + kayıt teklifi. durum: "sicak".
 4. "Pahalı" derse: ayda birkaç kaçan randevunun bile ücreti çıkardığını söyle, önce ücretsiz denemesini öner. durum: "olumlu".
 5. "Telefonla/defterle hallediyorum" derse: işlemdeyken telefona bakamadığı anlarda randevuyu sistemin aldığını söyle. durum: "olumlu".
@@ -1727,6 +1891,7 @@ NASIL CEVAP VERİRSİN
 9. 4. mesajdan sonra hâlâ karar vermediyse linki bırak (https://sırago.com) ve vedalaş. durum: "bekliyor".
 
 KESİN KURALLAR
+- Video/dosya gönderme teklifi yok. "Teşekkürler" diye başlama, teşekkür yarışına girme.
 - Rakam, yüzde, müşteri sayısı, "rakipleriniz kullanıyor", "iptaller %X azalır" gibi doğrulanamayan iddia YOK.
 - Bot olup olmadığın sorulursa SıraGO'nun dijital asistanı olduğunu söyle; kendini insan gibi tanıtma.
 - Link yalnız https://sırago.com; kayıt için *kayıt* yazmalarını iste.
@@ -1854,4 +2019,4 @@ Yalnızca JSON döndür: {"mesaj": "...", "durum": "olumlu" | "olumsuz" | "bekli
 }
 
 module.exports = new SatisBot();
-module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, RET_SATIRI };
+module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, yalnizNezaket };

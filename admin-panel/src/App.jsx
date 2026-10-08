@@ -4,9 +4,14 @@ import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoFull from "./assets/logo2.png";
 import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
+import LiteBugun from "./components/Lite/LiteBugun";
+import KurulumKarti from "./components/Kurulum/KurulumKarti";
+import Buyume from "./components/Buyume/Buyume";
+import EsnafGetir from "./components/Davet/EsnafGetir";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
+import EkipYonetimi from "./components/Ekip/EkipYonetimi";
 import SmsAyarlari from "./components/Settings/SmsAyarlari";
 import GeceRaporu from "./components/Settings/GeceRaporu";
 import YorumAvcisi from "./components/Settings/YorumAvcisi";
@@ -36,6 +41,44 @@ const oturumuKapat = () => {
   if (sessionStorage.getItem("randevugo_imp_token")) sessionStorage.removeItem("randevugo_imp_token");
   else localStorage.removeItem("randevugo_token");
 };
+
+// Ödeme sayfası: giriş anahtarı URL'ye konmaz; sunucudan süreli, yalnız ödeme açan link alınır.
+// Pencere tıklama anında açılır (sonradan açılırsa tarayıcı açılır pencere engeline takılır).
+function odemeSayfasiAc(paket) {
+  const w = window.open("", "_blank");
+  api.get(`/odeme/link${paket ? `?paket=${encodeURIComponent(paket)}` : ""}`)
+    .then(d => { if (d?.url) { if (w) w.location.href = d.url; else window.location.href = d.url; } else { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); } })
+    .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); });
+}
+
+// Satış kapısı ortak parçaları (Avcı + Satış Bot)
+const waTel = (t) => { let d = String(t || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "9" + d; if (d.length === 10) d = "90" + d; return d; };
+const ilkMesaj = (ad) => `Merhaba, ${ad} ile mi görüşüyorum?`;
+const kopyala = (metin) => navigator.clipboard?.writeText(metin).catch(() => {});
+const SG = { yesil: "#1f6f4a", mor: "#5d4bb5", amber: "#a8590c", kirmizi: "#b42318", mavi: "#2f56c6", gri: "#6f6a62" };
+const sgBtn = (renk, dolu) => ({ padding: "7px 12px", borderRadius: 9, border: dolu ? "none" : "1px solid var(--border)", cursor: "pointer",
+  background: dolu ? renk : "var(--surface)", color: dolu ? "#fff" : (renk || "var(--text)"), fontWeight: 600, fontSize: 12,
+  textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", fontFamily: "inherit" });
+const sgKart = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "18px 20px" };
+
+// Huni şeridi: [{ ad, deger, renk }] → oklarla bağlı adımlar, her adımda bir öncekine göre dönüşüm
+function HuniSerit({ adimlar }) {
+  return (
+    <div style={{ ...sgKart, display: "flex", alignItems: "stretch", gap: 0, overflowX: "auto", padding: 0, marginBottom: 20 }}>
+      {adimlar.map((a, i) => {
+        const onceki = i > 0 ? adimlar[i - 1].deger : null;
+        const oran = onceki ? Math.round(((a.deger || 0) / onceki) * 100) : null;
+        return (
+          <div key={a.ad} style={{ flex: "1 0 120px", padding: "14px 16px", borderLeft: i ? "1px solid var(--border)" : "none", position: "relative" }}>
+            <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, marginBottom: 4 }}>{a.ad}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: a.renk || "var(--text)", lineHeight: 1.1 }}>{a.deger ?? "—"}</div>
+            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2, minHeight: 15 }}>{oran !== null ? `%${oran} önceki adımdan` : a.alt || ""}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const api = {
   token: oturumTokeni(),
@@ -99,8 +142,10 @@ function Login({ onLogin }) {
   const [sifre, setSifre] = useState("");
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
-  const [ekran, setEkran] = useState("giris"); // giris | kayit
-  const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "" });
+  // Davet linki: ?davet=KOD (&k=randevu_sayfasi) → doğrudan kayıt ekranı, kod otomatik
+  const davetParam = (() => { try { const q = new URLSearchParams(window.location.search); return { kod: q.get("davet") || "", kanal: q.get("k") === "randevu_sayfasi" ? "randevu_sayfasi" : "davet" }; } catch { return { kod: "", kanal: "web" }; } })();
+  const [ekran, setEkran] = useState(davetParam.kod ? "kayit" : "giris"); // giris | kayit
+  const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
 
   const giris = async (e) => {
     e.preventDefault();
@@ -121,10 +166,11 @@ function Login({ onLogin }) {
     e.preventDefault();
     setHata("");
     if (!kayitForm.isletmeAdi || !kayitForm.email || !kayitForm.sifre) return setHata("Tüm alanları doldurun");
-    if (kayitForm.sifre.length < 6) return setHata("Şifre en az 6 karakter olmalı");
+    if (kayitForm.sifre.length < 8) return setHata("Şifre en az 8 karakter olmalı");
     if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
     setYukleniyor(true);
-    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre, kayitKanal: "web" });
+    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined });
     if (data.basarili) {
       setHata("");
       setEkran("giris");
@@ -202,6 +248,11 @@ function Login({ onLogin }) {
           ) : (
             <>
               <form onSubmit={kayitOl}>
+                {davetParam.kod && (
+                  <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(31,111,74,.08)", color: "#1f6f4a", fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                    🎁 Bir esnaf sizi davet etti — 14 gün ücretsiz, kart istemiyoruz.
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">İşletme Adı</label>
                   <input type="text" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} onChange={e => setKayitForm(p => ({ ...p, isletmeAdi: e.target.value }))} className="input" />
@@ -212,11 +263,15 @@ function Login({ onLogin }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre</label>
-                  <input type="password" placeholder="En az 6 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
+                  <input type="password" placeholder="En az 8 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre Tekrar</label>
                   <input type="password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} className="input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Davet kodu <span style={{ fontWeight: 400, color: "var(--dim)" }}>(varsa)</span></label>
+                  <input type="text" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
                 </div>
                 {hata && <div className="alert alert-error">{hata}</div>}
                 <button type="submit" disabled={yukleniyor} className="login-btn-primary">
@@ -853,6 +908,7 @@ function Dashboard({ kullanici }) {
   const [musteriler, setMusteriler] = useState([]);
   const [ayarlar, setAyarlar] = useState(null);
   const [paketDurum, setPaketDurum] = useState(null);
+  const [oncu, setOncu] = useState(null);   // Öncü Esnaf: { no, kalan, kilitli_fiyat }
   const [testMesaj, setTestMesaj] = useState("");
   const [testCevaplar, setTestCevaplar] = useState([]);
   const [testTelefon] = useState("05531112233");
@@ -923,11 +979,18 @@ function Dashboard({ kullanici }) {
     api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
     api.get("/yorum-avcisi/istatistik").then(d => { if (!d?.hata) setYorumIstat(d); }).catch(() => {});
     api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
+    api.get("/oncu").then(d => { if (d && !d.hata) setOncu(d); }).catch(() => {});
     // Bildirimler
     api.get("/bildirimler?limit=5").then(d => setBildirimler(d.bildirimler || [])).catch(() => {});
     api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
     // Shopier callback sonrası bildirim
     const params = new URLSearchParams(window.location.search);
+    // Kurulum hatırlatma linki: ?sayfa=hizmetler → doğrudan o sayfa
+    const hedef = params.get('sayfa');
+    if (['hizmetler', 'calisanlar', 'botbaglanti', 'qrkod'].includes(hedef)) {
+      setSayfa(hedef);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (params.get('odeme') === 'basarili') {
       alert('✅ Ödemeniz başarıyla alındı! Teşekkürler.');
       window.history.replaceState({}, '', window.location.pathname);
@@ -1170,7 +1233,12 @@ function Dashboard({ kullanici }) {
     try {
       const d = await api.post("/bot/test", { telefon: testTelefon, mesaj: testMesaj });
       if (d && d.cevaplar && d.cevaplar.length > 0) {
-        d.cevaplar.forEach(c => setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: c }]));
+        // Bot düğmeli cevapta {metin, butonlar} döndürür; React nesneyi çizemez (hata #31) → metne çevir
+        d.cevaplar.forEach(c => {
+          const mesaj = typeof c === "string" ? c : String(c?.metin ?? c?.mesaj ?? c?.text ?? "");
+          const butonlar = Array.isArray(c?.butonlar) ? c.butonlar.map(b => typeof b === "string" ? b : (b?.text || b?.body || b?.baslik || "")).filter(Boolean) : [];
+          setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj, butonlar }]);
+        });
       } else {
         setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: d?.hata || "Bot yanıt veremedi. Loglara bakın." }]);
       }
@@ -1190,7 +1258,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1224,7 +1292,7 @@ function Dashboard({ kullanici }) {
   // Menü grupları — hiyerarşik yapı
   // type: 'flat' = divider'lar arasında direkt item'lar
   // type: 'group' = açılır/kapanır accordion
-  const menuGroups = [
+  const tamMenu = [
     { type: 'flat', items: [
       { id: "anasayfa", icon: SVG.dashboard, label: "Dashboard" },
       { id: "randevular", icon: SVG.randevular, label: "Randevular" },
@@ -1252,10 +1320,31 @@ function Dashboard({ kullanici }) {
     { type: 'flat', items: [
       { id: "geceraporu", icon: ICON.gece, label: "Gece Raporu", featureKey: "gece_raporu" },
       { id: "grup", icon: ICON.sube, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['admin', 'isletme', 'grup_sahibi'] },
+      { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
   ];
+
+  // SıraGO Lite (kullanıcı kararı 2026-10-08): esnafın önünde yalnız günlük iş. NULL → pakete göre.
+  const proPaket = ['proplus', 'kurumsal', 'premium'].includes(paketDurum?.paket);
+  const liteMod = ayarlar?.panel_modu ? ayarlar.panel_modu === 'lite' : (paketDurum ? !proPaket : false);
+  const liteMenu = [
+    { type: 'flat', items: [
+      { id: "anasayfa", icon: SVG.dashboard, label: "Bugün" },
+      { id: "randevular", icon: SVG.randevular, label: "Randevular" },
+      { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler & Fiyatlar" },
+      { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+    ]},
+    { type: 'flat', items: [
+      { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
+      { id: "qrkod", icon: ICON.qr, label: "Randevu Linki & QR" },
+      { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
+      { id: "destek", icon: ICON.destek, label: "Destek" },
+      { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
+    ]},
+  ];
+  const menuGroups = liteMod ? liteMenu : tamMenu;
 
   // Rol bazlı gizlenen sayfalar (sube_muduru için)
   const subeMuduruGizli = ['finans','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
@@ -1386,7 +1475,7 @@ function Dashboard({ kullanici }) {
           <div className="paket-widget">
             <div className="pw-header">
               <span className="pw-label">Paketiniz</span>
-              <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
+              <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'proplus' ? 'badge-green' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
             </div>
             {[
               { label: 'Çalışan', used: paketDurum.kullanim.calisan, limit: paketDurum.paket_bilgi.calisan_limit, renk: 'var(--green)' },
@@ -1446,7 +1535,7 @@ function Dashboard({ kullanici }) {
       <div className="main-wrap">
         <div className="top-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{sayfaBaslik[sayfa]}</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{liteMod && sayfa === "anasayfa" ? "Bugün" : sayfaBaslik[sayfa]}</h1>
             {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
           </div>
           <div className="top-bar-right" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -1632,7 +1721,7 @@ function Dashboard({ kullanici }) {
                           display: "flex", alignItems: "center", justifyContent: "space-between"
                         }}>
                           <span style={{ fontSize: 11, color: "var(--muted)" }}>Paket</span>
-                          <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
+                          <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'proplus' ? 'badge-green' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
                         </div>
                       )}
                       <button onClick={() => { setProfilPopover(false); setSayfa("ayarlar"); }} style={{
@@ -1655,7 +1744,12 @@ function Dashboard({ kullanici }) {
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
-          {sayfa === "anasayfa" && (() => {
+          {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
+          {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
+          {sayfa === "anasayfa" && liteMod && (
+            <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
+          )}
+          {sayfa === "anasayfa" && !liteMod && (() => {
             const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
             const haftaRandevu = stats?.hafta?.toplam_randevu || 0;
             const toplamMusteri = stats?.toplam_musteri || 0;
@@ -1871,7 +1965,12 @@ function Dashboard({ kullanici }) {
                         fontSize: 12, maxWidth: "85%", lineHeight: 1.4,
                         border: m.yon === "giden" ? "none" : "1px solid var(--border)"
                       }}>
-                        {m.mesaj}
+                        <span style={{ whiteSpace: "pre-wrap" }}>{String(m.mesaj ?? "")}</span>
+                        {m.butonlar?.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                            {m.butonlar.map((b, j) => <span key={j} className="pill pill-xs">{b}</span>)}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2149,8 +2248,7 @@ function Dashboard({ kullanici }) {
                     <div>
                       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
                         <button onClick={() => {
-                          const token = api.token;
-                          window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
+                          odemeSayfasiAc();
                         }} style={{ flex: 1, padding: "14px 20px", borderRadius: 14, border: "none", background: "#1f6f4a", color: "#fff", fontWeight: 600, fontSize: 15, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                           🚀 Tek Tıkla Paketini Uzat — {odemeBilgi.tutar}₺
                         </button>
@@ -2586,7 +2684,17 @@ function Dashboard({ kullanici }) {
                     <div className="chat-empty">Müşteri gibi mesaj yazarak botu test edin...</div>
                   )}
                   {testCevaplar.map((c, i) => (
-                    <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>{c.mesaj}</div>
+                    <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>
+                      <span style={{ whiteSpace: "pre-wrap" }}>{String(c.mesaj ?? "")}</span>
+                      {c.butonlar?.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                          {c.butonlar.map((b, j) => (
+                            <button key={j} type="button" className="pill pill-xs" style={{ cursor: "pointer" }}
+                              onClick={() => setTestMesaj(String(j + 1))} title="Müşteri bu seçeneği seçerse">{j + 1}. {b}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ))}
                   {testYukleniyor && (
                     <div className="chat-typing"><span>●</span><span style={{ margin: "0 3px" }}>●</span><span>●</span></div>
@@ -2969,6 +3077,23 @@ function Dashboard({ kullanici }) {
           )}
 
           {/* ── AYARLAR ── */}
+          {sayfa === "ayarlar" && ayarlar && (
+            <div className="card" style={{ padding: 18, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <b>Panel görünümü: {liteMod ? "Sade (Lite)" : "Tam (Pro)"}</b>
+                <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 4 }}>
+                  {liteMod ? "Sadece günlük iş: bugünkü randevular, WhatsApp, fiyatlar. Kasa, pazarlama ve raporlar gizli."
+                           : "Tüm modüller açık: kasa, finans, pazarlama, raporlar, şubeler."}
+                </div>
+              </div>
+              <button className="btn btn-secondary" onClick={async () => {
+                const mod = liteMod ? "pro" : "lite";
+                const d = await api.put("/ayarlar", { panel_modu: mod });
+                if (!d?.hata) { setAyarlar(a => ({ ...a, panel_modu: mod })); setSayfa("anasayfa"); }
+                else alert(d.hata);
+              }}>{liteMod ? "Tüm özellikleri göster" : "Sade görünüme geç"}</button>
+            </div>
+          )}
           {sayfa === "ayarlar" && (
             <Settings ayarlar={ayarlar} setAyarlar={setAyarlar} paketDurum={paketDurum} api={api} />
           )}
@@ -3177,16 +3302,26 @@ function Dashboard({ kullanici }) {
       {/* Paket Karşılaştırma Modal */}
       {paketModal && (
         <div onClick={() => setPaketModal(false)} className="modal-overlay">
-          <div onClick={e => e.stopPropagation()} className="modal-content">
+          <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 1060 }}>
             <div className="modal-header">
               <h2>Paketler</h2>
               <button onClick={() => setPaketModal(false)} className="modal-close">✕</button>
             </div>
+            {oncu?.no ? (
+              <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14, fontWeight: 600 }}>
+                🏆 Öncü Esnaf #{oncu.no} — {oncu.kilitli_fiyat ? `fiyatınız ömür boyu ${Number(oncu.kilitli_fiyat).toLocaleString("tr-TR")}₺` : "fiyatınız ömür boyu sabit"}
+              </div>
+            ) : oncu?.kalan > 0 ? (
+              <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14 }}>
+                <b>🏆 Öncü Esnaf: son {oncu.kalan} yer.</b> İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır — zam gelse bile.
+              </div>
+            ) : null}
             <div className="price-grid-modal">
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
-                { key: "profesyonel", isim: "Profesyonel", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 699, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["SMS Hatırlatma", "Öncelikli Destek", "API Erişimi"] },
-                { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 1499, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "12+ Dil Desteği", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
+                { key: "profesyonel", isim: "Standart", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 499, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["Çoklu Şube", "Öncelikli Destek", "SMS Hatırlatma"] },
+                { key: "proplus", isim: "Pro+", fiyat: paketDurum?.tum_paketler?.proplus?.fiyat || 1499, renk: "#1f6f4a", ozellikler: ["10 Çalışan", "Sınırsız Randevu", "Çoklu Şube (3 şube)", "Kasa Takibi & Prim Raporu", "Öncelikli Destek", "Tüm Standart Özellikler"], ozellikYok: ["SMS Hatırlatma", "API Erişimi"] },
+                { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 4999, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Şube", "SMS Hatırlatma", "API Erişimi", "Özel Onboarding", "Tüm Pro+ Özellikler"], ozellikYok: [] },
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
@@ -3205,8 +3340,7 @@ function Dashboard({ kullanici }) {
                     </div>
                     {!aktif && p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        const token = api.token;
-                        window.open(`${API_URL}/odeme/shopier/baslat?token=${token}&paket=${p.key}`, "_blank");
+                        odemeSayfasiAc(p.key);
                         setPaketModal(false);
                       }}>
                         {p.key === "baslangic" ? "Başla" : "Yükselt"}
@@ -3272,8 +3406,7 @@ function Dashboard({ kullanici }) {
                 cursor: "pointer", fontFamily: "inherit"
               }}>Dashboard'a Dön</button>
               <button onClick={() => {
-                const token = api.token;
-                window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
+                odemeSayfasiAc();
               }} style={{
                 padding: "12px 24px", borderRadius: 12, border: "none",
                 background: "var(--gradient-accent)", color: "#fff", fontSize: 13, fontWeight: 600,
@@ -3294,6 +3427,11 @@ function Dashboard({ kullanici }) {
 
 // ==================== SUPER ADMIN PANEL ====================
 function SuperAdminPanel({ kullanici }) {
+  // Ekip yetkisi (config/ekip.js ile aynı anahtarlar). ekip_yetkileri yoksa kurucu: her şey açık.
+  // Asıl kontrol sunucuda; burada yalnız görmediği bölümü menüde göstermemek için.
+  const ekipYetki = Array.isArray(kullanici?.ekip_yetkileri) ? kullanici.ekip_yetkileri : null;
+  const izinli = (y) => !ekipYetki || (y !== 'kurucu' && ekipYetki.includes(y));
+  const GOREV_AD = { satis: 'SATIŞ', destek: 'DESTEK & KURULUM', finans: 'FİNANS & OPERASYON' };
   const [sayfa, setSayfa] = useState("dashboard");
   const [isletmeler, setIsletmeler] = useState([]);
   const [odemeler, setOdemeler] = useState([]);
@@ -3328,7 +3466,7 @@ function SuperAdminPanel({ kullanici }) {
   const [kampanyaDuzenle, setKampanyaDuzenle] = useState(null);
   const [yeniKampanya, setYeniKampanya] = useState({ isim: "", kategori: "", aktif: true, oncelik: 5, min_skor: 0, mesai_baslangic: 10, mesai_bitis: 18, gunler: "{1,2,3,4,5}", gunluk_limit: 20 });
   const [kategoriDagilimi, setKategoriDagilimi] = useState(null);
-  const [satisAnaTab, setSatisAnaTab] = useState("bot"); // bot | kampanyalar | dagilim
+  const [satisAnaTab, setSatisAnaTab] = useState("kontrol"); // kontrol | konusmalar | sablonlar | ayarlar | numaralar | kampanyalar | dagilim
   // Audit Log
   const [auditLoglar, setAuditLoglar] = useState([]);
   const [auditToplam, setAuditToplam] = useState(0);
@@ -3396,7 +3534,9 @@ function SuperAdminPanel({ kullanici }) {
   const [avciTaramaDurum, setAvciTaramaDurum] = useState(null); // { toplam_sorgu, tamamlanan, aktif, yeni_eklenen, zaten_var, ... }
   const [avciTaramaId, setAvciTaramaId] = useState(null);
   const [avciSecili, setAvciSecili] = useState(null);
-  const [avciTab, setAvciTab] = useState("liste");
+  const [avciDemo, setAvciDemo] = useState({});          // lead id → { link } | { yukleniyor } | { hata }
+  const [avciKopyalandi, setAvciKopyalandi] = useState(null);
+  const [avciTab, setAvciTab] = useState("gunluk");   // para getiren liste önce
   const [avciKaynak, setAvciKaynak] = useState("hepsi");
   const [avciKategoriFiltre, setAvciKategoriFiltre] = useState("hepsi");
   // 🆕 Arama + konum filtreleri
@@ -3529,10 +3669,9 @@ function SuperAdminPanel({ kullanici }) {
 
   useEffect(() => {
     isletmeleriYukle();
-    odemeleriYukle();
+    if (izinli('odemeler')) odemeleriYukle();
     saasMetrikleriYukle();
-    destekYukle();
-    iletisimYukle();
+    if (izinli('destek')) { destekYukle(); iletisimYukle(); }
     bildirimleriYukle();
   }, []);
 
@@ -3881,8 +4020,17 @@ function SuperAdminPanel({ kullanici }) {
 
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
 
-  const menuItems = [
+  const MENU_YETKI = {
+    dashboard: 'genel', buyume: 'genel', bildirimler: 'genel', aktivite: 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
+    isletmeler: 'genel', zombiler: 'isletmeler', onboarding: 'isletmeler',
+    destek: 'destek', duyurular: 'destek', iletisim: 'destek',
+    avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
+    odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza',
+    apiDash: 'sistem', sistemDurum: 'sistem', auditLog: 'kurucu', ekip: 'kurucu',
+  };
+  const tumMenu = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
+    { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
     { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
     { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
     { id: "aktivite", icon: SVGA.aktivite, label: "Aktivite" },
@@ -3904,15 +4052,17 @@ function SuperAdminPanel({ kullanici }) {
     { id: "apiDash", icon: SVGA.sistemDurum, label: "API Dashboard" },
     { id: "auditLog", icon: SVGA.auditLog, label: "Audit Log" },
     { id: "sistemDurum", icon: SVGA.sistemDurum, label: "Sistem Durumu" },
+    { id: "ekip", icon: SVGA.referanslar, label: "Ekip" },
   ];
+  const menuItems = tumMenu.filter(m => izinli(MENU_YETKI[m.id] || 'kurucu'));
 
   const kategoriRenk = { berber: "#2f56c6", kuafor: "#5d4bb5", guzellik: "#ec4899", spa: "#a8590c", disci: "#1f6f4a", veteriner: "#b42318", diyetisyen: "#2f56c6", psikolog: "#5d4bb5", fizyoterapi: "#2f56c6", restoran: "#a8590c", cafe: "#a16207", spor: "#1f6f4a", egitim: "#5d4bb5", foto: "#d946ef", dovme: "#b42318", oto: "#6f6a62", hukuk: "#475569", genel: "#94a3b8" };
   const kategoriLabel = { berber: "💈 Berber", kuafor: "✂️ Kuaför", guzellik: "💅 Güzellik", spa: "🧖 Spa", disci: "🦷 Diş Kliniği", veteriner: "🐾 Veteriner", diyetisyen: "🥗 Diyetisyen", psikolog: "🧠 Psikolog", fizyoterapi: "🏥 Fizyoterapi", restoran: "🍽️ Restoran", cafe: "☕ Kafe", spor: "🏋️ Spor", egitim: "📚 Eğitim", foto: "📸 Fotoğraf", dovme: "🎨 Dövme", oto: "🚗 Oto Servis", hukuk: "⚖️ Hukuk", genel: "🏢 Genel" };
-  const paketRenk = { baslangic: "#6f6a62", profesyonel: "#2f56c6", premium: "#a8590c" };
+  const paketRenk = { baslangic: "#6f6a62", profesyonel: "#2f56c6", proplus: "#1f6f4a", kurumsal: "#a8590c", premium: "#a8590c" };
   // Fiyatlar veritabanındaki paket tanımlarından (eskiden sabit 299/599/999 ve 'premium' anahtarı vardı;
   // Kurumsal undefined görünüyor, '+ Bekliyor Oluştur' yanlış tutarla kayıt açıyordu)
   useEffect(() => { paketleriYukle(); }, []);
-  const paketFiyat = { baslangic: 299, profesyonel: 699, kurumsal: 1499,
+  const paketFiyat = { baslangic: 299, profesyonel: 499, proplus: 1499, kurumsal: 4999,
     ...Object.fromEntries((paketTanimlar || []).map(p => [p.kod, parseFloat(p.fiyat) || 0])) };
   const odemeRenk = { odendi: "#1f6f4a", bekliyor: "#a8590c", gecikti: "#b42318", havale_bekliyor: "#5d4bb5", basarisiz: "#b42318", odeme_bekliyor: "#a8590c" };
   const odemeLabel = { odendi: "Ödendi ✓", bekliyor: "Bekliyor", gecikti: "Gecikti!", havale_bekliyor: "Havale Onay Bekliyor", basarisiz: "Başarısız", odeme_bekliyor: "Ödeme Bekliyor" };
@@ -3977,7 +4127,7 @@ function SuperAdminPanel({ kullanici }) {
         </div>
         <div className="sidebar-user">
           <div className="u-email">{kullanici.email}</div>
-          <span className="sidebar-badge gold">SÜPER ADMİN</span>
+          <span className="sidebar-badge gold">{ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
         </div>
         <nav className="sidebar-nav">
           {menuItems.map(m => (
@@ -4213,7 +4363,8 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             </div>
 
-            {/* Ödeme durumu + Son işletmeler */}
+            {/* Ödeme durumu — yalnız ödeme yetkisi olana (yoksa liste boş gelir, "herkes ödedi" yanıltır) */}
+            {izinli('odemeler') && (
             <div className="grid-2">
               <div className="card-dark">
                 <h3 style={{ color: "var(--green)", fontSize: 15, fontWeight: 600 }} className="mb-12">Bu Ay Ödeyen ({buAyOdeyenler.length})</h3>
@@ -4238,6 +4389,7 @@ function SuperAdminPanel({ kullanici }) {
                   ))}
               </div>
             </div>
+            )}
 
             {/* Son işletmeler */}
             <div className="card-dark">
@@ -4777,6 +4929,11 @@ function SuperAdminPanel({ kullanici }) {
           </>
         )}
 
+        {/* EKİP (yalnız kurucu) */}
+        {sayfa === "ekip" && izinli('kurucu') && (
+          <EkipYonetimi api={api} />
+        )}
+
         {/* MAĞAZA PİLOTU */}
         {sayfa === "magaza" && (
           <MagazaAdmin api={api} isletmeler={isletmeler} />
@@ -4828,7 +4985,7 @@ function SuperAdminPanel({ kullanici }) {
                   </button>
                   <button onClick={async () => { if (confirm("Bu mesajı silmek istediğinize emin misiniz?")) { await api.del("/admin/iletisim/" + m.id); iletisimYukle(); } }} className="btn btn-sm" style={{ background: "rgba(180,35,24,.1)", color: "var(--red)", border: "none" }}>Sil</button>
                   {m.email && <a href={"mailto:" + m.email} className="btn btn-sm" style={{ background: "rgba(93,75,181,.12)", color: "#5d4bb5", border: "none", textDecoration: "none" }}>Mail</a>}
-                  {m.telefon && <a href={"https://wa.me/90" + m.telefon} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "rgba(37,211,102,.12)", color: "#25d366", border: "none", textDecoration: "none" }}>WhatsApp</a>}
+                  {m.telefon && <a href={"https://wa.me/" + (d => d.startsWith("90") && d.length === 12 ? d : "90" + d.replace(/^0+/, ""))(String(m.telefon).replace(/\D/g, ""))} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "rgba(37,211,102,.12)", color: "#25d366", border: "none", textDecoration: "none" }}>WhatsApp</a>}
                 </div>
               </div>
             ))}
@@ -5105,7 +5262,7 @@ function SuperAdminPanel({ kullanici }) {
               const PLAN_DEFS = {
                 baslangic: { isim: "Başlangıç", fiyat: 299, calisan_limit: 1, hizmet_limit: 5, aylik_randevu_limit: 200, bot_aktif: true, hatirlatma: true, istatistik: false, export_aktif: false, ozellikler: "1 Çalışan\n200 Randevu/Ay\nOtomatik Hatırlatma\nTemel Analitik", sira: 1 },
                 profesyonel: { isim: "Profesyonel", fiyat: 999, calisan_limit: 3, hizmet_limit: 20, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "3 Çalışan\nSınırsız Randevu\nTelegram Desteği\nGelişmiş Analitik\nGoogle Calendar Sync\n5 Dil Desteği", sira: 2 },
-                kurumsal: { isim: "Kurumsal", fiyat: 0, calisan_limit: 999, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "Sınırsız Çalışan\nSınırsız Randevu\nÖzel API Entegrasyonu\nÖzel Eğitim & Onboarding\nSLA Garantisi\n12+ Dil Desteği", sira: 3 }
+                kurumsal: { isim: "Kurumsal", fiyat: 0, calisan_limit: 999, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "Sınırsız Çalışan\nSınırsız Randevu\nÖzel API Entegrasyonu\nÖzel Eğitim & Onboarding\nSLA Garantisi\n3 Dil (TR · EN · AR)", sira: 3 }
               };
               const mevcutKodlar = paketTanimlar.map(p => p.kod);
               const eksikler = Object.entries(PLAN_DEFS).filter(([kod]) => !mevcutKodlar.includes(kod));
@@ -5426,6 +5583,8 @@ function SuperAdminPanel({ kullanici }) {
           </>
           );
         })()}
+
+        {sayfa === "buyume" && <Buyume api={api} />}
 
         {/* ═══════ ONBOARDING ═══════ */}
         {sayfa === "onboarding" && (() => {
@@ -6415,38 +6574,32 @@ function SuperAdminPanel({ kullanici }) {
         {/* AVCI BOT */}
         {sayfa === "avci" && (
           <>
-            {/* Hero Header */}
-            <div style={{ background: "rgba(93,75,181,.08)", borderRadius: 20, padding: "28px 32px", marginBottom: 24, border: "1px solid rgba(93,75,181,.1)" }}>
-              <div className="row row-between row-wrap gap-12">
-                <div>
-                  <h1 style={{ fontSize: 26, fontWeight: 600, color: "var(--text)", margin: 0, letterSpacing: "-0.5px" }}>Avcı Bot</h1>
-                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 6 }}>Google Maps & Sosyal Medya'dan potansiyel müşterileri bul, skorla, ara ve kazan</p>
-                </div>
-                <div className="row gap-8">
-                  <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "#1f6f4a", color: "#fff", fontWeight: 600, borderRadius: 12, border: "none", boxShadow: "none" }}>🔍 Maps Tara</button>
-                  <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "#5d4bb5", color: "#fff", fontWeight: 600, borderRadius: 12, border: "none", boxShadow: "none" }}>🚀 Toplu Maps</button>
-                  <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }} className="btn btn-sm" style={{ background: "#b42318", color: "#fff", fontWeight: 600, borderRadius: 12, border: "none", boxShadow: "none" }}>📱 Sosyal Tara</button>
-                </div>
+            {/* Başlık: amaç + tarama araçları */}
+            <div className="row row-between row-wrap gap-12" style={{ marginBottom: 18, alignItems: "flex-end" }}>
+              <div>
+                <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.4px" }}>Avcı</h1>
+                <p style={{ color: "var(--dim)", fontSize: 13, margin: "4px 0 0" }}>Müşteri adayını bul → en sıcaktan başla → kendi demo sayfasıyla ulaş</p>
+              </div>
+              <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)" }}>
+                {[
+                  ["maps", "🔍 Maps tara", avciTaramaAcik, () => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }],
+                  ["toplu", "🚀 Toplu tarama", topluTaramaAcik, () => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }],
+                  ["sosyal", "📱 Sosyal", sosyalAcik, () => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }],
+                ].map(([k, l, acik, fn]) => (
+                  <button key={k} onClick={fn} style={{ padding: "8px 14px", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 12, fontFamily: "inherit",
+                    background: acik ? SG.yesil : "transparent", color: acik ? "#fff" : "var(--dim)" }}>{l}</button>
+                ))}
               </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Huni: kaç aday var, kaçına ulaşıldı, kaçı müşteri oldu */}
             {avciStats && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 24 }}>
-                {[
-                  { icon: "📍", label: "Toplam Lead", val: avciStats.toplam, color: "#a8590c", bg: "rgba(168,89,12,.08)" },
-                  { icon: "🆕", label: "Yeni", val: avciStats.yeni, color: "#2f56c6", bg: "rgba(47,86,198,.08)" },
-                  { icon: "📞", label: "Arandı", val: avciStats.arandi, color: "#5d4bb5", bg: "rgba(93,75,181,.08)" },
-                  { icon: "🤝", label: "İlgileniyor", val: avciStats.ilgileniyor, color: "#a8590c", bg: "rgba(168,89,12,.08)" },
-                  { icon: "✅", label: "Müşteri Oldu", val: avciStats.musteri_oldu, color: "#1f6f4a", bg: "rgba(31,111,74,.08)" }
-                ].map((s, i) => (
-                  <div key={i} style={{ background: s.bg, border: `1px solid ${s.color}18`, borderRadius: 16, padding: "20px 18px", position: "relative", overflow: "hidden" }}>
-                    
-                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{s.label}</div>
-                    <div style={{ fontSize: 32, fontWeight: 600, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                  </div>
-                ))}
-              </div>
+              <HuniSerit adimlar={[
+                { ad: "Toplam aday", deger: avciStats.toplam, alt: `${avciStats.yeni ?? 0} yeni` },
+                { ad: "Ulaşıldı", deger: (avciStats.bot_yazdi || 0) + (avciStats.arandi || 0), renk: SG.mavi },
+                { ad: "İlgileniyor", deger: avciStats.ilgileniyor, renk: SG.amber },
+                { ad: "Müşteri oldu", deger: avciStats.musteri_oldu, renk: SG.yesil },
+              ]} />
             )}
 
             {/* Tab Navigation */}
@@ -6548,52 +6701,67 @@ function SuperAdminPanel({ kullanici }) {
             {/* GÜNLÜK ARAMA LİSTESİ */}
             {avciTab === "gunluk" && (
               <>
-                <div style={{ background: "rgba(93,75,181,.06)", border: "1px solid rgba(93,75,181,.12)", borderRadius: 14, padding: "16px 20px", marginBottom: 16 }}>
-                  <div className="row gap-8" style={{ alignItems: "center" }}>
-                    
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text)" }}>Bugün Aranacak {avciGunluk.length} İşletme</div>
-                      <div style={{ fontSize: 11, color: "var(--dim)" }}>Henüz yazılmamış, telefonu olan, en yüksek skorlu lead'ler</div>
-                    </div>
-                  </div>
+                <div style={{ fontSize: 13, color: "var(--dim)", margin: "0 0 12px" }}>
+                  <b style={{ color: "var(--text)" }}>Bugün {avciGunluk.length} işletme</b> · henüz ulaşılmamış, telefonu olan, en sıcak adaylar. Önce selam ver; cevap gelince demoyu gönder.
                 </div>
                 {avciGunluk.length === 0 ? (
                   <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}><p style={{ fontSize: 14 }}>Bugün aranacak kimse yok. Yeni tarama yap!</p></div>
-                ) : avciGunluk.map((m, idx) => (
-                  <div key={m.id} style={{ background: "var(--surface)", borderRadius: 14, padding: "18px 20px", marginBottom: 10, border: "1px solid var(--border)", transition: "all .2s" }}>
-                    <div className="row row-between" style={{ alignItems: "flex-start", gap: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <div className="row row-wrap gap-8 mb-6" style={{ alignItems: "center" }}>
-                          <div style={{ width: 30, height: 30, borderRadius: 8, background: "#5d4bb5", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600 }}>{idx + 1}</div>
-                          <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 15 }}>{m.isletme_adi}</span>
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 11, fontWeight: 600 }}>{m.kategori}</span>
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.08)", color: "#a8590c", fontSize: 11, fontWeight: 600 }}>Skor: {m.skor}</span>
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: "var(--dim)", marginBottom: 6 }}>
-                          {m.telefon && <span style={{ fontWeight: 600, color: "var(--text)" }}>📞 {m.telefon}</span>}
-                          {m.adres && <span>📍 {m.adres}</span>}
-                        </div>
-                        <div className="row row-wrap gap-6" style={{ fontSize: 11 }}>
-                          {!m.web_sitesi && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(31,111,74,.08)", color: "#1f6f4a" }}>🌐 Web yok</span>}
-                          {m.puan && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.08)", color: "#a8590c" }}>⭐ {m.puan}</span>}
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: "#5d4bb5" }}>💬 {m.yorum_sayisi} yorum</span>
-                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", textDecoration: "none" }}>🗺️ Maps</a>}
-                        </div>
+                ) : avciGunluk.map((m, idx) => {
+                  const demo = avciDemo[m.id];
+                  const demoAc = async () => {
+                    if (demo?.link) { window.open(demo.link, "_blank"); return; }
+                    setAvciDemo(d => ({ ...d, [m.id]: { yukleniyor: true } }));
+                    try {
+                      const r = await api.post(`/admin/avci/${m.id}/demo`, {});
+                      setAvciDemo(d => ({ ...d, [m.id]: r.link ? { link: r.link } : { hata: r.hata || "Açılamadı" } }));
+                    } catch (e) { setAvciDemo(d => ({ ...d, [m.id]: { hata: e.message } })); }
+                  };
+                  const kopyalaIsaretle = (anahtar, metin) => { kopyala(metin); setAvciKopyalandi(anahtar); setTimeout(() => setAvciKopyalandi(null), 1800); };
+                  const skorRenk = m.skor >= 80 ? SG.yesil : m.skor >= 60 ? SG.amber : SG.gri;
+                  return (
+                  <div key={m.id} style={{ ...sgKart, marginBottom: 10 }}>
+                    <div className="row gap-12" style={{ alignItems: "flex-start" }}>
+                      <div style={{ width: 46, flexShrink: 0, textAlign: "center" }}>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: skorRenk, lineHeight: 1 }}>{m.skor}</div>
+                        <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>skor</div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={{ padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", background: "#5d4bb5", color: "#fff", fontWeight: 600, fontSize: 12, boxShadow: "none" }}>📞 Arandı</button>
-                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={{ padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(31,111,74,.1)", color: "#1f6f4a", fontWeight: 600, fontSize: 12 }}>🤝 İlgileniyor</button>
-                        <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} style={{ padding: "6px 14px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontSize: 11 }}>📝 Not</button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="row row-wrap gap-8" style={{ alignItems: "center", marginBottom: 4 }}>
+                          <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{idx + 1}. {m.isletme_adi}</span>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "var(--bg)", color: "var(--dim)", fontSize: 11, fontWeight: 600 }}>{m.kategori}</span>
+                          {m.ilce && <span style={{ fontSize: 12, color: "var(--dim)" }}>📍 {m.ilce}</span>}
+                        </div>
+                        {/* Neden sıcak: skorun sebepleri */}
+                        <div className="row row-wrap gap-6" style={{ fontSize: 11, marginBottom: 10 }}>
+                          {m.puan && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.08)", color: SG.amber }}>⭐ {m.puan}</span>}
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: SG.mor }}>💬 {m.yorum_sayisi} yorum</span>
+                          {!m.web_sitesi && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(31,111,74,.08)", color: SG.yesil }}>🌐 Web sitesi yok</span>}
+                          {m.telefon && <span style={{ color: "var(--text)", fontWeight: 600 }}>📞 {m.telefon}</span>}
+                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ color: SG.mavi, textDecoration: "none" }}>Haritada gör ↗</a>}
+                        </div>
+                        {/* Aksiyonlar: ulaş → demo → işaretle */}
+                        <div className="row row-wrap gap-6">
+                          <a href={`https://wa.me/${waTel(m.telefon)}?text=${encodeURIComponent(ilkMesaj(m.isletme_adi))}`} target="_blank" rel="noreferrer" style={sgBtn("#25d366", true)}>💬 WhatsApp'ta selam ver</a>
+                          <a href={`tel:${m.telefon}`} style={sgBtn(SG.mavi)}>📞 Ara</a>
+                          <button onClick={demoAc} disabled={demo?.yukleniyor} style={sgBtn(SG.yesil)}>{demo?.yukleniyor ? "⏳ Hazırlanıyor…" : demo?.link || m.demo_isletme_id ? "👁 Demoyu aç" : "✨ Demo hazırla"}</button>
+                          {demo?.link && <button onClick={() => kopyalaIsaretle(`d${m.id}`, demo.link)} style={sgBtn()}>{avciKopyalandi === `d${m.id}` ? "✓ Kopyalandı" : "🔗 Demo linkini kopyala"}</button>}
+                          <span style={{ flex: 1 }} />
+                          <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={sgBtn(SG.mor)}>✓ Ulaşıldı</button>
+                          <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={sgBtn(SG.amber)}>🤝 İlgileniyor</button>
+                          <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} style={sgBtn(SG.gri)}>📝</button>
+                        </div>
+                        {demo?.hata && <div style={{ fontSize: 12, color: SG.kirmizi, marginTop: 6 }}>Demo açılamadı: {demo.hata}</div>}
                       </div>
                     </div>
                     {avciSecili === m.id && (
                       <div className="row gap-8" style={{ marginTop: 12 }}>
                         <input id={`not_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input" style={{ flex: 1, borderRadius: 10 }} />
-                        <button onClick={async () => { const notInput = document.getElementById(`not_${m.id}`); await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value }); setAvciSecili(null); avciListeYukle(); avciGunlukYukle(); }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: "#2f56c6", color: "#fff", fontWeight: 600, fontSize: 12 }}>Kaydet</button>
+                        <button onClick={async () => { const notInput = document.getElementById(`not_${m.id}`); await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value }); setAvciSecili(null); avciListeYukle(); avciGunlukYukle(); }} style={sgBtn(SG.mavi, true)}>Kaydet</button>
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </>
             )}
 
@@ -6784,18 +6952,29 @@ function SuperAdminPanel({ kullanici }) {
         {/* ═══════ SATIŞ BOT ═══════ */}
         {sayfa === "satisBot" && (
           <>
-            {/* Hero Header */}
-            <div style={{ background: "rgba(37,211,102,.08)", borderRadius: 20, padding: "28px 32px", marginBottom: 24, border: "1px solid rgba(37,211,102,.12)" }}>
-              <div className="row row-between row-wrap gap-12">
-                <div>
-                  <h1 style={{ fontSize: 26, fontWeight: 600, color: "var(--text)", margin: 0, letterSpacing: "-0.5px" }}>Satış Bot</h1>
-                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 6 }}>WhatsApp otomatik pazarlama — lead'lere mesaj gönder, AI ile satış yap</p>
+            {/* Başlık: durum + tek ana düğme her sekmede görünür */}
+            {(() => {
+              const d = satisBotDurum?.durum;
+              const renk = d === "bagli" ? SG.yesil : d === "qr_bekleniyor" || d === "baslatiyor" ? SG.amber : SG.kirmizi;
+              const yazi = d === "bagli" ? (satisBotDurum?.aktif ? "Bağlı · gönderim açık" : "Bağlı · gönderim duraklatıldı") : d === "qr_bekleniyor" ? "QR bekliyor" : d === "baslatiyor" ? "Başlatılıyor…" : "Kapalı";
+              return (
+                <div className="row row-between row-wrap gap-12" style={{ marginBottom: 18, alignItems: "flex-end" }}>
+                  <div>
+                    <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.4px" }}>Satış Bot</h1>
+                    <div className="row gap-8" style={{ alignItems: "center", marginTop: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 4, background: renk, boxShadow: `0 0 0 3px ${renk}22` }} />
+                      <span style={{ fontSize: 13, color: "var(--dim)" }}>{yazi}{satisBotDurum?.gunlukGonderim > 0 ? ` · bugün ${satisBotDurum.gunlukGonderim}/${satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj` : ""}</span>
+                    </div>
+                  </div>
+                  <div className="row gap-8">
+                    {d === "bagli" && !satisBotDurum?.aktif && <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }} style={sgBtn(SG.yesil, true)}>▶ Gönderimi başlat</button>}
+                    {satisBotDurum?.aktif && <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }} style={sgBtn(SG.amber)}>⏸ Duraklat</button>}
+                    {d === "bagli" && <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={sgBtn(SG.kirmizi)}>⏹ Botu kapat</button>}
+                    <button onClick={satisBotYukle} style={sgBtn(SG.gri)}>↻</button>
+                  </div>
                 </div>
-                <div className="row gap-8">
-                  <button onClick={satisBotYukle} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontWeight: 600, fontSize: 12 }}>🔄 Yenile</button>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Otomatik fren: bot kendi kendini durdurduysa sebebi */}
             {satisBotDurum?.fren && !satisBotDurum?.aktif && (
@@ -6807,18 +6986,42 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
-            {/* ─── ANA TAB BAR ─── */}
-            <div className="row gap-8" style={{ marginBottom: 20 }}>
-              {[{id:"bot",icon:"🤖",label:"Bot & Şablonlar"},{id:"kampanyalar",icon:"🎯",label:"Kampanyalar"},{id:"dagilim",icon:"📊",label:"Kategori Dağılımı"}].map(t => (
-                <button key={t.id} onClick={() => setSatisAnaTab(t.id)} style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid " + (satisAnaTab === t.id ? "#25d366" : "var(--border)"), cursor: "pointer", background: satisAnaTab === t.id ? "rgba(37,211,102,.08)" : "var(--surface)", color: satisAnaTab === t.id ? "#25d366" : "var(--dim)", fontWeight: 600, fontSize: 13, transition: "all .2s" }}>
-                  {t.icon} {t.label} {t.id === "kampanyalar" && kampanyalar.length > 0 && <span style={{ marginLeft: 4, padding: "1px 7px", borderRadius: 10, background: "rgba(37,211,102,.12)", fontSize: 10, fontWeight: 600, color: "#25d366" }}>{kampanyalar.filter(k => k.aktif).length}</span>}
-                </button>
-              ))}
+            {/* ─── SEKMELER ─── */}
+            <div style={{ display: "flex", gap: 2, borderBottom: "1px solid var(--border)", marginBottom: 20, overflowX: "auto" }}>
+              {[
+                ["kontrol", "Genel bakış", satisBotDurum?.istatistikler?.sicak ? `🔥${satisBotDurum.istatistikler.sicak}` : null],
+                ["konusmalar", "Konuşmalar", satisBotKonusmalar.length || null],
+                ["sablonlar", "Mesajlar", null],
+                ["kampanyalar", "Kampanyalar", kampanyalar.filter(k => k.aktif).length || null],
+                ["numaralar", "Numaralar", numaralar.length || null],
+                ["ayarlar", "Ayarlar", null],
+                ["dagilim", "Kategoriler", null],
+              ].map(([id, ad, rozet]) => {
+                const aktif = satisAnaTab === id || (id === "kontrol" && satisAnaTab === "bot");
+                return (
+                  <button key={id} onClick={() => setSatisAnaTab(id)} style={{ padding: "10px 14px", border: "none", borderBottom: `2px solid ${aktif ? SG.yesil : "transparent"}`, marginBottom: -1,
+                    background: "transparent", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: aktif ? 700 : 500, color: aktif ? "var(--text)" : "var(--dim)", whiteSpace: "nowrap" }}>
+                    {ad}{rozet !== null && <span style={{ marginLeft: 6, padding: "1px 7px", borderRadius: 10, background: aktif ? "rgba(31,111,74,.1)" : "var(--bg)", fontSize: 11, color: aktif ? SG.yesil : "var(--dim)" }}>{rozet}</span>}
+                  </button>
+                );
+              })}
             </div>
 
             {/* ─── TAB: BOT & ŞABLONLAR ─── */}
-            {satisAnaTab === "bot" && <>
-            {/* Ana Grid: Bot Durumu + QR + İstatistikler */}
+            {(satisAnaTab === "kontrol" || satisAnaTab === "bot") && <>
+            {/* Huni: yazılan → cevap → sıcak → kayıt */}
+            {satisBotDurum?.istatistikler && (() => {
+              const st = satisBotDurum.istatistikler;
+              const cevap = (st.olumlu || 0) + (st.sicak || 0) + (st.olumsuz || 0) + (st.kayit || 0);
+              return <HuniSerit adimlar={[
+                { ad: "Yazılan", deger: st.gonderilen, alt: `${st.wp_yok || 0} WhatsApp'sız` },
+                { ad: "Cevap veren", deger: cevap, renk: SG.mavi },
+                { ad: "Sıcak / olumlu", deger: (st.sicak || 0) + (st.olumlu || 0), renk: SG.amber },
+                { ad: "Kayıt oldu", deger: st.kayit || 0, renk: SG.yesil },
+              ]} />;
+            })()}
+            {/* Ana Grid: Bot Durumu + QR */}
+            {satisBotDurum?.durum !== 'bagli' && (
             <div style={{ display: "grid", gridTemplateColumns: satisBotDurum?.durum === 'qr_bekleniyor' ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 24 }}>
               {/* Bot Durumu Kartı */}
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)" }}>
@@ -6837,12 +7040,6 @@ function SuperAdminPanel({ kullanici }) {
                 <div className="row gap-8" style={{ flexWrap: "wrap" }}>
                   {(!satisBotDurum || satisBotDurum.durum === 'kapali' || satisBotDurum.durum === 'hata' || satisBotDurum.durum === 'baslatiyor') && (
                     <button onClick={async () => { setSatisBotYukleniyor(true); await api.post("/admin/satis-bot/baslat"); setTimeout(satisBotYukle, 3000); setSatisBotYukleniyor(false); }} disabled={satisBotYukleniyor} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "#1f6f4a", color: "#fff", fontWeight: 600, fontSize: 13, boxShadow: "none" }}>{satisBotYukleniyor ? '⏳ Başlatılıyor...' : '▶️ Botu Başlat'}</button>
-                  )}
-                  {satisBotDurum?.durum === 'bagli' && !satisBotDurum?.aktif && (
-                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "#25d366", color: "#fff", fontWeight: 600, fontSize: 13, boxShadow: "none" }}>🚀 Gönderimi Başlat</button>
-                  )}
-                  {satisBotDurum?.aktif && (
-                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(168,89,12,.1)", color: "#a8590c", fontWeight: 600, fontSize: 13 }}>⏸️ Gönderimi Durdur</button>
                   )}
                   {satisBotDurum?.durum !== 'kapali' && satisBotDurum && (
                     <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 13 }}>⏹️ Botu Kapat</button>
@@ -6872,31 +7069,14 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               )}
             </div>
-
-            {/* İstatistikler */}
-            {satisBotDurum?.istatistikler && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
-                {[
-                  { icon: "📤", label: "Gönderilen", val: satisBotDurum.istatistikler.gonderilen, color: "#2f56c6", bg: "rgba(47,86,198,.08)" },
-                  { icon: "⏳", label: "Cevap Bekliyor", val: satisBotDurum.istatistikler.bekleyen, color: "#a8590c", bg: "rgba(168,89,12,.08)" },
-                  { icon: "🔥", label: "Sıcak (Ara!)", val: satisBotDurum.istatistikler.sicak || 0, color: "#a8590c", bg: "rgba(168,89,12,.12)" },
-                  { icon: "✅", label: "Olumlu", val: satisBotDurum.istatistikler.olumlu, color: "#1f6f4a", bg: "rgba(31,111,74,.08)" },
-                  { icon: "🎉", label: "Kayıt (WhatsApp)", val: satisBotDurum.istatistikler.kayit || 0, color: "#1f6f4a", bg: "rgba(31,111,74,.12)" },
-                  { icon: "❌", label: "Olumsuz", val: satisBotDurum.istatistikler.olumsuz, color: "#b42318", bg: "rgba(180,35,24,.08)" },
-                  { icon: "📵", label: "WP Yok", val: satisBotDurum.istatistikler.wp_yok, color: "#6f6a62", bg: "rgba(111,106,98,.08)" }
-                ].map((s, i) => (
-                  <div key={i} style={{ background: s.bg, border: `1px solid ${s.color}15`, borderRadius: 14, padding: "16px", position: "relative", overflow: "hidden" }}>
-                    
-                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>{s.label}</div>
-                    <div style={{ fontSize: 28, fontWeight: 600, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                  </div>
-                ))}
-              </div>
             )}
 
             {/* Satış hunisi: hangi şablon müşteri getiriyor */}
             <SatisHuni api={api} />
 
+            </>}
+
+            {satisAnaTab === "ayarlar" && <>
             {/* ═══ KAPSAMLI BOT AYARLARI PANELİ ═══ */}
             {satisBotDurum?.ayarlar && (() => {
               const ay = satisBotDurum.ayarlar;
@@ -6940,7 +7120,7 @@ function SuperAdminPanel({ kullanici }) {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
                     {[
                       ["kayitAktif", "📝 WhatsApp Kayıt", "Bot üzerinden hesap açma"],
-                      ["aiCevapAktif", "🤖 AI Cevap", "DeepSeek ile akıllı cevap"],
+                      ["aiCevapAktif", "🤖 AI Cevap", "Gemini / DeepSeek ile temsilci gibi cevap"],
                       ["takipAktif", "🔔 Takip Mesajı", "Cevap vermeyenlere hatırlatma"],
                       ["gelenMesajCevap", "💬 Gelen Mesaj Cevap", "Gelen mesajlara otomatik cevap"],
                       ["typingIndicator", "✍️ Yazıyor Göster", "Anti-ban: typing indicator"],
@@ -7020,25 +7200,13 @@ function SuperAdminPanel({ kullanici }) {
                     </div>
                   </div>
 
-                  {/* ── ANTI-BAN (Typing) AYARLARI ── */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>✍️ Min Typing (ms)</label>
-                      <select value={ay.typingMinMs || 2000} onChange={(e) => ayarGuncelle({ typingMinMs: parseInt(e.target.value) })} style={selStyle}>
-                        {[500,1000,1500,2000,3000,4000,5000].map(s => <option key={s} value={s}>{s/1000}sn</option>)}
-                      </select>
-                    </div>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>✍️ Max Typing (ms)</label>
-                      <select value={ay.typingMaxMs || 6000} onChange={(e) => ayarGuncelle({ typingMaxMs: parseInt(e.target.value) })} style={selStyle}>
-                        {[2000,3000,4000,5000,6000,8000,10000].map(s => <option key={s} value={s}>{s/1000}sn</option>)}
-                      </select>
-                    </div>
-                  </div>
                 </div>
               );
             })()}
 
+            </>}
+
+            {satisAnaTab === "konusmalar" && <>
             {/* Son Konuşmalar — Kompakt WhatsApp Tarzı */}
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
               <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
@@ -7100,6 +7268,9 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
+            </>}
+
+            {satisAnaTab === "numaralar" && <>
             {/* Numara Yönetimi */}
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
               <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
@@ -7234,6 +7405,9 @@ function SuperAdminPanel({ kullanici }) {
               )}
             </div>
 
+            </>}
+
+            {satisAnaTab === "sablonlar" && <>
             {/* ═══ MESAJ ŞABLONLARI ═══ */}
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 16 }}>
               <div className="row row-between mb-16" style={{ alignItems: "center" }}>
@@ -7384,6 +7558,9 @@ function SuperAdminPanel({ kullanici }) {
               )}
             </div>
 
+            </>}
+
+            {satisAnaTab === "ayarlar" && <>
             {/* Anti-Ban & İpuçları */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={{ background: "rgba(168,89,12,.04)", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(168,89,12,.12)" }}>
@@ -7393,7 +7570,7 @@ function SuperAdminPanel({ kullanici }) {
                   <span>• Günlük max {satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj</span>
                   <span>• Mesai: {satisBotDurum?.ayarlar?.mesaiBaslangic || 9}:00 — {satisBotDurum?.ayarlar?.mesaiBitis || 19}:00</span>
                   <span>• "Yazıyor..." simülasyonu</span>
-                  <span>• 3 farklı mesaj varyasyonu</span>
+                  <span>• Kısa, kişiye özel açılış mesajları</span>
                   <span>• Her numara paralel gönderim (bağımsız loop)</span>
                   <span>• WP numara kontrol — geçersiz numara skip</span>
                 </div>
@@ -7619,7 +7796,7 @@ function SuperAdminPanel({ kullanici }) {
         const d = detayIsletme;
         const isl = d.isletme || {};
         const denemeBitti = d.deneme_suresi_kalan <= 0;
-        const paketRenk = { baslangic: "#2f56c6", profesyonel: "#5d4bb5", kurumsal: "#a8590c" };
+        const paketRenk = { baslangic: "#2f56c6", profesyonel: "#5d4bb5", proplus: "#1f6f4a", kurumsal: "#a8590c" };
         const durumRenk = { odendi: "#1f6f4a", bekliyor: "#a8590c", gecikti: "#b42318", havale_bekliyor: "#2f56c6", deneme: "#5d4bb5" };
         return (
           <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex" }}>
@@ -7921,6 +8098,7 @@ function SuperAdminPanel({ kullanici }) {
                         <select defaultValue={isl.paket || ""} onChange={async (e) => { await api.put(`/admin/isletmeler/${isl.id}`, { paket: e.target.value }); isletmeDetayYukle(isl.id); isletmeleriYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600 }}>
                           <option value="baslangic">Başlangıç</option>
                           <option value="profesyonel">Profesyonel</option>
+                          <option value="proplus">Pro+</option>
                           <option value="kurumsal">Kurumsal</option>
                         </select>
                       </div>

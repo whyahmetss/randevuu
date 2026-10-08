@@ -19,6 +19,18 @@ const telegramSatisBot = require('./services/telegramSatisBot');
 const socketServer = require('./services/socketServer');
 
 const pool = require('./config/db');
+const { alarm, hataSay } = require('./utils/alarm');
+pool.on?.('error', (e) => hataSay('Veritabanı bağlantı hatası', e.message, { esik: 3 }));
+
+// Yakalanmamış hatalar: logla + ekibe haber ver. Çökme durumunda Render servisi yeniden başlatır.
+process.on('unhandledRejection', (e) => {
+  console.error('unhandledRejection:', e?.stack || e);
+  hataSay('Yakalanmamış hata (promise)', String(e?.message || e), { esik: 5 });
+});
+process.on('uncaughtException', (e) => {
+  console.error('uncaughtException:', e?.stack || e);
+  alarm('Sunucu çöktü, yeniden başlıyor', String(e?.message || e)).finally(() => setTimeout(() => process.exit(1), 500));
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -952,8 +964,8 @@ const corsCheck = (origin) => {
   if (allowedOrigins.includes(origin)) return true;
   // Render'ın otomatik dağıttığı URL'ler (randevugo-*, randevugo-*-v2, vb.)
   if (/^https:\/\/randevugo[a-z0-9-]*\.onrender\.com$/i.test(origin)) return true;
-  // siragO ana alan + tüm subdomain'ler (punycode dahil)
-  if (/^https:\/\/([a-z0-9-]+\.)?(xn--srago-n4a|sirago)\.com$/i.test(origin)) return true;
+  // sırago.com (punycode) ana alan + subdomain'ler. ASCII sirago.com başkasının park alanı: İZİN YOK
+  if (/^https:\/\/([a-z0-9-]+\.)?xn--srago-n4a\.com$/i.test(origin)) return true;
   console.log('⚠️ CORS reject:', origin);
   return false;
 };
@@ -987,12 +999,42 @@ app.use(express.static(require('path').join(__dirname, 'public')));
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+app.get('/api/health/derin', async (req, res) => {
+  const t = Date.now();
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', db_ms: Date.now() - t });
+  } catch (e) {
+    alarm('Veritabanına ulaşılamıyor', e.message);
+    res.status(503).json({ status: 'db_hata' });
+  }
+});
 
 // API Routes — stricter rate limits for public endpoints
+// 5xx cevaplarda ham veritabanı/iç hata mesajı dışarı sızmasın (tablo/kolon adları, SQL).
+// Süper admin ve Venüs uçları hata ayıklama için ayrıntıyı görmeye devam eder; asıl mesaj loga düşer.
+app.use('/api', (req, res, next) => {
+  if (/^\/(admin|venus)\//.test(req.path)) return next();
+  const json = res.json.bind(res);
+  res.json = (govde) => {
+    if (res.statusCode >= 500 && govde && typeof govde === 'object' && govde.hata) {
+      console.error(`500 ${req.method} ${req.originalUrl}:`, govde.hata);
+      hataSay('Çok sayıda 500 hatası', `${req.method} ${req.path}: ${govde.hata}`);
+      govde = { hata: 'Bir sorun oluştu, lütfen tekrar deneyin.' };
+    }
+    return json(govde);
+  };
+  next();
+});
 app.use('/api/auth', authLimiter);
 app.use('/api/iletisim', publicFormLimiter);
 app.use('/api/referans/kullan', publicFormLimiter);
 app.use('/api/book', bookingLimiter);
+// Doğrulama kodu gönderimi pahalı ve kötüye kullanılabilir (merkez numaradan rastgele numaralara
+// toplu kod → spam/ban). IP başına 15 dk'da 6, günde 20.
+const otpLimiter15 = rateLimit({ windowMs: 15 * 60 * 1000, max: 6, message: { hata: 'Çok fazla kod istendi. Biraz sonra tekrar deneyin.' }, keyGenerator: limitAnahtari });
+const otpLimiterGun = rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 20, message: { hata: 'Bugün için kod gönderim sınırına ulaşıldı.' }, keyGenerator: limitAnahtari });
+app.post('/api/book/:slug/otp-gonder', otpLimiter15, otpLimiterGun, (req, res, next) => next());
 app.use('/api/webhook', webhookLimiter);
 // Venüs okuma uçları (kendi anahtarı ve limiti var; VENUS_API_ANAHTAR yoksa 404)
 app.use('/api/venus/v1', require('./routes/venus'));
@@ -1002,18 +1044,49 @@ app.use('/api', apiLimiter, apiRoutes);
 // innerHTML içeriyordu. QR (randevu.sırago.com), Google Business (onrender) ve diğer tüm
 // /book linkleri tek React rezervasyon sayfasına yönlenir.
 const BOOKING_BASE_URL = (process.env.BOOKING_BASE_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '');
-app.get('/book/:slug', (req, res) => {
-  res.redirect(302, `${BOOKING_BASE_URL}/book/${encodeURIComponent(req.params.slug)}`);
+// Randevu sayfası randevu.sırago.com adresinde KALIR: yönlendirme yerine panel sitesindeki React
+// uygulamasını buradan sunuyoruz. (Eskiden admin.sırago.com/book/… adresine 302 atılıyordu; Render
+// statik sitesi _redirects okumadığı için doğrudan açılan link 404 veriyordu, adres de admin'e dönüyordu.)
+let _spa = { t: 0, html: null };
+const _varlik = new Map();   // hash'li dosyalar değişmez → bellekte tut (en fazla 40)
+async function spaHtml() {
+  if (_spa.html && Date.now() - _spa.t < 5 * 60 * 1000) return _spa.html;
+  const r = await fetch(`${BOOKING_BASE_URL}/`, { signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error(`SPA ${r.status}`);
+  _spa = { t: Date.now(), html: await r.text() };
+  return _spa.html;
+}
+async function spaSun(req, res) {
+  try {
+    res.set('Cache-Control', 'no-cache').type('html').send(await spaHtml());
+  } catch (e) {
+    console.error('Randevu sayfası sunulamadı, yönlendiriliyor:', e.message);
+    res.redirect(302, `${BOOKING_BASE_URL}${req.path}`);
+  }
+}
+app.get('/assets/:dosya', async (req, res) => {
+  const ad = req.params.dosya;
+  if (!/^[\w.-]+$/.test(ad)) return res.status(404).end();
+  try {
+    let v = _varlik.get(ad);
+    if (!v) {
+      const r = await fetch(`${BOOKING_BASE_URL}/assets/${ad}`, { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return res.status(r.status).end();
+      v = { tip: r.headers.get('content-type') || 'application/octet-stream', veri: Buffer.from(await r.arrayBuffer()) };
+      if (_varlik.size >= 40) _varlik.delete(_varlik.keys().next().value);
+      _varlik.set(ad, v);
+    }
+    res.set('Content-Type', v.tip).set('Cache-Control', 'public, max-age=31536000, immutable').send(v.veri);
+  } catch (e) { res.status(502).end(); }
 });
+app.get('/book/:slug', spaSun);
 
 // Mağaza öneri linki — /m/:kod (tıklanmayı sayar, tedarikçinin ürün sayfasına yönlendirir)
 const magazaLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: 'Çok fazla istek', keyGenerator: limitAnahtari });
 app.get('/m/:kod', magazaLimiter, (req, res) => require('./controllers/magazaController').yonlendir(req, res));
 
 // Grup Booking sayfası — /g/:slug
-app.get('/g/:slug', (req, res) => {
-  res.redirect(302, `${BOOKING_BASE_URL}/g/${encodeURIComponent(req.params.slug)}`);
-});
+app.get('/g/:slug', spaSun);
 
 // Ana sayfa - Landing page
 app.get('/', (req, res) => {
@@ -1023,6 +1096,7 @@ app.get('/', (req, res) => {
 // Global error handler — her zaman JSON döndür
 app.use((err, req, res, next) => {
   console.error('❌ Unhandled error:', err.message);
+  if ((err.status || 500) >= 500) hataSay('Çok sayıda 500 hatası', `${req.method} ${req.path}: ${err.message}`);
   res.status(err.status || 500).json({ hata: err.message || 'Sunucu hatası' });
 });
 
@@ -1097,26 +1171,33 @@ httpServer.listen(PORT, () => {
   // Telegram botlarını başlat
   telegramService.tumBotlariBaşlat();
 
-  // WhatsApp Web servisini başlat
-  whatsappWebService.tumIsletmeleriBaslat();
+  // WhatsApp bağlantıları gecikmeli: Render yeni sürümü açarken eski sunucu birkaç dakika daha
+  // çalışır ve SIGTERM'i yeni sürüm sağlıklı olunca alır. Hemen bağlanırsak iki sunucu aynı
+  // oturumu birbirinden kapar (440). Eskisi kapanana kadar bekle.
+  const waGecikme = Math.max(0, parseInt(process.env.WA_BASLANGIC_GECIKME_SN ?? '45')) * 1000;
+  console.log(`📱 WhatsApp bağlantıları ${waGecikme / 1000} sn sonra başlayacak (deploy çakışması önlemi)`);
+  setTimeout(() => {
+    if (global.__kapaniyor) return;
+    whatsappWebService.tumIsletmeleriBaslat();
 
-  // Satış botunu otomatik başlat (auth varsa bağlanır, yoksa QR bekler)
-  try {
-    const satisBot = require('./services/satisBot');
-    console.log('🤖 Satış Bot otomatik başlatılıyor...');
-    satisBot.baslat();
-  } catch (e) {
-    console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
-  }
+    // Satış botunu otomatik başlat (auth varsa bağlanır, yoksa QR bekler)
+    try {
+      const satisBot = require('./services/satisBot');
+      console.log('🤖 Satış Bot otomatik başlatılıyor...');
+      satisBot.baslat();
+    } catch (e) {
+      console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
+    }
 
-  // 📞 SıraGO Merkez OTP Bot (esnaf WA'sı yoksa fallback)
-  try {
-    const merkezOtpBot = require('./services/merkezOtpBot');
-    console.log('📞 Merkez OTP Bot başlatılıyor...');
-    merkezOtpBot.baslat();
-  } catch (e) {
-    console.log('⚠️ Merkez OTP Bot başlatma hatası:', e.message);
-  }
+    // 📞 SıraGO Merkez OTP Bot (esnaf WA'sı yoksa fallback)
+    try {
+      const merkezOtpBot = require('./services/merkezOtpBot');
+      console.log('📞 Merkez OTP Bot başlatılıyor...');
+      merkezOtpBot.baslat();
+    } catch (e) {
+      console.log('⚠️ Merkez OTP Bot başlatma hatası:', e.message);
+    }
+  }, waGecikme);
 
   // 🕛 Otomatik no-show cron (her 10 dk)
   try {
@@ -1134,6 +1215,9 @@ httpServer.listen(PORT, () => {
   } catch (e) {
     console.log('⚠️ TG Kayıt Bot başlatma hatası:', e.message);
   }
+
+  // Kurulumda takılan esnafa otomatik yardım mesajı (saatlik kontrol)
+  try { require('./services/kurulum').baslat(); } catch (e) { console.log('⚠️ Kurulum hatırlatma başlatılamadı:', e.message); }
 
   // Render keep-alive: 14 dakikada bir self-ping (uyku modunu engelle)
   const keepAliveUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -1165,7 +1249,12 @@ async function kapan(sinyal) {
       try { st?.sock?.end?.(undefined); } catch (e) {}
     }
   } catch (e) {}
-  try { const sb = require('./services/satisBot'); sb.sock?.end?.(undefined); } catch (e) {}
+  try {
+    const sb = require('./services/satisBot');
+    sb.sock?.end?.(undefined);
+    for (const ns of (sb.numaraSockets?.values?.() || [])) { try { ns?.sock?.end?.(undefined); } catch (e) {} }
+  } catch (e) {}
+  try { const mo = require('./services/merkezOtpBot'); mo.sock?.end?.(undefined); } catch (e) {}
   setTimeout(() => process.exit(0), 3000).unref();
 }
 process.on('SIGTERM', () => kapan('SIGTERM'));

@@ -5,7 +5,8 @@ const { telefonNormalize } = require('../utils/telefon');
 const otpToken = require('../utils/otpToken');
 
 /* ─── In-memory OTP store ─── */
-const otpStore = new Map(); // key: "isletmeId:telefon" → { kod, olusturma, deneme, kaynak }
+const otpStore = new Map();
+const otpNumaraSayac = new Map(); // telefon → { gun, sayi } — numara başına günlük kod sınırı // key: "isletmeId:telefon" → { kod, olusturma, deneme, kaynak }
 const OTP_TTL = 5 * 60 * 1000; // 5 dakika
 const OTP_COOLDOWN = 60 * 1000; // 60 saniye - aynı numaraya tekrar gönderim
 const OTP_MAX_DENEME = 5; // max yanlış deneme
@@ -37,7 +38,7 @@ class BookingController {
       const isletme = (await pool.query(
         `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
-                google_maps_reserve_url, booking_acik, telegram_token
+                google_maps_reserve_url, booking_acik, telegram_token, demo
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
         [slug]
       )).rows[0];
@@ -45,6 +46,8 @@ class BookingController {
       if (!isletme) {
         return res.status(404).json({ hata: 'İşletme bulunamadı' });
       }
+      // Venüs demosu: esnaf sayfayı açtı → sayaç (Venüs uyarısı buradan)
+      if (isletme.demo) require('../services/demo').demoGoruntulendi(isletme.id);
 
       // Booking Gate — henüz aktif değilse özel response
       if (!isletme.booking_acik) {
@@ -71,6 +74,10 @@ class BookingController {
       isletme.telegram_aktif = telegramAktif;
       isletme.telegram_bot_username = telegramBotUsername;
 
+      // Randevu sayfasının altındaki "İşletmeniz için ücretsiz kurun" bağlantısı bu işletmeye bağlansın
+      if (!isletme.demo) {
+        try { isletme.davet_kodu = await require('../utils/davet').davetKodu(isletme.id); } catch (e) { /* bağlantı davetsiz gider */ }
+      }
       res.json({ isletme });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -251,26 +258,20 @@ class BookingController {
       let secilenCalisanId = calisanId ? parseInt(calisanId) : null;
       const secimModu = isletme.calisan_secim_modu || 'musteri';
       if (!secilenCalisanId) {
-        if (secimModu === 'tek') {
-          // Tek çalışan modu: tüm hizmetleri yapabilen ilk uygun çalışanı ata
-          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
-          if (uygunlar.length > 0) secilenCalisanId = uygunlar[0].id;
-        } else {
-          // Otomatik veya müşteri modu: en boş çalışanı ata
-          // enBosCalisan tek hizmetId alıyor — multi-hizmette ilk uyumlu çalışanı seç
-          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
-          if (uygunlar.length === 1) {
-            secilenCalisanId = uygunlar[0].id;
-          } else if (uygunlar.length > 1) {
-            // En az yüklü çalışan
-            const enBos = await randevuService.enBosCalisan(isletme.id, tarih, hizmetListesi[0], saat);
-            if (enBos && uygunlar.some(u => u.id === enBos.id)) {
-              secilenCalisanId = enBos.id;
-            } else {
-              secilenCalisanId = uygunlar[0].id;
-            }
-          }
+        // Müşteri çalışan seçmedi: sayfa "herhangi bir çalışanın boş olduğu" saatleri gösterir.
+        // Eskiden günün en boş çalışanı seçiliyor, o saatte dolu olabildiği için "artık müsait değil"
+        // hatası çıkıyordu. Artık o saatte gerçekten boş olan uygun çalışan seçilir (en boş öncelikli).
+        const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
+        let sira = uygunlar;
+        if (uygunlar.length > 1 && secimModu !== 'tek') {
+          const enBos = await randevuService.enBosCalisan(isletme.id, tarih, hizmetListesi[0], saat).catch(() => null);
+          if (enBos) sira = [...uygunlar.filter(u => u.id === enBos.id), ...uygunlar.filter(u => u.id !== enBos.id)];
         }
+        for (const c of sira) {
+          const s = await randevuService.musaitSaatleriGetir(isletme.id, tarih, c.id, null, { hizmetIds: hizmetListesi });
+          if (s.includes(saat)) { secilenCalisanId = c.id; break; }
+        }
+        if (!secilenCalisanId && sira.length) secilenCalisanId = sira[0].id;   // aşağıdaki kontrol nedenini söyler
         if (!secilenCalisanId) {
           return res.status(400).json({
             hata: hizmetListesi.length > 1
@@ -299,7 +300,8 @@ class BookingController {
         hizmetIds: hizmetListesi,
         calisanId: secilenCalisanId,
         tarih,
-        saat
+        saat,
+        kaynak: 'online'
       });
 
       // Kaynağı online olarak güncelle
@@ -322,15 +324,7 @@ class BookingController {
         } catch(e) { /* ignore */ }
       }
 
-      // İşletmeye bildirim gönder
-      try {
-        const adminController = require('./adminController');
-        await adminController.bildirimOlustur(
-          isletme.id, 'randevu',
-          'Yeni Online Randevu',
-          `${musteriIsim || 'Müşteri'} — ${tarih} ${saat} saatine online randevu aldı.`
-        );
-      } catch(e) {}
+      // Panel bildirimi randevuService.randevuOlustur içinde (tüm kanallar için tek yer)
 
       // DDoS sayaçlarını artır (IP, fingerprint)
       if (req._ddosCtx) {
@@ -384,6 +378,15 @@ class BookingController {
 
       const storeKey = `${isletme.id}:${telefonTemiz}`;
       const mevcut = otpStore.get(storeKey);
+
+      // Numara başına günlük en fazla 5 kod (işletmeden bağımsız)
+      const gun = new Date().toISOString().slice(0, 10);
+      const ns = otpNumaraSayac.get(telefonTemiz);
+      if (ns && ns.gun === gun && ns.sayi >= 5) {
+        return res.status(429).json({ hata: 'Bu numaraya bugün çok fazla kod gönderildi. Yarın tekrar deneyin.' });
+      }
+      otpNumaraSayac.set(telefonTemiz, ns && ns.gun === gun ? { gun, sayi: ns.sayi + 1 } : { gun, sayi: 1 });
+      if (otpNumaraSayac.size > 50000) otpNumaraSayac.clear();
 
       // Cooldown kontrolü
       if (mevcut && Date.now() - mevcut.olusturma < OTP_COOLDOWN) {

@@ -47,7 +47,7 @@ router.get('/ozet', async (req, res) => {
     res.json({
       bugun: await gun(0),
       dun: await gun(1),
-      aktif_isletme: await sayi('SELECT COUNT(*) c FROM isletmeler WHERE aktif = true'),
+      aktif_isletme: await sayi('SELECT COUNT(*) c FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE'),
       eslesmeyen_odeme: await sayi("SELECT COUNT(*) c FROM odemeler WHERE durum = 'eslestirilmedi'"),
       bot: { bagli: botBagli, kopuk: botKopuk },
       zaman: new Date().toISOString(),
@@ -65,7 +65,7 @@ router.get('/takilanlar', async (req, res) => {
         (SELECT COUNT(*) FROM wa_auth_keys w WHERE w.isletme_id = i.id) AS bot,
         (SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id) AS randevu
       FROM isletmeler i
-      WHERE i.aktif = true AND i.olusturma_tarihi > NOW() - INTERVAL '60 days'
+      WHERE i.aktif = true AND i.demo IS NOT TRUE AND i.olusturma_tarihi > NOW() - INTERVAL '60 days'
       ORDER BY i.olusturma_tarihi DESC`)).rows;
     const takilanlar = rows.map(r => {
       const adimlar = [['hizmet', +r.hizmet > 0], ['calisan', +r.calisan > 0], ['bot', +r.bot > 0], ['ilk_randevu', +r.randevu > 0]];
@@ -122,6 +122,19 @@ router.post('/satis-bot/durdur', async (req, res) => {
   } catch (e) { hata(res, e); }
 });
 
+// Kişisel demo: Avcı lead'i için hazır randevu sayfası. Mesaj GÖNDERMEZ; metni Venüs'e verir.
+router.post('/demo', async (req, res) => {
+  try {
+    const leadId = parseInt(req.body?.lead_id || req.query.lead_id);
+    if (!leadId) return res.status(400).json({ hata: 'lead_id gerekli' });
+    const d = await require('../services/demo').demoOlustur(leadId);
+    res.json({ link: d.link, mesaj: d.mesaj, yeni: d.yeni, isletme_adi: d.isletme.isim, telefon: d.isletme.telefon });
+  } catch (e) {
+    if (e.kod === 404) return res.status(404).json({ hata: e.message });
+    hata(res, e);
+  }
+});
+
 router.post('/satis-bot/baslat', async (req, res) => {
   try {
     const satisBot = require('../services/satisBot');
@@ -156,6 +169,18 @@ router.get('/uyarilar', async (req, res) => {
         .map(([id]) => Number(id));
       if (kopuk.length) uyarilar.push({ tip: 'bot_kopuk', onem: 'yuksek', mesaj: `${kopuk.length} işletmenin WhatsApp botu kopuk`, isletmeler: kopuk });
     } catch (e) { /* WA servisi yoksa geç */ }
+    try {
+      const demolar = (await pool.query(
+        "SELECT isim, demo_goruntulenme, demo_son_goruntulenme FROM isletmeler WHERE demo = true AND demo_son_goruntulenme > NOW() - make_interval(hours => $1) ORDER BY demo_son_goruntulenme DESC LIMIT 10",
+        [saat])).rows;
+      demolar.forEach(d => uyarilar.push({ tip: 'demo_acildi', onem: 'yuksek',
+        mesaj: `${d.isim} demo sayfasını açtı (${d.demo_goruntulenme} kez) — şimdi ara`, zaman: d.demo_son_goruntulenme }));
+    } catch (e) { /* kolon yoksa geç */ }
+    try {
+      const basvuru = await sayi(
+        "SELECT COUNT(*) c FROM iletisim_mesajlari WHERE okundu IS NOT TRUE AND olusturma_tarihi > NOW() - make_interval(hours => $1)", [saat]);
+      if (basvuru > 0) uyarilar.push({ tip: 'yeni_basvuru', onem: 'yuksek', mesaj: `${basvuru} yeni başvuru (site/iletişim) — aranmayı bekliyor` });
+    } catch (e) { /* tablo/kolon yoksa geç */ }
     try {
       const frenler = (await pool.query(
         "SELECT detay, olusturma_tarihi FROM audit_log WHERE islem = 'satis_bot_fren' AND olusturma_tarihi > NOW() - make_interval(hours => $1) ORDER BY id DESC LIMIT 5",

@@ -85,6 +85,18 @@ router.delete('/kara-liste/:id', authMiddleware, (req, res) => adminController.k
 // Güvenlik & Koruma istatistikleri
 router.get('/guvenlik/istatistik', authMiddleware, (req, res) => adminController.guvenlikIstatistik(req, res));
 router.get('/guvenlik/son-olaylar', authMiddleware, (req, res) => adminController.guvenlikSonOlaylar(req, res));
+// Tanıtım sitesi fiyatları buradan okur: panelden değişen fiyat sitede de güncellenir
+router.get('/paketler/fiyatlar', async (req, res) => {
+  try {
+    const paketler = await require('../config/paketler').paketleriYukle();
+    const fiyatlar = {};
+    for (const k of ['baslangic', 'profesyonel', 'proplus', 'kurumsal']) {
+      const f = parseFloat(paketler[k]?.fiyat);
+      if (f > 0) fiyatlar[k] = f;
+    }
+    res.set('Cache-Control', 'public, max-age=300').json({ fiyatlar });
+  } catch (e) { res.status(500).json({ hata: 'Fiyatlar alınamadı' }); }
+});
 router.get('/paket', authMiddleware, (req, res) => adminController.paketBilgisi(req, res));
 router.get('/bot/durum', authMiddleware, (req, res) => adminController.botDurum(req, res));
 router.put('/bot/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.botAyarlarGuncelle(req, res));
@@ -135,6 +147,23 @@ router.delete('/admin/iletisim/:id', authMiddleware, superAdminMiddleware, (req,
 router.post('/odeme/iyzico/baslat', authMiddleware, (req, res) => adminController.iyzicoBaslat(req, res));
 router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallback(req, res));
 router.get('/odeme/shopier/baslat', authMiddleware, (req, res) => adminController.shopierOdemeBaslat(req, res));
+// Panel: oturum anahtarını URL'ye koymadan ödeme linki al (eskiden ?token=<giriş anahtarı> açılıyordu)
+router.get('/odeme/link', authMiddleware, (req, res) => {
+  res.json({ url: require('../services/odemeOtomasyon').odemeLinki(req.kullanici.isletme_id, req.query.paket) });
+});
+// WhatsApp'taki kişisel ödeme linki: giriş gerektirmez, yalnız ödeme sayfası açar
+router.get('/odeme/ode/:anahtar', async (req, res) => {
+  const v = require('../services/odemeOtomasyon').anahtarCoz(req.params.anahtar);
+  if (!v) return res.status(410).type('html').send('<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">Bu ödeme linkinin süresi dolmuş. Panelinizden <b>Paket → Öde</b> ile ya da bize WhatsApp\'tan yazarak yeni link alabilirsiniz.</p>');
+  try {
+    const url = await require('../services/shopierService').odemeBaslat(v.i, v.p);
+    if (!url) return res.status(404).send('İşletme bulunamadı');
+    res.redirect(url);
+  } catch (e) {
+    console.error('Ödeme linki hatası:', e.message);
+    res.status(502).type('html').send('<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">Ödeme sayfası şu an açılamadı, birkaç dakika sonra tekrar deneyin.</p>');
+  }
+});
 router.post('/odeme/shopier/webhook', (req, res) => adminController.shopierWebhook(req, res));
 router.post('/odeme/havale', authMiddleware, (req, res) => adminController.havaleGonder(req, res));
 router.get('/odeme/durum', authMiddleware, (req, res) => adminController.odemeDurum(req, res));
@@ -157,6 +186,12 @@ router.get('/admin/avci/ilceler', authMiddleware, superAdminMiddleware, (req, re
 router.post('/admin/avci/ilceleri-duzelt', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIlceleriDuzelt(req, res));
 router.get('/admin/avci/istatistik', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIstatistik(req, res));
 router.get('/admin/avci/gunluk', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciGunlukListe(req, res));
+router.post('/admin/avci/:id/demo', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const d = await require('../services/demo').demoOlustur(req.params.id);
+    res.json({ link: d.link, mesaj: d.mesaj, yeni: d.yeni });
+  } catch (e) { res.status(e.kod || 500).json({ hata: e.message }); }
+});
 router.put('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciDurumGuncelle(req, res));
 router.delete('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciSil(req, res));
 
@@ -193,6 +228,24 @@ router.get('/admin/karsilastirma', authMiddleware, superAdminMiddleware, (req, r
 router.get('/admin/segmentasyon', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriSegmentasyon(req, res));
 
 // ==================== İŞLETME ONBOARDING ====================
+router.get('/davet', authMiddleware, async (req, res) => {
+  try { res.json(await require('../utils/davet').davetBilgi(req.kullanici.isletme_id)); }
+  catch (e) { res.status(500).json({ hata: e.message }); }
+});
+router.get('/oncu', authMiddleware, async (req, res) => {
+  try { res.json(await require('../utils/oncu').oncuDurum(req.kullanici.isletme_id)); }
+  catch (e) { res.status(500).json({ hata: e.message }); }
+});
+router.get('/kurulum', authMiddleware, async (req, res) => {
+  try {
+    const d = await require('../services/kurulum').kurulumDurum(req.kullanici.isletme_id);
+    res.json(d || { bitti: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+router.get('/admin/buyume', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { res.json(await require('../services/buyume').buyumeRaporu(req.query.gun)); }
+  catch (e) { res.status(500).json({ hata: e.message }); }
+});
 router.get('/admin/onboarding', authMiddleware, superAdminMiddleware, (req, res) => adminController.onboardingDurum(req, res));
 
 // ==================== SATIŞ BOT ŞABLONLARI ====================
@@ -426,5 +479,11 @@ router.get('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodla
 router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodKaydet(req, res));
 router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
 router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
+
+// ==================== EKİP (yalnız kurucu — config/ekip.js: 'ekip' → 'kurucu') ====================
+const ekipController = require('../controllers/ekipController');
+router.get('/admin/ekip', ...saMw, (req, res) => ekipController.liste(req, res));
+router.post('/admin/ekip', ...saMw, (req, res) => ekipController.ekle(req, res));
+router.put('/admin/ekip/:id', ...saMw, (req, res) => ekipController.guncelle(req, res));
 
 module.exports = router;

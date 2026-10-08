@@ -1,0 +1,26 @@
+# Her PR'da ve main'e her gönderimde otomatik kontrol: bozuk kod yayına çıkmadan yakalansın.
+# GitHub'da çalışır, Render dakikası harcamaz.
+name: Testler
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: randevugo } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: randevugo/package-lock.json }
+      - run: npm ci
+      - run: npm test
+  panel:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: admin-panel } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: admin-panel/package-lock.json }
+      - run: npm ci
+      - run: npm run build

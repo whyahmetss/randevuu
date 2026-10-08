@@ -7,9 +7,11 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "db:setup": "node scripts/setup-db.js",
-    "db:seed": "node scripts/seed.js"
+    "db:seed": "node scripts/seed.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
@@ -31,9 +33,11 @@
     "stripe": "^22.0.0",
     "twilio": "^4.19.0",
     "web-push": "^3.6.7",
-    "whatsapp-web.js": "^1.34.6"
+    "whatsapp-web.js": "^1.34.6",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17",
     "nodemon": "^3.0.2"
   }
 }
