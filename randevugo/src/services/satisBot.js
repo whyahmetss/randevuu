@@ -1295,6 +1295,58 @@ class SatisBot extends EventEmitter {
     }
   }
 
+  // ─── Kişiye özel demo (kullanıcı kararı 2026-10-08: "panel gezdirme, kendi sayfasını göster") ───
+  async _demoIsletme(konusma) {
+    if (!konusma?.lead_id) return null;
+    const r = (await pool.query(
+      `SELECT i.* FROM potansiyel_musteriler p JOIN isletmeler i ON i.id = p.demo_isletme_id WHERE p.id = $1`, [konusma.lead_id])).rows[0];
+    return r || null;
+  }
+
+  async _demoDurum(konusma) {
+    try {
+      if (!konusma?.lead_id) return null;
+      const i = await this._demoIsletme(konusma);
+      if (!i || !konusma.demo_gonderildi) return { gonderildi: false };
+      const hz = (await pool.query('SELECT isim, fiyat FROM hizmetler WHERE isletme_id = $1 AND aktif = true ORDER BY id', [i.id])).rows;
+      const { randevuLinki } = require('../utils/randevuLinki');
+      return {
+        gonderildi: true, link: await randevuLinki(i),
+        hizmetler: hz.map(h => `${h.isim} ${Number(h.fiyat) > 0 ? Number(h.fiyat) + '₺' : '(fiyat yok)'}`).join(', '),
+      };
+    } catch (e) { return null; }
+  }
+
+  // Demo linkini hazırla; konuşma başına bir kez. Mesaj metni döner (göndermeyi çağıran yapar).
+  async _demoGonder(konusma) {
+    if (!konusma?.lead_id || konusma.demo_gonderildi) return null;
+    const { demoOlustur } = require('./demo');
+    const d = await demoOlustur(konusma.lead_id);
+    await pool.query('UPDATE satis_konusmalar SET demo_gonderildi = true WHERE id = $1', [konusma.id]);
+    konusma.demo_gonderildi = true;
+    return `${d.isletme.isim} için randevu sayfanız:\n${d.link}`;
+  }
+
+  // Esnafın sohbette yazdığı fiyatlar → demo sayfasındaki hizmetler (yalnız demo işletmede; fiyat uydurulmaz)
+  async _demoFiyatYaz(konusma, fiyatlar) {
+    try {
+      const i = await this._demoIsletme(konusma);
+      if (!i || !i.demo) return;
+      for (const f of fiyatlar.slice(0, 12)) {
+        const isim = String(f.hizmet || '').trim().slice(0, 80);
+        const fiyat = Math.round(Number(f.fiyat));
+        if (!isim || !(fiyat > 0 && fiyat < 100000)) continue;
+        const g = await pool.query(
+          'UPDATE hizmetler SET fiyat = $3 WHERE id = (SELECT id FROM hizmetler WHERE isletme_id = $1 AND LOWER(isim) = LOWER($2) LIMIT 1) RETURNING id',
+          [i.id, isim, fiyat]);
+        if (!g.rows.length) {
+          await pool.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aktif) VALUES ($1, $2, 30, $3, true)', [i.id, isim, fiyat]);
+        }
+      }
+      console.log(`💈 Demo #${i.id} fiyatları esnafın mesajından güncellendi (${fiyatlar.length})`);
+    } catch (e) { console.error('Demo fiyat yazılamadı:', e.message); }
+  }
+
   async _telegramBildirimGonder(mesaj) {
     const botToken = process.env.TELEGRAM_SATIS_BOT_TOKEN || process.env.SATIS_TELEGRAM_BOT_TOKEN;
     const chatId = process.env.SATIS_TELEGRAM_CHAT_ID;
@@ -1684,14 +1736,15 @@ class SatisBot extends EventEmitter {
     let cevap = null;
     if (this.ayarlar.aiCevapAktif && satisAI.aktifMi()) {
       const { liste } = await this._fiyatlar();
-      const ai = await satisAI.cevapUret({ konusma, paketListesi: liste, sonMesaj: metin });
-      if (ai) cevap = { mesajlar: ai.mesajlar, durum: ai.durum, arama: ai.arama_istiyor };
+      const ai = await satisAI.cevapUret({ konusma, paketListesi: liste, sonMesaj: metin, demo: await this._demoDurum(konusma) });
+      if (ai) cevap = { mesajlar: ai.mesajlar, durum: ai.durum, arama: ai.arama_istiyor, demo: ai.demo_gonder, fiyatlar: ai.fiyatlar };
     }
     if (!cevap) {
       const eski = this.ayarlar.aiCevapAktif
         ? await this.deepseekSatisCevabi(metin, konusma)
         : await this.fallbackCevapUret(metin, konusma);
-      if (eski?.mesaj) cevap = { mesajlar: [eski.mesaj], durum: eski.durum, arama: false };
+      // Yedek yollar: ilgi gösterene demo yine gitsin
+      if (eski?.mesaj) cevap = { mesajlar: [eski.mesaj], durum: eski.durum, arama: false, demo: ['olumlu', 'sicak'].includes(eski.durum) };
     }
     if (!cevap) return;
     // Kişi cevap verdi: AI 'bekliyor' dese de takip sırasına geri düşmesin
@@ -1707,6 +1760,17 @@ class SatisBot extends EventEmitter {
       console.error(`❌ Cevap gönderilemedi: …${String(telefon).slice(-4)} → ${sendErr.message}`);
       if (!gidenler.length) return;
     }
+    // Kişiye özel demo: ilk ilgide onun adına açılmış randevu sayfası (konuşma başına bir kez)
+    if (cevap.demo && gidenler.length) {
+      try {
+        const d = await this._demoGonder(konusma);
+        if (d) {
+          await new Promise(r => setTimeout(r, 1500 + Math.random() * 1500));
+          gidenler.push(await this._yaz(sock, remoteJid, d));
+        }
+      } catch (e) { console.error('Demo gönderilemedi:', e.message); }
+    }
+    if (cevap.fiyatlar?.length) await this._demoFiyatYaz(konusma, cevap.fiyatlar);
     const giden = gidenler.join('\n');
     await this._botKaydet(konusma.id, giden, durum === 'olumsuz' ? { durum, red_tipi: 'normal' } : { durum });
     if (cevap.arama) {

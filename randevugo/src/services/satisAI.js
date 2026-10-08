@@ -13,6 +13,8 @@ const Cevap = z.object({
   mesajlar: z.array(z.string()).min(1).max(3),     // WhatsApp'ta insan gibi 1-3 kısa mesaj
   durum: z.enum(['olumlu', 'olumsuz', 'bekliyor', 'sicak']),
   arama_istiyor: z.boolean(),                       // "arayın", telefonla konuşmak istiyor → ekibe haber
+  demo_gonder: z.boolean().default(false),          // ilgi gösterdi → ona özel randevu sayfası gönderilsin
+  fiyatlar: z.array(z.object({ hizmet: z.string(), fiyat: z.number() })).max(12).default([]),  // esnafın yazdığı fiyatlar
 });
 
 let _istemci = null;
@@ -58,6 +60,15 @@ DURUM ALANI
 - bekliyor: selam verdi ya da konu dışı, henüz bir şey söylemedi.
 - olumsuz: istemediğini söyledi. Bu durumda tek kısa nazik veda yaz, bir daha ikna etmeye çalışma.
 
+KİŞİYE ÖZEL DEMO (satışın merkezi)
+- Panel anlatma, özellik sayma. En güçlü şey esnafın KENDİ sayfasını görmesi: "Ahmet Berber — Saç Kesim 500₺ — Randevu Al".
+- Kişi ilgi gösterdiği an (soru sordu, "nasıl", "olur", fiyat sordu…) ve DEMO henüz gönderilmediyse demo_gonder=true yap.
+  Link senin mesajlarından hemen sonra ayrı mesaj olarak gider; sen linki yazma, sadece kısa bir giriş yap
+  (ör. "Size özel bir sayfa hazırladım, müşterileriniz sizi böyle görecek:"). "Bunu benim için mi yaptınız?" derse: "Aynen, mesele bu."
+- Demo gönderildiyse doğal şekilde fiyatlarını sor: "Fiyatlarınızı yazarsanız sayfaya ekleyeyim." Esnaf fiyat yazınca
+  (ör. "kesim 500 sakal 250") fiyatlar alanına rakamı AYNEN yaz; hizmet adı olarak sayfadaki hizmetlerden uyanı kullan (ör. "kesim" → "Saç Kesim"), uyan yoksa esnafın yazdığı adı yaz; kendin fiyat UYDURMA; "Ekledim, linke
+  tekrar bakabilirsiniz" de. Sayfayı beğenirse *kayıt* yazmasını öner: aynı sayfa onun gerçek hesabı olur.
+
 KESİN KURALLAR
 - Bilmediğin bir şey sorulursa uydurma: "Bunu ekibimiz net söylesin, sizi arayalım mı?" de ve arama_istiyor=true yap.
 - Telefonla konuşmak, aranmak isterse arama_istiyor=true yap ve "Tamam, ekibimiz bugün sizi arayacak" de.
@@ -93,7 +104,8 @@ function gecmistenMesajlar(gecmisMetin, sonMusteriMesaji) {
 const JSON_TALIMAT = `
 
 ÇIKTI: Yalnız şu JSON'u döndür, başka hiçbir şey yazma:
-{"mesajlar": ["1-3 kısa WhatsApp mesajı"], "durum": "olumlu|olumsuz|bekliyor|sicak", "arama_istiyor": true|false}`;
+{"mesajlar": ["1-3 kısa WhatsApp mesajı"], "durum": "olumlu|olumsuz|bekliyor|sicak", "arama_istiyor": true|false,
+ "demo_gonder": true|false, "fiyatlar": [{"hizmet": "Saç Kesim", "fiyat": 500}]}`;
 
 function temizle(ham) {
   try {
@@ -125,8 +137,10 @@ async function geminiCevap(sistem, messages) {
               mesajlar: { type: 'ARRAY', items: { type: 'STRING' } },
               durum: { type: 'STRING', enum: ['olumlu', 'olumsuz', 'bekliyor', 'sicak'] },
               arama_istiyor: { type: 'BOOLEAN' },
+              demo_gonder: { type: 'BOOLEAN' },
+              fiyatlar: { type: 'ARRAY', items: { type: 'OBJECT', properties: { hizmet: { type: 'STRING' }, fiyat: { type: 'NUMBER' } }, required: ['hizmet', 'fiyat'] } },
             },
-            required: ['mesajlar', 'durum', 'arama_istiyor'],
+            required: ['mesajlar', 'durum', 'arama_istiyor', 'demo_gonder', 'fiyatlar'],
           },
         },
       }),
@@ -159,7 +173,7 @@ async function deepseekCevap(sistem, messages) {
 
 // { mesajlar, durum, arama_istiyor } | null. Sıra: Claude → Gemini → DeepSeek (anahtarı olan);
 // biri çökerse ya da bozuk cevap verirse sıradaki devreye girer. Hepsi null → kural yedeği.
-async function cevapUret({ konusma, paketListesi, sonMesaj }) {
+async function cevapUret({ konusma, paketListesi, sonMesaj, demo }) {
   const messages = gecmistenMesajlar(konusma.gelen_mesajlar, sonMesaj);
   if (!messages.length) return null;
   const baglam = [
@@ -168,6 +182,9 @@ async function cevapUret({ konusma, paketListesi, sonMesaj }) {
       ? `BİZİM İLK MESAJIMIZ: ${String(konusma.gonderilen_mesaj).slice(0, 600)}`
       : 'Bu kişi bize kendisi yazdı (biz önce yazmadık).',
     `PAKETLER:\n${paketListesi || '(fiyat bilgisi yok — fiyat sorulursa sitede yazdığını söyle)'}`,
+    !demo ? 'DEMO: bu kişi için demo açılamıyor (demo_gonder=false bırak).'
+      : demo.gonderildi ? `DEMO: gönderildi (${demo.link}). Sayfadaki hizmetler: ${demo.hizmetler || '-'}`
+        : 'DEMO: henüz gönderilmedi.',
   ].join('\n\n');
   const sirali = (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek').split(',').map(x => x.trim());
   for (const ad of sirali) {
