@@ -210,6 +210,10 @@ function Login({ onLogin }) {
           </div>
         ))}
       </div>
+      <div className="lh-tilki" aria-hidden="true">
+        <div className="lh-balon">Randevun hazır! ✅</div>
+        <img src="/img/tilki-maskot.webp" alt="" />
+      </div>
       <div className="lh-alt">Berber, kuaför ve güzellik salonları için.</div>
     </div>
   );
@@ -218,7 +222,7 @@ function Login({ onLogin }) {
     <div className="login-page">
       <div className="login-form-panel">
         <div className="login-form-logo">
-          <span className="marka-monogram" aria-label="SıraGO">S</span>
+          <img className="marka-monogram" src="/img/tilki-ikon.webp" alt="SıraGO" />
           <span>SıraGO</span>
         </div>
         <div className="login-card">
@@ -1404,7 +1408,7 @@ function Dashboard({ kullanici }) {
       {/* ── Sidebar ── */}
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="marka-monogram" aria-label="SıraGO">S</span>
+          <img className="marka-monogram" src="/img/tilki-ikon.webp" alt="SıraGO" />
           <div className="sidebar-logo-text">
             <div className="brand-name">SıraGO</div>
             <div className="brand-sub">İşletme Paneli</div>
@@ -4119,7 +4123,7 @@ function SuperAdminPanel({ kullanici }) {
       {/* Sidebar */}
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="marka-monogram" aria-label="SıraGO">S</span>
+          <img className="marka-monogram" src="/img/tilki-ikon.webp" alt="SıraGO" />
           <div className="sidebar-logo-text">
             <div className="brand-name">SıraGO</div>
             <div className="brand-sub">Süper Admin</div>
