@@ -1216,6 +1216,9 @@ httpServer.listen(PORT, () => {
     console.log('⚠️ TG Kayıt Bot başlatma hatası:', e.message);
   }
 
+  // Kurulumda takılan esnafa otomatik yardım mesajı (saatlik kontrol)
+  try { require('./services/kurulum').baslat(); } catch (e) { console.log('⚠️ Kurulum hatırlatma başlatılamadı:', e.message); }
+
   // Render keep-alive: 14 dakikada bir self-ping (uyku modunu engelle)
   const keepAliveUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
   setInterval(async () => {

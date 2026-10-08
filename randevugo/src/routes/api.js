@@ -193,6 +193,12 @@ router.get('/admin/karsilastirma', authMiddleware, superAdminMiddleware, (req, r
 router.get('/admin/segmentasyon', authMiddleware, superAdminMiddleware, (req, res) => adminController.musteriSegmentasyon(req, res));
 
 // ==================== İŞLETME ONBOARDING ====================
+router.get('/kurulum', authMiddleware, async (req, res) => {
+  try {
+    const d = await require('../services/kurulum').kurulumDurum(req.kullanici.isletme_id);
+    res.json(d || { bitti: true });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
 router.get('/admin/onboarding', authMiddleware, superAdminMiddleware, (req, res) => adminController.onboardingDurum(req, res));
 
 // ==================== SATIŞ BOT ŞABLONLARI ====================

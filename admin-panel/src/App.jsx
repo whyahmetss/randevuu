@@ -5,6 +5,7 @@ import logoFull from "./assets/logo2.png";
 import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
 import LiteBugun from "./components/Lite/LiteBugun";
+import KurulumKarti from "./components/Kurulum/KurulumKarti";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -930,6 +931,12 @@ function Dashboard({ kullanici }) {
     api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
     // Shopier callback sonrası bildirim
     const params = new URLSearchParams(window.location.search);
+    // Kurulum hatırlatma linki: ?sayfa=hizmetler → doğrudan o sayfa
+    const hedef = params.get('sayfa');
+    if (['hizmetler', 'calisanlar', 'botbaglanti', 'qrkod'].includes(hedef)) {
+      setSayfa(hedef);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (params.get('odeme') === 'basarili') {
       alert('✅ Ödemeniz başarıyla alındı! Teşekkürler.');
       window.history.replaceState({}, '', window.location.pathname);
@@ -1681,6 +1688,7 @@ function Dashboard({ kullanici }) {
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
+          {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
           {sayfa === "anasayfa" && liteMod && (
             <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
