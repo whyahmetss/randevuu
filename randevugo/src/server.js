@@ -952,8 +952,8 @@ const corsCheck = (origin) => {
   if (allowedOrigins.includes(origin)) return true;
   // Render'ın otomatik dağıttığı URL'ler (randevugo-*, randevugo-*-v2, vb.)
   if (/^https:\/\/randevugo[a-z0-9-]*\.onrender\.com$/i.test(origin)) return true;
-  // siragO ana alan + tüm subdomain'ler (punycode dahil)
-  if (/^https:\/\/([a-z0-9-]+\.)?(xn--srago-n4a|sirago)\.com$/i.test(origin)) return true;
+  // sırago.com (punycode) ana alan + subdomain'ler. ASCII sirago.com başkasının park alanı: İZİN YOK
+  if (/^https:\/\/([a-z0-9-]+\.)?xn--srago-n4a\.com$/i.test(origin)) return true;
   console.log('⚠️ CORS reject:', origin);
   return false;
 };
@@ -1097,26 +1097,33 @@ httpServer.listen(PORT, () => {
   // Telegram botlarını başlat
   telegramService.tumBotlariBaşlat();
 
-  // WhatsApp Web servisini başlat
-  whatsappWebService.tumIsletmeleriBaslat();
+  // WhatsApp bağlantıları gecikmeli: Render yeni sürümü açarken eski sunucu birkaç dakika daha
+  // çalışır ve SIGTERM'i yeni sürüm sağlıklı olunca alır. Hemen bağlanırsak iki sunucu aynı
+  // oturumu birbirinden kapar (440). Eskisi kapanana kadar bekle.
+  const waGecikme = Math.max(0, parseInt(process.env.WA_BASLANGIC_GECIKME_SN ?? '45')) * 1000;
+  console.log(`📱 WhatsApp bağlantıları ${waGecikme / 1000} sn sonra başlayacak (deploy çakışması önlemi)`);
+  setTimeout(() => {
+    if (global.__kapaniyor) return;
+    whatsappWebService.tumIsletmeleriBaslat();
 
-  // Satış botunu otomatik başlat (auth varsa bağlanır, yoksa QR bekler)
-  try {
-    const satisBot = require('./services/satisBot');
-    console.log('🤖 Satış Bot otomatik başlatılıyor...');
-    satisBot.baslat();
-  } catch (e) {
-    console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
-  }
+    // Satış botunu otomatik başlat (auth varsa bağlanır, yoksa QR bekler)
+    try {
+      const satisBot = require('./services/satisBot');
+      console.log('🤖 Satış Bot otomatik başlatılıyor...');
+      satisBot.baslat();
+    } catch (e) {
+      console.log('⚠️ Satış Bot otomatik başlatma hatası:', e.message);
+    }
 
-  // 📞 SıraGO Merkez OTP Bot (esnaf WA'sı yoksa fallback)
-  try {
-    const merkezOtpBot = require('./services/merkezOtpBot');
-    console.log('📞 Merkez OTP Bot başlatılıyor...');
-    merkezOtpBot.baslat();
-  } catch (e) {
-    console.log('⚠️ Merkez OTP Bot başlatma hatası:', e.message);
-  }
+    // 📞 SıraGO Merkez OTP Bot (esnaf WA'sı yoksa fallback)
+    try {
+      const merkezOtpBot = require('./services/merkezOtpBot');
+      console.log('📞 Merkez OTP Bot başlatılıyor...');
+      merkezOtpBot.baslat();
+    } catch (e) {
+      console.log('⚠️ Merkez OTP Bot başlatma hatası:', e.message);
+    }
+  }, waGecikme);
 
   // 🕛 Otomatik no-show cron (her 10 dk)
   try {
@@ -1165,7 +1172,12 @@ async function kapan(sinyal) {
       try { st?.sock?.end?.(undefined); } catch (e) {}
     }
   } catch (e) {}
-  try { const sb = require('./services/satisBot'); sb.sock?.end?.(undefined); } catch (e) {}
+  try {
+    const sb = require('./services/satisBot');
+    sb.sock?.end?.(undefined);
+    for (const ns of (sb.numaraSockets?.values?.() || [])) { try { ns?.sock?.end?.(undefined); } catch (e) {} }
+  } catch (e) {}
+  try { const mo = require('./services/merkezOtpBot'); mo.sock?.end?.(undefined); } catch (e) {}
   setTimeout(() => process.exit(0), 3000).unref();
 }
 process.on('SIGTERM', () => kapan('SIGTERM'));

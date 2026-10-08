@@ -38,16 +38,9 @@
     "offers": {
       "@type": "AggregateOffer",
       "lowPrice": "299",
-      "highPrice": "999",
+      "highPrice": "4999",
       "priceCurrency": "TRY",
       "offerCount": "3"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "500",
-      "bestRating": "5",
-      "worstRating": "1"
     },
     "screenshot": "https://xn--srago-n4a.com/logo.png",
     "featureList": "WhatsApp Randevu Botu, Otomatik Hatırlatma, Yapay Zeka Asistan, Çok Dilli Destek, Google Calendar Senkronizasyonu, Detaylı Analitik"
@@ -137,7 +130,7 @@
         "name": "Var olan sistemimle entegre olabilir mi?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Evet! Google Calendar, Outlook ve özel API entegrasyonları ile mevcut sisteminizle sorunsuz çalışır. Kurumsal paketimizde özel entegrasyon desteği de sunuyoruz."
+          "text": "Evet. Google Calendar ile iki yönlü senkron çalışır: takviminizdeki dolu saatler randevuya kapanır, SıraGO randevuları takviminize düşer."
         }
       },
       {
@@ -812,7 +805,7 @@
           </div>
           <div>
             <h4 class="text-sm font-bold text-white mb-1">Çok Dilli Destek</h4>
-            <p class="text-[11px] text-dark-400 leading-relaxed">Otomatik dil algılama ile 12+ dilde randevu alma</p>
+            <p class="text-[11px] text-dark-400 leading-relaxed">Otomatik dil algılama: Türkçe, İngilizce ve Arapça</p>
           </div>
           <div class="ml-auto flex items-center gap-1">
             <span class="text-lg">🇹🇷</span><span class="text-lg">🇬🇧</span><span class="text-lg">🇸🇦</span><span class="text-lg">🇩🇪</span><span class="text-lg">🇫🇷</span>
@@ -966,7 +959,7 @@
           <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Özel API Entegrasyonu</li>
           <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Özel Eğitim & Onboarding</li>
           <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>SLA Garantisi</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>12+ Dil Desteği</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>3 Dil (TR · EN · AR)</li>
         </ul>
         <a href="#iletisim" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Bizimle Görüşün</a>
       </div>
@@ -1078,7 +1071,7 @@
             <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
           </div>
         </button>
-        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Evet! Google Calendar, Outlook ve özel API entegrasyonları ile mevcut sisteminizle sorunsuz çalışır. Kurumsal paketimizde özel entegrasyon desteği de sunuyoruz.</p></div>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Evet. Google Calendar ile iki yönlü senkron çalışır: takviminizdeki dolu saatler randevuya kapanır, SıraGO randevuları takviminize düşer.</p></div>
       </div>
 
       <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
@@ -1282,11 +1275,14 @@ document.getElementById('form').addEventListener('submit',async e=>{
   const btn=e.target.querySelector('button[type="submit"]');
   btn.disabled=true;btn.style.opacity='0.7';
   try{
-    const res=await fetch('/api/iletisim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefon:p,kaynak:'landing'})});
+    // Ana alan adı statik sitedir; göreli /api isteği API'ye ulaşmıyor, boş 200 dönüyordu
+    // (hata yakalanıp yine "alındı" gösteriliyordu → başvurular kayboluyordu). API'ye doğrudan git.
+    const API=/^(randevu\.|randevugo-api)/.test(location.hostname)?'':'https://randevu.xn--srago-n4a.com';
+    const res=await fetch(API+'/api/iletisim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telefon:p,kaynak:'landing'})});
     const d=await res.json();
-    if(res.ok){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('phone').value='';}
-    else{showToast(d.hata||'Bir hata oluştu.');}
-  }catch(err){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('phone').value='';}
+    if(res.ok&&d&&d.basarili!==false){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('phone').value='';}
+    else{showToast(d.hata||'Bir hata oluştu, lütfen tekrar deneyin.');}
+  }catch(err){showToast('Bağlantı kurulamadı. Lütfen tekrar deneyin ya da WhatsApp\'tan yazın.');}
   btn.disabled=false;btn.style.opacity='1';
 });
 

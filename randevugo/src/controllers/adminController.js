@@ -1632,6 +1632,13 @@ class AdminController {
           tag: `iletisim-${kaydi.id}`,
         });
       } catch (e) {}
+      // Telegram (satış botu kanalı): sıcak başvuru, beklemeden aranmalı
+      try {
+        const k = (x) => String(x || '').replace(/([_*`[])/g, '\\$1');
+        require('../services/satisBot')._telegramBildirimGonder(
+          `📩 *Yeni başvuru* (${k(kaynak || 'web')})\n\n👤 ${k(isim || '-')}\n📞 ${k(telefon || '-')}${email ? `\n📧 ${k(email)}` : ''}\n\n👉 Bugün arayın.`
+        ).catch(() => {});
+      } catch (e) {}
 
       res.json({ mesaj: 'Mesajınız başarıyla gönderildi.' });
     } catch (error) {
@@ -1783,7 +1790,7 @@ class AdminController {
         FROM randevular r
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id = $1 AND r.tarih BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
-          AND r.durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+          AND r.durum IN ('onaylandi','onay_bekliyor','bekliyor','kapora_bekliyor')
         GROUP BY r.tarih ORDER BY r.tarih
       `, [isletmeId])).rows;
 
@@ -1837,13 +1844,13 @@ class AdminController {
       // Yarınki dolu slot sayısı
       const yarinDolu = (await pool.query(`
         SELECT COUNT(*) as sayi FROM randevular
-        WHERE isletme_id=$1 AND tarih = CURRENT_DATE + 1 AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+        WHERE isletme_id=$1 AND tarih = CURRENT_DATE + 1 AND durum IN ('onaylandi','onay_bekliyor','bekliyor','kapora_bekliyor')
       `, [isletmeId])).rows[0];
 
       // Bugünkü dolu slot sayısı
       const bugunDolu = (await pool.query(`
         SELECT COUNT(*) as sayi FROM randevular
-        WHERE isletme_id=$1 AND tarih = CURRENT_DATE AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor','tamamlandi')
+        WHERE isletme_id=$1 AND tarih = CURRENT_DATE AND durum IN ('onaylandi','onay_bekliyor','bekliyor','kapora_bekliyor','tamamlandi')
       `, [isletmeId])).rows[0];
 
       const yarinDoluluk = toplamKapasite > 0 ? Math.round((parseInt(yarinDolu.sayi) / toplamKapasite) * 100) : 0;
@@ -2476,18 +2483,6 @@ class AdminController {
       );
       
       res.json({ mesaj: `Ödeme ${yeni_donem} dönemine ertelendi` });
-    } catch (error) { res.status(500).json({ hata: error.message }); }
-  }
-
-  async odemeSuresiUzat(req, res) {
-    try {
-      const id = parseInt(req.params.id);
-      const { gun } = req.body;
-      // olusturma_tarihi'ni ileriye taşı (deneme süresini uzat)
-      const yeniTarih = new Date();
-      yeniTarih.setDate(yeniTarih.getDate() - (7 - (gun || 7)));
-      await pool.query('UPDATE isletmeler SET olusturma_tarihi = $1 WHERE id = $2', [yeniTarih.toISOString(), id]);
-      res.json({ mesaj: `Deneme süresi ${gun || 7} güne uzatıldı` });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
@@ -3505,7 +3500,7 @@ class AdminController {
           try { buAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { gecenAyR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1 AND tarih >= date_trunc('month', CURRENT_DATE) - interval '1 month' AND tarih < date_trunc('month', CURRENT_DATE)", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { toplamR = parseInt((await pool.query("SELECT COUNT(*) as c FROM randevular WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
-          try { toplamM = parseInt((await pool.query("SELECT COUNT(*) as c FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))", [i.id])).rows[0]?.c) || 0; } catch(e) {}
+          try { toplamM = parseInt((await pool.query("SELECT COUNT(*) as c FROM musteriler WHERE (musteriler.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $1))", [i.id])).rows[0]?.c) || 0; } catch(e) { console.error(`Aktivite: müşteri sayısı okunamadı (işletme ${i.id}):`, e.message); }
           try { hizmetS = parseInt((await pool.query("SELECT COUNT(*) as c FROM hizmetler WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           try { calisanS = parseInt((await pool.query("SELECT COUNT(*) as c FROM calisanlar WHERE isletme_id = $1", [i.id])).rows[0]?.c) || 0; } catch(e) {}
           

@@ -442,7 +442,12 @@ class SatisBot extends EventEmitter {
         console.log(`❌ [#${numaraId}] Bağlantı kapandı - kod: ${statusCode}, hata: ${errorMsg}`);
 
         if (statusCode === 440) {
+          // Oturum başka yerde açık (deploy sırasında eski sunucu). Eskisi kapanınca geri bağlan.
           ns.sock = null;
+          ns.durum = 'kapali';
+          ns.cakisma = (ns.cakisma || 0) + 1;
+          clearTimeout(ns._reconnectTimer);
+          ns._reconnectTimer = setTimeout(() => this.numaraBaslat(numaraId), Math.min(60000 * ns.cakisma, 5 * 60000));
           this._senkronEt();
           return;
         }
@@ -1480,7 +1485,7 @@ class SatisBot extends EventEmitter {
       console.log(`🎉 WhatsApp kaydı: ${d.isletmeAdi} (isletme_id ${isletme.id})`);
 
       await yaz(
-        `🎉 Hesabınız hazır! ${DENEME_GUN} gün boyunca tüm özellikler ücretsiz.\n\n` +
+        `🎉 Hesabınız hazır! ${DENEME_GUN} gün ücretsiz deneyebilirsiniz, kart bilgisi istemiyoruz.\n\n` +
         `Giriş: https://admin.sırago.com\nE-posta: ${d.email}\n\n` +
         `İlk 3 adım (10 dakika):\n1. Hizmetlerinizi ve çalışanlarınızı ekleyin\n2. WhatsApp botunu bağlayın (QR okutmanız yeterli)\n3. Randevu linkinizi müşterilerinize gönderin\n\n` +
         `Takıldığınız yerde buraya yazın, birlikte kuralım. Güvenliğiniz için şifrenizi yazdığınız mesajı silebilirsiniz.`);
