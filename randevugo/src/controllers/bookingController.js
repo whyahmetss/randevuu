@@ -253,26 +253,20 @@ class BookingController {
       let secilenCalisanId = calisanId ? parseInt(calisanId) : null;
       const secimModu = isletme.calisan_secim_modu || 'musteri';
       if (!secilenCalisanId) {
-        if (secimModu === 'tek') {
-          // Tek çalışan modu: tüm hizmetleri yapabilen ilk uygun çalışanı ata
-          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
-          if (uygunlar.length > 0) secilenCalisanId = uygunlar[0].id;
-        } else {
-          // Otomatik veya müşteri modu: en boş çalışanı ata
-          // enBosCalisan tek hizmetId alıyor — multi-hizmette ilk uyumlu çalışanı seç
-          const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
-          if (uygunlar.length === 1) {
-            secilenCalisanId = uygunlar[0].id;
-          } else if (uygunlar.length > 1) {
-            // En az yüklü çalışan
-            const enBos = await randevuService.enBosCalisan(isletme.id, tarih, hizmetListesi[0], saat);
-            if (enBos && uygunlar.some(u => u.id === enBos.id)) {
-              secilenCalisanId = enBos.id;
-            } else {
-              secilenCalisanId = uygunlar[0].id;
-            }
-          }
+        // Müşteri çalışan seçmedi: sayfa "herhangi bir çalışanın boş olduğu" saatleri gösterir.
+        // Eskiden günün en boş çalışanı seçiliyor, o saatte dolu olabildiği için "artık müsait değil"
+        // hatası çıkıyordu. Artık o saatte gerçekten boş olan uygun çalışan seçilir (en boş öncelikli).
+        const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
+        let sira = uygunlar;
+        if (uygunlar.length > 1 && secimModu !== 'tek') {
+          const enBos = await randevuService.enBosCalisan(isletme.id, tarih, hizmetListesi[0], saat).catch(() => null);
+          if (enBos) sira = [...uygunlar.filter(u => u.id === enBos.id), ...uygunlar.filter(u => u.id !== enBos.id)];
         }
+        for (const c of sira) {
+          const s = await randevuService.musaitSaatleriGetir(isletme.id, tarih, c.id, null, { hizmetIds: hizmetListesi });
+          if (s.includes(saat)) { secilenCalisanId = c.id; break; }
+        }
+        if (!secilenCalisanId && sira.length) secilenCalisanId = sira[0].id;   // aşağıdaki kontrol nedenini söyler
         if (!secilenCalisanId) {
           return res.status(400).json({
             hata: hizmetListesi.length > 1
@@ -301,7 +295,8 @@ class BookingController {
         hizmetIds: hizmetListesi,
         calisanId: secilenCalisanId,
         tarih,
-        saat
+        saat,
+        kaynak: 'online'
       });
 
       // Kaynağı online olarak güncelle
@@ -324,15 +319,7 @@ class BookingController {
         } catch(e) { /* ignore */ }
       }
 
-      // İşletmeye bildirim gönder
-      try {
-        const adminController = require('./adminController');
-        await adminController.bildirimOlustur(
-          isletme.id, 'randevu',
-          'Yeni Online Randevu',
-          `${musteriIsim || 'Müşteri'} — ${tarih} ${saat} saatine online randevu aldı.`
-        );
-      } catch(e) {}
+      // Panel bildirimi randevuService.randevuOlustur içinde (tüm kanallar için tek yer)
 
       // DDoS sayaçlarını artır (IP, fingerprint)
       if (req._ddosCtx) {

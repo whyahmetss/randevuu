@@ -502,6 +502,15 @@ class RandevuService {
       });
     } catch (e) {}
 
+    // ─── PANEL BİLDİRİMİ (zil listesi) — her kanal için (eskiden yalnız web randevusunda vardı) ───
+    try {
+      const KANAL = { web: 'online', online: 'online', whatsapp: 'WhatsApp', bot: 'WhatsApp', telegram: 'Telegram', manuel: 'panelden' };
+      await require('../controllers/adminController').bildirimOlustur(
+        isletmeId, 'randevu', 'Yeni Randevu',
+        `${musteri.isim || 'Müşteri'} — ${String(tarih).slice(0, 10)} ${String(saat).slice(0, 5)} (${KANAL[kaynak] || kaynak || 'WhatsApp'})`
+      );
+    } catch (e) { /* bildirim hatası randevuyu engellemesin */ }
+
     // ─── 📅 GOOGLE CALENDAR SYNC (fire-and-forget) ───
     try {
       googleCalendar.freebusyCacheTemizle(isletmeId);
