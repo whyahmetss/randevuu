@@ -5,7 +5,8 @@ const { telefonNormalize } = require('../utils/telefon');
 const otpToken = require('../utils/otpToken');
 
 /* ─── In-memory OTP store ─── */
-const otpStore = new Map(); // key: "isletmeId:telefon" → { kod, olusturma, deneme, kaynak }
+const otpStore = new Map();
+const otpNumaraSayac = new Map(); // telefon → { gun, sayi } — numara başına günlük kod sınırı // key: "isletmeId:telefon" → { kod, olusturma, deneme, kaynak }
 const OTP_TTL = 5 * 60 * 1000; // 5 dakika
 const OTP_COOLDOWN = 60 * 1000; // 60 saniye - aynı numaraya tekrar gönderim
 const OTP_MAX_DENEME = 5; // max yanlış deneme
@@ -373,6 +374,15 @@ class BookingController {
 
       const storeKey = `${isletme.id}:${telefonTemiz}`;
       const mevcut = otpStore.get(storeKey);
+
+      // Numara başına günlük en fazla 5 kod (işletmeden bağımsız)
+      const gun = new Date().toISOString().slice(0, 10);
+      const ns = otpNumaraSayac.get(telefonTemiz);
+      if (ns && ns.gun === gun && ns.sayi >= 5) {
+        return res.status(429).json({ hata: 'Bu numaraya bugün çok fazla kod gönderildi. Yarın tekrar deneyin.' });
+      }
+      otpNumaraSayac.set(telefonTemiz, ns && ns.gun === gun ? { gun, sayi: ns.sayi + 1 } : { gun, sayi: 1 });
+      if (otpNumaraSayac.size > 50000) otpNumaraSayac.clear();
 
       // Cooldown kontrolü
       if (mevcut && Date.now() - mevcut.olusturma < OTP_COOLDOWN) {

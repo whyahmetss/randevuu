@@ -47,6 +47,15 @@ class AuthController {
       if (!isletmeAdi || !email || !sifre) {
         return res.status(400).json({ hata: 'İşletme adı, email ve şifre zorunlu' });
       }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)) || String(email).length > 150) {
+        return res.status(400).json({ hata: 'Geçerli bir e-posta yazın' });
+      }
+      if (String(sifre).length < 8 || String(sifre).length > 72) {
+        return res.status(400).json({ hata: 'Şifre en az 8 karakter olmalı' });
+      }
+      if (String(isletmeAdi).trim().length < 2 || String(isletmeAdi).length > 100) {
+        return res.status(400).json({ hata: 'İşletme adını kontrol edin' });
+      }
 
       // Email kontrolü
       const mevcutKullanici = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [email])).rows[0];

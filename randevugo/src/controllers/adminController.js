@@ -54,6 +54,9 @@ class AdminController {
     try {
       const { id } = req.params;
       const { durum } = req.body;
+      if (!['onaylandi', 'onay_bekliyor', 'bekliyor', 'kapora_bekliyor', 'tamamlandi', 'gelmedi', 'iptal'].includes(durum)) {
+        return res.status(400).json({ hata: 'Geçersiz durum' });
+      }
       const isletmeId = req.kullanici.isletme_id;
       const result = await pool.query(
         'UPDATE randevular SET durum = $1 WHERE id = $2 AND isletme_id = $3 RETURNING *',
