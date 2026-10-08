@@ -38,7 +38,7 @@ const G = DENEME_GUN;
 const satisAI = require('./satisAI');
 
 // İlk mesajın sonuna eklenen ret satırı — istemeyen şikâyet etmek yerine "dur" yazsın (ban riskini düşürür)
-const RET_SATIRI = '\n\n_İstemezseniz "dur" yazmanız yeterli, bir daha yazmam._';
+const RET_SATIRI = '\n\n(İstemezseniz "dur" yazmanız yeterli, tekrar yazmam.)';
 
 // Avcı verisinden dürüst kişisel cümle (uydurma yok: yalnız Google puanı/yorum sayısı/site bilgisi)
 function kisiselSatir(lead = {}) {
@@ -107,51 +107,56 @@ const KATEGORI_KOD = { berber: 'berber', 'kuaför': 'kuafor', kuafor: 'kuafor', 
 // İlk mesaj şablonları (DB'de şablon yoksa). l = { ad, k } — k: kişisel cümle (boş olabilir)
 // Doğrulanamayan iddia ("%80 azalır", "rakipleriniz geçti") YOK; sonunda tek soru: video.
 // ═══════════════════════════════════════════════════
+// İlk mesaj KISA ve insanca: gerçek bir temsilci önce selam verip doğru kişiye ulaştığını sorar.
+// Tanıtımı, kişi cevap verince satış temsilcisi (satisAI) konuşarak yapar. l.k (kişisel satır) burada
+// kullanılmaz; uzun ilk mesaj toplu reklam gibi görünür.
+const ACILIS_GENEL = [
+  (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+  (l) => `Merhabalar, ${l.ad} işletme sahibine ulaştım mı acaba?`,
+  (l) => `İyi günler, ${l.ad} için yazıyorum. Randevuları siz mi takip ediyorsunuz?`,
+  (l) => `Merhaba 🙂 ${l.ad} randevuları telefondan mı alıyor, yoksa bir sistem kullanıyor musunuz?`,
+];
 const MESAJ_SABLONLARI = {
   berber: [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşteri koltuktayken çalan telefona yetişemediğiniz anlarda randevuyu WhatsApp botu alsın, size sadece onaylamak kalsın.${l.k}\n\n${G} gün ücretsiz deneyebilirsiniz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-    (l) => `Merhaba, müşterileriniz uygulama indirmeden WhatsApp'tan kendi randevusunu alsın, randevudan önce hatırlatma otomatik gitsin.${l.k}\n\n${l.ad} için ${G} gün ücretsiz. Kısa bir tanıtım videosu atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `Selamlar, ${l.ad} için yazıyorum. Müşteri koltuktayken gelen randevu telefonlarına nasıl yetişiyorsunuz?`,
+    (l) => `Merhaba ustam, ${l.ad} randevuları telefondan mı alıyor?`,
   ],
   'kuaför': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Boya ya da fön sırasında telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-    (l) => `Merhaba, müşterileriniz WhatsApp'tan hizmet ve saat seçip kendi randevusunu alsın, hatırlatma otomatik gitsin.${l.k}\n\n${l.ad} için ${G} gün ücretsiz. Kısa bir video atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `Merhabalar, ${l.ad} için yazıyorum. Boya ya da fön yaparken gelen randevu mesajlarına kim bakıyor?`,
+    (l) => `İyi günler, ${l.ad} randevuları WhatsApp'tan mı alıyor?`,
   ],
   'güzellik salonu': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz hizmeti ve saati seçip WhatsApp'tan kendi randevusunu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-  ],
-  'dövme': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Randevu ve kapora takibini WhatsApp'tan tek yerden yönetebileceğiniz bir sistem var; müşteri saati kendisi seçiyor.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `Merhabalar, ${l.ad} için yazıyorum. Randevuları siz mi ayarlıyorsunuz, yoksa bir sekreteriniz mi var?`,
+    (l) => `İyi günler, ${l.ad} randevuları telefondan mı alıyor?`,
   ],
   'diş kliniği': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Hastalarınız 7/24 online randevu alsın, randevudan önce WhatsApp hatırlatması otomatik gitsin; telefon trafiği azalsın.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `İyi günler, ${l.ad} için yazıyorum. Hasta randevularını kim takip ediyor, sizinle mi görüşmem gerekir?`,
+    (l) => `Merhabalar, ${l.ad} online randevu alıyor mu?`,
   ],
   'veteriner': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Muayenedeyken telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, aşı ve kontrol hatırlatmaları otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
-  ],
-  'spa': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz hizmet ve saat seçip WhatsApp'tan kendi randevusunu alsın, hatırlatma otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-  ],
-  'tırnak salonu': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. İşlem sırasında telefona bakamadığınız anlarda randevuyu WhatsApp botu alsın, siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz. Kısa bir video atayım mı?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `İyi günler, ${l.ad} için yazıyorum. Muayene ve aşı randevularını telefondan mı alıyorsunuz?`,
   ],
   'diyetisyen': [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Danışanlarınız 7/24 WhatsApp'tan randevu alsın, kontrol hatırlatmaları otomatik gitsin.${l.k}\n\n${G} gün ücretsiz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
+    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
+    (l) => `İyi günler, danışan randevularınızı WhatsApp'tan mı ayarlıyorsunuz?`,
   ],
-  default: [
-    (l) => `Merhaba, ${l.ad} için yazıyorum. Müşterileriniz uygulama indirmeden WhatsApp'tan kendi randevusunu alsın, hatırlatma otomatik gitsin; siz sadece onaylayın.${l.k}\n\n${G} gün ücretsiz deneyebilirsiniz. 1 dakikalık tanıtım videosunu göndereyim mi?`,
-  ]
+  default: ACILIS_GENEL,
 };
-
-// ═══════════════════════════════════════════════════
-// Takip mesajları — cevap vermeyenlere (en fazla maxTakipSayisi kez)
-// ═══════════════════════════════════════════════════
+for (const k of ['dövme', 'spa', 'tırnak salonu']) MESAJ_SABLONLARI[k] = ACILIS_GENEL;
 const TAKIP_SABLONLARI = {
   1: [
-    (ad) => `Merhaba, ${ad} için yazmıştım; yoğun olduğunuzu tahmin ediyorum 🙂\n\nKısaca: müşterileriniz WhatsApp'tan 7/24 randevu alır, hatırlatma otomatik gider. ${G} gün ücretsiz; isterseniz *kayıt* yazın, hesabınızı buradan 1 dakikada açayım.`,
-    (ad) => `Tekrar merhaba, ${ad} için online randevu sisteminden bahsetmiştim.\n\nMerak ettiğiniz bir şey varsa buradan sorabilirsiniz. Denemek isterseniz *kayıt* yazmanız yeterli (${G} gün ücretsiz).`,
+    (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${G} gün ücretsiz, merak ederseniz yazın.`,
+    (ad) => `Tekrar merhaba, ${ad} için yazmıştım. Randevuları otomatik alan bir sistemimiz var, ${G} gün ücretsiz denenebiliyor. Bir sorunuz olursa buradayım.`,
+    (ad) => `Merhaba, mesajım arada kaybolmuş olabilir. ${ad} için online randevu sistemini göstermek isterim, uygun olunca yazmanız yeterli.`,
   ],
   2: [
-    (ad) => `Son kez yazıyorum 🙏 ${ad} için randevu sistemini ${G} gün ücretsiz deneyebilirsiniz; *kayıt* yazmanız yeterli.\n\nİlgilenmiyorsanız sorun değil, bir daha yazmayacağım.`,
+    (ad) => `Son kez rahatsız ediyorum. Denemek isterseniz *kayıt* yazmanız yeterli, ${G} gün ücretsiz. İlgilenmiyorsanız hiç sorun değil, iyi çalışmalar.`,
+    (ad) => `Son bir not bırakayım: ${ad} için ${G} günlük ücretsiz deneme hâlâ açık, *kayıt* yazarsanız hesabı buradan açarım. Kolay gelsin.`,
   ]
 };
 
