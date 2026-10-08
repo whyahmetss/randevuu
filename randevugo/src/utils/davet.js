@@ -44,4 +44,19 @@ async function davetUygula(kod, yeniIsletmeId) {
   return ref.sahip_isletme_id;
 }
 
-module.exports = { davetKodu, davetLinki, davetBilgi, davetUygula, KANALLAR };
+// Metnin içinden davet kodu yakala ("kayıt SG7K2M9Q", "kodum sg7k2m9q") — eski REF-XXXXXX kodları da
+const kodYakala = (metin) => (String(metin || '').toUpperCase().match(/\b(SG[A-Z0-9]{6}|REF-[A-Z0-9]{6})\b/) || [])[1] || null;
+
+async function kodGecerli(kod) {
+  if (!kod) return false;
+  return !!(await pool.query('SELECT 1 FROM referanslar WHERE referans_kodu = $1', [String(kod).trim().toUpperCase()])).rows[0];
+}
+
+// Kayıt bittikten sonra: kodu bağla, kanalı "davet" yap. Döner: davet eden id | null
+async function kayittaUygula(kod, isletmeId) {
+  const sahip = await davetUygula(kod, isletmeId);
+  if (sahip) { try { await pool.query("UPDATE isletmeler SET kayit_kanali = 'davet' WHERE id = $1", [isletmeId]); } catch (e) { /* kolon yoksa */ } }
+  return sahip;
+}
+
+module.exports = { davetKodu, davetLinki, davetBilgi, davetUygula, kodYakala, kodGecerli, kayittaUygula, KANALLAR };

@@ -57,6 +57,12 @@ class AuthController {
         return res.status(400).json({ hata: 'İşletme adını kontrol edin' });
       }
 
+      // Davet kodu yazıldıysa geçerli olmalı (yanlış yazılan kod sessizce kaybolmasın)
+      const yazilanDavet = String(davet || referans_kodu || '').trim();
+      if (yazilanDavet && !(await require('../utils/davet').kodGecerli(yazilanDavet))) {
+        return res.status(400).json({ hata: 'Davet kodu bulunamadı. Kontrol edin ya da boş bırakın.' });
+      }
+
       // Email kontrolü
       const mevcutKullanici = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [email])).rows[0];
       if (mevcutKullanici) {
