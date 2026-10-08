@@ -1,0 +1,185 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../src/common.css">
+<style>
+body{background:#f4e9df}
+.k16-s{padding:220px 150px 380px 70px}
+.k16-cream{background:#f4e9df;color:var(--ink)}
+.k16-night{background:radial-gradient(circle at 50% 20%,#4a2a3a 0%,#1d1418 55%,#0d0a0b 100%)}
+.k16-go{background:linear-gradient(170deg,#2ee070 0%,#25D366 50%,#1caa55 100%);color:var(--ink)}
+.k16-lac{color:#d61f4f}
+
+/* 1 — Kanca */
+.k16-tag{display:inline-block;font-size:38px;font-weight:800;padding:12px 28px;border-radius:999px;background:var(--ink);color:#f4e9df}
+.k16-hook{font-size:94px;font-weight:900;line-height:1.02;letter-spacing:-3px;color:var(--ink)}
+.k16-hook .q{background:#d61f4f;color:#fff;padding:0 16px 6px;border-radius:18px;display:inline-block;margin:8px 0 6px}
+.k16-cards{position:relative;width:100%;display:flex;flex-direction:column;gap:18px}
+.k16-cw{width:100%}
+.k16-card{background:#fff;border-radius:30px;padding:18px 22px 20px;box-shadow:0 18px 40px rgba(60,30,20,.18);text-align:left;color:#111}
+.k16-ch{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+.k16-av{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:32px;font-weight:900;color:#fff;flex:none}
+.k16-nm{font-size:32px;font-weight:800;flex:1}
+.k16-dt{font-size:24px;color:#8a8580;font-weight:600}
+.k16-bb{display:flex;justify-content:space-between;align-items:flex-end;gap:14px}
+.k16-in,.k16-out{font-size:31px;line-height:1.25;padding:12px 18px;border-radius:20px}
+.k16-in{background:#f1ece6;border-top-left-radius:6px}
+.k16-out{background:#d9fdd3;border-top-right-radius:6px;font-weight:700;white-space:nowrap}
+.k16-out small{font-size:22px;color:#34b7f1;font-weight:800;margin-left:6px}
+.k16-stamp{position:absolute;z-index:3;right:-10px;top:-46px;background:#d61f4f;color:#fff;font-size:44px;font-weight:900;padding:12px 26px;border-radius:20px;
+  transform:rotate(8deg);box-shadow:0 14px 30px rgba(214,31,79,.4)}
+.k16-stampin{animation:k16-stampin .35s var(--d) cubic-bezier(.3,1.6,.5,1) both}
+@keyframes k16-stampin{from{opacity:0;transform:scale(2.2)}to{opacity:1;transform:none}}
+
+/* 2 — Kilit ekranı */
+.k16-date{font-size:46px;font-weight:600;color:#f3e8ee;opacity:.9}
+.k16-clock{font-size:230px;font-weight:700;letter-spacing:-8px;line-height:1;color:#fff}
+.k16-nlist{width:100%;display:flex;flex-direction:column;gap:20px}
+.k16-notif{width:100%;background:rgba(255,255,255,.94);color:#111;border-radius:30px;padding:20px 24px;display:flex;gap:22px;align-items:center;text-align:left;
+  box-shadow:0 24px 60px rgba(0,0,0,.5);animation:k16-drop .45s var(--d) cubic-bezier(.2,1.3,.4,1) both}
+@keyframes k16-drop{from{opacity:0;transform:translateY(-160px)}to{opacity:1;transform:none}}
+.k16-notif .tx{flex:1;min-width:0}
+.k16-notif .t1{font-size:26px;font-weight:600;color:#6b7280;display:flex;justify-content:space-between}
+.k16-notif .t2{font-size:40px;font-weight:800;line-height:1.2}
+.k16-jit{width:100%;display:flex;flex-direction:column;align-items:center;animation:k16-jit .07s var(--d) linear 8}
+@keyframes k16-jit{0%,100%{transform:translateX(0)}25%{transform:translateX(-12px)}75%{transform:translateX(12px)}}
+.k16-door{font-size:96px;font-weight:900;letter-spacing:-3px;line-height:1.05;color:#fff}
+
+/* 3 — Panik planı */
+.k16-bgred{animation:show var(--len) var(--at) linear,k16-tored .25s 8.75s both}
+@keyframes k16-tored{from{background-color:#f4e9df}to{background-color:#ef4444}}
+.k16-paperw{width:100%;transform:rotate(-2deg)}
+.k16-paper{width:100%;background-color:#fff3b0;border-radius:18px;padding:40px 28px 50px 88px;text-align:left;color:#1b1a17;position:relative;
+  background-image:linear-gradient(90deg,transparent 64px,rgba(239,68,68,.55) 64px,rgba(239,68,68,.55) 68px,transparent 68px),
+  repeating-linear-gradient(180deg,transparent 0 98px,rgba(30,64,175,.22) 98px 101px);box-shadow:0 30px 70px rgba(60,30,20,.3)}
+.k16-ptitle{font-family:'Bitstream Charter',serif;font-size:50px;font-weight:700;letter-spacing:1px;color:#7c2d12;margin-bottom:30px}
+.k16-plan{font-family:'Bitstream Charter',serif;font-style:italic;font-size:52px;font-weight:700;line-height:1.1;margin:0 0 42px;white-space:nowrap;display:block}
+.k16-plan .strike{display:inline-block}
+.k16-plan .lbl{color:#b91c1c}
+.k16-write{animation:k16-write .6s var(--d) steps(14,end) both}
+@keyframes k16-write{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 -5% 0 0)}}
+.k16-ptag{font-size:40px;font-weight:800;color:var(--ink);background:#fff;border-radius:999px;padding:12px 28px;display:inline-block}
+.k16-run{font-size:84px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1.05}
+
+/* 4 — Çözüm */
+.k16-s4t{font-size:66px;font-weight:900;line-height:1.05;letter-spacing:-2px}
+.k16-s4t .w{background:var(--ink);color:#fff;padding:0 14px 4px;border-radius:14px;display:inline-block}
+.k16-s4b{font-size:46px;font-weight:800;line-height:1.15}
+.k16-go .phone{box-shadow:0 40px 100px rgba(0,60,20,.45),0 0 0 4px #0b0b0b}
+.k16-go .msg{font-size:35px}
+.k16-miss{color:#9ca3af;text-decoration:line-through}
+
+/* 5 — Takvim */
+.k16-cal{width:100%;background:#fff;border-radius:36px;padding:30px 36px 18px;text-align:left;color:#111;box-shadow:0 30px 70px rgba(60,30,20,.2);position:relative}
+.k16-calh{display:flex;justify-content:space-between;align-items:center;font-size:36px;font-weight:800;padding-bottom:16px;border-bottom:3px solid #eee}
+.k16-calh span{font-size:28px;color:#16a34a;font-weight:800}
+.k16-cr{display:flex;align-items:center;gap:24px;padding:22px 0;border-bottom:2px solid #f2f2f2}
+.k16-cr:last-child{border-bottom:0}
+.k16-cr .h{font-size:50px;font-weight:900;width:150px;flex:none}
+.k16-cr .n{font-size:50px;font-weight:700;flex:1;display:flex;align-items:center;gap:16px}
+.k16-cr .n .k16-av{width:62px;height:62px;font-size:32px}
+.k16-tick{width:70px;height:70px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-size:42px;font-weight:900;flex:none}
+.k16-bal{background:#d9fdd3;color:#111;font-size:30px;line-height:1.3;padding:14px 20px;border-radius:20px;border-top-left-radius:6px;margin:-6px 0 10px 130px;display:inline-block;white-space:nowrap;
+  box-shadow:0 6px 16px rgba(0,0,0,.08);text-align:left}
+.k16-end1{font-size:96px;font-weight:900;letter-spacing:-3px;line-height:1.02;color:var(--ink)}
+.k16-conf{position:absolute;font-size:56px;top:-30px;animation:k16-fall 1.6s var(--d) ease-in both}
+@keyframes k16-fall{0%{opacity:0;transform:translateY(-80px) rotate(0)}15%{opacity:1}100%{opacity:0;transform:translateY(420px) rotate(260deg)}}
+
+/* Kapanış ekleri (end.js kartının üstünde) */
+.k16-over{z-index:5;background:transparent}
+.k16-otop{position:absolute;left:70px;right:150px;top:250px;font-size:60px;font-weight:900;letter-spacing:-1px;line-height:1.1;color:#fff;text-align:center}
+.k16-otop b{color:var(--green)}
+.k16-obot{position:absolute;left:70px;right:150px;top:1360px;font-size:40px;font-weight:700;color:#d6d3d1;text-align:center}
+</style></head>
+<body data-total="21.3" data-end="18.6">
+
+<!-- 1. Kanca: ilk karede hazır -->
+<section class="scene k16-s k16-cream" style="--at:0s;--len:3.6s">
+  <div class="k16-tag">💅 Nail &amp; kuaför itirafı</div>
+  <div class="gap-s"></div>
+  <div class="k16-hook">Yoğunlukta aynı saate üç kişiye<br><span class="q">“Tamam canım”</span><br>yazmak. 🙈</div>
+  <div class="gap"></div>
+  <div class="k16-cards">
+    <div class="k16-stamp k16-stampin" style="--d:.9s">3 × 14:00</div>
+    <div class="k16-cw" style="transform:rotate(-1.5deg)"><div class="k16-card">
+      <div class="k16-ch"><div class="k16-av" style="background:#ec4899">S</div><div class="k16-nm">Selin</div><div class="k16-dt">Salı</div></div>
+      <div class="k16-bb"><div class="k16-in">Cumartesi 14:00 olur mu?</div><div class="k16-out">Tamam canım 💅<small>✓✓</small></div></div>
+    </div></div>
+    <div class="k16-cw" style="transform:rotate(1.2deg)"><div class="k16-card">
+      <div class="k16-ch"><div class="k16-av" style="background:#8b5cf6">B</div><div class="k16-nm">Burcu</div><div class="k16-dt">Çarşamba</div></div>
+      <div class="k16-bb"><div class="k16-in">Cumartesi 14:00 olur mu?</div><div class="k16-out">Tamam canım 💅<small>✓✓</small></div></div>
+    </div></div>
+    <div class="k16-cw" style="transform:rotate(-.8deg)"><div class="k16-card">
+      <div class="k16-ch"><div class="k16-av" style="background:#f97316">E</div><div class="k16-nm">Ece</div><div class="k16-dt">Cuma</div></div>
+      <div class="k16-bb"><div class="k16-in">Cumartesi 14:00 olur mu?</div><div class="k16-out">Tamam canım 💅<small>✓✓</small></div></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- 2. Kilit ekranı 13:58 -->
+<section class="scene k16-s k16-night" style="--at:3.6s;--len:2.7s">
+  <div class="k16-jit" style="--d:5.1s">
+    <div class="k16-date fade" style="--d:3.6s">🔒 Cumartesi, 10 Ekim</div>
+    <div class="k16-clock fade" style="--d:3.6s">13:58</div>
+    <div class="gap"></div>
+    <div class="k16-nlist">
+      <div class="k16-notif" style="--d:3.8s"><div class="k16-av" style="background:#ec4899">S</div><div class="tx"><div class="t1"><span>WhatsApp · Selin</span><span>şimdi</span></div><div class="t2">🔔 Geldim canım</div></div></div>
+      <div class="k16-notif" style="--d:4.15s"><div class="k16-av" style="background:#8b5cf6">B</div><div class="tx"><div class="t1"><span>WhatsApp · Burcu</span><span>şimdi</span></div><div class="t2">🔔 Kapıdayım</div></div></div>
+      <div class="k16-notif" style="--d:4.5s"><div class="k16-av" style="background:#f97316">E</div><div class="tx"><div class="t1"><span>WhatsApp · Ece</span><span>şimdi</span></div><div class="t2">🔔 Ben de geldim 💕</div></div></div>
+    </div>
+    <div class="gap"></div>
+    <div class="k16-door pop" style="--d:4.8s">Kapıda <span class="k16-lac" style="color:#ff6b8f">üç kişi.</span></div>
+  </div>
+</section>
+
+<!-- 3. Panik planı -->
+<section class="scene k16-s k16-cream k16-bgred" style="--at:6.3s;--len:4.2s">
+  <div class="k16-ptag fade" style="--d:6.3s">13:59 · beynin şu an 👇</div>
+  <div class="gap"></div>
+  <div class="k16-paperw"><div class="k16-paper up" style="--d:6.35s">
+    <div class="k16-ptitle">PANİK PLANI 📝</div>
+    <div class="k16-plan k16-write" style="--d:6.6s"><span class="strike" style="--s:7.45s"><span class="lbl">Plan A:</span> Kahve ikram et ☕</span></div>
+    <div class="k16-plan k16-write" style="--d:7.6s"><span class="strike" style="--s:8.45s"><span class="lbl">Plan B:</span> “Makine bozuldu” 😅</span></div>
+    <div class="k16-plan k16-write" style="--d:8.6s;margin-bottom:0"><span class="lbl">Plan C:</span> Arka kapı 🏃‍♀️</div>
+  </div></div>
+  <div class="gap"></div>
+  <div class="k16-run pop" style="--d:9s">Kaç kaç kaç!</div>
+</section>
+
+<!-- 4. Çözüm: SıraGO -->
+<section class="scene k16-s k16-go" style="--at:10.5s;--len:4.8s;justify-content:flex-start;padding-top:215px">
+  <div class="k16-s4t up" style="--d:10.55s"><span class="w">SıraGO</span>’da dolu saat<br>listede görünmez.</div>
+  <div class="gap-s"></div>
+  <div class="phone up" style="--d:10.65s;zoom:.8"><div class="screen">
+    <div class="wa-top"><div class="avatar">💅</div><div><div class="wa-name">Salon Elif</div><div class="wa-sub">çevrimiçi</div></div></div>
+    <div class="chat feed">
+      <div class="msg in msgin" style="--d:10.9s">📅 <b>10 Ekim Cumartesi</b> müsait saatler:<br><b>1.</b> 13:00 &nbsp;<b>2.</b> 15:00 &nbsp;<b>3.</b> 16:30<br>Numara yazarak seçin:<span class="t">11:02</span></div>
+      <div class="msg out msgin" style="--d:11.7s">14:00<span class="t">11:02</span></div>
+      <div class="msg in msgin" style="--d:12.2s">⏰ <b>14:00</b> dolu.<br><br>En yakın müsait saatler:<br><br><b>1.</b> 13:00<br><b>2.</b> 15:00<br><br>Numara veya başka saat yazın:<span class="t">11:02</span></div>
+      <div class="msg out msgin" style="--d:13.4s">15:00<span class="t">11:03</span></div>
+      <div class="msg in msgin" style="--d:13.85s">📋 <b>Randevu Özeti</b><br>💅 Kalıcı Oje · 🕐 <b>15:00</b><br><b>1.</b> ✅ Onayla &nbsp;<b>2.</b> ❌ İptal<span class="t">11:03</span></div>
+    </div></div></div>
+  <div class="gap-s"></div>
+  <div class="k16-s4b up" style="--d:12.4s">Dolu saati yazana<br>en yakın boş saati önerir.</div>
+</section>
+
+<!-- 5. Takvim: üçü de sırayla -->
+<section class="scene k16-s k16-cream" style="--at:15.3s;--len:3.3s">
+  <div class="k16-end1 up" style="--d:15.35s">Üçü de geldi.<br><span style="color:#16a34a">Sırayla.</span></div>
+  <div class="gap"></div>
+  <div class="k16-cal pop" style="--d:15.45s">
+    <span class="k16-conf" style="--d:16.6s;left:-60px">💅</span><span class="k16-conf" style="--d:16.75s;left:-30px;top:200px">✨</span>
+    <span class="k16-conf" style="--d:16.65s;right:-60px">💅</span><span class="k16-conf" style="--d:16.85s;right:-30px;top:200px">✨</span>
+    <div class="k16-calh">📅 Cumartesi · 10 Ekim<span>SıraGO</span></div>
+    <div class="k16-cr"><div class="h">13:00</div><div class="n"><div class="k16-av" style="background:#8b5cf6">B</div>Burcu</div><div class="k16-tick pop" style="--d:15.9s">✓</div></div>
+    <div class="k16-bal up" style="--d:15.75s">Burcu’ya 14:00 görünmedi → <b>13:00</b>’ı seçti</div>
+    <div class="k16-cr"><div class="h">14:00</div><div class="n"><div class="k16-av" style="background:#ec4899">S</div>Selin</div><div class="k16-tick pop" style="--d:16.2s">✓</div></div>
+    <div class="k16-cr"><div class="h">15:00</div><div class="n"><div class="k16-av" style="background:#f97316">E</div>Ece</div><div class="k16-tick pop" style="--d:16.5s">✓</div></div>
+  </div>
+  <div class="gap"></div>
+  <div class="mid up" style="--d:16.4s;color:var(--ink);font-weight:900">Kimse küsmedi. 💅</div>
+</section>
+
+<!-- Kapanış kartına ek yazılar -->
+<section class="scene k16-over" style="--at:18.6s;--len:3.7s">
+  <div class="k16-otop up" style="--d:18.65s">“Tamam canım”ı<br><b>SıraGO</b>’ya bırak. 💅</div>
+  <div class="k16-obot fade" style="--d:19.5s">Kredi kartı gerekmez</div>
+</section>
+<script src="../src/end.js"></script></body></html>

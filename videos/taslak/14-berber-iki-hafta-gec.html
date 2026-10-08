@@ -1,0 +1,180 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../src/common.css">
+<style>
+body{background:#0b1730}
+.k14-s{background:radial-gradient(circle at 50% 30%,#16305a 0%,#0b1730 60%,#071022 100%);padding:220px 150px 380px 90px;justify-content:center}
+/* Berber direği: sol kenarda dönen şerit */
+.k14-pole{position:absolute;left:0;top:0;bottom:0;width:30px;z-index:20;
+  background:repeating-linear-gradient(135deg,#ef4444 0 34px,#fafaf9 34px 68px,#2563eb 68px 102px,#fafaf9 102px 136px);
+  background-size:100% 192px;animation:k14-pole 1.2s linear infinite;opacity:.9}
+@keyframes k14-pole{from{background-position:0 0}to{background-position:0 192px}}
+
+.k14-tag{display:inline-block;font-size:38px;font-weight:800;padding:14px 30px;border-radius:999px;background:#fafaf9;color:#0b1730}
+.k14-h1{font-size:148px;font-weight:900;line-height:.95;letter-spacing:-5px;color:#fff}
+.k14-h2{font-size:76px;font-weight:900;line-height:1.05;letter-spacing:-2px;color:#fff}
+.k14-h2 em{font-style:normal;color:#fff;background:var(--red);padding:0 16px;border-radius:14px;display:inline-block}
+
+/* Lastik gibi uzayan zaman çizgisi */
+.k14-tl{width:100%;display:flex;align-items:center;justify-content:center;gap:14px;margin-top:20px}
+.k14-sc{font-size:110px;line-height:1;flex:none}
+.k14-line{position:relative;height:22px;border-radius:11px;background:var(--green);width:300px;
+  animation:k14-stretch .9s 1s cubic-bezier(.5,-0.3,.4,1.5) both}
+@keyframes k14-stretch{0%{width:300px;background:var(--green)}100%{width:560px;background:var(--red)}}
+.k14-lab{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);display:grid;white-space:nowrap}
+.k14-lab>*{grid-area:1/1;font-size:72px;font-weight:900;letter-spacing:-1px;text-align:center}
+.k14-l3{color:var(--green);animation:k14-out .2s 1.3s both}
+.k14-l5{color:var(--red);animation:fade .25s 1.4s both}
+@keyframes k14-out{to{opacity:0}}
+.k14-plus{position:absolute;right:-10px;top:38px;font-size:44px;font-weight:800;color:#fca5a5;white-space:nowrap}
+
+/* 17'ye 10 */
+.k14-cap{font-size:60px;font-weight:800;line-height:1.15;letter-spacing:-1px;color:#e2e8f0}
+.k14-cmp{width:100%;display:flex;flex-direction:column;gap:26px}
+.k14-c{border-radius:34px;padding:26px 40px;display:flex;align-items:center;justify-content:space-between;text-align:left}
+.k14-c .l{font-size:44px;font-weight:700;line-height:1.2;color:#cbd5e1}
+.k14-c .l b{display:block;font-size:54px;color:#fff;font-weight:900}
+.k14-c .n{font-size:190px;font-weight:900;letter-spacing:-8px;line-height:.95;font-variant-numeric:tabular-nums}
+.k14-c .n small{font-size:42px;letter-spacing:0;font-weight:800;margin-left:8px}
+.k14-c.a{background:rgba(37,211,102,.14);border:4px solid rgba(37,211,102,.55)}
+.k14-c.a .n{color:var(--green)}
+.k14-c.b{background:rgba(239,68,68,.14);border:4px solid rgba(239,68,68,.6)}
+.k14-c.b .n{color:var(--red)}
+.k14-stamp{display:inline-block;background:var(--red);color:#fff;font-size:120px;font-weight:900;letter-spacing:-4px;
+  padding:6px 44px;border-radius:26px;transform:rotate(-4deg);box-shadow:0 24px 60px rgba(239,68,68,.45);
+  animation:k14-stamp .4s var(--d) cubic-bezier(.3,1.6,.5,1) both}
+@keyframes k14-stamp{from{opacity:0;transform:rotate(-4deg) scale(2.2)}to{opacity:1;transform:rotate(-4deg) scale(1)}}
+.k14-sub{font-size:52px;font-weight:800;color:#fff}
+.k14-math{font-size:30px;font-weight:500;color:#94a3b8}
+
+/* Panel: tamamlandı işaretle */
+.k14-panel{width:100%;background:#fff;color:#1b1a17;border-radius:34px;overflow:hidden;text-align:left;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.k14-ph{background:#1b1a17;color:#fff;padding:20px 30px;font-size:32px;font-weight:700;display:flex;justify-content:space-between}
+.k14-ph span{color:#a8a29e;font-weight:500}
+.k14-pr{padding:34px 30px;display:flex;align-items:center;gap:22px}
+.k14-pr .hr{font-size:44px;font-weight:900;color:#57534e;font-variant-numeric:tabular-nums}
+.k14-pr .who{flex:1;font-size:46px;font-weight:800;line-height:1.2}
+.k14-pr .who small{display:block;font-size:32px;font-weight:500;color:#78716c}
+.k14-pill{display:grid;position:relative}
+.k14-pill>*{grid-area:1/1;font-size:32px;font-weight:800;padding:14px 22px;border-radius:999px;white-space:nowrap;text-align:center}
+.k14-p1{background:#fef3c7;color:#92400e;animation:k14-out .15s var(--d) both}
+.k14-p2{background:var(--green);color:#0b1730;animation:pop .4s var(--d) cubic-bezier(.3,1.6,.5,1) both}
+.k14-finger{position:absolute;right:20px;top:46px;font-size:90px;animation:k14-tap .8s var(--d) ease both}
+@keyframes k14-tap{0%{opacity:0;transform:translate(60px,80px)}45%{opacity:1;transform:none}60%{transform:scale(.85)}80%{opacity:1;transform:none}100%{opacity:0;transform:translate(40px,60px)}}
+.k14-note{width:100%;border:4px dashed rgba(250,250,249,.55);border-radius:28px;padding:24px 30px;font-size:46px;font-weight:800;line-height:1.2;color:#fff}
+.k14-note .g{color:var(--green)}
+.k14-small{font-size:32px;font-weight:500;color:#94a3b8;line-height:1.35}
+
+/* Sohbet kartı */
+.k14-capsw{display:grid;width:100%}
+.k14-capsw>*{grid-area:1/1}
+.k14-c1{animation:up .5s var(--d) cubic-bezier(.2,.8,.2,1) both,k14-out .25s var(--o) both}
+.k14-chatc{width:100%;border-radius:34px;overflow:hidden;background:var(--chat);text-align:left;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.k14-wt{background:#075e54;color:#fff;padding:18px 26px;display:flex;align-items:center;gap:18px}
+.k14-wt .avatar{width:70px;height:70px;font-size:38px;background:#fafaf9}
+.k14-wt .nm{flex:1;font-size:36px;font-weight:800}
+.k14-wt .nm small{display:block;font-size:24px;font-weight:500;opacity:.8}
+.k14-clk{background:#0b1730;border-radius:14px;padding:0 16px;font-size:38px;font-weight:900;height:58px;overflow:hidden}
+.k14-clk .st{line-height:58px;font-variant-numeric:tabular-nums;animation:k14-clk .6s var(--d) steps(2,end) both}
+@keyframes k14-clk{from{transform:translateY(0)}to{transform:translateY(-116px)}}
+.k14-body{padding:22px 22px 26px;display:flex;flex-direction:column;gap:16px}
+.k14-body .msg{font-size:36px;max-width:94%}
+.k14-chips{align-self:flex-end;display:flex;gap:10px;align-items:center;flex-wrap:nowrap}
+.k14-chip{background:#d9fdd3;color:#111;font-size:30px;font-weight:700;padding:10px 16px;border-radius:16px;white-space:nowrap;box-shadow:0 1px 1px rgba(0,0,0,.12)}
+.k14-ff{font-size:26px;color:#57534e;font-weight:700;white-space:nowrap}
+.k14-push{position:absolute;left:16px;right:16px;top:14px;z-index:5;background:#fff;color:#111;border-radius:26px;padding:18px 22px;
+  display:flex;gap:18px;align-items:center;box-shadow:0 20px 50px rgba(0,0,0,.45);animation:k14-drop .45s var(--d) cubic-bezier(.2,1.3,.4,1) both}
+@keyframes k14-drop{from{opacity:0;transform:translateY(-140px)}to{opacity:1;transform:none}}
+.k14-push .ic{flex:none;width:72px;height:72px;border-radius:18px;background:var(--green);display:grid;place-items:center;font-size:38px}
+.k14-push .t1{font-size:31px;font-weight:800;display:flex;justify-content:space-between}
+.k14-push .t1 span{font-size:24px;font-weight:500;color:#6b7280}
+.k14-push .t2{font-size:31px;line-height:1.25;margin-top:2px}
+.k14-bot{display:grid;width:100%}
+.k14-bot>*{grid-area:1/1}
+.k14-cta{justify-self:center;background:var(--green);color:#0b1730;font-size:46px;font-weight:900;padding:22px 40px;border-radius:999px;box-shadow:0 18px 50px rgba(37,211,102,.4)}
+</style></head>
+<body data-total="21.1" data-end="18.4">
+<div class="k14-pole"></div>
+
+<!-- 1) Kanca: lastik gibi uzayan zaman çizgisi -->
+<section class="scene k14-s" style="--at:0s;--len:3.4s">
+  <div class="k14-tag">💈 Randevuyla çalışan berberler</div>
+  <div class="gap"></div>
+  <div class="k14-h1">Müşterin<br>gitmedi.</div>
+  <div class="gap-s"></div>
+  <div class="k14-h2">Her seferinde<br><em>2 hafta geç</em> geliyor.</div>
+  <div style="height:150px"></div>
+  <div class="k14-tl">
+    <div class="k14-sc">✂️</div>
+    <div class="k14-line">
+      <div class="k14-lab"><div class="k14-l3">3 hafta</div><div class="k14-l5">5 hafta</div></div>
+      <div class="k14-plus fade" style="--d:1.6s">+2 hafta</div>
+    </div>
+    <div class="k14-sc">✂️</div>
+  </div>
+</section>
+
+<!-- 2) 17'ye 10 -->
+<section class="scene k14-s" style="--at:3.4s;--len:4.1s">
+  <div class="k14-cap up" style="--d:3.45s">Aynı müşteri. Bir yıl.</div>
+  <div class="gap"></div>
+  <div class="k14-cmp">
+    <div class="k14-c a left" style="--d:3.6s"><div class="l">3 haftada bir<b>gelseydi</b></div><div class="n">17<small>kesim</small></div></div>
+    <div class="k14-c b left" style="--d:4.2s"><div class="l">5 haftada bir<b>geliyor</b></div><div class="n">10<small>kesim</small></div></div>
+  </div>
+  <div class="gap"></div>
+  <div class="k14-stamp" style="--d:5.0s">−7 kesim</div>
+  <div class="gap"></div>
+  <div class="k14-sub up" style="--d:5.3s">Tek müşteride. Her yıl.</div>
+  <div class="gap-s"></div>
+  <div class="k14-math fade" style="--d:5.5s">52 hafta ÷ 3 ≈ 17 · 52 hafta ÷ 5 ≈ 10</div>
+</section>
+
+<!-- 3) Berber kesimi tamamlandı işaretler -->
+<section class="scene k14-s" style="--at:7.5s;--len:3.9s">
+  <div class="k14-h2 up" style="--d:7.55s">“Bir ara gelirim” der…<br><span style="color:#fca5a5">ve unutur.</span></div>
+  <div class="gap"></div><div class="gap-s"></div>
+  <div class="k14-panel up" style="--d:7.7s;position:relative">
+    <div class="k14-ph">Bugünkü randevular<span>8 Ekim</span></div>
+    <div class="k14-pr">
+      <div class="hr">16:00</div>
+      <div class="who">Mehmet<small>✂️ Saç Kesimi · 30 dk</small></div>
+      <div class="k14-pill"><div class="k14-p1" style="--d:8.45s">Onaylı</div><div class="k14-p2" style="--d:8.45s">✓ Tamamlandı</div></div>
+    </div>
+    <div class="k14-finger" style="--d:8.0s">👆</div>
+  </div>
+  <div class="gap"></div><div class="gap-s"></div>
+  <div class="k14-note up" style="--d:8.6s">Kesimi <span class="g">tamamlandı</span> işaretle,<br>davet gitsin.</div>
+  <div class="gap-s"></div>
+  <div class="k14-small fade" style="--d:8.7s">İşaretlemezsen randevu 2 saat sonra<br>“gelmedi” sayılabilir.</div>
+</section>
+
+<!-- 4) 2 saat sonra kibar davet → yeni randevu -->
+<section class="scene k14-s" style="--at:11.4s;--len:7s">
+  <div class="k14-capsw">
+    <div class="k14-h2 k14-c1" style="--d:11.45s;--o:15.0s;font-size:68px">2 saat sonra<br><span class="g">tek, kibar bir davet.</span></div>
+    <div class="k14-h2 up" style="--d:15.1s;font-size:68px">Bir sonraki kesim<br><span class="g">bugünden takvimde.</span></div>
+  </div>
+  <div class="gap"></div>
+  <div class="k14-chatc up" style="--d:11.5s">
+    <div class="k14-wt"><div class="avatar">💈</div><div class="nm">Berber Kemal<small>çevrimiçi</small></div>
+      <div class="k14-clk"><div class="st" style="--d:11.7s"><div>16:30</div><div>17:30</div><div>18:30</div></div></div></div>
+    <div class="k14-body"><div style="align-self:center;background:#e1f2fb;color:#54656f;font-size:26px;font-weight:700;padding:8px 20px;border-radius:12px">BUGÜN</div>
+      <div class="msg in pop" style="--d:12.2s">📅 <b>Tekrar Bekleriz!</b><br><br>Merhaba Mehmet! Berber Kemal ziyaretinizden memnun kaldıysanız bir sonraki randevunuzu şimdi alabilirsiniz! 😊<br><br>✂️ Saç Kesimi<br>Randevu almak için <b>1</b> yazın.<span class="t">18:30</span></div>
+      <div class="msg out right" style="--d:13.8s">1<span class="t">18:31</span></div>
+      <div class="k14-chips">
+        <span class="k14-ff fade" style="--d:14.3s">⏩</span>
+        <span class="k14-chip pop" style="--d:14.4s">✂️ Saç Kesimi</span>
+        <span class="k14-chip pop" style="--d:14.65s">📅 28.10</span>
+        <span class="k14-chip pop" style="--d:14.9s">🕐 18:00</span>
+      </div>
+    </div>
+    <div class="k14-push" style="--d:15.4s"><div class="ic">🎉</div><div style="flex:1;min-width:0">
+      <div class="t1">Yeni Randevu<span>şimdi</span></div>
+      <div class="t2">Mehmet — Saç Kesimi • 2026-10-28 18:00</div></div></div>
+  </div>
+  <div class="gap"></div>
+  <div class="k14-bot">
+    <div class="k14-small k14-c1" style="--d:11.7s;--o:15.4s">Aynı kişiye 14 günde en fazla bir kez gider.</div>
+    <div class="k14-cta pop" style="--d:15.5s">14 gün ücretsiz dene · kart yok</div>
+  </div>
+</section>
+<script src="../src/end.js"></script></body></html>
