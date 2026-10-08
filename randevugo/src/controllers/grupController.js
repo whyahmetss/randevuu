@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { getGrupId } = require('../middleware/auth');
+const { grupLimit } = require('../utils/subeLimit');
 
 function slugify(s) {
   return String(s || '')
@@ -133,16 +134,20 @@ class GrupController {
       const { isim, sube_etiketi, telefon, sehir, ilce, adres, mudur_email, mudur_sifre, mudur_isim } = req.body;
       if (!isim) return res.status(400).json({ hata: 'Şube ismi zorunlu' });
 
-      // Paket + ödeme tarihleri: grubun mevcut şubesinden (merkezden) inherit
-      // Böylece yeni şube ayrıca ödeme istemez — grup paketine dahil
-      const ornek = (await pool.query(
-        `SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi
-           FROM isletmeler WHERE grup_id=$1 ORDER BY id LIMIT 1`,
-        [grupId]
-      )).rows[0];
-      const paket = ornek?.paket || 'kurumsal';
-      const paketBitis = ornek?.paket_bitis_tarihi || null;
-      const denemeBitis = ornek?.deneme_bitis_tarihi || null;
+      // Paket + ödeme tarihleri merkezden gelir (şube ayrıca ödeme istemez), ama şube SAYISI
+      // merkezin paketindeki sube_limit ile sınırlı: aksi hâlde tek paketle sınırsız işletme açılabilirdi.
+      const g = await grupLimit(grupId);
+      if (!g) return res.status(400).json({ hata: 'Merkez işletme bulunamadı' });
+      if (!g.paket.sube_yonetimi) {
+        return res.status(403).json({ hata: `${g.paket.isim} paketinde şube açılamaz. Paketinizi yükseltin.`, limit_asimi: true, gereken_paket: 'proplus' });
+      }
+      if (g.aktifler.length >= g.limit) {
+        return res.status(403).json({ hata: `${g.paket.isim} paketinde en fazla ${g.limit} şube olabilir (merkez dahil).`, limit_asimi: true, gereken_paket: 'kurumsal' });
+      }
+      const ornek = g.merkez;
+      const paket = ornek.paket;
+      const paketBitis = ornek.paket_bitis_tarihi || null;
+      const denemeBitis = ornek.deneme_bitis_tarihi || null;
 
       // Slug: isim + sehir bazlı
       const baseSlug = slugify(`${isim}-${sehir || ''}`.trim());
@@ -187,7 +192,7 @@ class GrupController {
     try {
       const grupId = getGrupId(req);
       const subeId = parseInt(req.params.id, 10);
-      const sube = (await pool.query('SELECT grup_id FROM isletmeler WHERE id=$1', [subeId])).rows[0];
+      const sube = (await pool.query('SELECT grup_id, aktif FROM isletmeler WHERE id=$1', [subeId])).rows[0];
       if (!sube || sube.grup_id !== grupId) return res.status(404).json({ hata: 'Şube bulunamadı' });
 
       const { isim, sube_etiketi, telefon, sehir, ilce, adres, grup_sira, aktif } = req.body;
@@ -199,7 +204,15 @@ class GrupController {
       if (ilce !== undefined) { upd.push(`ilce=$${i++}`); vals.push(ilce); }
       if (adres !== undefined) { upd.push(`adres=$${i++}`); vals.push(adres); }
       if (grup_sira !== undefined) { upd.push(`grup_sira=$${i++}`); vals.push(grup_sira); }
-      if (aktif !== undefined) { upd.push(`aktif=$${i++}`); vals.push(!!aktif); }
+      if (aktif !== undefined) {
+        if (aktif && !sube.aktif) {
+          const g = await grupLimit(grupId);
+          if (g && g.aktifler.length >= g.limit) {
+            return res.status(403).json({ hata: `${g.paket.isim} paketinde en fazla ${g.limit} aktif şube olabilir.`, limit_asimi: true });
+          }
+        }
+        upd.push(`aktif=$${i++}`); vals.push(!!aktif);
+      }
       if (!upd.length) return res.json({ ok: true });
       vals.push(subeId);
       const r = (await pool.query(`UPDATE isletmeler SET ${upd.join(', ')} WHERE id=$${i} RETURNING *`, vals)).rows[0];

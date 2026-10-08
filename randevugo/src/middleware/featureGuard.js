@@ -44,7 +44,10 @@ function featureGuard(featureKey, ozelIsim) {
       }
       if (!isletmeId) return next();
 
-      const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      // Grup şubesi kendi paket kolonuna değil merkezin paketine tabi (merkez paket düşürürse şube de düşer)
+      const isletme = (await pool.query(
+        `SELECT COALESCE((SELECT m.paket FROM isletmeler m WHERE m.grup_id = i.grup_id ORDER BY m.id LIMIT 1), i.paket) AS paket
+           FROM isletmeler i WHERE i.id=$1`, [isletmeId])).rows[0];
       const paket = await paketGetir(isletme?.paket);
 
       if (!paket[featureKey]) {
