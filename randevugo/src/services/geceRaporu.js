@@ -24,7 +24,7 @@ class GeceRaporuService {
         SELECT i.* FROM isletmeler i
         WHERE i.gece_raporu_aktif = true
           AND i.gece_raporu_saat = $1
-          AND i.paket IN ('profesyonel', 'kurumsal', 'premium')
+          AND i.paket IN ('profesyonel', 'proplus', 'kurumsal', 'premium')
           AND NOT EXISTS (
             SELECT 1 FROM gece_rapor_log g WHERE g.isletme_id = i.id AND g.tarih = $2
           )

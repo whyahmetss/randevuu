@@ -2446,7 +2446,7 @@ class AdminController {
       }
 
       // Paket fiyat bilgisi
-      const paketFiyat = { baslangic: 299, profesyonel: 699, kurumsal: 1499, premium: 1499 };
+      const paketFiyat = { baslangic: 299, profesyonel: 699, proplus: 1499, kurumsal: 4999, premium: 4999 };
 
       res.json({
         isletme,
@@ -3201,7 +3201,7 @@ class AdminController {
       const result = await pool.query(
         `SELECT * FROM duyurular WHERE aktif = true
            AND (COALESCE(hedef, 'hepsi') = 'hepsi'
-                OR (hedef = 'profesyonel' AND $1 IN ('profesyonel', 'kurumsal'))
+                OR (hedef = 'profesyonel' AND $1 IN ('profesyonel', 'proplus', 'kurumsal'))
                 OR (hedef IN ('premium', 'kurumsal') AND $1 = 'kurumsal'))
          ORDER BY olusturma_tarihi DESC LIMIT 5`, [paket]
       );
