@@ -930,6 +930,8 @@ function Dashboard({ kullanici }) {
   const [profilPopover, setProfilPopover] = useState(false);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
+  const [kapaliDuyurular, setKapaliDuyurular] = useState(() => { try { return JSON.parse(localStorage.getItem("kapali_duyurular") || "[]"); } catch { return []; } });
+  const duyuruKapat = (id) => setKapaliDuyurular(l => { const y = [...l, id].slice(-50); try { localStorage.setItem("kapali_duyurular", JSON.stringify(y)); } catch {} return y; });
   const [bildirimler, setBildirimler] = useState([]);
   const [bildirimSayi, setBildirimSayi] = useState(0);
   const [bildirimPopover, setBildirimPopover] = useState(false);
@@ -1005,6 +1007,7 @@ function Dashboard({ kullanici }) {
   useEffect(() => {
     const interval = setInterval(() => {
       api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
+      api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -1744,6 +1747,20 @@ function Dashboard({ kullanici }) {
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
+          {/* Duyurular: Lite dahil her görünümde, kapatılana kadar üstte (eskiden yalnız tam görünüm anasayfasında) */}
+          {duyurular.filter(d => !kapaliDuyurular.includes(d.id)).slice(0, 2).map(d => {
+            const renk = { bilgi: "#2f56c6", guncelleme: "#1f6f4a", bakim: "#a8590c", uyari: "#b42318" }[d.tip] || "#2f56c6";
+            return (
+              <div key={d.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 16px", marginBottom: 12, borderRadius: 12,
+                background: `${renk}0d`, border: `1px solid ${renk}33`, borderLeft: `4px solid ${renk}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>📢 {d.baslik}</div>
+                  <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 3, whiteSpace: "pre-wrap" }}>{d.mesaj}</div>
+                </div>
+                <button onClick={() => duyuruKapat(d.id)} title="Kapat" style={{ border: "none", background: "transparent", color: "var(--dim)", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 4 }}>✕</button>
+              </div>
+            );
+          })}
           {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
           {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
           {sayfa === "anasayfa" && liteMod && (
@@ -1769,7 +1786,6 @@ function Dashboard({ kullanici }) {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <div style={{ fontSize: 11, color: "var(--muted)" }}>{duyurular.length} duyuru</div>
-                      <button onClick={() => setSayfa("duyurular")} style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "var(--surface)", color: "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Tümünü Gör</button>
                     </div>
                   </div>
                   {duyurular.length === 0 ? (
