@@ -4,6 +4,7 @@ import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoFull from "./assets/logo2.png";
 import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
+import LiteBugun from "./components/Lite/LiteBugun";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -1230,7 +1231,7 @@ function Dashboard({ kullanici }) {
   // Menü grupları — hiyerarşik yapı
   // type: 'flat' = divider'lar arasında direkt item'lar
   // type: 'group' = açılır/kapanır accordion
-  const menuGroups = [
+  const tamMenu = [
     { type: 'flat', items: [
       { id: "anasayfa", icon: SVG.dashboard, label: "Dashboard" },
       { id: "randevular", icon: SVG.randevular, label: "Randevular" },
@@ -1262,6 +1263,25 @@ function Dashboard({ kullanici }) {
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
   ];
+
+  // SıraGO Lite (kullanıcı kararı 2026-10-08): esnafın önünde yalnız günlük iş. NULL → pakete göre.
+  const proPaket = ['proplus', 'kurumsal', 'premium'].includes(paketDurum?.paket);
+  const liteMod = ayarlar?.panel_modu ? ayarlar.panel_modu === 'lite' : (paketDurum ? !proPaket : false);
+  const liteMenu = [
+    { type: 'flat', items: [
+      { id: "anasayfa", icon: SVG.dashboard, label: "Bugün" },
+      { id: "randevular", icon: SVG.randevular, label: "Randevular" },
+      { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler & Fiyatlar" },
+      { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+    ]},
+    { type: 'flat', items: [
+      { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
+      { id: "qrkod", icon: ICON.qr, label: "Randevu Linki & QR" },
+      { id: "destek", icon: ICON.destek, label: "Destek" },
+      { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
+    ]},
+  ];
+  const menuGroups = liteMod ? liteMenu : tamMenu;
 
   // Rol bazlı gizlenen sayfalar (sube_muduru için)
   const subeMuduruGizli = ['finans','qrkod','sms','geceraporu','yorumavcisi','winback','sadakat','musterigetir','grup'];
@@ -1392,7 +1412,7 @@ function Dashboard({ kullanici }) {
           <div className="paket-widget">
             <div className="pw-header">
               <span className="pw-label">Paketiniz</span>
-              <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
+              <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'proplus' ? 'badge-green' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
             </div>
             {[
               { label: 'Çalışan', used: paketDurum.kullanim.calisan, limit: paketDurum.paket_bilgi.calisan_limit, renk: 'var(--green)' },
@@ -1452,7 +1472,7 @@ function Dashboard({ kullanici }) {
       <div className="main-wrap">
         <div className="top-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{sayfaBaslik[sayfa]}</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{liteMod && sayfa === "anasayfa" ? "Bugün" : sayfaBaslik[sayfa]}</h1>
             {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
           </div>
           <div className="top-bar-right" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -1638,7 +1658,7 @@ function Dashboard({ kullanici }) {
                           display: "flex", alignItems: "center", justifyContent: "space-between"
                         }}>
                           <span style={{ fontSize: 11, color: "var(--muted)" }}>Paket</span>
-                          <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
+                          <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'proplus' ? 'badge-green' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
                         </div>
                       )}
                       <button onClick={() => { setProfilPopover(false); setSayfa("ayarlar"); }} style={{
@@ -1661,7 +1681,10 @@ function Dashboard({ kullanici }) {
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
-          {sayfa === "anasayfa" && (() => {
+          {sayfa === "anasayfa" && liteMod && (
+            <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
+          )}
+          {sayfa === "anasayfa" && !liteMod && (() => {
             const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
             const haftaRandevu = stats?.hafta?.toplam_randevu || 0;
             const toplamMusteri = stats?.toplam_musteri || 0;
@@ -2990,6 +3013,23 @@ function Dashboard({ kullanici }) {
           )}
 
           {/* ── AYARLAR ── */}
+          {sayfa === "ayarlar" && ayarlar && (
+            <div className="card" style={{ padding: 18, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <b>Panel görünümü: {liteMod ? "Sade (Lite)" : "Tam (Pro)"}</b>
+                <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 4 }}>
+                  {liteMod ? "Sadece günlük iş: bugünkü randevular, WhatsApp, fiyatlar. Kasa, pazarlama ve raporlar gizli."
+                           : "Tüm modüller açık: kasa, finans, pazarlama, raporlar, şubeler."}
+                </div>
+              </div>
+              <button className="btn btn-secondary" onClick={async () => {
+                const mod = liteMod ? "pro" : "lite";
+                const d = await api.put("/ayarlar", { panel_modu: mod });
+                if (!d?.hata) { setAyarlar(a => ({ ...a, panel_modu: mod })); setSayfa("anasayfa"); }
+                else alert(d.hata);
+              }}>{liteMod ? "Tüm özellikleri göster" : "Sade görünüme geç"}</button>
+            </div>
+          )}
           {sayfa === "ayarlar" && (
             <Settings ayarlar={ayarlar} setAyarlar={setAyarlar} paketDurum={paketDurum} api={api} />
           )}
@@ -3198,7 +3238,7 @@ function Dashboard({ kullanici }) {
       {/* Paket Karşılaştırma Modal */}
       {paketModal && (
         <div onClick={() => setPaketModal(false)} className="modal-overlay">
-          <div onClick={e => e.stopPropagation()} className="modal-content">
+          <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 1060 }}>
             <div className="modal-header">
               <h2>Paketler</h2>
               <button onClick={() => setPaketModal(false)} className="modal-close">✕</button>
@@ -3206,8 +3246,9 @@ function Dashboard({ kullanici }) {
             <div className="price-grid-modal">
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
-                { key: "profesyonel", isim: "Profesyonel", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 699, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["SMS Hatırlatma", "Öncelikli Destek", "API Erişimi"] },
-                { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 1499, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "3 Dil (TR · EN · AR)", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
+                { key: "profesyonel", isim: "Standart", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 699, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["Çoklu Şube", "Öncelikli Destek", "SMS Hatırlatma"] },
+                { key: "proplus", isim: "Pro+", fiyat: paketDurum?.tum_paketler?.proplus?.fiyat || 1499, renk: "#1f6f4a", ozellikler: ["10 Çalışan", "Sınırsız Randevu", "Çoklu Şube (3 şube)", "Kasa Takibi & Prim Raporu", "Öncelikli Destek", "Tüm Standart Özellikler"], ozellikYok: ["SMS Hatırlatma", "API Erişimi"] },
+                { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 4999, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Şube", "SMS Hatırlatma", "API Erişimi", "Özel Onboarding", "Tüm Pro+ Özellikler"], ozellikYok: [] },
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
@@ -3943,11 +3984,11 @@ function SuperAdminPanel({ kullanici }) {
 
   const kategoriRenk = { berber: "#2f56c6", kuafor: "#5d4bb5", guzellik: "#ec4899", spa: "#a8590c", disci: "#1f6f4a", veteriner: "#b42318", diyetisyen: "#2f56c6", psikolog: "#5d4bb5", fizyoterapi: "#2f56c6", restoran: "#a8590c", cafe: "#a16207", spor: "#1f6f4a", egitim: "#5d4bb5", foto: "#d946ef", dovme: "#b42318", oto: "#6f6a62", hukuk: "#475569", genel: "#94a3b8" };
   const kategoriLabel = { berber: "💈 Berber", kuafor: "✂️ Kuaför", guzellik: "💅 Güzellik", spa: "🧖 Spa", disci: "🦷 Diş Kliniği", veteriner: "🐾 Veteriner", diyetisyen: "🥗 Diyetisyen", psikolog: "🧠 Psikolog", fizyoterapi: "🏥 Fizyoterapi", restoran: "🍽️ Restoran", cafe: "☕ Kafe", spor: "🏋️ Spor", egitim: "📚 Eğitim", foto: "📸 Fotoğraf", dovme: "🎨 Dövme", oto: "🚗 Oto Servis", hukuk: "⚖️ Hukuk", genel: "🏢 Genel" };
-  const paketRenk = { baslangic: "#6f6a62", profesyonel: "#2f56c6", premium: "#a8590c" };
+  const paketRenk = { baslangic: "#6f6a62", profesyonel: "#2f56c6", proplus: "#1f6f4a", kurumsal: "#a8590c", premium: "#a8590c" };
   // Fiyatlar veritabanındaki paket tanımlarından (eskiden sabit 299/599/999 ve 'premium' anahtarı vardı;
   // Kurumsal undefined görünüyor, '+ Bekliyor Oluştur' yanlış tutarla kayıt açıyordu)
   useEffect(() => { paketleriYukle(); }, []);
-  const paketFiyat = { baslangic: 299, profesyonel: 699, kurumsal: 1499,
+  const paketFiyat = { baslangic: 299, profesyonel: 699, proplus: 1499, kurumsal: 4999,
     ...Object.fromEntries((paketTanimlar || []).map(p => [p.kod, parseFloat(p.fiyat) || 0])) };
   const odemeRenk = { odendi: "#1f6f4a", bekliyor: "#a8590c", gecikti: "#b42318", havale_bekliyor: "#5d4bb5", basarisiz: "#b42318", odeme_bekliyor: "#a8590c" };
   const odemeLabel = { odendi: "Ödendi ✓", bekliyor: "Bekliyor", gecikti: "Gecikti!", havale_bekliyor: "Havale Onay Bekliyor", basarisiz: "Başarısız", odeme_bekliyor: "Ödeme Bekliyor" };
@@ -7661,7 +7702,7 @@ function SuperAdminPanel({ kullanici }) {
         const d = detayIsletme;
         const isl = d.isletme || {};
         const denemeBitti = d.deneme_suresi_kalan <= 0;
-        const paketRenk = { baslangic: "#2f56c6", profesyonel: "#5d4bb5", kurumsal: "#a8590c" };
+        const paketRenk = { baslangic: "#2f56c6", profesyonel: "#5d4bb5", proplus: "#1f6f4a", kurumsal: "#a8590c" };
         const durumRenk = { odendi: "#1f6f4a", bekliyor: "#a8590c", gecikti: "#b42318", havale_bekliyor: "#2f56c6", deneme: "#5d4bb5" };
         return (
           <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex" }}>
@@ -7963,6 +8004,7 @@ function SuperAdminPanel({ kullanici }) {
                         <select defaultValue={isl.paket || ""} onChange={async (e) => { await api.put(`/admin/isletmeler/${isl.id}`, { paket: e.target.value }); isletmeDetayYukle(isl.id); isletmeleriYukle(); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontWeight: 600 }}>
                           <option value="baslangic">Başlangıç</option>
                           <option value="profesyonel">Profesyonel</option>
+                          <option value="proplus">Pro+</option>
                           <option value="kurumsal">Kurumsal</option>
                         </select>
                       </div>

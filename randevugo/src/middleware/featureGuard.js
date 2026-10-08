@@ -51,7 +51,8 @@ function featureGuard(featureKey, ozelIsim) {
         return res.status(403).json({
           hata: `${isim} özelliği ${paket.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`,
           limit_asimi: true,
-          gereken_paket: featureKey === 'sms_hatirlatma' || featureKey === 'api_erisimi' || featureKey === 'oncelikli_destek' ? 'kurumsal' : 'profesyonel',
+          gereken_paket: featureKey === 'sms_hatirlatma' || featureKey === 'api_erisimi' ? 'kurumsal'
+            : featureKey === 'sube_yonetimi' || featureKey === 'oncelikli_destek' ? 'proplus' : 'profesyonel',
           ozellik: featureKey
         });
       }

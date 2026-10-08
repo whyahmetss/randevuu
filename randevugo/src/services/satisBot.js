@@ -1460,11 +1460,21 @@ class SatisBot extends EventEmitter {
 
   async _hesapOlustur(remoteJid, telefon, sifre, d, yaz) {
     let isletme = null;
+    let demodan = false;
     try {
       const bcrypt = require('bcryptjs');
       const tel = telefonNormalize(telefon) || telefon;
       const kategori = KATEGORI_KOD[String(d.kategori || '').toLocaleLowerCase('tr')] || 'genel';
-      isletme = (await pool.query(
+      // Venüs bu numara için demo hazırladıysa onu sahiplen (hizmetler, link, çalışan hazır)
+      demodan = false;
+      try {
+        isletme = (await pool.query(
+          `UPDATE isletmeler SET isim = $1, demo = false, olusturma_tarihi = NOW(), deneme_bitis_tarihi = NOW() + make_interval(days => $3)
+           WHERE id = (SELECT id FROM isletmeler WHERE demo = true AND telefon = $2 ORDER BY id DESC LIMIT 1) RETURNING *`,
+          [d.isletmeAdi, tel, DENEME_GUN])).rows[0];
+        demodan = !!isletme;
+      } catch (e) { /* demo kolonu yoksa yeni hesap */ }
+      if (!isletme) isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi)
          VALUES ($1, $2, $3, true, 'baslangic', NOW(), NOW() + make_interval(days => $4)) RETURNING *`,
         [d.isletmeAdi, tel, kategori, DENEME_GUN])).rows[0];
@@ -1496,7 +1506,7 @@ class SatisBot extends EventEmitter {
       return true;
     } catch (err) {
       console.error('❌ WhatsApp kayıt hatası:', err.message);
-      if (isletme?.id) { try { await pool.query('DELETE FROM isletmeler WHERE id = $1', [isletme.id]); } catch (e) {} }
+      if (isletme?.id && !demodan) { try { await pool.query('DELETE FROM isletmeler WHERE id = $1', [isletme.id]); } catch (e) {} }
       if (err.code === '23505') {
         d.adim = 'email'; await this._kayitDurumKaydet(telefon, d);
         await yaz(`Bu e-posta az önce kullanılmış görünüyor. Farklı bir e-posta yazar mısınız?`);

@@ -13,7 +13,7 @@ class SadakatPuanService {
 
       if (!isletme?.sadakat_aktif) return null;
       // Paket kontrolü — sadece profesyonel+ paketlerde aktif
-      if (!['profesyonel', 'kurumsal', 'premium'].includes(isletme.paket)) return null;
+      if (!['profesyonel', 'proplus', 'kurumsal', 'premium'].includes(isletme.paket)) return null;
 
       // Hizmet fiyatını al
       const randevu = (await pool.query(

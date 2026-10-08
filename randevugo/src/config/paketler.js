@@ -33,7 +33,7 @@ const FALLBACK_PAKETLER = {
     ]
   },
   profesyonel: {
-    isim: 'Profesyonel',
+    isim: 'Standart',
     fiyat: 699,
     calisan_limit: 5,
     hizmet_limit: 50,
@@ -65,9 +65,44 @@ const FALLBACK_PAKETLER = {
       '3 Dil Desteği',
     ]
   },
+  // Pro+ (kullanıcı kararı 2026-10-08): Standart (699) ile Kurumsal (4999) arası 7 kat sıçrama yerine
+  proplus: {
+    isim: 'Pro+',
+    fiyat: 1499,
+    calisan_limit: 10,
+    hizmet_limit: 999,
+    aylik_randevu_limit: 99999,
+    bot_aktif: true,
+    hatirlatma: true,
+    istatistik: true,
+    export_aktif: true,
+    coklu_dil: 3,
+    kasa: true,
+    magaza: true,
+    prim: true,
+    sadakat: true,
+    winback: true,
+    yorum_avcisi: true,
+    gece_raporu: true,
+    sms_hatirlatma: false,
+    oncelikli_destek: true,
+    api_erisimi: false,
+    sube_yonetimi: true,     // ✓ Çoklu şube (3'e kadar)
+    sube_limit: 3,
+    ozellikler: [
+      '10 çalışan',
+      'Sınırsız randevu',
+      'Çoklu şube (3 şube)',
+      'Kasa Takibi & Prim Raporu',
+      'Sadakat, Kayıp Müşteri, Yorum Avcısı',
+      'Gece Raporu',
+      'Öncelikli Destek',
+      'Tüm Standart Özellikler',
+    ]
+  },
   kurumsal: {
     isim: 'Kurumsal',
-    fiyat: 1499,
+    fiyat: 4999,
     calisan_limit: 999,
     hizmet_limit: 999,
     aylik_randevu_limit: 99999,
@@ -76,7 +111,7 @@ const FALLBACK_PAKETLER = {
     istatistik: true,
     export_aktif: true,
     // ─── Özellik flag'leri ───
-    coklu_dil: 99,           // ✓ (12+ dil)
+    coklu_dil: 3,            // ✓ (TR/EN/AR)
     kasa: true,              // ✓
     magaza: true,           // ✓ Mağaza (ürün önerisi)
     prim: true,              // ✓
@@ -99,7 +134,7 @@ const FALLBACK_PAKETLER = {
       'Öncelikli Destek',
       'API Erişimi',
       'Özel Eğitim & Onboarding',
-      'Tüm Profesyonel Özellikler',
+      'Tüm Pro+ Özellikler',
     ]
   },
   // Geriye uyumluluk — eski 'premium' kodlu işletmeler için alias
