@@ -174,6 +174,12 @@ router.get('/admin/avci/ilceler', authMiddleware, superAdminMiddleware, (req, re
 router.post('/admin/avci/ilceleri-duzelt', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIlceleriDuzelt(req, res));
 router.get('/admin/avci/istatistik', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciIstatistik(req, res));
 router.get('/admin/avci/gunluk', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciGunlukListe(req, res));
+router.post('/admin/avci/:id/demo', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try {
+    const d = await require('../services/demo').demoOlustur(req.params.id);
+    res.json({ link: d.link, mesaj: d.mesaj, yeni: d.yeni });
+  } catch (e) { res.status(e.kod || 500).json({ hata: e.message }); }
+});
 router.put('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciDurumGuncelle(req, res));
 router.delete('/admin/avci/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.avciSil(req, res));
 
