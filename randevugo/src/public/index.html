@@ -895,12 +895,12 @@
       <p class="text-lg text-dark-400 font-light">Online randevu sistemi fiyatları. Gizli ücret yok, istediğiniz zaman iptal edin.</p>
     </div>
 
-    <!-- Paket merdiveni (2026-10-08): 299 Başlangıç · 699 Standart · 1.499 Pro+ · 4.999 Kurumsal — DB paket_tanimlari ile aynı -->
+    <!-- Paket merdiveni: fiyatlar sayfa sonundaki betikle /api/paketler/fiyatlar'dan gelir (panelden yönetilir); yazılı değerler yedek -->
     <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
         <div class="mb-7">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Başlangıç</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺299</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="baslangic">₺299</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">Tek koltuklu dükkan</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -920,7 +920,7 @@
         </div>
         <div class="mb-7 mt-2">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-wa-400 mb-3">Standart</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺699</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="profesyonel">₺499</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">3–5 koltuklu salon</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -938,7 +938,7 @@
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
         <div class="mb-7">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Pro+</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺1.499</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="proplus">₺1.499</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">Büyük salon, birden çok şube</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -955,7 +955,7 @@
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
         <div class="mb-7">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Kurumsal</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺4.999</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="kurumsal">₺4.999</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">Zincir ve klinikler</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -1313,5 +1313,22 @@ document.querySelectorAll('[data-step]').forEach(el=>{
   });
 });
 </script>
+
+  <script>
+  // Fiyatlar panelden yönetilir: sunucudan okunur; ulaşılamazsa sayfadaki yazılı fiyatlar kalır
+  (function () {
+    var fmt = function (n) { return '₺' + Number(n).toLocaleString('tr-TR', { maximumFractionDigits: 0 }); };
+    fetch('https://randevu.xn--srago-n4a.com/api/paketler/fiyatlar', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.fiyatlar) return;
+        document.querySelectorAll('[data-paket-fiyat]').forEach(function (el) {
+          var f = d.fiyatlar[el.getAttribute('data-paket-fiyat')];
+          if (f > 0) el.textContent = fmt(f);
+        });
+      })
+      .catch(function () {});
+  })();
+  </script>
 </body>
 </html>

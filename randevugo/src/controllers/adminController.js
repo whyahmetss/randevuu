@@ -2397,7 +2397,9 @@ class AdminController {
       }
 
       // Paket fiyat bilgisi
-      const paketFiyat = { baslangic: 299, profesyonel: 699, proplus: 1499, kurumsal: 4999, premium: 4999 };
+      // Fiyatlar paket tanımlarından (panelden değişen fiyat burada da geçerli)
+      const tumPaketler = await paketleriYukle();
+      const paketFiyat = Object.fromEntries(Object.entries(tumPaketler).map(([k, p]) => [k, parseFloat(p.fiyat) || 0]));
 
       res.json({
         isletme,
