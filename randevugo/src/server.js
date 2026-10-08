@@ -989,10 +989,29 @@ app.get('/api/health', (req, res) => {
 });
 
 // API Routes — stricter rate limits for public endpoints
+// 5xx cevaplarda ham veritabanı/iç hata mesajı dışarı sızmasın (tablo/kolon adları, SQL).
+// Süper admin ve Venüs uçları hata ayıklama için ayrıntıyı görmeye devam eder; asıl mesaj loga düşer.
+app.use('/api', (req, res, next) => {
+  if (/^\/(admin|venus)\//.test(req.path)) return next();
+  const json = res.json.bind(res);
+  res.json = (govde) => {
+    if (res.statusCode >= 500 && govde && typeof govde === 'object' && govde.hata) {
+      console.error(`500 ${req.method} ${req.originalUrl}:`, govde.hata);
+      govde = { hata: 'Bir sorun oluştu, lütfen tekrar deneyin.' };
+    }
+    return json(govde);
+  };
+  next();
+});
 app.use('/api/auth', authLimiter);
 app.use('/api/iletisim', publicFormLimiter);
 app.use('/api/referans/kullan', publicFormLimiter);
 app.use('/api/book', bookingLimiter);
+// Doğrulama kodu gönderimi pahalı ve kötüye kullanılabilir (merkez numaradan rastgele numaralara
+// toplu kod → spam/ban). IP başına 15 dk'da 6, günde 20.
+const otpLimiter15 = rateLimit({ windowMs: 15 * 60 * 1000, max: 6, message: { hata: 'Çok fazla kod istendi. Biraz sonra tekrar deneyin.' }, keyGenerator: limitAnahtari });
+const otpLimiterGun = rateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 20, message: { hata: 'Bugün için kod gönderim sınırına ulaşıldı.' }, keyGenerator: limitAnahtari });
+app.post('/api/book/:slug/otp-gonder', otpLimiter15, otpLimiterGun, (req, res, next) => next());
 app.use('/api/webhook', webhookLimiter);
 // Venüs okuma uçları (kendi anahtarı ve limiti var; VENUS_API_ANAHTAR yoksa 404)
 app.use('/api/venus/v1', require('./routes/venus'));
