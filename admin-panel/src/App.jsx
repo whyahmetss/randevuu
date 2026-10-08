@@ -3207,7 +3207,7 @@ function Dashboard({ kullanici }) {
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
                 { key: "profesyonel", isim: "Profesyonel", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 699, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["SMS Hatırlatma", "Öncelikli Destek", "API Erişimi"] },
-                { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 1499, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "12+ Dil Desteği", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
+                { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 1499, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Randevu", "SMS Hatırlatma", "Öncelikli Destek", "API Erişimi", "3 Dil (TR · EN · AR)", "Tüm Profesyonel Özellikler"], ozellikYok: [] },
               ].map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
@@ -4870,7 +4870,7 @@ function SuperAdminPanel({ kullanici }) {
                   </button>
                   <button onClick={async () => { if (confirm("Bu mesajı silmek istediğinize emin misiniz?")) { await api.del("/admin/iletisim/" + m.id); iletisimYukle(); } }} className="btn btn-sm" style={{ background: "rgba(180,35,24,.1)", color: "var(--red)", border: "none" }}>Sil</button>
                   {m.email && <a href={"mailto:" + m.email} className="btn btn-sm" style={{ background: "rgba(93,75,181,.12)", color: "#5d4bb5", border: "none", textDecoration: "none" }}>Mail</a>}
-                  {m.telefon && <a href={"https://wa.me/90" + m.telefon} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "rgba(37,211,102,.12)", color: "#25d366", border: "none", textDecoration: "none" }}>WhatsApp</a>}
+                  {m.telefon && <a href={"https://wa.me/" + (d => d.startsWith("90") && d.length === 12 ? d : "90" + d.replace(/^0+/, ""))(String(m.telefon).replace(/\D/g, ""))} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "rgba(37,211,102,.12)", color: "#25d366", border: "none", textDecoration: "none" }}>WhatsApp</a>}
                 </div>
               </div>
             ))}
@@ -5147,7 +5147,7 @@ function SuperAdminPanel({ kullanici }) {
               const PLAN_DEFS = {
                 baslangic: { isim: "Başlangıç", fiyat: 299, calisan_limit: 1, hizmet_limit: 5, aylik_randevu_limit: 200, bot_aktif: true, hatirlatma: true, istatistik: false, export_aktif: false, ozellikler: "1 Çalışan\n200 Randevu/Ay\nOtomatik Hatırlatma\nTemel Analitik", sira: 1 },
                 profesyonel: { isim: "Profesyonel", fiyat: 999, calisan_limit: 3, hizmet_limit: 20, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "3 Çalışan\nSınırsız Randevu\nTelegram Desteği\nGelişmiş Analitik\nGoogle Calendar Sync\n5 Dil Desteği", sira: 2 },
-                kurumsal: { isim: "Kurumsal", fiyat: 0, calisan_limit: 999, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "Sınırsız Çalışan\nSınırsız Randevu\nÖzel API Entegrasyonu\nÖzel Eğitim & Onboarding\nSLA Garantisi\n12+ Dil Desteği", sira: 3 }
+                kurumsal: { isim: "Kurumsal", fiyat: 0, calisan_limit: 999, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "Sınırsız Çalışan\nSınırsız Randevu\nÖzel API Entegrasyonu\nÖzel Eğitim & Onboarding\nSLA Garantisi\n3 Dil (TR · EN · AR)", sira: 3 }
               };
               const mevcutKodlar = paketTanimlar.map(p => p.kod);
               const eksikler = Object.entries(PLAN_DEFS).filter(([kod]) => !mevcutKodlar.includes(kod));

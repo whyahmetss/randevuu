@@ -98,10 +98,14 @@ class WhatsAppWebService extends EventEmitter {
       qrAttempts: yeniBaslat ? 0 : (onceki?.qrAttempts || 0),
       basariliOturumVardi: yeniBaslat ? false : (onceki?.basariliOturumVardi || false),
       reconnectAttempts: yeniBaslat ? 0 : (onceki?.reconnectAttempts || 0),
+      cakismaSayisi: yeniBaslat ? 0 : (onceki?.cakismaSayisi || 0),
     };
 
     try {
       const { state, saveCreds } = await usePostgresAuthState(pool, isletmeId);
+      // DB'de kayıtlı oturum varsa (sunucu yeniden başladı) bu "QR taranmamış" yeni bağlantı değildir:
+      // ilk kopmada kalıcı durdurulmasın, yeniden bağlanma kuralları geçerli olsun
+      if (state.creds?.me?.id) this.isletmeler[isletmeId].basariliOturumVardi = true;
       const { version } = await fetchLatestBaileysVersion();
 
       const sock = makeWASocket({
@@ -159,6 +163,7 @@ class WhatsAppWebService extends EventEmitter {
           this.isletmeler[isletmeId].basariliOturumVardi = true;
           this.isletmeler[isletmeId].qrAttempts = 0;
           this.isletmeler[isletmeId].reconnectAttempts = 0;
+          this.isletmeler[isletmeId].cakismaSayisi = 0;
           this.isletmeler[isletmeId]._baslatiliyor = false;
           const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
           if (numara) {
@@ -196,6 +201,20 @@ class WhatsAppWebService extends EventEmitter {
             setTimeout(() => {
               this.isletmeBaslat(isletmeId, isletmeIsim, false);
             }, 2000);
+          } else if (statusCode === 440) {
+            // 440 = oturum başka yerde açıldı. Render deploy'da eski ve yeni sunucu bir süre birlikte
+            // çalışır; hemen yeniden bağlanmak iki kopyayı birbirini düşürmeye sokuyor ve 5 denemeden
+            // sonra oturum anahtarları siliniyordu (esnaf QR'ı baştan okutmak zorunda kalıyordu).
+            // Bekle (eski sunucu kapanır), anahtarlara DOKUNMA.
+            const st = this.isletmeler[isletmeId];
+            if (st) {
+              st.sock = null; st._baslatiliyor = false; st.durum = 'baslatiyor';
+              st.cakismaSayisi = (st.cakismaSayisi || 0) + 1;
+              const bekle = Math.min(60000 * st.cakismaSayisi, 5 * 60000);
+              console.log(`⏳ ${isletmeIsim} — oturum başka yerde açık (440), ${bekle / 1000}sn sonra tekrar`);
+              clearTimeout(st._cakismaZaman);
+              st._cakismaZaman = setTimeout(() => this.isletmeBaslat(isletmeId, isletmeIsim, false), bekle);
+            }
           } else if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
             // 401 ya da loggedOut → oturum geçersiz, DB'den auth temizle, kullanıcıya bilgi ver
             if (this.isletmeler[isletmeId]) {
@@ -219,10 +238,19 @@ class WhatsAppWebService extends EventEmitter {
             // Sadece daha önce başarılı oturum varsa yeniden bağlan
             const ra = (this.isletmeler[isletmeId].reconnectAttempts || 0) + 1;
             if (ra > 5) {
-              console.log(`⏹️ ${isletmeIsim} — ${ra} reconnect denemesi aşıldı, durduruluyor`);
+              // Anahtarları SİLME: ağ/WhatsApp kesintisi geçicidir; yalnız gerçek çıkışta (401/loggedOut)
+              // silinir. 5 dakikada bir sessizce yeniden dene.
+              console.log(`⏸️ ${isletmeIsim} — ${ra - 1} hızlı deneme başarısız, 5 dk'da bir denenecek`);
               this.isletmeler[isletmeId].durum = 'bagli_degil';
-              try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch(e) {}
-              socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'max_reconnect', durum: 'bagli_degil' });
+              this.isletmeler[isletmeId]._baslatiliyor = false;
+              this.isletmeler[isletmeId].sock = null;
+              socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', { sebep: 'gecici_kesinti', durum: 'bagli_degil' });
+              setTimeout(() => {
+                if (this.isletmeler[isletmeId] && this.isletmeler[isletmeId].durum !== 'bagli') {
+                  this.isletmeler[isletmeId].reconnectAttempts = 3;   // sonraki turda 2 hızlı deneme daha
+                  this.isletmeBaslat(isletmeId, isletmeIsim, false);
+                }
+              }, 5 * 60000);
             } else {
               const bekleme = Math.min(3000 * ra, 15000);
               console.log(`🔄 Yeniden bağlanılıyor: ${isletmeIsim} (${ra}/5, ${bekleme/1000}sn)`);
@@ -1373,7 +1401,7 @@ class WhatsAppWebService extends EventEmitter {
     try {
       const bugunStr = secilenTarih;
       const doluSaatler = (await pool.query(`
-        SELECT saat FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum IN ('onaylandi','onay_bekliyor','kapora_bekliyor')
+        SELECT saat FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum NOT IN ('iptal','gelmedi')
       `, [isletmeId, bugunStr])).rows.map(r => String(r.saat).substring(0,5));
       // Her saat diliminde kaç randevu var
       const sabahDolu = doluSaatler.filter(s => parseInt(s.split(':')[0]) < 12).length;

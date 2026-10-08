@@ -36,7 +36,7 @@
     "offers": {
       "@type": "AggregateOffer",
       "lowPrice": "299",
-      "highPrice": "999",
+      "highPrice": "4999",
       "priceCurrency": "TRY"
     }
   }
@@ -705,7 +705,7 @@
           </div>
           <div>
             <h4 class="text-sm font-bold text-white mb-1">Çok Dilli Destek</h4>
-            <p class="text-[11px] text-dark-400 leading-relaxed">Otomatik dil algılama ile 12+ dilde randevu alma</p>
+            <p class="text-[11px] text-dark-400 leading-relaxed">Otomatik dil algılama: Türkçe, İngilizce ve Arapça</p>
           </div>
           <div class="ml-auto flex items-center gap-1">
             <span class="text-lg">🇹🇷</span><span class="text-lg">🇬🇧</span><span class="text-lg">🇸🇦</span><span class="text-lg">🇩🇪</span><span class="text-lg">🇫🇷</span>
@@ -847,7 +847,7 @@
           <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Özel API Entegrasyonu</li>
           <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Özel Eğitim & Onboarding</li>
           <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>SLA Garantisi</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>12+ Dil Desteği</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>3 Dil (TR · EN · AR)</li>
         </ul>
         <a href="#iletisim" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Satışla Görüş</a>
       </div>
@@ -957,7 +957,7 @@
             <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
           </div>
         </button>
-        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Evet! Google Calendar, Outlook ve özel API entegrasyonları ile mevcut sisteminizle sorunsuz çalışır. Kurumsal paketimizde özel entegrasyon desteği de sunuyoruz.</p></div>
+        <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Evet. Google Calendar ile iki yönlü senkron çalışır: takviminizdeki dolu saatler randevuya kapanır, SıraGO randevuları takviminize düşer.</p></div>
       </div>
 
       <div class="bg-white rounded-2xl border border-dark-100 overflow-hidden shadow-sm">
@@ -1188,7 +1188,7 @@ document.getElementById('form').addEventListener('submit',async e=>{
   const btn=e.target.querySelector('button[type="submit"]');
   btn.disabled=true;btn.textContent='Gönderiliyor...';
   try{
-    const res=await fetch('https://randevugo-api.onrender.com/api/iletisim',{
+    const res=await fetch('https://randevu.xn--srago-n4a.com/api/iletisim',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({isim,telefon:p,kaynak:'landing'})
     });

@@ -157,6 +157,11 @@ router.get('/uyarilar', async (req, res) => {
       if (kopuk.length) uyarilar.push({ tip: 'bot_kopuk', onem: 'yuksek', mesaj: `${kopuk.length} işletmenin WhatsApp botu kopuk`, isletmeler: kopuk });
     } catch (e) { /* WA servisi yoksa geç */ }
     try {
+      const basvuru = await sayi(
+        "SELECT COUNT(*) c FROM iletisim_mesajlari WHERE okundu IS NOT TRUE AND olusturma_tarihi > NOW() - make_interval(hours => $1)", [saat]);
+      if (basvuru > 0) uyarilar.push({ tip: 'yeni_basvuru', onem: 'yuksek', mesaj: `${basvuru} yeni başvuru (site/iletişim) — aranmayı bekliyor` });
+    } catch (e) { /* tablo/kolon yoksa geç */ }
+    try {
       const frenler = (await pool.query(
         "SELECT detay, olusturma_tarihi FROM audit_log WHERE islem = 'satis_bot_fren' AND olusturma_tarihi > NOW() - make_interval(hours => $1) ORDER BY id DESC LIMIT 5",
         [saat]
