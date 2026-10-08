@@ -890,27 +890,15 @@ class AdminController {
     const id = req.params.id;
     try {
       const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id=$1', [id])).rows[0];
-      // Bağımlı tabloları sırayla temizle (her biri catch ile — tablo yoksa sessizce geç)
-      // Etiket atamaları (özel sorgu — etiket tablosuna bağlı)
-      await pool.query('DELETE FROM musteri_etiket_atamalari WHERE etiket_id IN (SELECT id FROM musteri_etiketler WHERE isletme_id = $1)', [id]).catch(() => {});
-      // Standart tablolar
-      const silTablolari = [
-        'isletme_bildirimleri', 'zombi_aksiyonlar', 'wa_auth_keys', 'destek_talepleri',
-        'sohbet_gecmisi', 'bot_durum', 'bekleme_listesi',
-        'kasa_hareketleri', 'prim_odemeleri', 'sms_log', 'gece_rapor_log',
-        'yorum_talepleri', 'winback_log', 'puan_hareketleri', 'referans_log',
-        'google_yorum_talepleri', 'musteri_etiketler', 'audit_log',
-        'odemeler', 'randevular', 'hizmetler', 'calisanlar', 'admin_kullanicilar'
-      ];
-      for (const t of silTablolari) {
-        await pool.query(`DELETE FROM ${t} WHERE isletme_id = $1`, [id]).catch(() => {});
-      }
-      await pool.query('DELETE FROM referanslar WHERE sahip_isletme_id = $1', [id]).catch(() => {});
-      await pool.query('DELETE FROM isletmeler WHERE id = $1', [id]);
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      // Bağlı tüm kayıtlar veritabanının FK kayıtlarından bulunur; tek transaction (yarım silme yok).
+      // Eskiden sabit liste + sessiz catch: listede olmayan bağlı tablo yüzünden silme hata veriyordu.
+      await require('../utils/isletmeSil').isletmeTamSil(pool, parseInt(id));
       await this.auditLogYaz(req.kullanici, 'isletme_silindi', `${isletme?.isim || id} silindi (tüm verileriyle)`, 'isletmeler', parseInt(id), require('../utils/istemciIp').istemciIp(req));
       res.json({ mesaj: 'İşletme ve tüm verileri silindi' });
     } catch (error) {
-      res.status(500).json({ hata: error.message });
+      console.error('İşletme silinemedi:', error.message, error.table || '', error.constraint || '');
+      res.status(500).json({ hata: `Silinemedi: ${error.message}` });
     }
   }
 
