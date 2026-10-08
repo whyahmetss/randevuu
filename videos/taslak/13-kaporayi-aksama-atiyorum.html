@@ -1,0 +1,165 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../src/common.css">
+<style>
+body{background:#0c1430}
+.k13-abs{display:block;padding:0;text-align:left}
+.k13-abs>*{position:absolute}
+.k13-navy{background:radial-gradient(circle at 50% 30%,#1c2b5e 0%,#0c1430 70%)}
+.k13-grn{background:linear-gradient(170deg,#2ee070 0%,#25D366 40%,#1f6f4a 100%)}
+.k13-c{left:70px;right:140px;text-align:center}
+
+/* Kanca */
+.k13-tag{display:inline-block;font-size:36px;font-weight:800;padding:14px 32px;border-radius:999px;background:rgba(255,255,255,.1);color:#dbe4ff;border:2px solid rgba(219,228,255,.35)}
+.k13-wa{border-radius:40px;overflow:hidden;background:var(--chat);box-shadow:0 30px 90px rgba(0,0,0,.6)}
+.k13-wa .wa-top{padding:26px 32px}
+.k13-wa .wa-name{font-size:38px}.k13-wa .wa-sub{font-size:26px}
+.k13-body{padding:40px 30px 46px;display:flex;flex-direction:column;gap:20px}
+.k13-big{align-self:flex-end;background:#d9fdd3;color:#111;font-size:112px;font-weight:900;line-height:1.02;letter-spacing:-3px;
+  padding:30px 38px 64px;border-radius:40px;border-top-right-radius:10px;max-width:96%;position:relative;box-shadow:0 2px 2px rgba(0,0,0,.15)}
+.k13-big .t{position:absolute;right:28px;bottom:14px;font-size:28px;font-weight:500;color:#667781;letter-spacing:0}
+.k13-big .t b{color:#53bdeb;font-weight:700}
+.k13-stamp{font-size:150px;font-weight:900;color:var(--red);border:14px solid var(--red);border-radius:28px;padding:0 36px;
+  background:rgba(255,245,245,.96);letter-spacing:2px;white-space:nowrap;box-shadow:0 24px 70px rgba(0,0,0,.55);
+  animation:k13-stamp .16s 0s cubic-bezier(.3,1.3,.5,1) both}
+@keyframes k13-stamp{from{transform:rotate(-11deg) scale(1.35)}to{transform:rotate(-11deg) scale(1)}}
+.k13-thud{animation:k13-thud .3s .14s ease-out both}
+@keyframes k13-thud{0%{transform:none}30%{transform:translate(-8px,6px) rotate(-.6deg)}60%{transform:translate(6px,-4px) rotate(.4deg)}100%{transform:none}}
+
+/* Takvim bloğu */
+.k13-h{font-size:66px;font-weight:900;letter-spacing:-2px;line-height:1.05;color:#fafaf9}
+.k13-pad{left:110px;width:800px;top:350px;height:440px}
+.k13-rings{position:absolute;left:0;right:0;top:-34px;display:flex;justify-content:space-around;padding:0 90px;z-index:9}
+.k13-rings i{width:26px;height:66px;border-radius:14px;background:linear-gradient(90deg,#9ca3af,#f5f5f4,#78716c);box-shadow:0 4px 8px rgba(0,0,0,.4)}
+.k13-pg{position:absolute;inset:0;background:#fffdf7;border-radius:22px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.45);
+  display:flex;flex-direction:column;color:var(--ink)}
+.k13-pg .bd{background:var(--red);color:#fff;font-size:68px;font-weight:900;letter-spacing:8px;text-align:center;padding:26px 0 18px}
+.k13-pg .q{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:84px;font-weight:900;letter-spacing:-2px;line-height:1.05;padding:0 30px}
+.k13-pg .q small{display:block;font-size:40px;font-weight:600;color:#78716c;letter-spacing:0;margin-top:14px}
+.k13-seen{color:#53bdeb}
+.k13-p1{z-index:4;animation:k13-f1 .7s 3.8s cubic-bezier(.5,0,.7,1) both}
+.k13-p2{z-index:3;animation:k13-f2 .7s 4.9s cubic-bezier(.5,0,.7,1) both}
+.k13-p3{z-index:2;animation:k13-f3 .6s 5.85s cubic-bezier(.5,0,.7,1) both}
+.k13-p4{z-index:1}
+.k13-p4 .bd{background:var(--ink)}
+@keyframes k13-f1{0%{transform:none}18%{transform:translateY(-14px) rotate(-5deg)}55%{transform:translate(-40px,220px) rotate(8deg) scale(.7)}100%{transform:translate(-170px,370px) rotate(-6deg) scale(.5)}}
+@keyframes k13-f2{0%{transform:none}18%{transform:translateY(-14px) rotate(5deg)}55%{transform:translate(60px,330px) rotate(-8deg) scale(.7)}100%{transform:translate(140px,600px) rotate(5deg) scale(.5)}}
+@keyframes k13-f3{0%{transform:none}18%{transform:translateY(-14px) rotate(-5deg)}55%{transform:translate(-40px,450px) rotate(9deg) scale(.7)}100%{transform:translate(-160px,830px) rotate(-4deg) scale(.5)}}
+
+/* Cumartesi kartı */
+.k13-cal{left:110px;width:780px;top:700px;border-radius:30px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);
+  animation:pop .45s 6.62s cubic-bezier(.3,1.6,.5,1) both,k13-redcard .4s 7.2s ease both;background:#fffdf7;color:var(--ink);text-align:center}
+@keyframes k13-redcard{from{background:#fffdf7;color:var(--ink)}to{background:#b91c1c;color:#fff}}
+.k13-cal .bd{background:var(--ink);color:#fff;font-size:64px;font-weight:900;letter-spacing:8px;padding:28px 0 20px}
+.k13-cal .hr{white-space:nowrap;font-size:118px;font-weight:900;letter-spacing:-5px;line-height:1;padding:56px 0 14px;font-variant-numeric:tabular-nums}
+.k13-cal .sv{font-size:54px;font-weight:700;padding-bottom:60px;opacity:.85}
+.k13-fire{left:760px;top:600px;font-size:170px;line-height:1;z-index:5;animation:pop .4s 7.35s cubic-bezier(.3,1.6,.5,1) both,k13-flick .25s 7.75s ease-in-out infinite alternate}
+@keyframes k13-flick{from{transform:scale(1) rotate(-4deg)}to{transform:scale(1.1) rotate(4deg)}}
+.k13-no{left:150px;top:1120px;z-index:6;font-size:124px;font-weight:900;color:#e7e5e4;letter-spacing:4px;border:12px solid #e7e5e4;border-radius:26px;
+  padding:0 34px;background:rgba(27,26,23,.82);white-space:nowrap;animation:k13-drop .3s 7.7s cubic-bezier(.3,1.3,.5,1) both}
+@keyframes k13-drop{from{opacity:0;transform:translateY(-260px) rotate(-8deg) scale(1.3)}to{opacity:1;transform:rotate(-8deg)}}
+
+/* Bot sahnesi */
+.k13-h2{font-size:76px;font-weight:900;letter-spacing:-2px;line-height:1.06;color:var(--ink)}
+.k13-h2 u{text-decoration-thickness:8px;text-underline-offset:10px;text-decoration-color:#fafaf9}
+.k13-chat{left:90px;width:800px;top:560px}
+.k13-chat .k13-body{padding:34px 28px 40px}
+.k13-bot{align-self:flex-start;background:#fff;color:#111;font-size:46px;line-height:1.5;padding:26px 34px 50px;border-radius:34px;border-top-left-radius:10px;
+  position:relative;box-shadow:0 2px 2px rgba(0,0,0,.15);max-width:100%}
+.k13-bot .t{position:absolute;right:24px;bottom:10px;font-size:24px;color:#667781}
+.k13-ex{display:inline-block;vertical-align:middle;font-size:24px;font-weight:800;letter-spacing:1px;background:var(--orange);color:#fff;border-radius:999px;padding:4px 14px;margin-left:8px}
+.k13-link{display:inline-block;border-radius:12px;padding:0 10px;margin-left:-10px;animation:k13-glow .55s 10.0s ease-in-out 4 both}
+@keyframes k13-glow{0%,100%{background:rgba(37,211,102,.18);box-shadow:0 0 0 0 rgba(37,211,102,0)}50%{background:rgba(37,211,102,.5);box-shadow:0 0 0 12px rgba(37,211,102,.25)}}
+.k13-link span{color:#027eb5;text-decoration:underline}
+.k13-tp{align-self:flex-start;background:#fff;padding:24px 30px;border-radius:30px;display:flex;gap:12px;animation:fade .15s 9.05s both,k13-gone .1s 9.45s both}
+.k13-tp i{width:18px;height:18px;border-radius:50%;background:#9ca3af;animation:pulse .5s infinite}
+@keyframes k13-gone{to{opacity:0;height:0;padding:0;margin-top:-20px}}
+.k13-pay{font-size:104px;font-weight:900;letter-spacing:-4px;line-height:1;color:var(--ink)}
+
+/* 5 dakika */
+.k13-cd{left:140px;width:720px;top:500px;height:270px;border-radius:40px;background:#050914;border:6px solid #33415f;overflow:hidden;
+  animation:pop .3s 12.4s cubic-bezier(.3,1.6,.5,1) both,k13-cdred .2s 13.0s both}
+@keyframes k13-cdred{to{border-color:var(--red);box-shadow:0 0 60px rgba(239,68,68,.55)}}
+.k13-strip{text-align:center;font-size:230px;font-weight:900;letter-spacing:-6px;line-height:258px;font-variant-numeric:tabular-nums;color:#fafaf9;
+  animation:k13-count .55s 12.45s steps(5,end) both,k13-redtxt .15s 13.0s both}
+.k13-strip div{height:258px}
+@keyframes k13-count{from{transform:translateY(0)}to{transform:translateY(-1290px)}}
+@keyframes k13-redtxt{to{color:var(--red)}}
+.k13-exp{left:90px;width:800px;top:820px;background:#fff;color:#111;font-size:46px;line-height:1.35;padding:26px 34px;border-radius:30px;border-top-left-radius:8px;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.k13-exp .s{color:#57534e;font-size:38px}
+.k13-slot{left:90px;width:800px;top:1060px;background:#1f2a4a;border-radius:28px;padding:24px 32px;display:flex;align-items:center;justify-content:space-between}
+.k13-slot .h{font-size:58px;font-weight:900;color:#fafaf9}
+.k13-pb{position:relative;width:340px;height:86px}
+.k13-pl{position:absolute;inset:0;border-radius:999px;display:grid;place-items:center;font-size:38px;font-weight:900}
+.k13-pl.wait{background:var(--red);color:#fff;animation:k13-out .2s 13.3s both}
+.k13-pl.free{background:var(--green);color:var(--ink)}
+@keyframes k13-out{to{opacity:0;transform:scale(.6)}}
+.k13-ak{font-size:128px;font-weight:900;letter-spacing:-4px;line-height:1;color:var(--orange)}
+
+.k13-bait{left:70px;right:140px;top:1250px;text-align:center;z-index:20}
+.k13-bait .q{font-size:46px;line-height:1.25;font-weight:800;color:#fafaf9}
+</style></head><body data-total="17.7" data-end="15">
+
+<!-- 1. KANCA: ilk karede hazır -->
+<section class="scene k13-abs k13-navy" style="--at:0s;--len:2.4s">
+  <div class="k13-c" style="top:228px"><span class="k13-tag">Kapora alan herkes bilir 👇</span></div>
+  <div class="k13-wa k13-thud" style="left:70px;width:800px;top:340px">
+    <div class="wa-top"><div class="avatar">M</div><div><div class="wa-name">Mürekkep Atölye</div><div class="wa-sub">çevrimiçi</div></div></div>
+    <div class="k13-body">
+      <div class="k13-big">Kaporayı<br>akşama<br>atıyorum<br>abi 🙏<span class="t">Salı 18:12 <b>✓✓</b></span></div>
+    </div>
+  </div>
+  <div class="k13-stamp" style="left:120px;top:1170px">(ATMADI)</div>
+</section>
+
+<!-- 2. BAHANE TAKVİMİ -->
+<section class="scene k13-abs k13-navy" style="--at:2.4s;--len:4.2s">
+  <div class="k13-c k13-h up" style="top:220px;--d:2.4s">Bahane takvimi 📅</div>
+  <div class="k13-pad pop" style="--d:2.42s">
+    <div class="k13-rings"><i></i><i></i><i></i><i></i></div>
+    <div class="k13-pg k13-p4"><div class="bd">CUMARTESİ</div><div class="q">14:00 · Dövme</div></div>
+    <div class="k13-pg k13-p3"><div class="bd">PERŞEMBE</div><div class="q"><div><span class="k13-seen">✓✓</span> Görüldü<small>(cevap yok)</small></div></div></div>
+    <div class="k13-pg k13-p2"><div class="bd">ÇARŞAMBA</div><div class="q">“IBAN neydi abi?”</div></div>
+    <div class="k13-pg k13-p1"><div class="bd">SALI</div><div class="q">“Maaş yatsın<br>abi 🙏”</div></div>
+  </div>
+</section>
+
+<!-- 3. CUMARTESİ -->
+<section class="scene k13-abs k13-navy" style="--at:6.6s;--len:2.4s">
+  <div class="k13-c k13-h up" style="top:300px;font-size:84px;--d:6.62s">Cumartesi <span class="o">3 saatini</span><br>ona ayırdın.</div>
+  <div class="k13-cal">
+    <div class="bd">CUMARTESİ</div>
+    <div class="hr">14:00–17:00</div>
+    <div class="sv">🖋️ Dövme seansı · 3 saat</div>
+  </div>
+  <div class="k13-fire">🔥</div>
+  <div class="k13-no">GELMEDİ.</div>
+</section>
+
+<!-- 4. BOT KAPORA LİNKİ -->
+<section class="scene k13-abs k13-grn" style="--at:9s;--len:3.4s">
+  <div class="k13-c k13-h2 up" style="top:220px;--d:9.02s">Bot, randevuyla birlikte<br><u>kapora linkini</u> atar.</div>
+  <div class="k13-wa k13-chat up" style="--d:9.05s">
+    <div class="wa-top"><div class="avatar">M</div><div><div class="wa-name">Mürekkep Atölye</div><div class="wa-sub">çevrimiçi</div></div></div>
+    <div class="k13-body">
+      <div class="k13-tp"><i></i><i style="animation-delay:.15s"></i><i style="animation-delay:.3s"></i></div>
+      <div class="k13-bot pop" style="--d:9.45s">✂️ Dövme Seansı<br>💳 <b>Kapora: 500 ₺</b> (%20)<span class="k13-ex">ÖRNEK</span><br><span class="k13-link">🔗 Ödeme linki: <span>shopier.com/…</span></span><span class="t">14:21</span></div>
+    </div>
+  </div>
+  <div class="k13-c k13-pay pop" style="top:1250px;--d:10.4s">Ödeyen saati kapar. ✅</div>
+</section>
+
+<!-- 5. 5 DAKİKA -->
+<section class="scene k13-abs k13-navy" style="--at:12.4s;--len:2.6s">
+  <div class="k13-c k13-h up" style="top:230px;font-size:80px;--d:12.4s">5 dakikada ödemezse<br><span class="g">saat boşalır.</span></div>
+  <div class="k13-cd"><div class="k13-strip"><div>05:00</div><div>04:00</div><div>03:00</div><div>02:00</div><div>01:00</div><div>00:00</div></div></div>
+  <div class="k13-exp left" style="--d:13.0s">⏳ <b>Kapora süresi doldu</b><br><span class="s">…randevunuz iptal edildi.</span></div>
+  <div class="k13-slot up" style="--d:13.05s">
+    <div class="h">Cmt 14:00</div>
+    <div class="k13-pb"><div class="k13-pl free pop" style="--d:13.32s">🟢 MÜSAİT</div><div class="k13-pl wait">KAPORA YOK</div></div>
+  </div>
+  <div class="k13-c k13-ak pop" style="top:1250px;--d:13.45s">“Akşama” yok.</div>
+</section>
+
+<!-- Kapanış kartının üstüne yorum çağrısı -->
+<div class="k13-bait up" style="position:absolute;--d:15.1s"><div class="q">En yaratıcı kapora bahanesi neydi?<br>Yorumlara yaz 👇</div></div>
+
+<script src="../src/end.js"></script></body></html>

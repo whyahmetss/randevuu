@@ -79,3 +79,19 @@ body{font-family:'Inter','Noto Color Emoji',sans-serif;background:var(--ink);col
 /* İlerleme çubuğu */
 .bar{position:absolute;left:0;top:0;height:10px;background:var(--green);width:0;animation:grow var(--total) linear both}
 @keyframes grow{to{width:100%}}
+
+/* Gerçekçi sohbet akışı: .chat.feed içinde mesajlar belirdikçe yer kaplar, eskiler yukarı kayar */
+.chat{min-height:0}
+.chat.feed{gap:0;overflow:hidden}
+.feed>*{margin-top:16px;flex:none}
+.feed>.msg{overflow:hidden}
+.msgin{animation:msgin .32s var(--d,0s) ease-out both}
+.feed>.tp{animation:msgin .25s var(--d,0s) ease-out both,msgout .15s var(--e,0s) forwards}
+@keyframes msgin{from{opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;transform:translateY(24px)}to{opacity:1;max-height:1000px;transform:none}}
+@keyframes msgout{to{opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0}}
+.note{font-size:34px;font-weight:500;color:#a8a29e;line-height:1.35}
+/* İlk sahne kapak karesi: ilk karede tam görünür */
+.scene[style*="--at:0s"]{animation-name:show0}
+@keyframes show0{0%,98%{opacity:1}100%{opacity:0}}
+/* Kısa mesajlarda saat rakamın üstüne binmesin */
+.msg{min-width:132px}

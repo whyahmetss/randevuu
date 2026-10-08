@@ -1,0 +1,150 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../src/common.css">
+<style>
+body{background:#1d0b2e}
+.k9-s{padding:220px 150px 380px 70px}
+.k9-purple{background:radial-gradient(circle at 50% 40%,#4a1d6e 0%,#1d0b2e 72%)}
+.k9-red{background:radial-gradient(circle at 50% 30%,#4a1426 0%,#1a0a14 75%)}
+.k9-green{background:radial-gradient(circle at 50% 30%,#14533a 0%,#0b1f16 75%)}
+.k9-dark{background:radial-gradient(circle at 50% 35%,#3a2a12 0%,#15110b 75%)}
+
+.k9-tag{display:inline-block;font-size:34px;font-weight:800;letter-spacing:2px;padding:14px 32px;border-radius:999px}
+.k9-tag.top{background:rgba(255,255,255,.1);color:#e9d5ff;border:2px solid rgba(233,213,255,.35);letter-spacing:0}
+.k9-tag.red{background:var(--red);color:#fff}
+.k9-tag.grn{background:var(--green);color:var(--ink)}
+
+.k9-hook{font-size:150px;font-weight:900;line-height:.98;letter-spacing:-5px}
+.k9-hook em{font-style:normal;color:#f0abfc}
+.k9-emo{display:flex;gap:30px;align-items:center;justify-content:center;font-size:170px;line-height:1}
+.k9-jit{display:inline-block;animation:k9-jit .18s var(--d,0s) linear infinite both}
+@keyframes k9-jit{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-5px,3px) rotate(-6deg)}50%{transform:translate(4px,-3px) rotate(5deg)}75%{transform:translate(-3px,-2px) rotate(-3deg)}}
+
+.k9-head{font-size:76px;font-weight:900;line-height:1.05;letter-spacing:-2px}
+
+/* Çerçevesiz büyük WhatsApp sohbeti */
+.k9-wa{width:100%;border-radius:40px;overflow:hidden;background:var(--chat);text-align:left;box-shadow:0 30px 90px rgba(0,0,0,.55);position:relative}
+.k9-wa .wa-top{padding:26px 30px}
+.k9-wa .chat{padding:26px 26px 30px;gap:18px;justify-content:flex-start}
+.k9-wa .msg{font-size:44px;max-width:92%}
+.k9-wa .msg .t{font-size:22px}
+
+.k9-stamp{position:relative;margin-top:34px;z-index:3;font-size:120px;font-weight:900;color:var(--red);border:12px solid var(--red);
+  border-radius:24px;padding:4px 34px;white-space:nowrap;background:#fff5f5;letter-spacing:2px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+  animation:k9-stamp .32s var(--d) cubic-bezier(.3,1.4,.5,1) both}
+@keyframes k9-stamp{from{opacity:0;transform:rotate(-8deg) scale(2.4)}to{opacity:1;transform:rotate(-8deg) scale(1)}}
+
+.k9-hl{border-radius:10px;padding:2px 8px;margin-left:-8px;animation:k9-hl .5s var(--d) ease-in-out 4 both}
+@keyframes k9-hl{0%,100%{background:rgba(250,204,21,.25)}50%{background:#facc15}}
+.k9-link{color:#027eb5;text-decoration:underline}
+
+.k9-panel{width:100%;background:#fafaf9;color:var(--ink);border-radius:30px;padding:26px 34px;text-align:left;
+  border-left:16px solid var(--green);box-shadow:0 24px 70px rgba(0,0,0,.5)}
+.k9-panel .lbl{font-size:26px;font-weight:800;letter-spacing:3px;color:#78716c}
+.k9-panel .val{font-size:48px;font-weight:900;line-height:1.15;margin-top:6px}
+
+.k9-clock{background:#fafaf9;color:var(--ink);border-radius:44px;padding:20px 60px;display:flex;align-items:center;gap:26px}
+.k9-clock .ic{font-size:120px}
+.k9-win{height:200px;overflow:hidden}
+.k9-strip{font-size:190px;font-weight:900;letter-spacing:-6px;font-variant-numeric:tabular-nums;line-height:200px;
+  animation:k9-count .9s var(--d) steps(6,end) both, k9-redtxt .2s var(--e) both}
+.k9-strip div{height:200px}
+@keyframes k9-count{from{transform:translateY(0)}to{transform:translateY(-1200px)}}
+@keyframes k9-redtxt{from{color:var(--ink)}to{color:var(--red)}}
+
+.k9-bub{align-self:center;background:#fff;color:#111;border-radius:30px;border-top-left-radius:8px;padding:24px 34px;font-size:50px;font-weight:500;text-align:left;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+.k9-slot{width:100%;background:#292524;border-radius:30px;padding:28px 36px;display:flex;align-items:center;justify-content:space-between}
+.k9-slot .h{font-size:56px;font-weight:900}
+.k9-pillbox{position:relative;width:330px;height:84px}
+.k9-pill{position:absolute;inset:0;border-radius:999px;display:grid;place-items:center;font-size:38px;font-weight:800}
+.k9-pill.wait{background:rgba(249,115,22,.18);color:var(--orange);border:3px solid var(--orange);animation:k9-out .25s var(--e) both}
+.k9-pill.free{background:var(--green);color:var(--ink)}
+@keyframes k9-out{to{opacity:0;transform:scale(.7)}}
+
+.k9-l1{font-size:110px;font-weight:800;line-height:1.02;letter-spacing:-3px;color:#a8a29e}
+.k9-l2{font-size:132px;font-weight:900;line-height:.98;letter-spacing:-5px;color:var(--green)}
+.k9-bounce{animation:pop .45s var(--d) cubic-bezier(.3,1.6,.5,1) both, k9-bob .6s calc(var(--d) + .5s) ease-in-out infinite}
+@keyframes k9-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+
+.k9-bait{position:absolute;z-index:20;left:90px;right:150px;top:1250px;text-align:center}
+.k9-bait .q{font-size:44px;line-height:1.25;font-weight:800;color:#fafaf9}
+.k9-bait .ch{display:flex;gap:22px;justify-content:center;margin-top:18px}
+.k9-bait .ch span{font-size:42px;font-weight:900;padding:14px 30px;border-radius:999px}
+</style></head><body data-total="17.7" data-end="15">
+
+<!-- 1. KANCA -->
+<section class="scene k9-s k9-purple" style="--at:0s;--len:2.4s">
+  <div class="k9-tag top">Dövmeciler, nail'ciler 👇</div>
+  <div class="gap"></div>
+  <div class="k9-hook">Kapora<br>istemeye<br><em>utanıyor<br>musun?</em></div>
+  <div class="gap"></div>
+  <div class="k9-emo"><span>😬</span><span class="k9-jit" style="--d:0s">💸</span></div>
+</section>
+
+<!-- 2. SEN İSTEYİNCE -->
+<section class="scene k9-s k9-red" style="--at:2.4s;--len:3s">
+  <div class="k9-tag red pop" style="--d:2.4s">SEN İSTEYİNCE</div>
+  <div class="gap"></div>
+  <div class="k9-wa up" style="--d:2.45s">
+    <div class="wa-top"><div class="avatar">S</div><div><div class="wa-name">Selin</div><div class="wa-sub">çevrimiçi</div></div></div>
+    <div class="chat">
+      <div class="msg out up" style="--d:2.55s">Şey... kapora alsak olur mu? 😅<span class="t">11:02</span></div>
+      <div class="msg in up" style="--d:3.05s"><b>Güvenmiyor musunuz? 🙄</b><span class="t">11:03</span></div>
+      <div class="msg out up" style="--d:3.55s">Yok estağfurullah, gerek yok 🙏<span class="t">11:03</span></div>
+    </div>
+  </div>
+  <div class="k9-stamp" style="--d:4.25s">AYIP OLDU</div>
+</section>
+
+<!-- 3. BOT İSTEYİNCE -->
+<section class="scene k9-s k9-green" style="--at:5.4s;--len:4s">
+  <div class="k9-tag grn pop" style="--d:5.4s">BOT İSTEYİNCE</div>
+  <div class="gap-s"></div>
+  <div class="k9-head up" style="--d:5.45s">Kimse alınmıyor.<br><span class="g">Kural bu.</span></div>
+  <div class="gap"></div>
+  <div class="k9-wa up" style="--d:5.5s">
+    <div class="wa-top"><div class="avatar">M</div><div><div class="wa-name">Mürekkep Tattoo</div><div class="wa-sub">çevrimiçi</div></div></div>
+    <div class="chat">
+      <div class="msg out up" style="--d:5.6s">1<span class="t">14:21</span></div>
+      <div class="msg in up" style="--d:5.95s"><span class="k9-hl" style="--d:6.3s">💳 <b>Kapora: 300 ₺</b> (%20)</span><br><br>🔗 Ödeme linki: <span class="k9-link">shopier.com/…</span><span class="t">14:21</span></div>
+    </div>
+  </div>
+  <div class="gap"></div>
+  <div class="k9-panel pop" style="--d:7s">
+    <div class="lbl">İŞLETME PANELİ</div>
+    <div class="val">✅ Kapora ödendi<br><span style="color:var(--deep)">→ Randevu onaylandı</span></div>
+  </div>
+</section>
+
+<!-- 4. 5 DAKİKA -->
+<section class="scene k9-s k9-dark" style="--at:9.4s;--len:2.7s">
+  <div class="k9-head up" style="--d:9.4s">Ödemeyenin randevusu<br><span class="o">5 dakikada düşer.</span></div>
+  <div class="gap"></div>
+  <div class="k9-clock pop" style="--d:9.45s">
+    <span class="ic">⏳</span>
+    <div class="k9-win"><div class="k9-strip" style="--d:9.6s;--e:10.5s"><div>5:00</div><div>4:10</div><div>3:20</div><div>2:30</div><div>1:40</div><div>0:50</div><div>0:00</div></div></div>
+  </div>
+  <div class="gap"></div>
+  <div class="k9-bub left" style="--d:10.35s">⏳ <b>Kapora süresi doldu</b></div>
+  <div class="gap"></div>
+  <div class="k9-slot up" style="--d:10.6s">
+    <div class="h">Cuma 14:00</div>
+    <div class="k9-pillbox">
+      <div class="k9-pill free pop" style="--d:10.9s">🟢 Müsait</div>
+      <div class="k9-pill wait" style="--e:10.85s">Kapora bekliyor</div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. KAPANIŞ CÜMLESİ -->
+<section class="scene k9-s k9-purple" style="--at:12.1s;--len:2.9s">
+  <div class="k9-l1 up" style="--d:12.15s">Sen isteyince<br>ayıp.</div>
+  <div class="gap"></div><div class="gap"></div>
+  <div class="k9-l2 k9-bounce" style="--d:12.45s">Bot isteyince<br>kural.</div>
+</section>
+
+<!-- Kapanış kartının üstüne yorum çağrısı -->
+<div class="k9-bait up" style="--d:15.05s">
+  <div class="q">Kapora alıyor musun?<br>Yorumlara yaz 👇</div>
+  <div class="ch"><span style="background:var(--green);color:var(--ink)">ALIYORUM</span><span style="background:#f0abfc;color:#2a0f3d">UTANIYORUM</span></div>
+</div>
+
+<script src="../src/end.js"></script></body></html>

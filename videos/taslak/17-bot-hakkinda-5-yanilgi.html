@@ -1,0 +1,235 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../src/common.css">
+<style>
+body{background:#ffd23f}
+.v17{color:#1b1a17;padding:330px 150px 380px 90px;justify-content:flex-start}
+.v17-hookwrap{position:relative;display:inline-block}
+.v17-hook{font-size:134px;font-weight:900;line-height:1;letter-spacing:-5px;color:#1b1a17}
+.v17-hook .k{background:#1b1a17;color:#ffd23f;padding:4px 22px 10px;border-radius:20px;display:inline-block;margin-top:14px}
+.v17-stamp{position:absolute;right:-60px;top:-175px;transform:rotate(14deg)}
+.v17-stamp div{font-size:170px;line-height:1;filter:drop-shadow(0 10px 18px rgba(0,0,0,.25))}
+.v17-sub{font-size:46px;font-weight:700;color:#1b1a17;letter-spacing:-1px}
+.v17-boxes{display:flex;gap:14px;width:100%}
+.v17-box{flex:1;height:24px;border-radius:12px;background:rgba(27,26,23,.18);overflow:hidden;position:relative}
+.v17-box i{position:absolute;inset:0;background:#1b1a17;transform-origin:left;animation:v17fill .45s var(--d) ease-out both}
+.v17-box b{position:absolute;inset:0;background:#1f6f4a}
+@keyframes v17fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.v17-head{position:absolute;top:212px;left:90px;right:150px;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.v17-headt{font-size:36px;font-weight:800;color:#1b1a17;letter-spacing:-.5px}
+.v17-chip{display:inline-block;background:#ef4444;color:#fff;font-size:34px;font-weight:800;padding:10px 28px;border-radius:999px;letter-spacing:.5px}
+.v17-obj{font-size:76px;font-weight:900;line-height:1.1;letter-spacing:-2.5px;color:#1b1a17}
+.v17-obj .strike{display:inline-block}
+.v17-obj .strike::after{height:13px}
+.v17-truth{background:#1b1a17;color:#fff;border-radius:32px;padding:24px 40px 28px;font-size:54px;font-weight:800;line-height:1.15;letter-spacing:-1px;box-shadow:0 14px 0 rgba(27,26,23,.15)}
+.v17-truth b{color:#25D366}
+.v17-dev{width:640px;background:#fff;border-radius:44px;border:10px solid #1b1a17;overflow:hidden;color:#111;text-align:left;box-shadow:0 30px 70px rgba(0,0,0,.22);position:relative}
+.v17-bar{background:#075e54;color:#fff;font-size:32px;font-weight:700;padding:24px 30px;display:flex;align-items:center;gap:18px}
+.v17-bar .avatar{width:64px;height:64px;font-size:34px}
+.v17-bar small{display:block;font-size:22px;font-weight:500;opacity:.8}
+/* 1: QR */
+.v17-num{padding:22px 32px 6px}
+.v17-num small{font-size:26px;color:#667781;font-weight:600}
+.v17-num div{font-size:44px;font-weight:800;letter-spacing:-.5px;color:#111}
+.v17-num em{font-style:normal;font-size:26px;font-weight:800;color:#1f6f4a;background:#d9fdd3;padding:4px 14px;border-radius:999px;margin-left:10px;vertical-align:middle}
+.v17-qrbox{position:relative;width:300px;height:300px;margin:18px auto 10px}
+.v17-scan{position:absolute;left:-14px;right:-14px;height:8px;border-radius:4px;background:#25D366;box-shadow:0 0 26px 6px rgba(37,211,102,.7);top:0;animation:v17scan .7s var(--d) ease-in-out 2 alternate both}
+@keyframes v17scan{from{top:0}to{top:292px}}
+.v17-ok{position:absolute;inset:-6px;background:rgba(255,255,255,.88);display:grid;place-items:center}
+.v17-okpill{white-space:nowrap;background:#25D366;color:#1b1a17;font-size:44px;font-weight:900;padding:18px 34px;border-radius:999px;box-shadow:0 10px 30px rgba(37,211,102,.5)}
+.v17-cap{font-size:26px;color:#667781;text-align:center;padding:4px 20px 26px;font-weight:600}
+/* 2: indir -> sohbet */
+.v17-swap{position:relative;width:660px;height:690px}
+.v17-layer{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
+.v17-out{animation:v17out .3s var(--o) ease both}
+@keyframes v17out{from{opacity:1}to{opacity:0;visibility:hidden}}
+.v17-app{width:620px;background:#fff;border-radius:40px;border:10px solid #1b1a17;padding:38px 40px;color:#111;text-align:left;margin-top:90px;position:relative}
+.v17-app .row{gap:26px}
+.v17-icon{width:140px;height:140px;border-radius:34px;background:#d6d3d1;display:grid;place-items:center;font-size:76px;flex:none}
+.v17-app h4{font-size:40px;font-weight:800}
+.v17-app p{font-size:28px;color:#78716c;font-weight:600}
+.v17-dl{margin-top:34px;background:#2563eb;color:#fff;font-size:44px;font-weight:900;text-align:center;border-radius:999px;padding:20px}
+.v17-prog{margin-top:24px;height:22px;border-radius:11px;background:#e7e5e4;overflow:hidden}
+.v17-prog i{display:block;height:100%;background:#2563eb;width:0;animation:v17grow 1.2s var(--d) linear both}
+@keyframes v17grow{to{width:63%}}
+.v17-pct{font-size:26px;color:#78716c;font-weight:700;margin-top:10px}
+.v17-x{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.v17-x div{font-size:300px;line-height:1;color:#ef4444;font-weight:900;text-shadow:0 10px 30px rgba(0,0,0,.25)}
+.v17-dev .chat{padding:22px 20px;gap:14px}
+.v17-dev .msg{font-size:31px;line-height:1.33;padding:14px 20px 28px}
+.v17-dev .msg .t{font-size:18px}
+.v17-dig{font-size:52px!important;font-weight:900;padding:6px 34px 26px!important;min-width:0!important}
+.v17-sys{align-self:center;background:#fff7d6;color:#57534e;font-size:25px;font-weight:700;padding:8px 22px;border-radius:14px;box-shadow:0 1px 1px rgba(0,0,0,.1)}
+.v17-done{background:#25D366!important;color:#0b2e1c!important;font-size:36px!important;font-weight:800}
+.v17-done .t{color:#0b2e1c!important}
+.v17-label{display:inline-block;background:#1b1a17;color:#ffd23f;font-size:34px;font-weight:800;padding:12px 30px;border-radius:999px}
+/* 4: stil */
+.v17-split{display:flex;gap:24px;width:100%;align-items:stretch}
+.v17-col{flex:1;display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.v17-col .v17-tagp{font-size:32px;font-weight:900;padding:8px 26px;border-radius:999px}
+.v17-bub{background:#fff;color:#111;border-radius:28px;border-top-left-radius:8px;padding:24px 26px;font-size:29px;line-height:1.38;text-align:left;width:100%;flex:1;box-shadow:0 10px 0 rgba(27,26,23,.12)}
+.v17-seg{display:flex;background:#1b1a17;border-radius:999px;padding:10px;gap:8px;width:100%}
+.v17-seg span{flex:1;text-align:center;font-size:36px;font-weight:800;color:#fff;padding:16px 0;border-radius:999px;animation:v17on 1s var(--d) ease both}
+@keyframes v17on{0%,100%{background:transparent;color:#fff}12%,88%{background:#25D366;color:#1b1a17}}
+.v17-seg span.v17-last{animation:v17on2 .3s var(--d) ease both}
+@keyframes v17on2{from{background:transparent;color:#fff}to{background:#25D366;color:#1b1a17}}
+/* 5: form */
+.v17-card{font-size:340px;line-height:1}
+.v17-form{width:640px;background:#fff;border-radius:40px;border:10px solid #1b1a17;padding:34px 38px 38px;color:#111;text-align:left}
+.v17-form h4{font-size:36px;font-weight:900;line-height:1.2;letter-spacing:-.5px;margin-bottom:22px}
+.v17-form h4 span{color:#1f6f4a}
+.v17-f{margin-top:14px}
+.v17-f label{font-size:24px;font-weight:700;color:#57534e}
+.v17-f div{margin-top:6px;height:62px;border-radius:16px;border:3px solid #d6d3d1;background:#fafaf9;font-size:28px;line-height:56px;padding:0 20px;color:#111}
+.v17-btn{margin-top:26px;background:#25D366;color:#1b1a17;font-size:40px;font-weight:900;text-align:center;border-radius:999px;padding:18px}
+</style></head><body data-total="27.7" data-end="25">
+
+<!-- 0: KANCA -->
+<section class="scene v17" style="--at:0s;--len:2.6s;justify-content:center;padding-top:240px">
+  <div class="v17-hookwrap">
+    <div class="v17-hook">Bot hakkında<br>duyduğun<br><span class="k">5 yanlış</span></div>
+    <div class="v17-stamp"><div class="pop" style="--d:.25s">❌</div></div>
+  </div>
+  <div class="gap"></div><div class="gap-s"></div>
+  <div class="v17-boxes" style="width:640px"><div class="v17-box"></div><div class="v17-box"></div><div class="v17-box"></div><div class="v17-box"></div><div class="v17-box"></div></div>
+  <div class="gap"></div>
+  <div class="v17-sub">Hangisini sen de duydun? 👇</div>
+</section>
+
+<!-- Kalıcı başlık + 5'li sayaç -->
+<section class="scene" style="--at:2.6s;--len:22.4s">
+  <div class="v17-head">
+    <div class="v17-headt">Bot hakkında duyduğun 5 yanlış</div>
+    <div class="v17-boxes">
+      <div class="v17-box"><i style="--d:2.7s"></i><b class="fade" style="--d:23.6s"></b></div>
+      <div class="v17-box"><i style="--d:6.7s"></i><b class="fade" style="--d:23.7s"></b></div>
+      <div class="v17-box"><i style="--d:10.7s"></i><b class="fade" style="--d:23.8s"></b></div>
+      <div class="v17-box"><i style="--d:16.5s"></i><b class="fade" style="--d:23.9s"></b></div>
+      <div class="v17-box"><i style="--d:20.9s"></i><b class="fade" style="--d:24s"></b></div>
+    </div>
+  </div>
+</section>
+
+<!-- 1: Numaram değişir -->
+<section class="scene v17" style="--at:2.6s;--len:4s">
+  <div class="v17-chip up" style="--d:2.65s">❌ YANLIŞ 1</div>
+  <div class="gap-s"></div>
+  <div class="v17-obj up" style="--d:2.7s"><span class="strike" style="--s:3.25s">“Numaram değişir”</span></div>
+  <div class="gap-s"></div>
+  <div class="v17-truth pop" style="--d:3.55s">✅ <b>Kendi numaranda,</b><br>QR okut yeter</div>
+  <div class="gap"></div>
+  <div class="v17-dev up" style="--d:3.2s">
+    <div class="v17-bar">← Bağlı Cihazlar</div>
+    <div class="v17-num"><small>📱 Senin numaran</small><div>+90 532 ••• 47 12 <em>aynı kalır</em></div></div>
+    <div class="v17-qrbox"><svg viewBox="-1 -1 27 27" width="300" height="300" shape-rendering="crispEdges" style="display:block;background:#fff"><g fill="#1b1a17"><rect x="0" y="0" width="1" height="1"/><rect x="1" y="0" width="1" height="1"/><rect x="2" y="0" width="1" height="1"/><rect x="3" y="0" width="1" height="1"/><rect x="4" y="0" width="1" height="1"/><rect x="5" y="0" width="1" height="1"/><rect x="6" y="0" width="1" height="1"/><rect x="11" y="0" width="1" height="1"/><rect x="15" y="0" width="1" height="1"/><rect x="16" y="0" width="1" height="1"/><rect x="18" y="0" width="1" height="1"/><rect x="19" y="0" width="1" height="1"/><rect x="20" y="0" width="1" height="1"/><rect x="21" y="0" width="1" height="1"/><rect x="22" y="0" width="1" height="1"/><rect x="23" y="0" width="1" height="1"/><rect x="24" y="0" width="1" height="1"/><rect x="0" y="1" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="8" y="1" width="1" height="1"/><rect x="10" y="1" width="1" height="1"/><rect x="12" y="1" width="1" height="1"/><rect x="15" y="1" width="1" height="1"/><rect x="18" y="1" width="1" height="1"/><rect x="24" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="4" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="11" y="2" width="1" height="1"/><rect x="15" y="2" width="1" height="1"/><rect x="18" y="2" width="1" height="1"/><rect x="20" y="2" width="1" height="1"/><rect x="21" y="2" width="1" height="1"/><rect x="22" y="2" width="1" height="1"/><rect x="24" y="2" width="1" height="1"/><rect x="0" y="3" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="3" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="10" y="3" width="1" height="1"/><rect x="11" y="3" width="1" height="1"/><rect x="13" y="3" width="1" height="1"/><rect x="15" y="3" width="1" height="1"/><rect x="18" y="3" width="1" height="1"/><rect x="20" y="3" width="1" height="1"/><rect x="21" y="3" width="1" height="1"/><rect x="22" y="3" width="1" height="1"/><rect x="24" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="10" y="4" width="1" height="1"/><rect x="11" y="4" width="1" height="1"/><rect x="12" y="4" width="1" height="1"/><rect x="14" y="4" width="1" height="1"/><rect x="16" y="4" width="1" height="1"/><rect x="18" y="4" width="1" height="1"/><rect x="20" y="4" width="1" height="1"/><rect x="21" y="4" width="1" height="1"/><rect x="22" y="4" width="1" height="1"/><rect x="24" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="10" y="5" width="1" height="1"/><rect x="14" y="5" width="1" height="1"/><rect x="15" y="5" width="1" height="1"/><rect x="18" y="5" width="1" height="1"/><rect x="24" y="5" width="1" height="1"/><rect x="0" y="6" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="3" y="6" width="1" height="1"/><rect x="4" y="6" width="1" height="1"/><rect x="5" y="6" width="1" height="1"/><rect x="6" y="6" width="1" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="12" y="6" width="1" height="1"/><rect x="15" y="6" width="1" height="1"/><rect x="16" y="6" width="1" height="1"/><rect x="18" y="6" width="1" height="1"/><rect x="19" y="6" width="1" height="1"/><rect x="20" y="6" width="1" height="1"/><rect x="21" y="6" width="1" height="1"/><rect x="22" y="6" width="1" height="1"/><rect x="23" y="6" width="1" height="1"/><rect x="24" y="6" width="1" height="1"/><rect x="10" y="7" width="1" height="1"/><rect x="11" y="7" width="1" height="1"/><rect x="13" y="7" width="1" height="1"/><rect x="14" y="7" width="1" height="1"/><rect x="15" y="7" width="1" height="1"/><rect x="1" y="8" width="1" height="1"/><rect x="2" y="8" width="1" height="1"/><rect x="5" y="8" width="1" height="1"/><rect x="8" y="8" width="1" height="1"/><rect x="12" y="8" width="1" height="1"/><rect x="13" y="8" width="1" height="1"/><rect x="14" y="8" width="1" height="1"/><rect x="15" y="8" width="1" height="1"/><rect x="16" y="8" width="1" height="1"/><rect x="17" y="8" width="1" height="1"/><rect x="23" y="8" width="1" height="1"/><rect x="0" y="9" width="1" height="1"/><rect x="4" y="9" width="1" height="1"/><rect x="5" y="9" width="1" height="1"/><rect x="6" y="9" width="1" height="1"/><rect x="8" y="9" width="1" height="1"/><rect x="10" y="9" width="1" height="1"/><rect x="11" y="9" width="1" height="1"/><rect x="12" y="9" width="1" height="1"/><rect x="14" y="9" width="1" height="1"/><rect x="15" y="9" width="1" height="1"/><rect x="16" y="9" width="1" height="1"/><rect x="19" y="9" width="1" height="1"/><rect x="22" y="9" width="1" height="1"/><rect x="23" y="9" width="1" height="1"/><rect x="24" y="9" width="1" height="1"/><rect x="0" y="10" width="1" height="1"/><rect x="1" y="10" width="1" height="1"/><rect x="4" y="10" width="1" height="1"/><rect x="6" y="10" width="1" height="1"/><rect x="11" y="10" width="1" height="1"/><rect x="14" y="10" width="1" height="1"/><rect x="15" y="10" width="1" height="1"/><rect x="19" y="10" width="1" height="1"/><rect x="23" y="10" width="1" height="1"/><rect x="24" y="10" width="1" height="1"/><rect x="2" y="11" width="1" height="1"/><rect x="3" y="11" width="1" height="1"/><rect x="4" y="11" width="1" height="1"/><rect x="7" y="11" width="1" height="1"/><rect x="9" y="11" width="1" height="1"/><rect x="10" y="11" width="1" height="1"/><rect x="13" y="11" width="1" height="1"/><rect x="14" y="11" width="1" height="1"/><rect x="18" y="11" width="1" height="1"/><rect x="21" y="11" width="1" height="1"/><rect x="24" y="11" width="1" height="1"/><rect x="3" y="12" width="1" height="1"/><rect x="4" y="12" width="1" height="1"/><rect x="6" y="12" width="1" height="1"/><rect x="8" y="12" width="1" height="1"/><rect x="9" y="12" width="1" height="1"/><rect x="13" y="12" width="1" height="1"/><rect x="14" y="12" width="1" height="1"/><rect x="16" y="12" width="1" height="1"/><rect x="19" y="12" width="1" height="1"/><rect x="21" y="12" width="1" height="1"/><rect x="22" y="12" width="1" height="1"/><rect x="23" y="12" width="1" height="1"/><rect x="0" y="13" width="1" height="1"/><rect x="1" y="13" width="1" height="1"/><rect x="2" y="13" width="1" height="1"/><rect x="3" y="13" width="1" height="1"/><rect x="4" y="13" width="1" height="1"/><rect x="6" y="13" width="1" height="1"/><rect x="7" y="13" width="1" height="1"/><rect x="8" y="13" width="1" height="1"/><rect x="9" y="13" width="1" height="1"/><rect x="12" y="13" width="1" height="1"/><rect x="13" y="13" width="1" height="1"/><rect x="14" y="13" width="1" height="1"/><rect x="16" y="13" width="1" height="1"/><rect x="19" y="13" width="1" height="1"/><rect x="21" y="13" width="1" height="1"/><rect x="23" y="13" width="1" height="1"/><rect x="2" y="14" width="1" height="1"/><rect x="4" y="14" width="1" height="1"/><rect x="7" y="14" width="1" height="1"/><rect x="8" y="14" width="1" height="1"/><rect x="12" y="14" width="1" height="1"/><rect x="13" y="14" width="1" height="1"/><rect x="14" y="14" width="1" height="1"/><rect x="15" y="14" width="1" height="1"/><rect x="16" y="14" width="1" height="1"/><rect x="17" y="14" width="1" height="1"/><rect x="18" y="14" width="1" height="1"/><rect x="19" y="14" width="1" height="1"/><rect x="21" y="14" width="1" height="1"/><rect x="22" y="14" width="1" height="1"/><rect x="24" y="14" width="1" height="1"/><rect x="0" y="15" width="1" height="1"/><rect x="2" y="15" width="1" height="1"/><rect x="5" y="15" width="1" height="1"/><rect x="9" y="15" width="1" height="1"/><rect x="10" y="15" width="1" height="1"/><rect x="16" y="15" width="1" height="1"/><rect x="17" y="15" width="1" height="1"/><rect x="20" y="15" width="1" height="1"/><rect x="21" y="15" width="1" height="1"/><rect x="22" y="15" width="1" height="1"/><rect x="23" y="15" width="1" height="1"/><rect x="0" y="16" width="1" height="1"/><rect x="1" y="16" width="1" height="1"/><rect x="2" y="16" width="1" height="1"/><rect x="4" y="16" width="1" height="1"/><rect x="6" y="16" width="1" height="1"/><rect x="7" y="16" width="1" height="1"/><rect x="8" y="16" width="1" height="1"/><rect x="9" y="16" width="1" height="1"/><rect x="13" y="16" width="1" height="1"/><rect x="14" y="16" width="1" height="1"/><rect x="15" y="16" width="1" height="1"/><rect x="18" y="16" width="1" height="1"/><rect x="20" y="16" width="1" height="1"/><rect x="21" y="16" width="1" height="1"/><rect x="22" y="16" width="1" height="1"/><rect x="9" y="17" width="1" height="1"/><rect x="10" y="17" width="1" height="1"/><rect x="12" y="17" width="1" height="1"/><rect x="15" y="17" width="1" height="1"/><rect x="16" y="17" width="1" height="1"/><rect x="17" y="17" width="1" height="1"/><rect x="20" y="17" width="1" height="1"/><rect x="24" y="17" width="1" height="1"/><rect x="0" y="18" width="1" height="1"/><rect x="1" y="18" width="1" height="1"/><rect x="2" y="18" width="1" height="1"/><rect x="3" y="18" width="1" height="1"/><rect x="4" y="18" width="1" height="1"/><rect x="5" y="18" width="1" height="1"/><rect x="6" y="18" width="1" height="1"/><rect x="8" y="18" width="1" height="1"/><rect x="9" y="18" width="1" height="1"/><rect x="11" y="18" width="1" height="1"/><rect x="13" y="18" width="1" height="1"/><rect x="14" y="18" width="1" height="1"/><rect x="15" y="18" width="1" height="1"/><rect x="16" y="18" width="1" height="1"/><rect x="17" y="18" width="1" height="1"/><rect x="18" y="18" width="1" height="1"/><rect x="19" y="18" width="1" height="1"/><rect x="20" y="18" width="1" height="1"/><rect x="21" y="18" width="1" height="1"/><rect x="22" y="18" width="1" height="1"/><rect x="24" y="18" width="1" height="1"/><rect x="0" y="19" width="1" height="1"/><rect x="6" y="19" width="1" height="1"/><rect x="8" y="19" width="1" height="1"/><rect x="9" y="19" width="1" height="1"/><rect x="10" y="19" width="1" height="1"/><rect x="13" y="19" width="1" height="1"/><rect x="18" y="19" width="1" height="1"/><rect x="23" y="19" width="1" height="1"/><rect x="24" y="19" width="1" height="1"/><rect x="0" y="20" width="1" height="1"/><rect x="2" y="20" width="1" height="1"/><rect x="3" y="20" width="1" height="1"/><rect x="4" y="20" width="1" height="1"/><rect x="6" y="20" width="1" height="1"/><rect x="8" y="20" width="1" height="1"/><rect x="9" y="20" width="1" height="1"/><rect x="11" y="20" width="1" height="1"/><rect x="13" y="20" width="1" height="1"/><rect x="15" y="20" width="1" height="1"/><rect x="17" y="20" width="1" height="1"/><rect x="18" y="20" width="1" height="1"/><rect x="21" y="20" width="1" height="1"/><rect x="22" y="20" width="1" height="1"/><rect x="23" y="20" width="1" height="1"/><rect x="0" y="21" width="1" height="1"/><rect x="2" y="21" width="1" height="1"/><rect x="3" y="21" width="1" height="1"/><rect x="4" y="21" width="1" height="1"/><rect x="6" y="21" width="1" height="1"/><rect x="8" y="21" width="1" height="1"/><rect x="9" y="21" width="1" height="1"/><rect x="11" y="21" width="1" height="1"/><rect x="13" y="21" width="1" height="1"/><rect x="15" y="21" width="1" height="1"/><rect x="16" y="21" width="1" height="1"/><rect x="17" y="21" width="1" height="1"/><rect x="18" y="21" width="1" height="1"/><rect x="20" y="21" width="1" height="1"/><rect x="21" y="21" width="1" height="1"/><rect x="22" y="21" width="1" height="1"/><rect x="23" y="21" width="1" height="1"/><rect x="24" y="21" width="1" height="1"/><rect x="0" y="22" width="1" height="1"/><rect x="2" y="22" width="1" height="1"/><rect x="3" y="22" width="1" height="1"/><rect x="4" y="22" width="1" height="1"/><rect x="6" y="22" width="1" height="1"/><rect x="8" y="22" width="1" height="1"/><rect x="11" y="22" width="1" height="1"/><rect x="12" y="22" width="1" height="1"/><rect x="15" y="22" width="1" height="1"/><rect x="17" y="22" width="1" height="1"/><rect x="23" y="22" width="1" height="1"/><rect x="24" y="22" width="1" height="1"/><rect x="0" y="23" width="1" height="1"/><rect x="6" y="23" width="1" height="1"/><rect x="8" y="23" width="1" height="1"/><rect x="9" y="23" width="1" height="1"/><rect x="12" y="23" width="1" height="1"/><rect x="13" y="23" width="1" height="1"/><rect x="14" y="23" width="1" height="1"/><rect x="15" y="23" width="1" height="1"/><rect x="17" y="23" width="1" height="1"/><rect x="18" y="23" width="1" height="1"/><rect x="20" y="23" width="1" height="1"/><rect x="22" y="23" width="1" height="1"/><rect x="23" y="23" width="1" height="1"/><rect x="0" y="24" width="1" height="1"/><rect x="1" y="24" width="1" height="1"/><rect x="2" y="24" width="1" height="1"/><rect x="3" y="24" width="1" height="1"/><rect x="4" y="24" width="1" height="1"/><rect x="5" y="24" width="1" height="1"/><rect x="6" y="24" width="1" height="1"/><rect x="8" y="24" width="1" height="1"/><rect x="9" y="24" width="1" height="1"/><rect x="14" y="24" width="1" height="1"/><rect x="16" y="24" width="1" height="1"/><rect x="17" y="24" width="1" height="1"/><rect x="18" y="24" width="1" height="1"/><rect x="20" y="24" width="1" height="1"/><rect x="21" y="24" width="1" height="1"/><rect x="24" y="24" width="1" height="1"/></g></svg>
+      <div class="v17-scan" style="--d:4s"></div>
+      <div class="v17-ok fade" style="--d:5.4s"><div class="v17-okpill pop" style="--d:5.45s">✅ Bağlandı</div></div>
+    </div>
+    <div class="v17-cap">WhatsApp → Ayarlar → Bağlı Cihazlar</div>
+  </div>
+</section>
+
+<!-- 2: Uygulama indirmeli -->
+<section class="scene v17" style="--at:6.6s;--len:4s">
+  <div class="v17-chip up" style="--d:6.65s">❌ YANLIŞ 2</div>
+  <div class="gap-s"></div>
+  <div class="v17-obj up" style="--d:6.7s"><span class="strike" style="--s:7.2s">“Müşteri uygulama</span><br><span class="strike" style="--s:7.35s">indirmeli”</span></div>
+  <div class="gap-s"></div>
+  <div class="v17-truth pop" style="--d:7.65s">✅ <b>WhatsApp'tan yazar,</b><br>o kadar</div>
+  <div class="gap-s"></div>
+  <div class="v17-swap">
+    <div class="v17-layer v17-out" style="--o:8.55s">
+      <div class="v17-app up" style="--d:6.9s">
+        <div class="row"><div class="v17-icon">📲</div><div><h4>Randevu App</h4><p>148 MB · üyelik gerekli</p></div></div>
+        <div class="v17-dl">İNDİR</div>
+        <div class="v17-prog"><i style="--d:7.2s"></i></div>
+        <div class="v17-pct">İndiriliyor…</div>
+        <div class="v17-x"><div class="pop" style="--d:8s">✕</div></div>
+      </div>
+    </div>
+    <div class="v17-layer">
+      <div class="v17-dev up" style="--d:8.6s;width:660px">
+        <div class="v17-bar"><div class="avatar">💇</div><div>Salon Elif<small>çevrimiçi</small></div></div>
+        <div class="chat feed" style="height:470px;background:var(--chat)">
+          <div class="msg out msgin" style="--d:8.85s">Merhaba<span class="t">10:14</span></div>
+          <div class="msg in msgin" style="--d:9.25s">Merhaba Ayşe! 👋<br><b>Salon Elif</b>'e hoş geldiniz.<br><b>1.</b> 📅 Randevu Al<br><b>2.</b> 📋 Randevularım<br><b>3.</b> ❌ Randevu İptal<span class="t">10:14</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3: Yaşlı müşterim yapamaz -->
+<section class="scene v17" style="--at:10.6s;--len:5.8s">
+  <div class="v17-chip up" style="--d:10.65s">❌ YANLIŞ 3</div>
+  <div class="gap-s"></div>
+  <div class="v17-obj up" style="--d:10.7s"><span class="strike" style="--s:11.2s">“Yaşlı müşterim</span><br><span class="strike" style="--s:11.35s">yapamaz”</span></div>
+  <div class="gap-s"></div>
+  <div class="v17-truth pop" style="--d:11.65s">✅ <b>1-2-3 yazması</b> yeter</div>
+  <div class="gap-s"></div>
+  <div class="v17-label fade" style="--d:11.2s">👵 Hatice Teyze'nin telefonu</div>
+  <div class="gap-s"></div>
+  <div class="v17-dev up" style="--d:11.3s;width:660px">
+    <div class="v17-bar"><div class="avatar">💇</div><div>Salon Elif<small>tek çalışanlı salon</small></div></div>
+    <div class="chat feed" style="height:500px;background:var(--chat)">
+      <div class="msg in msgin" style="--d:11.9s"><b>1.</b> 📅 Randevu Al<br><b>2.</b> 📋 Randevularım<br><b>3.</b> ❌ Randevu İptal<span class="t">11:02</span></div>
+      <div class="msg out msgin v17-dig" style="--d:12.5s">1<span class="t">11:02</span></div>
+      <div class="v17-sys msgin" style="--d:13s">hizmet: 1 · gün: 2 (Yarın)</div>
+      <div class="msg in msgin" style="--d:13.4s">📅 Yarın müsait saatler:<br><b>1.</b> 10:00 &nbsp;<b>2.</b> 11:30 &nbsp;<b>3.</b> 14:00<span class="t">11:03</span></div>
+      <div class="msg out msgin v17-dig" style="--d:14s">3<span class="t">11:03</span></div>
+      <div class="msg in msgin" style="--d:14.45s">📋 <b>Randevu Özeti</b><br>✂️ Saç Kesimi · 👤 Elif<br>📅 Yarın · 🕐 14:00<br><b>1.</b> ✅ Onayla &nbsp;<b>2.</b> ❌ İptal<span class="t">11:03</span></div>
+      <div class="msg out msgin v17-dig" style="--d:14.95s">1<span class="t">11:03</span></div>
+      <div class="msg in msgin v17-done" style="--d:15.35s">✅ Randevun Oluşturuldu!<span class="t">11:03</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4: Robot gibi konuşur -->
+<section class="scene v17" style="--at:16.4s;--len:4.4s">
+  <div class="v17-chip up" style="--d:16.45s">❌ YANLIŞ 4</div>
+  <div class="gap-s"></div>
+  <div class="v17-obj up" style="--d:16.5s"><span class="strike" style="--s:17s">“Robot gibi konuşur”</span></div>
+  <div class="gap-s"></div>
+  <div class="v17-truth pop" style="--d:17.3s">✅ <b>Samimi mi resmi mi,</b><br>sen seç</div>
+  <div class="gap"></div>
+  <div class="v17-split">
+    <div class="v17-col left" style="--d:17.6s">
+      <div class="v17-tagp" style="background:#25D366;color:#1b1a17">Samimi</div>
+      <div class="v17-bub">✅ <b>Randevun Oluşturuldu!</b><br><br>🏥 Salon Elif<br>✂️ Saç Kesimi<br>📅 9 Ekim Cuma<br>🕐 14:00<br><br>Görüşmek üzere! 😊</div>
+    </div>
+    <div class="v17-col right" style="--d:17.9s">
+      <div class="v17-tagp" style="background:#1b1a17;color:#fff">Resmi</div>
+      <div class="v17-bub"><b>Randevunuz Oluşturuldu!</b><br><br>Salon Elif<br>Saç Kesimi<br>9 Ekim Cuma<br>14:00<br><br>Görüşmek üzere.</div>
+    </div>
+  </div>
+  <div class="gap"></div>
+  <div class="v17-seg up" style="--d:18.2s">
+    <span style="--d:18.5s">Samimi</span><span style="--d:19.2s">Resmi</span><span class="v17-last" style="--d:19.9s">Kısa</span>
+  </div>
+</section>
+
+<!-- 5: Kart bilgimi isterler -->
+<section class="scene v17" style="--at:20.8s;--len:4.2s">
+  <div class="v17-chip up" style="--d:20.85s">❌ YANLIŞ 5</div>
+  <div class="gap-s"></div>
+  <div class="v17-obj up" style="--d:20.9s"><span class="strike" style="--s:21.4s">“Kart bilgimi</span><br><span class="strike" style="--s:21.55s">isterler”</span></div>
+  <div class="gap-s"></div>
+  <div class="v17-truth pop" style="--d:21.85s">✅ <b>14 gün ücretsiz,</b> kart yok</div>
+  <div class="gap-s"></div>
+  <div class="v17-swap" style="height:700px">
+    <div class="v17-layer v17-out" style="--o:22.3s;justify-content:center">
+      <div class="v17-card pop" style="--d:21s">💳</div>
+      <div class="v17-x"><div class="pop" style="--d:21.6s">✕</div></div>
+    </div>
+    <div class="v17-layer">
+      <div class="v17-form up" style="--d:22.35s">
+        <h4>Ücretsiz deneyin,<br><span>kredi kartı gerekmez</span></h4>
+        <div class="v17-f"><label>İşletme adı</label><div>Salon Elif</div></div>
+        <div class="v17-f"><label>E-posta</label><div>elif@ornek.com</div></div>
+        <div class="v17-f"><label>Şifre</label><div>••••••••</div></div>
+        <div class="v17-f"><label>Şifre tekrar</label><div>••••••••</div></div>
+        <div class="v17-btn">Kayıt ol</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="../src/end.js"></script></body></html>

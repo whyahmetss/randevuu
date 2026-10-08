@@ -1,0 +1,290 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../src/common.css">
+<style>
+body{background:#2a0a26}
+.k12-s{padding:220px 150px 380px 70px;justify-content:flex-start}
+.k12-pink{background:radial-gradient(circle at 50% 18%,#7a1d5c 0%,#3b0d36 48%,#1e0619 100%)}
+.k12-go{background:linear-gradient(170deg,#2ee070 0%,#25D366 45%,#1aa651 100%);color:var(--ink)}
+
+/* Kanca */
+.k12-redbar{width:100%;background:var(--red);color:#fff;font-size:62px;font-weight:900;letter-spacing:1px;border-radius:22px;
+  padding:14px 0;white-space:nowrap;box-shadow:0 18px 50px rgba(239,68,68,.45)}
+.k12-hook{font-size:124px;font-weight:900;line-height:.98;letter-spacing:-4px;color:#fff}
+.k12-hook em{font-style:normal;color:#f9a8d4}
+
+/* Bildirim */
+.k12-notif{width:100%;background:rgba(255,255,255,.95);color:#111;border-radius:30px;padding:20px 26px;display:flex;gap:22px;align-items:center;
+  text-align:left;box-shadow:0 24px 60px rgba(0,0,0,.5);animation:k12-drop .45s var(--d) cubic-bezier(.2,1.3,.4,1) both}
+@keyframes k12-drop{from{opacity:0;transform:translateY(-160px)}to{opacity:1;transform:none}}
+.k12-notif .ic{flex:none;width:76px;height:76px;border-radius:20px;background:var(--green);display:grid;place-items:center;font-size:42px}
+.k12-notif .tx{flex:1;min-width:0}
+.k12-notif .nm{font-size:32px;font-weight:800;display:flex;justify-content:space-between}
+.k12-notif .nm span{font-weight:500;color:#6b7280;font-size:26px}
+.k12-notif .bd{font-size:34px;line-height:1.25;margin-top:4px}
+
+/* Gün takvimi */
+.k12-cal{width:100%;background:#fff7fb;color:var(--ink);border-radius:34px;padding:22px 24px 24px;text-align:left;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.k12-calh{display:flex;align-items:center;justify-content:space-between;padding:0 6px 14px}
+.k12-calh .d{font-size:40px;font-weight:900;letter-spacing:-1px}
+.k12-badge{background:var(--red);color:#fff;font-size:30px;font-weight:900;letter-spacing:2px;padding:8px 20px;border-radius:12px}
+.k12-badge.g{background:var(--deep)}
+.k12-row{display:grid;grid-template-columns:118px 1fr;gap:16px;align-items:stretch;margin-top:10px;position:relative}
+.k12-row .h{font-size:32px;font-weight:800;color:#78716c;padding-top:16px;font-variant-numeric:tabular-nums}
+.k12-ev{border-radius:18px;padding:14px 22px;font-size:34px;font-weight:700;border-left:12px solid rgba(0,0,0,.18);white-space:nowrap;overflow:hidden}
+.k12-ev small{font-weight:500;color:#57534e;font-size:30px}
+.c-fon{background:#e9d5ff}.c-boya{background:#fbcfe8}.c-kes{background:#fde68a}.c-rof{background:#fed7aa}
+.k12-ev.ayse{background:#f9a8d4;animation:k12-alarm .5s var(--d) ease-in-out 4 both}
+@keyframes k12-alarm{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}50%{box-shadow:0 0 0 8px var(--red)}}
+.k12-dim{opacity:.45}
+
+/* Parçalanan kart */
+.k12-slot{position:relative;height:200px}
+.k12-empty{position:absolute;inset:0;border:6px dashed #a8a29e;border-radius:18px;background:#f5f5f4;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.k12-empty b{font-size:60px;font-weight:900;color:#78716c;letter-spacing:-1px}
+.k12-shard{position:absolute;inset:0;z-index:2}
+.k12-shard .k12-ev{height:100%;font-size:44px;padding:22px 26px;line-height:1.25}
+.k12-sh1{clip-path:polygon(0 0,46% 0,38% 55%,0 70%);animation:k12-fa 1s var(--d) cubic-bezier(.55,0,.9,.45) both}
+.k12-sh2{clip-path:polygon(46% 0,100% 0,100% 40%,62% 52%,38% 55%);animation:k12-fb 1s var(--d) cubic-bezier(.55,0,.9,.45) both}
+.k12-sh3{clip-path:polygon(0 70%,38% 55%,55% 100%,0 100%);animation:k12-fc 1s var(--d) cubic-bezier(.55,0,.9,.45) both}
+.k12-sh4{clip-path:polygon(38% 55%,62% 52%,100% 40%,100% 100%,55% 100%);animation:k12-fd 1s var(--d) cubic-bezier(.55,0,.9,.45) both}
+@keyframes k12-fa{0%{transform:none;opacity:1}100%{transform:translate(-80px,700px) rotate(-38deg);opacity:0}}
+@keyframes k12-fb{0%{transform:none;opacity:1}100%{transform:translate(90px,640px) rotate(32deg);opacity:0}}
+@keyframes k12-fc{0%{transform:none;opacity:1}100%{transform:translate(-40px,760px) rotate(24deg);opacity:0}}
+@keyframes k12-fd{0%{transform:none;opacity:1}100%{transform:translate(60px,720px) rotate(-28deg);opacity:0}}
+.k12-crack{position:absolute;left:0;top:0;width:100%;height:100%;z-index:3;animation:k12-crk .35s var(--d) linear both}
+@keyframes k12-crk{0%{opacity:0}30%,80%{opacity:1}100%{opacity:0}}
+
+.k12-big{font-size:96px;font-weight:900;line-height:1;letter-spacing:-3px;color:#fff}
+.k12-big em{font-style:normal;color:#f9a8d4}
+.k12-cwin{height:170px;overflow:hidden}
+.k12-strip{font-size:150px;font-weight:900;letter-spacing:-5px;line-height:170px;font-variant-numeric:tabular-nums;color:var(--red);
+  animation:k12-cnt .8s var(--d) steps(4,end) both}
+.k12-strip div{height:170px;white-space:nowrap}
+@keyframes k12-cnt{from{transform:translateY(0)}to{transform:translateY(-680px)}}
+.k12-note{font-size:30px;color:#d6b4c9;font-weight:500}
+
+/* Sohbet listesi */
+.k12-list{width:100%;background:#fff;border-radius:34px;overflow:hidden;color:#111;text-align:left;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.k12-lt{background:#075e54;color:#fff;padding:22px 28px;display:flex;justify-content:space-between;align-items:center}
+.k12-lt b{font-size:38px}
+.k12-clock{background:#111;color:#fff;border-radius:16px;padding:0 18px;display:flex;align-items:center;gap:10px;font-size:40px;font-weight:800}
+.k12-clock .w{height:60px;overflow:hidden}
+.k12-clock .st{line-height:60px;font-variant-numeric:tabular-nums;animation:k12-clk 2.9s var(--d) steps(7,end) both}
+@keyframes k12-clk{from{transform:translateY(0)}to{transform:translateY(-420px)}}
+.k12-lwin{height:760px;overflow:hidden;position:relative}
+.k12-lscroll{animation:k12-scroll 3s var(--d) cubic-bezier(.5,0,.6,1) both}
+@keyframes k12-scroll{from{transform:translateY(0)}to{transform:translateY(-1500px)}}
+.k12-li{display:flex;gap:22px;align-items:center;padding:18px 26px;border-bottom:2px solid #f0f0f0;height:128px}
+.k12-li .av{flex:none;width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:38px;font-weight:900;color:#fff}
+.k12-li .tx{flex:1;min-width:0}
+.k12-li .n{font-size:36px;font-weight:800;display:flex;justify-content:space-between}
+.k12-li .n span{font-size:26px;font-weight:500;color:#667781}
+.k12-li .p{font-size:30px;color:#667781;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k12-think{position:absolute;left:50%;top:50%;margin:-130px 0 0 -130px;width:260px;height:260px;border-radius:50%;background:rgba(27,26,23,.88);
+  display:grid;place-items:center;font-size:170px;z-index:4}
+.k12-q{font-size:74px;font-weight:900;line-height:1.05;letter-spacing:-2px;color:#fff}
+.k12-q em{font-style:normal;color:#f9a8d4}
+
+/* Adım bandı */
+.k12-band{width:100%;background:var(--ink);color:#fff;border-radius:30px;padding:24px 30px;display:flex;gap:26px;align-items:center;text-align:left;
+  box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.k12-band .n{flex:none;width:92px;height:92px;border-radius:50%;background:var(--green);color:var(--ink);display:grid;place-items:center;font-size:56px;font-weight:900}
+.k12-band .t{font-size:56px;font-weight:900;line-height:1.08;letter-spacing:-1.5px}
+.k12-band .t em{font-style:normal;color:var(--green)}
+.k12-dots{display:flex;gap:12px;justify-content:center;margin-top:16px}
+.k12-dots i{width:64px;height:12px;border-radius:6px;background:rgba(27,26,23,.25)}
+.k12-dots i.on{background:var(--ink)}
+
+/* Sohbet paneli */
+.k12-wa{width:100%;border-radius:34px;overflow:hidden;background:var(--chat);text-align:left;box-shadow:0 30px 80px rgba(0,0,0,.35);display:flex;flex-direction:column;position:relative}
+.k12-wa .wa-top{padding:20px 26px;gap:18px}
+.k12-wa .avatar{width:68px;height:68px;font-size:36px}
+.k12-wa .wa-name{font-size:34px}.k12-wa .wa-sub{font-size:24px}
+.k12-wa .chat{padding:4px 22px 24px}
+.k12-wa .msg{font-size:38px;max-width:90%;line-height:1.3}
+.k12-wa .msg .t{font-size:21px}
+.k12-wa .sp{display:block;height:14px}
+.k12-stamp{position:absolute;left:50%;top:150px;z-index:5;white-space:nowrap;font-size:84px;font-weight:900;color:var(--red);background:#fff5f5;
+  border:10px solid var(--red);border-radius:22px;padding:4px 30px;box-shadow:0 20px 60px rgba(0,0,0,.45);
+  animation:k12-stp .3s var(--d) cubic-bezier(.3,1.4,.5,1) both}
+@keyframes k12-stp{from{opacity:0;transform:translateX(-50%) rotate(-7deg) scale(2.2)}to{opacity:1;transform:translateX(-50%) rotate(-7deg) scale(1)}}
+
+/* Bekleme listesi kartı */
+.k12-wl{width:100%;background:#fff;color:var(--ink);border-radius:30px;padding:24px 28px 18px;text-align:left;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.k12-wl .lbl{font-size:28px;font-weight:900;letter-spacing:3px;color:var(--deep)}
+.k12-wl .ttl{font-size:42px;font-weight:900;letter-spacing:-1px;margin-top:4px}
+.k12-wl .why{font-size:29px;color:#57534e;margin-top:2px}
+.k12-wr{display:flex;align-items:center;gap:20px;padding:14px 16px;border-radius:20px;margin-top:12px}
+.k12-wr .k{flex:none;width:66px;height:66px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:36px;font-weight:900}
+.k12-wr .nm{font-size:42px;font-weight:900}
+.k12-wr .sb{font-size:28px;color:#57534e}
+.k12-wr .bell{margin-left:auto;font-size:56px}
+.k12-wr.first{background:#dcfce7;animation:k12-hi .5s var(--d) ease-in-out 3 both}
+@keyframes k12-hi{0%,100%{box-shadow:0 0 0 0 rgba(31,111,74,0)}50%{box-shadow:0 0 0 6px var(--deep)}}
+.k12-arrow{font-size:40px;font-weight:900;color:var(--ink);display:flex;align-items:center;gap:16px;justify-content:center;padding:12px 0}
+.k12-arrow .a{font-size:64px;line-height:1;animation:k12-bob .5s var(--d) ease-in-out infinite both}
+@keyframes k12-bob{0%,100%{transform:translateY(-6px)}50%{transform:translateY(8px)}}
+
+/* Takvim slotunun dönüşümü */
+.k12-swap{position:relative;height:130px}
+.k12-swap>*{position:absolute;inset:0}
+.k12-swap .k12-empty b{font-size:46px}
+.k12-out{animation:k12-off .25s var(--d) ease-in both}
+@keyframes k12-off{to{opacity:0;transform:scale(.9)}}
+.k12-new{background:#bbf7d0;border-left-color:var(--deep);font-size:42px;display:flex;align-items:center;animation:k12-in .45s var(--d) cubic-bezier(.3,1.5,.5,1) both}
+@keyframes k12-in{from{opacity:0;transform:rotateX(90deg)}to{opacity:1;transform:none}}
+.k12-zero{display:flex;align-items:baseline;justify-content:center;gap:24px;color:var(--ink);white-space:nowrap}
+.k12-zero .was{font-size:56px;font-weight:800;color:rgba(27,26,23,.55)}
+.k12-zero .now{font-size:120px;font-weight:900;letter-spacing:-4px}
+</style></head>
+<body data-total="24.2" data-end="21.5">
+
+<!-- 1) KANCA — ilk karede hazır -->
+<section class="scene k12-s k12-pink" style="--at:0s;--len:3s">
+  <div class="k12-redbar">CUMARTESİ 10:00 İPTAL</div>
+  <div class="gap-s"></div>
+  <div class="k12-hook">Şimdi kimi<br><em>arayacaksın?</em></div>
+  <div class="gap"></div>
+  <div class="k12-notif" style="--d:.45s">
+    <div class="ic">💬</div>
+    <div class="tx"><div class="nm">Ayşe <span>Cuma 21:40</span></div>
+      <div class="bd">Canım yarın gelemiyorum, kusura bakma 😔</div></div>
+  </div>
+  <div class="gap-s"></div>
+  <div class="k12-cal">
+    <div class="k12-calh"><div class="d">10 Ekim Cumartesi</div><div class="k12-badge">TAM DOLU</div></div>
+    <div class="k12-row"><div class="h">09:00</div><div class="k12-ev c-fon">Fön <small>· Merve</small></div></div>
+    <div class="k12-row"><div class="h">10:00</div><div class="k12-ev ayse" style="--d:.9s">Boya · 90 dk <small>· Ayşe</small></div></div>
+    <div class="k12-row"><div class="h">11:30</div><div class="k12-ev c-kes">Kesim <small>· Seda</small></div></div>
+    <div class="k12-row"><div class="h">13:00</div><div class="k12-ev c-rof">Röfle <small>· Ece</small></div></div>
+    <div class="k12-row"><div class="h">15:00</div><div class="k12-ev c-boya">Boya <small>· Nur</small></div></div>
+    <div class="k12-row"><div class="h">16:30</div><div class="k12-ev c-kes">Kesim <small>· Aslı</small></div></div>
+    <div class="k12-row"><div class="h">18:00</div><div class="k12-ev c-fon">Fön <small>· Burcu</small></div></div>
+  </div>
+</section>
+
+<!-- 2) Kart parçalanır, sayaç eksiye -->
+<section class="scene k12-s k12-pink" style="--at:3s;--len:3.2s">
+  <div class="k12-big up" style="--d:3.05s">90 dakika<br>boş koltuk.</div>
+  <div class="gap-s"></div>
+  <div class="k12-big up" style="--d:3.3s"><em>Boyanın parası<br>uçtu.</em></div>
+  <div class="gap"></div>
+  <div class="k12-cal" style="padding-bottom:20px">
+    <div class="k12-calh"><div class="d">10 Ekim Cumartesi</div></div>
+    <div class="k12-row k12-dim"><div class="h">09:00</div><div class="k12-ev c-fon">Fön <small>· Merve</small></div></div>
+    <div class="k12-row"><div class="h">10:00</div>
+      <div class="k12-slot">
+        <div class="k12-empty"><b>90 dk BOŞ</b></div>
+        <div class="k12-shard k12-sh1" style="--d:3.45s"><div class="k12-ev ayse">Boya · 90 dk<br><small>· Ayşe</small></div></div>
+        <div class="k12-shard k12-sh2" style="--d:3.5s"><div class="k12-ev ayse">Boya · 90 dk<br><small>· Ayşe</small></div></div>
+        <div class="k12-shard k12-sh3" style="--d:3.55s"><div class="k12-ev ayse">Boya · 90 dk<br><small>· Ayşe</small></div></div>
+        <div class="k12-shard k12-sh4" style="--d:3.5s"><div class="k12-ev ayse">Boya · 90 dk<br><small>· Ayşe</small></div></div>
+        <svg class="k12-crack" style="--d:3.25s" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="46,0 38,55 0,70" fill="none" stroke="#1b1a17" stroke-width="1.6" vector-effect="non-scaling-stroke"/><polyline points="38,55 62,52 100,40" fill="none" stroke="#1b1a17" stroke-width="1.6" vector-effect="non-scaling-stroke"/><polyline points="38,55 55,100" fill="none" stroke="#1b1a17" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>
+      </div></div>
+    <div class="k12-row k12-dim"><div class="h">11:30</div><div class="k12-ev c-kes">Kesim <small>· Seda</small></div></div>
+  </div>
+  <div class="gap-s"></div>
+  <div class="k12-cwin"><div class="k12-strip" style="--d:4.1s"><div>0 ₺</div><div>−300 ₺</div><div>−600 ₺</div><div>−900 ₺</div><div>−1.200 ₺</div></div></div>
+  <div class="k12-note fade" style="--d:4.2s">örnek boya fiyatı</div>
+</section>
+
+<!-- 3) Kimi arayacaksın? -->
+<section class="scene k12-s k12-pink" style="--at:6.2s;--len:3.5s">
+  <div class="k12-q up" style="--d:6.22s">Geçen hafta<br>“Cumartesi dolu”<br>dediğin kimdi?</div>
+  <div class="gap-s"></div>
+  <div class="k12-q up" style="--d:6.5s"><em>Hatırlıyor musun?</em></div>
+  <div class="gap"></div>
+  <div class="k12-list up" style="--d:6.25s">
+    <div class="k12-lt"><b>Sohbetler</b>
+      <div class="k12-clock">🕘<div class="w"><div class="st" style="--d:6.4s"><div>21:40</div><div>21:45</div><div>21:50</div><div>21:55</div><div>22:00</div><div>22:05</div><div>22:10</div><div>22:15</div></div></div></div>
+    </div>
+    <div class="k12-lwin">
+      <div class="k12-think pop" style="--d:6.9s">🤔</div>
+      <div class="k12-lscroll" style="--d:6.4s">
+        <div class="k12-li"><div class="av" style="background:#ec4899">Z</div><div class="tx"><div class="n">Zeynep <span>Salı</span></div><div class="p">Cumartesi boya için yer var mı?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#8b5cf6">D</div><div class="tx"><div class="n">Derya <span>Çarşamba</span></div><div class="p">Cmt sabah olur mu canım?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#f97316">G</div><div class="tx"><div class="n">Gizem <span>Perşembe</span></div><div class="p">Hafta sonu fön yapabilir misin?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#0ea5e9">M</div><div class="tx"><div class="n">Melis <span>Perşembe</span></div><div class="p">Cumartesi röfle düşünüyordum</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#14b8a6">S</div><div class="tx"><div class="n">Selin <span>Salı</span></div><div class="p">Dolu mu cumartesi? 😕</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#e11d48">B</div><div class="tx"><div class="n">Büşra <span>Pazartesi</span></div><div class="p">Kesim için cumartesi?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#a855f7">E</div><div class="tx"><div class="n">Esra <span>Çarşamba</span></div><div class="p">Boya + kesim, Cmt öğlen?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#ea580c">C</div><div class="tx"><div class="n">Cansu <span>Salı</span></div><div class="p">Tamam başka zaman o zaman</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#0284c7">H</div><div class="tx"><div class="n">Hande <span>Pazartesi</span></div><div class="p">Cumartesi yer açılırsa yaz 🙏</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#16a34a">P</div><div class="tx"><div class="n">Pınar <span>Perşembe</span></div><div class="p">Sabah 10 gibi olur mu?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#db2777">Y</div><div class="tx"><div class="n">Yasemin <span>Salı</span></div><div class="p">Cumartesi dolu mu?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#7c3aed">T</div><div class="tx"><div class="n">Tuğba <span>Çarşamba</span></div><div class="p">Boya için cumartesi?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#f59e0b">İ</div><div class="tx"><div class="n">İrem <span>Perşembe</span></div><div class="p">Yer var mı hafta sonu?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#0891b2">N</div><div class="tx"><div class="n">Nazlı <span>Salı</span></div><div class="p">Cmt boya rica etsem</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#be123c">K</div><div class="tx"><div class="n">Kübra <span>Pazartesi</span></div><div class="p">Cumartesi müsait misin?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#9333ea">A</div><div class="tx"><div class="n">Aylin <span>Çarşamba</span></div><div class="p">Haber verirsen sevinirim</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#ec4899">F</div><div class="tx"><div class="n">Funda <span>Salı</span></div><div class="p">Cumartesi için sıra var mı?</div></div></div>
+        <div class="k12-li"><div class="av" style="background:#8b5cf6">Ö</div><div class="tx"><div class="n">Özge <span>Perşembe</span></div><div class="p">Boya, cumartesi sabah?</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4) ADIM 1 — Ayşe menüden iptal eder -->
+<section class="scene k12-s k12-go" style="--at:9.7s;--len:3.3s">
+  <div class="k12-band"><div class="n">1</div><div class="t">Ayşe WhatsApp'tan<br><em>iptal eder.</em></div></div>
+  <div class="k12-dots"><i class="on"></i><i></i><i></i></div>
+  <div class="gap-s"></div>
+  <div class="k12-wa" style="height:1000px">
+    <div class="wa-top"><div class="avatar">💇‍♀️</div><div><div class="wa-name">Salon Elif</div><div class="wa-sub">çevrimiçi</div></div></div>
+    <div class="chat feed">
+      <div class="msg out msgin" style="--d:9.72s">iptal<span class="t">21:40</span></div>
+      <div class="msg in msgin" style="--d:10.15s">❌ <b>Randevu İptali</b><span class="sp"></span>Hangi randevuyu iptal etmek istersiniz?<span class="sp"></span><b>1.</b> Boya<br>📅 10 Ekim Cumartesi - 🕐 10:00<span class="sp"></span><b>0.</b> Vazgeç<span class="t">21:40</span></div>
+      <div class="msg out msgin" style="--d:10.7s">1<span class="t">21:40</span></div>
+      <div class="msg in msgin" style="--d:11.0s">⚠️ <b>Boya</b> randevunuz<br>📅 10 Ekim Cumartesi - 🕐 10:00<span class="sp"></span>İptal etmek istediğinize emin misiniz?<span class="sp"></span><b>1.</b> ✅ Evet, iptal et<br><b>2.</b> ❌ Hayır, vazgeç<span class="t">21:40</span></div>
+      <div class="msg out msgin" style="--d:11.55s">1<span class="t">21:40</span></div>
+    </div>
+    <div class="k12-stamp" style="--d:11.9s">10:00 BOŞALDI</div>
+  </div>
+</section>
+
+<!-- 5) ADIM 2 — bekleme listesindeki ilk kişiye Müjde -->
+<section class="scene k12-s k12-go" style="--at:13s;--len:4.3s">
+  <div class="k12-band"><div class="n">2</div><div class="t">Listede bekleyen ilk kişiye <em>“Müjde!”</em> gider.</div></div>
+  <div class="k12-dots"><i class="on"></i><i class="on"></i><i></i></div>
+  <div class="gap-s"></div>
+  <div class="k12-wl up" style="--d:13.05s">
+    <div class="lbl">📋 BEKLEME LİSTESİ</div>
+    <div class="ttl">10 Ekim Cumartesi · Boya</div>
+    <div class="why">Gün doluyken yazanlar buraya düşer</div>
+    <div class="k12-wr first" style="--d:13.7s"><div class="k">1</div><div><div class="nm">Zeynep</div><div class="sb">Salı yazdı · “müsait saat yok 😔”</div></div><div class="bell pop" style="--d:14.1s">🔔</div></div>
+    <div class="k12-wr" style="opacity:.5"><div class="k">2</div><div><div class="nm">Derya</div><div class="sb">Çarşamba yazdı</div></div></div>
+  </div>
+  <div class="k12-arrow fade" style="--d:14.2s"><span class="a" style="--d:14.2s">⬇</span> Zeynep'in WhatsApp'ı · 21:41</div>
+  <div class="k12-wa up" style="--d:14.4s">
+    <div class="chat" style="padding-top:22px">
+      <div class="msg in" style="font-size:37px">🔔 <b>Müjde!</b> İstediğiniz saat müsait oldu!<span class="sp"></span>📅 10 Ekim Cumartesi - 🕐 10:00<br>✂️ Boya<span class="sp"></span>Randevunuzu onaylayalım mı?<span class="sp"></span><b>1.</b> ✅ Evet, onayla<br><b>2.</b> ❌ Hayır<span class="t">21:41</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6) ADIM 3 — Evet der, takvim yeniden dolar -->
+<section class="scene k12-s k12-go" style="--at:17.3s;--len:4.2s">
+  <div class="k12-band"><div class="n">3</div><div class="t">Sen kimseyi aramadan <em>koltuk yeniden doldu.</em></div></div>
+  <div class="k12-dots"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+  <div class="gap-s"></div>
+  <div class="k12-wa" style="height:410px">
+    <div class="chat feed" style="padding-top:6px">
+      <div class="msg out msgin" style="--d:17.45s">1<span class="t">21:41</span></div>
+      <div class="msg in msgin" style="--d:17.85s;font-size:35px">✅ <b>Randevunuz Oluşturuldu!</b><span class="sp"></span>🏥 Salon Elif · ✂️ Boya<br>📅 10 Ekim Cumartesi · 🕐 10:00<span class="sp"></span>Görüşmek üzere! 😊<span class="t">21:41</span></div>
+    </div>
+  </div>
+  <div class="gap-s"></div>
+  <div class="k12-cal" style="padding-bottom:20px">
+    <div class="k12-calh"><div class="d">10 Ekim Cumartesi</div><div class="k12-badge pop" style="--d:19.3s">TAM DOLU</div></div>
+    <div class="k12-row k12-dim"><div class="h">09:00</div><div class="k12-ev c-fon">Fön <small>· Merve</small></div></div>
+    <div class="k12-row"><div class="h">10:00</div>
+      <div class="k12-swap">
+        <div class="k12-empty k12-out" style="--d:18.6s"><b>90 dk BOŞ</b></div>
+        <div class="k12-ev k12-new" style="--d:18.65s">Boya · Zeynep ✅</div>
+      </div></div>
+    <div class="k12-row k12-dim"><div class="h">11:30</div><div class="k12-ev c-kes">Kesim <small>· Seda</small></div></div>
+  </div>
+  <div class="gap-s"></div>
+  <div class="k12-zero pop" style="--d:19s"><span class="was"><s>−1.200 ₺</s></span><span class="now">0 ₺</span></div>
+</section>
+
+<script src="../src/end.js"></script></body></html>
