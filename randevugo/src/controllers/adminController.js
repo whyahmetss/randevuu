@@ -1482,56 +1482,12 @@ class AdminController {
 
   async shopierOdemeBaslat(req, res) {
     try {
-      const isletmeId = req.kullanici.isletme_id;
-      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
-      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
-
-      // Seçilen paket (query param veya mevcut paket)
-      const secilenPaket = req.query.paket || isletme.paket || 'baslangic';
-      const paketBilgi = await paketGetir(secilenPaket);
-      const buAy = new Date().toISOString().slice(0, 7);
-      const refKod = `SRGO-${isletmeId}`;
-      const paketLabel = paketBilgi.isim || secilenPaket;
-
-      // Shopier'da dinamik dijital ürün oluştur
-      const urun = await shopierService.urunOlustur({
-        baslik: `SıraGO ${paketLabel} Paket [${refKod}]`,
-        aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket Aylık Abonelik (${buAy})\nİşletme: ${isletme.isim}\nRef: ${refKod}`,
-        fiyat: paketBilgi.fiyat,
-      });
-
-      // Bekleyen ödeme kaydı oluştur (shopier_urun_id ile eşleştirme için)
-      const mevcut = (await pool.query(
-        "SELECT id, durum FROM odemeler WHERE isletme_id = $1 AND donem = $2",
-        [isletmeId, buAy]
-      )).rows[0];
-
-      // Seçilen paket ve ürün işletmede saklanır; ödeme gelince paket bu bilgiyle değişir
-      // (eskiden ödeme paketi hiç değiştirmiyordu → yükseltme işe yaramıyordu).
-      await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2 WHERE id=$3', [secilenPaket, String(urun.id), isletmeId]);
-
-      if (mevcut && ['odendi', 'havale_bekliyor'].includes(mevcut.durum)) {
-        // Bu ay zaten kayıt var (yükseltme/erken yenileme). (isletme_id, donem) benzersiz olduğundan
-        // ikinci INSERT 500 veriyordu; eşleşme bekleyen_shopier_urun_id üzerinden yapılır.
-      } else if (mevcut) {
-        await pool.query(
-          "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1, shopier_urun_id = $2, tutar = $3 WHERE id = $4",
-          [refKod, urun.id, paketBilgi.fiyat, mevcut.id]
-        );
-      } else {
-        await pool.query(
-          "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu, shopier_urun_id) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4, $5)",
-          [isletmeId, paketBilgi.fiyat, buAy, refKod, urun.id]
-        );
-      }
-
-      console.log(`💳 Shopier ödeme başlatıldı: ${isletme.isim} - ${secilenPaket} - ${paketBilgi.fiyat}₺ → ${urun.url}`);
-
-      // Shopier ürün sayfasına yönlendir
-      res.redirect(urun.url);
+      const url = await shopierService.odemeBaslat(req.kullanici.isletme_id, req.query.paket);
+      if (!url) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      res.redirect(url);
     } catch (error) {
-      console.error('❌ Shopier ödeme başlatma hatası:', error);
-      res.status(500).json({ hata: 'Ödeme sayfası oluşturulamadı: ' + error.message });
+      console.error('❌ Shopier ödeme başlatma hatası:', error.message);
+      res.status(500).json({ hata: 'Ödeme sayfası oluşturulamadı, lütfen tekrar deneyin.' });
     }
   }
 

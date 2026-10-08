@@ -128,14 +128,8 @@ class OdemeService {
       }
     });
 
-    // Her gün saat 10:00'da paket bitiş kontrolü
-    cron.schedule('0 10 * * *', async () => {
-      try {
-        await this.paketBitisKontrol();
-      } catch (error) {
-        console.error('❌ Paket bitiş kontrol hatası:', error);
-      }
-    });
+    // Bitiş hatırlatmaları + ödeme linki: services/odemeOtomasyon.js (merkez numaradan, 3/1/0/-3 gün)
+    require('./odemeOtomasyon').baslat();
 
     // Sunucu başlarken mükerrer kayıtları temizle, sonra bu ayın kayıtlarını kontrol et
     setTimeout(async () => {

@@ -65,6 +65,49 @@ class ShopierService {
     }
   }
 
+  // ─── Ödeme başlat: işletmeye özel tek kullanımlık ürün → Shopier ödeme sayfası URL'si ───
+  async odemeBaslat(isletmeId, paketIstek) {
+    const { paketGetir, FALLBACK_PAKETLER } = require('../config/paketler');
+    const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    if (!isletme) return null;
+    // Şube kendi başına ödemez: grubun merkezi öder
+    let merkez = isletme;
+    if (isletme.grup_id) {
+      merkez = (await pool.query('SELECT * FROM isletmeler WHERE grup_id = $1 ORDER BY id LIMIT 1', [isletme.grup_id])).rows[0] || isletme;
+    }
+    const secilenPaket = (paketIstek && FALLBACK_PAKETLER[paketIstek]) ? paketIstek : (merkez.paket || 'baslangic');
+    const paketBilgi = await paketGetir(secilenPaket);
+    if (!(paketBilgi.fiyat > 0)) throw new Error('Paket fiyatı tanımsız');
+    const buAy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
+    const refKod = `SRGO-${merkez.id}`;
+    const paketLabel = paketBilgi.isim || secilenPaket;
+
+    // Önceki ödenmemiş ürün Shopier'da kalmasın (eskiden her tıklamada yeni ürün birikiyordu)
+    if (merkez.bekleyen_shopier_urun_id) this.urunSil(merkez.bekleyen_shopier_urun_id).catch(() => {});
+
+    const urun = await this.urunOlustur({
+      baslik: `SıraGO ${paketLabel} Paket [${refKod}]`,
+      aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket, 1 aylık kullanım (${buAy})\nİşletme: ${merkez.isim}\nRef: ${refKod}`,
+      fiyat: paketBilgi.fiyat,
+    });
+    await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2 WHERE id=$3', [secilenPaket, String(urun.id), merkez.id]);
+
+    const mevcut = (await pool.query("SELECT id, durum FROM odemeler WHERE isletme_id = $1 AND donem = $2", [merkez.id, buAy])).rows[0];
+    if (mevcut && ['odendi', 'havale_bekliyor'].includes(mevcut.durum)) {
+      // Bu ay zaten kayıt var (yükseltme/erken yenileme): eşleşme bekleyen_shopier_urun_id ile yapılır
+    } else if (mevcut) {
+      await pool.query(
+        "UPDATE odemeler SET durum = 'odeme_bekliyor', odeme_yontemi = 'shopier', referans_kodu = $1, shopier_urun_id = $2, tutar = $3 WHERE id = $4",
+        [refKod, urun.id, paketBilgi.fiyat, mevcut.id]);
+    } else {
+      await pool.query(
+        "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, referans_kodu, shopier_urun_id) VALUES ($1, $2, $3, 'odeme_bekliyor', 'shopier', $4, $5) ON CONFLICT DO NOTHING",
+        [merkez.id, paketBilgi.fiyat, buAy, refKod, urun.id]);
+    }
+    console.log(`💳 Shopier ödeme başlatıldı: işletme #${merkez.id} - ${secilenPaket} - ${paketBilgi.fiyat}₺`);
+    return urun.url;
+  }
+
   // ─── Webhook signature doğrulama ───
   // Shopier HS256 HMAC ile imzalar, header: Shopier-Signature
   webhookDogrula(rawBody, signatureHeader) {
@@ -73,10 +116,9 @@ class ShopierService {
       .createHmac('sha256', this.webhookToken)
       .update(rawBody)
       .digest('hex');
-    return crypto.timingSafeEqual(
-      Buffer.from(computed, 'hex'),
-      Buffer.from(signatureHeader, 'hex')
-    );
+    const a = Buffer.from(computed, 'hex');
+    const b = Buffer.from(String(signatureHeader), 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
   // ─── Webhook: order.created işle ───
@@ -148,19 +190,21 @@ class ShopierService {
 
     // Email ile eşleştir
     if (!isletmeId && aliciEmail) {
-      const isletme = (await pool.query(
-        'SELECT id FROM isletmeler WHERE email = $1', [aliciEmail]
-      )).rows[0];
-      if (isletme) isletmeId = isletme.id;
+      try {
+        const k = (await pool.query(
+          "SELECT isletme_id FROM admin_kullanicilar WHERE LOWER(email) = LOWER($1) AND isletme_id IS NOT NULL LIMIT 1", [aliciEmail]
+        )).rows[0];
+        if (k) isletmeId = k.isletme_id;
+      } catch (e) { /* e-posta eşleşmesi opsiyonel */ }
     }
 
     // Telefon ile eşleştir
     if (!isletmeId && aliciTelefon) {
       const tel = aliciTelefon.replace(/\D/g, '').slice(-10);
-      const isletme = (await pool.query(
-        "SELECT id FROM isletmeler WHERE telefon LIKE $1", [`%${tel}`]
-      )).rows[0];
-      if (isletme) isletmeId = isletme.id;
+      const adaylar = tel.length === 10 ? (await pool.query(
+        "SELECT id FROM isletmeler WHERE telefon LIKE $1 AND demo IS NOT TRUE LIMIT 2", [`%${tel}`]
+      )).rows : [];
+      if (adaylar.length === 1) isletmeId = adaylar[0].id;
     }
 
     // PENDING ödemeyi bul (shopier_urun_id ile eşleştir — en güvenilir yol)
@@ -241,6 +285,8 @@ class ShopierService {
         [isletmeId, yeniPaket]
       );
 
+      require('./odemeOtomasyon').odemeAlindiBildir(isletmeId, tutar);
+
       // Referans ödülü: ilk ödeme yapan davetli işletme ise, referans sahibine kazanilan_ay +1
       try {
         const refIsletme = (await pool.query(
@@ -273,7 +319,8 @@ class ShopierService {
         "INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, shopier_siparis_id, referans_kodu) VALUES (NULL, $1, $2, 'eslestirilmedi', 'shopier', NOW(), $3, $4)",
         [tutar, buAy, siparisId, `${aliciEmail || aliciTelefon || urunBaslik}`]
       );
-      console.log(`⚠️ Shopier sipariş eşleştirilemedi: #${siparisId} - ${aliciEmail} - ${tutar}₺`);
+      console.log(`⚠️ Shopier sipariş eşleştirilemedi: #${siparisId} - ${tutar}₺`);
+      require('../utils/alarm').alarm(`Eşleşmeyen ödeme #${siparisId}`, `${tutar}₺ geldi ama hangi işletmeye ait bulunamadı. Süper admin → Ödemeler'den elle eşleştirin.`);
     }
 
     // Ürünü Shopier'dan sil (tek kullanımlık)
