@@ -19,6 +19,18 @@ const telegramSatisBot = require('./services/telegramSatisBot');
 const socketServer = require('./services/socketServer');
 
 const pool = require('./config/db');
+const { alarm, hataSay } = require('./utils/alarm');
+pool.on?.('error', (e) => hataSay('Veritabanı bağlantı hatası', e.message, { esik: 3 }));
+
+// Yakalanmamış hatalar: logla + ekibe haber ver. Çökme durumunda Render servisi yeniden başlatır.
+process.on('unhandledRejection', (e) => {
+  console.error('unhandledRejection:', e?.stack || e);
+  hataSay('Yakalanmamış hata (promise)', String(e?.message || e), { esik: 5 });
+});
+process.on('uncaughtException', (e) => {
+  console.error('uncaughtException:', e?.stack || e);
+  alarm('Sunucu çöktü, yeniden başlıyor', String(e?.message || e)).finally(() => setTimeout(() => process.exit(1), 500));
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -987,6 +999,16 @@ app.use(express.static(require('path').join(__dirname, 'public')));
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+app.get('/api/health/derin', async (req, res) => {
+  const t = Date.now();
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', db_ms: Date.now() - t });
+  } catch (e) {
+    alarm('Veritabanına ulaşılamıyor', e.message);
+    res.status(503).json({ status: 'db_hata' });
+  }
+});
 
 // API Routes — stricter rate limits for public endpoints
 // 5xx cevaplarda ham veritabanı/iç hata mesajı dışarı sızmasın (tablo/kolon adları, SQL).
@@ -997,6 +1019,7 @@ app.use('/api', (req, res, next) => {
   res.json = (govde) => {
     if (res.statusCode >= 500 && govde && typeof govde === 'object' && govde.hata) {
       console.error(`500 ${req.method} ${req.originalUrl}:`, govde.hata);
+      hataSay('Çok sayıda 500 hatası', `${req.method} ${req.path}: ${govde.hata}`);
       govde = { hata: 'Bir sorun oluştu, lütfen tekrar deneyin.' };
     }
     return json(govde);
@@ -1073,6 +1096,7 @@ app.get('/', (req, res) => {
 // Global error handler — her zaman JSON döndür
 app.use((err, req, res, next) => {
   console.error('❌ Unhandled error:', err.message);
+  if ((err.status || 500) >= 500) hataSay('Çok sayıda 500 hatası', `${req.method} ${req.path}: ${err.message}`);
   res.status(err.status || 500).json({ hata: err.message || 'Sunucu hatası' });
 });
 
@@ -1191,6 +1215,9 @@ httpServer.listen(PORT, () => {
   } catch (e) {
     console.log('⚠️ TG Kayıt Bot başlatma hatası:', e.message);
   }
+
+  // Kurulumda takılan esnafa otomatik yardım mesajı (saatlik kontrol)
+  try { require('./services/kurulum').baslat(); } catch (e) { console.log('⚠️ Kurulum hatırlatma başlatılamadı:', e.message); }
 
   // Render keep-alive: 14 dakikada bir self-ping (uyku modunu engelle)
   const keepAliveUrl = process.env.BASE_URL || `http://localhost:${PORT}`;

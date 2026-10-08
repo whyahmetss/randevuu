@@ -5,6 +5,8 @@ import logoFull from "./assets/logo2.png";
 import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
 import LiteBugun from "./components/Lite/LiteBugun";
+import KurulumKarti from "./components/Kurulum/KurulumKarti";
+import Buyume from "./components/Buyume/Buyume";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -38,6 +40,15 @@ const oturumuKapat = () => {
   if (sessionStorage.getItem("randevugo_imp_token")) sessionStorage.removeItem("randevugo_imp_token");
   else localStorage.removeItem("randevugo_token");
 };
+
+// Ödeme sayfası: giriş anahtarı URL'ye konmaz; sunucudan süreli, yalnız ödeme açan link alınır.
+// Pencere tıklama anında açılır (sonradan açılırsa tarayıcı açılır pencere engeline takılır).
+function odemeSayfasiAc(paket) {
+  const w = window.open("", "_blank");
+  api.get(`/odeme/link${paket ? `?paket=${encodeURIComponent(paket)}` : ""}`)
+    .then(d => { if (d?.url) { if (w) w.location.href = d.url; else window.location.href = d.url; } else { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); } })
+    .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); });
+}
 
 const api = {
   token: oturumTokeni(),
@@ -930,6 +941,12 @@ function Dashboard({ kullanici }) {
     api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
     // Shopier callback sonrası bildirim
     const params = new URLSearchParams(window.location.search);
+    // Kurulum hatırlatma linki: ?sayfa=hizmetler → doğrudan o sayfa
+    const hedef = params.get('sayfa');
+    if (['hizmetler', 'calisanlar', 'botbaglanti', 'qrkod'].includes(hedef)) {
+      setSayfa(hedef);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     if (params.get('odeme') === 'basarili') {
       alert('✅ Ödemeniz başarıyla alındı! Teşekkürler.');
       window.history.replaceState({}, '', window.location.pathname);
@@ -1681,6 +1698,7 @@ function Dashboard({ kullanici }) {
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
+          {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
           {sayfa === "anasayfa" && liteMod && (
             <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
@@ -2183,8 +2201,7 @@ function Dashboard({ kullanici }) {
                     <div>
                       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
                         <button onClick={() => {
-                          const token = api.token;
-                          window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
+                          odemeSayfasiAc();
                         }} style={{ flex: 1, padding: "14px 20px", borderRadius: 14, border: "none", background: "#1f6f4a", color: "#fff", fontWeight: 600, fontSize: 15, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                           🚀 Tek Tıkla Paketini Uzat — {odemeBilgi.tutar}₺
                         </button>
@@ -3267,8 +3284,7 @@ function Dashboard({ kullanici }) {
                     </div>
                     {!aktif && p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        const token = api.token;
-                        window.open(`${API_URL}/odeme/shopier/baslat?token=${token}&paket=${p.key}`, "_blank");
+                        odemeSayfasiAc(p.key);
                         setPaketModal(false);
                       }}>
                         {p.key === "baslangic" ? "Başla" : "Yükselt"}
@@ -3334,8 +3350,7 @@ function Dashboard({ kullanici }) {
                 cursor: "pointer", fontFamily: "inherit"
               }}>Dashboard'a Dön</button>
               <button onClick={() => {
-                const token = api.token;
-                window.open(`${API_URL}/odeme/shopier/baslat?token=${token}`, "_blank");
+                odemeSayfasiAc();
               }} style={{
                 padding: "12px 24px", borderRadius: 12, border: "none",
                 background: "var(--gradient-accent)", color: "#fff", fontSize: 13, fontWeight: 600,
@@ -3948,7 +3963,7 @@ function SuperAdminPanel({ kullanici }) {
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
 
   const MENU_YETKI = {
-    dashboard: 'genel', bildirimler: 'genel', aktivite: 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
+    dashboard: 'genel', buyume: 'genel', bildirimler: 'genel', aktivite: 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
     isletmeler: 'genel', zombiler: 'isletmeler', onboarding: 'isletmeler',
     destek: 'destek', duyurular: 'destek', iletisim: 'destek',
     avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
@@ -3957,6 +3972,7 @@ function SuperAdminPanel({ kullanici }) {
   };
   const tumMenu = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
+    { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
     { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
     { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
     { id: "aktivite", icon: SVGA.aktivite, label: "Aktivite" },
@@ -5509,6 +5525,8 @@ function SuperAdminPanel({ kullanici }) {
           </>
           );
         })()}
+
+        {sayfa === "buyume" && <Buyume api={api} />}
 
         {/* ═══════ ONBOARDING ═══════ */}
         {sayfa === "onboarding" && (() => {
