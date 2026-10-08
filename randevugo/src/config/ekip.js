@@ -23,7 +23,7 @@ const GOREVLER = {
 
 // /api/admin/<ilk parça> → yetki
 const ONEK = {
-  'saas-metrikleri': 'genel', bildirimler: 'genel', 'musteri-aktivite': 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
+  'saas-metrikleri': 'genel', buyume: 'genel', bildirimler: 'genel', 'musteri-aktivite': 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
   isletmeler: 'isletmeler', impersonate: 'isletmeler', zombiler: 'isletmeler', onboarding: 'isletmeler',
   destek: 'destek', iletisim: 'destek', duyurular: 'destek',
   avci: 'satis', 'satis-bot': 'satis', 'musteri-crm': 'satis', referanslar: 'satis', 'qr-kod': 'satis',

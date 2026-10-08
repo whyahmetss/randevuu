@@ -199,6 +199,10 @@ router.get('/kurulum', authMiddleware, async (req, res) => {
     res.json(d || { bitti: true });
   } catch (e) { res.status(500).json({ hata: e.message }); }
 });
+router.get('/admin/buyume', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { res.json(await require('../services/buyume').buyumeRaporu(req.query.gun)); }
+  catch (e) { res.status(500).json({ hata: e.message }); }
+});
 router.get('/admin/onboarding', authMiddleware, superAdminMiddleware, (req, res) => adminController.onboardingDurum(req, res));
 
 // ==================== SATIŞ BOT ŞABLONLARI ====================

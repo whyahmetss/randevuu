@@ -39,7 +39,7 @@ async function hatirlatmalariGonder({ gonder } = {}) {
   const adaylar = (await pool.query(`
     SELECT i.id, i.telefon, FLOOR(EXTRACT(EPOCH FROM (NOW() - i.olusturma_tarihi)) / 86400)::int AS gun
     FROM isletmeler i
-    WHERE i.aktif = true AND i.demo IS NOT TRUE AND COALESCE(i.telefon, '') <> ''
+    WHERE i.aktif = true AND i.demo IS NOT TRUE AND i.telefon ~ '^[0-9+]{10,16}$'
       AND i.olusturma_tarihi > NOW() - INTERVAL '8 days' AND i.olusturma_tarihi < NOW() - INTERVAL '1 day'`)).rows;
   let n = 0;
   for (const a of adaylar) {

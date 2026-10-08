@@ -13,7 +13,8 @@ test('kurulum: adımlar gerçek veriden, takılana her eşikte bir kez mesaj', a
     INSERT INTO isletmeler (isim, slug, telefon, olusturma_tarihi) VALUES
       ('Yeni', 'yeni', '905321112233', NOW() - INTERVAL '2 days'),
       ('Bugün', 'bugun', '905321112244', NOW() - INTERVAL '2 hours'),
-      ('Demo', 'demo', '905321112255', NOW() - INTERVAL '2 days');
+      ('Demo', 'demo', '905321112255', NOW() - INTERVAL '2 days'),
+      ('Telegram', 'tg', 'tg_12345', NOW() - INTERVAL '2 days');
     UPDATE isletmeler SET demo = true WHERE isim = 'Demo';
     INSERT INTO hizmetler (isletme_id) VALUES (1);`);
   await db.exec(fs.readFileSync(SRC + '/migrations/026_kurulum.sql', 'utf8'));

@@ -6,6 +6,7 @@ import Settings from "./components/Settings/Settings";
 import Kasa from "./components/Kasa/Kasa";
 import LiteBugun from "./components/Lite/LiteBugun";
 import KurulumKarti from "./components/Kurulum/KurulumKarti";
+import Buyume from "./components/Buyume/Buyume";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -3956,7 +3957,7 @@ function SuperAdminPanel({ kullanici }) {
   const okunmamisSayi = iletisimMesajlar.filter(m => !m.okundu).length;
 
   const MENU_YETKI = {
-    dashboard: 'genel', bildirimler: 'genel', aktivite: 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
+    dashboard: 'genel', buyume: 'genel', bildirimler: 'genel', aktivite: 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
     isletmeler: 'genel', zombiler: 'isletmeler', onboarding: 'isletmeler',
     destek: 'destek', duyurular: 'destek', iletisim: 'destek',
     avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
@@ -3965,6 +3966,7 @@ function SuperAdminPanel({ kullanici }) {
   };
   const tumMenu = [
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
+    { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
     { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
     { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
     { id: "aktivite", icon: SVGA.aktivite, label: "Aktivite" },
@@ -5517,6 +5519,8 @@ function SuperAdminPanel({ kullanici }) {
           </>
           );
         })()}
+
+        {sayfa === "buyume" && <Buyume api={api} />}
 
         {/* ═══════ ONBOARDING ═══════ */}
         {sayfa === "onboarding" && (() => {
