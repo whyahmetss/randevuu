@@ -158,13 +158,13 @@ const MESAJ_SABLONLARI = {
 for (const k of ['dövme', 'spa', 'tırnak salonu']) MESAJ_SABLONLARI[k] = ACILIS_GENEL;
 const TAKIP_SABLONLARI = {
   1: [
-    (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${G} gün ücretsiz, merak ederseniz yazın.`,
-    (ad) => `Tekrar merhaba, ${ad} için yazmıştım. Randevuları otomatik alan bir sistemimiz var, ${G} gün ücretsiz denenebiliyor. Bir sorunuz olursa buradayım.`,
-    (ad) => `Merhaba, mesajım arada kaybolmuş olabilir. ${ad} için online randevu sistemini göstermek isterim, uygun olunca yazmanız yeterli.`,
+    (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${G} gün ücretsiz, merak ederseniz yazın, ilgilenmiyorsanız söylemeniz yeterli.`,
+    (ad) => `Tekrar merhaba, ${ad} için yazmıştım. Randevuları otomatik alan bir sistemimiz var, ${G} gün ücretsiz denenebiliyor. Sorunuz olursa buradayım; ilgilenmiyorsanız söylemeniz yeterli.`,
+    (ad) => `Merhaba, mesajım arada kaybolmuş olabilir. ${ad} için online randevu sistemini göstermek isterim, uygun olunca yazın; ilgilenmiyorsanız söylemeniz yeterli.`,
   ],
   2: [
     (ad) => `Son kez rahatsız ediyorum. Denemek isterseniz *kayıt* yazmanız yeterli, ${G} gün ücretsiz. İlgilenmiyorsanız hiç sorun değil, iyi çalışmalar.`,
-    (ad) => `Son bir not bırakayım: ${ad} için ${G} günlük ücretsiz deneme hâlâ açık, *kayıt* yazarsanız hesabı buradan açarım. Kolay gelsin.`,
+    (ad) => `Son bir not bırakayım: ${ad} için ${G} günlük ücretsiz deneme hâlâ açık, *kayıt* yazarsanız hesabı buradan açarım. İlgilenmiyorsanız söylemeniz yeterli, kolay gelsin.`,
   ]
 };
 

@@ -50,6 +50,35 @@ function odemeSayfasiAc(paket) {
     .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); });
 }
 
+// Satış kapısı ortak parçaları (Avcı + Satış Bot)
+const waTel = (t) => { let d = String(t || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "9" + d; if (d.length === 10) d = "90" + d; return d; };
+const ilkMesaj = (ad) => `Merhaba, ${ad} ile mi görüşüyorum?`;
+const kopyala = (metin) => navigator.clipboard?.writeText(metin).catch(() => {});
+const SG = { yesil: "#1f6f4a", mor: "#5d4bb5", amber: "#a8590c", kirmizi: "#b42318", mavi: "#2f56c6", gri: "#6f6a62" };
+const sgBtn = (renk, dolu) => ({ padding: "7px 12px", borderRadius: 9, border: dolu ? "none" : "1px solid var(--border)", cursor: "pointer",
+  background: dolu ? renk : "var(--surface)", color: dolu ? "#fff" : (renk || "var(--text)"), fontWeight: 600, fontSize: 12,
+  textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", fontFamily: "inherit" });
+const sgKart = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "18px 20px" };
+
+// Huni şeridi: [{ ad, deger, renk }] → oklarla bağlı adımlar, her adımda bir öncekine göre dönüşüm
+function HuniSerit({ adimlar }) {
+  return (
+    <div style={{ ...sgKart, display: "flex", alignItems: "stretch", gap: 0, overflowX: "auto", padding: 0, marginBottom: 20 }}>
+      {adimlar.map((a, i) => {
+        const onceki = i > 0 ? adimlar[i - 1].deger : null;
+        const oran = onceki ? Math.round(((a.deger || 0) / onceki) * 100) : null;
+        return (
+          <div key={a.ad} style={{ flex: "1 0 120px", padding: "14px 16px", borderLeft: i ? "1px solid var(--border)" : "none", position: "relative" }}>
+            <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, marginBottom: 4 }}>{a.ad}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: a.renk || "var(--text)", lineHeight: 1.1 }}>{a.deger ?? "—"}</div>
+            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2, minHeight: 15 }}>{oran !== null ? `%${oran} önceki adımdan` : a.alt || ""}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const api = {
   token: oturumTokeni(),
 
@@ -3410,7 +3439,7 @@ function SuperAdminPanel({ kullanici }) {
   const [kampanyaDuzenle, setKampanyaDuzenle] = useState(null);
   const [yeniKampanya, setYeniKampanya] = useState({ isim: "", kategori: "", aktif: true, oncelik: 5, min_skor: 0, mesai_baslangic: 10, mesai_bitis: 18, gunler: "{1,2,3,4,5}", gunluk_limit: 20 });
   const [kategoriDagilimi, setKategoriDagilimi] = useState(null);
-  const [satisAnaTab, setSatisAnaTab] = useState("bot"); // bot | kampanyalar | dagilim
+  const [satisAnaTab, setSatisAnaTab] = useState("kontrol"); // kontrol | konusmalar | sablonlar | ayarlar | numaralar | kampanyalar | dagilim
   // Audit Log
   const [auditLoglar, setAuditLoglar] = useState([]);
   const [auditToplam, setAuditToplam] = useState(0);
@@ -3478,7 +3507,9 @@ function SuperAdminPanel({ kullanici }) {
   const [avciTaramaDurum, setAvciTaramaDurum] = useState(null); // { toplam_sorgu, tamamlanan, aktif, yeni_eklenen, zaten_var, ... }
   const [avciTaramaId, setAvciTaramaId] = useState(null);
   const [avciSecili, setAvciSecili] = useState(null);
-  const [avciTab, setAvciTab] = useState("liste");
+  const [avciDemo, setAvciDemo] = useState({});          // lead id → { link } | { yukleniyor } | { hata }
+  const [avciKopyalandi, setAvciKopyalandi] = useState(null);
+  const [avciTab, setAvciTab] = useState("gunluk");   // para getiren liste önce
   const [avciKaynak, setAvciKaynak] = useState("hepsi");
   const [avciKategoriFiltre, setAvciKategoriFiltre] = useState("hepsi");
   // 🆕 Arama + konum filtreleri
@@ -6516,38 +6547,32 @@ function SuperAdminPanel({ kullanici }) {
         {/* AVCI BOT */}
         {sayfa === "avci" && (
           <>
-            {/* Hero Header */}
-            <div style={{ background: "rgba(93,75,181,.08)", borderRadius: 20, padding: "28px 32px", marginBottom: 24, border: "1px solid rgba(93,75,181,.1)" }}>
-              <div className="row row-between row-wrap gap-12">
-                <div>
-                  <h1 style={{ fontSize: 26, fontWeight: 600, color: "var(--text)", margin: 0, letterSpacing: "-0.5px" }}>Avcı Bot</h1>
-                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 6 }}>Google Maps & Sosyal Medya'dan potansiyel müşterileri bul, skorla, ara ve kazan</p>
-                </div>
-                <div className="row gap-8">
-                  <button onClick={() => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "#1f6f4a", color: "#fff", fontWeight: 600, borderRadius: 12, border: "none", boxShadow: "none" }}>🔍 Maps Tara</button>
-                  <button onClick={() => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }} className="btn btn-sm" style={{ background: "#5d4bb5", color: "#fff", fontWeight: 600, borderRadius: 12, border: "none", boxShadow: "none" }}>🚀 Toplu Maps</button>
-                  <button onClick={() => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }} className="btn btn-sm" style={{ background: "#b42318", color: "#fff", fontWeight: 600, borderRadius: 12, border: "none", boxShadow: "none" }}>📱 Sosyal Tara</button>
-                </div>
+            {/* Başlık: amaç + tarama araçları */}
+            <div className="row row-between row-wrap gap-12" style={{ marginBottom: 18, alignItems: "flex-end" }}>
+              <div>
+                <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.4px" }}>Avcı</h1>
+                <p style={{ color: "var(--dim)", fontSize: 13, margin: "4px 0 0" }}>Müşteri adayını bul → en sıcaktan başla → kendi demo sayfasıyla ulaş</p>
+              </div>
+              <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)" }}>
+                {[
+                  ["maps", "🔍 Maps tara", avciTaramaAcik, () => { setAvciTaramaAcik(!avciTaramaAcik); setTopluTaramaAcik(false); setSosyalAcik(false); }],
+                  ["toplu", "🚀 Toplu tarama", topluTaramaAcik, () => { setTopluTaramaAcik(!topluTaramaAcik); setAvciTaramaAcik(false); setSosyalAcik(false); }],
+                  ["sosyal", "📱 Sosyal", sosyalAcik, () => { setSosyalAcik(!sosyalAcik); setAvciTaramaAcik(false); setTopluTaramaAcik(false); }],
+                ].map(([k, l, acik, fn]) => (
+                  <button key={k} onClick={fn} style={{ padding: "8px 14px", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 12, fontFamily: "inherit",
+                    background: acik ? SG.yesil : "transparent", color: acik ? "#fff" : "var(--dim)" }}>{l}</button>
+                ))}
               </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Huni: kaç aday var, kaçına ulaşıldı, kaçı müşteri oldu */}
             {avciStats && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginBottom: 24 }}>
-                {[
-                  { icon: "📍", label: "Toplam Lead", val: avciStats.toplam, color: "#a8590c", bg: "rgba(168,89,12,.08)" },
-                  { icon: "🆕", label: "Yeni", val: avciStats.yeni, color: "#2f56c6", bg: "rgba(47,86,198,.08)" },
-                  { icon: "📞", label: "Arandı", val: avciStats.arandi, color: "#5d4bb5", bg: "rgba(93,75,181,.08)" },
-                  { icon: "🤝", label: "İlgileniyor", val: avciStats.ilgileniyor, color: "#a8590c", bg: "rgba(168,89,12,.08)" },
-                  { icon: "✅", label: "Müşteri Oldu", val: avciStats.musteri_oldu, color: "#1f6f4a", bg: "rgba(31,111,74,.08)" }
-                ].map((s, i) => (
-                  <div key={i} style={{ background: s.bg, border: `1px solid ${s.color}18`, borderRadius: 16, padding: "20px 18px", position: "relative", overflow: "hidden" }}>
-                    
-                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>{s.label}</div>
-                    <div style={{ fontSize: 32, fontWeight: 600, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                  </div>
-                ))}
-              </div>
+              <HuniSerit adimlar={[
+                { ad: "Toplam aday", deger: avciStats.toplam, alt: `${avciStats.yeni ?? 0} yeni` },
+                { ad: "Ulaşıldı", deger: (avciStats.bot_yazdi || 0) + (avciStats.arandi || 0), renk: SG.mavi },
+                { ad: "İlgileniyor", deger: avciStats.ilgileniyor, renk: SG.amber },
+                { ad: "Müşteri oldu", deger: avciStats.musteri_oldu, renk: SG.yesil },
+              ]} />
             )}
 
             {/* Tab Navigation */}
@@ -6649,52 +6674,67 @@ function SuperAdminPanel({ kullanici }) {
             {/* GÜNLÜK ARAMA LİSTESİ */}
             {avciTab === "gunluk" && (
               <>
-                <div style={{ background: "rgba(93,75,181,.06)", border: "1px solid rgba(93,75,181,.12)", borderRadius: 14, padding: "16px 20px", marginBottom: 16 }}>
-                  <div className="row gap-8" style={{ alignItems: "center" }}>
-                    
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text)" }}>Bugün Aranacak {avciGunluk.length} İşletme</div>
-                      <div style={{ fontSize: 11, color: "var(--dim)" }}>Henüz yazılmamış, telefonu olan, en yüksek skorlu lead'ler</div>
-                    </div>
-                  </div>
+                <div style={{ fontSize: 13, color: "var(--dim)", margin: "0 0 12px" }}>
+                  <b style={{ color: "var(--text)" }}>Bugün {avciGunluk.length} işletme</b> · henüz ulaşılmamış, telefonu olan, en sıcak adaylar. Önce selam ver; cevap gelince demoyu gönder.
                 </div>
                 {avciGunluk.length === 0 ? (
                   <div style={{ textAlign: "center", padding: 40, color: "var(--dim)" }}><p style={{ fontSize: 14 }}>Bugün aranacak kimse yok. Yeni tarama yap!</p></div>
-                ) : avciGunluk.map((m, idx) => (
-                  <div key={m.id} style={{ background: "var(--surface)", borderRadius: 14, padding: "18px 20px", marginBottom: 10, border: "1px solid var(--border)", transition: "all .2s" }}>
-                    <div className="row row-between" style={{ alignItems: "flex-start", gap: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <div className="row row-wrap gap-8 mb-6" style={{ alignItems: "center" }}>
-                          <div style={{ width: 30, height: 30, borderRadius: 8, background: "#5d4bb5", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600 }}>{idx + 1}</div>
-                          <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 15 }}>{m.isletme_adi}</span>
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 11, fontWeight: 600 }}>{m.kategori}</span>
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.08)", color: "#a8590c", fontSize: 11, fontWeight: 600 }}>Skor: {m.skor}</span>
-                        </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: "var(--dim)", marginBottom: 6 }}>
-                          {m.telefon && <span style={{ fontWeight: 600, color: "var(--text)" }}>📞 {m.telefon}</span>}
-                          {m.adres && <span>📍 {m.adres}</span>}
-                        </div>
-                        <div className="row row-wrap gap-6" style={{ fontSize: 11 }}>
-                          {!m.web_sitesi && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(31,111,74,.08)", color: "#1f6f4a" }}>🌐 Web yok</span>}
-                          {m.puan && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.08)", color: "#a8590c" }}>⭐ {m.puan}</span>}
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: "#5d4bb5" }}>💬 {m.yorum_sayisi} yorum</span>
-                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", textDecoration: "none" }}>🗺️ Maps</a>}
-                        </div>
+                ) : avciGunluk.map((m, idx) => {
+                  const demo = avciDemo[m.id];
+                  const demoAc = async () => {
+                    if (demo?.link) { window.open(demo.link, "_blank"); return; }
+                    setAvciDemo(d => ({ ...d, [m.id]: { yukleniyor: true } }));
+                    try {
+                      const r = await api.post(`/admin/avci/${m.id}/demo`, {});
+                      setAvciDemo(d => ({ ...d, [m.id]: r.link ? { link: r.link } : { hata: r.hata || "Açılamadı" } }));
+                    } catch (e) { setAvciDemo(d => ({ ...d, [m.id]: { hata: e.message } })); }
+                  };
+                  const kopyalaIsaretle = (anahtar, metin) => { kopyala(metin); setAvciKopyalandi(anahtar); setTimeout(() => setAvciKopyalandi(null), 1800); };
+                  const skorRenk = m.skor >= 80 ? SG.yesil : m.skor >= 60 ? SG.amber : SG.gri;
+                  return (
+                  <div key={m.id} style={{ ...sgKart, marginBottom: 10 }}>
+                    <div className="row gap-12" style={{ alignItems: "flex-start" }}>
+                      <div style={{ width: 46, flexShrink: 0, textAlign: "center" }}>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: skorRenk, lineHeight: 1 }}>{m.skor}</div>
+                        <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>skor</div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={{ padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", background: "#5d4bb5", color: "#fff", fontWeight: 600, fontSize: 12, boxShadow: "none" }}>📞 Arandı</button>
-                        <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={{ padding: "8px 14px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(31,111,74,.1)", color: "#1f6f4a", fontWeight: 600, fontSize: 12 }}>🤝 İlgileniyor</button>
-                        <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} style={{ padding: "6px 14px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontSize: 11 }}>📝 Not</button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="row row-wrap gap-8" style={{ alignItems: "center", marginBottom: 4 }}>
+                          <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{idx + 1}. {m.isletme_adi}</span>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "var(--bg)", color: "var(--dim)", fontSize: 11, fontWeight: 600 }}>{m.kategori}</span>
+                          {m.ilce && <span style={{ fontSize: 12, color: "var(--dim)" }}>📍 {m.ilce}</span>}
+                        </div>
+                        {/* Neden sıcak: skorun sebepleri */}
+                        <div className="row row-wrap gap-6" style={{ fontSize: 11, marginBottom: 10 }}>
+                          {m.puan && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.08)", color: SG.amber }}>⭐ {m.puan}</span>}
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: SG.mor }}>💬 {m.yorum_sayisi} yorum</span>
+                          {!m.web_sitesi && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(31,111,74,.08)", color: SG.yesil }}>🌐 Web sitesi yok</span>}
+                          {m.telefon && <span style={{ color: "var(--text)", fontWeight: 600 }}>📞 {m.telefon}</span>}
+                          {m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ color: SG.mavi, textDecoration: "none" }}>Haritada gör ↗</a>}
+                        </div>
+                        {/* Aksiyonlar: ulaş → demo → işaretle */}
+                        <div className="row row-wrap gap-6">
+                          <a href={`https://wa.me/${waTel(m.telefon)}?text=${encodeURIComponent(ilkMesaj(m.isletme_adi))}`} target="_blank" rel="noreferrer" style={sgBtn("#25d366", true)}>💬 WhatsApp'ta selam ver</a>
+                          <a href={`tel:${m.telefon}`} style={sgBtn(SG.mavi)}>📞 Ara</a>
+                          <button onClick={demoAc} disabled={demo?.yukleniyor} style={sgBtn(SG.yesil)}>{demo?.yukleniyor ? "⏳ Hazırlanıyor…" : demo?.link || m.demo_isletme_id ? "👁 Demoyu aç" : "✨ Demo hazırla"}</button>
+                          {demo?.link && <button onClick={() => kopyalaIsaretle(`d${m.id}`, demo.link)} style={sgBtn()}>{avciKopyalandi === `d${m.id}` ? "✓ Kopyalandı" : "🔗 Demo linkini kopyala"}</button>}
+                          <span style={{ flex: 1 }} />
+                          <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={sgBtn(SG.mor)}>✓ Ulaşıldı</button>
+                          <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "ilgileniyor" }); avciGunlukYukle(); avciStatsYukle(); avciListeYukle(); }} style={sgBtn(SG.amber)}>🤝 İlgileniyor</button>
+                          <button onClick={() => setAvciSecili(avciSecili === m.id ? null : m.id)} style={sgBtn(SG.gri)}>📝</button>
+                        </div>
+                        {demo?.hata && <div style={{ fontSize: 12, color: SG.kirmizi, marginTop: 6 }}>Demo açılamadı: {demo.hata}</div>}
                       </div>
                     </div>
                     {avciSecili === m.id && (
                       <div className="row gap-8" style={{ marginTop: 12 }}>
                         <input id={`not_${m.id}`} defaultValue={m.notlar || ""} placeholder="Not ekle..." className="input" style={{ flex: 1, borderRadius: 10 }} />
-                        <button onClick={async () => { const notInput = document.getElementById(`not_${m.id}`); await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value }); setAvciSecili(null); avciListeYukle(); avciGunlukYukle(); }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: "#2f56c6", color: "#fff", fontWeight: 600, fontSize: 12 }}>Kaydet</button>
+                        <button onClick={async () => { const notInput = document.getElementById(`not_${m.id}`); await api.put(`/admin/avci/${m.id}`, { notlar: notInput.value }); setAvciSecili(null); avciListeYukle(); avciGunlukYukle(); }} style={sgBtn(SG.mavi, true)}>Kaydet</button>
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </>
             )}
 
@@ -6885,18 +6925,29 @@ function SuperAdminPanel({ kullanici }) {
         {/* ═══════ SATIŞ BOT ═══════ */}
         {sayfa === "satisBot" && (
           <>
-            {/* Hero Header */}
-            <div style={{ background: "rgba(37,211,102,.08)", borderRadius: 20, padding: "28px 32px", marginBottom: 24, border: "1px solid rgba(37,211,102,.12)" }}>
-              <div className="row row-between row-wrap gap-12">
-                <div>
-                  <h1 style={{ fontSize: 26, fontWeight: 600, color: "var(--text)", margin: 0, letterSpacing: "-0.5px" }}>Satış Bot</h1>
-                  <p style={{ color: "var(--dim)", fontSize: 13, marginTop: 6 }}>WhatsApp otomatik pazarlama — lead'lere mesaj gönder, AI ile satış yap</p>
+            {/* Başlık: durum + tek ana düğme her sekmede görünür */}
+            {(() => {
+              const d = satisBotDurum?.durum;
+              const renk = d === "bagli" ? SG.yesil : d === "qr_bekleniyor" || d === "baslatiyor" ? SG.amber : SG.kirmizi;
+              const yazi = d === "bagli" ? (satisBotDurum?.aktif ? "Bağlı · gönderim açık" : "Bağlı · gönderim duraklatıldı") : d === "qr_bekleniyor" ? "QR bekliyor" : d === "baslatiyor" ? "Başlatılıyor…" : "Kapalı";
+              return (
+                <div className="row row-between row-wrap gap-12" style={{ marginBottom: 18, alignItems: "flex-end" }}>
+                  <div>
+                    <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.4px" }}>Satış Bot</h1>
+                    <div className="row gap-8" style={{ alignItems: "center", marginTop: 6 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 4, background: renk, boxShadow: `0 0 0 3px ${renk}22` }} />
+                      <span style={{ fontSize: 13, color: "var(--dim)" }}>{yazi}{satisBotDurum?.gunlukGonderim > 0 ? ` · bugün ${satisBotDurum.gunlukGonderim}/${satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj` : ""}</span>
+                    </div>
+                  </div>
+                  <div className="row gap-8">
+                    {d === "bagli" && !satisBotDurum?.aktif && <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }} style={sgBtn(SG.yesil, true)}>▶ Gönderimi başlat</button>}
+                    {satisBotDurum?.aktif && <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }} style={sgBtn(SG.amber)}>⏸ Duraklat</button>}
+                    {d === "bagli" && <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={sgBtn(SG.kirmizi)}>⏹ Botu kapat</button>}
+                    <button onClick={satisBotYukle} style={sgBtn(SG.gri)}>↻</button>
+                  </div>
                 </div>
-                <div className="row gap-8">
-                  <button onClick={satisBotYukle} style={{ padding: "8px 14px", borderRadius: 10, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontWeight: 600, fontSize: 12 }}>🔄 Yenile</button>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Otomatik fren: bot kendi kendini durdurduysa sebebi */}
             {satisBotDurum?.fren && !satisBotDurum?.aktif && (
@@ -6908,18 +6959,42 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
-            {/* ─── ANA TAB BAR ─── */}
-            <div className="row gap-8" style={{ marginBottom: 20 }}>
-              {[{id:"bot",icon:"🤖",label:"Bot & Şablonlar"},{id:"kampanyalar",icon:"🎯",label:"Kampanyalar"},{id:"dagilim",icon:"📊",label:"Kategori Dağılımı"}].map(t => (
-                <button key={t.id} onClick={() => setSatisAnaTab(t.id)} style={{ padding: "10px 20px", borderRadius: 12, border: "1px solid " + (satisAnaTab === t.id ? "#25d366" : "var(--border)"), cursor: "pointer", background: satisAnaTab === t.id ? "rgba(37,211,102,.08)" : "var(--surface)", color: satisAnaTab === t.id ? "#25d366" : "var(--dim)", fontWeight: 600, fontSize: 13, transition: "all .2s" }}>
-                  {t.icon} {t.label} {t.id === "kampanyalar" && kampanyalar.length > 0 && <span style={{ marginLeft: 4, padding: "1px 7px", borderRadius: 10, background: "rgba(37,211,102,.12)", fontSize: 10, fontWeight: 600, color: "#25d366" }}>{kampanyalar.filter(k => k.aktif).length}</span>}
-                </button>
-              ))}
+            {/* ─── SEKMELER ─── */}
+            <div style={{ display: "flex", gap: 2, borderBottom: "1px solid var(--border)", marginBottom: 20, overflowX: "auto" }}>
+              {[
+                ["kontrol", "Genel bakış", satisBotDurum?.istatistikler?.sicak ? `🔥${satisBotDurum.istatistikler.sicak}` : null],
+                ["konusmalar", "Konuşmalar", satisBotKonusmalar.length || null],
+                ["sablonlar", "Mesajlar", null],
+                ["kampanyalar", "Kampanyalar", kampanyalar.filter(k => k.aktif).length || null],
+                ["numaralar", "Numaralar", numaralar.length || null],
+                ["ayarlar", "Ayarlar", null],
+                ["dagilim", "Kategoriler", null],
+              ].map(([id, ad, rozet]) => {
+                const aktif = satisAnaTab === id || (id === "kontrol" && satisAnaTab === "bot");
+                return (
+                  <button key={id} onClick={() => setSatisAnaTab(id)} style={{ padding: "10px 14px", border: "none", borderBottom: `2px solid ${aktif ? SG.yesil : "transparent"}`, marginBottom: -1,
+                    background: "transparent", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: aktif ? 700 : 500, color: aktif ? "var(--text)" : "var(--dim)", whiteSpace: "nowrap" }}>
+                    {ad}{rozet !== null && <span style={{ marginLeft: 6, padding: "1px 7px", borderRadius: 10, background: aktif ? "rgba(31,111,74,.1)" : "var(--bg)", fontSize: 11, color: aktif ? SG.yesil : "var(--dim)" }}>{rozet}</span>}
+                  </button>
+                );
+              })}
             </div>
 
             {/* ─── TAB: BOT & ŞABLONLAR ─── */}
-            {satisAnaTab === "bot" && <>
-            {/* Ana Grid: Bot Durumu + QR + İstatistikler */}
+            {(satisAnaTab === "kontrol" || satisAnaTab === "bot") && <>
+            {/* Huni: yazılan → cevap → sıcak → kayıt */}
+            {satisBotDurum?.istatistikler && (() => {
+              const st = satisBotDurum.istatistikler;
+              const cevap = (st.olumlu || 0) + (st.sicak || 0) + (st.olumsuz || 0) + (st.kayit || 0);
+              return <HuniSerit adimlar={[
+                { ad: "Yazılan", deger: st.gonderilen, alt: `${st.wp_yok || 0} WhatsApp'sız` },
+                { ad: "Cevap veren", deger: cevap, renk: SG.mavi },
+                { ad: "Sıcak / olumlu", deger: (st.sicak || 0) + (st.olumlu || 0), renk: SG.amber },
+                { ad: "Kayıt oldu", deger: st.kayit || 0, renk: SG.yesil },
+              ]} />;
+            })()}
+            {/* Ana Grid: Bot Durumu + QR */}
+            {satisBotDurum?.durum !== 'bagli' && (
             <div style={{ display: "grid", gridTemplateColumns: satisBotDurum?.durum === 'qr_bekleniyor' ? "1fr 1fr" : "1fr", gap: 16, marginBottom: 24 }}>
               {/* Bot Durumu Kartı */}
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)" }}>
@@ -6938,12 +7013,6 @@ function SuperAdminPanel({ kullanici }) {
                 <div className="row gap-8" style={{ flexWrap: "wrap" }}>
                   {(!satisBotDurum || satisBotDurum.durum === 'kapali' || satisBotDurum.durum === 'hata' || satisBotDurum.durum === 'baslatiyor') && (
                     <button onClick={async () => { setSatisBotYukleniyor(true); await api.post("/admin/satis-bot/baslat"); setTimeout(satisBotYukle, 3000); setSatisBotYukleniyor(false); }} disabled={satisBotYukleniyor} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "#1f6f4a", color: "#fff", fontWeight: 600, fontSize: 13, boxShadow: "none" }}>{satisBotYukleniyor ? '⏳ Başlatılıyor...' : '▶️ Botu Başlat'}</button>
-                  )}
-                  {satisBotDurum?.durum === 'bagli' && !satisBotDurum?.aktif && (
-                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "#25d366", color: "#fff", fontWeight: 600, fontSize: 13, boxShadow: "none" }}>🚀 Gönderimi Başlat</button>
-                  )}
-                  {satisBotDurum?.aktif && (
-                    <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(168,89,12,.1)", color: "#a8590c", fontWeight: 600, fontSize: 13 }}>⏸️ Gönderimi Durdur</button>
                   )}
                   {satisBotDurum?.durum !== 'kapali' && satisBotDurum && (
                     <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 13 }}>⏹️ Botu Kapat</button>
@@ -6973,31 +7042,14 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
               )}
             </div>
-
-            {/* İstatistikler */}
-            {satisBotDurum?.istatistikler && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
-                {[
-                  { icon: "📤", label: "Gönderilen", val: satisBotDurum.istatistikler.gonderilen, color: "#2f56c6", bg: "rgba(47,86,198,.08)" },
-                  { icon: "⏳", label: "Cevap Bekliyor", val: satisBotDurum.istatistikler.bekleyen, color: "#a8590c", bg: "rgba(168,89,12,.08)" },
-                  { icon: "🔥", label: "Sıcak (Ara!)", val: satisBotDurum.istatistikler.sicak || 0, color: "#a8590c", bg: "rgba(168,89,12,.12)" },
-                  { icon: "✅", label: "Olumlu", val: satisBotDurum.istatistikler.olumlu, color: "#1f6f4a", bg: "rgba(31,111,74,.08)" },
-                  { icon: "🎉", label: "Kayıt (WhatsApp)", val: satisBotDurum.istatistikler.kayit || 0, color: "#1f6f4a", bg: "rgba(31,111,74,.12)" },
-                  { icon: "❌", label: "Olumsuz", val: satisBotDurum.istatistikler.olumsuz, color: "#b42318", bg: "rgba(180,35,24,.08)" },
-                  { icon: "📵", label: "WP Yok", val: satisBotDurum.istatistikler.wp_yok, color: "#6f6a62", bg: "rgba(111,106,98,.08)" }
-                ].map((s, i) => (
-                  <div key={i} style={{ background: s.bg, border: `1px solid ${s.color}15`, borderRadius: 14, padding: "16px", position: "relative", overflow: "hidden" }}>
-                    
-                    <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>{s.label}</div>
-                    <div style={{ fontSize: 28, fontWeight: 600, color: s.color, lineHeight: 1 }}>{s.val}</div>
-                  </div>
-                ))}
-              </div>
             )}
 
             {/* Satış hunisi: hangi şablon müşteri getiriyor */}
             <SatisHuni api={api} />
 
+            </>}
+
+            {satisAnaTab === "ayarlar" && <>
             {/* ═══ KAPSAMLI BOT AYARLARI PANELİ ═══ */}
             {satisBotDurum?.ayarlar && (() => {
               const ay = satisBotDurum.ayarlar;
@@ -7041,7 +7093,7 @@ function SuperAdminPanel({ kullanici }) {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
                     {[
                       ["kayitAktif", "📝 WhatsApp Kayıt", "Bot üzerinden hesap açma"],
-                      ["aiCevapAktif", "🤖 AI Cevap", "DeepSeek ile akıllı cevap"],
+                      ["aiCevapAktif", "🤖 AI Cevap", "Gemini / DeepSeek ile temsilci gibi cevap"],
                       ["takipAktif", "🔔 Takip Mesajı", "Cevap vermeyenlere hatırlatma"],
                       ["gelenMesajCevap", "💬 Gelen Mesaj Cevap", "Gelen mesajlara otomatik cevap"],
                       ["typingIndicator", "✍️ Yazıyor Göster", "Anti-ban: typing indicator"],
@@ -7121,25 +7173,13 @@ function SuperAdminPanel({ kullanici }) {
                     </div>
                   </div>
 
-                  {/* ── ANTI-BAN (Typing) AYARLARI ── */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>✍️ Min Typing (ms)</label>
-                      <select value={ay.typingMinMs || 2000} onChange={(e) => ayarGuncelle({ typingMinMs: parseInt(e.target.value) })} style={selStyle}>
-                        {[500,1000,1500,2000,3000,4000,5000].map(s => <option key={s} value={s}>{s/1000}sn</option>)}
-                      </select>
-                    </div>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>✍️ Max Typing (ms)</label>
-                      <select value={ay.typingMaxMs || 6000} onChange={(e) => ayarGuncelle({ typingMaxMs: parseInt(e.target.value) })} style={selStyle}>
-                        {[2000,3000,4000,5000,6000,8000,10000].map(s => <option key={s} value={s}>{s/1000}sn</option>)}
-                      </select>
-                    </div>
-                  </div>
                 </div>
               );
             })()}
 
+            </>}
+
+            {satisAnaTab === "konusmalar" && <>
             {/* Son Konuşmalar — Kompakt WhatsApp Tarzı */}
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
               <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
@@ -7201,6 +7241,9 @@ function SuperAdminPanel({ kullanici }) {
               </div>
             )}
 
+            </>}
+
+            {satisAnaTab === "numaralar" && <>
             {/* Numara Yönetimi */}
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
               <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
@@ -7335,6 +7378,9 @@ function SuperAdminPanel({ kullanici }) {
               )}
             </div>
 
+            </>}
+
+            {satisAnaTab === "sablonlar" && <>
             {/* ═══ MESAJ ŞABLONLARI ═══ */}
             <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 16 }}>
               <div className="row row-between mb-16" style={{ alignItems: "center" }}>
@@ -7485,6 +7531,9 @@ function SuperAdminPanel({ kullanici }) {
               )}
             </div>
 
+            </>}
+
+            {satisAnaTab === "ayarlar" && <>
             {/* Anti-Ban & İpuçları */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={{ background: "rgba(168,89,12,.04)", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(168,89,12,.12)" }}>
@@ -7494,7 +7543,7 @@ function SuperAdminPanel({ kullanici }) {
                   <span>• Günlük max {satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj</span>
                   <span>• Mesai: {satisBotDurum?.ayarlar?.mesaiBaslangic || 9}:00 — {satisBotDurum?.ayarlar?.mesaiBitis || 19}:00</span>
                   <span>• "Yazıyor..." simülasyonu</span>
-                  <span>• 3 farklı mesaj varyasyonu</span>
+                  <span>• Kısa, kişiye özel açılış mesajları</span>
                   <span>• Her numara paralel gönderim (bağımsız loop)</span>
                   <span>• WP numara kontrol — geçersiz numara skip</span>
                 </div>
