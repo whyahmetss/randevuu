@@ -35,6 +35,7 @@ function turkiyeSaati() {
 const { DENEME_GUN } = require('../config/deneme');
 const { telefonNormalize } = require('../utils/telefon');
 const G = DENEME_GUN;
+const satisAI = require('./satisAI');
 
 // İlk mesajın sonuna eklenen ret satırı — istemeyen şikâyet etmek yerine "dur" yazsın (ban riskini düşürür)
 const RET_SATIRI = '\n\n_İstemezseniz "dur" yazmanız yeterli, bir daha yazmam._';
@@ -1319,8 +1320,9 @@ class SatisBot extends EventEmitter {
     if (yaziyor && this.ayarlar.typingIndicator !== false) {
       try {
         await sock.sendPresenceUpdate('composing', jid);
-        const min = this.ayarlar.typingMinMs || 2000, max = this.ayarlar.typingMaxMs || 6000;
-        await new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
+        // İnsan gibi: uzun cevap daha uzun yazılır (≈ 25 harf/sn), 1,2–9 sn arası
+        const sure = Math.min(9000, 1200 + txt.length * 40) * (0.8 + Math.random() * 0.4);
+        await new Promise(r => setTimeout(r, sure));
         await sock.sendPresenceUpdate('paused', jid);
       } catch (e) { /* presence önemsiz */ }
     }
@@ -1533,8 +1535,35 @@ class SatisBot extends EventEmitter {
   // ═══════════════════════════════════════════════════
   // Gelen Mesaj İşleme + DeepSeek AI Satış
   // ═══════════════════════════════════════════════════
+  // Esnaf çoğu zaman tek düşünceyi birkaç mesajda yazar ("selam" / "fiyat ne" / "nasıl çalışıyo").
+  // Her birine ayrı cevap vermek bot gibi durur: son mesajdan 8 sn sonra (en geç 25 sn) hepsine birlikte cevap.
+  // Kayıt akışı (ad/e-posta/şifre adımları) beklemeden işlenir.
   async gelenMesajIsle(msg, numaraId) {
     const metin = this._getMsgText(msg);
+    if (!metin) return;
+    const ns = numaraId ? this.numaraSockets.get(numaraId) : null;
+    const sock = ns?.sock || this.sock;
+    try { await sock?.readMessages?.([msg.key]); } catch (e) { /* okundu önemsiz */ }
+    const anahtar = msg.key.remoteJid;
+    const alt = msg.key.remoteJidAlt || '';
+    const telefon = (anahtar.endsWith('@lid') && alt.includes('@s.whatsapp.net') ? alt : anahtar).replace(/@.*$/, '');
+    const kayitIstegi = /^\s*kay[ıi]t\s*$/i.test(metin);
+    if (this.konusmalar[telefon]?.kayit || kayitIstegi || this.ayarlar.mesajBirlestir === false) return this._mesajIsle(msg, numaraId, metin);
+
+    this._tampon = this._tampon || new Map();
+    const t = this._tampon.get(anahtar) || { metinler: [], ilk: Date.now(), zaman: null };
+    t.metinler.push(metin); t.msg = msg; t.numaraId = numaraId;
+    clearTimeout(t.zaman);
+    const bekle = Date.now() - t.ilk > 17000 ? 0 : (this.ayarlar.mesajBekleMs ?? 8000);
+    t.zaman = setTimeout(() => {
+      this._tampon.delete(anahtar);
+      this._mesajIsle(t.msg, t.numaraId, t.metinler.join('\n')).catch(e => console.error('Satış mesajı işlenemedi:', e.message));
+    }, bekle);
+    this._tampon.set(anahtar, t);
+  }
+
+  async _mesajIsle(msg, numaraId, birlesikMetin) {
+    const metin = birlesikMetin ?? this._getMsgText(msg);
     if (!metin) return;
 
     // Hangi socket'ten geldi? Cevap aynı numaradan gitsin
@@ -1647,21 +1676,39 @@ class SatisBot extends EventEmitter {
     }
 
     // ─── Cevap: AI (yoksa yedek kurallar) ───
-    const cevap = this.ayarlar.aiCevapAktif
-      ? await this.deepseekSatisCevabi(metin, konusma)
-      : await this.fallbackCevapUret(metin, konusma);
-    if (!cevap?.mesaj) return;
+    let cevap = null;
+    if (this.ayarlar.aiCevapAktif && satisAI.aktifMi()) {
+      const { liste } = await this._fiyatlar();
+      const ai = await satisAI.cevapUret({ konusma, paketListesi: liste, sonMesaj: metin });
+      if (ai) cevap = { mesajlar: ai.mesajlar, durum: ai.durum, arama: ai.arama_istiyor };
+    }
+    if (!cevap) {
+      const eski = this.ayarlar.aiCevapAktif
+        ? await this.deepseekSatisCevabi(metin, konusma)
+        : await this.fallbackCevapUret(metin, konusma);
+      if (eski?.mesaj) cevap = { mesajlar: [eski.mesaj], durum: eski.durum, arama: false };
+    }
+    if (!cevap) return;
     // Kişi cevap verdi: AI 'bekliyor' dese de takip sırasına geri düşmesin
     const durum = ['olumlu', 'sicak', 'olumsuz'].includes(cevap.durum) ? cevap.durum : 'ai_devrede';
 
-    let giden = cevap.mesaj;
+    const gidenler = [];
     try {
-      giden = await this._yaz(sock, remoteJid, cevap.mesaj);
+      for (const [i, m] of cevap.mesajlar.entries()) {
+        if (i) await new Promise(r => setTimeout(r, 700 + Math.random() * 1300));
+        gidenler.push(await this._yaz(sock, remoteJid, m));
+      }
     } catch (sendErr) {
       console.error(`❌ Cevap gönderilemedi: …${String(telefon).slice(-4)} → ${sendErr.message}`);
-      return;
+      if (!gidenler.length) return;
     }
+    const giden = gidenler.join('\n');
     await this._botKaydet(konusma.id, giden, durum === 'olumsuz' ? { durum, red_tipi: 'normal' } : { durum });
+    if (cevap.arama) {
+      try {
+        await this._telegramBildirimGonder(`📞 *Aranmak istiyor*\n\n🏪 ${this._mdKacis(konusma.isletme_adi)}\n📞 +${this._mdKacis(telefon)}\n💬 "${this._mdKacis(metin.slice(0, 300))}"\n\n👉 Bugün arayın.`);
+      } catch (e) { /* bildirim önemsiz */ }
+    }
 
     if (durum === 'sicak' || durum === 'olumlu') {
       if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);
