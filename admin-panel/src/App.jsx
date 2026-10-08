@@ -145,7 +145,7 @@ function Login({ onLogin }) {
   // Davet linki: ?davet=KOD (&k=randevu_sayfasi) → doğrudan kayıt ekranı, kod otomatik
   const davetParam = (() => { try { const q = new URLSearchParams(window.location.search); return { kod: q.get("davet") || "", kanal: q.get("k") === "randevu_sayfasi" ? "randevu_sayfasi" : "davet" }; } catch { return { kod: "", kanal: "web" }; } })();
   const [ekran, setEkran] = useState(davetParam.kod ? "kayit" : "giris"); // giris | kayit
-  const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "" });
+  const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
 
   const giris = async (e) => {
     e.preventDefault();
@@ -170,7 +170,7 @@ function Login({ onLogin }) {
     if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
     setYukleniyor(true);
     const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
-      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: davetParam.kod || undefined });
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined });
     if (data.basarili) {
       setHata("");
       setEkran("giris");
@@ -268,6 +268,10 @@ function Login({ onLogin }) {
                 <div className="form-group">
                   <label className="form-label">Şifre Tekrar</label>
                   <input type="password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} className="input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Davet kodu <span style={{ fontWeight: 400, color: "var(--dim)" }}>(varsa)</span></label>
+                  <input type="text" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
                 </div>
                 {hata && <div className="alert alert-error">{hata}</div>}
                 <button type="submit" disabled={yukleniyor} className="login-btn-primary">
