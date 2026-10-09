@@ -67,15 +67,17 @@ export default function EkipYonetimi({ api }) {
                 <div style={{ fontWeight: 600, fontSize: 15 }}>{u.isim || u.email}{u.ben && <span style={{ color: 'var(--dim)', fontWeight: 400 }}> · siz</span>}</div>
                 <div style={{ fontSize: 12, color: 'var(--dim)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</div>
               </div>
-              <span className={`tag tag-sm ${u.kurucu ? 'tag-amber' : u.aktif ? 'tag-green' : ''}`}>{u.aktif ? gorevAd(u) : 'Kapalı'}</span>
+              <span className={`tag tag-sm ${u.kurucu ? 'tag-amber' : u.aktif ? 'tag-green' : ''}`}>{u.patron ? '👑 Patron' : u.aktif ? gorevAd(u) : 'Kapalı'}</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {u.kurucu
-                ? <span style={{ fontSize: 12, color: 'var(--dim)' }}>Tüm bölümler + ekip yönetimi</span>
+              {u.patron
+                ? <span style={{ fontSize: 12, color: 'var(--dim)' }}>Her şey + ekip yönetimi, ekip takibi, denetim kaydı (yalnız patron)</span>
+                : u.kurucu
+                ? <span style={{ fontSize: 12, color: 'var(--dim)' }}>Tüm bölümler (ekip yönetimi ve takibi hariç)</span>
                 : (u.ekip_yetkileri || []).map(y => <span key={y} className="pill pill-xs" title={yetkiler[y]}>{yetkiler[y]?.split(/[ (:]/)[0] || y}</span>)}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 'auto' }}>Son giriş: {tarih(u.son_giris)}</div>
-            {!u.ben && (
+            {!u.ben && !u.patron && (
               <div style={{ display: 'flex', gap: 6 }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => setDuzen({ uye: u, gorev: u.kurucu ? 'kurucu' : (u.ekip_gorev || 'destek'), yetkiler: u.ekip_yetkileri || [], sifre: '' })}>Düzenle</button>
                 <button className={`btn btn-sm ${u.aktif ? 'btn-ghost' : 'btn-secondary'}`}

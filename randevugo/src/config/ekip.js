@@ -12,6 +12,8 @@ const YETKILER = {
   magaza: 'Mağaza: tedarikçiler, ürünler, satış raporu',
   sistem: 'Sistem durumu, API dashboard, merkez OTP numaraları',
 };
+// Yetki alanı dışı seviyeler: 'kurucu' (ekip_yetkileri NULL) ve 'patron' (2026-10-10: kurucuların da
+// üstündeki tek hesap, admin_kullanicilar.patron — ekip yönetimi, ekip takibi, denetim kaydı yalnız onda)
 
 // Görev şablonları (Ekip sayfasında seçilir; sonra tek tek değiştirilebilir)
 const GOREVLER = {
@@ -26,12 +28,12 @@ const ONEK = {
   'saas-metrikleri': 'genel', buyume: 'genel', bildirimler: 'genel', 'musteri-aktivite': 'genel', segmentasyon: 'genel', karsilastirma: 'genel',
   isletmeler: 'isletmeler', impersonate: 'isletmeler', zombiler: 'isletmeler', onboarding: 'isletmeler',
   destek: 'destek', iletisim: 'destek', duyurular: 'destek',
-  avci: 'satis', 'satis-bot': 'satis', 'musteri-crm': 'satis', referanslar: 'satis', 'qr-kod': 'satis',
+  avci: 'satis', 'satis-bot': 'satis', 'musteri-crm': 'satis', referanslar: 'satis', 'qr-kod': 'satis', masa: 'satis',
   odemeler: 'odemeler', hakedis: 'odemeler',
   paketler: 'paketler',
   magaza: 'magaza',
   'sistem-durumu': 'sistem', 'api-dashboard': 'sistem', 'merkez-otp': 'sistem',
-  'audit-log': 'kurucu', ekip: 'kurucu',
+  'audit-log': 'patron', ekip: 'patron', 'ekip-takip': 'patron',
 };
 
 function yolYetkisi(method, url) {
@@ -41,12 +43,21 @@ function yolYetkisi(method, url) {
   const [, ilk, kalan = ''] = m;
   // Listeyi herkes okuyabilir (satış "bu işletme zaten müşteri mi" diye bakar); paket fiyatlarını da
   if (method === 'GET' && (ilk === 'isletmeler' || ilk === 'paketler') && (kalan === '' || kalan === '/')) return 'genel';
-  // İşletme silmek geri alınamaz: yalnız kurucu
-  if (method === 'DELETE' && ilk === 'isletmeler') return 'kurucu';
+  // İşletme silmek geri alınamaz: yalnız patron
+  if (method === 'DELETE' && ilk === 'isletmeler') return 'patron';
+  // Hedef ayarı ve itiraz düzeltme/silme patronun; itiraz eklemek herkesin
+  if (ilk === 'masa' && (/^\/hedef/.test(kalan) && method !== 'GET')) return 'patron';
+  if (ilk === 'masa' && /^\/itiraz\/\d+/.test(kalan)) return 'patron';
   return ONEK[ilk] || 'kurucu';
 }
 
 const tamYetki = (k) => k?.rol === 'superadmin' && !Array.isArray(k.ekip_yetkileri);
-const yetkiVar = (k, yetki) => k?.rol === 'superadmin' && (tamYetki(k) || (yetki !== 'kurucu' && k.ekip_yetkileri.includes(yetki)));
+const patronMu = (k) => k?.rol === 'superadmin' && k.patron === true;
+const yetkiVar = (k, yetki) => {
+  if (k?.rol !== 'superadmin') return false;
+  if (patronMu(k)) return true;
+  if (yetki === 'patron') return false;
+  return tamYetki(k) || (yetki !== 'kurucu' && k.ekip_yetkileri.includes(yetki));
+};
 
-module.exports = { YETKILER, GOREVLER, yolYetkisi, tamYetki, yetkiVar };
+module.exports = { YETKILER, GOREVLER, yolYetkisi, tamYetki, patronMu, yetkiVar };

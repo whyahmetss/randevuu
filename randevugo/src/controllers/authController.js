@@ -33,7 +33,8 @@ class AuthController {
 
       if (kullanici.rol === 'superadmin') pool.query('UPDATE admin_kullanicilar SET son_giris = NOW() WHERE id = $1', [kullanici.id]).catch(() => {});
       res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null,
-        ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null } });
+        ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null,
+        patron: kullanici.patron === true } });
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);
       res.status(500).json({ hata: 'Sunucu hatası oluştu' });
@@ -137,6 +138,7 @@ class AuthController {
       if (kullanici && kullanici.rol === 'superadmin') {
         kullanici.ekip_gorev = req.kullanici.ekip_gorev || null;
         kullanici.ekip_yetkileri = req.kullanici.ekip_yetkileri || null;
+        kullanici.patron = req.kullanici.patron === true;
       }
       res.json({ kullanici });
     } catch (error) {
