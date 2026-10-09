@@ -1,159 +1,119 @@
-# SıraGO Tilki — Reels/TikTok Video Planı
+# SıraGO Tilki — Konuşan Maskot Video Planı (viral "konuşan hayvan" tarzı)
 
-## Nasıl üretilir (her video için aynı)
-1. **Görsel:** ChatGPT'ye 3D tilki referansını yükle, aşağıdaki **Görsel** promptunu yapıştır. Dikey **9:16** iste, yazı istemeyin.
-2. **Hareket:** Çıkan görseli **Kling AI → Image to Video**'ya yükle, **Hareket** promptunu yapıştır. 5 sn, 9:16. 2-3 kez üret, en iyisini seç.
-3. **Birleştir:** CapCut'ta klipleri sırala, **ekran yazısını** ekle, trend bir ses koy, sona logo + "sırago.com · 14 gün ücretsiz".
+## Tarz
+Viral hamamböceği / konuşan hayvan videoları gibi: tilki **kameraya bakıp Türkçe konuşur**, samimi, biraz dertli, biraz şakacı, sokak ağzıyla. Vlog, sokak röportajı, dert yanma, POV, "story" çekiyormuş gibi. 8 saniyelik klipler, 1-3 klip = 1 video.
 
-Her görsel promptunun başına şunu ekle:
-`Bu görseldeki tilki karakterini birebir aynı tut (aynı yüz, yeşil gözler, yeşil atkı, 3D Pixar stili). Dikey 9:16, görselde yazı olmasın.`
+## Hangi araç
+- **Google Veo 3** (Gemini / Google Flow): Görsel + sesli konuşma (dudak senkronu) tek seferde üretir. **İlk tercih.**
+- **Kling AI**: Videoyu üret, sonra "Lip Sync" ile Türkçe ses ekle.
+- Ses klonu / seslendirme gerekirse: ElevenLabs (Türkçe, genç erkek, enerjik ses seç ve hep aynı sesi kullan).
+- CapCut: klipleri birleştir, altyazı ekle (otomatik altyazı → Türkçe), sona logo.
 
-**Kurallar:** İlk 1 saniyede yazı ekranda olsun. 7-15 sn. Ürün hakkında sadece doğru şey söyle (bot numaralı menüyle çalışır, gece randevu için mesai dışı modu "Randevu Al" olmalı, web randevu sayfası 7/24 açık, hatırlatma 24 sa / 1 sa / 15 dk önce).
+## Nasıl kullanılır
+1. 3D tilki görselini **başlangıç karesi / referans** olarak yükle.
+2. Aşağıdaki promptu **olduğu gibi** yapıştır.
+3. Her promptun başına bu **sabit karakter tarifini** ekle:
 
----
+> **Karakter:** Turuncu tüylü, yeşil gözlü, boynunda yeşil atkı olan sevimli 3D Pixar tarzı tilki. Adı Fiko. İstanbul ağzıyla, samimi, enerjik, hafif esprili genç erkek sesiyle Türkçe konuşuyor. Kameraya doğrudan bakıyor. Dikey 9:16 video. Görüntüde yazı yok.
 
-## Elinizdeki 5 görsel nasıl kullanılır
-| Görsel | Hareket promptu (Kling) | Video / yazı |
-|---|---|---|
-| Berber dükkânı | `The fox winks at the camera, raises the phone and taps the screen, confident smile, slow camera push-in` | #1 "Elin makasta mı?" |
-| Pijama + çay | `The fox sips tea, glances at the glowing phone, smiles calmly, cozy night mood` | #2 "Saat 23:47" |
-| Uyuyan | `The fox sleeps and breathes slowly, phone on nightstand lights up with notifications, fox smiles in sleep` | #2 ve #9 |
-| Koşan | `The fox runs fast toward the camera holding the calendar, scarf flowing, energetic` | #6, geçiş klibi |
-| Onay tabelası | `The fox jumps and lifts the green checkmark sign high, celebrating, bouncy` | Her videonun kapanışı |
+**Dürüstlük kuralı:** Tilki sadece ürünün gerçekten yaptıklarını söylesin. Müşteri numara yazarak randevu alır, hatırlatma 24 saat, 1 saat ve 15 dk önce gider, web randevu sayfası 7/24 açık, kurulumu biz yapıyoruz, 14 gün ücretsiz.
 
 ---
 
-## 25 video fikri
+## 22 video promptu
 
-### A — Esnafın derdi (en güçlü kancalar)
-**1. Elin makasta mı?**
-Yazı: "Elin makasta, telefon çalıyor 📱" → "Randevuyu ben alırım 😉"
-Görsel: berber dükkânı görseli. Ekle: önce telefon sürekli titreyen yakın plan.
-Hareket: `phone on the barber counter vibrating and ringing repeatedly, then the fox grabs it and winks`
+### 🎤 Vlog / dert yanma
+**1. "Ben Fiko, berberin yeni çırağıyım"**
+> Berber dükkânında, aynanın önünde, telefonu selfie gibi tutarak vlog çekiyor. Arkada berber koltuğu ve berber direği. Konuşuyor: "Selam millet, ben Fiko! Berber Ali abinin yeni çırağıyım. Makas tutamıyorum ama telefona ben bakıyorum. Ali abi saç keserken randevuları WhatsApp'tan ben alıyorum. Maaş da istemiyorum, söyleyeyim."
 
-**2. Saat 23:47**
-Yazı: "Saat 23:47. Dükkan kapalı." → "Müşteri yazdı…" → "Sen uyurken randevu oluştu ✅"
-Klipler: uyuyan → pijama+çay → onay.
+**2. "Telefon susmuyor abi"**
+> Berber dükkânında, tezgâhtaki telefon durmadan titriyor ve çalıyor. Fiko bıkkın bir yüzle kameraya dönüp konuşuyor: "Abi bak, sabahtan beri bu telefon susmadı. 'Yarın boş musun', 'kaçta açıyorsunuz', 'sakal kaç para'... Ali abi elinde makasla nasıl baksın buna? Neyse ki ben varım." Telefonu alıp göz kırpıyor.
 
-**3. Gelmeyen müşteri**
-Yazı: "Koltuk boş. Müşteri gelmedi." → "SıraGO 1 saat önce sorar: Geliyor musun?"
-Görsel: `the fox stands next to an empty barber chair, looking at a wall clock, slightly disappointed`
-Hareket: `the fox looks at the clock, sighs, then the phone buzzes and he smiles brightly`
+**3. Gece 2'de mesaj atan müşteri**
+> Gece, karanlık oda, Fiko yatakta uyurken telefonu yanıyor. Gözünü yarım açıp telefona bakıyor, sonra kameraya uykulu sesle konuşuyor: "Saat gece ikiyi geçmiş... müşteri randevu istiyor... Tamam kardeşim, web sayfasından al, ben uyuyorum." Telefonu bırakıp gülümseyerek tekrar uyuyor.
 
-**4. 38 okunmamış mesaj**
-Yazı: "Gün sonu WhatsApp'ı açınca 😩" → "38 okunmamış mesaj" → "Tilki hepsine cevap vermiş"
-Görsel: `the fox holding a phone showing a huge pile of message bubbles, eyes wide in shock`
-Hareket: `message bubbles pop out of the phone one after another, the fox catches them and sorts them, then gives a thumbs up`
+**4. Gelmeyen müşteriye sitem**
+> Boş bir berber koltuğunun yanında, kollarını kavuşturmuş, duvardaki saate bakıyor. Kameraya sitemle konuşuyor: "Saat on dört, randevu on dört. Müşteri nerede? Yok! Ama bundan sonra kaçamaz. Bir gün önce, bir saat önce, on beş dakika önce hatırlatıyorum. Gelemeyecekse 'iptal' yazar, saat boşa gitmez."
 
-**5. "Abi yarın boş musun?"**
-Yazı: "Günde kaç kere duyuyorsun? 👇" → "Artık müşteri numara yazıyor, randevu hazır"
-Görsel: `the fox surrounded by floating speech bubbles, covering his ears playfully`
-Hareket: `speech bubbles fly around the fox, he snaps his fingers and they turn into neat green checkmarks`
+**5. "Defter mi? Hangi yüzyıldasın?"**
+> Fiko bir masada karalanmış eski bir randevu defterini iki parmağıyla tiksinerek kaldırıyor. Kameraya dönüp şakayla konuşuyor: "Abi bu ne ya? Kurşun kalem, silgi, üstü çizili saatler... Yıl kaç? Randevular artık WhatsApp'tan geliyor, ekranda tertemiz duruyor." Defteri omzunun üstünden arkaya atıyor.
 
-**6. Telefonu açamadın, müşteri gitti**
-Yazı: "3 cevapsız arama = 3 kaçan müşteri" → "SıraGO WhatsApp'tan cevaplar"
-Klipler: koşan tilki (yetişemiyor) → onay.
-Görsel (ek): `the fox running after a flying phone that keeps slipping away, comic`
+### 🎙️ Sokak röportajı (trend)
+**6. Esnafa mikrofon uzatan Fiko**
+> Fiko elinde mikrofonla İstanbul'da bir esnaf sokağında röportaj yapıyor, mikrofonu kameraya uzatıp soruyor: "Günde kaç tane cevapsız aramanız oluyor? Hiç saydınız mı?" Sonra kendi kendine fısıldıyor: "Saymıyorlar, çünkü çok."
 
-### B — Trend formatlar
-**7. POV: Esnafsın ve bot aldın**
-Yazı: "POV: Randevuları artık bot alıyor" → "Sen: 😎"
-Görsel: `the fox relaxing in a barber chair with sunglasses, feet up, holding a phone`
-Hareket: `the fox puts on sunglasses slowly, leans back, phone notifications keep popping up, he gives a lazy thumbs up`
+**7. "Müşteri gözünden"**
+> Fiko kafede oturuyor, kameraya konuşuyor: "Şimdi müşteri gibi düşünün. Berberi arıyorum, açmıyor. İkinci kez arıyorum, yine açmıyor. Ne yapıyorum? Başka berbere gidiyorum. İşte o kaçan müşteri sizin müşteriniz."
 
-**8. "Bunu ben mi yaptım?" — önce/sonra**
-Yazı: "Önce: defter, karalama, çakışan saatler" → "Sonra: 📱"
-Görsel 1: `the fox at a messy desk with a paper notebook full of scribbles, confused, papers flying`
-Görsel 2: `the same fox at a clean desk with a phone showing a tidy green calendar, proud`
-Hareket: `papers fly away in a magical swoosh revealing a clean desk`
+**8. Röportaj: "Sizce bot mu insan mı?"**
+> Fiko mikrofonla kameraya soruyor: "Size WhatsApp'tan saniyesinde randevu veren kim sizce? Ali abi mi?" Göz kırpıp kendini gösteriyor: "Yok, benim. Ali abi o sırada fön çekiyor."
 
-**9. Uykuda para kazanan tilki**
-Yazı: "Gece 03:00'te randevu alan tek esnaf" → "Web randevu sayfan 7/24 açık 🌙"
-Klipler: uyuyan tilki + telefon bildirim.
+### 😂 Skeç / mizah
+**9. Esnaf-müşteri sözlüğü**
+> Fiko elinde küçük bir kitap, öğretmen gibi gözlük takmış, kameraya ciddi ciddi okuyor: "Esnaf sözlüğü. 'Beş dakikaya oradayım' demek: daha evden çıkmadım demek. 'Kaporayı akşam atarım' demek: atmayacağım demek." Gözlüğünü indirip kameraya bakıyor.
 
-**10. Tilki dans challenge**
-Yazı: "Ay sonu randevu defteri dolunca:" (trend ses ile)
-Görsel: onay tabelası görseli.
-Hareket: `the fox does a happy little dance, swinging hips and waving the checkmark sign to the beat`
+**10. "Tamam canım" diyen kuaför**
+> Kuaför salonunda, Fiko bir eliyle fön makinesi diğer eliyle telefon tutuyor, panikle konuşuyor: "Üç müşteriye aynı saati verdim! Hepsine 'tamam canım' dedim!" Sonra rahat bir nefes alıyor: "Neyse ki artık dolu saat listede görünmüyor."
 
-**11. Tilki vs Defter (dövüş sahnesi)**
-Yazı: "Defter 📒 vs SıraGO 🦊"
-Görsel: `the fox facing a giant angry paper notebook character in a boxing ring, cartoon style`
-Hareket: `the fox dodges the notebook and knocks it out with a phone, the notebook falls, the fox raises his arms`
+**11. Fiko vs. Telefon**
+> Fiko boks eldivenleriyle masadaki çalan telefona karşı dövüş pozu alıyor, kameraya konuşuyor: "Bugün maç var. Bir yanda gün boyu çalan telefon, bir yanda ben." Telefona hafifçe vuruyor, telefon susuyor, Fiko kollarını kaldırıp kutluyor.
 
-**12. ASMR çay**
-Yazı: "Randevular otomatik. Sen çayını iç ☕" (ses: çay karıştırma ASMR)
-Görsel: pijama+çay görseli.
-Hareket: `extreme close-up, the fox stirs tea slowly with a tiny spoon, steam rising, calm`
+**12. Bayram öncesi berber**
+> Kalabalık bir berber dükkânı, Fiko bir köşede çok sakin çay içiyor, kameraya konuşuyor: "Bayrama iki gün var. Dükkân dolu, telefon dolu, Ali abinin kafası dolu. Benim kafam? Rahat. Sıra bende, randevular düzenli."
 
-**13. "Hangisi sensin?" 3 tip esnaf**
-Yazı: "1) Telefon kölesi 2) Defter ustası 3) Tilkili esnaf 🦊 — yorumlara yaz"
-3 görsel: `fox tangled in phone cables` / `fox buried under papers` / `fox relaxed with phone and tea`
+### 💈 Sektöre özel
+**13. Kuaför: Cumartesi iptal**
+> Kuaför salonunda Fiko telefona bakıp önce üzülüyor, sonra seviniyor, kameraya konuşuyor: "Cumartesi saat ondaki müşteri iptal etti! Ama dur... Bekleme listesindeki kişiye haber gitti, saat tekrar doldu. Oh!"
 
-### C — Sektöre özel
-**14. Kuaför: Cumartesi iptal**
-Yazı: "Cumartesi 10:00 iptal oldu 😱" → "Bekleme listesindeki ilk kişiye haber gitti"
-Görsel: `the fox in a hair salon holding a blow dryer, looking at a phone notification, surprised then happy`
+**14. Diş kliniği**
+> Beyaz önlüklü Fiko diş kliniğinde, elinde kocaman diş fırçası, kameraya konuşuyor: "Hastalar randevuyu unutuyor, koltuk boş kalıyor. Ben bir gün önceden, bir saat önceden hatırlatıyorum. Diş hekimi de rahat, hasta da."
 
-**15. Diş kliniği**
-Yazı: "Hastanız hatırlatmayı unutmasın 🦷" → "24 saat, 1 saat, 15 dk önce hatırlatır"
-Görsel: `the fox wearing a tiny white dentist coat in a bright dental clinic, holding a giant toothbrush and a phone`
+**15. Nail artist**
+> Tırnak salonunda Fiko minicik bir fırçayla oje sürüyor, telefon sürekli titriyor, kameraya fısıldayarak konuşuyor: "Şşş, oje kuruyor. Telefona bakamam. Ama merak etmeyin, randevuları ben hallediyorum."
 
-**16. Nail artist / güzellik**
-Yazı: "Oje kururken telefon çalmasın 💅"
-Görsel: `the fox in a nail salon, carefully painting tiny nails, phone next to him lighting up with bookings`
+**16. Veteriner**
+> Veteriner kliniğinde Fiko resepsiyonda oturuyor, yanında sevimli bir köpek ve kedi var, kameraya konuşuyor: "Patili müşterilerimiz de sıra bekliyor. Sahipleri WhatsApp'tan yazıyor, randevu hazır. Hav!" Köpek de havlıyor.
 
-**17. Veteriner**
-Yazı: "Kediler ve köpekler de sıra bekler 🐾"
-Görsel: `the fox in a vet clinic as a receptionist, cute puppy and kitten waiting, phone showing appointment list`
+### 🦊 Marka / güven
+**17. "Kurulum mu? Ben yaparım"**
+> Fiko alet kemeri takmış, elinde telefon ve küçük bir anahtar, kameraya konuşuyor: "Kurulum zor mu diye korkma. Sen bana hizmetlerini ve saatlerini gönder, gerisini biz hallederiz. Sen sadece bir QR okutacaksın."
 
-**18. Dövme / kapora**
-Yazı: "Kaporayı akşama atıyorum abi… (atmadı)" → "Kapora linki otomatik"
-Görsel: `the fox in a tattoo studio, holding a phone with a green payment screen, confident`
-Not: kapora özelliği paketinizde açık mı, önce kontrol edin.
+**18. 14 gün ücretsiz**
+> Fiko elinde büyük yeşil bir onay tabelası, zıplayarak kameraya konuşuyor: "On dört gün ücretsiz! Kart bilgisi yok! Beğenmezsen bir şey ödemiyorsun. Daha ne olsun?"
 
-### D — Marka ve güven
-**19. Tilki kendini tanıtıyor**
-Yazı: "Merhaba, ben Fiko 🦊 Dükkânının yeni çalışanıyım" → "Maaş istemem, izin istemem"
-Görsel: el sallayan ana görsel.
-Hareket: `the fox waves at the camera, bows politely, then points to the viewer with a smile`
+**19. Fiko'nun bir günü**
+> Hızlı kesitler: sabah Fiko esneyerek uyanıyor, öğlen berberde telefonla randevu alıyor, akşam koltukta çay içiyor. Her sahnede kameraya kısa konuşuyor: "Sabah: randevular hazır." "Öğle: Ali abi saç kesiyor, ben mesaj." "Akşam: çay keyfi, yarın da dolu."
 
-**20. 3 adımda kurulum**
-Yazı: "1) Kayıt 2) Hizmet ve saatler 3) QR okut → Hazır!"
-Görsel: `the fox scanning a QR code with a phone, a green checkmark appears`
+**20. Rakiplere selam**
+> Fiko güneş gözlüğüyle berber koltuğuna yaslanmış, kameraya havalı konuşuyor: "Hâlâ telefonla randevu alan esnaflara selam olsun. Biz WhatsApp'tan alıyoruz. Bilginize."
 
-**21. "Kurulumu biz yapıyoruz"**
-Yazı: "Uğraşmak istemiyor musun? Kurulumu biz yapalım"
-Görsel: `the fox wearing a tiny tool belt, holding a wrench and a phone, friendly`
+### 📱 Trend formatlar
+**21. "POV: Fiko'yu işe aldın"**
+> Fiko kameraya el sallayıp konuşuyor: "POV: Beni işe aldın." Sonra hızlı kesitlerle telefona yazıyor, randevu onaylıyor, hatırlatma gönderiyor, en sonda kameraya göz kırpıyor: "Ve ben izin bile istemiyorum."
 
-**22. Müşteri gözünden**
-Yazı: "Müşterin uygulama indirmez. Sadece numara yazar."
-Görsel: `close-up of a phone screen in the fox's paws showing a simple green chat, the fox taps numbers 1, 2, 3`
-
-### E — Mevsimlik / güncel
-**23. Bayram öncesi yoğunluk**
-Yazı: "Bayram öncesi berber kuyruğu 😅" → "Sıra SıraGO'da"
-Görsel: `the fox in a busy barbershop full of waiting customers, calmly managing everything from his phone`
-
-**24. Pazartesi sendromu**
-Yazı: "Pazartesi sabahı, hafta zaten dolu 😌"
-Görsel: `the fox waking up, stretching, opening a phone with a full green weekly calendar`
-
-**25. Yılbaşı / düğün sezonu**
-Yazı: "Düğün sezonu geldi, gelin saçları sırada 👰"
-Görsel: `the fox in a festive decorated salon with lights, holding a phone full of bookings`
+**22. Yorumlara cevap**
+> Fiko telefonundan yorumları okuyormuş gibi kameraya konuşuyor: "Bir yorum gelmiş: 'Fiko, berber dükkânı yok ki bende, kuaförüm.' Kardeşim kuaför, diş, veteriner, fark etmez. Randevuyla çalışıyorsan ben varım."
 
 ---
 
-## 4 haftalık paylaşım programı (haftada 4 video)
+## Elindeki 5 görsel nasıl kullanılır
+Bu görselleri Veo/Kling'e **başlangıç karesi** olarak yükle, yukarıdaki promptlardan uygun olanı yapıştır:
+- **Berber dükkânı** → #1, #2, #20
+- **Pijama + çay** → #3 (uyanık versiyon), #12, #19
+- **Uyuyan** → #3
+- **Koşan** → #21 hızlı kesitler
+- **Onay tabelası** → #18 ve her videonun kapanışı
+
+## 4 haftalık program (haftada 4 video)
 | Hafta | Pzt | Çar | Cum | Paz |
 |---|---|---|---|---|
-| 1 | #19 Tanıtım | #1 Elin makasta | #2 Saat 23:47 | #10 Dans |
-| 2 | #4 38 mesaj | #8 Önce/sonra | #14 Kuaför | #13 Hangisi sensin |
-| 3 | #3 Gelmeyen | #7 POV | #15 Diş | #12 ASMR çay |
-| 4 | #5 Abi boş musun | #11 Tilki vs defter | #20 Kurulum | #21 Kurulumu biz yapalım |
+| 1 | #1 Ben Fiko | #2 Telefon susmuyor | #9 Esnaf sözlüğü | #3 Gece 2 |
+| 2 | #6 Röportaj | #10 Tamam canım | #4 Gelmeyen müşteri | #11 Fiko vs Telefon |
+| 3 | #13 Kuaför | #5 Defter | #21 POV | #14 Diş |
+| 4 | #17 Kurulum | #20 Rakiplere selam | #15 Nail | #18 14 gün ücretsiz |
 
-- **Saat:** 12:00–13:00 veya 20:00–22:00 (esnaf öğle arası ve akşam kapanış).
-- **Açıklama:** soru sor ("Günde kaç kere telefon çalıyor?") → yorum gelir, algoritma sever.
-- **Ölç:** Hangi video çok izlendiyse aynı formatın 2. versiyonunu yap. 2 hafta sonra en iyi 2 videoya küçük reklam bütçesi.
-- **Tutarlılık:** Tilki her videoda aynı olsun, her videonun sonunda aynı kapanış: logo + "sırago.com · 14 gün ücretsiz".
+- **Saat:** 12:00–13:00 veya 20:00–22:00.
+- **Altyazı şart:** Çoğu kişi sessiz izliyor. CapCut otomatik altyazı.
+- **Açıklamaya soru yaz:** "Senin telefonun günde kaç kez çalıyor? 👇" Yorum gelirse algoritma öne çıkarır.
+- **Hep aynı ses:** Fiko'nun sesi her videoda aynı olmalı, karakter böyle tutar.
+- **Kapanış:** Her videonun sonunda 2 sn logo + "sırago.com · 14 gün ücretsiz".
