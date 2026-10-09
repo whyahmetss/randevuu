@@ -8,6 +8,9 @@ import LiteBugun from "./components/Lite/LiteBugun";
 import KurulumKarti from "./components/Kurulum/KurulumKarti";
 import Buyume from "./components/Buyume/Buyume";
 import EsnafGetir from "./components/Davet/EsnafGetir";
+import SatisMasasi from "./components/Satis/SatisMasasi";
+import SatisRehberi from "./components/Satis/SatisRehberi";
+import EkipTakip from "./components/Satis/EkipTakip";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -3450,9 +3453,11 @@ function SuperAdminPanel({ kullanici }) {
   // Ekip yetkisi (config/ekip.js ile aynı anahtarlar). ekip_yetkileri yoksa kurucu: her şey açık.
   // Asıl kontrol sunucuda; burada yalnız görmediği bölümü menüde göstermemek için.
   const ekipYetki = Array.isArray(kullanici?.ekip_yetkileri) ? kullanici.ekip_yetkileri : null;
-  const izinli = (y) => !ekipYetki || (y !== 'kurucu' && ekipYetki.includes(y));
+  // Patron (kullanıcı kararı 2026-10-10): kurucuların da üstü; 'patron' bölümleri yalnız onda
+  const patron = kullanici?.patron === true;
+  const izinli = (y) => patron || (y !== 'patron' && (!ekipYetki || (y !== 'kurucu' && ekipYetki.includes(y))));
   const GOREV_AD = { satis: 'SATIŞ', destek: 'DESTEK & KURULUM', finans: 'FİNANS & OPERASYON' };
-  const [sayfa, setSayfa] = useState("dashboard");
+  const [sayfa, setSayfa] = useState(() => (izinli("satis") ? "masa" : "dashboard"));   // ekibin günlük işi Satış Masası'nda başlar
   const [isletmeler, setIsletmeler] = useState([]);
   const [odemeler, setOdemeler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -4046,9 +4051,13 @@ function SuperAdminPanel({ kullanici }) {
     destek: 'destek', duyurular: 'destek', iletisim: 'destek',
     avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
     odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza',
-    apiDash: 'sistem', sistemDurum: 'sistem', auditLog: 'kurucu', ekip: 'kurucu',
+    apiDash: 'sistem', sistemDurum: 'sistem', auditLog: 'patron', ekip: 'patron',
+    masa: 'satis', rehber: 'genel', ekipTakip: 'patron',
   };
   const tumMenu = [
+    { id: "masa", icon: SVGA.satisBot, label: "Satış Masası" },
+    { id: "rehber", icon: SVGA.duyurular, label: "Satış Rehberi" },
+    { id: "ekipTakip", icon: SVGA.referanslar, label: "Ekip Takip 👑" },
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
     { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
     { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
@@ -4147,7 +4156,7 @@ function SuperAdminPanel({ kullanici }) {
         </div>
         <div className="sidebar-user">
           <div className="u-email">{kullanici.email}</div>
-          <span className="sidebar-badge gold">{ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
+          <span className="sidebar-badge gold">{patron ? '👑 PATRON' : ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
         </div>
         <nav className="sidebar-nav">
           {menuItems.map(m => (
@@ -4949,8 +4958,13 @@ function SuperAdminPanel({ kullanici }) {
           </>
         )}
 
-        {/* EKİP (yalnız kurucu) */}
-        {sayfa === "ekip" && izinli('kurucu') && (
+        {/* SATIŞ MASASI · REHBER · EKİP TAKİP (patron) */}
+        {sayfa === "masa" && izinli('satis') && <SatisMasasi api={api} kullanici={kullanici} />}
+        {sayfa === "rehber" && <SatisRehberi api={api} patron={patron} />}
+        {sayfa === "ekipTakip" && patron && <EkipTakip api={api} />}
+
+        {/* EKİP (yalnız patron) */}
+        {sayfa === "ekip" && izinli('patron') && (
           <EkipYonetimi api={api} />
         )}
 
