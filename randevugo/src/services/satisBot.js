@@ -1589,6 +1589,19 @@ class SatisBot extends EventEmitter {
          WHERE id = (SELECT lead_id FROM satis_konusmalar WHERE telefon = $1 AND lead_id IS NOT NULL ORDER BY olusturma_tarihi DESC LIMIT 1)`,
         [telefon]).catch(() => {});
       console.log(`🎉 WhatsApp kaydı: ${d.isletmeAdi} (isletme_id ${isletme.id})`);
+      // Satış Masası: bu aday bir ekip üyesine atanmışsa işletme ona yazılır (otomatik "kuruldu")
+      try {
+        const l = (await pool.query(
+          `SELECT p.id, p.atanan_id FROM potansiyel_musteriler p JOIN satis_konusmalar k ON k.lead_id = p.id
+           WHERE k.telefon = $1 AND p.atanan_id IS NOT NULL ORDER BY k.olusturma_tarihi DESC LIMIT 1`, [telefon])).rows[0];
+        if (l) {
+          await pool.query('UPDATE isletmeler SET getiren_id = COALESCE(getiren_id, $1) WHERE id = $2', [l.atanan_id, isletme.id]);
+          await pool.query(
+            `INSERT INTO satis_aktivite (kullanici_id, lead_id, isletme_id, tip, notu, otomatik)
+             SELECT $1, $2, $3, 'kurulum', 'WhatsApp üzerinden kayıt oldu', true
+             WHERE NOT EXISTS (SELECT 1 FROM satis_aktivite WHERE lead_id = $2 AND tip = 'kurulum')`, [l.atanan_id, l.id, isletme.id]);
+        }
+      } catch (e) { /* masa tabloları yoksa geç */ }
       if (d.davet) {
         try { await require('../utils/davet').kayittaUygula(d.davet, isletme.id); } catch (e) { console.error('Davet bağlanamadı:', e.message); }
       }

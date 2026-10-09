@@ -923,6 +923,13 @@ const PORT = process.env.PORT || 3000;
     // Dosya tabanlı migration'ları çalıştır
     const migrationRunner = require('./utils/migrationRunner');
     await migrationRunner.calistir();
+    // Patron hesabı env ile sabitlenebilir (PATRON_EMAIL): yalnız o hesap patron olur
+    if (process.env.PATRON_EMAIL) {
+      try {
+        const r = await pool.query("UPDATE admin_kullanicilar SET patron = (LOWER(email) = LOWER($1)) WHERE rol = 'superadmin' RETURNING patron", [process.env.PATRON_EMAIL.trim()]);
+        if (!r.rows.some(x => x.patron)) console.error('⚠️ PATRON_EMAIL hiçbir süper admin hesabıyla eşleşmedi');
+      } catch (e) { console.error('Patron ayarlanamadı:', e.message); }
+    }
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
   }

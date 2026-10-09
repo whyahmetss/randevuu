@@ -480,7 +480,23 @@ router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodK
 router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
 router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
 
-// ==================== EKİP (yalnız kurucu — config/ekip.js: 'ekip' → 'kurucu') ====================
+// ==================== SATIŞ MASASI (config/ekip.js: 'masa' → satis; hedef/itiraz düzenleme → patron) ====================
+const masaController = require('../controllers/masaController');
+router.get('/admin/masa/ozet', ...saMw, (req, res) => masaController.ozet(req, res));
+router.get('/admin/masa/listem', ...saMw, (req, res) => masaController.listem(req, res));
+router.post('/admin/masa/cek', ...saMw, (req, res) => masaController.cek(req, res));
+router.post('/admin/masa/lead/:id/sonuc', ...saMw, (req, res) => masaController.sonuc(req, res));
+router.post('/admin/masa/lead/:id/birak', ...saMw, (req, res) => masaController.birak(req, res));
+router.get('/admin/masa/aktiviteler', ...saMw, (req, res) => masaController.aktiviteler(req, res));
+router.put('/admin/masa/hedef', ...saMw, (req, res) => masaController.hedefGuncelle(req, res));
+router.get('/admin/masa/itirazlar', ...saMw, (req, res) => masaController.itirazlar(req, res));
+router.post('/admin/masa/itirazlar', ...saMw, (req, res) => masaController.itirazEkle(req, res));
+router.post('/admin/masa/itirazlar-kullan/:id', ...saMw, (req, res) => masaController.itirazKullanildi(req, res));
+router.put('/admin/masa/itiraz/:id', ...saMw, (req, res) => masaController.itirazGuncelle(req, res));
+router.delete('/admin/masa/itiraz/:id', ...saMw, (req, res) => masaController.itirazSil(req, res));
+router.get('/admin/ekip-takip', ...saMw, (req, res) => masaController.ekipTakip(req, res));
+
+// ==================== EKİP (yalnız patron — config/ekip.js: 'ekip' → 'patron') ====================
 const ekipController = require('../controllers/ekipController');
 router.get('/admin/ekip', ...saMw, (req, res) => ekipController.liste(req, res));
 router.post('/admin/ekip', ...saMw, (req, res) => ekipController.ekle(req, res));

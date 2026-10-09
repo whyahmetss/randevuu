@@ -31,13 +31,14 @@ const authMiddleware = async (req, res, next) => {
     // Ekip üyesi (süper admin): yetkiler ve aktiflik her istekte DB'den — kapatılan hesap anında düşer
     if (decoded.rol === 'superadmin' && decoded.id) {
       try {
-        const k = (await pool.query('SELECT aktif, ekip_yetkileri, ekip_gorev FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
+        const k = (await pool.query('SELECT aktif, ekip_yetkileri, ekip_gorev, patron FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
         if (!k || k.aktif === false) return res.status(401).json({ hata: 'Hesap kapatılmış' });
         req.kullanici.ekip_yetkileri = Array.isArray(k.ekip_yetkileri) ? k.ekip_yetkileri : null;
         req.kullanici.ekip_gorev = k.ekip_gorev || null;
+        req.kullanici.patron = k.patron === true;
       } catch (e) {
         // Kolon henüz yoksa (migration öncesi) tam yetkiyle devam; başka hatada güvenli taraf: kapalı
-        if (!/ekip_/.test(e.message)) return res.status(503).json({ hata: 'Yetki kontrol edilemedi' });
+        if (!/ekip_|patron/.test(e.message)) return res.status(503).json({ hata: 'Yetki kontrol edilemedi' });
       }
     }
 
