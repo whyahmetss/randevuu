@@ -177,6 +177,7 @@ class BookingController {
 
       res.json({ saatler });
     } catch (error) {
+      console.error(`❌ Müsait saatler hesaplanamadı (${req.params.slug} ${req.query.tarih}):`, error.message);
       res.status(500).json({ hata: error.message });
     }
   }

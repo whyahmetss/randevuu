@@ -83,6 +83,42 @@ function HuniSerit({ adimlar }) {
   );
 }
 
+// Numara ile bağlama: tek telefonu olan esnaf QR'ı okutamaz; WhatsApp 8 haneli kod verir
+function EslestirmeKodu({ api }) {
+  const [acik, setAcik] = useState(false);
+  const [tel, setTel] = useState("");
+  const [kod, setKod] = useState(null);
+  const [hata, setHata] = useState(null);
+  const [bekle, setBekle] = useState(false);
+  const al = async () => {
+    setBekle(true); setHata(null); setKod(null);
+    const r = await api.post("/bot/wp/eslestir", { telefon: tel });
+    setBekle(false);
+    if (r?.kod) setKod(r.kod); else setHata(r?.hata || "Kod alınamadı");
+  };
+  if (!acik) return <button onClick={() => setAcik(true)} style={{ marginTop: 10, background: "none", border: "none", color: "#1f6f4a", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>QR okutamıyor musunuz? Numara ile bağlayın →</button>;
+  return (
+    <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "var(--bg)", textAlign: "left" }}>
+      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Numara ile bağla</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <input value={tel} onChange={e => setTel(e.target.value)} placeholder="Bağlanacak WhatsApp numarası (05xx…)" className="input" style={{ flex: "1 1 200px" }} />
+        <button onClick={al} disabled={bekle || tel.replace(/\D/g, "").length < 10} className="btn btn-primary btn-sm">{bekle ? "Kod alınıyor…" : "Kodu al"}</button>
+      </div>
+      {hata && <div style={{ color: "#b42318", fontSize: 12, marginTop: 8 }}>{hata}</div>}
+      {kod && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, fontFamily: "monospace" }}>{String(kod).slice(0, 4)}-{String(kod).slice(4)}</div>
+          <ol style={{ fontSize: 13, color: "var(--dim)", paddingLeft: 18, marginTop: 8, lineHeight: 1.6 }}>
+            <li>Telefonda WhatsApp → Ayarlar → <b>Bağlı cihazlar</b> → <b>Cihaz bağla</b></li>
+            <li>Alttaki <b>"Bunun yerine telefon numarasıyla bağla"</b>ya dokunun</li>
+            <li>Yukarıdaki 8 haneli kodu yazın. Kod birkaç dakika geçerlidir.</li>
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const api = {
   token: oturumTokeni(),
 
@@ -782,6 +818,7 @@ function BotBaglantiSayfasi() {
               <button onClick={wpBaslat} disabled={wpYukleniyor} style={btnCls("#25D366", wpYukleniyor)}>
                 {wpYukleniyor ? "Başlatılıyor..." : "📱 QR Kodu Göster"}
               </button>
+              <EslestirmeKodu api={api} />
             </div>
           )}
 

@@ -105,6 +105,7 @@ router.post('/bot/telegram/ayir', authMiddleware, odemeKontrol, (req, res) => ad
 router.post('/bot/whatsapp/bagla', authMiddleware, odemeKontrol, (req, res) => adminController.whatsappBagla(req, res));
 router.get('/bot/wp/durum', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebDurum(req, res));
 router.post('/bot/wp/baslat', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebBaslat(req, res));
+router.post('/bot/wp/eslestir', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebEslestir(req, res));
 router.post('/bot/wp/ayir', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebAyir(req, res));
 router.get('/bot/wp/sse', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebSse(req, res));
 

@@ -72,7 +72,23 @@ class WhatsAppWebService extends EventEmitter {
     }
   }
 
-  async isletmeBaslat(isletmeId, isletmeIsim, yeniBaslat = true) {
+  // Numara ile bağla: soketi başlatır, WhatsApp'ın verdiği 8 haneli kodu döner (15 sn içinde)
+  async eslestirmeKoduAl(isletmeId, isletmeIsim, telefon) {
+    let tel = String(telefon || '').replace(/\D/g, '');
+    if (tel.startsWith('0')) tel = '9' + tel;
+    if (tel.length === 10) tel = '90' + tel;
+    if (!/^\d{11,15}$/.test(tel)) throw new Error('Telefon numarasını 05xx xxx xx xx şeklinde yazın');
+    const bekle = new Promise((coz) => {
+      const t = setTimeout(() => coz(null), 20000);
+      this.once(`kod_${isletmeId}`, (kod) => { clearTimeout(t); coz(kod); });
+    });
+    await this.isletmeBaslat(isletmeId, isletmeIsim, true, { eslestirmeTel: tel });
+    const kod = await bekle;
+    if (!kod) throw new Error('WhatsApp kodu vermedi, birkaç saniye sonra tekrar deneyin ya da QR ile bağlayın');
+    return kod;
+  }
+
+  async isletmeBaslat(isletmeId, isletmeIsim, yeniBaslat = true, secenek = {}) {
     // Zaten bağlıysa durdurma
     if (this.isletmeler[isletmeId]?.durum === 'bagli') return;
     // Zaten başlatma/bağlanma sürecindeyse: paralel çağrıyı blokla (race protection)
@@ -124,6 +140,8 @@ class WhatsAppWebService extends EventEmitter {
         getMessage: async () => ({ conversation: '' }),
       });
 
+      this.isletmeler[isletmeId].eslestirmeTel = secenek.eslestirmeTel || null;
+      this.isletmeler[isletmeId].eslestirmeKodu = null;
       this.isletmeler[isletmeId].sock = sock;
 
       // Credentials güncellendiğinde kaydet
@@ -132,6 +150,20 @@ class WhatsAppWebService extends EventEmitter {
       // Bağlantı durumu
       sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
+
+        // Numara ile bağlama: QR yerine 8 haneli kod (WhatsApp → Bağlı cihazlar → Telefon numarasıyla bağla)
+        if (qr && this.isletmeler[isletmeId]?.eslestirmeTel && !this.isletmeler[isletmeId].eslestirmeKodu) {
+          try {
+            const kod = await sock.requestPairingCode(this.isletmeler[isletmeId].eslestirmeTel);
+            this.isletmeler[isletmeId].eslestirmeKodu = kod;
+            this.isletmeler[isletmeId].durum = 'kod_bekleniyor';
+            this.emit(`kod_${isletmeId}`, kod);
+            socketServer.emitToIsletme(isletmeId, 'wa:kod', { kod, durum: 'kod_bekleniyor' });
+            console.log(`🔢 Eşleştirme kodu hazır: ${isletmeIsim}`);
+          } catch (e) { console.error('Eşleştirme kodu alınamadı:', e.message); this.emit(`kod_${isletmeId}`, null); }
+          return;
+        }
+        if (qr && this.isletmeler[isletmeId]?.eslestirmeKodu) return;   // kod beklenirken QR üretme
 
         if (qr) {
           this.isletmeler[isletmeId].qrAttempts = (this.isletmeler[isletmeId].qrAttempts || 0) + 1;
@@ -1516,6 +1548,12 @@ class WhatsAppWebService extends EventEmitter {
     const geliyorumIntents = ['geliyorum', '1', 'evet', 'geleceğim', 'gelecegim', 'gelicem', 'tamam', 'ok', 'geliyoruz', '✅'];
     const iptalIntents = ['iptal', '2', 'hayır', 'hayir', 'gelemiyorum', 'gelemem', 'yapamam', 'vazgeçtim', 'vazgectim', '❌', 'iptal et'];
 
+    // "Geliyorum.", "geliyorum ✅", "Evet geleceğim" de tanınsın (eskiden yalnız birebir eşleşme)
+    const sadeTeyit = metinKucuk.replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+    const gucluGeliyorum = /^(evet |tamam )?(geliyorum|geleceğim|gelecegim|gelicem|geliyoruz|orada olacağım|orda olucam)\b/.test(sadeTeyit);
+    const gucluIptal = /^(iptal|gelemiyorum|gelemem|gelemicem|gelemeyeceğim|vazgeçtim|vazgectim)\b/.test(sadeTeyit);
+    if (gucluGeliyorum) metinKucuk = 'geliyorum';
+    else if (gucluIptal) metinKucuk = 'iptal';
     const isTeyitYanit = geliyorumIntents.includes(metinKucuk) || iptalIntents.includes(metinKucuk);
 
     if (isTeyitYanit) {
@@ -1527,11 +1565,12 @@ class WhatsAppWebService extends EventEmitter {
           JOIN musteriler m ON r.musteri_id = m.id
           LEFT JOIN hizmetler h ON r.hizmet_id = h.id
           WHERE r.isletme_id = $1 AND m.telefon = $2
-            AND r.durum = 'onaylandi'
-            AND r.teyit_gonderildi = true
-            AND r.tarih = CURRENT_DATE
-            AND r.saat > NOW()::time
-          ORDER BY r.saat ASC LIMIT 1
+            AND r.durum IN ('onaylandi', 'onay_bekliyor')
+            AND (r.teyit_gonderildi = true OR r.hatirlatma_gonderildi = true)
+            -- Bugünkü değil, yaklaşan ilk randevu (24 saat önceki hatırlatma yarına aittir); İstanbul saatiyle
+            AND (r.tarih + r.saat) > (NOW() AT TIME ZONE 'Europe/Istanbul')
+            AND r.tarih <= (NOW() AT TIME ZONE 'Europe/Istanbul')::date + 2
+          ORDER BY r.tarih ASC, r.saat ASC LIMIT 1
         `, [isletmeId, musteriTelefon])).rows[0];
 
         if (teyitRandevu) {
@@ -1549,6 +1588,12 @@ class WhatsAppWebService extends EventEmitter {
             console.log(`✅ Teyit → GELİYORUM: ${musteriTelefon} - ${teyitRandevu.isletme_isim} ${saat}`);
             return `✅ *Harika, sizi bekliyoruz!*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? '✂️ ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}\n\nGörüşmek üzere! 😊`;
           }
+        }
+        // "Geliyorum" dedi ama yaklaşan randevusu yok: yeni randevu menüsüne düşürme
+        if (!teyitRandevu && (gucluGeliyorum || gucluIptal)) {
+          return gucluGeliyorum
+            ? `Teşekkürler! Yaklaşan bir randevunuz görünmüyor. Yeni randevu için *1* yazabilirsiniz.`
+            : `Yaklaşan bir randevunuz görünmüyor. Yeni randevu için *1* yazabilirsiniz.`;
         }
       } catch (e) { console.error('Teyit zinciri kontrol hatası:', e.message); }
     }
