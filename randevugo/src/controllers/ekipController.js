@@ -22,10 +22,10 @@ class EkipController {
   async liste(req, res) {
     try {
       const r = await pool.query(`
-        SELECT id, isim, email, aktif, ekip_gorev, ekip_yetkileri, son_giris, olusturma_tarihi
-        FROM admin_kullanicilar WHERE rol = 'superadmin' ORDER BY (ekip_yetkileri IS NULL) DESC, id`);
+        SELECT id, isim, email, aktif, ekip_gorev, ekip_yetkileri, son_giris, olusturma_tarihi, patron, gunluk_hedef
+        FROM admin_kullanicilar WHERE rol = 'superadmin' ORDER BY patron DESC NULLS LAST, (ekip_yetkileri IS NULL) DESC, id`);
       res.json({
-        ekip: r.rows.map(u => ({ ...u, kurucu: !Array.isArray(u.ekip_yetkileri), ben: u.id === req.kullanici.id })),
+        ekip: r.rows.map(u => ({ ...u, patron: u.patron === true, kurucu: !Array.isArray(u.ekip_yetkileri), ben: u.id === req.kullanici.id })),
         yetkiler: YETKILER,
         gorevler: GOREVLER,
       });
@@ -56,6 +56,7 @@ class EkipController {
       const id = parseInt(req.params.id);
       const uye = (await pool.query("SELECT * FROM admin_kullanicilar WHERE id = $1 AND rol = 'superadmin'", [id])).rows[0];
       if (!uye) return hata(res, 'Üye bulunamadı', 404);
+      if (uye.patron && id !== req.kullanici.id) return hata(res, 'Patron hesabı değiştirilemez', 403);
       const { isim, gorev, yetkiler, aktif, sifre } = req.body;
       if (gorev !== undefined && !GOREVLER[gorev]) return hata(res, 'Geçersiz görev');
       const yeniGorev = gorev !== undefined ? gorev : (uye.ekip_gorev || (Array.isArray(uye.ekip_yetkileri) ? 'destek' : 'kurucu'));

@@ -2397,7 +2397,9 @@ class AdminController {
       }
 
       // Paket fiyat bilgisi
-      const paketFiyat = { baslangic: 299, profesyonel: 699, proplus: 1499, kurumsal: 4999, premium: 4999 };
+      // Fiyatlar paket tanımlarından (panelden değişen fiyat burada da geçerli)
+      const tumPaketler = await paketleriYukle();
+      const paketFiyat = Object.fromEntries(Object.entries(tumPaketler).map(([k, p]) => [k, parseFloat(p.fiyat) || 0]));
 
       res.json({
         isletme,
@@ -3171,10 +3173,36 @@ class AdminController {
         [baslik, mesaj, tip || 'bilgi', hedef || 'hepsi']
       );
       await this.auditLogYaz(req.kullanici, 'duyuru_yayinlandi', baslik, 'duyurular', result.rows[0].id);
-      res.json({ duyuru: result.rows[0] });
+      // Eskiden duyuru yalnız tam görünümün anasayfa kartında görünüyordu (Lite görünümde hiç);
+      // artık hedef işletmelerin bildirimlerine de düşer: panelde zil + canlı + kapalıysa web push.
+      const alici = await this.duyuruDagit(result.rows[0]);
+      res.json({ duyuru: result.rows[0], alici });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
+  }
+
+  async duyuruDagit(d) {
+    const hedef = d.hedef || 'hepsi';
+    const paketler = hedef === 'profesyonel' ? ['profesyonel', 'proplus', 'kurumsal']
+      : (hedef === 'premium' || hedef === 'kurumsal') ? ['kurumsal'] : null;
+    const isletmeler = (await pool.query(
+      `SELECT id FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE ${paketler ? 'AND paket = ANY($1)' : ''}`,
+      paketler ? [paketler] : [])).rows;
+    let n = 0;
+    for (const { id } of isletmeler) {
+      try {
+        const b = (await pool.query(
+          `INSERT INTO isletme_bildirimleri (isletme_id, tip, baslik, mesaj, link) VALUES ($1, 'duyuru', $2, $3, NULL) RETURNING *`,
+          [id, `📢 ${d.baslik}`, d.mesaj])).rows[0];
+        try { socketServer.emitToIsletme(id, 'bildirim:yeni', { bildirim: b }); } catch (e) {}
+        try { socketServer.emitToIsletme(id, 'duyuru:yeni', { duyuru: d }); } catch (e) {}
+        try { pushService.sendToIsletme(id, { title: `📢 ${d.baslik}`, body: String(d.mesaj || '').slice(0, 180), url: '/', tag: `duyuru-${d.id}` }); } catch (e) {}
+        n++;
+      } catch (e) { console.error(`Duyuru #${d.id} → işletme ${id}:`, e.message); }
+    }
+    console.log(`📢 Duyuru #${d.id} ${n} işletmeye iletildi`);
+    return n;
   }
 
   async duyuruGuncelle(req, res) {

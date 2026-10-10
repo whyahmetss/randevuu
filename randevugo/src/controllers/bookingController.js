@@ -74,6 +74,10 @@ class BookingController {
       isletme.telegram_aktif = telegramAktif;
       isletme.telegram_bot_username = telegramBotUsername;
 
+      // Randevu sayfasının altındaki "İşletmeniz için ücretsiz kurun" bağlantısı bu işletmeye bağlansın
+      if (!isletme.demo) {
+        try { isletme.davet_kodu = await require('../utils/davet').davetKodu(isletme.id); } catch (e) { /* bağlantı davetsiz gider */ }
+      }
       res.json({ isletme });
     } catch (error) {
       res.status(500).json({ hata: error.message });

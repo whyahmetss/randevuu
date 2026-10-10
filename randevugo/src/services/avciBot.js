@@ -965,6 +965,7 @@ class AvciBot {
         AND telefon IS NOT NULL
         AND (wp_mesaj_durumu IS NULL OR wp_mesaj_durumu = '')
         AND (sonraki_arama IS NULL OR sonraki_arama <= NOW())
+        AND atanan_id IS NULL
       ORDER BY 
         CASE WHEN durum = 'arandi' AND sonraki_arama <= NOW() THEN 0 ELSE 1 END,
         skor DESC

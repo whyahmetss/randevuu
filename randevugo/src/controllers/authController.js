@@ -33,7 +33,8 @@ class AuthController {
 
       if (kullanici.rol === 'superadmin') pool.query('UPDATE admin_kullanicilar SET son_giris = NOW() WHERE id = $1', [kullanici.id]).catch(() => {});
       res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null,
-        ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null } });
+        ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null,
+        patron: kullanici.patron === true } });
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);
       res.status(500).json({ hata: 'Sunucu hatası oluştu' });
@@ -43,7 +44,7 @@ class AuthController {
   // Bot üzerinden kayıt (WP/TG bot çağırır)
   async botKayit(req, res) {
     try {
-      const { isletmeAdi, email, sifre, telefon, kayitKanal, referans_kodu } = req.body;
+      const { isletmeAdi, email, sifre, telefon, kayitKanal, referans_kodu, davet } = req.body;
       if (!isletmeAdi || !email || !sifre) {
         return res.status(400).json({ hata: 'İşletme adı, email ve şifre zorunlu' });
       }
@@ -55,6 +56,12 @@ class AuthController {
       }
       if (String(isletmeAdi).trim().length < 2 || String(isletmeAdi).length > 100) {
         return res.status(400).json({ hata: 'İşletme adını kontrol edin' });
+      }
+
+      // Davet kodu yazıldıysa geçerli olmalı (yanlış yazılan kod sessizce kaybolmasın)
+      const yazilanDavet = String(davet || referans_kodu || '').trim();
+      if (yazilanDavet && !(await require('../utils/davet').kodGecerli(yazilanDavet))) {
+        return res.status(400).json({ hata: 'Davet kodu bulunamadı. Kontrol edin ya da boş bırakın.' });
       }
 
       // Email kontrolü
@@ -78,18 +85,23 @@ class AuthController {
         [isletmeAdi, email, hashSifre, isletme.id]
       )).rows[0];
 
-      // Referans kodu varsa sadece kaydet — ödül ilk ödeme anında verilecek (suistimal koruması)
+      // Davet/referans kodu varsa yalnız bağla — ödül davet edilen ilk ödemesini yapınca (suistimal koruması)
       let referansMesaj = '';
-      if (referans_kodu) {
+      const davetKod = davet || referans_kodu;
+      const { davetUygula, KANALLAR } = require('../utils/davet');
+      if (davetKod) {
         try {
-          const ref = (await pool.query("SELECT * FROM referanslar WHERE referans_kodu = $1", [referans_kodu.toUpperCase()])).rows[0];
-          if (ref) {
-            await pool.query("UPDATE referanslar SET toplam_davet = toplam_davet + 1 WHERE id = $1", [ref.id]);
-            await pool.query("UPDATE isletmeler SET referans_ile_gelen = $1 WHERE id = $2", [ref.sahip_isletme_id, isletme.id]);
-            referansMesaj = ` (Referans: ${referans_kodu} kaydedildi — ödül ilk ödeme sonrası verilecek)`;
-            console.log(`🤝 Referans kaydedildi (ödül beklemede): ${referans_kodu}, yeni: ${isletme.id}, sahip: ${ref.sahip_isletme_id}`);
+          const sahip = await davetUygula(davetKod, isletme.id);
+          if (sahip) {
+            referansMesaj = ` (Davet: ${String(davetKod).toUpperCase()} kaydedildi — ödül ilk ödeme sonrası)`;
+            console.log(`🤝 Davet kaydedildi: yeni #${isletme.id}, davet eden #${sahip}`);
           }
-        } catch(e) { console.error('Referans uygulama hatası:', e.message); }
+        } catch(e) { console.error('Davet uygulama hatası:', e.message); }
+      }
+      // Kayıt kanalı (Büyüme ekranı): randevu sayfasından mı, davet linkinden mi, düz web mi
+      const kanal = KANALLAR.includes(kayitKanal) ? kayitKanal : null;
+      if (kanal) {
+        try { await pool.query('UPDATE isletmeler SET kayit_kanali = $1 WHERE id = $2', [davetKod && kanal === 'web' ? 'davet' : kanal, isletme.id]); } catch (e) { /* kolon yoksa */ }
       }
 
       console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}${referansMesaj}`);
@@ -126,6 +138,7 @@ class AuthController {
       if (kullanici && kullanici.rol === 'superadmin') {
         kullanici.ekip_gorev = req.kullanici.ekip_gorev || null;
         kullanici.ekip_yetkileri = req.kullanici.ekip_yetkileri || null;
+        kullanici.patron = req.kullanici.patron === true;
       }
       res.json({ kullanici });
     } catch (error) {

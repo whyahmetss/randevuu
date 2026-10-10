@@ -1167,5 +1167,17 @@ h1, h2, h3, h4 { letter-spacing: -0.01em; font-weight: 600; }
 .login-hero-v2 .lh-alt { margin-top: auto; }
 
 /* Marka monogramı (robot ikon yerine) */
-.marka-monogram { width: 32px; height: 32px; border-radius: 8px; background: var(--text); color: var(--bg); display: inline-grid; place-items: center; font-weight: 600; font-size: 16px; letter-spacing: -0.02em; flex-shrink: 0; }
+.marka-monogram { width: 32px; height: 32px; border-radius: 9px; object-fit: cover; display: inline-block; flex-shrink: 0; box-shadow: 0 4px 12px rgba(37,211,102,.25); }
 .login-form-logo .marka-monogram { width: 36px; height: 36px; font-size: 18px; }
+
+/* Giriş ekranı maskotu */
+.login-hero-v2 { position: relative; }
+.login-hero-v2 .lh-ust, .login-hero-v2 .lh-liste, .login-hero-v2 .lh-alt { position: relative; z-index: 1; }
+.lh-tilki { position: absolute; top: 40px; right: 56px; width: 230px; z-index: 0; animation: lhTilkiGir .9s .3s cubic-bezier(.2,1.4,.4,1) both; pointer-events: none; }
+.lh-tilki img { width: 100%; display: block; animation: lhTilkiSuz 4s ease-in-out infinite; filter: drop-shadow(0 20px 30px rgba(0,0,0,.45)); }
+.lh-balon { position: absolute; top: -6px; left: -96px; background: #f6f5f2; color: #1b1a17; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 14px 14px 4px 14px; white-space: nowrap; box-shadow: 0 10px 24px rgba(0,0,0,.35); animation: lhBalon 5s 1.4s ease-in-out infinite both; }
+@keyframes lhTilkiGir { from { opacity: 0; transform: translateY(30px) scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes lhTilkiSuz { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
+@keyframes lhBalon { 0%,8% { opacity: 0; transform: scale(.7); } 14%,86% { opacity: 1; transform: none; } 94%,100% { opacity: 0; } }
+@media (max-width: 1200px) { .lh-tilki { width: 170px; right: 32px; } }
+@media (max-width: 900px) { .lh-tilki { display: none; } }

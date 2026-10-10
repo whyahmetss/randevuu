@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SıraGO — Akıllı Randevu Yönetim Platformu | WhatsApp Bot</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#25D366">
   <meta name="description" content="SıraGO ile WhatsApp ve Telegram üzerinden 7/24 otomatik randevu alın. Yapay zeka destekli randevu asistanı ile müşterilerinizi kaybetmeyin. Berber, kuaför, klinik ve tüm hizmet sektörleri için.">
   <meta name="keywords" content="randevu sistemi, whatsapp randevu botu, online randevu, berber randevu, kuaför randevu, telegram bot, yapay zeka randevu, SıraGO, otomatik randevu">
   <meta name="author" content="SıraGO">
@@ -213,6 +218,17 @@
     .bg-dark-950{background:#1b1a17!important}
     .bg-dark-950 .gt,.bg-dark-950 .gt-warm,.bg-dark-950 .gt-cool,.bg-dark-950 [class*="bg-clip-text"],.bg-dark-900 .gt{color:#8fd0ad!important}
   </style>
+
+  <style>
+    @keyframes foxFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
+    @keyframes foxIn{from{opacity:0;transform:translate(-40px,30px) scale(.8)}to{opacity:1;transform:none}}
+    @keyframes bubblePop{0%,8%{opacity:0;transform:scale(.6) translateY(8px)}14%,86%{opacity:1;transform:none}94%,100%{opacity:0;transform:scale(.9)}}
+    .fox-wrap{animation:foxIn .9s .9s cubic-bezier(.2,1.4,.4,1) both}
+    .fox-float{animation:foxFloat 4s ease-in-out infinite;filter:drop-shadow(0 18px 24px rgba(27,26,23,.25))}
+    .fox-bubble{animation:bubblePop 5s 1.8s ease-in-out infinite both;transform-origin:bottom left}
+    .logo-fox{transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+    a:hover>.logo-fox{transform:rotate(-8deg) scale(1.12)}
+  </style>
 </head>
 <body>
 
@@ -229,9 +245,7 @@
 <nav id="nav" class="fixed top-0 left-0 right-0 z-[100] h-20 flex items-center px-6 transition-all duration-500">
   <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
     <a href="#" class="flex items-center gap-2.5 group">
-      <div class="w-10 h-10 rounded-xl wa-g flex items-center justify-center shadow-lg shadow-wa-500/25 group-hover:scale-110 group-hover:shadow-wa-500/40 transition-all duration-300">
-        <span class="iconify text-white text-xl" data-icon="mdi:robot-happy-outline"></span>
-      </div>
+      <img src="/img/tilki-ikon.webp" alt="SıraGO" width="44" height="44" class="logo-fox w-11 h-11 rounded-xl shadow-lg shadow-wa-500/25">
       <span class="text-xl font-extrabold tracking-tight text-dark-950">Sıra<span class="gt">GO</span></span>
     </a>
     <div class="hidden lg:flex items-center gap-1">
@@ -304,7 +318,7 @@
         </h1>
 
         <p class="anim-fade-up d4 text-lg md:text-xl text-dark-400 font-light leading-relaxed mb-10 max-w-lg mx-auto lg:mx-0">
-          7/24 kesintisiz çalışan yapay zeka asistanınız. Telefon trafiğini sonlandırın, <strong class="font-semibold text-dark-600">unutulan randevuları otomatik hatırlatmayla azaltın.</strong>
+          7/24 kesintisiz çalışan yapay zeka asistanınız. Telefon trafiğini azaltın, <strong class="font-semibold text-dark-600">unutulan randevuları otomatik hatırlatmayla azaltın.</strong>
         </p>
 
         <div class="anim-fade-up d6 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
@@ -328,7 +342,7 @@
             <span class="iconify text-amber-500 text-xl" data-icon="mdi:rocket-launch-outline"></span>
             <div class="text-left">
               <p class="text-xs font-black text-amber-900 tracking-tight">Erken Erişim</p>
-              <p class="text-[11px] text-amber-700/80">İlk 50 işletme için özel fiyat</p>
+              <p class="text-[11px] text-amber-700/80">Kurulumu sizin için biz yapıyoruz</p>
             </div>
           </div>
           <div class="text-left">
@@ -344,6 +358,11 @@
       <!-- RIGHT: Chat -->
       <div class="lg:w-[45%] anim-scale-in d5">
         <div class="relative max-w-[380px] mx-auto">
+          <!-- SıraGO maskotu -->
+          <div class="fox-wrap absolute z-40 -left-6 -bottom-10 w-28 sm:-left-36 sm:bottom-6 sm:w-44 pointer-events-none">
+            <div class="fox-bubble absolute -top-12 left-6 sm:-top-14 sm:left-10 whitespace-nowrap bg-white text-dark-950 text-xs sm:text-sm font-bold px-3 py-2 rounded-2xl rounded-bl-sm shadow-xl">Randevun hazır! ✅</div>
+            <img src="/img/tilki-maskot.webp" alt="SıraGO tilkisi" class="fox-float w-full" loading="eager">
+          </div>
           <!-- Glow behind phone -->
           <div class="absolute -inset-8 wa-g opacity-10 rounded-[3rem] blur-3xl anim-glow"></div>
 
@@ -357,8 +376,7 @@
               <div class="wa-g px-4 pt-8 pb-3">
                 <div class="flex items-center gap-3">
                   <span class="iconify text-white/70 text-lg" data-icon="mdi:arrow-left"></span>
-                  <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/20">
-                    <span class="iconify text-white text-xl" data-icon="mdi:robot-happy-outline"></span>
+                  <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/20"><img src="/img/tilki-ikon.webp" alt="" class="w-full h-full rounded-full object-cover">
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-white text-sm font-bold">SiraGO Asistan</p>
@@ -783,12 +801,12 @@
       <p class="text-lg text-dark-400 font-light">Gizli ücret yok. İstediğiniz zaman iptal edin.</p>
     </div>
 
-    <!-- Paket merdiveni (2026-10-08): 299 Başlangıç · 699 Standart · 1.499 Pro+ · 4.999 Kurumsal — DB paket_tanimlari ile aynı -->
+    <!-- Paket merdiveni: fiyatlar sayfa sonundaki betikle /api/paketler/fiyatlar'dan gelir (panelden yönetilir); yazılı değerler yedek -->
     <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
         <div class="mb-7">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Başlangıç</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺299</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="baslangic">₺299</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">Tek koltuklu dükkan</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -808,7 +826,7 @@
         </div>
         <div class="mb-7 mt-2">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-wa-400 mb-3">Standart</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺699</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="profesyonel">₺499</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">3–5 koltuklu salon</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -826,7 +844,7 @@
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
         <div class="mb-7">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Pro+</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺1.499</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="proplus">₺1.499</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">Büyük salon, birden çok şube</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -843,7 +861,7 @@
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
         <div class="mb-7">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-dark-400 mb-3">Kurumsal</p>
-          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white">₺4.999</span><span class="text-sm text-dark-500">/ay</span></div>
+          <div class="flex items-baseline gap-1"><span class="text-4xl font-black text-white" data-paket-fiyat="kurumsal">₺4.999</span><span class="text-sm text-dark-500">/ay</span></div>
           <p class="text-xs text-dark-500 mt-2">Zincir ve klinikler</p>
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
@@ -876,11 +894,11 @@
         </div>
 
         <h2 class="text-3xl md:text-5xl font-serif font-medium leading-[0.95] tracking-tighter text-dark-950 mb-5">
-          İlk 50 işletme için<br><span class="italic text-wa-600">özel fiyatlandırma</span>
+          Kurulumu<br><span class="italic text-wa-600">birlikte yapıyoruz</span>
         </h2>
 
         <p class="text-base md:text-lg text-dark-500 font-light leading-relaxed mb-8 max-w-xl mx-auto">
-          SıraGO yeni doğan bir platform. Erken kullanıcılarımız için yaşam boyu <strong class="text-dark-900 font-semibold">%50 indirim</strong> ve <strong class="text-dark-900 font-semibold">öncelikli destek</strong> sunuyoruz. Geri bildiriminizle ürünü birlikte şekillendiriyoruz.
+          SıraGO yeni doğan bir platform. Erken kullanıcılarımızın <strong class="text-dark-900 font-semibold">kurulumunu biz yapıyoruz</strong> ve <strong class="text-dark-900 font-semibold">birebir destek</strong> veriyoruz. Geri bildiriminizle ürünü birlikte şekillendiriyoruz.
         </p>
 
         <div class="flex flex-col sm:flex-row items-center gap-3 justify-center mb-10">
@@ -898,12 +916,12 @@
         <!-- Mini stats -->
         <div class="grid grid-cols-3 gap-4 max-w-xl mx-auto pt-8 border-t border-dark-100/60">
           <div>
-            <div class="text-2xl font-black text-wa-600 mb-1">%50</div>
-            <div class="text-[11px] text-dark-400 font-medium">Yaşam Boyu İndirim</div>
+            <div class="text-2xl font-black text-wa-600 mb-1">0 ₺</div>
+            <div class="text-[11px] text-dark-400 font-medium">Kurulum Ücreti</div>
           </div>
           <div>
-            <div class="text-2xl font-black text-amber-600 mb-1">7/24</div>
-            <div class="text-[11px] text-dark-400 font-medium">Öncelikli Destek</div>
+            <div class="text-2xl font-black text-amber-600 mb-1">Birebir</div>
+            <div class="text-[11px] text-dark-400 font-medium">WhatsApp Destek</div>
           </div>
           <div>
             <div class="text-2xl font-black text-dark-900 mb-1">14 gün</div>
@@ -1035,10 +1053,8 @@
     <div class="grid md:grid-cols-5 gap-12 mb-16">
       <div class="md:col-span-2">
         <a href="#" class="flex items-center gap-2.5 mb-5">
-          <div class="w-9 h-9 rounded-lg wa-g flex items-center justify-center">
-            <span class="iconify text-white text-lg" data-icon="mdi:robot-happy-outline"></span>
-          </div>
-          <span class="text-lg font-extrabold text-white">Sira<span class="text-wa-400">GO</span></span>
+          <img src="/img/tilki-ikon.webp" alt="SıraGO" width="40" height="40" class="logo-fox w-10 h-10 rounded-xl">
+          <span class="text-lg font-extrabold text-white">Sıra<span class="text-wa-400">GO</span></span>
         </a>
         <p class="text-sm text-dark-400 leading-relaxed mb-6 max-w-xs">WhatsApp öncelikli AI randevu asistanı. WhatsApp ve Telegram üzerinden otomatik randevu yönetimi ile işletmenizi büyütün.</p>
         <div class="flex items-center gap-2.5">
@@ -1226,5 +1242,22 @@ document.querySelectorAll('[data-step]').forEach(el=>{
   });
 });
 </script>
+
+  <script>
+  // Fiyatlar panelden yönetilir: sunucudan okunur; ulaşılamazsa sayfadaki yazılı fiyatlar kalır
+  (function () {
+    var fmt = function (n) { return '₺' + Number(n).toLocaleString('tr-TR', { maximumFractionDigits: 0 }); };
+    fetch('https://randevu.xn--srago-n4a.com/api/paketler/fiyatlar', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.fiyatlar) return;
+        document.querySelectorAll('[data-paket-fiyat]').forEach(function (el) {
+          var f = d.fiyatlar[el.getAttribute('data-paket-fiyat')];
+          if (f > 0) el.textContent = fmt(f);
+        });
+      })
+      .catch(function () {});
+  })();
+  </script>
 </body>
 </html>

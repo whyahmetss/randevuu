@@ -1438,7 +1438,7 @@ class SatisBot extends EventEmitter {
         `UPDATE satis_konusmalar SET kayit_durum = $1
          WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $2 ORDER BY olusturma_tarihi DESC LIMIT 1)`,
         [d ? JSON.stringify({ adim: d.adim, onerilenAd: d.onerilenAd || null, isletmeAdi: d.isletmeAdi || null,
-          email: d.email || null, kategori: d.kategori || null, t: Date.now() }) : null, telefon]);
+          email: d.email || null, kategori: d.kategori || null, davet: d.davet || null, t: Date.now() }) : null, telefon]);
     } catch (e) { /* kolon yoksa bellekte devam */ }
   }
 
@@ -1472,6 +1472,22 @@ class SatisBot extends EventEmitter {
     const yaz = (txt) => this._yaz(sock || this.sock, remoteJid, txt);
     const ham = String(metin || '').trim();
     const sade = sadeMetin(ham);
+    const { kodYakala, kodGecerli } = require('../utils/davet');
+    // Davet kodu herhangi bir adımda yazılırsa al ("kayıt SG7K2M9Q" gibi)
+    const yakalanan = kodYakala(ham);
+    if (yakalanan && !d.davet && await kodGecerli(yakalanan)) {
+      d.davet = yakalanan;
+      await this._kayitDurumKaydet(telefon, d);
+      if (d.adim === 'davet') {
+        d.adim = 'sifre'; await this._kayitDurumKaydet(telefon, d);
+        await yaz(`🎁 Davet kodu alındı (${yakalanan}). Son adım: panel için bir *şifre* belirleyin (en az 8 karakter):`);
+        return true;
+      }
+      if (ham.toUpperCase().replace(/\s+/g, '') === yakalanan) {
+        await yaz(`🎁 Davet kodu alındı (${yakalanan}). Devam edelim.`);
+        return true;
+      }
+    }
 
     if (ifadeVar(sade, ['iptal', 'vazgeç', 'vazgec', 'vazgeçtim'])) {
       delete this.konusmalar[telefon].kayit;
@@ -1502,15 +1518,29 @@ class SatisBot extends EventEmitter {
         await yaz(`Bu e-postayla zaten bir hesap var; https://admin.sırago.com adresinden giriş yapabilirsiniz. Şifrenizi hatırlamıyorsanız buraya yazın, yardımcı olalım.\n\nYeni hesap için farklı bir e-posta yazabilirsiniz.`);
         return true;
       }
-      d.email = email; d.adim = 'sifre';
+      d.email = email;
+      d.adim = d.davet ? 'sifre' : 'davet';
       await this._kayitDurumKaydet(telefon, d);
-      await yaz(`Son adım: panel için bir *şifre* belirleyin (en az 6 karakter):`);
+      await yaz(d.davet
+        ? `Son adım: panel için bir *şifre* belirleyin (en az 8 karakter):`
+        : `Sizi bize bir esnaf mı yönlendirdi? *Davet kodunu* yazın (SG ile başlar), yoksa *yok* yazın.`);
+      return true;
+    }
+
+    if (d.adim === 'davet') {
+      if (yakalanan) {   // yazdı ama geçersiz
+        await yaz(`*${yakalanan}* kodunu bulamadım. Kontrol edip tekrar yazar mısınız? Kod yoksa *yok* yazın.`);
+        return true;
+      }
+      d.adim = 'sifre';
+      await this._kayitDurumKaydet(telefon, d);
+      await yaz(`Tamam. Son adım: panel için bir *şifre* belirleyin (en az 8 karakter):`);
       return true;
     }
 
     if (d.adim === 'sifre') {
-      if (ham.length < 6 || ham.length > 72) {
-        await yaz(`Şifre 6 ile 72 karakter arasında olmalı. Tekrar yazar mısınız?`);
+      if (ham.length < 8 || ham.length > 72) {
+        await yaz(`Şifre 8 ile 72 karakter arasında olmalı. Tekrar yazar mısınız?`);
         return true;
       }
       if (!d.isletmeAdi || !d.email) {          // yeniden başlatmada eksik kalmışsa baştan al
@@ -1559,6 +1589,22 @@ class SatisBot extends EventEmitter {
          WHERE id = (SELECT lead_id FROM satis_konusmalar WHERE telefon = $1 AND lead_id IS NOT NULL ORDER BY olusturma_tarihi DESC LIMIT 1)`,
         [telefon]).catch(() => {});
       console.log(`🎉 WhatsApp kaydı: ${d.isletmeAdi} (isletme_id ${isletme.id})`);
+      // Satış Masası: bu aday bir ekip üyesine atanmışsa işletme ona yazılır (otomatik "kuruldu")
+      try {
+        const l = (await pool.query(
+          `SELECT p.id, p.atanan_id FROM potansiyel_musteriler p JOIN satis_konusmalar k ON k.lead_id = p.id
+           WHERE k.telefon = $1 AND p.atanan_id IS NOT NULL ORDER BY k.olusturma_tarihi DESC LIMIT 1`, [telefon])).rows[0];
+        if (l) {
+          await pool.query('UPDATE isletmeler SET getiren_id = COALESCE(getiren_id, $1) WHERE id = $2', [l.atanan_id, isletme.id]);
+          await pool.query(
+            `INSERT INTO satis_aktivite (kullanici_id, lead_id, isletme_id, tip, notu, otomatik)
+             SELECT $1, $2, $3, 'kurulum', 'WhatsApp üzerinden kayıt oldu', true
+             WHERE NOT EXISTS (SELECT 1 FROM satis_aktivite WHERE lead_id = $2 AND tip = 'kurulum')`, [l.atanan_id, l.id, isletme.id]);
+        }
+      } catch (e) { /* masa tabloları yoksa geç */ }
+      if (d.davet) {
+        try { await require('../utils/davet').kayittaUygula(d.davet, isletme.id); } catch (e) { console.error('Davet bağlanamadı:', e.message); }
+      }
 
       await yaz(
         `🎉 Hesabınız hazır! ${DENEME_GUN} gün ücretsiz deneyebilirsiniz, kart bilgisi istemiyoruz.\n\n` +

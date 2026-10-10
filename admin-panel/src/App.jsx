@@ -7,6 +7,10 @@ import Kasa from "./components/Kasa/Kasa";
 import LiteBugun from "./components/Lite/LiteBugun";
 import KurulumKarti from "./components/Kurulum/KurulumKarti";
 import Buyume from "./components/Buyume/Buyume";
+import EsnafGetir from "./components/Davet/EsnafGetir";
+import SatisMasasi from "./components/Satis/SatisMasasi";
+import SatisRehberi from "./components/Satis/SatisRehberi";
+import EkipTakip from "./components/Satis/EkipTakip";
 import Magaza from "./components/Magaza/Magaza";
 import MagazaAdmin from "./components/Magaza/MagazaAdmin";
 import SatisHuni from "./components/SatisBot/SatisHuni";
@@ -141,8 +145,10 @@ function Login({ onLogin }) {
   const [sifre, setSifre] = useState("");
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
-  const [ekran, setEkran] = useState("giris"); // giris | kayit
-  const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "" });
+  // Davet linki: ?davet=KOD (&k=randevu_sayfasi) → doğrudan kayıt ekranı, kod otomatik
+  const davetParam = (() => { try { const q = new URLSearchParams(window.location.search); return { kod: q.get("davet") || "", kanal: q.get("k") === "randevu_sayfasi" ? "randevu_sayfasi" : "davet" }; } catch { return { kod: "", kanal: "web" }; } })();
+  const [ekran, setEkran] = useState(davetParam.kod ? "kayit" : "giris"); // giris | kayit
+  const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
 
   const giris = async (e) => {
     e.preventDefault();
@@ -163,10 +169,11 @@ function Login({ onLogin }) {
     e.preventDefault();
     setHata("");
     if (!kayitForm.isletmeAdi || !kayitForm.email || !kayitForm.sifre) return setHata("Tüm alanları doldurun");
-    if (kayitForm.sifre.length < 6) return setHata("Şifre en az 6 karakter olmalı");
+    if (kayitForm.sifre.length < 8) return setHata("Şifre en az 8 karakter olmalı");
     if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
     setYukleniyor(true);
-    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre, kayitKanal: "web" });
+    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined });
     if (data.basarili) {
       setHata("");
       setEkran("giris");
@@ -206,6 +213,10 @@ function Login({ onLogin }) {
           </div>
         ))}
       </div>
+      <div className="lh-tilki" aria-hidden="true">
+        <div className="lh-balon">Randevun hazır! ✅</div>
+        <img src="/img/tilki-maskot.webp" alt="" />
+      </div>
       <div className="lh-alt">Berber, kuaför ve güzellik salonları için.</div>
     </div>
   );
@@ -214,7 +225,7 @@ function Login({ onLogin }) {
     <div className="login-page">
       <div className="login-form-panel">
         <div className="login-form-logo">
-          <span className="marka-monogram" aria-label="SıraGO">S</span>
+          <img className="marka-monogram" src="/img/tilki-ikon.webp" alt="SıraGO" />
           <span>SıraGO</span>
         </div>
         <div className="login-card">
@@ -244,6 +255,11 @@ function Login({ onLogin }) {
           ) : (
             <>
               <form onSubmit={kayitOl}>
+                {davetParam.kod && (
+                  <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(31,111,74,.08)", color: "#1f6f4a", fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+                    🎁 Bir esnaf sizi davet etti — 14 gün ücretsiz, kart istemiyoruz.
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">İşletme Adı</label>
                   <input type="text" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} onChange={e => setKayitForm(p => ({ ...p, isletmeAdi: e.target.value }))} className="input" />
@@ -254,11 +270,15 @@ function Login({ onLogin }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre</label>
-                  <input type="password" placeholder="En az 6 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
+                  <input type="password" placeholder="En az 8 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre Tekrar</label>
                   <input type="password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} className="input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Davet kodu <span style={{ fontWeight: 400, color: "var(--dim)" }}>(varsa)</span></label>
+                  <input type="text" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
                 </div>
                 {hata && <div className="alert alert-error">{hata}</div>}
                 <button type="submit" disabled={yukleniyor} className="login-btn-primary">
@@ -895,6 +915,7 @@ function Dashboard({ kullanici }) {
   const [musteriler, setMusteriler] = useState([]);
   const [ayarlar, setAyarlar] = useState(null);
   const [paketDurum, setPaketDurum] = useState(null);
+  const [oncu, setOncu] = useState(null);   // Öncü Esnaf: { no, kalan, kilitli_fiyat }
   const [testMesaj, setTestMesaj] = useState("");
   const [testCevaplar, setTestCevaplar] = useState([]);
   const [testTelefon] = useState("05531112233");
@@ -916,6 +937,8 @@ function Dashboard({ kullanici }) {
   const [profilPopover, setProfilPopover] = useState(false);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
+  const [kapaliDuyurular, setKapaliDuyurular] = useState(() => { try { return JSON.parse(localStorage.getItem("kapali_duyurular") || "[]"); } catch { return []; } });
+  const duyuruKapat = (id) => setKapaliDuyurular(l => { const y = [...l, id].slice(-50); try { localStorage.setItem("kapali_duyurular", JSON.stringify(y)); } catch {} return y; });
   const [bildirimler, setBildirimler] = useState([]);
   const [bildirimSayi, setBildirimSayi] = useState(0);
   const [bildirimPopover, setBildirimPopover] = useState(false);
@@ -965,6 +988,7 @@ function Dashboard({ kullanici }) {
     api.get("/ayarlar").then(d => { if (d.isletme) setAyarlar(d.isletme); }).catch(() => {});
     api.get("/yorum-avcisi/istatistik").then(d => { if (!d?.hata) setYorumIstat(d); }).catch(() => {});
     api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
+    api.get("/oncu").then(d => { if (d && !d.hata) setOncu(d); }).catch(() => {});
     // Bildirimler
     api.get("/bildirimler?limit=5").then(d => setBildirimler(d.bildirimler || [])).catch(() => {});
     api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
@@ -990,6 +1014,7 @@ function Dashboard({ kullanici }) {
   useEffect(() => {
     const interval = setInterval(() => {
       api.get("/bildirimler/okunmamis-sayi").then(d => setBildirimSayi(d.sayi || 0)).catch(() => {});
+      api.get("/duyurular").then(d => setDuyurular(d.duyurular || [])).catch(() => {});
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -1243,7 +1268,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1305,6 +1330,7 @@ function Dashboard({ kullanici }) {
     { type: 'flat', items: [
       { id: "geceraporu", icon: ICON.gece, label: "Gece Raporu", featureKey: "gece_raporu" },
       { id: "grup", icon: ICON.sube, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['admin', 'isletme', 'grup_sahibi'] },
+      { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
@@ -1323,6 +1349,7 @@ function Dashboard({ kullanici }) {
     { type: 'flat', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
       { id: "qrkod", icon: ICON.qr, label: "Randevu Linki & QR" },
+      { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
@@ -1387,7 +1414,7 @@ function Dashboard({ kullanici }) {
       {/* ── Sidebar ── */}
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="marka-monogram" aria-label="SıraGO">S</span>
+          <img className="marka-monogram" src="/img/tilki-ikon.webp" alt="SıraGO" />
           <div className="sidebar-logo-text">
             <div className="brand-name">SıraGO</div>
             <div className="brand-sub">İşletme Paneli</div>
@@ -1727,7 +1754,22 @@ function Dashboard({ kullanici }) {
         <div className="page-body">
 
           {/* ── DASHBOARD ── */}
+          {/* Duyurular: Lite dahil her görünümde, kapatılana kadar üstte (eskiden yalnız tam görünüm anasayfasında) */}
+          {duyurular.filter(d => !kapaliDuyurular.includes(d.id)).slice(0, 2).map(d => {
+            const renk = { bilgi: "#2f56c6", guncelleme: "#1f6f4a", bakim: "#a8590c", uyari: "#b42318" }[d.tip] || "#2f56c6";
+            return (
+              <div key={d.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 16px", marginBottom: 12, borderRadius: 12,
+                background: `${renk}0d`, border: `1px solid ${renk}33`, borderLeft: `4px solid ${renk}` }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>📢 {d.baslik}</div>
+                  <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 3, whiteSpace: "pre-wrap" }}>{d.mesaj}</div>
+                </div>
+                <button onClick={() => duyuruKapat(d.id)} title="Kapat" style={{ border: "none", background: "transparent", color: "var(--dim)", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 4 }}>✕</button>
+              </div>
+            );
+          })}
           {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
+          {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
           {sayfa === "anasayfa" && liteMod && (
             <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
@@ -1751,7 +1793,6 @@ function Dashboard({ kullanici }) {
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <div style={{ fontSize: 11, color: "var(--muted)" }}>{duyurular.length} duyuru</div>
-                      <button onClick={() => setSayfa("duyurular")} style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "var(--surface)", color: "var(--text)", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Tümünü Gör</button>
                     </div>
                   </div>
                   {duyurular.length === 0 ? (
@@ -3289,10 +3330,19 @@ function Dashboard({ kullanici }) {
               <h2>Paketler</h2>
               <button onClick={() => setPaketModal(false)} className="modal-close">✕</button>
             </div>
+            {oncu?.no ? (
+              <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14, fontWeight: 600 }}>
+                🏆 Öncü Esnaf #{oncu.no} — {oncu.kilitli_fiyat ? `fiyatınız ömür boyu ${Number(oncu.kilitli_fiyat).toLocaleString("tr-TR")}₺` : "fiyatınız ömür boyu sabit"}
+              </div>
+            ) : oncu?.kalan > 0 ? (
+              <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14 }}>
+                <b>🏆 Öncü Esnaf: son {oncu.kalan} yer.</b> İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır — zam gelse bile.
+              </div>
+            ) : null}
             <div className="price-grid-modal">
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
-                { key: "profesyonel", isim: "Standart", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 699, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["Çoklu Şube", "Öncelikli Destek", "SMS Hatırlatma"] },
+                { key: "profesyonel", isim: "Standart", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 499, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["Çoklu Şube", "Öncelikli Destek", "SMS Hatırlatma"] },
                 { key: "proplus", isim: "Pro+", fiyat: paketDurum?.tum_paketler?.proplus?.fiyat || 1499, renk: "#1f6f4a", ozellikler: ["10 Çalışan", "Sınırsız Randevu", "Çoklu Şube (3 şube)", "Kasa Takibi & Prim Raporu", "Öncelikli Destek", "Tüm Standart Özellikler"], ozellikYok: ["SMS Hatırlatma", "API Erişimi"] },
                 { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 4999, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Şube", "SMS Hatırlatma", "API Erişimi", "Özel Onboarding", "Tüm Pro+ Özellikler"], ozellikYok: [] },
               ].map(p => {
@@ -3403,9 +3453,11 @@ function SuperAdminPanel({ kullanici }) {
   // Ekip yetkisi (config/ekip.js ile aynı anahtarlar). ekip_yetkileri yoksa kurucu: her şey açık.
   // Asıl kontrol sunucuda; burada yalnız görmediği bölümü menüde göstermemek için.
   const ekipYetki = Array.isArray(kullanici?.ekip_yetkileri) ? kullanici.ekip_yetkileri : null;
-  const izinli = (y) => !ekipYetki || (y !== 'kurucu' && ekipYetki.includes(y));
+  // Patron (kullanıcı kararı 2026-10-10): kurucuların da üstü; 'patron' bölümleri yalnız onda
+  const patron = kullanici?.patron === true;
+  const izinli = (y) => patron || (y !== 'patron' && (!ekipYetki || (y !== 'kurucu' && ekipYetki.includes(y))));
   const GOREV_AD = { satis: 'SATIŞ', destek: 'DESTEK & KURULUM', finans: 'FİNANS & OPERASYON' };
-  const [sayfa, setSayfa] = useState("dashboard");
+  const [sayfa, setSayfa] = useState(() => (izinli("satis") ? "masa" : "dashboard"));   // ekibin günlük işi Satış Masası'nda başlar
   const [isletmeler, setIsletmeler] = useState([]);
   const [odemeler, setOdemeler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -3999,9 +4051,13 @@ function SuperAdminPanel({ kullanici }) {
     destek: 'destek', duyurular: 'destek', iletisim: 'destek',
     avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
     odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza',
-    apiDash: 'sistem', sistemDurum: 'sistem', auditLog: 'kurucu', ekip: 'kurucu',
+    apiDash: 'sistem', sistemDurum: 'sistem', auditLog: 'patron', ekip: 'patron',
+    masa: 'satis', rehber: 'genel', ekipTakip: 'patron',
   };
   const tumMenu = [
+    { id: "masa", icon: SVGA.satisBot, label: "Satış Masası" },
+    { id: "rehber", icon: SVGA.duyurular, label: "Satış Rehberi" },
+    { id: "ekipTakip", icon: SVGA.referanslar, label: "Ekip Takip 👑" },
     { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
     { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
     { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
@@ -4035,7 +4091,7 @@ function SuperAdminPanel({ kullanici }) {
   // Fiyatlar veritabanındaki paket tanımlarından (eskiden sabit 299/599/999 ve 'premium' anahtarı vardı;
   // Kurumsal undefined görünüyor, '+ Bekliyor Oluştur' yanlış tutarla kayıt açıyordu)
   useEffect(() => { paketleriYukle(); }, []);
-  const paketFiyat = { baslangic: 299, profesyonel: 699, proplus: 1499, kurumsal: 4999,
+  const paketFiyat = { baslangic: 299, profesyonel: 499, proplus: 1499, kurumsal: 4999,
     ...Object.fromEntries((paketTanimlar || []).map(p => [p.kod, parseFloat(p.fiyat) || 0])) };
   const odemeRenk = { odendi: "#1f6f4a", bekliyor: "#a8590c", gecikti: "#b42318", havale_bekliyor: "#5d4bb5", basarisiz: "#b42318", odeme_bekliyor: "#a8590c" };
   const odemeLabel = { odendi: "Ödendi ✓", bekliyor: "Bekliyor", gecikti: "Gecikti!", havale_bekliyor: "Havale Onay Bekliyor", basarisiz: "Başarısız", odeme_bekliyor: "Ödeme Bekliyor" };
@@ -4092,7 +4148,7 @@ function SuperAdminPanel({ kullanici }) {
       {/* Sidebar */}
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="sidebar-logo">
-          <span className="marka-monogram" aria-label="SıraGO">S</span>
+          <img className="marka-monogram" src="/img/tilki-ikon.webp" alt="SıraGO" />
           <div className="sidebar-logo-text">
             <div className="brand-name">SıraGO</div>
             <div className="brand-sub">Süper Admin</div>
@@ -4100,7 +4156,7 @@ function SuperAdminPanel({ kullanici }) {
         </div>
         <div className="sidebar-user">
           <div className="u-email">{kullanici.email}</div>
-          <span className="sidebar-badge gold">{ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
+          <span className="sidebar-badge gold">{patron ? '👑 PATRON' : ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
         </div>
         <nav className="sidebar-nav">
           {menuItems.map(m => (
@@ -4902,8 +4958,13 @@ function SuperAdminPanel({ kullanici }) {
           </>
         )}
 
-        {/* EKİP (yalnız kurucu) */}
-        {sayfa === "ekip" && izinli('kurucu') && (
+        {/* SATIŞ MASASI · REHBER · EKİP TAKİP (patron) */}
+        {sayfa === "masa" && izinli('satis') && <SatisMasasi api={api} kullanici={kullanici} />}
+        {sayfa === "rehber" && <SatisRehberi api={api} patron={patron} />}
+        {sayfa === "ekipTakip" && patron && <EkipTakip api={api} />}
+
+        {/* EKİP (yalnız patron) */}
+        {sayfa === "ekip" && izinli('patron') && (
           <EkipYonetimi api={api} />
         )}
 
