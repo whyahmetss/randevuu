@@ -61,6 +61,11 @@ function AdayKarti({ a, api, yenile, onDemo }) {
             {!a.web_sitesi && <span style={{ color: RENK.yesil }}>web sitesi yok</span>}
             {a.google_maps_url && <a href={a.google_maps_url} target="_blank" rel="noreferrer" style={{ color: RENK.mavi, textDecoration: 'none' }}>Harita ↗</a>}
           </div>
+          {Array.isArray(a.yakindakiler) && a.yakindakiler.length > 0 && (
+            <div style={{ fontSize: 12, color: RENK.yesil, fontWeight: 600, marginBottom: 8 }}>
+              🤝 {a.ilce}'de kullanan: {a.yakindakiler.map(y => `${y.isim}${y.gun >= 30 ? ` (${Math.floor(y.gun / 30)} aydır)` : y.gun >= 7 ? ` (${Math.floor(y.gun / 7)} haftadır)` : ''}`).join(', ')} — "isterseniz onlara da sorun" deyin
+            </div>
+          )}
           {a.notlar && <div style={{ fontSize: 12, color: 'var(--dim)', fontStyle: 'italic', whiteSpace: 'pre-wrap', marginBottom: 8 }}>📝 {a.notlar.split('\n').slice(-2).join(' · ')}</div>}
 
           {/* 1) Ulaş */}

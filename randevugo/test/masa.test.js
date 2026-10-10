@@ -8,13 +8,14 @@ const ortam = (async () => {
     CREATE TABLE admin_kullanicilar (id SERIAL PRIMARY KEY, isim TEXT, email TEXT, rol TEXT, aktif BOOLEAN DEFAULT true,
       ekip_gorev TEXT, ekip_yetkileri TEXT[], son_giris TIMESTAMP);
     CREATE TABLE potansiyel_musteriler (id SERIAL PRIMARY KEY, isletme_adi TEXT, telefon TEXT, sehir TEXT, ilce TEXT, kategori TEXT,
-      puan NUMERIC, yorum_sayisi INT, web_sitesi TEXT, google_maps_url TEXT, skor INT, durum TEXT DEFAULT 'yeni', notlar TEXT,
+      puan NUMERIC, yorum_sayisi INT, web_sitesi TEXT, instagram TEXT, google_maps_url TEXT, skor INT, durum TEXT DEFAULT 'yeni', notlar TEXT,
       arama_tarihi TIMESTAMP, sonraki_arama TIMESTAMP, wp_mesaj_durumu TEXT, demo_isletme_id INT);
-    CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, demo BOOLEAN DEFAULT false, grup_id INT, olusturma_tarihi TIMESTAMP DEFAULT NOW());
+    CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, demo BOOLEAN DEFAULT false, grup_id INT, ilce TEXT, kategori TEXT, aktif BOOLEAN DEFAULT true, olusturma_tarihi TIMESTAMP DEFAULT NOW());
+    CREATE TABLE randevular (id SERIAL, isletme_id INT);
     CREATE TABLE satis_konusmalar (id SERIAL PRIMARY KEY, lead_id INT, kayit_isletme_id INT, telefon TEXT, olusturma_tarihi TIMESTAMP DEFAULT NOW());
     CREATE TABLE odemeler (id SERIAL, isletme_id INT, durum TEXT);
     INSERT INTO admin_kullanicilar (isim, email, rol) VALUES ('Ahmet', 'a@x', 'superadmin'), ('Ali', 'b@x', 'superadmin'), ('Mete', 'c@x', 'superadmin');
-    INSERT INTO potansiyel_musteriler (isletme_adi, telefon, skor) SELECT 'Dükkan ' || g, '0532' || g, 100 - g FROM generate_series(1, 25) g;
+    INSERT INTO potansiyel_musteriler (isletme_adi, telefon, skor, yorum_sayisi) SELECT 'Dükkan ' || g, '0532' || g, 100 - g, CASE WHEN g = 1 THEN 250 ELSE 10 END FROM generate_series(1, 25) g;
     INSERT INTO potansiyel_musteriler (isletme_adi, telefon, skor, wp_mesaj_durumu) VALUES ('Bot yazdı', '0533', 999, 'gonderildi');`);
   await o.db.exec(fs.readFileSync(SRC + '/migrations/030_satis_masasi.sql', 'utf8'));
   return o;
@@ -92,4 +93,24 @@ test('itiraz bankası: hazır itirazlar yüklü, herkes ekler', async () => {
   assert.ok(r.v.itirazlar.length >= 8);
   r = res(); await m.itirazEkle(req(3, { body: { itiraz: 'Kızım bakıyor telefona', cevap: 'O zaman kızınız da panelden görsün' } }), r);
   assert.strictEqual(r.v.itiraz.ekleyen_id, 3);
+});
+
+test('hedefleme: Instagram\'ı olan yoğun salon, defterli küçük dükkandan yüksek skor alır; kartta yakında kullananlar', async () => {
+  const { db } = await ortam;
+  const avci = require(SRC + '/services/avciBot');
+  const yogun = avci.skorHesapla({ telefon: '1', instagram: 'salon', yorum_sayisi: 420, puan: 4.7 });
+  const kucuk = avci.skorHesapla({ telefon: '1', instagram: null, yorum_sayisi: 12, puan: 4.1 });
+  assert.ok(yogun > kucuk, `${yogun} > ${kucuk}`);
+
+  await db.exec(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ilce TEXT; ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS kategori TEXT;
+    ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS aktif BOOLEAN DEFAULT true;
+    CREATE TABLE IF NOT EXISTS randevular (id SERIAL, isletme_id INT);
+    INSERT INTO isletmeler (isim, ilce, kategori, olusturma_tarihi) VALUES ('Style Hair', 'Moda', 'kuaför', NOW() - INTERVAL '70 days'), ('Randevusuz', 'Moda', 'kuaför', NOW());
+    INSERT INTO randevular (isletme_id) SELECT id FROM isletmeler WHERE isim = 'Style Hair';`);
+  const id = (await db.query("SELECT id FROM potansiyel_musteriler WHERE atanan_id = 3 AND durum = 'yeni' LIMIT 1")).rows[0].id;
+  await db.query("UPDATE potansiyel_musteriler SET ilce = 'Moda', kategori = 'kuaför' WHERE id = $1", [id]);
+  const m = require(SRC + '/controllers/masaController');
+  const r = res(); await m.listem(req(3), r);
+  const kart = r.v.bugun.find(x => x.id === id);
+  assert.deepStrictEqual(kart.yakindakiler.map(y => y.isim), ['Style Hair'], 'yalnız gerçekten kullanan (randevusu olan) gösterilir');
 });

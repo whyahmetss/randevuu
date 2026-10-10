@@ -68,6 +68,10 @@ function Metinler() {
         '"Tam bunun için bir sistem yaptık: müşteri WhatsApp\'tan ya da linkten kendi saatini seçiyor, siz sadece onaylıyorsunuz. Size özel sayfanızı hazırladım, WhatsApp\'tan göndereyim mi?"',
         'Baktıysa: "14 gün ücretsiz, kart istemiyoruz. Şimdi 5 dakikada birlikte kuralım mı?"',
       ]} />
+      <H>Kime vakit ayıralım (müşteri testi, 10 Ekim)</H>
+      <P><B>Sıcak:</B> "WhatsApp'a yetişemiyorum", Instagram'ı aktif, yoğun salon. Bunlara demo gösterin, kurulumu hemen yapın.</P>
+      <P><B>Soğuk:</B> "Defterle gayet iyi idare ediyorum", her kuruşu soran, zaten başka program kullanan. Testte 26 kişiden hiçbiri almadı. Israr etmeyin: <i>"Anlıyorum, şu an size uymayabilir; WhatsApp yoğunlaşırsa numaram sizde."</i> Masa'da "İlgilenmiyor" işaretleyip sıradakine geçin.</P>
+      <P><B>Güven:</B> En büyük itiraz "yanlış saat verir / firma kapanır / numara banlanır". Kartta "yakınında kullanan" dükkân varsa adını verin: "Moda'da X üç aydır kullanıyor, isterseniz onlara da sorun." Tanıdık esnaf, her madde açıklamasından güçlüdür.</P>
       <H>Saha</H>
       <Liste items={[
         'Giriş: "Kolay gelsin usta, 2 dakikanı alırım. Satış yapmaya gelmedim, bir şey göstereyim."',
