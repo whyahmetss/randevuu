@@ -1,0 +1,13 @@
+{
+  "id": "P005",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Randevuyu bir yapay zekâya bırakıp yanlış saat ya da çift randevu verirse müşterinin önünde rezil olan ben olurum. Üstüne her ay 299₺ abonelik; gece mesajlarına sabah ben de cevap veriyorum, bedava.",
+  "objection": "Makine yanlış anlarsa, iki kişiyi aynı saate yazarsa ya da müşteriye tuhaf bir cevap verirse dükkanın adı gider; bunu kim telafi edecek?",
+  "would_change_my_mind": "Tanıdığım bir berberin aylarca hatasız kullandığını görmek, ya da asistanın randevuyu kesinleştirmeden önce bana onaylatması.",
+  "price_too_cheap": 50,
+  "price_cheap": 120,
+  "price_expensive": 250,
+  "price_too_expensive": 400
+}

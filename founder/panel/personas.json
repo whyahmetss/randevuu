@@ -1,0 +1,222 @@
+[
+ {
+  "id": "P001",
+  "name": "Leah",
+  "age": 39,
+  "segment": "5+ çalışanlı kuaför / güzellik salonu",
+  "income": 167000,
+  "behaviour": "Kuruşu kuruşuna hesaplayan",
+  "behaviour_how": "Her aylık gideri sorgular, ücretsiz olanı tercih eder, abonelikten kaçar.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa ne olacak",
+  "habit": "müşteriler gece 11'de bile WhatsApp'tan randevu soruyor"
+ },
+ {
+  "id": "P002",
+  "name": "Tess",
+  "age": 37,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 118000,
+  "behaviour": "Instagram'ı aktif genç işletmeci",
+  "behaviour_how": "Instagram'dan müşteri buluyor, yeni teknolojiyi dener, dükkanını marka gibi yönetir.",
+  "objection": "Kurmak uğraştırır, teknolojiden anlamam, bozulursa kim ilgilenecek",
+  "habit": "kasa defterini ve randevuları kendin tutuyorsun"
+ },
+ {
+  "id": "P003",
+  "name": "Sara",
+  "age": 51,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 82000,
+  "behaviour": "WhatsApp'ta boğulan",
+  "behaviour_how": "Günde onlarca WhatsApp mesajı geliyor, makas elindeyken cevap veremiyor, akşam evde mesajlara dönüyor.",
+  "objection": "Kurmak uğraştırır, teknolojiden anlamam, bozulursa kim ilgilenecek",
+  "habit": "Instagram hesabına haftada birkaç kez fotoğraf atıyorsun"
+ },
+ {
+  "id": "P004",
+  "name": "Tariq",
+  "age": 50,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 51000,
+  "behaviour": "Zaten bir program kullanıyor",
+  "behaviour_how": "Kolay Randevu, Kuaför Asistan veya benzeri bir programa para ödüyor ya da denemiş.",
+  "objection": "WhatsApp numaram kapanır ya da banlanır mı, müşteri verilerim güvende mi",
+  "habit": "dükkanı sabah 9'da açıp akşam 9'a kadar ayakta çalışıyorsun"
+ },
+ {
+  "id": "P005",
+  "name": "Clara",
+  "age": 52,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 92000,
+  "behaviour": "Kuruşu kuruşuna hesaplayan",
+  "behaviour_how": "Her aylık gideri sorgular, ücretsiz olanı tercih eder, abonelikten kaçar.",
+  "objection": "Yanlış saate randevu verirse ya da çift randevu olursa rezil olurum",
+  "habit": "müşteriler gece 11'de bile WhatsApp'tan randevu soruyor"
+ },
+ {
+  "id": "P006",
+  "name": "Olivia",
+  "age": 47,
+  "segment": "Tek koltuklu / tek kişilik berber",
+  "income": 33000,
+  "behaviour": "WhatsApp'ta boğulan",
+  "behaviour_how": "Günde onlarca WhatsApp mesajı geliyor, makas elindeyken cevap veremiyor, akşam evde mesajlara dönüyor.",
+  "objection": "WhatsApp numaram kapanır ya da banlanır mı, müşteri verilerim güvende mi",
+  "habit": "pazartesi kapalısın, cumartesi en yoğun günün"
+ },
+ {
+  "id": "P007",
+  "name": "Lucia",
+  "age": 32,
+  "segment": "Tek koltuklu / tek kişilik berber",
+  "income": 52000,
+  "behaviour": "Telefon ve defter alışkanlığı",
+  "behaviour_how": "Randevuları telefonla alıp deftere yazıyor, yıllardır böyle çalışıyor, yeniliğe şüpheyle bakıyor.",
+  "objection": "Müşterim yapay zekayla değil benimle konuşmak ister, robot gibi cevap verirse müşteri kaçar",
+  "habit": "müşteriler gece 11'de bile WhatsApp'tan randevu soruyor"
+ },
+ {
+  "id": "P008",
+  "name": "Bilal",
+  "age": 50,
+  "segment": "5+ çalışanlı kuaför / güzellik salonu",
+  "income": 182000,
+  "behaviour": "Müşteri gelmiyor diye dertli",
+  "behaviour_how": "Randevu alıp gelmeyenlerden ve boş kalan saatlerden şikayetçi, ciroyu artırmak istiyor.",
+  "objection": "Kolay Randevu / Kuaför Asistan gibi programlar zaten var",
+  "habit": "dükkanı sabah 9'da açıp akşam 9'a kadar ayakta çalışıyorsun"
+ },
+ {
+  "id": "P009",
+  "name": "Zoe",
+  "age": 40,
+  "segment": "5+ çalışanlı kuaför / güzellik salonu",
+  "income": 134000,
+  "behaviour": "Instagram'ı aktif genç işletmeci",
+  "behaviour_how": "Instagram'dan müşteri buluyor, yeni teknolojiyi dener, dükkanını marka gibi yönetir.",
+  "objection": "Müşterim yapay zekayla değil benimle konuşmak ister, robot gibi cevap verirse müşteri kaçar",
+  "habit": "müşteriler gece 11'de bile WhatsApp'tan randevu soruyor"
+ },
+ {
+  "id": "P010",
+  "name": "Nora",
+  "age": 41,
+  "segment": "Tek koltuklu / tek kişilik berber",
+  "income": 25000,
+  "behaviour": "Zaten bir program kullanıyor",
+  "behaviour_how": "Kolay Randevu, Kuaför Asistan veya benzeri bir programa para ödüyor ya da denemiş.",
+  "objection": "Yanlış saate randevu verirse ya da çift randevu olursa rezil olurum",
+  "habit": "Instagram hesabına haftada birkaç kez fotoğraf atıyorsun"
+ },
+ {
+  "id": "P011",
+  "name": "Callum",
+  "age": 48,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 103000,
+  "behaviour": "Telefon ve defter alışkanlığı",
+  "behaviour_how": "Randevuları telefonla alıp deftere yazıyor, yıllardır böyle çalışıyor, yeniliğe şüpheyle bakıyor.",
+  "objection": "Kolay Randevu / Kuaför Asistan gibi programlar zaten var",
+  "habit": "yan dükkandaki berberle iyi anlaşırsın, ne kullandığını merak edersin"
+ },
+ {
+  "id": "P012",
+  "name": "Celine",
+  "age": 40,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 56000,
+  "behaviour": "Kuruşu kuruşuna hesaplayan",
+  "behaviour_how": "Her aylık gideri sorgular, ücretsiz olanı tercih eder, abonelikten kaçar.",
+  "objection": "Kolay Randevu / Kuaför Asistan gibi programlar zaten var",
+  "habit": "yan dükkandaki berberle iyi anlaşırsın, ne kullandığını merak edersin"
+ },
+ {
+  "id": "P013",
+  "name": "Quinn",
+  "age": 39,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 51000,
+  "behaviour": "WhatsApp'ta boğulan",
+  "behaviour_how": "Günde onlarca WhatsApp mesajı geliyor, makas elindeyken cevap veremiyor, akşam evde mesajlara dönüyor.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa ne olacak",
+  "habit": "pazartesi kapalısın, cumartesi en yoğun günün"
+ },
+ {
+  "id": "P014",
+  "name": "Omar",
+  "age": 41,
+  "segment": "Tek koltuklu / tek kişilik berber",
+  "income": 38000,
+  "behaviour": "Telefon ve defter alışkanlığı",
+  "behaviour_how": "Randevuları telefonla alıp deftere yazıyor, yıllardır böyle çalışıyor, yeniliğe şüpheyle bakıyor.",
+  "objection": "Kolay Randevu / Kuaför Asistan gibi programlar zaten var",
+  "habit": "dükkanı sabah 9'da açıp akşam 9'a kadar ayakta çalışıyorsun"
+ },
+ {
+  "id": "P015",
+  "name": "Keisha",
+  "age": 49,
+  "segment": "Tek koltuklu / tek kişilik berber",
+  "income": 53000,
+  "behaviour": "Müşteri gelmiyor diye dertli",
+  "behaviour_how": "Randevu alıp gelmeyenlerden ve boş kalan saatlerden şikayetçi, ciroyu artırmak istiyor.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa ne olacak",
+  "habit": "yan dükkandaki berberle iyi anlaşırsın, ne kullandığını merak edersin"
+ },
+ {
+  "id": "P016",
+  "name": "Jordan",
+  "age": 29,
+  "segment": "5+ çalışanlı kuaför / güzellik salonu",
+  "income": 195000,
+  "behaviour": "Müşteri gelmiyor diye dertli",
+  "behaviour_how": "Randevu alıp gelmeyenlerden ve boş kalan saatlerden şikayetçi, ciroyu artırmak istiyor.",
+  "objection": "Kurmak uğraştırır, teknolojiden anlamam, bozulursa kim ilgilenecek",
+  "habit": "dükkanı sabah 9'da açıp akşam 9'a kadar ayakta çalışıyorsun"
+ },
+ {
+  "id": "P017",
+  "name": "Kofi",
+  "age": 44,
+  "segment": "Tek koltuklu / tek kişilik berber",
+  "income": 58000,
+  "behaviour": "Instagram'ı aktif genç işletmeci",
+  "behaviour_how": "Instagram'dan müşteri buluyor, yeni teknolojiyi dener, dükkanını marka gibi yönetir.",
+  "objection": "Müşterim yapay zekayla değil benimle konuşmak ister, robot gibi cevap verirse müşteri kaçar",
+  "habit": "dükkanı sabah 9'da açıp akşam 9'a kadar ayakta çalışıyorsun"
+ },
+ {
+  "id": "P018",
+  "name": "Finn",
+  "age": 55,
+  "segment": "5+ çalışanlı kuaför / güzellik salonu",
+  "income": 140000,
+  "behaviour": "Zaten bir program kullanıyor",
+  "behaviour_how": "Kolay Randevu, Kuaför Asistan veya benzeri bir programa para ödüyor ya da denemiş.",
+  "objection": "Müşterim yapay zekayla değil benimle konuşmak ister, robot gibi cevap verirse müşteri kaçar",
+  "habit": "kasa defterini ve randevuları kendin tutuyorsun"
+ },
+ {
+  "id": "P019",
+  "name": "Jonah",
+  "age": 37,
+  "segment": "Tek koltuklu / tek kişilik berber",
+  "income": 35000,
+  "behaviour": "Telefon ve defter alışkanlığı",
+  "behaviour_how": "Randevuları telefonla alıp deftere yazıyor, yıllardır böyle çalışıyor, yeniliğe şüpheyle bakıyor.",
+  "objection": "Zaten telefonla ve WhatsApp'tan idare ediyorum, aylık para vermeye gerek yok",
+  "habit": "müşteriler gece 11'de bile WhatsApp'tan randevu soruyor"
+ },
+ {
+  "id": "P020",
+  "name": "Luca",
+  "age": 46,
+  "segment": "2-4 çalışanlı berber veya kuaför",
+  "income": 92000,
+  "behaviour": "WhatsApp'ta boğulan",
+  "behaviour_how": "Günde onlarca WhatsApp mesajı geliyor, makas elindeyken cevap veremiyor, akşam evde mesajlara dönüyor.",
+  "objection": "WhatsApp numaram kapanır ya da banlanır mı, müşteri verilerim güvende mi",
+  "habit": "yan dükkandaki berberle iyi anlaşırsın, ne kullandığını merak edersin"
+ }
+]

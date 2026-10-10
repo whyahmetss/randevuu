@@ -1,0 +1,13 @@
+{
+  "id": "P007",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Yıllardır telefon ve defterle çalışıyorum, müşterilerim beni tanıyor. Tek koltuklu dükkanda bir robotun benim adıma yazışmasına güvenmem, yanlış bir cevap müşteriyi kaçırır.",
+  "objection": "Müşterim yapay zekayla değil benimle konuşmak ister; robot gibi cevap verirse ya da randevuyu karıştırırsa müşteriyi kaybederim.",
+  "would_change_my_mind": "Tanıdığım bir berberin bunu kullanıp müşterilerinin fark etmediğini, gece gelen mesajlarla gerçekten randevu kazandığını görmem.",
+  "price_too_cheap": 50,
+  "price_cheap": 150,
+  "price_expensive": 300,
+  "price_too_expensive": 500
+}

@@ -1,0 +1,13 @@
+{
+  "id": "P018",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Zaten bir programa para ödüyorum, bir tane daha değiştirmeye niyetim yok. Müşterilerim yıllardır benimle konuşuyor, WhatsApp'ta robot cevap verirse ayıp olur, müşteri kaçar.",
+  "objection": "Yapay zekâ müşteriye soğuk, robot gibi cevap verir; yanlış saate randevu verirse beş çalışanlı dükkanda karışıklık bana patlar.",
+  "would_change_my_mind": "Tanıdığım bir salon sahibinin müşterilerinin şikayet etmeden kullandığını kendi gözümle görmek ve mevcut programımdaki müşteri listemi sorunsuz taşıyabilmek.",
+  "price_too_cheap": 150,
+  "price_cheap": 400,
+  "price_expensive": 800,
+  "price_too_expensive": 1200
+}

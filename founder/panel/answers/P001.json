@@ -1,0 +1,13 @@
+{
+  "id": "P001",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Gece WhatsApp mesajları gerçekten yoruyor, belki ücretsiz denemeyi açarım ama yeni bir firmaya müşterilerimin yazışmalarını ve takvimimi teslim edip her ay 699₺ ödemeye hemen girmem. Deneme bitince büyük ihtimalle iptal edip eski usule dönerim.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa müşteri listem, randevularım ne olacak? Bir de yapay zekâ müşterime yanlış saat verirse rezil olan ben olurum.",
+  "would_change_my_mind": "Kadıköy'de tanıdığım bir salonun aylardır sorunsuz kullandığını görmek ve verilerimi istediğim an dışarı alabileceğimin yazılı garantisi.",
+  "price_too_cheap": 99,
+  "price_cheap": 249,
+  "price_expensive": 499,
+  "price_too_expensive": 899
+}

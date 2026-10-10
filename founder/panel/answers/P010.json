@@ -1,0 +1,13 @@
+{
+  "id": "P010",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Zaten para verdiğim bir program var, tek koltukta çalışıyorum; müşterimle yapay zekânın yazışıp yanlış saate randevu vermesi riskine girmem. Değiştirmek için bir sebep görmüyorum.",
+  "objection": "Yapay zekâ çift randevu verirse ya da müşteriye saçma bir şey yazarsa müşterinin önünde rezil olan ben olurum.",
+  "would_change_my_mind": "Tanıdığım bir berberin aylarca çift randevu sorunu yaşamadan kullandığını görmek ve her randevuyu benim onayımdan geçirme seçeneği.",
+  "price_too_cheap": 79,
+  "price_cheap": 149,
+  "price_expensive": 299,
+  "price_too_expensive": 450
+}
