@@ -6,6 +6,13 @@ import { bookingUrl } from '../../lib/config';
 export default function KurulumKarti({ api, setSayfa }) {
   const [d, setD] = useState(null);
   const [kopyalandi, setKopyalandi] = useState(false);
+  const [onay, setOnay] = useState(null);
+
+  // Güven: bot randevuyu esnafa sormadan mı versin, önce ona mı sorsun (randevu_onay_modu)
+  const onaySec = async (mod) => {
+    setOnay(mod);
+    try { await api.put('/ayarlar', { randevu_onay_modu: mod }); } catch (e) { setOnay(null); }
+  };
 
   useEffect(() => {
     api.get('/kurulum').then(x => { if (x && !x.hata) setD(x); }).catch(() => {});
@@ -27,6 +34,21 @@ export default function KurulumKarti({ api, setSayfa }) {
       </div>
       <div style={{ height: 6, background: 'var(--bg)', borderRadius: 4, margin: '12px 0 14px', overflow: 'hidden' }}>
         <div style={{ width: `${yuzde}%`, height: '100%', background: '#1f6f4a', transition: 'width .3s' }} />
+      </div>
+      <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--bg)', marginBottom: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Bot randevuyu nasıl versin?</div>
+        <div style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 10 }}>İlk günlerde "önce bana sorsun" seçeneği güvenlidir: bot saati bulur, randevu senin onayınla kesinleşir. Alışınca Ayarlar'dan otomatiğe geçersin. Bot hiçbir zaman aynı saate iki randevu vermez.</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {[['manuel', 'Önce bana sorsun (önerilen)'], ['otomatik', 'Kendisi versin']].map(([mod, ad]) => {
+            const secili = (onay || d.onay_modu) === mod;
+            return (
+              <button key={mod} onClick={() => onaySec(mod)} style={{ padding: '8px 14px', borderRadius: 9, cursor: 'pointer', fontWeight: 600, fontSize: 13,
+                border: `1px solid ${secili ? '#1f6f4a' : 'var(--border)'}`, background: secili ? 'rgba(31,111,74,.1)' : 'var(--surface)', color: secili ? '#1f6f4a' : 'var(--text)' }}>
+                {secili ? '✓ ' : ''}{ad}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div style={{ display: 'grid', gap: 8 }}>
         {d.adimlar.map((a, i) => {
