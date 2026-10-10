@@ -1,0 +1,13 @@
+{
+  "id": "P003",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "WhatsApp'ım dükkanın kalbi, müşterilerimle yıllardır ben yazışıyorum; bir yapay zekânın onlara benim yerime yazmasına, yanlış saat verip ortalığı karıştırmasına güvenemem. Akşamları mesajlara dönmek yorucu ama en azından kontrol bende.",
+  "objection": "Bozulursa ya da müşteriye saçma bir cevap verirse kim ilgilenecek? Ben teknolojiden anlamam, telefonu açıp derdimi anlatacak bir insan bulamazsam dükkanın itibarı gider.",
+  "would_change_my_mind": "Tanıdığım bir kuaförün dükkanında aylarca sorunsuz çalıştığını kendi gözümle görmek ve sorun olunca arayabileceğim gerçek bir insanın olması.",
+  "price_too_cheap": 99,
+  "price_cheap": 199,
+  "price_expensive": 450,
+  "price_too_expensive": 700
+}

@@ -1,0 +1,13 @@
+{
+  "id": "P004",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "habit",
+  "reason": "Tek koltuk, tek kişiyim; defterle telefon yıllardır işimi görüyor. Müşterimle bir yapay zekânın yazışmasına gönlüm razı değil, 299 lira da benim için boşa giden para olur.",
+  "objection": "Bot yanlış saate randevu verir ya da müşteriye saçma bir cevap yazarsa, rezil olan ben olurum; müşterim beni arar, makineyi değil.",
+  "would_change_my_mind": "Yanımdaki bir berber esnafın aylarca sorunsuz kullandığını kendi gözümle görmek, ve 'önce bana sor' moduyla denemede hiç hata yapmaması.",
+  "price_too_cheap": 50,
+  "price_cheap": 150,
+  "price_expensive": 300,
+  "price_too_expensive": 450
+}

@@ -1,13 +1,13 @@
 {
   "id": "P006",
-  "buys": false,
-  "purchases_first_month": 0,
-  "reason_code": "trust",
-  "reason": "Akşamları WhatsApp'la boğuşmak beni yoruyor, doğru, ama tek koltuklu dükkanımın numarasını bir yapay zekâya bağlayıp hattım kapanırsa müşterilerimin hepsini kaybederim. 299 lira pahalı değil ama bu riski şimdilik almam.",
-  "objection": "WhatsApp numaram banlanır mı, müşterilerimin telefonları ve bilgileri kimin elinde kalır; bir de yapay zekâ eski müşterime ters bir cevap yazarsa ne olacak.",
-  "would_change_my_mind": "Kadıköy'de tanıdığım bir berberin aylardır numarası kapanmadan kullandığını kendi gözümle görmek ve verilerimin bana ait olduğunu yazılı olarak almak.",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "convenience",
+  "reason": "Makas elimdeyken mesajlara bakamıyorum, akşam eve gidince de saatlerce WhatsApp'la uğraşıyorum; ayrı numarayla kurulup ücretsiz denenebiliyorsa 14 gün denerim, işe yararsa 299'luk paketi alırım.",
+  "objection": "Numaram banlanır mı, bot müşterime yanlış ya da soğuk bir şey yazıp yıllık müşterimi kaçırır mı, bir de müşterilerimin bilgileri nereye gidiyor.",
+  "would_change_my_mind": "Deneme sırasında bot bir müşteriye saçma cevap verirse ya da numaramla ilgili bir sorun çıkarsa hemen bırakırım.",
   "price_too_cheap": 79,
   "price_cheap": 199,
-  "price_expensive": 449,
+  "price_expensive": 450,
   "price_too_expensive": 700
 }

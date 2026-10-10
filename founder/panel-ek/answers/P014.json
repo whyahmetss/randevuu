@@ -1,0 +1,13 @@
+{
+  "id": "P014",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Müşterilerim yıllardır benimle konuşuyor, bir robot ters cevap verirse müşteriyi kaçırırım. Randevuyu defterle zaten idare ediyorum, bir aylık gider daha eklemem.",
+  "objection": "Yapay zekâ müşteriyle robot gibi yazışır, müşteri benim yerime makineyle konuştuğunu anlayınca soğur; üstüne her ay para öderim.",
+  "would_change_my_mind": "Tanıdığım bir komşu salonda birkaç ay sorunsuz çalıştığını ve müşterilerin şikâyet etmediğini kendi gözümle görmek.",
+  "price_too_cheap": 79,
+  "price_cheap": 149,
+  "price_expensive": 349,
+  "price_too_expensive": 600
+}

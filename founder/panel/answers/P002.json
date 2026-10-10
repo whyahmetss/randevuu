@@ -3,11 +3,11 @@
   "buys": true,
   "purchases_first_month": 1,
   "reason_code": "convenience",
-  "reason": "Gece gelen WhatsApp mesajlarına yetişemiyorum, Instagram'dan gelen müşteriye QR ve randevu linki vermek dükkanın imajına da yakışır. Kart istemeden 14 gün deneme ve kurulumu onların yapması işimi kolaylaştırıyor; denerim, işe yararsa 299'luk pakette kalırım.",
-  "objection": "Yapay zekâ müşteriye yanlış saat verir ya da tuhaf bir cevap yazarsa müşteriyi kaybederim; bir sorun çıktığında karşıma gerçek bir insan çıkacak mı bilmiyorum.",
-  "would_change_my_mind": "Deneme süresinde bir tane çift randevu ya da müşteriyle yanlış yazışma olursa bırakırım.",
+  "reason": "Instagram'dan gelen mesajlara gece cevap yetiştiremiyorum, randevuları defterde tutmak da yoruyor. 14 gün ücretsiz ve kart istemiyorsa denerim; işe yararsa 299'luk paketle devam ederim.",
+  "objection": "Bot müşteriye saçma bir cevap verirse ya da bozulursa dükkan yoğunken kim ilgilenecek, ben teknolojiyle uğraşamam.",
+  "would_change_my_mind": "",
   "price_too_cheap": 99,
-  "price_cheap": 249,
-  "price_expensive": 699,
-  "price_too_expensive": 1000
+  "price_cheap": 199,
+  "price_expensive": 499,
+  "price_too_expensive": 900
 }

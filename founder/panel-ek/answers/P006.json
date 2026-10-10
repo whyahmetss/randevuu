@@ -1,0 +1,13 @@
+{
+  "id": "P006",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Zaten oturmuş bir programım var, müşteri geçmişim orada. Yeni bir firmaya geçip 6 ay sonra kapanırlarsa salonun düzeni bozulur; gece WhatsApp derdi gerçek ama bu riski almak için yeterli değil.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa ne olacak? Bir de bot müşteriye yanlış bir şey yazarsa benim adım gider.",
+  "would_change_my_mind": "Kadıköy'de benim büyüklüğümde bir salonun birkaç aydır sorunsuz kullandığını kendi gözümle görmek; mevcut programımın yanında sadece WhatsApp kısmı olarak deneyebilmek.",
+  "price_too_cheap": 150,
+  "price_cheap": 350,
+  "price_expensive": 800,
+  "price_too_expensive": 1500
+}

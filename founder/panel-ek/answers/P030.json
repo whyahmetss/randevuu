@@ -1,0 +1,13 @@
+{
+  "id": "P030",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Yıllardır telefon ve defterle idare ediyorum, müşterim beni arayınca sesimi duymak istiyor. Bir botun benim WhatsApp'ımdan müşterimle yazışmasına şimdilik güvenmem.",
+  "objection": "Numaram banlanırsa bütün müşterilerim ortada kalır; bir de müşteri bilgileri kimin elinde, nereye gidiyor bilmiyorum.",
+  "would_change_my_mind": "Çevremdeki bir berberin aylardır sorunsuz kullandığını kendi gözümle görmek, ayrı numarayla denemek.",
+  "price_too_cheap": 99,
+  "price_cheap": 199,
+  "price_expensive": 399,
+  "price_too_expensive": 600
+}

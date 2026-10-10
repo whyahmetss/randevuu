@@ -1,0 +1,13 @@
+{
+  "id": "P025",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "need",
+  "reason": "Gelmeyen müşteri ve boş saatler beni gerçekten yakıyor, hatırlatma mesajları tek başına 499₺'yi çıkarır. Kart istemeyen 14 gün deneme var, 'önce bana sor' moduyla açar, müşteri kaçıyor mu diye bakarım.",
+  "objection": "Müşterim benimle konuşmak ister, bot robot gibi cevap verirse küser, bir daha yazmaz. Bir de deneme bitince gerçekten iptal edebilecek miyim, onu merak ediyorum.",
+  "would_change_my_mind": "Denemede müşterilerden 'bu ne böyle robot' diye şikayet gelirse ya da gelmeyen sayısı düşmezse bırakırım.",
+  "price_too_cheap": 99,
+  "price_cheap": 299,
+  "price_expensive": 900,
+  "price_too_expensive": 1500
+}

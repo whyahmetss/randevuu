@@ -1,0 +1,13 @@
+{
+  "id": "P004",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Zaten bir programa para veriyorum, bir tane daha yapay zekâ işine girip WhatsApp numaramı riske atmam. Müşteri yanlış saate yazılırsa ya da numara banlanırsa dükkan durur.",
+  "objection": "WhatsApp numaram kapanır mı, banlanır mı, müşteri bilgilerim nereye gidiyor belli değil. Bir de makine müşteriyle benim ağzımdan yazışacak, ters bir şey derse kim sorumlu?",
+  "would_change_my_mind": "Resmi WhatsApp Business API ile çalıştığının yazılı garantisi ve kullandığım programdaki randevularımı tek tıkla taşıyabilmem; yakınımdaki bir berberin aylarca sorunsuz kullandığını görmem.",
+  "price_too_cheap": 99,
+  "price_cheap": 199,
+  "price_expensive": 450,
+  "price_too_expensive": 750
+}

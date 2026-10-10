@@ -3,11 +3,11 @@
   "buys": true,
   "purchases_first_month": 1,
   "reason_code": "need",
-  "reason": "Gelmeyen müşteri ve boş saatler beni gerçekten yakıyor, 699₺ cironun yanında küçük para. Kurulumu onlar yapıyor ve kart istemiyorlarsa 14 gün denerim, işe yararsa Standart'a geçerim.",
-  "objection": "Ben teknolojiden anlamam; bir gün WhatsApp'ta saçma bir şey yazar ya da randevuları karıştırırsa müşteriyi kaybederim, o zaman kim ilgilenecek, telefonla birine ulaşabilecek miyim?",
-  "would_change_my_mind": "Deneme süresinde bir tane bile randevu karışıklığı ya da ulaşamadığım bir destek olursa bırakırım.",
-  "price_too_cheap": 150,
-  "price_cheap": 400,
-  "price_expensive": 1000,
-  "price_too_expensive": 1800
+  "reason": "Gelmeyen müşteriler ve boş saatler beni gerçekten yakıyor; 14 gün bedava, kart istemiyor, kurulumu da onlar yapıyorsa denerim. 499₺ bir boş saatin parası, hatırlatmalar işe yararsa kalırım.",
+  "objection": "Teknolojiden anlamam, bot müşteriye saçma bir şey yazarsa ya da bozulursa ben akşam 9'a kadar ayaktayken kim ilgilenecek?",
+  "would_change_my_mind": "",
+  "price_too_cheap": 99,
+  "price_cheap": 299,
+  "price_expensive": 899,
+  "price_too_expensive": 1500
 }

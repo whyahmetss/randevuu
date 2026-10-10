@@ -1,0 +1,173 @@
+{
+ "business": "SıraGO: WhatsApp'tan müşteriyle konuşup randevuyu kendisi alan AI asistan (salonun dijital çalışanı)",
+ "seed": 20261010,
+ "dealt": 30,
+ "answered": 30,
+ "skipped": [],
+ "buys": 11,
+ "passes": 19,
+ "buy_rate": 0.36666666666666664,
+ "by_segment": [
+  [
+   "2-4 çalışanlı berber veya kuaför",
+   12,
+   0.4166666666666667
+  ],
+  [
+   "Tek koltuklu / tek kişilik berber",
+   11,
+   0.36363636363636365
+  ],
+  [
+   "5+ çalışanlı kuaför / güzellik salonu",
+   7,
+   0.2857142857142857
+  ]
+ ],
+ "by_behaviour": [
+  [
+   "Instagram'ı aktif genç işletmeci",
+   4,
+   1.0
+  ],
+  [
+   "WhatsApp'ta boğulan",
+   6,
+   0.8333333333333334
+  ],
+  [
+   "Müşteri gelmiyor diye dertli",
+   4,
+   0.5
+  ],
+  [
+   "Zaten bir program kullanıyor",
+   4,
+   0.0
+  ],
+  [
+   "Telefon ve defter alışkanlığı",
+   7,
+   0.0
+  ],
+  [
+   "Kuruşu kuruşuna hesaplayan",
+   5,
+   0.0
+  ]
+ ],
+ "by_income": [
+  [
+   "$53,000 to $117,000",
+   10,
+   0.5
+  ],
+  [
+   "under $53,000",
+   10,
+   0.3
+  ],
+  [
+   "$117,000 and up",
+   10,
+   0.3
+  ]
+ ],
+ "why_not": [
+  [
+   "trust",
+   9,
+   [
+    "Zaten parasını ödediğim bir randevu programım var, müşterilerim ona alıştı. Yeni ve tanımadığım bir firmaya geçip her şeyi baştan kurmak için yeterli sebep göremiyorum.",
+    "Akşamları mesajlara dönmek yoruyor ama 30 yıllık müşterimle bir robotun yazışmasına güvenemem. Yanlış saat verirse müşteri dükkanda bekler, rezil olan ben olurum."
+   ],
+   [
+    "P001",
+    "P002"
+   ]
+  ],
+  [
+   "habit",
+   7,
+   [
+    "Tek koltuk, tek kişiyim; defterle telefon yıllardır işimi görüyor. Müşterimle bir yapay zekânın yazışmasına gönlüm razı değil, 299 lira da benim için boşa giden para olur.",
+    "Randevuları zaten telefonla ve WhatsApp'tan kendim alıyorum, bedavaya idare ediyor. 299₺ az gibi görünse de yılda 3.600₺ eder, iki-üç kişilik dükkanda buna gerek görmüyorum."
+   ],
+   [
+    "P004",
+    "P005"
+   ]
+  ],
+  [
+   "need",
+   2,
+   [
+    "Benim derdim müşteri gelmemesi, randevu yönetimi değil; tek koltukta zaten WhatsApp'tan kendim yazıyorum. Hatırlatma gelmeyenleri biraz azaltır belki ama yeni müşteri getirmiyor, Kolay Randevu gibileri de zaten var.",
+    "Benim derdim müşterinin hiç gelmemesi, randevuyu zaten WhatsApp'tan kendim alıyorum; bot yeni müşteri getirmez. Hatırlatma güzel ama tek koltukta ayda 299 lira bunun için fazla geliyor."
+   ],
+   [
+    "P010",
+    "P018"
+   ]
+  ],
+  [
+   "price",
+   1,
+   [
+    "Ayda 51 bin ciroyla her kuruş hesapta; randevuları zaten WhatsApp'tan kendim alıyorum, bedavaya yaptığım işe aylık para vermem. 14 gün denerim belki ama deneme bitince ödemeye geçeceğimi sanmıyorum."
+   ],
+   [
+    "P008"
+   ]
+  ]
+ ],
+ "why_yes": [
+  [
+   "convenience",
+   7,
+   [
+    "Instagram'dan gece gelen mesajlara yetişemiyorum, randevuyu bot alırsa iş kaçmaz. Kart istemeyen 14 gün deneme var, kurulumu da onlar yapıyor; denerim, işe yararsa 299'luk paketle devam ederim.",
+    "Gece Instagram'dan DM, WhatsApp'tan mesaj yağıyor, hepsine elle yetişemiyorum; kartsız 14 gün deneme var, deneriz. Bot düzgün randevu alırsa 299'luk paket bana bir müşterinin parası, alırım."
+   ],
+   [
+    "P007",
+    "P015"
+   ]
+  ],
+  [
+   "need",
+   4,
+   [
+    "Makas elimdeyken WhatsApp'a bakamıyorum, akşam eve gidince onlarca mesaja dönüyorum, kaçan randevu da oluyor. Kartsız 14 gün denerim; gerçekten mesajları benim yerime toparlarsa 299 lira benim için dert değil, Başlangıç paketini alırım.",
+    "Randevu alıp gelmeyenler beni her hafta yakıyor; 24 saat, 1 saat, 15 dakika hatırlatma o boş koltukları doldurursa 299 lira bir tıraş parası bile değil. Kartsız 14 gün denerim, gelmeyen sayısı düşerse Başlangıç paketini alırım."
+   ],
+   [
+    "P003",
+    "P009"
+   ]
+  ]
+ ],
+ "flip": [
+  "Kadıköy'de tanıdığım bir berberin aylardır sorunsuz kullandığını kendi gözümle görmem.",
+  "Komşu bir berberin bunu aylarca sorunsuz kullandığını kendi gözümle görmem, bir de 'önce bana sor' moduyla ücretsiz denemeyi kurulumu dükkanda yanımda yaparak başlatmaları.",
+  "Yanımdaki bir berber esnafın aylarca sorunsuz kullandığını kendi gözümle görmek, ve 'önce bana sor' moduyla denemede hiç hata yapmaması.",
+  "Ücretsiz denemede kaçırdığım gece mesajlarından gerçekten ayda birkaç ekstra randevu geldiğini kendi gözümle görmek.",
+  "Kadıköy'de benim büyüklüğümde bir salonun birkaç aydır sorunsuz kullandığını kendi gözümle görmek; mevcut programımın yanında sadece WhatsApp kısmı olarak deneyebilmek.",
+  "Ücretsiz bir paket olsa ya da bir ayda kaçan randevulardan kazandırdığını kendi gözümle görsem, fiyat da 150 lira civarına inse.",
+  "Yan dükkandaki berberin bunu kullanıp gelmeyen randevuların gerçekten azaldığını göstermesi; o zaman 14 günlük denemeyi açarım.",
+  "Tanıdığım komşu bir berberin bunu aylarca kullanıp müşteri kaybetmediğini kendi gözümle görmek.",
+  "Kendi müşterilerimle denediğimde mesajların benim ağzımdan çıkmış gibi doğal olduğunu ve kimsenin şikayet etmediğini görmek, üstelik şu an ödediğim programdan ucuza gelmesi.",
+  "Tanıdığım bir berberin aylarca sorunsuz kullandığını kendi gözümle görmek.",
+  "Tanıdığım bir komşu salonda birkaç ay sorunsuz çalıştığını ve müşterilerin şikâyet etmediğini kendi gözümle görmek.",
+  "Deneme süresinde gerçekten gelmeyen müşteri sayısının düştüğünü ve ayda en az birkaç randevu kurtardığını kendi defterimde görmek.",
+  "Kadıköy'de tanıdığım bir berberin birkaç aydır sorunsuz kullandığını kendi gözümle görmek.",
+  "Gerçekten yeni müşteri getirdiğini, mesela Google veya Instagram'dan gelen randevuları gösterse denerdim.",
+  "Mevcut programımdaki müşteri ve randevuları bedavaya taşıyıp, deneme süresinde gece gelen randevu sayısını somut gösterirse Standart'ı denerim.",
+  "Komşu berberin aylarca kullanıp gerçekten telefon trafiğini azalttığını, müşterilerin şikâyet etmediğini kendi gözümle görmem.",
+  "Komşu bir salonda müşterilerin bottan şikâyet etmeden randevu aldığını kendi gözümle görmek; o zaman 14 günlük denemeyi 'önce bana sor' moduyla açarım.",
+  "Yakın bir berber arkadaşımın birkaç ay kullanıp müşteri kaçırmadığını, gelmeyen müşterinin azaldığını kendi dükkanında göstermesi.",
+  "Çevremdeki bir berberin aylardır sorunsuz kullandığını kendi gözümle görmek, ayrı numarayla denemek."
+ ],
+ "purchases_first_month_per_buyer": 1.0,
+ "price_answers": 30
+}

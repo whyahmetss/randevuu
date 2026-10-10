@@ -1,0 +1,13 @@
+{
+  "id": "P028",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "habit",
+  "reason": "Yıllardır telefon ve defterle idare ediyorum, müşterilerim beni arıyor, ben yazıyorum. Bir robotun benim yerime müşteriyle yazışmasına hem gerek görmüyorum hem de içim rahat etmiyor.",
+  "objection": "Müşterim robotla konuştuğunu anlarsa soğur, bir yanlış randevu verirse rezil olurum; ayrıca her ay bir abonelik daha ödemek istemiyorum.",
+  "would_change_my_mind": "Yakın bir berber arkadaşımın birkaç ay kullanıp müşteri kaçırmadığını, gelmeyen müşterinin azaldığını kendi dükkanında göstermesi.",
+  "price_too_cheap": 50,
+  "price_cheap": 150,
+  "price_expensive": 300,
+  "price_too_expensive": 500
+}

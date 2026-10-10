@@ -1,0 +1,89 @@
+{
+ "n": 20,
+ "seed": 653844,
+ "customer": {
+  "business": "SıraGO: WhatsApp'tan müşteriyle konuşup randevuyu kendisi alan AI asistan (salonun dijital çalışanı)",
+  "target": "İstanbul'da (Kadıköy, Beşiktaş, Bakırköy) dükkan sahibi berber, kuaför ve güzellik salonu işletmecileri; randevuları bugün telefon ve WhatsApp'tan elle alıyorlar",
+  "where": "İstanbul — Kadıköy, Beşiktaş, Bakırköy",
+  "age": [
+   24,
+   55
+  ],
+  "segments": [
+   {
+    "name": "Tek koltuklu / tek kişilik berber",
+    "share": 0.35,
+    "income": [
+     25000,
+     60000
+    ]
+   },
+   {
+    "name": "2-4 çalışanlı berber veya kuaför",
+    "share": 0.4,
+    "income": [
+     50000,
+     120000
+    ]
+   },
+   {
+    "name": "5+ çalışanlı kuaför / güzellik salonu",
+    "share": 0.25,
+    "income": [
+     100000,
+     300000
+    ]
+   }
+  ],
+  "behaviours": [
+   {
+    "name": "Telefon ve defter alışkanlığı",
+    "share": 0.22,
+    "how": "Randevuları telefonla alıp deftere yazıyor, yıllardır böyle çalışıyor, yeniliğe şüpheyle bakıyor."
+   },
+   {
+    "name": "WhatsApp'ta boğulan",
+    "share": 0.2,
+    "how": "Günde onlarca WhatsApp mesajı geliyor, makas elindeyken cevap veremiyor, akşam evde mesajlara dönüyor."
+   },
+   {
+    "name": "Zaten bir program kullanıyor",
+    "share": 0.13,
+    "how": "Kolay Randevu, Kuaför Asistan veya benzeri bir programa para ödüyor ya da denemiş."
+   },
+   {
+    "name": "Kuruşu kuruşuna hesaplayan",
+    "share": 0.15,
+    "how": "Her aylık gideri sorgular, ücretsiz olanı tercih eder, abonelikten kaçar."
+   },
+   {
+    "name": "Instagram'ı aktif genç işletmeci",
+    "share": 0.15,
+    "how": "Instagram'dan müşteri buluyor, yeni teknolojiyi dener, dükkanını marka gibi yönetir."
+   },
+   {
+    "name": "Müşteri gelmiyor diye dertli",
+    "share": 0.15,
+    "how": "Randevu alıp gelmeyenlerden ve boş kalan saatlerden şikayetçi, ciroyu artırmak istiyor."
+   }
+  ],
+  "objections": [
+   "Müşterim yapay zekayla değil benimle konuşmak ister, robot gibi cevap verirse müşteri kaçar",
+   "Zaten telefonla ve WhatsApp'tan idare ediyorum, aylık para vermeye gerek yok",
+   "Kurmak uğraştırır, teknolojiden anlamam, bozulursa kim ilgilenecek",
+   "WhatsApp numaram kapanır ya da banlanır mı, müşteri verilerim güvende mi",
+   "Yeni bir firma, 6 ay sonra kapanırsa ne olacak",
+   "Kolay Randevu / Kuaför Asistan gibi programlar zaten var",
+   "Yanlış saate randevu verirse ya da çift randevu olursa rezil olurum"
+  ],
+  "habits": [
+   "dükkanı sabah 9'da açıp akşam 9'a kadar ayakta çalışıyorsun",
+   "pazartesi kapalısın, cumartesi en yoğun günün",
+   "müşteriler gece 11'de bile WhatsApp'tan randevu soruyor",
+   "kasa defterini ve randevuları kendin tutuyorsun",
+   "yan dükkandaki berberle iyi anlaşırsın, ne kullandığını merak edersin",
+   "Instagram hesabına haftada birkaç kez fotoğraf atıyorsun"
+  ]
+ },
+ "pitch": "SıraGO: salonunuzun WhatsApp'ına bağlanan, müşteriyle sizin yerinize yazışıp randevuyu kendisi alan yapay zekâ asistanı.\nMüsait saatleri kontrol eder, randevuyu oluşturur, değiştirir veya iptal eder; randevudan önce müşteriye hatırlatma gönderir. Gece de çalışır.\nSize özel online randevu sayfası ve QR kod, çalışan takvimi ve müşteri listesi panelde.\nFiyat: Başlangıç 299₺/ay (2 çalışan), Standart 699₺/ay (5 çalışan, kayıp müşteri geri kazanma, kasa ve prim), Pro+ 1.499₺/ay (10 çalışan, 3 şube).\n14 gün ücretsiz deneme, kart bilgisi gerekmez. Kurulumu ekibimiz yapar, yaklaşık 10 dakika sürer."
+}

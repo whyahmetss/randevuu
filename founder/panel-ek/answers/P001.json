@@ -1,0 +1,13 @@
+{
+  "id": "P001",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Zaten parasını ödediğim bir randevu programım var, müşterilerim ona alıştı. Yeni ve tanımadığım bir firmaya geçip her şeyi baştan kurmak için yeterli sebep göremiyorum.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa müşterilerim ve randevularım ne olacak? Bir de botun müşterime yanlış ya da soğuk bir şey yazmasından korkarım.",
+  "would_change_my_mind": "Kadıköy'de tanıdığım bir berberin aylardır sorunsuz kullandığını kendi gözümle görmem.",
+  "price_too_cheap": 99,
+  "price_cheap": 199,
+  "price_expensive": 449,
+  "price_too_expensive": 699
+}

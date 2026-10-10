@@ -1,0 +1,13 @@
+{
+  "id": "P003",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "need",
+  "reason": "Makas elimdeyken WhatsApp'a bakamıyorum, akşam eve gidince onlarca mesaja dönüyorum, kaçan randevu da oluyor. Kartsız 14 gün denerim; gerçekten mesajları benim yerime toparlarsa 299 lira benim için dert değil, Başlangıç paketini alırım.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa müşterilerim ve randevularım ne olacak? Bir de bot müşteriye saçma bir şey yazarsa ayıp bana olur.",
+  "would_change_my_mind": "Yan dükkandaki berber birkaç aydır kullanıyor ve memnunsa hiç düşünmeden alırım; denemede botun müşteriye ters bir cevap verdiğini görürsem vazgeçerim.",
+  "price_too_cheap": 79,
+  "price_cheap": 199,
+  "price_expensive": 499,
+  "price_too_expensive": 800
+}

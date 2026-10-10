@@ -3,11 +3,11 @@
   "buys": false,
   "purchases_first_month": 0,
   "reason_code": "habit",
-  "reason": "Yıllardır telefon ve defterle gayet iyi idare ediyorum, müşterim beni arar, ben yazarım. Bir yapay zekânın benim yerime müşteriyle yazışması bana göre değil, yan dükkandaki kullanıp memnun kalmadan denemem.",
-  "objection": "Müşterim robotla konuştuğunu anlarsa soğur, yanlış saate randevu verirse rezil olan ben olurum. Zaten Kolay Randevu gibi programlar var, bunun farkı ne?",
-  "would_change_my_mind": "Yan dükkandaki berberin birkaç ay kullanıp hiç sorun yaşamadığını, müşterilerin şikayet etmediğini kendi gözümle görmek.",
-  "price_too_cheap": 79,
-  "price_cheap": 199,
-  "price_expensive": 449,
-  "price_too_expensive": 750
+  "reason": "Yirmi yıldır telefonla, defterle çalışıyorum, müşterim beni arar, sesimi duyar. Bir robotun benim yerime müşteriyle yazışması bana göre değil, defter işimi görüyor.",
+  "objection": "Bot müşteriye yanlış bir şey yazarsa ya da eski müşterim robotla konuşmak istemezse dükkanın adı gider; bu tür programlar zaten var, hiçbirini kullanan berber tanımıyorum.",
+  "would_change_my_mind": "Yan dükkandaki berber birkaç ay kullanıp müşterisinin şikayet etmediğini, randevu kaçırmadığını kendi gözümle gösterse.",
+  "price_too_cheap": 50,
+  "price_cheap": 150,
+  "price_expensive": 300,
+  "price_too_expensive": 500
 }

@@ -1,0 +1,13 @@
+{
+  "id": "P007",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "convenience",
+  "reason": "Instagram'dan gece gelen mesajlara yetişemiyorum, randevuyu bot alırsa iş kaçmaz. Kart istemeyen 14 gün deneme var, kurulumu da onlar yapıyor; denerim, işe yararsa 299'luk paketle devam ederim.",
+  "objection": "Bot müşteriye saçma bir şey yazarsa ya da bozulursa dükkanımın imajı zedelenir, o an kim ilgilenecek bilmiyorum.",
+  "would_change_my_mind": "",
+  "price_too_cheap": 100,
+  "price_cheap": 250,
+  "price_expensive": 500,
+  "price_too_expensive": 900
+}

@@ -3,11 +3,11 @@
   "buys": false,
   "purchases_first_month": 0,
   "reason_code": "trust",
-  "reason": "Gece WhatsApp mesajları gerçekten yoruyor, belki ücretsiz denemeyi açarım ama yeni bir firmaya müşterilerimin yazışmalarını ve takvimimi teslim edip her ay 699₺ ödemeye hemen girmem. Deneme bitince büyük ihtimalle iptal edip eski usule dönerim.",
-  "objection": "Yeni bir firma, 6 ay sonra kapanırsa müşteri listem, randevularım ne olacak? Bir de yapay zekâ müşterime yanlış saat verirse rezil olan ben olurum.",
-  "would_change_my_mind": "Kadıköy'de tanıdığım bir salonun aylardır sorunsuz kullandığını görmek ve verilerimi istediğim an dışarı alabileceğimin yazılı garantisi.",
+  "reason": "Gece 11'de WhatsApp'a cevap yetiştirmek gerçekten derdim, 14 günlük ücretsiz denemeyi belki açarım ama yeni bir firmaya müşterilerimin WhatsApp'ını ve randevularımı emanet edip her ay ödemeye girmem. Şimdilik telefonla idare ediyorum, para çıkmıyor.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa ya da bot müşterime saçma bir cevap verirse randevular birbirine girer, müşteri kaybederim; üstüne bir abonelik daha.",
+  "would_change_my_mind": "Tanıdığım, Kadıköy'de bir salon sahibinin aylardır kullanıp gerçekten randevu kaçırmadığını görmem; denemede botun müşterilerime düzgün cevap verdiğini kendi gözümle görmem.",
   "price_too_cheap": 99,
-  "price_cheap": 249,
-  "price_expensive": 499,
-  "price_too_expensive": 899
+  "price_cheap": 199,
+  "price_expensive": 399,
+  "price_too_expensive": 600
 }

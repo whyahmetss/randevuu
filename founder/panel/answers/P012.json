@@ -3,11 +3,11 @@
   "buys": false,
   "purchases_first_month": 0,
   "reason_code": "price",
-  "reason": "Randevuları zaten WhatsApp'tan kendim alıyorum, bedava. Ayda 299 lira yeni bir abonelik demek; 14 gün denerim belki ama sonra ödemeye değer mi emin değilim, Kolay Randevu gibileri de zaten var.",
-  "objection": "Her ay giden bir abonelik daha; müşterim yapay zekâyla yazışmaktan hoşlanmazsa hem para hem müşteri kaybederim.",
-  "would_change_my_mind": "Yan dükkandaki berberin kullanıp gelmeyen müşteriyi azalttığını, aboneliği çıkardığını görmem ya da ücretsiz bir temel paket.",
+  "reason": "Ayda 56 bin ciroyla her gideri hesaplıyorum; randevuları zaten WhatsApp'tan kendim ücretsiz alıyorum, bir abonelik daha eklemek istemem. Deneme bedava diye denerim belki ama ödemeye geçmem.",
+  "objection": "Kolay Randevu gibi programlar zaten var, bir aylık masraf daha; müşterilerim bir botla yazışmayı sever mi onu da bilmiyorum.",
+  "would_change_my_mind": "Yan dükkandaki berber kullanıp gerçekten kaçan müşteriyi geri getirdiğini, kendini çıkardığını görsem.",
   "price_too_cheap": 49,
-  "price_cheap": 99,
-  "price_expensive": 199,
-  "price_too_expensive": 349
+  "price_cheap": 149,
+  "price_expensive": 299,
+  "price_too_expensive": 450
 }

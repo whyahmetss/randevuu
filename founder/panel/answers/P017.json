@@ -3,11 +3,11 @@
   "buys": true,
   "purchases_first_month": 1,
   "reason_code": "convenience",
-  "reason": "Gün boyu ayaktayım, makas elimdeyken WhatsApp'a bakamıyorum, gece gelen mesajlar da kaçıyor. 14 gün bedava ve kart istemiyorsa denerim; işe yararsa 299'luk paket benim tek koltuğa yeter.",
-  "objection": "Müşterim benimle konuşmak ister; robot gibi soğuk cevap verirse ya da yanlış saat verirse müşteriyi kaçırırım, o zaman zararı aboneliğin kat kat üstünde olur.",
-  "would_change_my_mind": "Deneme süresinde asistanın benim ağzımdan, samimi yazmadığını ya da randevuları karıştırdığını görürsem hemen iptal ederim.",
+  "reason": "Gün boyu makas elimdeyken WhatsApp'a bakamıyorum, gece gelen mesajlar da kaçıyor. 14 gün bedava ve kart istemiyor, 'önce bana sor' moduyla denerim; iyi giderse 299'luk paketi alırım.",
+  "objection": "Müşterim benimle konuşmak ister; bot robot gibi soğuk cevap verirse samimiyet gider, müşteri kaçar.",
+  "would_change_my_mind": "Denemede botun bir müşteriye yanlış ya da soğuk cevap verdiğini görürsem hemen bırakırım.",
   "price_too_cheap": 79,
   "price_cheap": 199,
-  "price_expensive": 499,
-  "price_too_expensive": 800
+  "price_expensive": 449,
+  "price_too_expensive": 799
 }

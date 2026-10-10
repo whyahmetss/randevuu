@@ -1,0 +1,13 @@
+{
+  "id": "P029",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "convenience",
+  "reason": "Cumartesi makastayken WhatsApp'a cevap yetiştiremiyorum, gece gelen mesajlar da kaçıyor; ayrı numarayla kurulabiliyorsa ve kart istemeden 14 gün denenebiliyorsa denerim, işlerse 299'luk paket benim ciroma göre ucuz.",
+  "objection": "WhatsApp numaram bot yüzünden banlanırsa Instagram'dan gelen bütün müşterim gider; bir de botun müşteriyle benim tarzımda konuşup konuşmayacağından emin değilim.",
+  "would_change_my_mind": "",
+  "price_too_cheap": 79,
+  "price_cheap": 199,
+  "price_expensive": 599,
+  "price_too_expensive": 999
+}

@@ -3,11 +3,11 @@
   "buys": false,
   "purchases_first_month": 0,
   "reason_code": "habit",
-  "reason": "Tek koltuklu dükkanım, defterle telefon yıllardır yetiyor. Gece mesaj gelse de sabah cevaplıyorum, müşteri kaçmıyor; bunun için her ay para vermem.",
-  "objection": "Yapay zekâ benim müşterimle benim yerime yazışacak, yanlış saat verirse ya da müşteriyi kızdırırsa kabahat bana kalır. Benim müşterim beni tanıyor, robotla konuşmak istemez.",
-  "would_change_my_mind": "Yanımdaki bir berber kullanıp gerçekten gelmeyen müşteriyi azalttığını ve iş kazandırdığını gözümle görsem, deneme sürümünü belki açarım.",
-  "price_too_cheap": 50,
-  "price_cheap": 150,
-  "price_expensive": 300,
-  "price_too_expensive": 500
+  "reason": "Tek koltuk, tek ben; defter ve telefonla yıllardır idare ediyorum. Gece gelen mesajlara sabah cevap veririm, müşteri yine gelir.",
+  "objection": "Bir robotun benim müşterimle benim adıma yazışmasına güvenmiyorum, yanlış saat verir ya da müşteriyi soğutur diye korkarım; tek kişilik dükkana her ay para vermek de gereksiz geliyor.",
+  "would_change_my_mind": "Yanımdaki bir berberin bunu aylardır sorunsuz kullandığını kendi gözümle görmek.",
+  "price_too_cheap": 49,
+  "price_cheap": 99,
+  "price_expensive": 199,
+  "price_too_expensive": 299
 }

@@ -1,0 +1,13 @@
+{
+  "id": "P009",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "need",
+  "reason": "Randevu alıp gelmeyenler beni her hafta yakıyor; 24 saat, 1 saat, 15 dakika hatırlatma o boş koltukları doldurursa 299 lira bir tıraş parası bile değil. Kartsız 14 gün denerim, gelmeyen sayısı düşerse Başlangıç paketini alırım.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa müşterilerim bota alışmış olur, ben ortada kalırım. Bir de bot müşteriye ters bir cevap verirse benim adım gider.",
+  "would_change_my_mind": "Deneme süresinde gelmeyen müşteri sayısı hiç düşmezse ya da bot müşterilere saçma cevaplar verirse ödemem.",
+  "price_too_cheap": 79,
+  "price_cheap": 199,
+  "price_expensive": 599,
+  "price_too_expensive": 1000
+}

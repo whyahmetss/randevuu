@@ -1,0 +1,13 @@
+{
+  "id": "P002",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Akşamları mesajlara dönmek yoruyor ama 30 yıllık müşterimle bir robotun yazışmasına güvenemem. Yanlış saat verirse müşteri dükkanda bekler, rezil olan ben olurum.",
+  "objection": "Makine yanlış anlarsa ya da müşteri 'yarın öğleden sonra' deyip bot başka saate yazarsa ben makasın başındayken fark etmem bile, müşteriyi kaybederim.",
+  "would_change_my_mind": "Komşu bir berberin bunu aylarca sorunsuz kullandığını kendi gözümle görmem, bir de 'önce bana sor' moduyla ücretsiz denemeyi kurulumu dükkanda yanımda yaparak başlatmaları.",
+  "price_too_cheap": 50,
+  "price_cheap": 150,
+  "price_expensive": 350,
+  "price_too_expensive": 600
+}

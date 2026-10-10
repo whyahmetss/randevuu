@@ -2,12 +2,12 @@
   "id": "P009",
   "buys": true,
   "purchases_first_month": 1,
-  "reason_code": "convenience",
-  "reason": "Gece 11'de WhatsApp'a cevap yetiştirmekten yoruldum, kart istemeyen 14 gün deneme var, denemekten kaybım yok. Standart paketi denerim ama robot gibi konuşursa ilk haftada kapatırım.",
-  "objection": "Müşterim benimle konuşmak istiyor; asistan soğuk, robot gibi yazarsa salonun samimi markası zarar görür, müşteri kaçar.",
-  "would_change_my_mind": "Deneme sırasında müşterilerden biri bile robotla konuştuğundan şikayet ederse ya da yanlış randevu verirse hemen bırakırım.",
-  "price_too_cheap": 150,
-  "price_cheap": 400,
-  "price_expensive": 1200,
-  "price_too_expensive": 2000
+  "reason_code": "need",
+  "reason": "Gece 11'de WhatsApp'a cevap yetiştiremiyorum, 5 çalışanın takvimini elle tutmak da yoruyor. Kart istemeyen 14 gün deneme var, 'önce bana sor' moduyla denerim; müşteri şikayet etmezse 499'luk paketi alırım.",
+  "objection": "Müşterim benimle konuşmak ister; bot robot gibi, soğuk cevap verirse salonun samimiyeti gider ve müşteri kaçar.",
+  "would_change_my_mind": "Denemede botun yazışmaları soğuk ya da yanlış çıkarsa veya bir müşterim bottan şikayet ederse bırakırım.",
+  "price_too_cheap": 100,
+  "price_cheap": 300,
+  "price_expensive": 800,
+  "price_too_expensive": 1500
 }

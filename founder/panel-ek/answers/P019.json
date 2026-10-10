@@ -1,0 +1,13 @@
+{
+  "id": "P019",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "habit",
+  "reason": "Zaten bir randevu programına para veriyorum, müşterilerim de ona ve WhatsApp'a alıştı. Sırf yapay zekâ yazışıyor diye programı değiştirip personele yeniden öğretmekle uğraşamam.",
+  "objection": "Bot müşteriyle yanlış yazışırsa ya da saati karıştırırsa müşteriyi ben kaybederim; bir de elimdeki programdaki kayıtları taşımak dert.",
+  "would_change_my_mind": "Mevcut programımdaki müşteri ve randevuları bedavaya taşıyıp, deneme süresinde gece gelen randevu sayısını somut gösterirse Standart'ı denerim.",
+  "price_too_cheap": 99,
+  "price_cheap": 249,
+  "price_expensive": 499,
+  "price_too_expensive": 900
+}

@@ -1,0 +1,13 @@
+{
+  "id": "P008",
+  "buys": true,
+  "purchases_first_month": 1,
+  "reason_code": "need",
+  "reason": "Gelmeyen müşteri ve boş saatler beni gerçekten yakıyor; 14 gün bedava, kart yok, kurulumu da onlar yapıyorsa denerim. Hatırlatma işe yarayıp boşlar azalırsa 699'luk paketi öderim, ciroya göre küçük para.",
+  "objection": "Kolay Randevu gibi programlar zaten var, bir de yapay zekâ benim müşterimle yanlış yazışır, yanlış saate randevu verir diye korkarım. Eski müşterilerim bana yazmaya alışkın, robotla konuşmak istemeyebilirler.",
+  "would_change_my_mind": "Deneme süresinde gelmeyen sayısı düşmezse ya da asistan bir iki müşteriye saçma cevap verirse bırakırım.",
+  "price_too_cheap": 100,
+  "price_cheap": 300,
+  "price_expensive": 900,
+  "price_too_expensive": 1500
+}

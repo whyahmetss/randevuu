@@ -3,11 +3,11 @@
   "buys": false,
   "purchases_first_month": 0,
   "reason_code": "trust",
-  "reason": "Zaten bir programa para veriyorum, bir tane daha yapay zekâ işine girip WhatsApp numaramı riske atmam. Müşteri yanlış saate yazılırsa ya da numara banlanırsa dükkan durur.",
-  "objection": "WhatsApp numaram kapanır mı, banlanır mı, müşteri bilgilerim nereye gidiyor belli değil. Bir de makine müşteriyle benim ağzımdan yazışacak, ters bir şey derse kim sorumlu?",
-  "would_change_my_mind": "Resmi WhatsApp Business API ile çalıştığının yazılı garantisi ve kullandığım programdaki randevularımı tek tıkla taşıyabilmem; yakınımdaki bir berberin aylarca sorunsuz kullandığını görmem.",
+  "reason": "Zaten bir programa para veriyorum, müşterilerim ona alıştı. Yapay zekâyı WhatsApp numarama bağlayıp numaram banlanırsa dükkan biter, bu riski 50 yaşında almam.",
+  "objection": "WhatsApp numaram kapanır mı, bot müşteriye saçma bir şey yazarsa kim düzeltecek, verilerim nerede duruyor.",
+  "would_change_my_mind": "Aynı semtte bunu aylardır kullanan, numarası hiç kapanmamış bir berberi görmek ve eski programımdaki müşteri listesini sizin bedavaya taşımanız.",
   "price_too_cheap": 99,
-  "price_cheap": 199,
+  "price_cheap": 249,
   "price_expensive": 450,
-  "price_too_expensive": 750
+  "price_too_expensive": 700
 }

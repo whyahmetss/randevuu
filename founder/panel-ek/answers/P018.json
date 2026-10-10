@@ -1,0 +1,13 @@
+{
+  "id": "P018",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "need",
+  "reason": "Benim derdim müşterinin hiç gelmemesi, randevuyu zaten WhatsApp'tan kendim alıyorum; bot yeni müşteri getirmez. Hatırlatma güzel ama tek koltukta ayda 299 lira bunun için fazla geliyor.",
+  "objection": "Yeni bir firma, 6 ay sonra kapanırsa müşterilerim yarı yolda kalır; zaten boş saatlerimi dolduracak müşteri getirmiyor.",
+  "would_change_my_mind": "Gerçekten yeni müşteri getirdiğini, mesela Google veya Instagram'dan gelen randevuları gösterse denerdim.",
+  "price_too_cheap": 50,
+  "price_cheap": 120,
+  "price_expensive": 250,
+  "price_too_expensive": 400
+}

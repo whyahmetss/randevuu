@@ -1,0 +1,13 @@
+{
+  "id": "P006",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Akşamları WhatsApp'la boğuşmak beni yoruyor, doğru, ama tek koltuklu dükkanımın numarasını bir yapay zekâya bağlayıp hattım kapanırsa müşterilerimin hepsini kaybederim. 299 lira pahalı değil ama bu riski şimdilik almam.",
+  "objection": "WhatsApp numaram banlanır mı, müşterilerimin telefonları ve bilgileri kimin elinde kalır; bir de yapay zekâ eski müşterime ters bir cevap yazarsa ne olacak.",
+  "would_change_my_mind": "Kadıköy'de tanıdığım bir berberin aylardır numarası kapanmadan kullandığını kendi gözümle görmek ve verilerimin bana ait olduğunu yazılı olarak almak.",
+  "price_too_cheap": 79,
+  "price_cheap": 199,
+  "price_expensive": 449,
+  "price_too_expensive": 700
+}

@@ -1,0 +1,13 @@
+{
+  "id": "P027",
+  "buys": false,
+  "purchases_first_month": 0,
+  "reason_code": "trust",
+  "reason": "Müşterilerim benimle konuşmaya alışık, bir robot yanlış ya da soğuk cevap verirse müşteri kaçar. Şu an telefon ve WhatsApp'la bedavaya idare ediyorum, bir aylık abonelik daha eklemek istemem.",
+  "objection": "Yapay zekâ müşteriye robot gibi cevap verir, düzenli müşterim bunu sevmez ve başka salona gider.",
+  "would_change_my_mind": "Komşu bir salonda müşterilerin bottan şikâyet etmeden randevu aldığını kendi gözümle görmek; o zaman 14 günlük denemeyi 'önce bana sor' moduyla açarım.",
+  "price_too_cheap": 99,
+  "price_cheap": 199,
+  "price_expensive": 399,
+  "price_too_expensive": 600
+}
