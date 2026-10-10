@@ -54,6 +54,12 @@ SELECT * FROM (VALUES
   ('Bir program kullanıyorum zaten.', 'Ne kullanıyorsunuz? Müşterileriniz WhatsApp''tan yazınca o cevap veriyor mu? Yan yana 14 gün deneyin, karşılaştırın.'),
   ('Sonra bakarım.', 'Tabii. Sayfanızı hazır bırakıyorum, linki gönderiyorum; ilk 100 esnafa ömür boyu sabit fiyat var, dolmadan yazın. Bir hafta sonra bir kez daha aranır.'),
   ('Müşterim link kullanmaz.', 'Link şart değil: müşteri sizin WhatsApp''ınıza yazar, bot cevap verir. Link isteyen için tezgâhta QR kart dursun.'),
-  ('Kendi WhatsApp''ım karışır mı?', 'Hayır, telefonunuzda WhatsApp normal çalışmaya devam eder; bot yalnız randevu sorulunca devreye girer.')
+  ('Kendi WhatsApp''ım karışır mı?', 'Hayır, telefonunuzda WhatsApp normal çalışmaya devam eder; bot yalnız randevu sorulunca devreye girer.'),
+  ('Yanlış saat verirse ya da çift randevu yaparsa rezil olurum.', 'Sistem aynı saate iki randevu veremez; dolu saati hiç önermez. İsterseniz "önce bana sor" modunu açarız: bot saati bulur, randevu sizin onayınızla kesinleşir. Alışınca otomatiğe geçersiniz.'),
+  ('Yeni firma, kapanırsa müşteri listem ne olacak?', 'Müşteri listeniz sizin: panelden istediğiniz an tek tıkla Excel''e alırsınız, hiçbir pakette kilitli değil. Randevu sayfanız ve numaranız da sizin.'),
+  ('Robotla konuşmak müşterimin hoşuna gitmez.', 'Bot sadece randevu sorusunda devreye girer, kısa ve kibar yazar; müşteri isterse doğrudan size yazmaya devam eder. Siz de istediğiniz an sohbete girersiniz.')
 ) AS v(itiraz, cevap)
 WHERE NOT EXISTS (SELECT 1 FROM satis_itiraz);
+
+-- Güven (2026-10-10): müşteri listesini dışa aktarma her pakette açık
+DO $$ BEGIN IF to_regclass('paket_tanimlari') IS NOT NULL THEN UPDATE paket_tanimlari SET export_aktif = true WHERE export_aktif IS NOT TRUE; END IF; END $$;

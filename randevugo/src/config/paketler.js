@@ -11,7 +11,7 @@ const FALLBACK_PAKETLER = {
     bot_aktif: true,
     hatirlatma: true,
     istatistik: false,
-    export_aktif: false,
+    export_aktif: true,      // 2026-10-10: müşteri listesi her pakette dışa aktarılabilir (güven)
     // ─── Özellik flag'leri ───
     coklu_dil: false,       // ×
     kasa: false,             // ×

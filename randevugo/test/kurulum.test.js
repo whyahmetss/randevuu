@@ -5,7 +5,7 @@ const { hazirla, SRC } = require('./yardimci');
 
 test('kurulum: adımlar gerçek veriden, takılana her eşikte bir kez mesaj', async () => {
   const { db } = await hazirla(`
-    CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, slug TEXT, telefon TEXT, aktif BOOLEAN DEFAULT true, demo BOOLEAN DEFAULT false, olusturma_tarihi TIMESTAMP);
+    CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, slug TEXT, telefon TEXT, aktif BOOLEAN DEFAULT true, demo BOOLEAN DEFAULT false, olusturma_tarihi TIMESTAMP, randevu_onay_modu TEXT DEFAULT 'otomatik');
     CREATE TABLE hizmetler (id SERIAL, isletme_id INT);
     CREATE TABLE calisanlar (id SERIAL, isletme_id INT);
     CREATE TABLE wa_auth_keys (isletme_id INT);

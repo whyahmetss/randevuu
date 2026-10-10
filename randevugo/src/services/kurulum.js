@@ -19,7 +19,7 @@ const GUNLER = [1, 3, 6];
 
 async function kurulumDurum(isletmeId) {
   const r = (await pool.query(`
-    SELECT i.id, i.isim, i.slug, i.telefon, i.olusturma_tarihi,
+    SELECT i.id, i.isim, i.slug, i.telefon, i.olusturma_tarihi, i.randevu_onay_modu,
       EXISTS (SELECT 1 FROM hizmetler h WHERE h.isletme_id = i.id) AS hizmet,
       EXISTS (SELECT 1 FROM calisanlar c WHERE c.isletme_id = i.id) AS calisan,
       EXISTS (SELECT 1 FROM wa_auth_keys w WHERE w.isletme_id = i.id) AS bot,
@@ -28,7 +28,7 @@ async function kurulumDurum(isletmeId) {
   if (!r) return null;
   const adimlar = ADIMLAR.map(a => ({ ...a, tamam: !!r[a.anahtar] }));
   const tamam = adimlar.filter(a => a.tamam).length;
-  return { adimlar, tamam, toplam: adimlar.length, bitti: tamam === adimlar.length, slug: r.slug };
+  return { adimlar, tamam, toplam: adimlar.length, bitti: tamam === adimlar.length, slug: r.slug, onay_modu: r.randevu_onay_modu || 'otomatik' };
 }
 
 // Saatlik çalışır; İstanbul saatiyle 11:00-19:59 arasında, eşiği geçmiş ve hâlâ eksik adımı olanlara bir kez yazar.
