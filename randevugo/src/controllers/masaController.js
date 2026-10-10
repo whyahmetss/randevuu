@@ -84,7 +84,14 @@ class MasaController {
       const r = await pool.query(`
         SELECT p.id, p.isletme_adi, p.telefon, p.kategori, p.ilce, p.sehir, p.puan, p.yorum_sayisi, p.web_sitesi,
                p.google_maps_url, p.skor, p.durum, p.notlar, p.sonraki_arama, p.son_temas, p.demo_isletme_id,
-               (SELECT a.tip FROM satis_aktivite a WHERE a.lead_id = p.id ORDER BY a.id DESC LIMIT 1) AS son_sonuc
+               (SELECT a.tip FROM satis_aktivite a WHERE a.lead_id = p.id ORDER BY a.id DESC LIMIT 1) AS son_sonuc,
+               -- Aynı ilçede SıraGO'yu gerçekten kullanan (randevusu olan) işletmeler: "Moda'da X kullanıyor"
+               (SELECT json_agg(y) FROM (
+                  SELECT i.isim, i.kategori, (CURRENT_DATE - i.olusturma_tarihi::date) AS gun
+                  FROM isletmeler i
+                  WHERE p.ilce IS NOT NULL AND i.ilce = p.ilce AND i.aktif = true AND i.demo IS NOT TRUE
+                    AND EXISTS (SELECT 1 FROM randevular r WHERE r.isletme_id = i.id)
+                  ORDER BY (i.kategori = p.kategori) DESC, i.olusturma_tarihi ASC LIMIT 3) y) AS yakindakiler
         FROM potansiyel_musteriler p
         WHERE p.atanan_id = $1 AND p.durum NOT IN ('ilgilenmiyor', 'musteri_oldu')
         ORDER BY (p.sonraki_arama IS NOT NULL AND p.sonraki_arama <= NOW()) DESC,

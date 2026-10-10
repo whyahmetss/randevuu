@@ -57,9 +57,20 @@ SELECT * FROM (VALUES
   ('Kendi WhatsApp''ım karışır mı?', 'Hayır, telefonunuzda WhatsApp normal çalışmaya devam eder; bot yalnız randevu sorulunca devreye girer.'),
   ('Yanlış saat verirse ya da çift randevu yaparsa rezil olurum.', 'Sistem aynı saate iki randevu veremez; dolu saati hiç önermez. İsterseniz "önce bana sor" modunu açarız: bot saati bulur, randevu sizin onayınızla kesinleşir. Alışınca otomatiğe geçersiniz.'),
   ('Yeni firma, kapanırsa müşteri listem ne olacak?', 'Müşteri listeniz sizin: panelden istediğiniz an tek tıkla Excel''e alırsınız, hiçbir pakette kilitli değil. Randevu sayfanız ve numaranız da sizin.'),
+  ('Benim derdim gelmeyen/yeni müşteri, bu bot müşteri getirmiyor.', 'Google Haritalar''da "Randevu Al" düğmesi çıkıyor, yorum avcısı Google yorumlarınızı artırıyor; ikisi de sizi aramalarda üste taşır. Gelmeyen müşteriye 24 saat, 1 saat ve 15 dk önce hatırlatma gider. Asıl kazanç da cevap veremediğiniz için kaçan müşteriyi tutmak.'),
+  ('Defterle gayet iyi idare ediyorum.', 'Anlıyorum, şu an size uymayabilir. WhatsApp''tan yazan arttığında numaram sizde, 14 gün ücretsiz denersiniz. (Israr etmeyin; Masa''da "İlgilenmiyor" işaretleyip sıradakine geçin.)'),
   ('Robotla konuşmak müşterimin hoşuna gitmez.', 'Bot sadece randevu sorusunda devreye girer, kısa ve kibar yazar; müşteri isterse doğrudan size yazmaya devam eder. Siz de istediğiniz an sohbete girersiniz.')
 ) AS v(itiraz, cevap)
 WHERE NOT EXISTS (SELECT 1 FROM satis_itiraz);
+
+-- Avcı skoru müşteri testine göre yeniden (services/avciBot.js skorHesapla ile aynı formül)
+UPDATE potansiyel_musteriler SET skor =
+    (CASE WHEN COALESCE(telefon, '') <> '' THEN 25 ELSE 0 END)
+  + (CASE WHEN COALESCE(instagram, '') <> '' THEN 20 ELSE 0 END)
+  + (CASE WHEN yorum_sayisi >= 200 THEN 20 WHEN yorum_sayisi >= 100 THEN 15 WHEN yorum_sayisi >= 50 THEN 10 WHEN yorum_sayisi > 0 THEN 5 ELSE 0 END)
+  + (CASE WHEN COALESCE(web_sitesi, '') = '' THEN 15 ELSE 0 END)
+  + (CASE WHEN puan >= 4.5 THEN 10 WHEN puan >= 4.0 THEN 7 WHEN puan >= 3.5 THEN 3 ELSE 0 END)
+WHERE durum IN ('yeni', 'cevapsiz', 'arandi');
 
 -- Güven (2026-10-10): müşteri listesini dışa aktarma her pakette açık
 DO $$ BEGIN IF to_regclass('paket_tanimlari') IS NOT NULL THEN UPDATE paket_tanimlari SET export_aktif = true WHERE export_aktif IS NOT TRUE; END IF; END $$;

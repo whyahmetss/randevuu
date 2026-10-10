@@ -784,20 +784,25 @@ class AvciBot {
     // Telefon var → ulaşılabilir (+25)
     if (telefon) skor += 25;
 
-    // Web sitesi yok → dijitale uzak, bot lazım (+30)
-    if (!web_sitesi) skor += 30;
+    // Müşteri testi (2026-10-10, 50 sanal alıcı): alan = Instagram'ı aktif ve WhatsApp'a yetişemeyen yoğun
+    // işletme; defterle idare eden küçük dükkan almıyor. Eski formül bunun tersini ödüllendiriyordu.
 
-    // Instagram yok/zayıf → dijital pazarlaması zayıf (+20)
-    if (!instagram) skor += 20;
+    // Instagram var → mesaj trafiği yüksek, dijitale açık (+20)
+    if (instagram) skor += 20;
 
-    // Yorum sayısı az (<50) → küçük işletme, kolay ikna (+15)
-    if (yorum_sayisi && yorum_sayisi < 50) skor += 15;
-    else if (yorum_sayisi && yorum_sayisi < 100) skor += 10;
-    else if (yorum_sayisi && yorum_sayisi >= 100) skor += 5;
+    // Yoğunluk: çok yorum = çok müşteri = WhatsApp'a yetişemiyor
+    if (yorum_sayisi >= 200) skor += 20;
+    else if (yorum_sayisi >= 100) skor += 15;
+    else if (yorum_sayisi >= 50) skor += 10;
+    else if (yorum_sayisi > 0) skor += 5;
 
-    // Puan iyi (>4.0) → kaliteli işletme, potansiyel (+10)
-    if (puan && puan >= 4.0) skor += 10;
-    else if (puan && puan >= 3.5) skor += 5;
+    // Web sitesi yok → online randevusu büyük ihtimalle yok (+15)
+    if (!web_sitesi) skor += 15;
+
+    // Puan iyi → kaliteli, müşterisi memnun (referans olmaya aday)
+    if (puan >= 4.5) skor += 10;
+    else if (puan >= 4.0) skor += 7;
+    else if (puan >= 3.5) skor += 3;
 
     return skor;
   }
