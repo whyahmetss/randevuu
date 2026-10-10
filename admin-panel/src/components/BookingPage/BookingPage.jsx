@@ -170,7 +170,10 @@ export default function BookingPage({ slug }) {
     if (!secilenTarih || secilenHizmetler.length === 0) return;
     const params = new URLSearchParams({ tarih: secilenTarih, hizmetIds: hizmetIdsParam });
     if (secilenCalisan) params.set('calisanId', secilenCalisan.id);
-    fetch(`${API_URL}/book/${slug}/saatler?${params}`).then(r => r.json()).then(d => setSaatler(d.saatler || []));
+    fetch(`${API_URL}/book/${slug}/saatler?${params}`).then(r => r.json()).then(d => {
+      if (d.hata) console.error('Saatler alınamadı:', d.hata);
+      setSaatler(d.saatler || []);
+    }).catch(() => setSaatler([]));
   }, [secilenTarih, secilenCalisan, hizmetIdsParam]);
 
   // ─── Handlers ───
@@ -188,8 +191,10 @@ export default function BookingPage({ slug }) {
   };
   const hizmetleriOnayla = () => {
     if (secilenHizmetler.length === 0) return;
-    setAdim(2);
+    // Personel seçimi yoksa (tek/hiç personel ya da otomatik atama) doğrudan tarihe
+    setAdim(otomatikCalisan || calisanlar.length === 0 ? 3 : 2);
   };
+  useEffect(() => { if (adim === 2 && (otomatikCalisan || calisanlar.length === 0)) setAdim(3); }, [adim, otomatikCalisan, calisanlar.length]);
   const calisanSec = (c) => { setSecilenCalisan(c); setSecilenTarih(''); setSecilenSaat(''); setAdim(3); };
   const tarihSec = (t) => { setSecilenTarih(t); setSecilenSaat(''); setAdim(4); };
   const saatSec = (s) => { setSecilenSaat(s); setAdim(5); };

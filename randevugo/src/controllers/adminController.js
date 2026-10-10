@@ -998,6 +998,17 @@ class AdminController {
     }
   }
 
+  async wpWebEslestir(req, res) {
+    try {
+      const whatsappWebService = require('../services/whatsappWeb');
+      const isletme = (await pool.query('SELECT id, isim FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
+      const kod = await whatsappWebService.eslestirmeKoduAl(isletme.id, isletme.isim, req.body.telefon);
+      res.json({ kod });
+    } catch (error) {
+      res.status(400).json({ hata: error.message });
+    }
+  }
+
   async wpWebAyir(req, res) {
     try {
       const whatsappWebService = require('../services/whatsappWeb');

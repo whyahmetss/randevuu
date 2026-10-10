@@ -151,9 +151,8 @@ class RandevuService {
 
     // Mola saatlerini de dolu aralık olarak ekle
     // Önce çalışan molaları, sonra işletme molaları
-    const molalar = (calisan && calisan.mola_saatleri && calisan.mola_saatleri.length > 0)
-      ? calisan.mola_saatleri
-      : (isletme.mola_saatleri || []);
+    const diziYap = (v) => { if (Array.isArray(v)) return v; try { const x = JSON.parse(v || '[]'); return Array.isArray(x) ? x : []; } catch (e) { return []; } };
+    const molalar = diziYap(calisan?.mola_saatleri).length > 0 ? diziYap(calisan.mola_saatleri) : diziYap(isletme.mola_saatleri);
     molalar.forEach(m => {
       if (m.baslangic && m.bitis) {
         const [mBH, mBM] = m.baslangic.split(':').map(Number);
