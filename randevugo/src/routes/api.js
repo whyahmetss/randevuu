@@ -151,14 +151,14 @@ router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallba
 router.get('/odeme/shopier/baslat', authMiddleware, (req, res) => adminController.shopierOdemeBaslat(req, res));
 // Panel: oturum anahtarını URL'ye koymadan ödeme linki al (eskiden ?token=<giriş anahtarı> açılıyordu)
 router.get('/odeme/link', authMiddleware, (req, res) => {
-  res.json({ url: require('../services/odemeOtomasyon').odemeLinki(req.kullanici.isletme_id, req.query.paket) });
+  res.json({ url: require('../services/odemeOtomasyon').odemeLinki(req.kullanici.isletme_id, req.query.paket, req.query.sure) });
 });
 // WhatsApp'taki kişisel ödeme linki: giriş gerektirmez, yalnız ödeme sayfası açar
 router.get('/odeme/ode/:anahtar', async (req, res) => {
   const v = require('../services/odemeOtomasyon').anahtarCoz(req.params.anahtar);
   if (!v) return res.status(410).type('html').send('<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">Bu ödeme linkinin süresi dolmuş. Panelinizden <b>Paket → Öde</b> ile ya da bize WhatsApp\'tan yazarak yeni link alabilirsiniz.</p>');
   try {
-    const url = await require('../services/shopierService').odemeBaslat(v.i, v.p);
+    const url = await require('../services/shopierService').odemeBaslat(v.i, v.p, v.s);
     if (!url) return res.status(404).send('İşletme bulunamadı');
     res.redirect(url);
   } catch (e) {

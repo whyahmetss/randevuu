@@ -245,3 +245,5 @@ module.exports.FALLBACK_PAKETLER = FALLBACK_PAKETLER;
 module.exports.paketGetir = paketGetir;
 module.exports.paketleriYukle = paketleriYukle;
 module.exports.paketCacheTemizle = paketCacheTemizle;
+// Yıllık ödeme (2026-10-14): 12 ay kullanım için 9 aylık ücret alınır
+module.exports.YILLIK_ODENEN_AY = 9;
