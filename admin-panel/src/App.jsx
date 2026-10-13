@@ -9,6 +9,9 @@ import KurulumKarti from "./components/Kurulum/KurulumKarti";
 const Buyume = lazy(() => import("./components/Buyume/Buyume"));   // açılınca yüklenir (hızlı açılış)
 import EsnafGetir from "./components/Davet/EsnafGetir";
 import Dukkanim from "./components/Mobil/Dukkanim";
+import BugunMobil from "./components/Mobil/BugunMobil";
+import KurulumSihirbazi from "./components/Kurulum/KurulumSihirbazi";
+const TabletEkrani = lazy(() => import("./components/Tablet/TabletEkrani"));   // açılınca yüklenir
 const SatisMasasi = lazy(() => import("./components/Satis/SatisMasasi"));   // açılınca yüklenir (hızlı açılış)
 const SatisRehberi = lazy(() => import("./components/Satis/SatisRehberi"));   // açılınca yüklenir (hızlı açılış)
 const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açılınca yüklenir (hızlı açılış)
@@ -1318,7 +1321,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1381,6 +1384,7 @@ function Dashboard({ kullanici }) {
       { id: "geceraporu", icon: ICON.gece, label: "Gece Raporu", featureKey: "gece_raporu" },
       { id: "grup", icon: ICON.sube, label: "Şubelerim", featureKey: "sube_yonetimi", rolOnly: ['admin', 'isletme', 'grup_sahibi'] },
       { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
+      { id: "tablet", icon: SVG.dashboard, label: "Tablet modu" },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
@@ -1400,6 +1404,7 @@ function Dashboard({ kullanici }) {
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
       { id: "qrkod", icon: ICON.qr, label: "Randevu Linki & QR" },
       { id: "esnafgetir", icon: ICON.destek, label: "Esnaf Getir 🎁" },
+      { id: "tablet", icon: SVG.dashboard, label: "Tablet modu" },
       { id: "destek", icon: ICON.destek, label: "Destek" },
       { id: "ayarlar", icon: SVG.ayarlar, label: "Ayarlar" },
     ]},
@@ -1840,16 +1845,18 @@ function Dashboard({ kullanici }) {
           })}
           {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
           {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
+          <KurulumSihirbazi api={api} ayarlar={ayarlar} kullanici={kullanici} setSayfa={setSayfa} ayarlariYenile={ayarlariYukle} />
+          {sayfa === "tablet" && <TabletEkrani api={api} ayarlar={ayarlar} kapat={() => setSayfa("anasayfa")} />}
           {sayfa === "dukkanim" && (
             <Dukkanim ayarlar={ayarlar} wpBagli={wpBagli}
               ac={(id) => { const m = tamMenu.flatMap(g => g.items).find(x => x.id === id); if (m?.featureKey && !ozellikAcik(m.featureKey)) setPaketModal(true); else setSayfa(id); window.scrollTo(0, 0); }}
               digerleri={tamMenu.flatMap(g => g.items)
-                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek'].includes(m.id))
+                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek', 'tablet'].includes(m.id))
                 .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
                 .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
           )}
           {sayfa === "anasayfa" && (liteMod || mobil) && (
-            <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
+            mobil ? <BugunMobil api={api} setSayfa={setSayfa} /> : <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
           {sayfa === "anasayfa" && !(liteMod || mobil) && (() => {
             const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
