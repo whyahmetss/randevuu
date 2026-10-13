@@ -612,9 +612,7 @@ class AdminController {
 
   async paketBilgisi(req, res) {
     try {
-      const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
-      const paketAdi = isletme?.paket || 'baslangic';
-      const paket = await paketGetir(paketAdi);
+      const { kod: paketAdi, paket } = await require('../utils/oncu').isletmePaketi(req.kullanici.isletme_id);
       const calisanSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       const hizmetSayisi = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       const buAyBasi = new Date(); buAyBasi.setDate(1);
@@ -3445,7 +3443,7 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT google_maps_url, google_yorum_aktif, paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      const paketB = await paketGetir(isletme?.paket);
+      const paketB = (await require('../utils/oncu').isletmePaketi(isletmeId)).paket;
       if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       res.json({ google_maps_url: isletme.google_maps_url, google_yorum_aktif: isletme.google_yorum_aktif });
     } catch (error) { res.status(500).json({ hata: error.message }); }
@@ -3455,7 +3453,7 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      const paketB = await paketGetir(isletme?.paket);
+      const paketB = (await require('../utils/oncu').isletmePaketi(isletmeId)).paket;
       if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       const { google_maps_url, google_yorum_aktif } = req.body;
       await pool.query('UPDATE isletmeler SET google_maps_url=COALESCE($1,google_maps_url), google_yorum_aktif=COALESCE($2,google_yorum_aktif) WHERE id=$3',
@@ -3482,7 +3480,7 @@ class AdminController {
     try {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket, google_maps_url, google_yorum_aktif FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      const paketBilgi = await paketGetir(isletme?.paket);
+      const paketBilgi = (await require('../utils/oncu').isletmePaketi(isletmeId)).paket;
       res.json({
         premium: !!paketBilgi.export_aktif && !!paketBilgi.istatistik,
         paket: isletme?.paket || 'baslangic',
