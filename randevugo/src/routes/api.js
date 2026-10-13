@@ -481,6 +481,9 @@ router.get('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodla
 router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodKaydet(req, res));
 router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
 router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
+// Destek WhatsApp numarası (Render: DESTEK_WP); yoksa null → butonlar gizlenir
+router.get('/iletisim', (req, res) => res.json({ whatsapp: require('../config/iletisim').DESTEK_WP }));
+
 // SıraGO Vitrini: kurucunun ilanları her pakette esnafa görünür (featureGuard yok)
 const vitrinController = require('../controllers/vitrinController');
 router.get('/magaza/gorsel/:id', (req, res) => vitrinController.gorsel(req, res));
