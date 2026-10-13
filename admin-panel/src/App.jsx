@@ -188,7 +188,8 @@ function Login({ onLogin }) {
   const [yukleniyor, setYukleniyor] = useState(false);
   // Davet linki: ?davet=KOD (&k=randevu_sayfasi) → doğrudan kayıt ekranı, kod otomatik
   const davetParam = (() => { try { const q = new URLSearchParams(window.location.search); return { kod: q.get("davet") || "", kanal: q.get("k") === "randevu_sayfasi" ? "randevu_sayfasi" : "davet" }; } catch { return { kod: "", kanal: "web" }; } })();
-  const [ekran, setEkran] = useState(davetParam.kod ? "kayit" : "giris"); // giris | kayit
+  // ?kayit=1 (tanıtım sitesindeki "Ücretsiz Dene") ya da davet linki → doğrudan kayıt ekranı
+  const [ekran, setEkran] = useState(davetParam.kod || /[?&]kayit=1/.test(window.location.search) ? "kayit" : "giris"); // giris | kayit
   const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
 
   const giris = async (e) => {
