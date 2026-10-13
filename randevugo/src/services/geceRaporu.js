@@ -171,21 +171,11 @@ class GeceRaporuService {
           const telefon = telefonNormalize(isletme.telefon);
           if (!/^905\d{9}$/.test(telefon) || !mesaj) continue;
 
-          // Satış Bot numarasından gönder (SıraGO → işletme sahibi).
-          // Eskiden olmayan satisBot.mesajGonder çağrılıyordu ve getDurum beklenmiyordu: rapor hiç gitmiyordu.
-          try {
-            const satisBot = require('./satisBot');
-            const ns = satisBot._aktifSock();
-            if (ns?.sock) {
-              await ns.sock.sendMessage(`${telefon}@s.whatsapp.net`, { text: mesaj });
-              console.log(`📊 Haftalık rapor gönderildi (SatışBot): ${isletme.isim}`);
-              continue;
-            }
-          } catch (e) { console.error(`Haftalık rapor SatışBot hatası (${isletme.isim}):`, e.message); }
-
-          // Yedek: işletmenin kendi WhatsApp bağlantısı (kendi numarasına yazar)
+          // İşletmenin kendi bağlı WhatsApp'ından kendi telefonuna (2026-10-14). Eskiden önce SıraGO Satış Bot
+          // numarasından gidiyordu: esnaf sayısı arttıkça o numara toplu mesajdan ban yiyebilirdi.
           try {
             const whatsappWeb = require('./whatsappWeb');
+            if (whatsappWeb.getDurum(isletme.id)?.durum !== 'bagli') continue;
             const sonuc = await whatsappWeb.mesajGonder(isletme.id, telefon, mesaj);
             if (sonuc?.success) console.log(`📊 Haftalık rapor gönderildi (WA): ${isletme.isim}`);
           } catch (e) { console.error(`Haftalık rapor WA hatası (${isletme.isim}):`, e.message); }
