@@ -123,9 +123,11 @@ class VitrinController {
   async siparisDurum(req, res) {
     try {
       if (!DURUMLAR.includes(req.body.durum)) return hata(res, 'Geçersiz durum');
-      const s = (await pool.query('UPDATE magaza_siparisler SET durum = $1 WHERE id = $2 RETURNING *', [req.body.durum, parseInt(req.params.id)])).rows[0];
-      // Teslim edilen siparişin stoğu düşülür (stok takibi açıksa)
-      if (s && req.body.durum === 'teslim') await pool.query('UPDATE magaza_urunler SET stok = GREATEST(stok - $1, 0) WHERE id = $2 AND stok IS NOT NULL', [s.adet, s.urun_id]);
+      const id = parseInt(req.params.id);
+      const eski = (await pool.query('SELECT durum FROM magaza_siparisler WHERE id = $1', [id])).rows[0];
+      const s = (await pool.query('UPDATE magaza_siparisler SET durum = $1 WHERE id = $2 RETURNING *', [req.body.durum, id])).rows[0];
+      // Teslim edilen siparişin stoğu bir kez düşülür (stok takibi açıksa)
+      if (s && req.body.durum === 'teslim' && eski?.durum !== 'teslim') await pool.query('UPDATE magaza_urunler SET stok = GREATEST(stok - $1, 0) WHERE id = $2 AND stok IS NOT NULL', [s.adet, s.urun_id]);
       res.json({ siparis: s });
     } catch (e) { hata(res, 'Güncellenemedi', 500); }
   }
