@@ -11,7 +11,7 @@ const cevap = () => { const r = { kod: 200 }; r.status = (k) => { r.kod = k; ret
 test('vitrin: ilan, görsel, sipariş, stok', async () => {
   const sema = "CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, telefon TEXT); INSERT INTO isletmeler (isim, telefon) VALUES ('Kemal Berber', '05001112233');" +
     'CREATE TABLE randevular (id SERIAL PRIMARY KEY);' + fs.readFileSync(path.join(SRC, 'migrations', '019_magaza.sql'), 'utf8') + ';' +
-    fs.readFileSync(path.join(SRC, 'migrations', '031_vitrin.sql'), 'utf8');
+    fs.readFileSync(path.join(SRC, 'migrations', '031_vitrin.sql'), 'utf8') + ';' + fs.readFileSync(path.join(SRC, 'migrations', '035_qr_stand_yillik.sql'), 'utf8');
   const { db } = await hazirla(sema);
   const alarmYolu = require.resolve(path.join(SRC, 'utils', 'alarm'));
   const alarmlar = [];

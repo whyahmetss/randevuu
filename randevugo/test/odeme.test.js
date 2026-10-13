@@ -20,7 +20,7 @@ test('ödeme linki: imzalı, süreli, kurcalanırsa geçersiz', async () => {
 test('bitiş hatırlatması: 3 gün kala link gider, aynı aşama tekrar gitmez, demo/şube/telegram atlanır', async () => {
   const { db } = await ortam;
   await db.exec(`
-    CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, telefon TEXT, paket TEXT, aktif BOOLEAN DEFAULT true, demo BOOLEAN DEFAULT false,
+    CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, telefon TEXT, paket TEXT, son_odeme_sure VARCHAR(5), aktif BOOLEAN DEFAULT true, demo BOOLEAN DEFAULT false,
       grup_id INT, deneme_bitis_tarihi TIMESTAMP, paket_bitis_tarihi TIMESTAMP);
     INSERT INTO isletmeler (isim, telefon, paket, deneme_bitis_tarihi, demo, grup_id) VALUES
       ('Kuaför Ayşe', '905321112233', 'profesyonel', NOW() + INTERVAL '2 days 20 hours', false, NULL),

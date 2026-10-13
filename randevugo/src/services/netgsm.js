@@ -4,6 +4,7 @@ class NetgsmService {
 
   // SMS gönder (NetGSM HTTP API)
   async smsGonder(isletmeId, telefon, mesaj, tip = 'hatirlatma') {
+    if (require('../utils/demoTel').demoNumaraMi(telefon)) return { basarili: false, hata: 'Demo numarası — gönderilmedi' };
     try {
       const isletme = (await pool.query(
         'SELECT sms_aktif, netgsm_kullanici_adi, netgsm_sifre, netgsm_baslik FROM isletmeler WHERE id=$1',

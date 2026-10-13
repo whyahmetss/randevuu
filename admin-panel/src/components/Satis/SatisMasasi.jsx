@@ -17,7 +17,7 @@ function Ilerleme({ deger, hedef, renk = RENK.yesil, yukseklik = 8 }) {
   );
 }
 
-function AdayKarti({ a, api, yenile, onDemo }) {
+function AdayKarti({ a, api, yenile, onDemo, waSay }) {
   const [acik, setAcik] = useState(null);          // 'ilgileniyor' | 'not' | 'kurulum' → ek alan
   const [notu, setNotu] = useState('');
   const [bekle, setBekle] = useState(false);
@@ -71,7 +71,12 @@ function AdayKarti({ a, api, yenile, onDemo }) {
           {/* 1) Ulaş */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
             <a href={`tel:${a.telefon}`} style={dugme(RENK.mavi, true)}>📞 Ara</a>
-            <a href={`https://wa.me/${waTel(a.telefon)}?text=${encodeURIComponent(ilkMesaj(a.isletme_adi))}`} target="_blank" rel="noreferrer" style={dugme(RENK.wa, true)}>💬 WhatsApp</a>
+            <a href={`https://wa.me/${waTel(a.telefon)}?text=${encodeURIComponent(ilkMesaj(a.isletme_adi))}`} target="_blank" rel="noreferrer" style={dugme(RENK.wa, true)}
+              onClick={e => {
+                // Kişisel numara koruması: günde WA sınırını geçince uyar (tanımadığına toplu mesaj = ban)
+                if (waSay && waSay.n >= waSay.sinir && !confirm(`Bugün ${waSay.n} işletmeye WhatsApp'tan yazdın. Daha fazlası numaranı yakabilir — aramayı dene. Yine de açılsın mı?`)) { e.preventDefault(); return; }
+                api.post(`/admin/masa/lead/${a.id}/wa`, {}).then(d => d && !d.hata && waSay?.guncelle(d.wa_bugun)).catch(() => {});
+              }}>💬 WhatsApp</a>
             <button onClick={demoAc} style={dugme(RENK.mor)}>{demo || a.demo_isletme_id ? '👁 Demoyu aç' : '✨ Demo hazırla'}</button>
             {demo && <button onClick={() => navigator.clipboard?.writeText(demo)} style={dugme()}>🔗 Linki kopyala</button>}
             <span style={{ flex: 1 }} />
@@ -134,6 +139,7 @@ export default function SatisMasasi({ api, kullanici }) {
   };
 
   const h = ozet?.hedef, ben = ozet?.ben;
+  const waSay = ben ? { n: ben.wa_bugun || 0, sinir: ben.wa_sinir || 20, guncelle: (n) => setOzet(o => o ? { ...o, ben: { ...o.ben, wa_bugun: n } } : o) } : null;
   const benimBaglanan = ben?.kurulum || 0;
 
   return (
@@ -144,6 +150,14 @@ export default function SatisMasasi({ api, kullanici }) {
           <p style={{ color: 'var(--dim)', fontSize: 13, margin: '4px 0 0' }}>Merhaba {kullanici?.isim || ''} — listeni ara, her aramanın sonucunu işaretle. İşaretlenmeyen arama sayılmaz.</p>
         </div>
         <button onClick={() => setKopya(!kopya)} style={dugme(RENK.mor, kopya)}>📋 Kopya kâğıdı (itirazlar)</button>
+        <button onClick={async () => {
+          // Saha demosu: içi dolu demo dükkân paneli yeni sekmede (pencere tıklama anında açılır, engellenmesin)
+          const w = window.open('', '_blank');
+          const d = await api.post('/admin/saha-demo', {});
+          if (!d?.token) { w?.close(); return alert(d?.hata || 'Saha demosu açılamadı'); }
+          localStorage.setItem('randevugo_impersonate_token', d.token);
+          if (w) w.location.href = window.location.origin + '?impersonate=1'; else window.location.href = window.location.origin + '?impersonate=1';
+        }} title="Esnafa göstermek için içi dolu demo dükkân paneli" style={dugme(RENK.yesil)}>📱 Saha demosu</button>
       </div>
 
       {/* Takım hedefi */}
@@ -173,6 +187,14 @@ export default function SatisMasasi({ api, kullanici }) {
                   <Ilerleme deger={n} hedef={hd} renk={r} yukseklik={5} />
                 </div>
               ))}
+              {waSay && (
+                <div style={{ gridColumn: '1 / -1', fontSize: 13, padding: '8px 12px', borderRadius: 10, fontWeight: 600,
+                  background: waSay.n >= waSay.sinir ? 'rgba(180,35,24,.08)' : waSay.n >= waSay.sinir - 5 ? 'rgba(168,89,12,.08)' : 'var(--bg)',
+                  color: waSay.n >= waSay.sinir ? '#b42318' : waSay.n >= waSay.sinir - 5 ? '#a8590c' : 'var(--dim)' }}>
+                  💬 Bugün WhatsApp: {waSay.n} / {waSay.sinir}
+                  {waSay.n >= waSay.sinir ? ' — bugünlük yeter, numaran yanabilir. Arayarak devam et.' : waSay.n >= waSay.sinir - 5 ? ' — sınıra yaklaştın.' : ' — tanımadığın kişiye günde en fazla bu kadar yaz.'}
+                </div>
+              )}
             </div>
           )}
 
@@ -198,12 +220,12 @@ export default function SatisMasasi({ api, kullanici }) {
               </div>
               {liste.bugun.length === 0
                 ? <div style={{ ...kart, textAlign: 'center', color: 'var(--dim)', fontSize: 14 }}>Bugün aranacak kimse yok. Yukarıdan listene aday çek.</div>
-                : liste.bugun.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} />)}
+                : liste.bugun.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} waSay={waSay} />)}
             </>
           )}
           {sekme === 'ileride' && (liste.ileride.length === 0
             ? <div style={{ ...kart, color: 'var(--dim)', fontSize: 14 }}>Geri aranacak kimse yok.</div>
-            : liste.ileride.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} />))}
+            : liste.ileride.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} waSay={waSay} />))}
           {sekme === 'yaptim' && (
             <div style={{ ...kart, padding: 0 }}>
               {aktiviteler.length === 0 && <div style={{ padding: 16, color: 'var(--dim)', fontSize: 14 }}>Bugün henüz kayıt yok.</div>}

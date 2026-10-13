@@ -2,8 +2,38 @@ import { useState, useEffect, useRef } from 'react';
 import { UrunKart } from './Vitrin';
 
 // Kurucu: SıraGO Vitrini'ne ilan ver (Shopier gibi). Fotoğraf tarayıcıda küçültülür (~1000px JPEG).
-const BOS = { isim: '', fiyat: '', eski_fiyat: '', aciklama: '', kategori: '', stok: '', odeme_linki: '', aktif: true, sira: 0, gorsel: null };
+const BOS = { isim: '', fiyat: '', eski_fiyat: '', aciklama: '', kategori: '', stok: '', odeme_linki: '', aktif: true, sira: 0, gorsel: null, kisisel_qr: false };
 const DURUMLAR = [['yeni', 'Yeni'], ['hazirlaniyor', 'Hazırlanıyor'], ['kargoda', 'Kargoda'], ['teslim', 'Teslim'], ['iptal', 'İptal']];
+
+// QR stand baskı dosyası: A6 (105×148 mm, 300 dpi) PNG — dükkân adı, "Randevunu buradan al", büyük QR, link
+async function baskiIndir(api, siparis) {
+  const d = await api.get(`/admin/magaza/siparisler/${siparis.id}/baski`);
+  if (!d || d.hata) return alert(d?.hata || 'Baskı dosyası hazırlanamadı');
+  const W = 1240, H = 1748, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#1f6f4a'; x.fillRect(0, 0, W, 300);
+  x.textAlign = 'center'; x.fillStyle = '#ffffff';
+  let fs = 96; x.font = `800 ${fs}px Arial, sans-serif`;
+  while (x.measureText(d.isim).width > W - 120 && fs > 48) { fs -= 4; x.font = `800 ${fs}px Arial, sans-serif`; }
+  x.fillText(d.isim, W / 2, 185);
+  x.fillStyle = '#111111'; x.font = '800 92px Arial, sans-serif';
+  x.fillText('Randevunu', W / 2, 470); x.fillText('buradan al', W / 2, 580);
+  x.fillStyle = '#555555'; x.font = '500 46px Arial, sans-serif';
+  x.fillText('Telefonunun kamerasıyla okut', W / 2, 660);
+  const img = new Image();
+  await new Promise((ok, red) => { img.onload = ok; img.onerror = red; img.src = d.qr; });
+  const q = 820; x.drawImage(img, (W - q) / 2, 720, q, q);
+  x.fillStyle = '#333333'; x.font = '500 38px Arial, sans-serif';
+  x.fillText(d.gorunen, W / 2, 1600);
+  x.fillStyle = '#1f6f4a'; x.font = '800 40px Arial, sans-serif';
+  x.fillText('SıraGO', W / 2, 1680);
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = `qr-stand-${siparis.id}-${d.isim.replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase()}.png`;
+  a.click();
+}
 
 function kucult(dosya) {
   return new Promise((coz, red) => {
@@ -81,6 +111,7 @@ export default function IlanVer({ api }) {
             <input className="input" placeholder="Shopier / ödeme linki (isteğe bağlı)" value={f.odeme_linki} onChange={set('odeme_linki')} />
           </div>
           <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}><input type="checkbox" checked={f.aktif} onChange={set('aktif')} /> Yayında</label>
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}><input type="checkbox" checked={!!f.kisisel_qr} onChange={set('kisisel_qr')} /> Kişiye özel QR baskılı (QR stand gibi) — siparişte dükkânın baskı dosyası hazırlanır</label>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-primary" disabled={bekle} onClick={kaydet}>{bekle ? 'Kaydediliyor…' : f.id ? 'Güncelle' : 'Yayınla'}</button>
             {f.id && <button className="btn btn-ghost" onClick={() => { setF(BOS); setOnizleme(null); }}>Vazgeç</button>}
@@ -104,7 +135,8 @@ export default function IlanVer({ api }) {
                 <td>{s.urun_isim} × {s.adet}</td>
                 <td>{s.tutar ? `${Number(s.tutar)} ₺` : '—'}</td>
                 <td style={{ maxWidth: 220, fontSize: 13 }}>{s.notu || ''}</td>
-                <td><select className="input" value={s.durum} onChange={e => durum(s.id, e.target.value)}>{DURUMLAR.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></td>
+                <td><select className="input" value={s.durum} onChange={e => durum(s.id, e.target.value)}>{DURUMLAR.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                  {s.kisisel_qr && <button className="btn btn-ghost btn-sm" style={{ marginTop: 6 }} onClick={() => baskiIndir(api, s)}>Baskı dosyası</button>}</td>
               </tr>))}</tbody>
           </table>
         </div>
