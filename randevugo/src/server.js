@@ -1000,11 +1000,7 @@ app.use(express.json({
   verify: (req, res, buf) => { req.rawBody = buf.toString(); }
 }));
 app.use(express.urlencoded({ extended: true })); // Twilio webhook için
-// Tanıtım sitesi (2026-10-14): sırago.com Render'a bağlı; tek kaynak repodaki landing/ klasörü.
-// Önce landing/ (ana sayfa, tw.css, rehber, llms.txt, robots, sitemap), sonra public/ (blog, sektör ve yasal sayfalar).
-const LANDING_DIR = require('path').join(__dirname, '..', '..', 'landing');
-const LANDING_GIZLI = /^\/(netlify\.toml|tailwind\.config\.js|tw\.giris\.css)$/;
-app.use((req, res, next) => (LANDING_GIZLI.test(req.path) ? next() : express.static(LANDING_DIR, { maxAge: '1h' })(req, res, next)));
+// Tanıtım sitesi: public/ (index.html asıl landing; blog, sektör, yasal ve rehber sayfaları)
 app.use(express.static(require('path').join(__dirname, 'public')));
 
 // Health check for Render (must be before apiLimiter)
@@ -1102,7 +1098,7 @@ app.get('/g/:slug', spaSun);
 
 // Ana sayfa - Landing page
 app.get('/', (req, res) => {
-  res.sendFile(require('path').join(LANDING_DIR, 'index.html'));
+  res.sendFile(require('path').join(__dirname, 'public', 'index.html'));
 });
 
 // Global error handler — her zaman JSON döndür
