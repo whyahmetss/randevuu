@@ -1,29 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy } from "react";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler } from "chart.js";
 import { Bar, Line, Doughnut } from "react-chartjs-2";
 import logoFull from "./assets/logo2.png";
-import Settings from "./components/Settings/Settings";
-import Kasa from "./components/Kasa/Kasa";
+const Settings = lazy(() => import("./components/Settings/Settings"));   // açılınca yüklenir (hızlı açılış)
+const Kasa = lazy(() => import("./components/Kasa/Kasa"));   // açılınca yüklenir (hızlı açılış)
 import LiteBugun from "./components/Lite/LiteBugun";
 import KurulumKarti from "./components/Kurulum/KurulumKarti";
-import Buyume from "./components/Buyume/Buyume";
+const Buyume = lazy(() => import("./components/Buyume/Buyume"));   // açılınca yüklenir (hızlı açılış)
 import EsnafGetir from "./components/Davet/EsnafGetir";
-import SatisMasasi from "./components/Satis/SatisMasasi";
-import SatisRehberi from "./components/Satis/SatisRehberi";
-import EkipTakip from "./components/Satis/EkipTakip";
-import Magaza from "./components/Magaza/Magaza";
-import MagazaAdmin from "./components/Magaza/MagazaAdmin";
-import SatisHuni from "./components/SatisBot/SatisHuni";
-import EkipYonetimi from "./components/Ekip/EkipYonetimi";
-import SmsAyarlari from "./components/Settings/SmsAyarlari";
-import GeceRaporu from "./components/Settings/GeceRaporu";
-import YorumAvcisi from "./components/Settings/YorumAvcisi";
-import Winback from "./components/Winback/Winback";
-import Sadakat from "./components/Sadakat/Sadakat";
-import Referans from "./components/Referans/Referans";
-import DogumGunu from "./components/DogumGunu/DogumGunu";
-import MusteriGetir from "./components/MusteriGetir/MusteriGetir";
-import AvciToplu from "./components/AvciToplu/AvciToplu";
+import Dukkanim from "./components/Mobil/Dukkanim";
+const SatisMasasi = lazy(() => import("./components/Satis/SatisMasasi"));   // açılınca yüklenir (hızlı açılış)
+const SatisRehberi = lazy(() => import("./components/Satis/SatisRehberi"));   // açılınca yüklenir (hızlı açılış)
+const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açılınca yüklenir (hızlı açılış)
+const Magaza = lazy(() => import("./components/Magaza/Magaza"));   // açılınca yüklenir (hızlı açılış)
+const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
+const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
+const EkipYonetimi = lazy(() => import("./components/Ekip/EkipYonetimi"));   // açılınca yüklenir (hızlı açılış)
+const SmsAyarlari = lazy(() => import("./components/Settings/SmsAyarlari"));   // açılınca yüklenir (hızlı açılış)
+const GeceRaporu = lazy(() => import("./components/Settings/GeceRaporu"));   // açılınca yüklenir (hızlı açılış)
+const YorumAvcisi = lazy(() => import("./components/Settings/YorumAvcisi"));   // açılınca yüklenir (hızlı açılış)
+const Winback = lazy(() => import("./components/Winback/Winback"));   // açılınca yüklenir (hızlı açılış)
+const Sadakat = lazy(() => import("./components/Sadakat/Sadakat"));   // açılınca yüklenir (hızlı açılış)
+const Referans = lazy(() => import("./components/Referans/Referans"));   // açılınca yüklenir (hızlı açılış)
+const DogumGunu = lazy(() => import("./components/DogumGunu/DogumGunu"));   // açılınca yüklenir (hızlı açılış)
+const MusteriGetir = lazy(() => import("./components/MusteriGetir/MusteriGetir"));   // açılınca yüklenir (hızlı açılış)
+const AvciToplu = lazy(() => import("./components/AvciToplu/AvciToplu"));   // açılınca yüklenir (hızlı açılış)
 import * as socketClient from "./lib/socket";
 const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, useSocketStatus } = socketClient;
 
@@ -946,6 +947,16 @@ function CanliDurumu() {
 
 function Dashboard({ kullanici }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Telefon düzeni (kullanıcı kararı 2026-10-13): alt sekmeler + sade Bugün; bilgisayarda eski düzen aynen
+  const [mobil, setMobil] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const f = (e) => setMobil(e.matches);
+    mq.addEventListener ? mq.addEventListener('change', f) : mq.addListener(f);
+    return () => (mq.removeEventListener ? mq.removeEventListener('change', f) : mq.removeListener(f));
+  }, []);
+  const [wpBagli, setWpBagli] = useState(null);
+  useEffect(() => { if (mobil) api.get('/bot/wp/durum').then(d => setWpBagli(d?.durum === 'bagli')).catch(() => {}); }, [mobil]);
   const [stats, setStats] = useState(null);
   const [randevular, setRandevular] = useState([]);
   const [sayfa, setSayfa] = useState("anasayfa");
@@ -1307,7 +1318,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1438,6 +1449,26 @@ function Dashboard({ kullanici }) {
       {/* 🔔 Bildirim aktivasyon banner (ilk girişte) + 🛍️ Dükkan Modu Popup */}
       <BildirimAktivasyon />
       <DukkanModuPopup />
+
+      {/* Telefon: alt sekmeler (başparmakla erişilir) */}
+      {mobil && (
+        <nav className="alt-sekmeler" aria-label="Ana menü">
+          {[
+            ['anasayfa', 'Bugün', <path key="p" d="M3 9h18M8 2v4M16 2v4" />, <rect key="r" x="3" y="4" width="18" height="17" rx="3" />],
+            ['randevular', 'Takvim', <path key="p" d="M3 6h18M3 12h18M3 18h12" />],
+            ['musteriler', 'Müşteriler', <circle key="c" cx="9" cy="8" r="4" />, <path key="p" d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 1 0 0-6M22 21c0-3-2-5-4-5.5" />],
+            ['dukkanim', 'Dükkanım', <path key="p" d="M3 9l1.5-5h15L21 9M3 9h18v11H3zM9 20v-6h6v6" />],
+          ].map(([id, ad, ...ikon]) => {
+            const aktif = sayfa === id || (id === 'dukkanim' && !['anasayfa', 'randevular', 'musteriler'].includes(sayfa));
+            return (
+              <button key={id} onClick={() => { setSayfa(id); setMobileOpen(false); window.scrollTo(0, 0); }} className={aktif ? 'aktif' : ''} aria-current={aktif ? 'page' : undefined}>
+                <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={aktif ? 2.4 : 2} strokeLinecap="round" strokeLinejoin="round">{ikon}</svg>
+                <span>{ad}</span>
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       {/* Mobile top bar */}
       <div className="mobile-topbar">
@@ -1584,7 +1615,7 @@ function Dashboard({ kullanici }) {
       <div className="main-wrap">
         <div className="top-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{liteMod && sayfa === "anasayfa" ? "Bugün" : sayfaBaslik[sayfa]}</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{(liteMod || mobil) && sayfa === "anasayfa" ? "Bugün" : sayfaBaslik[sayfa]}</h1>
             {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
           </div>
           <div className="top-bar-right" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -1809,10 +1840,18 @@ function Dashboard({ kullanici }) {
           })}
           {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
           {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
-          {sayfa === "anasayfa" && liteMod && (
+          {sayfa === "dukkanim" && (
+            <Dukkanim ayarlar={ayarlar} wpBagli={wpBagli}
+              ac={(id) => { const m = tamMenu.flatMap(g => g.items).find(x => x.id === id); if (m?.featureKey && !ozellikAcik(m.featureKey)) setPaketModal(true); else setSayfa(id); window.scrollTo(0, 0); }}
+              digerleri={tamMenu.flatMap(g => g.items)
+                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek'].includes(m.id))
+                .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
+                .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
+          )}
+          {sayfa === "anasayfa" && (liteMod || mobil) && (
             <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
-          {sayfa === "anasayfa" && !liteMod && (() => {
+          {sayfa === "anasayfa" && !(liteMod || mobil) && (() => {
             const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
             const haftaRandevu = stats?.hafta?.toplam_randevu || 0;
             const toplamMusteri = stats?.toplam_musteri || 0;
