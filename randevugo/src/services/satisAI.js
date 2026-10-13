@@ -19,7 +19,7 @@ const Cevap = z.object({
 
 let _istemci = null;
 const istemci = () => (process.env.ANTHROPIC_API_KEY ? (_istemci ||= new Anthropic()) : null);
-const aktifMi = () => !!(process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || process.env.DEEPSEEK_API_KEY);
+const aktifMi = () => !!(process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS || process.env.DEEPSEEK_API_KEY);
 
 // Sabit kısım (önbelleğe alınır): kim olduğu, nasıl yazdığı, ürünün gerçekleri
 const SISTEM = `Sen SıraGO'nun WhatsApp satış temsilcisisin. Türkiye'deki berber, kuaför, güzellik salonu, klinik gibi
@@ -122,55 +122,37 @@ const sonHata = {};
 const hataYaz = (ad, kod, mesaj) => { sonHata[ad] = { zaman: new Date().toISOString(), kod, mesaj: String(mesaj || '').slice(0, 300) }; console.error(`Satış AI (${ad}) hatası ${kod}: ${sonHata[ad].mesaj}`); };
 
 // Model adı eskiyince (404) sıradakini dene: env → güncel takma ad → bilinen sürüm
-// Yoğunluk (503) / kota (429) da aynı: başka modelde boş yer olabilir. Lite modeller daha az yoğun.
-const geminiModelleri = () => [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'].filter(Boolean))];
+// Model ve anahtar dönüşümü utils/gemini.js içinde
+const geminiModelleri = () => require('../utils/gemini').modeller();
 
 async function geminiCevap(sistem, messages) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return null;
-  for (const model of geminiModelleri()) {
-    const sonuc = await geminiTekModel(key, model, sistem, messages);
-    if (sonuc !== 'MODEL_YOK') return sonuc;
-  }
-  return null;
-}
-
-async function geminiTekModel(key, model, sistem, messages) {
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      signal: AbortSignal.timeout(30000),
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: sistem + JSON_TALIMAT }] },
-        contents: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
-        generationConfig: {
-          // Düşünen modeller çıktı bütçesini düşünmeye harcayınca JSON yarım kalıyordu: bütçe geniş
-          temperature: 0.7, maxOutputTokens: 4096, responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              mesajlar: { type: 'ARRAY', items: { type: 'STRING' } },
-              durum: { type: 'STRING', enum: ['olumlu', 'olumsuz', 'bekliyor', 'sicak'] },
-              arama_istiyor: { type: 'BOOLEAN' },
-              demo_gonder: { type: 'BOOLEAN' },
-              fiyatlar: { type: 'ARRAY', items: { type: 'OBJECT', properties: { hizmet: { type: 'STRING' }, fiyat: { type: 'NUMBER' } }, required: ['hizmet', 'fiyat'] } },
-            },
-            required: ['mesajlar', 'durum', 'arama_istiyor', 'demo_gonder', 'fiyatlar'],
-          },
+  const g = require('../utils/gemini');
+  if (!g.anahtarlar().length) return null;
+  const j = await g.geminiIstek({
+    systemInstruction: { parts: [{ text: sistem + JSON_TALIMAT }] },
+    contents: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
+    generationConfig: {
+      // Düşünen modeller çıktı bütçesini düşünmeye harcayınca JSON yarım kalıyordu: bütçe geniş
+      temperature: 0.7, maxOutputTokens: 4096, responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          mesajlar: { type: 'ARRAY', items: { type: 'STRING' } },
+          durum: { type: 'STRING', enum: ['olumlu', 'olumsuz', 'bekliyor', 'sicak'] },
+          arama_istiyor: { type: 'BOOLEAN' },
+          demo_gonder: { type: 'BOOLEAN' },
+          fiyatlar: { type: 'ARRAY', items: { type: 'OBJECT', properties: { hizmet: { type: 'STRING' }, fiyat: { type: 'NUMBER' } }, required: ['hizmet', 'fiyat'] } },
         },
-      }),
-    });
-    if (r.status === 404) { hataYaz('gemini', 404, `${model} bulunamadı`); return 'MODEL_YOK'; }
-    if ([429, 500, 503].includes(r.status)) { hataYaz('gemini', r.status, `${model} meşgul: ${(await r.text().catch(() => '')).slice(0, 120)}`); return 'MODEL_YOK'; }
-    if (!r.ok) { hataYaz('gemini', r.status, await r.text().catch(() => '')); return null; }
-    const j = await r.json();
-    const metin = j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('');
-    const t = temizle(metin);
-    if (!t) hataYaz('gemini', 'json', `Cevap okunamadı (${j.candidates?.[0]?.finishReason || 'boş'}): ${String(metin || '').slice(0, 120)}`);
-    else delete sonHata.gemini;
-    return t;
-  } catch (e) { hataYaz('gemini', 'ağ', e.message); return null; }
+        required: ['mesajlar', 'durum', 'arama_istiyor', 'demo_gonder', 'fiyatlar'],
+      },
+    },
+  });
+  if (!j) { const h = g.sonHata(); hataYaz('gemini', h?.kod || '?', h?.mesaj || 'Cevap yok'); return null; }
+  const metin = g.metniAl(j);
+  const t = temizle(metin);
+  if (!t) hataYaz('gemini', 'json', `Cevap okunamadı (${j.candidates?.[0]?.finishReason || 'boş'}): ${String(metin).slice(0, 120)}`);
+  else delete sonHata.gemini;
+  return t;
 }
 
 async function deepseekCevap(sistem, messages) {
@@ -254,7 +236,7 @@ async function tani() {
   const sonuc = {};
   for (const [ad, anahtar, fn] of [
     ['claude', 'ANTHROPIC_API_KEY', () => claudeCevap('İŞLETME: Deneme Berber', deneme)],
-    ['gemini', 'GEMINI_API_KEY', () => geminiCevap(sistem, deneme)],
+    ['gemini', process.env.GEMINI_API_KEYS ? 'GEMINI_API_KEYS' : 'GEMINI_API_KEY', () => geminiCevap(sistem, deneme)],
     ['deepseek', 'DEEPSEEK_API_KEY', () => deepseekCevap(sistem, deneme)],
   ]) {
     if (!process.env[anahtar]) { sonuc[ad] = { durum: 'anahtar_yok', mesaj: `${anahtar} Render'da tanımlı değil` }; continue; }
@@ -265,7 +247,7 @@ async function tani() {
       ? { durum: 'calisiyor', sure_ms: Date.now() - bas, ornek: cevap.mesajlar?.[0] }
       : { durum: 'hata', ...(sonHata[ad] || { mesaj: 'Cevap gelmedi' }) };
   }
-  return { sira: (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek'), gemini_modelleri: geminiModelleri(), saglayicilar: sonuc };
+  return { sira: (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek'), gemini_modelleri: geminiModelleri(), gemini_anahtar: require('../utils/gemini').anahtarlar().length, saglayicilar: sonuc };
 }
 
 module.exports = { cevapUret, aktifMi, gecmistenMesajlar, MODEL, tani, sonHata };

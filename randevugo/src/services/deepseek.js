@@ -141,29 +141,29 @@ KRİTİK KURALLAR:
   }
 
   async serbetCevap(mesaj, isletmeBilgi, hizmetler, kanal = 'whatsapp') {
-    if (!this.apiKey) return null;
     const hizmetListesi = hizmetler.map(h => `${h.isim} (${h.sure_dk} dk, ${h.fiyat} TL)`).join(', ');
+    const sistem = this._serbestSistem(isletmeBilgi, hizmetListesi, kanal);
+    // Önce Gemini (ücretsiz kota, birden çok anahtar dönüşümlü), olmazsa DeepSeek (2026-10-13)
+    try {
+      const g = require('../utils/gemini');
+      if (g.anahtarlar().length) {
+        const j = await g.geminiIstek({
+          systemInstruction: { parts: [{ text: sistem }] },
+          contents: [{ role: 'user', parts: [{ text: mesaj }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+        }, { sure: 12000 });
+        const metin = g.metniAl(j).trim();
+        if (metin) return metin;
+      }
+    } catch (e) { console.error('Gemini serbest cevap hatası:', e.message); }
+    if (!this.apiKey) return null;
     try {
       const response = await axios.post(this.baseURL, {
         model: 'deepseek-chat',
         max_tokens: 300,
         temperature: 0.7,
         messages: [
-          {
-            role: 'system',
-            content: `Sen "${isletmeBilgi.isim}" adlı işletmenin ${kanal === 'telegram' ? 'Telegram' : 'WhatsApp'} asistanısın.
-
-KONUŞMA STİLİ: ${isletmeBilgi.bot_konusma_stili === 'resmi' ? 'Resmi ve profesyonel dil, "Siz" hitabı, emoji kullanma' : isletmeBilgi.bot_konusma_stili === 'kisa' ? 'Çok kısa, max 1-2 cümle, gereksiz süsleme yapma' : 'Samimi ama saygılı, emoji kullan'}
-DESTEKLENEN DİLLER: ${(() => { const d = isletmeBilgi.bot_diller; const arr = Array.isArray(d) ? d : (typeof d === 'string' && d ? d.split(',').map(x=>x.trim()) : ['tr']); return arr.map(l => l === 'tr' ? 'Türkçe' : l === 'en' ? 'English' : l === 'ar' ? 'العربية' : l).join(', '); })()}
-DİL KURALI: Müşteri hangi dilde yazdıysa o dilde cevap ver. Desteklenen diller dışında varsayılan dilde cevap ver.
-
-KRİTİK KURALLAR:
-- Resmi stilde "siz" hitabı kullan, ASLA "sen" deme
-- İşletme adını olduğu gibi kullan, değiştirme: "${isletmeBilgi.isim}"
-- Sıcak ve kısa cevap ver (2-3 cümle max)
-- Hizmetler: ${hizmetListesi}
-- Müşteriyi nazikçe randevu almaya yönlendir ama zorlamadan`
-          },
+          { role: 'system', content: sistem },
           { role: 'user', content: mesaj }
         ]
       }, {
@@ -175,6 +175,21 @@ KRİTİK KURALLAR:
       console.error('DeepSeek serbest cevap hatası:', err.message);
       return null;
     }
+  }
+
+  _serbestSistem(isletmeBilgi, hizmetListesi, kanal) {
+    return `Sen "${isletmeBilgi.isim}" adlı işletmenin ${kanal === 'telegram' ? 'Telegram' : 'WhatsApp'} asistanısın.
+
+KONUŞMA STİLİ: ${isletmeBilgi.bot_konusma_stili === 'resmi' ? 'Resmi ve profesyonel dil, "Siz" hitabı, emoji kullanma' : isletmeBilgi.bot_konusma_stili === 'kisa' ? 'Çok kısa, max 1-2 cümle, gereksiz süsleme yapma' : 'Samimi ama saygılı, emoji kullan'}
+DESTEKLENEN DİLLER: ${(() => { const d = isletmeBilgi.bot_diller; const arr = Array.isArray(d) ? d : (typeof d === 'string' && d ? d.split(',').map(x=>x.trim()) : ['tr']); return arr.map(l => l === 'tr' ? 'Türkçe' : l === 'en' ? 'English' : l === 'ar' ? 'العربية' : l).join(', '); })()}
+DİL KURALI: Müşteri hangi dilde yazdıysa o dilde cevap ver. Desteklenen diller dışında varsayılan dilde cevap ver.
+
+KRİTİK KURALLAR:
+- Resmi stilde "siz" hitabı kullan, ASLA "sen" deme
+- İşletme adını olduğu gibi kullan, değiştirme: "${isletmeBilgi.isim}"
+- Sıcak ve kısa cevap ver (2-3 cümle max)
+- Hizmetler: ${hizmetListesi}
+- Müşteriyi nazikçe randevu almaya yönlendir ama zorlamadan`;
   }
 }
 
