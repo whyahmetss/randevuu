@@ -53,6 +53,7 @@ export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
         <Satir baslik="Hizmetler ve fiyatlar" onClick={() => ac('hizmetler')} />
         <Satir baslik="Çalışma saatleri ve ayarlar" alt={ayarlar?.calisma_baslangic ? `${String(ayarlar.calisma_baslangic).slice(0, 5)} – ${String(ayarlar.calisma_bitis || '').slice(0, 5)}` : null} onClick={() => ac('ayarlar')} />
         <Satir baslik="Çalışanlar" onClick={() => ac('calisanlar')} />
+        <Satir baslik="Google Haritalar'da randevu butonu" alt="Müşteri seni Google'da bulunca kendi saatini seçsin" onClick={() => ac('googleharita')} />
         <Satir baslik="SıraGO Vitrini" alt="Tablet, stant, malzeme — dükkânın için" onClick={() => ac('vitrin')} />
         <Satir baslik="Tablet modu" alt="Tezgâhtaki tablet için dükkan ekranı ve müşteri modu" onClick={() => ac('tablet')} />
         <Satir baslik="WhatsApp asistanı" alt={wpBagli ? `Bağlı · ${ayarlar?.randevu_onay_modu === 'manuel' ? 'randevuları önce sana sorar' : 'randevuları kendisi verir'}` : 'Bağlı değil — bağlamak için dokun'}

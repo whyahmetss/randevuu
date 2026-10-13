@@ -481,6 +481,23 @@ router.get('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodla
 router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodKaydet(req, res));
 router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
 router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
+// "Bu ay kazandırdığımız" kartı (services/aylikKazanc.js); ?ay=YYYY-MM
+router.get('/kazanc', authMiddleware, async (req, res) => {
+  try {
+    const k = require('../services/aylikKazanc');
+    const isletmeId = require('../middleware/auth').getIsletmeId(req);
+    const ozet = await k.hesapla(isletmeId, req.query.ay || k.buAy());
+    const i = (await require('../config/db').query('SELECT COALESCE(aylik_ozet_aktif, true) AS a FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    res.json({ ...ozet, whatsapp_ozet: i?.a !== false });
+  } catch (e) { res.status(500).json({ hata: 'Özet hesaplanamadı' }); }
+});
+router.put('/kazanc/ayar', authMiddleware, async (req, res) => {
+  try {
+    await require('../config/db').query('UPDATE isletmeler SET aylik_ozet_aktif = $1 WHERE id = $2', [req.body.aktif !== false, require('../middleware/auth').getIsletmeId(req)]);
+    res.json({ tamam: true });
+  } catch (e) { res.status(500).json({ hata: 'Kaydedilemedi' }); }
+});
+
 // Destek WhatsApp numarası (Render: DESTEK_WP); yoksa null → butonlar gizlenir
 router.get('/iletisim', (req, res) => res.json({ whatsapp: require('../config/iletisim').DESTEK_WP }));
 
