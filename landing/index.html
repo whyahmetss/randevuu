@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SıraGO — Akıllı Randevu Yönetim Platformu | WhatsApp Bot</title>
+  <title>SıraGO — Berber ve Kuaför için WhatsApp Randevu Sistemi | 14 Gün Ücretsiz</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
@@ -36,7 +36,11 @@
     "name": "SıraGO",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
-    "description": "WhatsApp ve Telegram üzerinden 7/24 otomatik randevu alan yapay zeka destekli platform.",
+    "description": "Türkiye'de berber, kuaför ve güzellik salonları için WhatsApp randevu asistanı. Müşteri işletmenin WhatsApp numarasına yazar, yapay zekâ boş saati bulup randevuyu alır ve otomatik hatırlatma gönderir. Müşteri uygulama indirmez. 14 gün ücretsiz.",
+    "alternateName": ["SıraGO randevu", "Sirago"],
+    "inLanguage": "tr",
+    "audience": { "@type": "BusinessAudience", "audienceType": "Berber, kuaför, güzellik salonu, klinik" },
+    "featureList": ["WhatsApp'tan 7/24 otomatik randevu", "Online randevu sayfası ve QR kod", "Otomatik hatırlatma (24 saat, 1 saat, 15 dakika önce)", "Çift randevu engeli ve onay modu", "Çalışan ve hizmet bazında takvim", "Tablet modu", "Müşteri listesini Excel'e aktarma"],
     "url": "https://sırago.com",
     "offers": {
       "@type": "AggregateOffer",
@@ -47,37 +51,14 @@
   }
   </script>
 
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
-  </script>
-
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            cream: '#FDFCF8',
-            savor: '#F3EFE0',
-            wa: { 50:'#eef6f1',100:'#d9ebe0',200:'#b5d6c3',300:'#86b99c',400:'#4f9471',500:'#1f6f4a',600:'#1a5f3f',700:'#164f35',800:'#123f2b',900:'#0e3021' },
-            dark: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1',400:'#94a3b8',500:'#64748b',600:'#475569',700:'#334155',800:'#1e293b',900:'#0f172a',950:'#020617' }
-          },
-          borderRadius: { '4xl':'2rem','5xl':'2.5rem' },
-          fontFamily: { sans:['Geist','sans-serif'], serif:['Geist','sans-serif'] }
-        }
-      }
-    }
-  </script>
+  <!-- Hız (2026-10-13): Tailwind önceden derlendi (tw.css; kaynak: tailwind.config.js), ikonlar sayfaya gömülü -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/tw.css">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     html{scroll-behavior:smooth}
+    .ikon{display:inline-block;vertical-align:-0.125em;flex-shrink:0}
     body{font-family:'Inter',sans-serif;background:#fafaf9;color:#1c1917;overflow-x:hidden}
     ::-webkit-scrollbar{width:5px}
     ::-webkit-scrollbar-track{background:transparent}
@@ -171,7 +152,6 @@
     .toast.show{transform:translateY(0);opacity:1}
 
     /* Cursor glow */
-    #cursor-glow{pointer-events:none;position:fixed;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(37,211,102,.06) 0%,transparent 70%);transform:translate(-50%,-50%);z-index:1;transition:opacity .3s}
 
     /* Horizontal scroll */
     .h-scroll{scrollbar-width:none;-ms-overflow-style:none}
@@ -233,11 +213,11 @@
 <body>
 
 <!-- Cursor Glow -->
-<div id="cursor-glow"></div>
+
 
 <!-- Toast -->
 <div id="toast" class="toast fixed bottom-6 right-6 z-[200] bg-dark-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
-  <span class="iconify text-wa-500 text-xl" data-icon="mdi:check-circle"></span>
+  <svg class="ikon text-wa-500 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>
   <span id="toast-msg" class="text-sm font-medium"></span>
 </div>
 
@@ -256,7 +236,7 @@
       <a href="#sss" class="px-4 py-2 text-sm text-dark-500 hover:text-dark-900 hover:bg-dark-100/60 rounded-xl transition-all duration-300 font-medium">SSS</a>
       <div class="ml-4 flex items-center gap-3">
         <a href="https://admin.xn--srago-n4a.com" class="text-sm text-dark-500 hover:text-dark-900 font-medium transition-colors">Giriş</a>
-        <a href="#iletisim" class="px-5 py-2.5 wa-g text-white text-sm font-bold rounded-xl hover:scale-105 hover:shadow-lg hover:shadow-wa-500/25 transition-all duration-200">Ücretsiz Dene</a>
+        <a href="https://admin.xn--srago-n4a.com/?kayit=1" class="px-5 py-2.5 wa-g text-white text-sm font-bold rounded-xl hover:scale-105 hover:shadow-lg hover:shadow-wa-500/25 transition-all duration-200">Ücretsiz Dene</a>
       </div>
     </div>
     <button id="menuBtn" class="lg:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5">
@@ -322,16 +302,16 @@
         </p>
 
         <div class="anim-fade-up d6 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
-          <a href="#iletisim" class="group w-full sm:w-auto relative">
+          <a href="https://admin.xn--srago-n4a.com/?kayit=1" class="group w-full sm:w-auto relative">
             <div class="absolute -inset-1 wa-g rounded-2xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity duration-300"></div>
             <div class="relative px-8 py-4 wa-g text-white font-bold text-sm uppercase tracking-wide rounded-2xl flex items-center justify-center gap-2.5 hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200">
-              <span class="iconify text-lg" data-icon="mdi:whatsapp"></span>
+              <svg class="ikon text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23c-1.48 0-2.93-.39-4.19-1.15l-.3-.17l-3.12.82l.83-3.04l-.2-.32a8.2 8.2 0 0 1-1.26-4.38c.01-4.54 3.7-8.24 8.25-8.24M8.53 7.33c-.16 0-.43.06-.66.31c-.22.25-.87.86-.87 2.07c0 1.22.89 2.39 1 2.56c.14.17 1.76 2.67 4.25 3.73c.59.27 1.05.42 1.41.53c.59.19 1.13.16 1.56.1c.48-.07 1.46-.6 1.67-1.18s.21-1.07.15-1.18c-.07-.1-.23-.16-.48-.27c-.25-.14-1.47-.74-1.69-.82c-.23-.08-.37-.12-.56.12c-.16.25-.64.81-.78.97c-.15.17-.29.19-.53.07c-.26-.13-1.06-.39-2-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.12-.24-.01-.39.11-.5c.11-.11.27-.29.37-.44c.13-.14.17-.25.25-.41c.08-.17.04-.31-.02-.43c-.06-.11-.56-1.35-.77-1.84c-.2-.48-.4-.42-.56-.43c-.14 0-.3-.01-.47-.01"/></svg>
               14 Gün Ücretsiz Dene
-              <span class="iconify group-hover:translate-x-1 transition-transform duration-300" data-icon="mdi:arrow-right"></span>
+              <svg class="ikon group-hover:translate-x-1 transition-transform duration-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 11v2h12l-5.5 5.5l1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5L16 11z"/></svg>
             </div>
           </a>
           <a href="#nasil" class="w-full sm:w-auto px-8 py-4 bg-white/80 border border-dark-200 text-dark-700 font-semibold text-sm rounded-2xl hover:border-wa-300 hover:bg-white transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
-            <span class="iconify text-lg text-dark-400" data-icon="mdi:arrow-down-circle-outline"></span>
+            <svg class="ikon text-lg text-dark-400" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 6h2v8l3.5-3.5l1.42 1.42L12 17.84l-5.92-5.92L7.5 10.5L11 14zm1 16A10 10 0 0 1 2 12A10 10 0 0 1 12 2a10 10 0 0 1 10 10a10 10 0 0 1-10 10m0-2a8 8 0 0 0 8-8a8 8 0 0 0-8-8a8 8 0 0 0-8 8a8 8 0 0 0 8 8"/></svg>
             Nasıl Çalışır?
           </a>
         </div>
@@ -339,7 +319,7 @@
         <!-- Erken Erişim Rozeti -->
         <div class="anim-fade-up d8 mt-12 flex flex-col sm:flex-row items-center gap-6 justify-center lg:justify-start">
           <div class="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-200/60 rounded-2xl shadow-sm">
-            <span class="iconify text-amber-500 text-xl" data-icon="mdi:rocket-launch-outline"></span>
+            <svg class="ikon text-amber-500 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m13.16 22.19l-1.66-3.84c1.6-.58 3.07-1.35 4.43-2.27l-2.78 6.11m-7.5-9.69l-3.84-1.65l6.11-2.78C7 9.43 6.23 10.91 5.65 12.5M20 4c-2.96-.22-5.2.83-7.55 3.31c-2.36 2.47-3.36 4.5-3.95 6.04l2.17 2.1c2.29-.87 4.33-2.18 6.03-3.89C20 8.27 20.17 5.4 20 4m-9 1.9c2.63-2.8 7-4.82 10.66-3.55c0 0 2.12 4.96-3.55 10.65c-2.2 2.17-4.58 3.5-6.72 4.34c-.24.09-1.15.39-2.13-.46l-2.13-2.13c-.56-.56-.74-1.38-.47-2.13C7.5 10.5 8.41 8.69 11 5.9M6.25 22H4.84l4.09-4.1c.3.21.63.36.97.45zM2 22v-1.41l4.77-4.78l1.43 1.42L3.41 22zm0-2.83v-1.42l3.65-3.65c.09.35.24.68.45.97zM16 6a2 2 0 0 1 2 2c0 1.11-.89 2-2 2a2 2 0 1 1 0-4"/></svg>
             <div class="text-left">
               <p class="text-xs font-black text-amber-900 tracking-tight">Erken Erişim</p>
               <p class="text-[11px] text-amber-700/80">Kurulumu sizin için biz yapıyoruz</p>
@@ -347,7 +327,7 @@
           </div>
           <div class="text-left">
             <div class="flex items-center gap-1.5 mb-1">
-              <span class="iconify text-wa-500 text-sm" data-icon="mdi:shield-check"></span>
+              <svg class="ikon text-wa-500 text-sm" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m10 17l-4-4l1.41-1.41L10 14.17l6.59-6.59L18 9m-6-8L3 5v6c0 5.55 3.84 10.74 9 12c5.16-1.26 9-6.45 9-12V5z"/></svg>
               <span class="text-xs font-bold text-dark-700">14 gün ücretsiz deneme</span>
             </div>
             <p class="text-xs text-dark-400">Kredi kartı gerekmez · İstediğin zaman iptal et</p>
@@ -375,18 +355,18 @@
               <!-- WA Header -->
               <div class="wa-g px-4 pt-8 pb-3">
                 <div class="flex items-center gap-3">
-                  <span class="iconify text-white/70 text-lg" data-icon="mdi:arrow-left"></span>
+                  <svg class="ikon text-white/70 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 11v2H8l5.5 5.5l-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5L8 11z"/></svg>
                   <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center ring-2 ring-white/20"><img src="/img/tilki-ikon.webp" alt="" class="w-full h-full rounded-full object-cover">
                   </div>
                   <div class="flex-1 min-w-0">
                     <p class="text-white text-sm font-bold">SiraGO Asistan</p>
                     <p class="text-white/70 text-[11px] flex items-center gap-1">
-                      <span class="iconify text-white/80 text-xs" data-icon="mdi:robot-outline"></span> AI Asistan
+                      <svg class="ikon text-white/80 text-xs" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.5 15.5c0 1.11-.89 2-2 2s-2-.89-2-2s.9-2 2-2s2 .9 2 2m-9-2c-1.1 0-2 .9-2 2s.9 2 2 2s2-.89 2-2s-.89-2-2-2M23 15v3c0 .55-.45 1-1 1h-1v1c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2v-1H2c-.55 0-1-.45-1-1v-3c0-.55.45-1 1-1h1c0-3.87 3.13-7 7-7h1V5.73c-.6-.34-1-.99-1-1.73c0-1.1.9-2 2-2s2 .9 2 2c0 .74-.4 1.39-1 1.73V7h1c3.87 0 7 3.13 7 7h1c.55 0 1 .45 1 1m-2 1h-2v-2c0-2.76-2.24-5-5-5h-4c-2.76 0-5 2.24-5 5v2H3v1h2v3h14v-3h2z"/></svg> AI Asistan
                     </p>
                   </div>
-                  <span class="iconify text-white/70 text-xl" data-icon="mdi:video-outline"></span>
-                  <span class="iconify text-white/70 text-xl" data-icon="mdi:phone-outline"></span>
-                  <span class="iconify text-white/70 text-xl" data-icon="mdi:dots-vertical"></span>
+                  <svg class="ikon text-white/70 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 8v8H5V8zm1-2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4V7a1 1 0 0 0-1-1"/></svg>
+                  <svg class="ikon text-white/70 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 15.5c-1.2 0-2.5-.2-3.6-.6h-.3c-.3 0-.5.1-.7.3l-2.2 2.2c-2.8-1.5-5.2-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1c-.3-1.1-.5-2.4-.5-3.6c0-.5-.5-1-1-1H4c-.5 0-1 .5-1 1c0 9.4 7.6 17 17 17c.5 0 1-.5 1-1v-3.5c0-.5-.5-1-1-1M5 5h1.5c.1.9.3 1.8.5 2.6L5.8 8.8C5.4 7.6 5.1 6.3 5 5m14 14c-1.3-.1-2.6-.4-3.8-.8l1.2-1.2c.8.2 1.7.4 2.6.4z"/></svg>
+                  <svg class="ikon text-white/70 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 16a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2m0-6a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2m0-6a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2"/></svg>
                 </div>
               </div>
 
@@ -396,11 +376,11 @@
 
               <!-- Input -->
               <div class="bg-[#f0f0f0] px-3 py-2.5 flex items-center gap-2">
-                <span class="iconify text-dark-400 text-xl" data-icon="mdi:emoticon-happy-outline"></span>
+                <svg class="ikon text-dark-400 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 12a8 8 0 0 0-8-8a8 8 0 0 0-8 8a8 8 0 0 0 8 8a8 8 0 0 0 8-8m2 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12A10 10 0 0 1 12 2a10 10 0 0 1 10 10M10 9.5c0 .8-.7 1.5-1.5 1.5S7 10.3 7 9.5S7.7 8 8.5 8s1.5.7 1.5 1.5m7 0c0 .8-.7 1.5-1.5 1.5S14 10.3 14 9.5S14.7 8 15.5 8s1.5.7 1.5 1.5m-5 7.73c-1.75 0-3.29-.73-4.19-1.81L9.23 14c.45.72 1.52 1.23 2.77 1.23s2.32-.51 2.77-1.23l1.42 1.42c-.9 1.08-2.44 1.81-4.19 1.81"/></svg>
                 <div class="flex-1 bg-white rounded-full px-4 py-2.5 text-sm text-dark-300 border border-dark-200/50">Mesaj yazın...</div>
-                <span class="iconify text-dark-400 text-xl" data-icon="mdi:attachment"></span>
+                <svg class="ikon text-dark-400 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.5 18A5.5 5.5 0 0 1 2 12.5A5.5 5.5 0 0 1 7.5 7H18a4 4 0 0 1 4 4a4 4 0 0 1-4 4H9.5A2.5 2.5 0 0 1 7 12.5A2.5 2.5 0 0 1 9.5 10H17v1.5H9.5a1 1 0 0 0-1 1a1 1 0 0 0 1 1H18a2.5 2.5 0 0 0 2.5-2.5A2.5 2.5 0 0 0 18 8.5H7.5a4 4 0 0 0-4 4a4 4 0 0 0 4 4H17V18z"/></svg>
                 <div class="w-10 h-10 rounded-full wa-g flex items-center justify-center shadow-md shadow-wa-500/20">
-                  <span class="iconify text-white text-xl" data-icon="mdi:microphone"></span>
+                  <svg class="ikon text-white text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3m7 9c0 3.53-2.61 6.44-6 6.93V21h-2v-3.07c-3.39-.49-6-3.4-6-6.93h2a5 5 0 0 0 5 5a5 5 0 0 0 5-5z"/></svg>
                 </div>
               </div>
             </div>
@@ -410,7 +390,7 @@
           <div class="absolute -left-6 sm:-left-16 top-28 bg-white rounded-2xl p-4 shadow-xl shadow-dark-900/8 border border-dark-100/50 opacity-0" style="animation:chat-in .6s 3.5s cubic-bezier(.16,1,.3,1) forwards" id="floatCard1">
             <div class="flex items-center gap-3">
               <div class="w-11 h-11 rounded-xl bg-wa-100 flex items-center justify-center">
-                <span class="iconify text-wa-600 text-xl" data-icon="mdi:calendar-check"></span>
+                <svg class="ikon text-wa-600 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 19H5V8h14m0-5h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-2.47 8.06L15.47 10l-4.88 4.88l-2.12-2.12l-1.06 1.06L10.59 17z"/></svg>
               </div>
               <div>
                 <p class="text-[13px] font-bold text-dark-900">Yeni Randevu!</p>
@@ -422,9 +402,9 @@
           <div class="absolute -right-4 sm:-right-12 bottom-28 bg-white rounded-2xl px-4 py-3 shadow-xl shadow-dark-900/8 border border-dark-100/50 opacity-0" style="animation:chat-in .6s 4.5s cubic-bezier(.16,1,.3,1) forwards" id="floatCard2">
             <div class="flex items-center gap-2">
               <div class="flex -space-x-1">
-                <span class="iconify text-amber-400 text-sm" data-icon="mdi:star"></span>
-                <span class="iconify text-wa-500 text-sm" data-icon="mdi:clock-fast"></span>
-                <span class="iconify text-wa-500 text-sm" data-icon="mdi:clock-fast"></span>
+                <svg class="ikon text-amber-400 text-sm" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2L9.19 8.62L2 9.24l5.45 4.73L5.82 21z"/></svg>
+                <svg class="ikon text-wa-500 text-sm" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 4a8 8 0 0 1 8 8a8 8 0 0 1-8 8a8 8 0 0 1-8-8a8 8 0 0 1 8-8m0 2a6 6 0 0 0-6 6a6 6 0 0 0 6 6a6 6 0 0 0 6-6a6 6 0 0 0-6-6m-1 2h1.5v3.78l2.33 2.33l-1.06 1.06L14 12.4zM2 18a1 1 0 0 1-1-1a1 1 0 0 1 1-1h3.83c.31.71.71 1.38 1.17 2zm1-5a1 1 0 0 1-1-1a1 1 0 0 1 1-1h2.05L5 12l.05 1zm1-5a1 1 0 0 1-1-1a1 1 0 0 1 1-1h3c-.46.62-.86 1.29-1.17 2z"/></svg>
+                <svg class="ikon text-wa-500 text-sm" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15 4a8 8 0 0 1 8 8a8 8 0 0 1-8 8a8 8 0 0 1-8-8a8 8 0 0 1 8-8m0 2a6 6 0 0 0-6 6a6 6 0 0 0 6 6a6 6 0 0 0 6-6a6 6 0 0 0-6-6m-1 2h1.5v3.78l2.33 2.33l-1.06 1.06L14 12.4zM2 18a1 1 0 0 1-1-1a1 1 0 0 1 1-1h3.83c.31.71.71 1.38 1.17 2zm1-5a1 1 0 0 1-1-1a1 1 0 0 1 1-1h2.05L5 12l.05 1zm1-5a1 1 0 0 1-1-1a1 1 0 0 1 1-1h3c-.46.62-.86 1.29-1.17 2z"/></svg>
               </div>
               <span class="text-xs font-extrabold text-dark-700">7/24 otomatik</span>
             </div>
@@ -432,7 +412,7 @@
 
           <div class="absolute -left-4 sm:-left-12 bottom-16 bg-white rounded-xl px-3 py-2 shadow-lg shadow-dark-900/5 border border-dark-100/50 opacity-0" style="animation:chat-in .6s 5.5s cubic-bezier(.16,1,.3,1) forwards">
             <div class="flex items-center gap-2">
-              <span class="iconify text-red-500 text-sm" data-icon="mdi:bell-ring"></span>
+              <svg class="ikon text-red-500 text-sm" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21 19v1H3v-1l2-2v-6c0-3.1 2.03-5.83 5-6.71V4a2 2 0 0 1 2-2a2 2 0 0 1 2 2v.29c2.97.88 5 3.61 5 6.71v6zm-7 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2m9.75-17.81l-1.42 1.42A8.98 8.98 0 0 1 21 11h2c0-2.93-1.16-5.75-3.25-7.81M1 11h2c0-2.4.96-4.7 2.67-6.39L4.25 3.19A10.96 10.96 0 0 0 1 11"/></svg>
               <span class="text-[11px] font-bold text-dark-600">Hatırlatma gönderildi</span>
             </div>
           </div>
@@ -457,24 +437,24 @@
   <p class="text-center text-[10px] uppercase tracking-[0.3em] text-dark-300 font-bold mb-8">Desteklediğimiz Sektörler</p>
   <div class="flex anim-marquee whitespace-nowrap">
     <div class="flex items-center gap-12 mx-8">
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:tooth-outline"></span>Diş Klinikleri</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:hair-dryer-outline"></span>Kuaförler</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:dumbbell"></span>Fitness Studyolar</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:dog-side"></span>Veterinerler</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:car-outline"></span>Oto Servis</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:spa-outline"></span>Güzellik Merkezleri</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:stethoscope"></span>Sağlık</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:human-handsup"></span>Masaj & Spa</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 2C4 2 2 5 2 8c0 2.11 1 5 2 6s2 8 4 8c4.54 0 2-7 4-7s-.54 7 4 7c2 0 3-7 4-8s2-3.89 2-6c0-3-2-6-5-6s-3 1-5 1s-2-1-5-1m0 2c2 0 3 1 5 1s3-1 5-1c1.67 0 3 2 3 4c0 1.75-.86 4.11-1.81 5.06c-.86.86-2.13 6.88-2.69 6.88c-.21 0-.5-1.06-.5-2.35c0-2.04-.57-4.59-3-4.59s-3 2.55-3 4.59c0 1.29-.29 2.35-.5 2.35c-.56 0-1.83-6.02-2.69-6.88C4.86 12.11 4 9.75 4 8c0-2 1.33-4 3-4"/></svg>Diş Klinikleri</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 12.73A70 70 0 0 0 17 11V4s-6.5-2-9.5-2a5.5 5.5 0 0 0-1.38 10.82L7 19h1a3 3 0 0 0 1.46 2.33A3.15 3.15 0 0 1 11 24h1a4.12 4.12 0 0 0-1.91-3.45C9.39 20 9 19.63 9 19h1M4 7.5A3.5 3.5 0 0 1 7.5 4A37 37 0 0 1 15 5.5v4A37 37 0 0 1 7.5 11A3.5 3.5 0 0 1 4 7.5M22 9a4.3 4.3 0 0 1-2.22-.55A3.4 3.4 0 0 0 18 8V7a4.3 4.3 0 0 1 2.22.55A3.4 3.4 0 0 0 22 8m0-2a3.4 3.4 0 0 1-1.78-.45A4.3 4.3 0 0 0 18 5v1a3.4 3.4 0 0 1 1.78.45A4.3 4.3 0 0 0 22 7m0 3a3.4 3.4 0 0 1-1.78-.45A4.3 4.3 0 0 0 18 9v1a3.4 3.4 0 0 1 1.78.45A4.3 4.3 0 0 0 22 11M9 7.5A1.5 1.5 0 1 1 7.5 6A1.5 1.5 0 0 1 9 7.5"/></svg>Kuaförler</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.57 14.86L22 13.43L20.57 12L17 15.57L8.43 7L12 3.43L10.57 2L9.14 3.43L7.71 2L5.57 4.14L4.14 2.71L2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57L3.43 12L7 8.43L15.57 17L12 20.57L13.43 22l1.43-1.43L16.29 22l2.14-2.14l1.43 1.43l1.43-1.43l-1.43-1.43L22 16.29z"/></svg>Fitness Studyolar</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m19 3l-4 4l3 3l1-1l1 1l2-2l-3-3zM3 7L2 8l3 3v3l-1 1v6h2v-3l2-3h7v6h2V11l-3-3l-1 1H5z"/></svg>Veterinerler</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 6c-.2-.6-.8-1-1.4-1h-11c-.7 0-1.2.4-1.4 1L3 12v8c0 .5.5 1 1 1h1c.6 0 1-.5 1-1v-1h12v1c0 .5.5 1 1 1h1c.5 0 1-.5 1-1v-8zM6.8 7h10.3l1.1 3H5.8zM19 17H5v-5h14zM7.5 13c.8 0 1.5.7 1.5 1.5S8.3 16 7.5 16S6 15.3 6 14.5S6.7 13 7.5 13m9 0c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5"/></svg>Oto Servis</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 9.63a14.2 14.2 0 0 0-3.5 2.63a13.7 13.7 0 0 0-3.5-2.63C8.74 6.86 9.92 4.14 12.06 2c2.12 2.12 3.25 4.84 3.44 7.63M12 15.45C14.15 12.17 17.82 10 22 10c0 10-9.32 11.88-10 12c-.68-.11-10-2-10-12c4.18 0 7.85 2.17 10 5.45m.05-10.26c-.66 1.04-1.12 2.19-1.37 3.39l1.32.97l1.35-.98c-.23-1.2-.67-2.35-1.3-3.38M12 19.97s6-.97 7.74-7.72C14 14 12 19.1 12 19.1S9 13 4.26 12.26C6 19 12 19.97 12 19.97"/></svg>Güzellik Merkezleri</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 8c.56 0 1 .43 1 1a1 1 0 0 1-1 1c-.57 0-1-.45-1-1c0-.57.43-1 1-1M2 2v9c0 2.96 2.19 5.5 5.14 5.91c.62 3.01 3.28 5.09 6.36 5.09a6.5 6.5 0 0 0 6.5-6.5v-3.69c1.16-.42 2-1.52 2-2.81a3 3 0 0 0-3-3a3 3 0 0 0-3 3c0 1.29.84 2.4 2 2.81v3.6c0 2.5-2 4.5-4.5 4.5c-2 0-3.68-1.21-4.28-3.01C12 16.3 14 13.8 14 11V2h-4v3h2v6a4 4 0 0 1-4 4a4 4 0 0 1-4-4V5h2V2z"/></svg>Sağlık</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 1c0 2.7 1.56 5.16 4 6.32V22h2v-7h2v7h2V7.31C17.44 6.16 19 3.7 19 1h-2a5 5 0 0 1-5 5a5 5 0 0 1-5-5m5 0c-1.11 0-2 .89-2 2s.89 2 2 2s2-.89 2-2s-.89-2-2-2"/></svg>Masaj & Spa</span>
     </div>
     <div class="flex items-center gap-12 mx-8">
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:tooth-outline"></span>Diş Klinikleri</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:hair-dryer-outline"></span>Kuaförler</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:dumbbell"></span>Fitness Studyolar</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:dog-side"></span>Veterinerler</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:car-outline"></span>Oto Servis</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:spa-outline"></span>Güzellik Merkezleri</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:stethoscope"></span>Sağlık</span>
-      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><span class="iconify text-dark-300" data-icon="mdi:human-handsup"></span>Masaj & Spa</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 2C4 2 2 5 2 8c0 2.11 1 5 2 6s2 8 4 8c4.54 0 2-7 4-7s-.54 7 4 7c2 0 3-7 4-8s2-3.89 2-6c0-3-2-6-5-6s-3 1-5 1s-2-1-5-1m0 2c2 0 3 1 5 1s3-1 5-1c1.67 0 3 2 3 4c0 1.75-.86 4.11-1.81 5.06c-.86.86-2.13 6.88-2.69 6.88c-.21 0-.5-1.06-.5-2.35c0-2.04-.57-4.59-3-4.59s-3 2.55-3 4.59c0 1.29-.29 2.35-.5 2.35c-.56 0-1.83-6.02-2.69-6.88C4.86 12.11 4 9.75 4 8c0-2 1.33-4 3-4"/></svg>Diş Klinikleri</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 12.73A70 70 0 0 0 17 11V4s-6.5-2-9.5-2a5.5 5.5 0 0 0-1.38 10.82L7 19h1a3 3 0 0 0 1.46 2.33A3.15 3.15 0 0 1 11 24h1a4.12 4.12 0 0 0-1.91-3.45C9.39 20 9 19.63 9 19h1M4 7.5A3.5 3.5 0 0 1 7.5 4A37 37 0 0 1 15 5.5v4A37 37 0 0 1 7.5 11A3.5 3.5 0 0 1 4 7.5M22 9a4.3 4.3 0 0 1-2.22-.55A3.4 3.4 0 0 0 18 8V7a4.3 4.3 0 0 1 2.22.55A3.4 3.4 0 0 0 22 8m0-2a3.4 3.4 0 0 1-1.78-.45A4.3 4.3 0 0 0 18 5v1a3.4 3.4 0 0 1 1.78.45A4.3 4.3 0 0 0 22 7m0 3a3.4 3.4 0 0 1-1.78-.45A4.3 4.3 0 0 0 18 9v1a3.4 3.4 0 0 1 1.78.45A4.3 4.3 0 0 0 22 11M9 7.5A1.5 1.5 0 1 1 7.5 6A1.5 1.5 0 0 1 9 7.5"/></svg>Kuaförler</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.57 14.86L22 13.43L20.57 12L17 15.57L8.43 7L12 3.43L10.57 2L9.14 3.43L7.71 2L5.57 4.14L4.14 2.71L2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57L3.43 12L7 8.43L15.57 17L12 20.57L13.43 22l1.43-1.43L16.29 22l2.14-2.14l1.43 1.43l1.43-1.43l-1.43-1.43L22 16.29z"/></svg>Fitness Studyolar</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m19 3l-4 4l3 3l1-1l1 1l2-2l-3-3zM3 7L2 8l3 3v3l-1 1v6h2v-3l2-3h7v6h2V11l-3-3l-1 1H5z"/></svg>Veterinerler</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 6c-.2-.6-.8-1-1.4-1h-11c-.7 0-1.2.4-1.4 1L3 12v8c0 .5.5 1 1 1h1c.6 0 1-.5 1-1v-1h12v1c0 .5.5 1 1 1h1c.5 0 1-.5 1-1v-8zM6.8 7h10.3l1.1 3H5.8zM19 17H5v-5h14zM7.5 13c.8 0 1.5.7 1.5 1.5S8.3 16 7.5 16S6 15.3 6 14.5S6.7 13 7.5 13m9 0c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5"/></svg>Oto Servis</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 9.63a14.2 14.2 0 0 0-3.5 2.63a13.7 13.7 0 0 0-3.5-2.63C8.74 6.86 9.92 4.14 12.06 2c2.12 2.12 3.25 4.84 3.44 7.63M12 15.45C14.15 12.17 17.82 10 22 10c0 10-9.32 11.88-10 12c-.68-.11-10-2-10-12c4.18 0 7.85 2.17 10 5.45m.05-10.26c-.66 1.04-1.12 2.19-1.37 3.39l1.32.97l1.35-.98c-.23-1.2-.67-2.35-1.3-3.38M12 19.97s6-.97 7.74-7.72C14 14 12 19.1 12 19.1S9 13 4.26 12.26C6 19 12 19.97 12 19.97"/></svg>Güzellik Merkezleri</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 8c.56 0 1 .43 1 1a1 1 0 0 1-1 1c-.57 0-1-.45-1-1c0-.57.43-1 1-1M2 2v9c0 2.96 2.19 5.5 5.14 5.91c.62 3.01 3.28 5.09 6.36 5.09a6.5 6.5 0 0 0 6.5-6.5v-3.69c1.16-.42 2-1.52 2-2.81a3 3 0 0 0-3-3a3 3 0 0 0-3 3c0 1.29.84 2.4 2 2.81v3.6c0 2.5-2 4.5-4.5 4.5c-2 0-3.68-1.21-4.28-3.01C12 16.3 14 13.8 14 11V2h-4v3h2v6a4 4 0 0 1-4 4a4 4 0 0 1-4-4V5h2V2z"/></svg>Sağlık</span>
+      <span class="text-sm font-bold text-dark-300 tracking-wide flex items-center gap-2"><svg class="ikon text-dark-300" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 1c0 2.7 1.56 5.16 4 6.32V22h2v-7h2v7h2V7.31C17.44 6.16 19 3.7 19 1h-2a5 5 0 0 1-5 5a5 5 0 0 1-5-5m5 0c-1.11 0-2 .89-2 2s.89 2 2 2s2-.89 2-2s-.89-2-2-2"/></svg>Masaj & Spa</span>
     </div>
   </div>
 </section>
@@ -529,7 +509,7 @@
           <!-- Icon + Badge -->
           <div class="relative inline-block mb-6">
             <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-wa-500/20 to-wa-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <span class="iconify text-wa-400 text-3xl" data-icon="mdi:whatsapp"></span>
+              <svg class="ikon text-wa-400 text-3xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23c-1.48 0-2.93-.39-4.19-1.15l-.3-.17l-3.12.82l.83-3.04l-.2-.32a8.2 8.2 0 0 1-1.26-4.38c.01-4.54 3.7-8.24 8.25-8.24M8.53 7.33c-.16 0-.43.06-.66.31c-.22.25-.87.86-.87 2.07c0 1.22.89 2.39 1 2.56c.14.17 1.76 2.67 4.25 3.73c.59.27 1.05.42 1.41.53c.59.19 1.13.16 1.56.1c.48-.07 1.46-.6 1.67-1.18s.21-1.07.15-1.18c-.07-.1-.23-.16-.48-.27c-.25-.14-1.47-.74-1.69-.82c-.23-.08-.37-.12-.56.12c-.16.25-.64.81-.78.97c-.15.17-.29.19-.53.07c-.26-.13-1.06-.39-2-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.12-.24-.01-.39.11-.5c.11-.11.27-.29.37-.44c.13-.14.17-.25.25-.41c.08-.17.04-.31-.02-.43c-.06-.11-.56-1.35-.77-1.84c-.2-.48-.4-.42-.56-.43c-.14 0-.3-.01-.47-.01"/></svg>
             </div>
             <div class="absolute -top-2 -right-2 w-7 h-7 rounded-full wa-g flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-wa-500/30">01</div>
           </div>
@@ -541,13 +521,13 @@
           <div class="bg-white/[.04] rounded-2xl p-4 border border-white/[.06]">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl wa-g/20 flex items-center justify-center">
-                <span class="iconify text-wa-400 text-lg" data-icon="mdi:link-variant"></span>
+                <svg class="ikon text-wa-400 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.59 13.41c.41.39.41 1.03 0 1.42c-.39.39-1.03.39-1.42 0a5.003 5.003 0 0 1 0-7.07l3.54-3.54a5.003 5.003 0 0 1 7.07 0a5.003 5.003 0 0 1 0 7.07l-1.49 1.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.98 2.98 0 0 0 0-4.24a2.98 2.98 0 0 0-4.24 0l-3.53 3.53a2.98 2.98 0 0 0 0 4.24m2.82-4.24c.39-.39 1.03-.39 1.42 0a5.003 5.003 0 0 1 0 7.07l-3.54 3.54a5.003 5.003 0 0 1-7.07 0a5.003 5.003 0 0 1 0-7.07l1.49-1.49c-.01.82.12 1.64.4 2.43l-.47.47a2.98 2.98 0 0 0 0 4.24a2.98 2.98 0 0 0 4.24 0l3.53-3.53a2.98 2.98 0 0 0 0-4.24a.973.973 0 0 1 0-1.42"/></svg>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-[12px] font-bold text-white">Bağlantı Başarılı</p>
                 <p class="text-[11px] text-dark-500">+90 5XX XXX XX XX</p>
               </div>
-              <span class="iconify text-wa-500 text-xl" data-icon="mdi:check-circle"></span>
+              <svg class="ikon text-wa-500 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>
             </div>
           </div>
         </div>
@@ -559,7 +539,7 @@
         <div class="relative z-10">
           <div class="relative inline-block mb-6">
             <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <span class="iconify text-purple-400 text-3xl" data-icon="mdi:tune-vertical"></span>
+              <svg class="ikon text-purple-400 text-3xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 3H5v6h2zm12 0h-2v10h2zM3 13h2v8h2v-8h2v-2H3zm12-6h-2V3h-2v4H9v2h6zm-4 14h2V11h-2zm4-6v2h2v4h2v-4h2v-2z"/></svg>
             </div>
             <div class="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-purple-500/30">02</div>
           </div>
@@ -592,7 +572,7 @@
         <div class="relative z-10">
           <div class="relative inline-block mb-6">
             <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-              <span class="iconify text-cyan-400 text-3xl" data-icon="mdi:rocket-launch-outline"></span>
+              <svg class="ikon text-cyan-400 text-3xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m13.16 22.19l-1.66-3.84c1.6-.58 3.07-1.35 4.43-2.27l-2.78 6.11m-7.5-9.69l-3.84-1.65l6.11-2.78C7 9.43 6.23 10.91 5.65 12.5M20 4c-2.96-.22-5.2.83-7.55 3.31c-2.36 2.47-3.36 4.5-3.95 6.04l2.17 2.1c2.29-.87 4.33-2.18 6.03-3.89C20 8.27 20.17 5.4 20 4m-9 1.9c2.63-2.8 7-4.82 10.66-3.55c0 0 2.12 4.96-3.55 10.65c-2.2 2.17-4.58 3.5-6.72 4.34c-.24.09-1.15.39-2.13-.46l-2.13-2.13c-.56-.56-.74-1.38-.47-2.13C7.5 10.5 8.41 8.69 11 5.9M6.25 22H4.84l4.09-4.1c.3.21.63.36.97.45zM2 22v-1.41l4.77-4.78l1.43 1.42L3.41 22zm0-2.83v-1.42l3.65-3.65c.09.35.24.68.45.97zM16 6a2 2 0 0 1 2 2c0 1.11-.89 2-2 2a2 2 0 1 1 0-4"/></svg>
             </div>
             <div class="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-cyan-500/30">03</div>
           </div>
@@ -604,7 +584,7 @@
           <div class="bg-white/[.04] rounded-2xl p-4 border border-white/[.06]">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-cyan-500/15 flex items-center justify-center">
-                <span class="iconify text-cyan-400 text-lg" data-icon="mdi:robot-happy-outline"></span>
+                <svg class="ikon text-cyan-400 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.5 15.5c0 .37-.1.7-.28 1c-.34-.59-.98-1-1.72-1s-1.38.41-1.72 1c-.17-.3-.28-.63-.28-1c0-1.1.9-2 2-2s2 .9 2 2M23 15v3c0 .55-.45 1-1 1h-1v1c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2v-1H2c-.55 0-1-.45-1-1v-3c0-.55.45-1 1-1h1c0-3.87 3.13-7 7-7h1V5.73c-.6-.34-1-.99-1-1.73c0-1.1.9-2 2-2s2 .9 2 2c0 .74-.4 1.39-1 1.73V7h1c3.87 0 7 3.13 7 7h1c.55 0 1 .45 1 1m-2 1h-2v-2c0-2.76-2.24-5-5-5h-4c-2.76 0-5 2.24-5 5v2H3v1h2v3h14v-3h2zm-5.5-2.5c-1.1 0-2 .9-2 2c0 .37.11.7.28 1c.34-.59.98-1 1.72-1s1.38.41 1.72 1c.18-.3.28-.63.28-1a2 2 0 0 0-2-2"/></svg>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-[12px] font-bold text-white flex items-center gap-1.5">
@@ -642,14 +622,14 @@
         <div class="shimmer absolute inset-0 pointer-events-none"></div>
         <div class="relative z-10">
           <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-wa-500/20 to-wa-500/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-            <span class="iconify text-wa-400 text-3xl" data-icon="mdi:robot-happy-outline"></span>
+            <svg class="ikon text-wa-400 text-3xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.5 15.5c0 .37-.1.7-.28 1c-.34-.59-.98-1-1.72-1s-1.38.41-1.72 1c-.17-.3-.28-.63-.28-1c0-1.1.9-2 2-2s2 .9 2 2M23 15v3c0 .55-.45 1-1 1h-1v1c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2v-1H2c-.55 0-1-.45-1-1v-3c0-.55.45-1 1-1h1c0-3.87 3.13-7 7-7h1V5.73c-.6-.34-1-.99-1-1.73c0-1.1.9-2 2-2s2 .9 2 2c0 .74-.4 1.39-1 1.73V7h1c3.87 0 7 3.13 7 7h1c.55 0 1 .45 1 1m-2 1h-2v-2c0-2.76-2.24-5-5-5h-4c-2.76 0-5 2.24-5 5v2H3v1h2v3h14v-3h2zm-5.5-2.5c-1.1 0-2 .9-2 2c0 .37.11.7.28 1c.34-.59.98-1 1.72-1s1.38.41 1.72 1c.18-.3.28-.63.28-1a2 2 0 0 0-2-2"/></svg>
           </div>
           <h3 class="text-2xl font-bold text-white mb-3">AI Destekli Asistan</h3>
           <p class="text-sm text-dark-400 leading-relaxed mb-8 max-w-sm">Doğal dil işleme ile müşterilerinizle insan gibi konuşur. Türkçe, İngilizce, Arapça ve daha fazla dilde akıcı iletişim kurar.</p>
           <div class="bg-white/[.03] rounded-2xl p-5 border border-white/[.04]">
             <div class="flex items-center gap-3 mb-3">
               <div class="w-8 h-8 rounded-full bg-wa-500/20 flex items-center justify-center">
-                <span class="iconify text-wa-400 text-sm" data-icon="mdi:robot-happy-outline"></span>
+                <svg class="ikon text-wa-400 text-sm" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10.5 15.5c0 .37-.1.7-.28 1c-.34-.59-.98-1-1.72-1s-1.38.41-1.72 1c-.17-.3-.28-.63-.28-1c0-1.1.9-2 2-2s2 .9 2 2M23 15v3c0 .55-.45 1-1 1h-1v1c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2v-1H2c-.55 0-1-.45-1-1v-3c0-.55.45-1 1-1h1c0-3.87 3.13-7 7-7h1V5.73c-.6-.34-1-.99-1-1.73c0-1.1.9-2 2-2s2 .9 2 2c0 .74-.4 1.39-1 1.73V7h1c3.87 0 7 3.13 7 7h1c.55 0 1 .45 1 1m-2 1h-2v-2c0-2.76-2.24-5-5-5h-4c-2.76 0-5 2.24-5 5v2H3v1h2v3h14v-3h2zm-5.5-2.5c-1.1 0-2 .9-2 2c0 .37.11.7.28 1c.34-.59.98-1 1.72-1s1.38.41 1.72 1c.18-.3.28-.63.28-1a2 2 0 0 0-2-2"/></svg>
               </div>
               <span class="text-xs text-dark-400">SiraGO</span>
             </div>
@@ -661,28 +641,28 @@
 
       <!-- WhatsApp & Telegram -->
       <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.1s">
-        <span class="iconify text-wa-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:whatsapp"></span>
+        <svg class="ikon text-wa-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23c-1.48 0-2.93-.39-4.19-1.15l-.3-.17l-3.12.82l.83-3.04l-.2-.32a8.2 8.2 0 0 1-1.26-4.38c.01-4.54 3.7-8.24 8.25-8.24M8.53 7.33c-.16 0-.43.06-.66.31c-.22.25-.87.86-.87 2.07c0 1.22.89 2.39 1 2.56c.14.17 1.76 2.67 4.25 3.73c.59.27 1.05.42 1.41.53c.59.19 1.13.16 1.56.1c.48-.07 1.46-.6 1.67-1.18s.21-1.07.15-1.18c-.07-.1-.23-.16-.48-.27c-.25-.14-1.47-.74-1.69-.82c-.23-.08-.37-.12-.56.12c-.16.25-.64.81-.78.97c-.15.17-.29.19-.53.07c-.26-.13-1.06-.39-2-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.12-.24-.01-.39.11-.5c.11-.11.27-.29.37-.44c.13-.14.17-.25.25-.41c.08-.17.04-.31-.02-.43c-.06-.11-.56-1.35-.77-1.84c-.2-.48-.4-.42-.56-.43c-.14 0-.3-.01-.47-.01"/></svg>
         <h4 class="text-sm font-bold text-white mb-1">WhatsApp</h4>
         <p class="text-[11px] text-dark-400 leading-relaxed">Business API ile kusursuz entegrasyon</p>
       </div>
 
       <!-- Telegram -->
       <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.15s">
-        <span class="iconify text-blue-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:send"></span>
+        <svg class="ikon text-blue-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m2 21l21-9L2 3v7l15 2l-15 2z"/></svg>
         <h4 class="text-sm font-bold text-white mb-1">Telegram</h4>
         <p class="text-[11px] text-dark-400 leading-relaxed">Bot entegrasyonu ile çift kanal</p>
       </div>
 
       <!-- Akıllı Takvim -->
       <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.2s">
-        <span class="iconify text-amber-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:calendar-sync-outline"></span>
+        <svg class="ikon text-amber-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 11v1.5c3.19 0 5.09 3.55 3.33 6.21l-1.09-1.09C21.06 15.96 19.85 14 18 14v1.5l-2.25-2.25zm0 11v-1.5c-3.19 0-5.09-3.55-3.33-6.21l1.09 1.09C14.94 17.04 16.15 19 18 19v-1.5l2.25 2.25zm1-19h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a5.9 5.9 0 0 1-1.5-2H5V9h14v1.59c.71.11 1.39.35 2 .72V5a2 2 0 0 0-2-2m0 4H5V5h14"/></svg>
         <h4 class="text-sm font-bold text-white mb-1">Akıllı Takvim</h4>
         <p class="text-[11px] text-dark-400 leading-relaxed">Google Calendar ile senkron</p>
       </div>
 
       <!-- Hatırlatma -->
       <div class="rv bento rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.25s">
-        <span class="iconify text-red-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" data-icon="mdi:bell-ring-outline"></span>
+        <svg class="ikon text-red-400 text-2xl mb-4 block group-hover:scale-110 transition-transform duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 21h4a2 2 0 0 1-2 2a2 2 0 0 1-2-2m11-2v1H3v-1l2-2v-6c0-3.1 2.03-5.83 5-6.71V4a2 2 0 0 1 2-2a2 2 0 0 1 2 2v.29c2.97.88 5 3.61 5 6.71v6zm-4-8a5 5 0 0 0-5-5a5 5 0 0 0-5 5v7h10zm2.75-7.81l-1.42 1.42A8.98 8.98 0 0 1 21 11h2c0-2.93-1.16-5.75-3.25-7.81M1 11h2c0-2.4.96-4.7 2.67-6.39L4.25 3.19A10.96 10.96 0 0 0 1 11"/></svg>
         <h4 class="text-sm font-bold text-white mb-1">Hatırlatma</h4>
         <p class="text-[11px] text-dark-400 leading-relaxed">Otomatik SMS & WA hatırlatma</p>
       </div>
@@ -691,7 +671,7 @@
       <div class="rv bento col-span-2 rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.3s">
         <div class="flex items-start gap-5">
           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
-            <span class="iconify text-purple-400 text-xl" data-icon="mdi:chart-areaspline"></span>
+            <svg class="ikon text-purple-400 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.45 15.18L22 7.31V21H2V3h2v12.54L9.5 6L16 9.78l4.24-7.33l1.73 1l-5.23 9.05l-6.51-3.75L4.31 19h2.26l4.39-7.56z"/></svg>
           </div>
           <div class="flex-1">
             <h4 class="text-sm font-bold text-white mb-1">Detaylı Analitik</h4>
@@ -719,7 +699,7 @@
       <div class="rv bento col-span-2 rounded-3xl p-6 bg-white/[.04] border border-white/[.06] hover:bg-white/[.07] transition-all duration-500 group feat-card" style="transition-delay:.35s">
         <div class="flex items-center gap-5">
           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-cyan-500/5 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500">
-            <span class="iconify text-cyan-400 text-xl" data-icon="mdi:translate"></span>
+            <svg class="ikon text-cyan-400 text-xl" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12.87 15.07l-2.54-2.51l.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35C8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5l3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7l1.62-4.33L19.12 17z"/></svg>
           </div>
           <div>
             <h4 class="text-sm font-bold text-white mb-1">Çok Dilli Destek</h4>
@@ -750,37 +730,37 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
       <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-wa-500/10 hover:border-wa-500/20 transition-all duration-500 text-center" style="transition-delay:.05s">
         <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-wa-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
-          <span class="iconify text-2xl text-dark-400 group-hover:text-wa-400 transition-colors duration-500" data-icon="mdi:tooth-outline"></span>
+          <svg class="ikon text-2xl text-dark-400 group-hover:text-wa-400 transition-colors duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 2C4 2 2 5 2 8c0 2.11 1 5 2 6s2 8 4 8c4.54 0 2-7 4-7s-.54 7 4 7c2 0 3-7 4-8s2-3.89 2-6c0-3-2-6-5-6s-3 1-5 1s-2-1-5-1m0 2c2 0 3 1 5 1s3-1 5-1c1.67 0 3 2 3 4c0 1.75-.86 4.11-1.81 5.06c-.86.86-2.13 6.88-2.69 6.88c-.21 0-.5-1.06-.5-2.35c0-2.04-.57-4.59-3-4.59s-3 2.55-3 4.59c0 1.29-.29 2.35-.5 2.35c-.56 0-1.83-6.02-2.69-6.88C4.86 12.11 4 9.75 4 8c0-2 1.33-4 3-4"/></svg>
         </div>
         <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Diş Kliniği</p>
       </div>
       <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-pink-500/10 hover:border-pink-500/20 transition-all duration-500 text-center" style="transition-delay:.1s">
         <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-pink-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
-          <span class="iconify text-2xl text-dark-400 group-hover:text-pink-400 transition-colors duration-500" data-icon="mdi:hair-dryer-outline"></span>
+          <svg class="ikon text-2xl text-dark-400 group-hover:text-pink-400 transition-colors duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 12.73A70 70 0 0 0 17 11V4s-6.5-2-9.5-2a5.5 5.5 0 0 0-1.38 10.82L7 19h1a3 3 0 0 0 1.46 2.33A3.15 3.15 0 0 1 11 24h1a4.12 4.12 0 0 0-1.91-3.45C9.39 20 9 19.63 9 19h1M4 7.5A3.5 3.5 0 0 1 7.5 4A37 37 0 0 1 15 5.5v4A37 37 0 0 1 7.5 11A3.5 3.5 0 0 1 4 7.5M22 9a4.3 4.3 0 0 1-2.22-.55A3.4 3.4 0 0 0 18 8V7a4.3 4.3 0 0 1 2.22.55A3.4 3.4 0 0 0 22 8m0-2a3.4 3.4 0 0 1-1.78-.45A4.3 4.3 0 0 0 18 5v1a3.4 3.4 0 0 1 1.78.45A4.3 4.3 0 0 0 22 7m0 3a3.4 3.4 0 0 1-1.78-.45A4.3 4.3 0 0 0 18 9v1a3.4 3.4 0 0 1 1.78.45A4.3 4.3 0 0 0 22 11M9 7.5A1.5 1.5 0 1 1 7.5 6A1.5 1.5 0 0 1 9 7.5"/></svg>
         </div>
         <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Kuaför</p>
       </div>
       <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-orange-500/10 hover:border-orange-500/20 transition-all duration-500 text-center" style="transition-delay:.15s">
         <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-orange-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
-          <span class="iconify text-2xl text-dark-400 group-hover:text-orange-400 transition-colors duration-500" data-icon="mdi:dumbbell"></span>
+          <svg class="ikon text-2xl text-dark-400 group-hover:text-orange-400 transition-colors duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.57 14.86L22 13.43L20.57 12L17 15.57L8.43 7L12 3.43L10.57 2L9.14 3.43L7.71 2L5.57 4.14L4.14 2.71L2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57L3.43 12L7 8.43L15.57 17L12 20.57L13.43 22l1.43-1.43L16.29 22l2.14-2.14l1.43 1.43l1.43-1.43l-1.43-1.43L22 16.29z"/></svg>
         </div>
         <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Fitness</p>
       </div>
       <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-blue-500/10 hover:border-blue-500/20 transition-all duration-500 text-center" style="transition-delay:.2s">
         <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-blue-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
-          <span class="iconify text-2xl text-dark-400 group-hover:text-blue-400 transition-colors duration-500" data-icon="mdi:stethoscope"></span>
+          <svg class="ikon text-2xl text-dark-400 group-hover:text-blue-400 transition-colors duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 8c.56 0 1 .43 1 1a1 1 0 0 1-1 1c-.57 0-1-.45-1-1c0-.57.43-1 1-1M2 2v9c0 2.96 2.19 5.5 5.14 5.91c.62 3.01 3.28 5.09 6.36 5.09a6.5 6.5 0 0 0 6.5-6.5v-3.69c1.16-.42 2-1.52 2-2.81a3 3 0 0 0-3-3a3 3 0 0 0-3 3c0 1.29.84 2.4 2 2.81v3.6c0 2.5-2 4.5-4.5 4.5c-2 0-3.68-1.21-4.28-3.01C12 16.3 14 13.8 14 11V2h-4v3h2v6a4 4 0 0 1-4 4a4 4 0 0 1-4-4V5h2V2z"/></svg>
         </div>
         <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Sağlık</p>
       </div>
       <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-red-500/10 hover:border-red-500/20 transition-all duration-500 text-center" style="transition-delay:.25s">
         <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-red-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
-          <span class="iconify text-2xl text-dark-400 group-hover:text-red-400 transition-colors duration-500" data-icon="mdi:car-outline"></span>
+          <svg class="ikon text-2xl text-dark-400 group-hover:text-red-400 transition-colors duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 6c-.2-.6-.8-1-1.4-1h-11c-.7 0-1.2.4-1.4 1L3 12v8c0 .5.5 1 1 1h1c.6 0 1-.5 1-1v-1h12v1c0 .5.5 1 1 1h1c.5 0 1-.5 1-1v-8zM6.8 7h10.3l1.1 3H5.8zM19 17H5v-5h14zM7.5 13c.8 0 1.5.7 1.5 1.5S8.3 16 7.5 16S6 15.3 6 14.5S6.7 13 7.5 13m9 0c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5"/></svg>
         </div>
         <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Oto Servis</p>
       </div>
       <div class="rv group cursor-pointer rounded-2xl p-6 bg-white/[.03] border border-white/[.05] hover:bg-amber-500/10 hover:border-amber-500/20 transition-all duration-500 text-center" style="transition-delay:.3s">
         <div class="w-14 h-14 rounded-2xl bg-white/[.05] group-hover:bg-amber-500/20 flex items-center justify-center mx-auto mb-3 transition-all duration-500">
-          <span class="iconify text-2xl text-dark-400 group-hover:text-amber-400 transition-colors duration-500" data-icon="mdi:dog-side"></span>
+          <svg class="ikon text-2xl text-dark-400 group-hover:text-amber-400 transition-colors duration-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m19 3l-4 4l3 3l1-1l1 1l2-2l-3-3zM3 7L2 8l3 3v3l-1 1v6h2v-3l2-3h7v6h2V11l-3-3l-1 1H5z"/></svg>
         </div>
         <p class="text-xs font-bold text-dark-300 group-hover:text-white transition-colors">Veteriner</p>
       </div>
@@ -811,18 +791,18 @@
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
         <ul class="space-y-3 mb-8">
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>2 personel (koltuk)</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>500 randevu / ay</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>WhatsApp randevu botu</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Otomatik hatırlatma</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Online randevu sayfası</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>2 personel (koltuk)</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>500 randevu / ay</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>WhatsApp randevu botu</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Otomatik hatırlatma</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Online randevu sayfası</li>
         </ul>
-        <a href="#iletisim" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Başla</a>
+        <a href="https://admin.xn--srago-n4a.com/?kayit=1" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Başla</a>
       </div>
 
       <div class="rv price-pop rounded-3xl p-7 bg-dark-900 transition-all duration-500 relative">
         <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-5 py-1.5 wa-g text-white text-[10px] font-black uppercase tracking-wider rounded-full shadow-lg shadow-wa-500/30 flex items-center gap-1.5 whitespace-nowrap">
-          <span class="iconify text-sm" data-icon="mdi:fire"></span> En Popüler
+          <svg class="ikon text-sm" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.66 11.2c-.23-.3-.51-.56-.77-.82c-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32c-2.59 2.08-3.61 5.75-2.39 8.9c.04.1.08.2.08.33c0 .22-.15.42-.35.5c-.23.1-.47.04-.66-.12a.6.6 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5c.14.6.41 1.2.71 1.73c1.08 1.73 2.95 2.97 4.96 3.22c2.14.27 4.43-.12 6.07-1.6c1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6c-1.12.4-2.24-.16-2.9-.82c1.19-.28 1.9-1.16 2.11-2.05c.17-.8-.15-1.46-.28-2.23c-.12-.74-.1-1.37.17-2.06c.19.38.39.76.63 1.06c.77 1 1.98 1.44 2.24 2.8c.04.14.06.28.06.43c.03.82-.33 1.72-.93 2.27"/></svg> En Popüler
         </div>
         <div class="mb-7 mt-2">
           <p class="text-[11px] font-black uppercase tracking-[0.2em] text-wa-400 mb-3">Standart</p>
@@ -831,14 +811,14 @@
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
         <ul class="space-y-3 mb-8">
-          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>5 personel (koltuk)</li>
-          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span><strong>Sınırsız</strong> randevu</li>
-          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Kasa & prim raporu</li>
-          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Sadakat puanı, kayıp müşteri</li>
-          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Yorum avcısı, gece raporu</li>
-          <li class="flex items-center gap-3 text-sm text-dark-200"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Türkçe · İngilizce · Arapça bot</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>5 personel (koltuk)</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg><strong>Sınırsız</strong> randevu</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Kasa & prim raporu</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Sadakat puanı, kayıp müşteri</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Yorum avcısı, gece raporu</li>
+          <li class="flex items-center gap-3 text-sm text-dark-200"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Türkçe · İngilizce · Arapça bot</li>
         </ul>
-        <a href="#iletisim" class="block text-center py-3.5 wa-g text-white font-bold text-sm rounded-2xl hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200 shadow-lg shadow-wa-500/25">Hemen Başla</a>
+        <a href="https://admin.xn--srago-n4a.com/?kayit=1" class="block text-center py-3.5 wa-g text-white font-bold text-sm rounded-2xl hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200 shadow-lg shadow-wa-500/25">Hemen Başla</a>
       </div>
 
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
@@ -849,13 +829,13 @@
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
         <ul class="space-y-3 mb-8">
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>10 personel (koltuk)</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span><strong>3 şubeye</strong> kadar</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Şubeler tek panelde</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Öncelikli destek</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Tüm Standart özellikler</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>10 personel (koltuk)</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg><strong>3 şubeye</strong> kadar</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Şubeler tek panelde</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Öncelikli destek</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Tüm Standart özellikler</li>
         </ul>
-        <a href="#iletisim" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Başla</a>
+        <a href="https://admin.xn--srago-n4a.com/?kayit=1" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Başla</a>
       </div>
 
       <div class="rv rounded-3xl p-7 bg-white/[.03] border border-white/[.06] hover:border-white/[.12] transition-all duration-500">
@@ -866,11 +846,11 @@
         </div>
         <div class="w-full h-px bg-white/[.06] mb-7"></div>
         <ul class="space-y-3 mb-8">
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Sınırsız personel ve şube</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>SMS hatırlatma</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>API erişimi</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Özel kurulum ve eğitim</li>
-          <li class="flex items-center gap-3 text-sm text-dark-300"><span class="iconify text-wa-500 text-base flex-shrink-0" data-icon="mdi:check-circle"></span>Tüm Pro+ özellikler</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Sınırsız personel ve şube</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>SMS hatırlatma</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>API erişimi</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Özel kurulum ve eğitim</li>
+          <li class="flex items-center gap-3 text-sm text-dark-300"><svg class="ikon text-wa-500 text-base flex-shrink-0" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Tüm Pro+ özellikler</li>
         </ul>
         <a href="#iletisim" class="block text-center py-3.5 border border-white/[.1] text-white font-bold text-sm rounded-2xl hover:bg-white/[.05] hover:border-white/[.2] transition-all duration-300">Bizimle Görüşün</a>
       </div>
@@ -889,7 +869,7 @@
 
       <div class="relative z-10 text-center">
         <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 border border-amber-200/60 text-xs font-black tracking-[0.15em] uppercase text-amber-900 mb-6">
-          <span class="iconify text-amber-600 text-base" data-icon="mdi:rocket-launch"></span>
+          <svg class="ikon text-amber-600 text-base" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m13.16 22.19l-1.66-3.84c1.6-.58 3.07-1.35 4.43-2.27l-2.78 6.11m-7.5-9.69l-3.84-1.65l6.11-2.78a20 20 0 0 0-2.27 4.43M21.66 2.35S23.78 7.31 18.11 13c-2.2 2.17-4.58 3.5-6.73 4.34c-.74.28-1.57.1-2.12-.46l-2.13-2.13c-.56-.56-.74-1.38-.47-2.13C7.5 10.5 8.83 8.09 11 5.89C16.69.216 21.66 2.35 21.66 2.35M6.25 22H4.84l4.09-4.1c.3.21.63.36.97.45zM2 22v-1.41l4.77-4.78l1.43 1.42L3.41 22zm0-2.84v-1.41l3.65-3.65c.09.35.24.68.45.97zM16 6a2 2 0 1 0 0 4c1.11 0 2-.89 2-2a2 2 0 0 0-2-2"/></svg>
           Erken Erişim Programı
         </div>
 
@@ -902,12 +882,12 @@
         </p>
 
         <div class="flex flex-col sm:flex-row items-center gap-3 justify-center mb-10">
-          <a href="#iletisim" class="group relative">
+          <a href="https://admin.xn--srago-n4a.com/?kayit=1" class="group relative">
             <div class="absolute -inset-1 wa-g rounded-2xl blur-lg opacity-40 group-hover:opacity-70 transition-opacity"></div>
             <div class="relative px-8 py-4 wa-g text-white font-bold text-sm uppercase tracking-wide rounded-2xl flex items-center gap-2.5 hover:scale-[1.03] active:scale-[0.98] transition-transform">
-              <span class="iconify text-lg" data-icon="mdi:whatsapp"></span>
+              <svg class="ikon text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23c-1.48 0-2.93-.39-4.19-1.15l-.3-.17l-3.12.82l.83-3.04l-.2-.32a8.2 8.2 0 0 1-1.26-4.38c.01-4.54 3.7-8.24 8.25-8.24M8.53 7.33c-.16 0-.43.06-.66.31c-.22.25-.87.86-.87 2.07c0 1.22.89 2.39 1 2.56c.14.17 1.76 2.67 4.25 3.73c.59.27 1.05.42 1.41.53c.59.19 1.13.16 1.56.1c.48-.07 1.46-.6 1.67-1.18s.21-1.07.15-1.18c-.07-.1-.23-.16-.48-.27c-.25-.14-1.47-.74-1.69-.82c-.23-.08-.37-.12-.56.12c-.16.25-.64.81-.78.97c-.15.17-.29.19-.53.07c-.26-.13-1.06-.39-2-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.12-.24-.01-.39.11-.5c.11-.11.27-.29.37-.44c.13-.14.17-.25.25-.41c.08-.17.04-.31-.02-.43c-.06-.11-.56-1.35-.77-1.84c-.2-.48-.4-.42-.56-.43c-.14 0-.3-.01-.47-.01"/></svg>
               Pilot Programa Başvur
-              <span class="iconify group-hover:translate-x-1 transition-transform" data-icon="mdi:arrow-right"></span>
+              <svg class="ikon group-hover:translate-x-1 transition-transform" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 11v2h12l-5.5 5.5l1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5L16 11z"/></svg>
             </div>
           </a>
           <a href="#fiyat" class="px-8 py-4 bg-white border border-dark-200 text-dark-700 font-semibold text-sm rounded-2xl hover:border-wa-300 transition-all">Fiyatları Gör</a>
@@ -948,7 +928,7 @@
         <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
           <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">SiraGO'yu kurmak ne kadar sürer?</span>
           <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
-            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+            <svg class="ikon acc-icon text-dark-400 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
           </div>
         </button>
         <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">30 saniyeden kısa sürede WhatsApp numaranızı bağlayarak sistemi aktif edebilirsiniz. Hizmet ve saat ayarlarınızı panel üzerinden dakikalar içinde tamamlayabilirsiniz.</p></div>
@@ -958,7 +938,7 @@
         <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
           <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Müşterilerim herhangi bir uygulama indirmeli mi?</span>
           <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
-            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+            <svg class="ikon acc-icon text-dark-400 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
           </div>
         </button>
         <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Kesinlikle hayır. Müşterileriniz zaten kullandığı WhatsApp veya Telegram üzerinden direkt randevu alabilir. Ekstra bir uygulama yüklemelerine gerek yoktur.</p></div>
@@ -968,7 +948,7 @@
         <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
           <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Randevu iptallerini nasıl yönetiyor?</span>
           <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
-            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+            <svg class="ikon acc-icon text-dark-400 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
           </div>
         </button>
         <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Müşterileriniz WhatsApp üzerinden doğrudan iptal edebilir. İptal edilen slotlar otomatik olarak müsait duruma geçer. Ayrıca otomatik hatırlatma mesajları sayesinde iptal oranı belirgin şekilde azalır.</p></div>
@@ -978,7 +958,7 @@
         <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
           <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Var olan sistemimle entegre olabilir mi?</span>
           <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
-            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+            <svg class="ikon acc-icon text-dark-400 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
           </div>
         </button>
         <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">Evet. Google Calendar ile iki yönlü senkron çalışır: takviminizdeki dolu saatler randevuya kapanır, SıraGO randevuları takviminize düşer.</p></div>
@@ -988,7 +968,7 @@
         <button onclick="toggleAcc(this)" class="w-full flex items-center justify-between p-6 text-left group hover:bg-dark-50/50 transition-colors">
           <span class="text-sm font-bold text-dark-900 pr-4 group-hover:text-wa-700 transition-colors">Ücretsiz deneme süresi var mı?</span>
           <div class="w-8 h-8 rounded-full bg-dark-100 flex items-center justify-center flex-shrink-0 group-hover:bg-wa-100 transition-colors">
-            <span class="iconify acc-icon text-dark-400 text-lg" data-icon="mdi:plus"></span>
+            <svg class="ikon acc-icon text-dark-400 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
           </div>
         </button>
         <div class="acc-body px-6"><p class="text-sm text-dark-500 leading-relaxed pb-6">14 gün tamamen ücretsiz deneyebilirsiniz. Kredi kartı gerekmez, risksiz başlayın. Memnun kalırsanız istediğiniz plana geçebilir, kalmasanız hiçbir ücret ödemezsiniz.</p></div>
@@ -1023,24 +1003,24 @@
 
         <form id="form" class="flex flex-col sm:flex-row items-center gap-3 max-w-lg mx-auto mb-8">
           <div class="relative flex-1 w-full">
-            <span class="iconify absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" data-icon="mdi:account-outline"></span>
+            <svg class="ikon absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 4a4 4 0 0 1 4 4a4 4 0 0 1-4 4a4 4 0 0 1-4-4a4 4 0 0 1 4-4m0 2a2 2 0 0 0-2 2a2 2 0 0 0 2 2a2 2 0 0 0 2-2a2 2 0 0 0-2-2m0 7c2.67 0 8 1.33 8 4v3H4v-3c0-2.67 5.33-4 8-4m0 1.9c-2.97 0-6.1 1.46-6.1 2.1v1.1h12.2V17c0-.64-3.13-2.1-6.1-2.1"/></svg>
             <input type="text" id="fname" placeholder="Adınız" class="w-full pl-12 pr-5 py-4 bg-white/[.07] border border-white/[.1] rounded-2xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-wa-500/50 focus:bg-white/[.1] transition-all duration-300">
           </div>
           <div class="relative flex-1 w-full">
-            <span class="iconify absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" data-icon="mdi:phone-outline"></span>
+            <svg class="ikon absolute left-5 top-1/2 -translate-y-1/2 text-dark-500 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 15.5c-1.2 0-2.5-.2-3.6-.6h-.3c-.3 0-.5.1-.7.3l-2.2 2.2c-2.8-1.5-5.2-3.8-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1c-.3-1.1-.5-2.4-.5-3.6c0-.5-.5-1-1-1H4c-.5 0-1 .5-1 1c0 9.4 7.6 17 17 17c.5 0 1-.5 1-1v-3.5c0-.5-.5-1-1-1M5 5h1.5c.1.9.3 1.8.5 2.6L5.8 8.8C5.4 7.6 5.1 6.3 5 5m14 14c-1.3-.1-2.6-.4-3.8-.8l1.2-1.2c.8.2 1.7.4 2.6.4z"/></svg>
             <input type="tel" id="phone" placeholder="5XX XXX XX XX" class="w-full pl-12 pr-5 py-4 bg-white/[.07] border border-white/[.1] rounded-2xl text-white text-sm placeholder-dark-500 focus:outline-none focus:border-wa-500/50 focus:bg-white/[.1] transition-all duration-300">
           </div>
           <button type="submit" class="w-full sm:w-auto px-8 py-4 wa-g text-white font-bold text-sm uppercase tracking-wide rounded-2xl hover:scale-[1.03] active:scale-[0.98] transition-transform duration-200 shadow-xl shadow-wa-500/25 flex items-center justify-center gap-2 whitespace-nowrap">
-            <span class="iconify text-lg" data-icon="mdi:whatsapp"></span>
+            <svg class="ikon text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91c0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23c-1.48 0-2.93-.39-4.19-1.15l-.3-.17l-3.12.82l.83-3.04l-.2-.32a8.2 8.2 0 0 1-1.26-4.38c.01-4.54 3.7-8.24 8.25-8.24M8.53 7.33c-.16 0-.43.06-.66.31c-.22.25-.87.86-.87 2.07c0 1.22.89 2.39 1 2.56c.14.17 1.76 2.67 4.25 3.73c.59.27 1.05.42 1.41.53c.59.19 1.13.16 1.56.1c.48-.07 1.46-.6 1.67-1.18s.21-1.07.15-1.18c-.07-.1-.23-.16-.48-.27c-.25-.14-1.47-.74-1.69-.82c-.23-.08-.37-.12-.56.12c-.16.25-.64.81-.78.97c-.15.17-.29.19-.53.07c-.26-.13-1.06-.39-2-1.23c-.74-.66-1.23-1.47-1.38-1.72c-.12-.24-.01-.39.11-.5c.11-.11.27-.29.37-.44c.13-.14.17-.25.25-.41c.08-.17.04-.31-.02-.43c-.06-.11-.56-1.35-.77-1.84c-.2-.48-.4-.42-.56-.43c-.14 0-.3-.01-.47-.01"/></svg>
             Başla
           </button>
         </form>
 
         <div class="flex flex-wrap items-center justify-center gap-6 text-xs text-dark-500">
-          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>14 gün ücretsiz</span>
-          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>Kredi kartı gerekmez</span>
-          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>İstediğiniz zaman iptal</span>
-          <span class="flex items-center gap-1.5"><span class="iconify text-wa-500" data-icon="mdi:check-circle"></span>KVKK uyumlu</span>
+          <span class="flex items-center gap-1.5"><svg class="ikon text-wa-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>14 gün ücretsiz</span>
+          <span class="flex items-center gap-1.5"><svg class="ikon text-wa-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>Kredi kartı gerekmez</span>
+          <span class="flex items-center gap-1.5"><svg class="ikon text-wa-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>İstediğiniz zaman iptal</span>
+          <span class="flex items-center gap-1.5"><svg class="ikon text-wa-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg>KVKK uyumlu</span>
         </div>
       </div>
     </div>
@@ -1058,10 +1038,10 @@
         </a>
         <p class="text-sm text-dark-400 leading-relaxed mb-6 max-w-xs">WhatsApp öncelikli AI randevu asistanı. WhatsApp ve Telegram üzerinden otomatik randevu yönetimi ile işletmenizi büyütün.</p>
         <div class="flex items-center gap-2.5">
-          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:instagram"></span></a>
-          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:twitter"></span></a>
-          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:linkedin"></span></a>
-          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><span class="iconify text-dark-400 group-hover:text-wa-400 text-lg transition-colors" data-icon="mdi:youtube"></span></a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><svg class="ikon text-dark-400 group-hover:text-wa-400 text-lg transition-colors" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4zm9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8A1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5a5 5 0 0 1-5 5a5 5 0 0 1-5-5a5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3a3 3 0 0 0 3 3a3 3 0 0 0 3-3a3 3 0 0 0-3-3"/></svg></a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><svg class="ikon text-dark-400 group-hover:text-wa-400 text-lg transition-colors" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.46 6c-.77.35-1.6.58-2.46.69c.88-.53 1.56-1.37 1.88-2.38c-.83.5-1.75.85-2.72 1.05C18.37 4.5 17.26 4 16 4c-2.35 0-4.27 1.92-4.27 4.29c0 .34.04.67.11.98C8.28 9.09 5.11 7.38 3 4.79c-.37.63-.58 1.37-.58 2.15c0 1.49.75 2.81 1.91 3.56c-.71 0-1.37-.2-1.95-.5v.03c0 2.08 1.48 3.82 3.44 4.21a4.2 4.2 0 0 1-1.93.07a4.28 4.28 0 0 0 4 2.98a8.52 8.52 0 0 1-5.33 1.84q-.51 0-1.02-.06C3.44 20.29 5.7 21 8.12 21C16 21 20.33 14.46 20.33 8.79c0-.19 0-.37-.01-.56c.84-.6 1.56-1.36 2.14-2.23"/></svg></a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><svg class="ikon text-dark-400 group-hover:text-wa-400 text-lg transition-colors" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93zM6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37z"/></svg></a>
+          <a href="#" class="w-9 h-9 rounded-xl bg-white/[.05] flex items-center justify-center hover:bg-wa-500/20 transition-all duration-300 group"><svg class="ikon text-dark-400 group-hover:text-wa-400 text-lg transition-colors" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m10 15l5.19-3L10 9zm11.56-7.83c.13.47.22 1.1.28 1.9c.07.8.1 1.49.1 2.09L22 12c0 2.19-.16 3.8-.44 4.83c-.25.9-.83 1.48-1.73 1.73c-.47.13-1.33.22-2.65.28c-1.3.07-2.49.1-3.59.1L12 19c-4.19 0-6.8-.16-7.83-.44c-.9-.25-1.48-.83-1.73-1.73c-.13-.47-.22-1.1-.28-1.9c-.07-.8-.1-1.49-.1-2.09L2 12c0-2.19.16-3.8.44-4.83c.25-.9.83-1.48 1.73-1.73c.47-.13 1.33-.22 2.65-.28c1.3-.07 2.49-.1 3.59-.1L12 5c4.19 0 6.8.16 7.83.44c.9.25 1.48.83 1.73 1.73"/></svg></a>
         </div>
       </div>
       <div>
@@ -1070,7 +1050,7 @@
       </div>
       <div>
         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-dark-400 mb-5">Şirket</p>
-        <ul class="space-y-3"><li><a href="#iletisim" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">İletişim</a></li><li><a href="https://admin.xn--srago-n4a.com" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Giriş Yap</a></li></ul>
+        <ul class="space-y-3"><li><a href="#iletisim" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">İletişim</a></li><li><a href="/rehber/berber-randevu-sistemi.html" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Berber randevu sistemi</a></li><li><a href="/rehber/kuafor-randevu-programi.html" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Kuaför randevu programı</a></li><li><a href="/rehber/whatsapp-randevu-botu.html" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">WhatsApp randevu botu</a></li><li><a href="/rehber/randevu-sistemi-nasil-secilir.html" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Randevu sistemi nasıl seçilir?</a></li><li><a href="https://admin.xn--srago-n4a.com" class="text-sm text-dark-300 hover:text-wa-400 transition-colors">Giriş Yap</a></li></ul>
       </div>
       <div>
         <p class="text-[10px] font-black uppercase tracking-[0.2em] text-dark-400 mb-5">Yasal</p>
@@ -1080,23 +1060,16 @@
     <div class="border-t border-white/[.05] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
       <p class="text-xs text-dark-500">© 2025 SiraGO. Tüm hakları saklıdır.</p>
       <div class="flex items-center gap-4">
-        <div class="flex items-center gap-1.5 text-xs text-dark-400"><span class="iconify text-wa-500" data-icon="mdi:shield-check"></span>KVKK Uyumlu</div>
-        <div class="flex items-center gap-1.5 text-xs text-dark-400"><span class="iconify text-wa-500" data-icon="mdi:lock-outline"></span>SSL Güvenli</div>
-        <div class="flex items-center gap-1.5 text-xs text-dark-400"><span class="iconify text-wa-500" data-icon="mdi:earth"></span>GDPR</div>
+        <div class="flex items-center gap-1.5 text-xs text-dark-400"><svg class="ikon text-wa-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m10 17l-4-4l1.41-1.41L10 14.17l6.59-6.59L18 9m-6-8L3 5v6c0 5.55 3.84 10.74 9 12c5.16-1.26 9-6.45 9-12V5z"/></svg>KVKK Uyumlu</div>
+        <div class="flex items-center gap-1.5 text-xs text-dark-400"><svg class="ikon text-wa-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 17a2 2 0 0 1-2-2c0-1.11.89-2 2-2a2 2 0 0 1 2 2a2 2 0 0 1-2 2m6 3V10H6v10zm0-12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10c0-1.11.89-2 2-2h1V6a5 5 0 0 1 5-5a5 5 0 0 1 5 5v2zm-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3"/></svg>SSL Güvenli</div>
+        <div class="flex items-center gap-1.5 text-xs text-dark-400"><svg class="ikon text-wa-500" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.9 17.39c-.26-.8-1.01-1.39-1.9-1.39h-1v-3a1 1 0 0 0-1-1H8v-2h2a1 1 0 0 0 1-1V7h2a2 2 0 0 0 2-2v-.41a7.984 7.984 0 0 1 2.9 12.8M11 19.93c-3.95-.49-7-3.85-7-7.93c0-.62.08-1.22.21-1.79L9 15v1a2 2 0 0 0 2 2m1-16A10 10 0 0 0 2 12a10 10 0 0 0 10 10a10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg>GDPR</div>
       </div>
     </div>
   </div>
 </footer>
 
 <script>
-// === CURSOR GLOW ===
-const cg = document.getElementById('cursor-glow');
-if(window.innerWidth > 768){
-  document.addEventListener('mousemove', e => {
-    cg.style.left = e.clientX + 'px';
-    cg.style.top = e.clientY + 'px';
-  });
-} else { cg.style.display = 'none'; }
+
 
 // === FEATURE CARD MOUSE TRACKING ===
 document.querySelectorAll('.feat-card').forEach(card => {
@@ -1165,7 +1138,7 @@ function runChat(){
       } else if(m.t==='user'){
         d=document.createElement('div');
         d.className='chat-msg flex justify-end';
-        d.innerHTML=`<div class="bg-[#dcf8c6] rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[82%] shadow-sm"><p class="text-[13px] text-dark-800">${m.txt}</p><p class="text-[10px] text-dark-400 mt-1.5 text-right flex items-center justify-end gap-1">${getTime()} <span class="iconify text-blue-500 text-xs" data-icon="mdi:check-all"></span></p></div>`;
+        d.innerHTML=`<div class="bg-[#dcf8c6] rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[82%] shadow-sm"><p class="text-[13px] text-dark-800">${m.txt}</p><p class="text-[10px] text-dark-400 mt-1.5 text-right flex items-center justify-end gap-1">${getTime()} <svg class="ikon text-blue-500 text-xs" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M.41 13.41L6 19l1.41-1.42L1.83 12m20.41-6.42L11.66 16.17L7.5 12l-1.43 1.41L11.66 19l12-12M18 7l-1.41-1.42l-6.35 6.35l1.42 1.41z"/></svg></p></div>`;
       } else if(m.t==='times'){
         d=document.createElement('div');
         d.className='chat-msg flex justify-start';
@@ -1173,7 +1146,7 @@ function runChat(){
       } else if(m.t==='success'){
         d=document.createElement('div');
         d.className='chat-msg flex justify-start';
-        d.innerHTML=`<div class="bg-white rounded-2xl rounded-tl-md px-4 py-3 max-w-[88%] shadow-sm"><div class="flex items-center gap-2.5 mb-2.5"><div class="w-9 h-9 rounded-full bg-wa-100 flex items-center justify-center"><span class="iconify text-wa-600 text-lg" data-icon="mdi:check-circle"></span></div><p class="text-[13px] font-bold text-dark-800">Randevu Onaylandı! ✅</p></div><div class="bg-gradient-to-br from-wa-50 to-blue-50 rounded-xl p-3.5 text-[11px] text-dark-600 space-y-1.5 border border-wa-100/50"><p>📋 <strong>Hizmet:</strong> Saç Boyama</p><p>📅 <strong>Tarih:</strong> Perşembe, 15 Ocak</p><p>🕐 <strong>Saat:</strong> 14:30</p></div><p class="text-[10px] text-dark-400 mt-2 text-right">${getTime()}</p></div>`;
+        d.innerHTML=`<div class="bg-white rounded-2xl rounded-tl-md px-4 py-3 max-w-[88%] shadow-sm"><div class="flex items-center gap-2.5 mb-2.5"><div class="w-9 h-9 rounded-full bg-wa-100 flex items-center justify-center"><svg class="ikon text-wa-600 text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10s10-4.5 10-10S17.5 2 12 2m-2 15l-5-5l1.41-1.41L10 14.17l7.59-7.59L19 8z"/></svg></div><p class="text-[13px] font-bold text-dark-800">Randevu Onaylandı! ✅</p></div><div class="bg-gradient-to-br from-wa-50 to-blue-50 rounded-xl p-3.5 text-[11px] text-dark-600 space-y-1.5 border border-wa-100/50"><p>📋 <strong>Hizmet:</strong> Saç Boyama</p><p>📅 <strong>Tarih:</strong> Perşembe, 15 Ocak</p><p>🕐 <strong>Saat:</strong> 14:30</p></div><p class="text-[10px] text-dark-400 mt-2 text-right">${getTime()}</p></div>`;
       }
       c.appendChild(d);
       c.scrollTop=c.scrollHeight;
@@ -1218,7 +1191,7 @@ document.getElementById('form').addEventListener('submit',async e=>{
     if(res.ok){showToast('Talebiniz alındı! En kısa sürede ulaşacağız 🎉');document.getElementById('fname').value='';document.getElementById('phone').value='';}
     else{showToast(d.hata||'Bir hata oluştu.');}
   }catch(err){showToast('Bağlantı hatası, lütfen tekrar deneyin.');}
-  btn.disabled=false;btn.innerHTML='<span class="iconify text-lg" data-icon="mdi:send"></span> Başla';
+  btn.disabled=false;btn.innerHTML='<svg class="ikon text-lg" width="1em" height="1em" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m2 21l21-9L2 3v7l15 2l-15 2z"/></svg> Başla';
 });
 
 // === SMOOTH SCROLL ===
