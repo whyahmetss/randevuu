@@ -998,6 +998,46 @@ class AdminController {
     }
   }
 
+  // Esnafın elle eklediği randevu (kapıdan gelen müşteri, telefonla arayan, boş saate dokun) — 2026-10-13
+  async randevuElleEkle(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const randevuService = require('../services/randevu');
+      const hizmetId = parseInt(req.body.hizmet_id);
+      if (!hizmetId) return res.status(400).json({ hata: 'Hizmet seçin' });
+      const hz = (await pool.query('SELECT id, sure_dk FROM hizmetler WHERE id = $1 AND isletme_id = $2', [hizmetId, isletmeId])).rows[0];
+      if (!hz) return res.status(400).json({ hata: 'Hizmet bulunamadı' });
+      const simdi = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Istanbul' }));
+      const tarih = /^\d{4}-\d{2}-\d{2}$/.test(req.body.tarih || '') ? req.body.tarih : simdi.toLocaleDateString('sv-SE');
+      let saat = /^\d{2}:\d{2}$/.test(req.body.saat || '') ? req.body.saat : null;
+      if (!saat) { const dk = Math.floor((simdi.getHours() * 60 + simdi.getMinutes()) / 5) * 5; saat = `${String(Math.floor(dk / 60)).padStart(2, '0')}:${String(dk % 60).padStart(2, '0')}`; }
+      let tel = String(req.body.musteri_telefon || '').replace(/\D/g, '');
+      if (tel.startsWith('0')) tel = '9' + tel;
+      if (tel.length === 10) tel = '90' + tel;
+      if (!tel) tel = `kapi${isletmeId}${Date.now()}`;   // numarasız (kapıdan gelen) müşteri
+      // Çalışan seçilmediyse o saatte boş olan ilk çalışan
+      let calisanId = parseInt(req.body.calisan_id) || null;
+      if (!calisanId) {
+        const sure = hz.sure_dk || 30;
+        const bos = (await pool.query(`
+          SELECT c.id FROM calisanlar c WHERE c.isletme_id = $1 AND (c.aktif IS NULL OR c.aktif = true)
+            AND NOT EXISTS (SELECT 1 FROM randevular r WHERE r.calisan_id = c.id AND r.tarih = $2 AND r.durum NOT IN ('iptal','gelmedi')
+              AND r.saat < ($3::time + make_interval(mins => $4)) AND COALESCE(r.bitis_saati, r.saat + INTERVAL '30 minutes') > $3::time)
+          ORDER BY c.id LIMIT 1`, [isletmeId, tarih, saat, sure])).rows[0];
+        calisanId = bos?.id || null;
+      }
+      const sonuc = await randevuService.randevuOlustur({
+        isletmeId, musteriTelefon: tel, musteriIsim: String(req.body.musteri_isim || '').trim() || 'Kapıdan gelen',
+        hizmetId, calisanId, tarih, saat, kaynak: 'manuel',
+      });
+      const r = sonuc?.randevu || sonuc;
+      if (r?.id) await pool.query("UPDATE randevular SET durum = 'onaylandi' WHERE id = $1 AND durum = 'onay_bekliyor'", [r.id]);
+      res.json({ ok: true, randevu: r });
+    } catch (error) {
+      res.status(error.statusCode || 400).json({ hata: error.message });
+    }
+  }
+
   async wpWebEslestir(req, res) {
     try {
       const whatsappWebService = require('../services/whatsappWeb');
