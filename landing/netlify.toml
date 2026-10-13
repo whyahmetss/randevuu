@@ -1,9 +1,0 @@
-[build]
-  publish = "."
-
-# /book/:slug → randevu sayfası (API sunucusu sunar; admin sitesi doğrudan açılınca 404 veriyordu)
-[[redirects]]
-  from = "/book/*"
-  to = "https://randevu.xn--srago-n4a.com/book/:splat"
-  status = 301
-  force = true
