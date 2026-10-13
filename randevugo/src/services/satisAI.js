@@ -117,10 +117,24 @@ function temizle(ham) {
   } catch (e) { return null; }
 }
 
+// Son hata (teşhis ekranı için): sağlayıcı → { zaman, kod, mesaj }
+const sonHata = {};
+const hataYaz = (ad, kod, mesaj) => { sonHata[ad] = { zaman: new Date().toISOString(), kod, mesaj: String(mesaj || '').slice(0, 300) }; console.error(`Satış AI (${ad}) hatası ${kod}: ${sonHata[ad].mesaj}`); };
+
+// Model adı eskiyince (404) sıradakini dene: env → güncel takma ad → bilinen sürüm
+const geminiModelleri = () => [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean))];
+
 async function geminiCevap(sistem, messages) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  for (const model of geminiModelleri()) {
+    const sonuc = await geminiTekModel(key, model, sistem, messages);
+    if (sonuc !== 'MODEL_YOK') return sonuc;
+  }
+  return null;
+}
+
+async function geminiTekModel(key, model, sistem, messages) {
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
@@ -130,7 +144,8 @@ async function geminiCevap(sistem, messages) {
         systemInstruction: { parts: [{ text: sistem + JSON_TALIMAT }] },
         contents: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
         generationConfig: {
-          temperature: 0.7, maxOutputTokens: 1500, responseMimeType: 'application/json',
+          // Düşünen modeller çıktı bütçesini düşünmeye harcayınca JSON yarım kalıyordu: bütçe geniş
+          temperature: 0.7, maxOutputTokens: 4096, responseMimeType: 'application/json',
           responseSchema: {
             type: 'OBJECT',
             properties: {
@@ -145,10 +160,15 @@ async function geminiCevap(sistem, messages) {
         },
       }),
     });
-    if (!r.ok) { console.error('Satış AI (Gemini) hatası', r.status); return null; }
+    if (r.status === 404) { hataYaz('gemini', 404, `${model} bulunamadı`); return 'MODEL_YOK'; }
+    if (!r.ok) { hataYaz('gemini', r.status, await r.text().catch(() => '')); return null; }
     const j = await r.json();
-    return temizle(j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join(''));
-  } catch (e) { console.error('Satış AI (Gemini) hatası:', e.message); return null; }
+    const metin = j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('');
+    const t = temizle(metin);
+    if (!t) hataYaz('gemini', 'json', `Cevap okunamadı (${j.candidates?.[0]?.finishReason || 'boş'}): ${String(metin || '').slice(0, 120)}`);
+    else delete sonHata.gemini;
+    return t;
+  } catch (e) { hataYaz('gemini', 'ağ', e.message); return null; }
 }
 
 async function deepseekCevap(sistem, messages) {
@@ -165,10 +185,13 @@ async function deepseekCevap(sistem, messages) {
         messages: [{ role: 'system', content: sistem + JSON_TALIMAT }, ...messages],
       }),
     });
-    if (!r.ok) { console.error('Satış AI (DeepSeek) hatası', r.status); return null; }
+    if (!r.ok) { hataYaz('deepseek', r.status, await r.text().catch(() => '')); return null; }
     const j = await r.json();
-    return temizle(j.choices?.[0]?.message?.content);
-  } catch (e) { console.error('Satış AI (DeepSeek) hatası:', e.message); return null; }
+    const t = temizle(j.choices?.[0]?.message?.content);
+    if (!t) hataYaz('deepseek', 'json', `Cevap okunamadı: ${String(j.choices?.[0]?.message?.content || '').slice(0, 120)}`);
+    else delete sonHata.deepseek;
+    return t;
+  } catch (e) { hataYaz('deepseek', 'ağ', e.message); return null; }
 }
 
 // { mesajlar, durum, arama_istiyor } | null. Sıra: Claude → Gemini → DeepSeek (anahtarı olan);
@@ -222,4 +245,25 @@ async function claudeCevap(baglam, messages) {
   }
 }
 
-module.exports = { cevapUret, aktifMi, gecmistenMesajlar, MODEL };
+// Teşhis: her sağlayıcıya küçük bir deneme mesajı; anahtar var mı, cevap geliyor mu, hata ne
+async function tani() {
+  const deneme = [{ role: 'user', content: 'Merhaba, fiyatlar ne kadar?' }];
+  const sistem = [SISTEM, 'İŞLETME: Deneme Berber (berber)', 'PAKETLER: (deneme)'].join(String.fromCharCode(10, 10));
+  const sonuc = {};
+  for (const [ad, anahtar, fn] of [
+    ['claude', 'ANTHROPIC_API_KEY', () => claudeCevap('İŞLETME: Deneme Berber', deneme)],
+    ['gemini', 'GEMINI_API_KEY', () => geminiCevap(sistem, deneme)],
+    ['deepseek', 'DEEPSEEK_API_KEY', () => deepseekCevap(sistem, deneme)],
+  ]) {
+    if (!process.env[anahtar]) { sonuc[ad] = { durum: 'anahtar_yok', mesaj: `${anahtar} Render'da tanımlı değil` }; continue; }
+    const bas = Date.now();
+    let cevap = null;
+    try { cevap = await fn(); } catch (e) { /* aşağıda */ }
+    sonuc[ad] = cevap
+      ? { durum: 'calisiyor', sure_ms: Date.now() - bas, ornek: cevap.mesajlar?.[0] }
+      : { durum: 'hata', ...(sonHata[ad] || { mesaj: 'Cevap gelmedi' }) };
+  }
+  return { sira: (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek'), gemini_modelleri: geminiModelleri(), saglayicilar: sonuc };
+}
+
+module.exports = { cevapUret, aktifMi, gecmistenMesajlar, MODEL, tani, sonHata };
