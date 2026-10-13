@@ -3474,7 +3474,7 @@ function Dashboard({ kullanici }) {
                     )}
                     {!aktif && !p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        window.open(destekWp ? `https://wa.me/${destekWp}?text=${encodeURIComponent("Merhaba, Kurumsal paket hakkında bilgi almak istiyorum.")}` : "mailto:randevugo@gmail.com?subject=Kurumsal%20paket", "_blank");
+                        window.open(destekWp ? `https://wa.me/${destekWp}?text=${encodeURIComponent("Merhaba, Kurumsal paket hakkında bilgi almak istiyorum.")}` : "mailto:siragobusiness@gmail.com?subject=Kurumsal%20paket", "_blank");
                         setPaketModal(false);
                       }}>
                         WhatsApp ile Görüşün
