@@ -122,7 +122,8 @@ const sonHata = {};
 const hataYaz = (ad, kod, mesaj) => { sonHata[ad] = { zaman: new Date().toISOString(), kod, mesaj: String(mesaj || '').slice(0, 300) }; console.error(`Satış AI (${ad}) hatası ${kod}: ${sonHata[ad].mesaj}`); };
 
 // Model adı eskiyince (404) sıradakini dene: env → güncel takma ad → bilinen sürüm
-const geminiModelleri = () => [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash'].filter(Boolean))];
+// Yoğunluk (503) / kota (429) da aynı: başka modelde boş yer olabilir. Lite modeller daha az yoğun.
+const geminiModelleri = () => [...new Set([process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'].filter(Boolean))];
 
 async function geminiCevap(sistem, messages) {
   const key = process.env.GEMINI_API_KEY;
@@ -161,6 +162,7 @@ async function geminiTekModel(key, model, sistem, messages) {
       }),
     });
     if (r.status === 404) { hataYaz('gemini', 404, `${model} bulunamadı`); return 'MODEL_YOK'; }
+    if ([429, 500, 503].includes(r.status)) { hataYaz('gemini', r.status, `${model} meşgul: ${(await r.text().catch(() => '')).slice(0, 120)}`); return 'MODEL_YOK'; }
     if (!r.ok) { hataYaz('gemini', r.status, await r.text().catch(() => '')); return null; }
     const j = await r.json();
     const metin = j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('');
