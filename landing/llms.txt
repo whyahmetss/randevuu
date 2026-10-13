@@ -1,0 +1,30 @@
+# SıraGO
+
+> SıraGO, Türkiye'de berber, kuaför, güzellik ve tırnak salonu, klinik, veteriner gibi randevuyla çalışan işletmeler için WhatsApp randevu asistanıdır. Müşteri işletmenin kendi WhatsApp numarasına yazar ya da işletmeye özel randevu linkini açar; yapay zekâ asistanı boş saati bulur, randevuyu oluşturur ve randevudan önce otomatik hatırlatma gönderir. Müşteri uygulama indirmez.
+
+Web sitesi: https://sırago.com (https://xn--srago-n4a.com)
+Ücretsiz deneme: 14 gün, kart bilgisi gerekmez. Kayıt: https://admin.xn--srago-n4a.com/?kayit=1
+Fiyatlar: https://xn--srago-n4a.com/#fiyat (aylık paketler; Başlangıç, Standart, Pro+, Kurumsal)
+Dil: Türkçe (asistan Türkçe, İngilizce ve Arapça konuşur)
+
+## Kimler için
+- Berberler: traş sırasında telefona bakamayan, akşam gelen mesajlara yetişemeyen dükkânlar
+- Kuaförler ve güzellik salonları: farklı süreli hizmetler, çok çalışanlı takvim
+- Klinik, veteriner, diyetisyen, spa, dövme stüdyosu
+
+## Özellikler
+- WhatsApp'tan 7/24 otomatik randevu (işletmenin kendi numarası; QR ya da eşleştirme koduyla bağlanır)
+- İşletmeye özel online randevu sayfası ve tezgâh için QR kod
+- Otomatik hatırlatma: randevudan 24 saat, 1 saat ve 15 dakika önce
+- Çift randevu engeli; isteğe bağlı "önce bana sor" onay modu
+- Çalışan ve hizmet bazında takvim, kapora (isteğe bağlı)
+- Kasa ve prim raporu, sadakat puanı, kayıp müşteri geri kazanma, Google yorum isteği, gece raporu (Standart ve üstü)
+- Çoklu şube (Pro+ ve Kurumsal)
+- Tablet modu: tezgâh ekranı ve müşteri sıra alma ekranı
+- Müşteri listesi her pakette Excel'e aktarılabilir
+
+## Rehberler
+- [Berberler için randevu sistemi](https://xn--srago-n4a.com/rehber/berber-randevu-sistemi.html)
+- [Kuaför randevu programı](https://xn--srago-n4a.com/rehber/kuafor-randevu-programi.html)
+- [WhatsApp randevu botu nedir?](https://xn--srago-n4a.com/rehber/whatsapp-randevu-botu.html)
+- [Randevu sistemi nasıl seçilir?](https://xn--srago-n4a.com/rehber/randevu-sistemi-nasil-secilir.html)
