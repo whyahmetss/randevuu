@@ -818,7 +818,6 @@ function BotBaglantiSayfasi() {
               <button onClick={wpBaslat} disabled={wpYukleniyor} style={btnCls("#25D366", wpYukleniyor)}>
                 {wpYukleniyor ? "Başlatılıyor..." : "📱 QR Kodu Göster"}
               </button>
-              <EslestirmeKodu api={api} />
             </div>
           )}
 
@@ -837,6 +836,9 @@ function BotBaglantiSayfasi() {
               <button onClick={wpAyir} className="btn btn-ghost mt-12">İptal</button>
             </div>
           )}
+
+          {/* Numara ile bağlama: durum değişince (kod bekleniyor) kaybolmasın diye koşullu blokların dışında */}
+          {wpDurum !== "bagli" && <EslestirmeKodu api={api} />}
 
           {wpDurum === "bagli" && (
             <div className="text-center">
