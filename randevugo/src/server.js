@@ -1160,6 +1160,8 @@ httpServer.listen(PORT, () => {
     hatirlatmaService.baslat();
     // Gece raporu servisi + Haftalık rapor
     try { const geceRaporu = require('./services/geceRaporu'); geceRaporu.baslat(); geceRaporu.haftalikCronBaslat(); } catch (e) { console.error('Gece raporu başlatma hatası:', e.message); }
+    // 📊 Aylık kazanç özeti (her ayın 1'i 10:00)
+    try { require('./services/aylikKazanc').baslat(); } catch (e) { console.error('Aylık özet başlatma hatası:', e.message); }
     // 🎂 Doğum günü pazarlaması (her gün 10:00)
     try { const dogumGunu = require('./services/dogumGunu'); dogumGunu.baslat(); } catch (e) { console.error('Doğum günü servisi başlatma hatası:', e.message); }
   }

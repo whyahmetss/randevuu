@@ -16,6 +16,8 @@ const SatisMasasi = lazy(() => import("./components/Satis/SatisMasasi"));   // a
 const SatisRehberi = lazy(() => import("./components/Satis/SatisRehberi"));   // açılınca yüklenir (hızlı açılış)
 const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açılınca yüklenir (hızlı açılış)
 const Magaza = lazy(() => import("./components/Magaza/Magaza"));   // açılınca yüklenir (hızlı açılış)
+import KazancKarti from "./components/Mobil/KazancKarti";   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
+const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
 const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // SıraGO Vitrini (esnaf)
 const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
 const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
@@ -53,9 +55,10 @@ const oturumuKapat = () => {
 
 // Ödeme sayfası: giriş anahtarı URL'ye konmaz; sunucudan süreli, yalnız ödeme açan link alınır.
 // Pencere tıklama anında açılır (sonradan açılırsa tarayıcı açılır pencere engeline takılır).
-function odemeSayfasiAc(paket) {
+function odemeSayfasiAc(paket, sure) {
   const w = window.open("", "_blank");
-  api.get(`/odeme/link${paket ? `?paket=${encodeURIComponent(paket)}` : ""}`)
+  const q = new URLSearchParams({ ...(paket ? { paket } : {}), ...(sure === "yil" ? { sure } : {}) }).toString();
+  api.get(`/odeme/link${q ? `?${q}` : ""}`)
     .then(d => { if (d?.url) { if (w) w.location.href = d.url; else window.location.href = d.url; } else { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); } })
     .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); });
 }
@@ -989,6 +992,7 @@ function Dashboard({ kullanici }) {
   const [randevuGorunum, setRandevuGorunum] = useState("liste");
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false);
   const [paketModal, setPaketModal] = useState(false);
+  const [yillik, setYillik] = useState(false);   // paket ekranı: 12 ay kullan, 9 ay öde
   const [grafikVeri, setGrafikVeri] = useState(null);
   const [dashEkstra, setDashEkstra] = useState(null);
   const [odemeBilgi, setOdemeBilgi] = useState(null);
@@ -1333,7 +1337,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu", vitrin: "SıraGO Vitrini", googleharita: "Google Haritalar" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1387,6 +1391,7 @@ function Dashboard({ kullanici }) {
       { id: "yorumavcisi", icon: ICON.yorum, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
       { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
       { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
+      { id: "googleharita", icon: ICON.getir, label: "Google Haritalar" },
     ]},
     { type: 'group', id: 'gr_bot', icon: ICON.bot, label: 'Bot & Sistem', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
@@ -1864,10 +1869,12 @@ function Dashboard({ kullanici }) {
             <Dukkanim ayarlar={ayarlar} wpBagli={wpBagli}
               ac={(id) => { const m = tamMenu.flatMap(g => g.items).find(x => x.id === id); if (m?.featureKey && !ozellikAcik(m.featureKey)) setPaketModal(true); else setSayfa(id); window.scrollTo(0, 0); }}
               digerleri={tamMenu.flatMap(g => g.items)
-                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek', 'tablet', 'vitrin'].includes(m.id))
+                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek', 'tablet', 'vitrin', 'googleharita'].includes(m.id))
                 .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
                 .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
           )}
+          {sayfa === "anasayfa" && <KazancKarti api={api} dar={liteMod || mobil} />}
+          {sayfa === "googleharita" && <GoogleRehber ayarlar={ayarlar} />}
           {sayfa === "anasayfa" && (liteMod || mobil) && (
             mobil ? <BugunMobil api={api} setSayfa={setSayfa} /> : <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
@@ -3442,6 +3449,14 @@ function Dashboard({ kullanici }) {
                 <b>🏆 Öncü Esnaf: son {oncu.kalan} yer.</b> İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır — zam gelse bile. Başlangıç alsa bile kasa, sadakat, kayıp müşteri ve yorum avcısı açılır.
               </div>
             ) : null}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+              <div style={{ display: "inline-flex", padding: 4, borderRadius: 12, background: "var(--bg)", border: "1px solid var(--border)" }}>
+                {[[false, "Aylık"], [true, "Yıllık · 12 ay kullan, 9 ay öde"]].map(([y, l]) => (
+                  <button key={l} onClick={() => setYillik(y)} style={{ padding: "8px 14px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                    background: yillik === y ? (y ? "#1f6f4a" : "var(--surface)") : "transparent", color: yillik === y && y ? "#fff" : "var(--text)" }}>{l}</button>
+                ))}
+              </div>
+            </div>
             <div className="price-grid-modal">
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
@@ -3455,7 +3470,8 @@ function Dashboard({ kullanici }) {
                     {aktif && <div className="price-tag" style={{ background: p.renk }}>MEVCUT</div>}
                     {p.key === "profesyonel" && !aktif && <div className="price-tag" style={{ background: "var(--blue)" }}>EN POPÜLER</div>}
                     <div className="p-name" style={{ color: p.renk }}>{p.isim}</div>
-                    <div className="p-price">{p.fiyat ? `${p.fiyat}₺` : "Özel"}<span>{p.fiyat ? "/ay" : ""}</span></div>
+                    <div className="p-price">{p.fiyat ? `${yillik ? (p.fiyat * 9).toLocaleString("tr-TR") : p.fiyat}₺` : "Özel"}<span>{p.fiyat ? (yillik ? "/yıl" : "/ay") : ""}</span></div>
+                    {yillik && p.fiyat && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: -4 }}>3 ay bedava · {(p.fiyat * 3).toLocaleString("tr-TR")}₺ kazancın</div>}
                     <div className="p-divider">
                       {p.ozellikler.map((o, i) => (
                         <div key={i} className="price-feature"><span style={{ color: p.renk }}>✓</span> {o}</div>
@@ -3464,12 +3480,12 @@ function Dashboard({ kullanici }) {
                         <div key={`yok-${i}`} className="price-feature" style={{ opacity: .4, textDecoration: "line-through" }}><span style={{ color: "var(--red)" }}>✕</span> {o}</div>
                       ))}
                     </div>
-                    {!aktif && p.fiyat && (
+                    {(!aktif || yillik) && p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        odemeSayfasiAc(p.key);
+                        odemeSayfasiAc(p.key, yillik ? "yil" : null);
                         setPaketModal(false);
                       }}>
-                        {p.key === "baslangic" ? "Başla" : "Yükselt"}
+                        {yillik ? (aktif ? "Yıllığa geç" : "Yıllık al") : p.key === "baslangic" ? "Başla" : "Yükselt"}
                       </button>
                     )}
                     {!aktif && !p.fiyat && (

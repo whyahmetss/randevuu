@@ -925,9 +925,10 @@ class SatisBot extends EventEmitter {
 
     // Numara bazlı günlük limit (global / numara sayısı)
     const bagliSayisi = this._bagliSocklar().length || 1;
-    const numaraLimit = Math.ceil(this.ayarlar.gunlukLimit / bagliSayisi) + 5; // biraz tolerans
+    // Isınma (utils/wpSinir): yeni numara ilk günlerde az atar; hiçbir ayar numara başı 50/gün tavanını aşamaz
+    const { limit: numaraLimit, gun: numaraGun } = await require('../utils/wpSinir').numaraLimiti(numaraId, Math.ceil(this.ayarlar.gunlukLimit / bagliSayisi) + 5);
     if (ng.gonderim >= numaraLimit) {
-      console.log(`📊 [#${numaraId}] Numara limiti doldu (${ng.gonderim}/${numaraLimit})`);
+      console.log(`📊 [#${numaraId}] Numara limiti doldu (${ng.gonderim}/${numaraLimit}, numara ${numaraGun}. gününde)`);
       this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 60 * 60 * 1000));
       return;
     }

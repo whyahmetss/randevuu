@@ -151,14 +151,14 @@ router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallba
 router.get('/odeme/shopier/baslat', authMiddleware, (req, res) => adminController.shopierOdemeBaslat(req, res));
 // Panel: oturum anahtarını URL'ye koymadan ödeme linki al (eskiden ?token=<giriş anahtarı> açılıyordu)
 router.get('/odeme/link', authMiddleware, (req, res) => {
-  res.json({ url: require('../services/odemeOtomasyon').odemeLinki(req.kullanici.isletme_id, req.query.paket) });
+  res.json({ url: require('../services/odemeOtomasyon').odemeLinki(req.kullanici.isletme_id, req.query.paket, req.query.sure) });
 });
 // WhatsApp'taki kişisel ödeme linki: giriş gerektirmez, yalnız ödeme sayfası açar
 router.get('/odeme/ode/:anahtar', async (req, res) => {
   const v = require('../services/odemeOtomasyon').anahtarCoz(req.params.anahtar);
   if (!v) return res.status(410).type('html').send('<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">Bu ödeme linkinin süresi dolmuş. Panelinizden <b>Paket → Öde</b> ile ya da bize WhatsApp\'tan yazarak yeni link alabilirsiniz.</p>');
   try {
-    const url = await require('../services/shopierService').odemeBaslat(v.i, v.p);
+    const url = await require('../services/shopierService').odemeBaslat(v.i, v.p, v.s);
     if (!url) return res.status(404).send('İşletme bulunamadı');
     res.redirect(url);
   } catch (e) {
@@ -481,6 +481,23 @@ router.get('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodla
 router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodKaydet(req, res));
 router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
 router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
+// "Bu ay kazandırdığımız" kartı (services/aylikKazanc.js); ?ay=YYYY-MM
+router.get('/kazanc', authMiddleware, async (req, res) => {
+  try {
+    const k = require('../services/aylikKazanc');
+    const isletmeId = require('../middleware/auth').getIsletmeId(req);
+    const ozet = await k.hesapla(isletmeId, req.query.ay || k.buAy());
+    const i = (await require('../config/db').query('SELECT COALESCE(aylik_ozet_aktif, true) AS a FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+    res.json({ ...ozet, whatsapp_ozet: i?.a !== false });
+  } catch (e) { res.status(500).json({ hata: 'Özet hesaplanamadı' }); }
+});
+router.put('/kazanc/ayar', authMiddleware, async (req, res) => {
+  try {
+    await require('../config/db').query('UPDATE isletmeler SET aylik_ozet_aktif = $1 WHERE id = $2', [req.body.aktif !== false, require('../middleware/auth').getIsletmeId(req)]);
+    res.json({ tamam: true });
+  } catch (e) { res.status(500).json({ hata: 'Kaydedilemedi' }); }
+});
+
 // Destek WhatsApp numarası (Render: DESTEK_WP); yoksa null → butonlar gizlenir
 router.get('/iletisim', (req, res) => res.json({ whatsapp: require('../config/iletisim').DESTEK_WP }));
 

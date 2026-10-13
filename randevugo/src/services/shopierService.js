@@ -66,8 +66,10 @@ class ShopierService {
   }
 
   // ─── Ödeme başlat: işletmeye özel tek kullanımlık ürün → Shopier ödeme sayfası URL'si ───
-  async odemeBaslat(isletmeId, paketIstek) {
-    const { paketGetir, FALLBACK_PAKETLER } = require('../config/paketler');
+  // sure: 'yil' → 12 ay kullanım, YILLIK_ODENEN_AY (9) aylık ücret
+  async odemeBaslat(isletmeId, paketIstek, sure) {
+    const { paketGetir, FALLBACK_PAKETLER, YILLIK_ODENEN_AY } = require('../config/paketler');
+    const yillik = sure === 'yil';
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (!isletme) return null;
     // Şube kendi başına ödemez: grubun merkezi öder
@@ -80,6 +82,7 @@ class ShopierService {
     if (!(paketBilgi.fiyat > 0)) throw new Error('Paket fiyatı tanımsız');
     // Öncü Esnaf: kilitli paket için kilitli fiyat
     paketBilgi.fiyat = require('../utils/oncu').etkinFiyat(merkez, secilenPaket, paketBilgi.fiyat);
+    if (yillik) paketBilgi.fiyat = paketBilgi.fiyat * YILLIK_ODENEN_AY;
     const buAy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
     const refKod = `SRGO-${merkez.id}`;
     const paketLabel = paketBilgi.isim || secilenPaket;
@@ -88,11 +91,11 @@ class ShopierService {
     if (merkez.bekleyen_shopier_urun_id) this.urunSil(merkez.bekleyen_shopier_urun_id).catch(() => {});
 
     const urun = await this.urunOlustur({
-      baslik: `SıraGO ${paketLabel} Paket [${refKod}]`,
-      aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket, 1 aylık kullanım (${buAy})\nİşletme: ${merkez.isim}\nRef: ${refKod}`,
+      baslik: `SıraGO ${paketLabel} Paket${yillik ? ' Yıllık' : ''} [${refKod}]`,
+      aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket, ${yillik ? `12 aylık kullanım (${YILLIK_ODENEN_AY} ay öde)` : '1 aylık kullanım'} (${buAy})\nİşletme: ${merkez.isim}\nRef: ${refKod}`,
       fiyat: paketBilgi.fiyat,
     });
-    await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2 WHERE id=$3', [secilenPaket, String(urun.id), merkez.id]);
+    await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2, bekleyen_sure=$4 WHERE id=$3', [secilenPaket, String(urun.id), merkez.id, yillik ? 'yil' : null]);
 
     const mevcut = (await pool.query("SELECT id, durum FROM odemeler WHERE isletme_id = $1 AND donem = $2", [merkez.id, buAy])).rows[0];
     if (mevcut && ['odendi', 'havale_bekliyor'].includes(mevcut.durum)) {
@@ -180,10 +183,10 @@ class ShopierService {
 
     // İşletme ID'yi bul: önce ödeme başlatılırken saklanan ürün, sonra başlık/not
     let isletmeId = null;
-    let bekleyenPaket = null;
+    let bekleyenPaket = null, bekleyenSure = null;
     if (urunId) {
-      const b = (await pool.query('SELECT id, bekleyen_paket FROM isletmeler WHERE bekleyen_shopier_urun_id = $1', [String(urunId)])).rows[0];
-      if (b) { isletmeId = b.id; bekleyenPaket = b.bekleyen_paket; }
+      const b = (await pool.query('SELECT id, bekleyen_paket, bekleyen_sure FROM isletmeler WHERE bekleyen_shopier_urun_id = $1', [String(urunId)])).rows[0];
+      if (b) { isletmeId = b.id; bekleyenPaket = b.bekleyen_paket; bekleyenSure = b.bekleyen_sure; }
     }
     const refMatch = (urunBaslik + ' ' + siparisNotu).match(/SRGO-(\d+)/);
     if (!isletmeId && refMatch) {
@@ -264,28 +267,31 @@ class ShopierService {
         });
         pushService.sendToIsletme(isletmeId, {
           title: '✅ Ödemeniz alındı',
-          body: `${tutar}₺ — paketiniz 30 gün yenilendi`,
+          body: `${tutar}₺ — paketiniz ${bekleyenSure === 'yil' ? '12 ay' : '30 gün'} yenilendi`,
           url: '/',
           tag: `odeme-ok-${siparisId}`,
         });
       } catch (e) {}
 
       // Paket: ödeme başlatılırken seçilen paket uygulanır; tutar paket fiyatından düşükse paket değişmez
-      let yeniPaket = null;
+      let yeniPaket = null, gun = 30;
       if (bekleyenPaket) {
         try {
-          const { paketGetir } = require('../config/paketler');
+          const { paketGetir, YILLIK_ODENEN_AY } = require('../config/paketler');
           const p = await paketGetir(bekleyenPaket);
           const isl = (await pool.query('SELECT oncu_no, kilitli_paket, kilitli_fiyat FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
-          if (tutar + 1 >= require('../utils/oncu').etkinFiyat(isl, bekleyenPaket, p.fiyat || 0)) yeniPaket = bekleyenPaket;
+          const aylik = require('../utils/oncu').etkinFiyat(isl, bekleyenPaket, p.fiyat || 0);
+          if (tutar + 1 >= aylik) yeniPaket = bekleyenPaket;
           else console.warn(`⚠️ Shopier tutarı (${tutar}) ${bekleyenPaket} fiyatından (${p.fiyat}) düşük — paket değiştirilmedi`);
+          // Yıllık: tam yıllık tutar ödendiyse 12 ay (365 gün) uzar
+          if (bekleyenSure === 'yil' && tutar + 1 >= aylik * YILLIK_ODENEN_AY) gun = 365;
         } catch (e) {}
       }
       // Bitiş tarihi: kalan günler silinmesin (eskiden NOW()+30 yazılıyordu)
       await pool.query(
-        `UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + INTERVAL '30 days',
-           aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL WHERE id = $1`,
-        [isletmeId, yeniPaket]
+        `UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + make_interval(days => $3),
+           aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL, bekleyen_sure = NULL WHERE id = $1`,
+        [isletmeId, yeniPaket, gun]
       );
 
       // Öncü Esnaf: ilk 100 ödeyenin paketi ve o günkü fiyatı kilitlenir

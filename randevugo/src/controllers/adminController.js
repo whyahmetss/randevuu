@@ -1531,7 +1531,7 @@ class AdminController {
 
   async shopierOdemeBaslat(req, res) {
     try {
-      const url = await shopierService.odemeBaslat(req.kullanici.isletme_id, req.query.paket);
+      const url = await shopierService.odemeBaslat(req.kullanici.isletme_id, req.query.paket, req.query.sure);
       if (!url) return res.status(404).json({ hata: 'İşletme bulunamadı' });
       res.redirect(url);
     } catch (error) {
@@ -2889,24 +2889,11 @@ class AdminController {
         [isletme_ids]
       )).rows;
 
-      let basarili = 0, basarisiz = 0;
-
-      for (const isl of isletmeler) {
-        try {
-          if ((kanal === 'whatsapp' || kanal === 'hepsi') && isl.telefon) {
-            const satisBot = require('../services/satisBot');
-            if (satisBot.sock && satisBot.durum === 'bagli') {
-              const tel = isl.telefon.replace(/^\+/, '');
-              const jid = `${tel}@s.whatsapp.net`;
-              await satisBot.sock.sendMessage(jid, { text: mesaj });
-              basarili++;
-              await new Promise(r => setTimeout(r, 1500));
-            } else { basarisiz++; }
-          }
-        } catch (e) { basarisiz++; }
-      }
-
-      res.json({ mesaj: `${basarili} işletmeye mesaj gönderildi`, basarili, basarisiz, toplam: isletmeler.length });
+      // Ban önlemi (utils/wpSinir): mesajlar arka planda, mesai saatinde, aralıklı ve günlük sınırla gider
+      const isler = (kanal === 'whatsapp' || kanal === 'hepsi') ? isletmeler.filter(i => i.telefon).map(i => ({ telefon: i.telefon, mesaj })) : [];
+      const k = require('../utils/wpSinir').kuyrugaEkle(isler);
+      res.json({ mesaj: `${isler.length} mesaj sıraya alındı — aralıklı gönderilecek (bugün en fazla ${k.bugun_kalan} tane daha)`,
+        basarili: isler.length, basarisiz: isletmeler.length - isler.length, toplam: isletmeler.length, kuyrukta: k.kuyrukta });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
@@ -3000,33 +2987,15 @@ class AdminController {
       const { isletme_id, aksiyon_tipi, mesaj } = req.body;
       if (!isletme_id || !aksiyon_tipi) return res.status(400).json({ hata: 'İşletme ve aksiyon tipi gerekli' });
 
-      let sonuc = 'bekliyor';
-
-      // WhatsApp mesaj gönder
-      if (mesaj) {
-        const isletme = (await pool.query('SELECT telefon FROM isletmeler WHERE id = $1', [isletme_id])).rows[0];
-        if (isletme?.telefon) {
-          try {
-            const satisBot = require('../services/satisBot');
-            if (satisBot.sock && satisBot.durum === 'bagli') {
-              const tel = isletme.telefon.replace(/^\+/, '').replace(/^0/, '90');
-              const jid = `${tel}@s.whatsapp.net`;
-              await satisBot.sock.sendMessage(jid, { text: mesaj });
-              sonuc = 'gonderildi';
-            } else {
-              sonuc = 'bot_kapali';
-            }
-          } catch (e) {
-            sonuc = 'hata: ' + e.message;
-          }
-        }
-      }
-
-      // Aksiyon kaydı oluştur
-      await pool.query(
-        'INSERT INTO zombi_aksiyonlar (isletme_id, aksiyon_tipi, mesaj, durum, sonuc, uygulama_tarihi) VALUES ($1, $2, $3, $4, $5, NOW())',
-        [isletme_id, aksiyon_tipi, mesaj, sonuc === 'gonderildi' ? 'tamamlandi' : sonuc, sonuc]
-      );
+      // WhatsApp mesajı sıraya alınır (utils/wpSinir); sonuç gönderilince kayda yazılır
+      const isletme = mesaj ? (await pool.query('SELECT telefon FROM isletmeler WHERE id = $1', [isletme_id])).rows[0] : null;
+      const sonuc = isletme?.telefon ? 'kuyrukta' : 'bekliyor';
+      const kayit = (await pool.query(
+        'INSERT INTO zombi_aksiyonlar (isletme_id, aksiyon_tipi, mesaj, durum, sonuc, uygulama_tarihi) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id',
+        [isletme_id, aksiyon_tipi, mesaj, sonuc, sonuc]
+      )).rows[0];
+      if (isletme?.telefon) require('../utils/wpSinir').kuyrugaEkle([{ telefon: isletme.telefon, mesaj,
+        sonra: (s) => pool.query('UPDATE zombi_aksiyonlar SET durum = $1, sonuc = $2 WHERE id = $3', [s === 'gonderildi' ? 'tamamlandi' : s.startsWith('hata') ? 'hata' : s, s, kayit.id]) }]);
 
       // İşletme uyarı durumunu güncelle
       await pool.query(
@@ -3064,30 +3033,25 @@ class AdminController {
       if (!aksiyonlar?.length) return res.status(400).json({ hata: 'Aksiyon listesi gerekli' });
 
       let basarili = 0, basarisiz = 0;
-      const satisBot = require('../services/satisBot');
+      const wpSinir = require('../utils/wpSinir');
 
       for (const a of aksiyonlar) {
         try {
-          let sonuc = 'bekliyor';
-          if (a.mesaj) {
-            const isletme = (await pool.query('SELECT telefon FROM isletmeler WHERE id = $1', [a.isletme_id])).rows[0];
-            if (isletme?.telefon && satisBot.sock && satisBot.durum === 'bagli') {
-              const tel = isletme.telefon.replace(/^\+/, '').replace(/^0/, '90');
-              await satisBot.sock.sendMessage(`${tel}@s.whatsapp.net`, { text: a.mesaj });
-              sonuc = 'gonderildi';
-              await new Promise(r => setTimeout(r, 2000));
-            }
-          }
-          await pool.query(
-            'INSERT INTO zombi_aksiyonlar (isletme_id, aksiyon_tipi, mesaj, durum, sonuc, uygulama_tarihi) VALUES ($1, $2, $3, $4, $5, NOW())',
-            [a.isletme_id, a.aksiyon_tipi, a.mesaj, sonuc === 'gonderildi' ? 'tamamlandi' : sonuc, sonuc]
-          );
+          // Mesaj sıraya alınır (utils/wpSinir): aralıklı, mesai saatinde, günlük sınırla
+          const isletme = a.mesaj ? (await pool.query('SELECT telefon FROM isletmeler WHERE id = $1', [a.isletme_id])).rows[0] : null;
+          const sonuc = isletme?.telefon ? 'kuyrukta' : 'bekliyor';
+          const kayit = (await pool.query(
+            'INSERT INTO zombi_aksiyonlar (isletme_id, aksiyon_tipi, mesaj, durum, sonuc, uygulama_tarihi) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id',
+            [a.isletme_id, a.aksiyon_tipi, a.mesaj, sonuc, sonuc]
+          )).rows[0];
+          if (isletme?.telefon) wpSinir.kuyrugaEkle([{ telefon: isletme.telefon, mesaj: a.mesaj,
+            sonra: (s) => pool.query('UPDATE zombi_aksiyonlar SET durum = $1, sonuc = $2 WHERE id = $3', [s === 'gonderildi' ? 'tamamlandi' : s.startsWith('hata') ? 'hata' : s, s, kayit.id]) }]);
           await pool.query('UPDATE isletmeler SET zombi_uyari_gonderildi = true, zombi_uyari_tarihi = NOW() WHERE id = $1', [a.isletme_id]);
           basarili++;
         } catch (e) { basarisiz++; }
       }
 
-      res.json({ mesaj: `${basarili} aksiyon uygulandı`, basarili, basarisiz });
+      res.json({ mesaj: `${basarili} aksiyon uygulandı — mesajlar aralıklı gönderilecek`, basarili, basarisiz });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
