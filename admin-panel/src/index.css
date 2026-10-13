@@ -779,6 +779,19 @@ select.input { appearance: none; }
 
 /* ── MAIN LAYOUT ── */
 .main-wrap { flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* Telefon alt sekmeleri (2026-10-13) */
+.alt-sekmeler { display: none; }
+@media (max-width: 768px) {
+  .alt-sekmeler { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: fixed; left: 0; right: 0; bottom: 0; z-index: 900;
+    height: calc(68px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface); border-top: 1px solid var(--border); }
+  .alt-sekmeler button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: none; background: none;
+    color: var(--dim); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-height: 56px; }
+  .alt-sekmeler button.aktif { color: #1f6f4a; font-weight: 800; }
+  .main-wrap { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .mobile-topbar .hamburger-btn { display: none; }
+}
 .top-bar { padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); box-shadow: 0 1px 3px rgba(22,5,39,.03); }
 .top-bar h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.2px; color: var(--text); }
 .top-bar .date { color: var(--dim); font-size: 13px; }
