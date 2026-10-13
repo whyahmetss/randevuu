@@ -27,13 +27,13 @@ export default function EsnafGetir({ api }) {
         <div style={{ ...kart, background: 'rgba(168,89,12,.06)', borderColor: 'rgba(168,89,12,.25)' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#a8590c' }}>🏆 Öncü Esnaf #{oncu.no}</div>
           <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 4 }}>
-            İlk 100 esnaftan birisin. Fiyatın ömür boyu sabit{oncu.kilitli_fiyat ? `: aylık ${Number(oncu.kilitli_fiyat).toLocaleString('tr-TR')}₺` : ''}. Zam gelse bile sana yansımaz.
+            İlk 100 esnaftan birisin. Fiyatın ömür boyu sabit{oncu.kilitli_fiyat ? `: aylık ${Number(oncu.kilitli_fiyat).toLocaleString('tr-TR')}₺` : ''}. Zam gelse bile sana yansımaz. Kasa, sadakat, kayıp müşteri ve yorum avcısı da hangi paketteysen açık.
           </div>
         </div>
       ) : oncu?.kalan > 0 ? (
         <div style={{ ...kart, background: 'rgba(168,89,12,.06)', borderColor: 'rgba(168,89,12,.25)' }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: '#a8590c' }}>🏆 Öncü Esnaf ol — son {oncu.kalan} yer</div>
-          <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 4 }}>İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır. İlk ödemeni yaptığın an sıra numaran verilir.</div>
+          <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 4 }}>İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır; Başlangıç'ta bile kasa, sadakat, kayıp müşteri ve yorum avcısı açılır. İlk ödemeni yaptığın an sıra numaran verilir.</div>
         </div>
       ) : null}
 

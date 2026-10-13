@@ -3435,11 +3435,11 @@ function Dashboard({ kullanici }) {
             </div>
             {oncu?.no ? (
               <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14, fontWeight: 600 }}>
-                🏆 Öncü Esnaf #{oncu.no} — {oncu.kilitli_fiyat ? `fiyatınız ömür boyu ${Number(oncu.kilitli_fiyat).toLocaleString("tr-TR")}₺` : "fiyatınız ömür boyu sabit"}
+                🏆 Öncü Esnaf #{oncu.no} — {oncu.kilitli_fiyat ? `fiyatınız ömür boyu ${Number(oncu.kilitli_fiyat).toLocaleString("tr-TR")}₺` : "fiyatınız ömür boyu sabit"} · Kasa, sadakat, kayıp müşteri ve yorum avcısı her pakette açık
               </div>
             ) : oncu?.kalan > 0 ? (
               <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14 }}>
-                <b>🏆 Öncü Esnaf: son {oncu.kalan} yer.</b> İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır — zam gelse bile.
+                <b>🏆 Öncü Esnaf: son {oncu.kalan} yer.</b> İlk 100 ödeyen esnafın fiyatı ömür boyu sabit kalır — zam gelse bile. Başlangıç alsa bile kasa, sadakat, kayıp müşteri ve yorum avcısı açılır.
               </div>
             ) : null}
             <div className="price-grid-modal">
