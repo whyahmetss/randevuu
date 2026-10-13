@@ -16,6 +16,7 @@ const SatisMasasi = lazy(() => import("./components/Satis/SatisMasasi"));   // a
 const SatisRehberi = lazy(() => import("./components/Satis/SatisRehberi"));   // açılınca yüklenir (hızlı açılış)
 const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açılınca yüklenir (hızlı açılış)
 const Magaza = lazy(() => import("./components/Magaza/Magaza"));   // açılınca yüklenir (hızlı açılış)
+const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // SıraGO Vitrini (esnaf)
 const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
 const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
 import AiTeshis from "./components/SatisBot/AiTeshis";
@@ -1376,6 +1377,7 @@ function Dashboard({ kullanici }) {
       { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
       { id: "yorumavcisi", icon: ICON.yorum, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
       { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
+      { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
     ]},
     { type: 'group', id: 'gr_bot', icon: ICON.bot, label: 'Bot & Sistem', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
@@ -1853,7 +1855,7 @@ function Dashboard({ kullanici }) {
             <Dukkanim ayarlar={ayarlar} wpBagli={wpBagli}
               ac={(id) => { const m = tamMenu.flatMap(g => g.items).find(x => x.id === id); if (m?.featureKey && !ozellikAcik(m.featureKey)) setPaketModal(true); else setSayfa(id); window.scrollTo(0, 0); }}
               digerleri={tamMenu.flatMap(g => g.items)
-                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek', 'tablet'].includes(m.id))
+                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek', 'tablet', 'vitrin'].includes(m.id))
                 .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
                 .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
           )}
@@ -3081,6 +3083,11 @@ function Dashboard({ kullanici }) {
           {/* ── MAĞAZA (ürün önerisi) ── */}
           {sayfa === "magaza" && (
             <Magaza api={api} randevuId={magazaRandevu} />
+          )}
+
+          {/* ── SIRAGO VİTRİNİ (tablet, stant, malzeme — her pakette) ── */}
+          {sayfa === "vitrin" && (
+            <Vitrin api={api} />
           )}
 
           {/* ── QR KOD ── */}

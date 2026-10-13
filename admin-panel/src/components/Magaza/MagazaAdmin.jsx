@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import IlanVer from './IlanVer';
 
 // Süper admin — Mağaza pilotu: tedarikçiler, ürünler, işletme indirim kodları, aylık satış raporu (CSV) ve komisyon özeti.
 const tl = (x) => { const n = Number(x || 0); return `${n.toLocaleString('tr-TR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} ₺`; };
@@ -11,7 +12,7 @@ function Alan({ etiket, children }) {
 }
 
 export default function MagazaAdmin({ api, isletmeler = [] }) {
-  const [tab, setTab] = useState('ozet');
+  const [tab, setTab] = useState('vitrin');
   const [tedarikciler, setTedarikciler] = useState([]);
   const [urunler, setUrunler] = useState([]);
   const [kodlar, setKodlar] = useState([]);
@@ -67,12 +68,14 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
   return (
     <div style={{ maxWidth: 1100 }}>
       <div className="tab-bar" style={{ marginBottom: 20, maxWidth: '100%', overflowX: 'auto' }}>
-        {[['ozet', 'Aylık özet'], ['tedarikciler', 'Tedarikçiler'], ['urunler', 'Ürünler'], ['kodlar', 'İndirim kodları'], ['satis', 'Satış raporu']].map(([id, l]) => (
+        {[['vitrin', 'SıraGO Vitrini (ilan ver)'], ['ozet', 'Aylık özet'], ['tedarikciler', 'Tedarikçiler'], ['urunler', 'Ürünler'], ['kodlar', 'İndirim kodları'], ['satis', 'Satış raporu']].map(([id, l]) => (
           <button key={id} onClick={() => setTab(id)} className={`tab-btn${tab === id ? ' active' : ''}`}>{l}</button>
         ))}
       </div>
 
       {mesaj && <div className={`alert alert-${mesaj.tip}`} style={{ marginBottom: 14 }}>{mesaj.metin}</div>}
+
+      {tab === 'vitrin' && <IlanVer api={api} />}
 
       {tab === 'ozet' && (
         <>

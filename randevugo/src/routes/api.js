@@ -481,6 +481,17 @@ router.get('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodla
 router.post('/admin/magaza/kodlar', ...saMw, (req, res) => magazaController.kodKaydet(req, res));
 router.post('/admin/magaza/satis-yukle', ...saMw, (req, res) => magazaController.satisYukle(req, res));
 router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdmin(req, res));
+// SıraGO Vitrini: kurucunun ilanları her pakette esnafa görünür (featureGuard yok)
+const vitrinController = require('../controllers/vitrinController');
+router.get('/magaza/gorsel/:id', (req, res) => vitrinController.gorsel(req, res));
+router.get('/magaza/vitrin', authMiddleware, (req, res) => vitrinController.vitrin(req, res));
+router.post('/magaza/siparis', authMiddleware, (req, res) => vitrinController.siparis(req, res));
+router.get('/magaza/siparislerim', authMiddleware, (req, res) => vitrinController.siparislerim(req, res));
+router.get('/admin/magaza/ilanlar', ...saMw, (req, res) => vitrinController.ilanlar(req, res));
+router.post('/admin/magaza/ilan', ...saMw, (req, res) => vitrinController.ilanKaydet(req, res));
+router.put('/admin/magaza/ilan/:id', ...saMw, (req, res) => vitrinController.ilanKaydet(req, res));
+router.get('/admin/magaza/siparisler', ...saMw, (req, res) => vitrinController.siparisler(req, res));
+router.put('/admin/magaza/siparisler/:id', ...saMw, (req, res) => vitrinController.siparisDurum(req, res));
 
 // ==================== SATIŞ MASASI (config/ekip.js: 'masa' → satis; hedef/itiraz düzenleme → patron) ====================
 const masaController = require('../controllers/masaController');
