@@ -20,7 +20,7 @@ function bip() {
   } catch { /* ses yoksa geç */ }
 }
 
-export default function TabletEkrani({ api, ayarlar, kapat }) {
+export default function TabletEkrani({ api, ayarlar, eposta, kapat }) {
   const [mod, setMod] = useState(() => { try { return localStorage.getItem('tablet_mod') || 'dukkan'; } catch { return 'dukkan'; } });
   const [liste, setListe] = useState([]);
   const [calisanlar, setCalisanlar] = useState([]);
@@ -71,7 +71,7 @@ export default function TabletEkrani({ api, ayarlar, kapat }) {
 
   const kok = { position: 'fixed', inset: 0, zIndex: 3000, fontFamily: 'inherit', overflow: 'hidden', display: 'flex', flexDirection: 'column' };
 
-  if (mod === 'musteri') return <MusteriModu api={api} ayarlar={ayarlar} liste={aktifler} sDk={sDk} cik={() => setMod('dukkan')} yenile={yukle} kok={kok} />;
+  if (mod === 'musteri') return <MusteriModu api={api} ayarlar={ayarlar} liste={aktifler} sDk={sDk} cik={() => setMod('dukkan')} yenile={yukle} kok={kok} eposta={eposta} />;
 
   const sutunlar = calisanlar.length ? calisanlar.slice(0, 4) : [{ id: null, isim: ayarlar?.isim || 'Randevular' }];
   return (
@@ -143,7 +143,7 @@ export default function TabletEkrani({ api, ayarlar, kapat }) {
 
 const btn = (bg, renk) => ({ height: 52, padding: '0 18px', borderRadius: 14, border: '1px solid var(--border)', background: bg, color: renk, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' });
 
-function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok }) {
+function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok, eposta }) {
   const [ekran, setEkran] = useState('ana');        // ana | randevum | sira | tamam
   const [tel, setTel] = useState('');
   const [sonuc, setSonuc] = useState(null);
@@ -154,6 +154,9 @@ function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok }) {
   const [ilkBos, setIlkBos] = useState(null);
   const [pinIste, setPinIste] = useState(false);
   const [pin, setPin] = useState('');
+  const [unuttum, setUnuttum] = useState(false);   // PIN unutulursa panel şifresiyle çıkış
+  const [sifre, setSifre] = useState('');
+  const [pinHata, setPinHata] = useState(null);
   const basili = useRef(null);
   const geriSay = useRef(null);
 
@@ -174,8 +177,17 @@ function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok }) {
   const pinDene = () => {
     const k = kayitliPin();
     if (!k) { if (/^\d{4}$/.test(pin)) { try { localStorage.setItem('tablet_pin', pin); } catch { /* yok */ } cik(); } return; }
-    if (pin === k) cik(); else { setPin(''); }
+    if (pin === k) cik(); else { setPin(''); setPinHata('PIN yanlış'); }
   };
+  const sifreyleCik = async () => {
+    // Panelin api istemcisi 401'de oturumu kapatıp sayfayı yeniler; şifre denemesi doğrudan gider
+    const d = await fetch(`${API_URL}/auth/giris`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: eposta, sifre }) })
+      .then(r => r.json()).catch(() => null);
+    if (!d?.token) { setSifre(''); return setPinHata('Şifre yanlış'); }
+    try { localStorage.removeItem('tablet_pin'); } catch { /* yok */ }   // yeni PIN bir dahaki sefere belirlenir
+    cik();
+  };
+  const pinKapat = () => { setPinIste(false); setPin(''); setSifre(''); setUnuttum(false); setPinHata(null); };
 
   const randevuBul = () => {
     const son = tel.replace(/\D/g, '').slice(-10);
@@ -196,7 +208,11 @@ function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok }) {
   return (
     <div style={koyu}>
       <button aria-label="Esnaf ekranına dön" onPointerDown={koseBas} onPointerUp={koseBirak} onPointerLeave={koseBirak}
-        style={{ position: 'absolute', top: 0, right: 0, width: 90, height: 90, background: 'transparent', border: 'none' }} />
+        style={{ position: 'absolute', top: 0, right: 0, width: 110, height: 90, background: 'transparent', border: 'none', color: 'rgba(244,241,234,.45)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, fontFamily: 'inherit', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}>
+        <span style={{ fontSize: 22 }} aria-hidden="true">🔒</span>
+        <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2, textAlign: 'center' }}>Esnaf çıkışı:<br />3 sn basılı tut</span>
+      </button>
       <div style={{ display: 'flex', gap: 36, flex: 1, minHeight: 0 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#a9c9b5' }}>{ayarlar?.isim}</div>
@@ -254,12 +270,17 @@ function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok }) {
       {pinIste && (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.7)', display: 'grid', placeItems: 'center' }}>
           <div style={{ background: '#f4f1ea', color: '#14231b', borderRadius: 24, padding: 28, width: 360, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>{kayitliPin() ? 'Esnaf PIN' : 'Yeni 4 haneli PIN belirleyin'}</div>
-            <input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" type="password" autoFocus style={{ height: 64, fontSize: 32, textAlign: 'center', letterSpacing: 12, borderRadius: 14, border: '1px solid #cfc8ba' }} />
+            <div style={{ fontSize: 22, fontWeight: 800 }}>{unuttum ? 'Panel şifrenle çık' : kayitliPin() ? 'Esnaf PIN' : 'Yeni 4 haneli PIN belirleyin'}</div>
+            {unuttum && <input value={sifre} onChange={e => setSifre(e.target.value)} type="password" autoFocus placeholder="Panele girdiğin şifre" style={{ height: 56, fontSize: 20, borderRadius: 14, border: '1px solid #cfc8ba', padding: '0 14px', fontFamily: 'inherit' }} />}
+            {pinHata && <div style={{ color: '#b42318', fontWeight: 700 }}>{pinHata}</div>}
+            {!unuttum && <input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" type="password" autoFocus style={{ height: 64, fontSize: 32, textAlign: 'center', letterSpacing: 12, borderRadius: 14, border: '1px solid #cfc8ba' }} />}
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setPinIste(false); setPin(''); }} style={{ flex: 1, height: 56, borderRadius: 14, border: '1px solid #cfc8ba', background: '#fff', fontSize: 18, fontWeight: 700 }}>Vazgeç</button>
-              <button onClick={pinDene} style={{ flex: 1, height: 56, borderRadius: 14, border: 'none', background: '#1f6f4a', color: '#fff', fontSize: 18, fontWeight: 800 }}>Tamam</button>
+              <button onClick={pinKapat} style={{ flex: 1, height: 56, borderRadius: 14, border: '1px solid #cfc8ba', background: '#fff', fontSize: 18, fontWeight: 700 }}>Vazgeç</button>
+              <button onClick={unuttum ? sifreyleCik : pinDene} style={{ flex: 1, height: 56, borderRadius: 14, border: 'none', background: '#1f6f4a', color: '#fff', fontSize: 18, fontWeight: 800 }}>Tamam</button>
             </div>
+            {kayitliPin() && eposta && !unuttum && (
+              <button onClick={() => { setUnuttum(true); setPinHata(null); }} style={{ border: 'none', background: 'none', color: '#3b4a41', textDecoration: 'underline', fontSize: 15, fontFamily: 'inherit', cursor: 'pointer' }}>PIN'i unuttum</button>
+            )}
           </div>
         </div>
       )}

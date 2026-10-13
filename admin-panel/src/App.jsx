@@ -1864,7 +1864,7 @@ function Dashboard({ kullanici }) {
           {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
           {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
           <KurulumSihirbazi api={api} ayarlar={ayarlar} kullanici={kullanici} setSayfa={setSayfa} ayarlariYenile={ayarlariYukle} />
-          {sayfa === "tablet" && <TabletEkrani api={api} ayarlar={ayarlar} kapat={() => setSayfa("anasayfa")} />}
+          {sayfa === "tablet" && <TabletEkrani api={api} ayarlar={ayarlar} eposta={kullanici?.email} kapat={() => setSayfa("anasayfa")} />}
           {sayfa === "dukkanim" && (
             <Dukkanim ayarlar={ayarlar} wpBagli={wpBagli}
               ac={(id) => { const m = tamMenu.flatMap(g => g.items).find(x => x.id === id); if (m?.featureKey && !ozellikAcik(m.featureKey)) setPaketModal(true); else setSayfa(id); window.scrollTo(0, 0); }}
