@@ -484,6 +484,12 @@ router.get('/admin/magaza/ozet', ...saMw, (req, res) => magazaController.ozetAdm
 
 // ==================== SATIŞ MASASI (config/ekip.js: 'masa' → satis; hedef/itiraz düzenleme → patron) ====================
 const masaController = require('../controllers/masaController');
+router.get('/admin/satis-bot/ai-test', ...saMw, async (req, res) => {
+  try {
+    const bot = require('../services/satisBot');
+    res.json({ ai_cevap_acik: bot.ayarlar?.aiCevapAktif !== false, ...(await require('../services/satisAI').tani()) });
+  } catch (e) { res.status(500).json({ hata: e.message }); }
+});
 router.get('/admin/masa/ozet', ...saMw, (req, res) => masaController.ozet(req, res));
 router.get('/admin/masa/listem', ...saMw, (req, res) => masaController.listem(req, res));
 router.post('/admin/masa/cek', ...saMw, (req, res) => masaController.cek(req, res));

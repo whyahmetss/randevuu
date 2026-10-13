@@ -18,6 +18,7 @@ const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açı
 const Magaza = lazy(() => import("./components/Magaza/Magaza"));   // açılınca yüklenir (hızlı açılış)
 const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
 const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
+import AiTeshis from "./components/SatisBot/AiTeshis";
 const EkipYonetimi = lazy(() => import("./components/Ekip/EkipYonetimi"));   // açılınca yüklenir (hızlı açılış)
 const SmsAyarlari = lazy(() => import("./components/Settings/SmsAyarlari"));   // açılınca yüklenir (hızlı açılış)
 const GeceRaporu = lazy(() => import("./components/Settings/GeceRaporu"));   // açılınca yüklenir (hızlı açılış)
@@ -7196,6 +7197,7 @@ function SuperAdminPanel({ kullanici }) {
             </>}
 
             {satisAnaTab === "ayarlar" && <>
+            <AiTeshis api={api} />
             {/* ═══ KAPSAMLI BOT AYARLARI PANELİ ═══ */}
             {satisBotDurum?.ayarlar && (() => {
               const ay = satisBotDurum.ayarlar;
