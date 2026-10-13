@@ -28,7 +28,7 @@ test('Gemini çökerse DeepSeek cevap verir, bozuk JSON reddedilir', async () =>
     };
     const r = await ai.cevapUret({ konusma: { gelen_mesajlar: '[1] Müşteri: slm' }, paketListesi: '', sonMesaj: 'fiyat' });
     assert.deepStrictEqual(r.mesajlar, ['Merhaba', 'Nasıl alıyorsunuz?']);
-    assert.strictEqual(cagrilar.length, 2);
+    assert.ok(cagrilar.at(-1).includes('deepseek'), 'Gemini modelleri meşgul → en son DeepSeek denendi');
 
     global.fetch = async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: '{"mesajlar":[],"durum":"x"}' } }], candidates: [] }) });
     assert.strictEqual(await ai.cevapUret({ konusma: { gelen_mesajlar: '' }, sonMesaj: 'a' }), null);
@@ -36,4 +36,22 @@ test('Gemini çökerse DeepSeek cevap verir, bozuk JSON reddedilir', async () =>
     global.fetch = eski;
     delete process.env.GEMINI_API_KEY; delete process.env.DEEPSEEK_API_KEY;
   }
+});
+
+test('Gemini: birden çok anahtar dönüşümlü; kotası dolan anahtardan sıradakine geçilir', async () => {
+  delete process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEYS = 'anahtarA,anahtarB';
+  const g = require(SRC + '/utils/gemini');
+  const eski = global.fetch;
+  const kullanilan = [];
+  try {
+    global.fetch = async (u, o) => {
+      kullanilan.push(o.headers['x-goog-api-key']);
+      if (o.headers['x-goog-api-key'] === 'anahtarA') return { ok: false, status: 429, text: async () => 'quota' };
+      return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'merhaba' }] } }] }) };
+    };
+    const j = await g.geminiIstek({ contents: [] });
+    assert.strictEqual(g.metniAl(j), 'merhaba');
+    assert.ok(kullanilan.includes('anahtarB'));
+  } finally { global.fetch = eski; delete process.env.GEMINI_API_KEYS; }
 });
