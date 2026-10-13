@@ -416,6 +416,8 @@ class WhatsAppWebService extends EventEmitter {
   async mesajGonder(isletmeId, hedef, mesaj, butonlar = null) {
     const state = this.isletmeler[isletmeId];
     if (!state || state.durum !== 'bagli') return { success: false, hata: 'Bağlı değil' };
+    // Demo verisinin numaralarına asla mesaj gitmez (utils/demoTel)
+    if (require('../utils/demoTel').demoNumaraMi(hedef)) return { success: false, hata: 'Demo numarası — gönderilmedi' };
     try {
       const jid = hedef.includes('@') ? hedef : `${hedef.replace(/^\+/, '')}@s.whatsapp.net`;
 

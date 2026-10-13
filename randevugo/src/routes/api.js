@@ -132,6 +132,7 @@ router.get('/admin/isletmeler/:id/detay', authMiddleware, superAdminMiddleware, 
 router.post('/admin/isletmeler/:id/deneme-uzat', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeDenemeUzat(req, res));
 router.put('/admin/isletmeler/:id/not', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeNotEkle(req, res));
 router.post('/admin/impersonate/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.impersonate(req, res));
+router.post('/admin/saha-demo', authMiddleware, superAdminMiddleware, (req, res) => adminController.sahaDemo(req, res));
 router.post('/admin/isletmeler/:id/demo-veri', authMiddleware, superAdminMiddleware, (req, res) => adminController.demoVeriBas(req, res));
 
 router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeleriGetir(req, res));
@@ -512,6 +513,7 @@ router.post('/admin/magaza/ilan', ...saMw, (req, res) => vitrinController.ilanKa
 router.put('/admin/magaza/ilan/:id', ...saMw, (req, res) => vitrinController.ilanKaydet(req, res));
 router.get('/admin/magaza/siparisler', ...saMw, (req, res) => vitrinController.siparisler(req, res));
 router.put('/admin/magaza/siparisler/:id', ...saMw, (req, res) => vitrinController.siparisDurum(req, res));
+router.get('/admin/magaza/siparisler/:id/baski', ...saMw, (req, res) => vitrinController.baski(req, res));
 
 // ==================== SATIŞ MASASI (config/ekip.js: 'masa' → satis; hedef/itiraz düzenleme → patron) ====================
 const masaController = require('../controllers/masaController');
@@ -526,6 +528,7 @@ router.get('/admin/masa/listem', ...saMw, (req, res) => masaController.listem(re
 router.post('/admin/masa/cek', ...saMw, (req, res) => masaController.cek(req, res));
 router.post('/admin/masa/lead/:id/sonuc', ...saMw, (req, res) => masaController.sonuc(req, res));
 router.post('/admin/masa/lead/:id/birak', ...saMw, (req, res) => masaController.birak(req, res));
+router.post('/admin/masa/lead/:id/wa', ...saMw, (req, res) => masaController.waMesaj(req, res));
 router.get('/admin/masa/aktiviteler', ...saMw, (req, res) => masaController.aktiviteler(req, res));
 router.put('/admin/masa/hedef', ...saMw, (req, res) => masaController.hedefGuncelle(req, res));
 router.get('/admin/masa/itirazlar', ...saMw, (req, res) => masaController.itirazlar(req, res));

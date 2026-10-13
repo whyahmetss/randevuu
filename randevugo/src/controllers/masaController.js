@@ -14,6 +14,10 @@ const TIPLER = {
   not: { ad: 'Not', durum: null },
 };
 const ARAMA_SAYILAN = ['arama_yok', 'gorustu', 'ilgilenmiyor', 'ilgileniyor', 'demo', 'kurulum'];
+// Kişisel numaradan soğuk WhatsApp sınırı (2026-10-14: önceki numara ban yedi). 'wa_mesaj' sonuç değil, sayaçtır.
+const WA_GUNLUK = 20;
+const waBugun = async (kid) => (await pool.query(
+  `SELECT COUNT(*)::int AS n FROM satis_aktivite WHERE kullanici_id = $1 AND tip = 'wa_mesaj' AND olusturma_tarihi >= ${gunBasi}`, [kid])).rows[0].n;
 const GORUSME_SAYILAN = ['gorustu', 'ilgilenmiyor', 'ilgileniyor', 'demo', 'kurulum'];
 
 const hata = (res, mesaj, kod = 400) => res.status(kod).json({ hata: mesaj });
@@ -71,7 +75,7 @@ class MasaController {
         FROM potansiyel_musteriler WHERE atanan_id = $1 AND durum NOT IN ('ilgilenmiyor', 'musteri_oldu')`, [req.kullanici.id])).rows[0];
       res.json({
         hedef,
-        ben: { ...ben, hedef: benimHedef, listede: bekleyen.toplam, bugun_aranacak: bekleyen.bugun },
+        ben: { ...ben, hedef: benimHedef, listede: bekleyen.toplam, bugun_aranacak: bekleyen.bugun, wa_bugun: await waBugun(req.kullanici.id), wa_sinir: WA_GUNLUK },
         liderlik: { bugun: bugun.map(({ gunluk_hedef, son_aktivite, ...x }) => x), hafta: hafta.map(({ gunluk_hedef, son_aktivite, ...x }) => x) },
         patron: patronMu(req.kullanici),
       });
@@ -84,7 +88,7 @@ class MasaController {
       const r = await pool.query(`
         SELECT p.id, p.isletme_adi, p.telefon, p.kategori, p.ilce, p.sehir, p.puan, p.yorum_sayisi, p.web_sitesi,
                p.google_maps_url, p.skor, p.durum, p.notlar, p.sonraki_arama, p.son_temas, p.demo_isletme_id,
-               (SELECT a.tip FROM satis_aktivite a WHERE a.lead_id = p.id ORDER BY a.id DESC LIMIT 1) AS son_sonuc,
+               (SELECT a.tip FROM satis_aktivite a WHERE a.lead_id = p.id AND a.tip <> 'wa_mesaj' ORDER BY a.id DESC LIMIT 1) AS son_sonuc,
                -- Aynı ilçede SıraGO'yu gerçekten kullanan (randevusu olan) işletmeler: "Moda'da X kullanıyor"
                (SELECT json_agg(y) FROM (
                   SELECT i.isim, i.kategori, (CURRENT_DATE - i.olusturma_tarihi::date) AS gun
@@ -195,10 +199,18 @@ class MasaController {
         FROM satis_aktivite a
         LEFT JOIN potansiyel_musteriler p ON p.id = a.lead_id
         LEFT JOIN isletmeler i ON i.id = a.isletme_id
-        WHERE a.kullanici_id = $1 AND a.olusturma_tarihi >= ${gunBasi} - make_interval(days => $2 - 1)
+        WHERE a.kullanici_id = $1 AND a.tip <> 'wa_mesaj' AND a.olusturma_tarihi >= ${gunBasi} - make_interval(days => $2 - 1)
         ORDER BY a.id DESC LIMIT 300`, [kid, gun]);
       res.json({ aktiviteler: r.rows });
     } catch (e) { hata(res, 'Aktiviteler alınamadı', 500); }
+  }
+
+  // WhatsApp'a tıklandı: sayaç (sınır üstünde de açılır; uyarı panelde)
+  async waMesaj(req, res) {
+    try {
+      await pool.query("INSERT INTO satis_aktivite (kullanici_id, lead_id, tip) VALUES ($1, $2, 'wa_mesaj')", [req.kullanici.id, parseInt(req.params.id) || null]);
+      res.json({ wa_bugun: await waBugun(req.kullanici.id), wa_sinir: WA_GUNLUK });
+    } catch (e) { hata(res, 'Kaydedilemedi', 500); }
   }
 
   // ── Hedef (okuma herkes, değiştirme patron) ──

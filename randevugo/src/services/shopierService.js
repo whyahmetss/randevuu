@@ -290,7 +290,8 @@ class ShopierService {
       // Bitiş tarihi: kalan günler silinmesin (eskiden NOW()+30 yazılıyordu)
       await pool.query(
         `UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + make_interval(days => $3),
-           aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL, bekleyen_sure = NULL WHERE id = $1`,
+           aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL, bekleyen_sure = NULL,
+           son_odeme_sure = CASE WHEN $3 >= 365 THEN 'yil' ELSE 'ay' END WHERE id = $1`,
         [isletmeId, yeniPaket, gun]
       );
 

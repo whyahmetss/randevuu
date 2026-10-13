@@ -776,11 +776,13 @@ class AdminController {
       const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [id])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
+      // Demo numaraları ayrılmış aralıkta; gerçek kişilere mesaj gitmez (utils/demoTel)
+      const { demoTel } = require('../utils/demoTel');
       // ─── ÇALIŞANLAR ───
       const calisanlar = [
-        { isim: 'Ahmet Usta', telefon: '05551110001', uzmanlik: 'Erkek Kuaförü' },
-        { isim: 'Fatma Hanım', telefon: '05551110002', uzmanlik: 'Bayan Kuaförü' },
-        { isim: 'Mehmet', telefon: '05551110003', uzmanlik: 'Sakal & Cilt Bakım' },
+        { isim: 'Ahmet Usta', telefon: demoTel(101), uzmanlik: 'Erkek Kuaförü' },
+        { isim: 'Fatma Hanım', telefon: demoTel(102), uzmanlik: 'Bayan Kuaförü' },
+        { isim: 'Mehmet', telefon: demoTel(103), uzmanlik: 'Sakal & Cilt Bakım' },
       ];
       const calisanIds = [];
       for (const c of calisanlar) {
@@ -818,21 +820,21 @@ class AdminController {
 
       // ─── MÜŞTERİLER ───
       const musteriler = [
-        { isim: 'Ali Yılmaz', telefon: '+905321000001' },
-        { isim: 'Ayşe Demir', telefon: '+905321000002' },
-        { isim: 'Mehmet Kaya', telefon: '+905321000003' },
-        { isim: 'Fatma Şahin', telefon: '+905321000004' },
-        { isim: 'Emre Çelik', telefon: '+905321000005' },
-        { isim: 'Zeynep Arslan', telefon: '+905321000006' },
-        { isim: 'Burak Öztürk', telefon: '+905321000007' },
-        { isim: 'Selin Koç', telefon: '+905321000008' },
-        { isim: 'Cem Aydın', telefon: '+905321000009' },
-        { isim: 'Derya Güneş', telefon: '+905321000010' },
-        { isim: 'Hakan Polat', telefon: '+905321000011' },
-        { isim: 'Elif Yıldız', telefon: '+905321000012' },
-        { isim: 'Oğuz Kara', telefon: '+905321000013' },
-        { isim: 'Merve Aksoy', telefon: '+905321000014' },
-        { isim: 'Serkan Erdoğan', telefon: '+905321000015' },
+        { isim: 'Ali Yılmaz', telefon: demoTel(1) },
+        { isim: 'Ayşe Demir', telefon: demoTel(2) },
+        { isim: 'Mehmet Kaya', telefon: demoTel(3) },
+        { isim: 'Fatma Şahin', telefon: demoTel(4) },
+        { isim: 'Emre Çelik', telefon: demoTel(5) },
+        { isim: 'Zeynep Arslan', telefon: demoTel(6) },
+        { isim: 'Burak Öztürk', telefon: demoTel(7) },
+        { isim: 'Selin Koç', telefon: demoTel(8) },
+        { isim: 'Cem Aydın', telefon: demoTel(9) },
+        { isim: 'Derya Güneş', telefon: demoTel(10) },
+        { isim: 'Hakan Polat', telefon: demoTel(11) },
+        { isim: 'Elif Yıldız', telefon: demoTel(12) },
+        { isim: 'Oğuz Kara', telefon: demoTel(13) },
+        { isim: 'Merve Aksoy', telefon: demoTel(14) },
+        { isim: 'Serkan Erdoğan', telefon: demoTel(15) },
       ];
       const musteriIds = [];
       for (const m of musteriler) {
@@ -2489,6 +2491,39 @@ class AdminController {
   }
 
   // ==================== IMPERSONATION (Müşteri olarak giriş) ====================
+
+  // Saha demosu (kullanıcı kararı 2026-10-14): esnafa telefonda göstermek için içi dolu demo dükkân paneli.
+  // Yoksa oluşturulur; son 7 günde randevusu azaldıysa veri yenilenir; süper admin bu dükkân olarak girer.
+  // Numaralar demo aralığında (utils/demoTel): kimseye mesaj gitmez.
+  async sahaDemo(req, res) {
+    try {
+      const { demoTel } = require('../utils/demoTel');
+      let isl = (await pool.query("SELECT id FROM isletmeler WHERE slug = 'sirago-demo-berber' AND demo = true")).rows[0];
+      if (!isl) {
+        isl = (await pool.query(
+          `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, booking_acik, demo, slug, calisma_baslangic, calisma_bitis,
+             olusturma_tarihi, paket_bitis_tarihi)
+           VALUES ('SıraGO Demo Berber', $1, 'berber', true, 'profesyonel', true, true, 'sirago-demo-berber', '09:00', '20:00',
+             NOW() - INTERVAL '40 days', NOW() + INTERVAL '10 years') RETURNING id`, [demoTel(900)])).rows[0];
+        const sifre = await require('bcryptjs').hash(require('crypto').randomBytes(24).toString('hex'), 10);   // girişi yok, yalnız süper admin girer
+        await pool.query(`INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) VALUES ('Demo Berber', 'saha-demo@demo.invalid', $1, 'admin', $2, true)`, [sifre, isl.id]);
+      }
+      const yakin = (await pool.query("SELECT COUNT(*)::int AS n FROM randevular WHERE isletme_id = $1 AND tarih >= CURRENT_DATE - 7", [isl.id])).rows[0].n;
+      if (yakin < 10) {
+        for (const t of ['randevular', 'calisan_hizmetler', 'calisanlar', 'hizmetler']) {
+          if (t === 'calisan_hizmetler') await pool.query('DELETE FROM calisan_hizmetler WHERE calisan_id IN (SELECT id FROM calisanlar WHERE isletme_id = $1)', [isl.id]);
+          else await pool.query(`DELETE FROM ${t} WHERE isletme_id = $1`, [isl.id]);
+        }
+        let hata = null;
+        await this.demoVeriBas({ params: { id: isl.id } }, { status: () => ({ json: (d) => { hata = d?.hata || 'demo veri'; } }), json: () => {} });
+        if (hata) return res.status(500).json({ hata: `Demo veri basılamadı: ${hata}` });
+      }
+      return this.impersonate({ ...req, params: { id: String(isl.id) } }, res);
+    } catch (error) {
+      console.error('saha demo:', error.message);
+      res.status(500).json({ hata: 'Saha demosu hazırlanamadı' });
+    }
+  }
 
   async impersonate(req, res) {
     try {

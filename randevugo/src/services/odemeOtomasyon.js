@@ -45,7 +45,7 @@ async function hatirlatmalariGonder({ gonder, simdi = new Date() } = {}) {
   if (!gonder && (saat < 10 || saat >= 20)) return 0;
   const gonderFn = gonder || ((tel, m) => require('./merkezOtpBot').mesajGonder(tel, m));
   const adaylar = (await pool.query(`
-    SELECT i.id, i.isim, i.telefon, i.paket, i.oncu_no, i.kilitli_paket, i.kilitli_fiyat,
+    SELECT i.id, i.isim, i.telefon, i.paket, i.oncu_no, i.kilitli_paket, i.kilitli_fiyat, i.son_odeme_sure,
       GREATEST(COALESCE(i.deneme_bitis_tarihi, 'epoch'), COALESCE(i.paket_bitis_tarihi, 'epoch')) AS bitis,
       (i.paket_bitis_tarihi IS NULL OR i.paket_bitis_tarihi < COALESCE(i.deneme_bitis_tarihi, 'epoch')) AS deneme
     FROM isletmeler i
@@ -64,9 +64,12 @@ async function hatirlatmalariGonder({ gonder, simdi = new Date() } = {}) {
     if (!kayit.rows.length) continue;
     const p = await paketGetir(a.paket);
     if (!(p.fiyat > 0)) continue;
-    const fiyat = require('../utils/oncu').etkinFiyat(a, a.paket, p.fiyat);
-    const metin = asama.metin({ isim: a.isim, deneme: a.deneme, tarih: tarih(a.bitis), paketAd: p.isim, fiyat });
-    const sonuc = await gonderFn(a.telefon, `${metin}\n${odemeLinki(a.id, a.paket)}`);
+    // Son ödemesi yıllık olana yıllık tutar ve yıllık ödeme linki (12 ay kullan, 9 ay öde)
+    const yillik = !a.deneme && a.son_odeme_sure === 'yil';
+    const aylik = require('../utils/oncu').etkinFiyat(a, a.paket, p.fiyat);
+    const fiyat = yillik ? aylik * require('../config/paketler').YILLIK_ODENEN_AY : aylik;
+    const metin = asama.metin({ isim: a.isim, deneme: a.deneme, tarih: tarih(a.bitis), paketAd: yillik ? `${p.isim} (yıllık)` : p.isim, fiyat });
+    const sonuc = await gonderFn(a.telefon, `${metin}\n${odemeLinki(a.id, a.paket, yillik ? 'yil' : null)}`);
     if (sonuc?.success) {
       n++;
       await pool.query('UPDATE odeme_hatirlatma SET gonderildi = true WHERE isletme_id = $1 AND bitis = $2::date AND asama = $3', [a.id, a.bitis, asama.gun]);

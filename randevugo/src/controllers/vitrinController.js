@@ -20,7 +20,7 @@ const disari = (u) => ({
   id: u.id, isim: u.isim, aciklama: u.aciklama, fiyat: u.fiyat === null ? null : Number(u.fiyat),
   eski_fiyat: u.eski_fiyat === null ? null : Number(u.eski_fiyat), stok: u.stok, kategori: u.kategori,
   gorsel: u.gorsel_veri ? `${API}/api/magaza/gorsel/${u.id}?v=${new Date(u.guncelleme || u.olusturma).getTime() || 1}` : (u.gorsel_url || null),
-  odeme_linki: u.urun_url || null, aktif: u.aktif, hedef: u.hedef, sira: u.sira,
+  odeme_linki: u.urun_url || null, aktif: u.aktif, hedef: u.hedef, sira: u.sira, kisisel_qr: !!u.kisisel_qr,
 });
 
 class VitrinController {
@@ -95,16 +95,16 @@ class VitrinController {
         gorsel = b.gorsel;
       }
       const tid = await siragoTedarikci();
-      const alanlar = [isim, b.aciklama || null, fiyat, eski, stok, b.kategori || null, b.odeme_linki || null, b.aktif !== false, parseInt(b.sira) || 0];
+      const alanlar = [isim, b.aciklama || null, fiyat, eski, stok, b.kategori || null, b.odeme_linki || null, b.aktif !== false, parseInt(b.sira) || 0, !!b.kisisel_qr];
       const id = req.params.id ? parseInt(req.params.id) : null;
       let r;
       if (id) {
-        r = await pool.query(`UPDATE magaza_urunler SET isim=$1, aciklama=$2, fiyat=$3, eski_fiyat=$4, stok=$5, kategori=$6, urun_url=$7, aktif=$8, sira=$9, guncelleme=NOW()
-          ${gorsel !== undefined ? ', gorsel_veri=$11' : ''} WHERE id=$10 AND hedef='esnaf' RETURNING *`,
+        r = await pool.query(`UPDATE magaza_urunler SET isim=$1, aciklama=$2, fiyat=$3, eski_fiyat=$4, stok=$5, kategori=$6, urun_url=$7, aktif=$8, sira=$9, kisisel_qr=$10, guncelleme=NOW()
+          ${gorsel !== undefined ? ', gorsel_veri=$12' : ''} WHERE id=$11 AND hedef='esnaf' RETURNING *`,
           gorsel !== undefined ? [...alanlar, id, gorsel] : [...alanlar, id]);
       } else {
-        r = await pool.query(`INSERT INTO magaza_urunler (isim, aciklama, fiyat, eski_fiyat, stok, kategori, urun_url, aktif, sira, tedarikci_id, hedef, gorsel_veri)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'esnaf',$11) RETURNING *`, [...alanlar, tid, gorsel || null]);
+        r = await pool.query(`INSERT INTO magaza_urunler (isim, aciklama, fiyat, eski_fiyat, stok, kategori, urun_url, aktif, sira, kisisel_qr, tedarikci_id, hedef, gorsel_veri)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'esnaf',$12) RETURNING *`, [...alanlar, tid, gorsel || null]);
       }
       if (!r.rows[0]) return hata(res, 'İlan bulunamadı', 404);
       res.json({ ilan: disari(r.rows[0]) });
@@ -113,11 +113,23 @@ class VitrinController {
 
   async siparisler(req, res) {
     try {
-      const r = await pool.query(`SELECT s.*, u.isim AS urun_isim, i.isim AS isletme_isim, i.telefon AS isletme_telefon
+      const r = await pool.query(`SELECT s.*, u.isim AS urun_isim, u.kisisel_qr, i.isim AS isletme_isim, i.telefon AS isletme_telefon
         FROM magaza_siparisler s JOIN magaza_urunler u ON u.id = s.urun_id LEFT JOIN isletmeler i ON i.id = s.isletme_id
         ORDER BY (s.durum IN ('teslim','iptal')), s.id DESC LIMIT 200`);
       res.json({ siparisler: r.rows });
     } catch (e) { hata(res, 'Siparişler alınamadı', 500); }
+  }
+
+  // QR stand baskı dosyası için: dükkân adı, randevu linki ve yüksek çözünürlüklü siyah QR (çizim panelde yapılır)
+  async baski(req, res) {
+    try {
+      const s = (await pool.query(`SELECT i.id, i.isim, i.slug FROM magaza_siparisler s JOIN isletmeler i ON i.id = s.isletme_id WHERE s.id = $1`, [parseInt(req.params.id)])).rows[0];
+      if (!s) return hata(res, 'Sipariş bulunamadı', 404);
+      if (!s.slug) return hata(res, 'İşletmenin randevu linki yok — önce panelinden QR sayfasını bir kez açsın');
+      const url = `https://randevu.xn--srago-n4a.com/book/${s.slug}`;
+      const qr = await require('qrcode').toDataURL(url, { width: 1200, margin: 1, errorCorrectionLevel: 'H', color: { dark: '#111111', light: '#FFFFFF' } });
+      res.json({ isim: s.isim, url, gorunen: `randevu.sırago.com/book/${s.slug}`, qr });
+    } catch (e) { hata(res, 'Baskı dosyası hazırlanamadı', 500); }
   }
 
   async siparisDurum(req, res) {
