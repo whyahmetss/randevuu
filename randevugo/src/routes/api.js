@@ -13,6 +13,10 @@ const featureGuard = require('../middleware/featureGuard');
 // ==================== AUTH ====================
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
 router.post('/auth/kayit', (req, res) => authController.botKayit(req, res));
+router.get('/auth/ayar', (req, res) => authController.ayar(req, res));
+router.post('/auth/google', (req, res) => authController.google(req, res));
+router.post('/auth/sifre-kod', (req, res) => authController.sifreKod(req, res));
+router.post('/auth/sifre-yenile', (req, res) => authController.sifreYenile(req, res));
 router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim(req, res));
 
 // ==================== İLETİŞİM (public) ====================
