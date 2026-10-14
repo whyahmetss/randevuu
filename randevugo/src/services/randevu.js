@@ -443,9 +443,10 @@ class RandevuService {
     let randevu;
     try {
       await client.query('BEGIN');
-      // Aynı çalışan+gün için eşzamanlı istekleri sıraya sok; müsaitlik kontrolü transaction
-      // dışında yapıldığından iki istek aynı slotu alabiliyordu (double booking).
-      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`randevu:${isletmeId}:${calisanId || 'x'}:${tarihStr}`]);
+      // Aynı işletme+gün için eşzamanlı istekleri sıraya sok (aynı saniyede iki müşteri "onayla" derse
+      // ikincisi birincinin kaydını görür). Kilit eskiden çalışana göreydi: ustası belli olan ve olmayan
+      // iki randevu aynı anda geçebiliyordu.
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`randevu:${isletmeId}:${tarihStr}`]);
       if (calisanId) {
         const cakisan = (await client.query(
           `SELECT id FROM randevular
@@ -455,6 +456,20 @@ class RandevuService {
           [isletmeId, calisanId, tarihStr, saat, bitisSaat]
         )).rows[0];
         if (cakisan) {
+          const err = new Error('Seçilen saat artık müsait değil');
+          err.code = 'SLOT_DOLU';
+          throw err;
+        }
+      } else {
+        // Ustası belli olmayan randevu (çalışan tanımlanmamış dükkân ya da otomatik atama yok): o dakikada
+        // üst üste binen randevu sayısı aktif çalışan sayısına (en az 1) ulaştıysa yer yok. Eskiden hiç bakılmıyordu.
+        const kap = (await client.query(
+          `SELECT GREATEST((SELECT COUNT(*) FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true)), 1)::int AS kapasite,
+                  (SELECT COUNT(*) FROM randevular WHERE isletme_id=$1 AND tarih=$2 AND durum NOT IN ('iptal','gelmedi')
+                      AND saat < $4::time AND COALESCE(bitis_saati, saat + INTERVAL '30 minutes') > $3::time)::int AS dolu`,
+          [isletmeId, tarihStr, saat, bitisSaat]
+        )).rows[0];
+        if (kap.dolu >= kap.kapasite) {
           const err = new Error('Seçilen saat artık müsait değil');
           err.code = 'SLOT_DOLU';
           throw err;

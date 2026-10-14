@@ -48,6 +48,12 @@ class TelegramService {
         try {
           await this.istek(bot, msg.chat.id, msg.from, msg.text, isletmeId, null);
         } catch (err) {
+          if (err.code === 'SLOT_DOLU') {
+            // Aynı saati başka bir müşteri az önce aldı: sessiz kalma, yeniden seçtir
+            await this.durumGuncelle(`tg:${msg.chat.id}`, isletmeId, 'ana_menu', { secilen_saat: null }).catch(() => {});
+            await bot.sendMessage(msg.chat.id, '😔 Çok üzgünüz, bu saati az önce başka bir müşteri aldı. Başka bir saat seçmek için *1* yazın.', { parse_mode: 'Markdown' }).catch(() => {});
+            return;
+          }
           console.error(`❌ Telegram mesaj hatası:`, err.message);
         }
       });
@@ -62,6 +68,12 @@ class TelegramService {
           await bot.answerCallbackQuery(query.id).catch(() => {});
           await this.istek(bot, query.message.chat.id, query.from, query.data, isletmeId, query.message.message_id);
         } catch (err) {
+          if (err.code === 'SLOT_DOLU') {
+            // Aynı saati başka bir müşteri az önce aldı: sessiz kalma, yeniden seçtir
+            await this.durumGuncelle(`tg:${query.message.chat.id}`, isletmeId, 'ana_menu', { secilen_saat: null }).catch(() => {});
+            await bot.sendMessage(query.message.chat.id, '😔 Çok üzgünüz, bu saati az önce başka bir müşteri aldı. Başka bir saat seçmek için *1* yazın.', { parse_mode: 'Markdown' }).catch(() => {});
+            return;
+          }
           console.error(`❌ Telegram callback hatası:`, err.message);
         }
       });

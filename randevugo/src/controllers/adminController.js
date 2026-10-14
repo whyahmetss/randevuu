@@ -4467,19 +4467,20 @@ class AdminController {
   // Sekreter modu + sesli mesaj ayarları (2026-10-14)
   async sekreterAyarGetir(req, res) {
     try {
-      const i = (await pool.query('SELECT sekreter_aktif, sekreter_telefon, sesli_mesaj_aktif, telefon FROM isletmeler WHERE id = $1', [req.kullanici.isletme_id])).rows[0];
+      const i = (await pool.query('SELECT sekreter_aktif, sekreter_telefon, sesli_mesaj_aktif, telefon, bot_tarzi FROM isletmeler WHERE id = $1', [req.kullanici.isletme_id])).rows[0];
       if (!i) return res.status(404).json({ hata: 'İşletme bulunamadı' });
-      res.json({ sekreter_aktif: i.sekreter_aktif !== false, sekreter_telefon: i.sekreter_telefon || '', sesli_mesaj_aktif: i.sesli_mesaj_aktif !== false, kayit_telefon: i.telefon || '' });
+      res.json({ sekreter_aktif: i.sekreter_aktif !== false, sekreter_telefon: i.sekreter_telefon || '', sesli_mesaj_aktif: i.sesli_mesaj_aktif !== false, kayit_telefon: i.telefon || '', bot_tarzi: i.bot_tarzi || 'sohbet' });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
   async sekreterAyarKaydet(req, res) {
     try {
-      const { sekreter_aktif, sekreter_telefon, sesli_mesaj_aktif } = req.body || {};
+      const { sekreter_aktif, sekreter_telefon, sesli_mesaj_aktif, bot_tarzi } = req.body || {};
       const set = [], deg = [];
       const ekle = (k, v) => { deg.push(v); set.push(`${k} = $${deg.length}`); };
       if (sekreter_aktif !== undefined) ekle('sekreter_aktif', !!sekreter_aktif);
       if (sesli_mesaj_aktif !== undefined) ekle('sesli_mesaj_aktif', !!sesli_mesaj_aktif);
+      if (bot_tarzi !== undefined) { if (!['sohbet', 'menu'].includes(bot_tarzi)) return res.status(400).json({ hata: 'Geçersiz tarz' }); ekle('bot_tarzi', bot_tarzi); }
       if (sekreter_telefon !== undefined) {
         const t = require('../utils/telefon').telefonNormalize(sekreter_telefon);
         if (sekreter_telefon && !/^90\d{10}$/.test(t)) return res.status(400).json({ hata: 'Telefonu 05xx xxx xx xx biçiminde yaz' });

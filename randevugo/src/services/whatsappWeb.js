@@ -425,6 +425,36 @@ class WhatsAppWebService extends EventEmitter {
   }
 
 
+  // Saat kaçtı (2026-10-14): müşteri onaylarken o saati başka bir müşteri az önce aldı.
+  // Sessiz kalınmaz: o günün boş saatleri sunulur; gün tamamen dolduysa müşteri bekleme listesine eklenir.
+  async _saatKacti(isletme, musteriTelefon, isletmeId) {
+    const randevuService = require('./randevu');
+    const { tarihFormatla } = require('../utils/tarih');
+    const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0] || {};
+    const tarih = sd.secilen_tarih ? tarihFormatla(sd.secilen_tarih) : null;
+    const saat = sd.secilen_saat ? String(sd.secilen_saat).slice(0, 5) : '';
+    const ozur = `😔 Çok üzgünüz, ${saat ? saat + ' saatini' : 'bu saati'} az önce başka bir müşteri aldı.`;
+    if (!tarih) {
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+      return { metin: `${ozur}\n\nBaşka bir saat için gün ve saati yazabilirsiniz.`, butonlar: null };
+    }
+    // Usta "fark etmez" ile atanmış olabilir: boş saatlere bütün ustalar için bakılır
+    const saatler = (await randevuService.musaitSaatleriGetir(isletmeId, tarih, null, sd.secilen_hizmet_id)).map(s => String(s).slice(0, 5));
+    if (saatler.length) {
+      if (isletme.bot_tarzi === 'menu') {
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'saat_secimi', { secilen_saat: null });
+        return { metin: `${ozur}\n\n${botMesajlar.get(isletme, 'saatListesi', { tarihStr: this.tarihFormat(tarih), saatler })}`, butonlar: null };
+      }
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'sohbet', { secilen_saat: null, secilen_calisan_id: null, sohbet_bekleyen: 'saat' });
+      const secki = require('./sohbetAsistani').saatSecki(saatler).join(', ');
+      return { metin: `${ozur}\n\n${this.tarihFormat(tarih)} için boş saatler: ${secki}.\nSize hangisi uygun?`, butonlar: null };
+    }
+    // O gün yer kalmadı: bekleme listesine ekle (biri iptal ederse ilk ona yazılır)
+    try { await require('./beklemeListesi').ekle({ isletmeId, telefon: musteriTelefon, hizmetIds: [sd.secilen_hizmet_id].filter(Boolean), tarih, kaynak: 'bot' }); } catch (e) { /* liste olmadan */ }
+    await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+    return { metin: `${ozur}\n\n${this.tarihFormat(tarih)} için başka boş saat kalmadı. Sizi bekleme listesine ekledim; biri iptal ederse hemen buradan yazacağız.\n\nBaşka bir gün isterseniz gün ve saati yazmanız yeterli.`, butonlar: null };
+  }
+
   // ═══ SEKRETER MODU (2026-10-14) ═══
   // Esnafın kendi numarasıyla açtığı "Kendime mesaj" sohbeti mi? Botun oraya yazdığı cevaplar tekrar işlenmez.
   _kendiSohbetiMi(msg, isletmeId) {
@@ -703,8 +733,24 @@ class WhatsAppWebService extends EventEmitter {
       'SELECT * FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId]
     )).rows;
 
-    // Önce state machine (akışIsle) çalışsın — DeepSeek sadece bilinmeyen mesajlarda
-    let cevap = await this.akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId);
+    // Sohbet asistanı (2026-10-14): menü yerine soru sorarak randevu; anlaşılmazsa null → eski menü akışı
+    let cevap = null;
+    try {
+      cevap = await require('./sohbetAsistani').isle({ wa: this, metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId });
+    } catch (e) {
+      if (e.code === 'SLOT_DOLU') cevap = await this._saatKacti(isletme, musteriTelefon, isletmeId);
+      else { console.error('Sohbet asistanı:', e.message); cevap = null; }
+    }
+
+    // Eski akış (state machine) — DeepSeek sadece bilinmeyen mesajlarda
+    if (!cevap) {
+      try { cevap = await this.akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId); }
+      catch (e) {
+        // Aynı saati aynı anda iki müşteri istedi, öteki önce onayladı: bu müşteriye boş saatler / bekleme listesi
+        if (e.code === 'SLOT_DOLU') cevap = await this._saatKacti(isletme, musteriTelefon, isletmeId);
+        else throw e;
+      }
+    }
 
     if (cevap) {
       const cevapMetin = typeof cevap === 'object' ? cevap.metin : cevap;
@@ -955,7 +1001,7 @@ class WhatsAppWebService extends EventEmitter {
       }
     }
 
-    switch (botDurum.asama) {
+    switch (botDurum.asama === 'sohbet' ? 'ana_menu' : botDurum.asama) {
       case 'ana_menu': {
         const randevuAl = metin === '1' || metinKucuk.includes('randevu al') || metinKucuk === 'randevu' || metinKucuk === 'al' || metinKucuk === 'almak istiyorum' || metinKucuk === 'randevu almak istiyorum';
         const randevularim = metin === '2' || metinKucuk.includes('randevularım') || metinKucuk.includes('randevularim');
