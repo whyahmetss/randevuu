@@ -989,8 +989,10 @@ app.use(cors({
 // İstek sınırı gerçek istemci IP'sine göre (eskiden Render iç IP'si → herkes ortak kova)
 const { ipKeyGenerator } = require('express-rate-limit');
 const limitAnahtari = (req) => ipKeyGenerator(require('./utils/istemciIp').istemciIp(req));
-const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 600, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
+// Mobil operatörler çok sayıda telefonu aynı dış IP'den çıkarır (CGNAT): sınırlar ortak ağdaki ekibi kilitlemesin (2026-10-14)
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 1500, message: { hata: 'Çok fazla istek. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
+// Şifre deneme koruması: yalnız BAŞARISIZ denemeler sayılır; giriş ekranının açılması (GET /auth/ayar) sayılmaz
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, skipSuccessfulRequests: true, skip: (req) => req.method === 'GET', message: { hata: 'Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin.' } , keyGenerator: limitAnahtari });
 const publicFormLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { hata: 'Çok fazla istek. Lütfen bekleyin.' } , keyGenerator: limitAnahtari });
 const bookingLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { hata: 'Çok fazla randevu isteği.' } , keyGenerator: limitAnahtari });
 const webhookLimiter = rateLimit({ windowMs: 1 * 60 * 1000, max: 100, message: 'Too many requests' , keyGenerator: limitAnahtari });
@@ -1034,6 +1036,9 @@ app.use('/api', (req, res, next) => {
   };
   next();
 });
+// Hesap açma ayrıca sınırlı: başarılı kayıtlar da sayılır (toplu sahte hesap olmasın; saha ekibine saatte 30 yeter)
+const kayitLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { hata: 'Bu ağdan çok fazla hesap açıldı. Bir saat sonra tekrar deneyin.' }, keyGenerator: limitAnahtari });
+app.use(['/api/auth/kayit', '/api/auth/google'], kayitLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/iletisim', publicFormLimiter);
 app.use('/api/referans/kullan', publicFormLimiter);

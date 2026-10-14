@@ -120,17 +120,15 @@ class BookingController {
         const n = (await pool.query('SELECT COUNT(*)::int AS n FROM hizmetler WHERE id = ANY($1::int[]) AND isletme_id = $2', [ids, isletme.id])).rows[0].n;
         if (n !== ids.length) return res.status(400).json({ hata: 'Hizmet bulunamadı' });
       }
+      // İşletme başına günlük sınır: farklı IP'lerden toplu sahte kayıt esnafın numarasını yormasın
+      const bugunSayi = (await pool.query(
+        `SELECT COUNT(*)::int AS n FROM bekleme_listesi WHERE isletme_id = $1 AND kaynak = 'web' AND olusturma_tarihi > NOW() - INTERVAL '1 day'`, [isletme.id])).rows[0].n;
+      if (bugunSayi >= 50) return res.status(429).json({ hata: 'Bekleme listesi şu an dolu. Lütfen başka bir gün deneyin ya da işletmeyi arayın.' });
       const bekleme = require('../services/beklemeListesi');
       const sonuc = await bekleme.ekle({ isletmeId: isletme.id, telefon: tel, isim: String(isim || '').trim().slice(0, 80) || null, hizmetIds: ids, tarih, kaynak: 'web' });
-      if (sonuc.eklendi) {
-        // Müşteriye WhatsApp'tan teyit: kimin listesinde olduğunu bilsin, istemiyorsa yazabilsin
-        try {
-          const wa = require('../services/whatsappWeb');
-          if (wa.getDurum(isletme.id)?.durum === 'bagli') {
-            await wa.mesajGonder(isletme.id, tel, `📋 ${isletme.isim}: ${bekleme.tarihYazi(tarih)} için bekleme listesine eklendiniz.\n\nYer açılırsa buradan soracağız: almak isterseniz "evet", istemezseniz "hayır" demeniz yeterli.`);
-          }
-        } catch (e) { /* teyit gitmese de kayıt geçerli */ }
-      }
+      // Not (güvenlik, 2026-10-14): eklenen numaraya anında WhatsApp teyidi GÖNDERİLMEZ. Numara doğrulanmadığı için
+      // toplu sahte kayıt esnafın numarasından yabancılara mesaj attırıp numarayı banlatabilirdi. Teyit sayfada gösterilir;
+      // WhatsApp mesajı yalnız yer açıldığında (tek seferlik teklif) gider.
       res.json({ tamam: true, zatenVar: !!sonuc.zatenVar });
     } catch (error) {
       console.error('Bekleme listesi ekleme:', error.message);
