@@ -22,6 +22,11 @@ class YorumAvcisiService {
 
       if (!isletme?.yorum_avcisi_aktif) return;
 
+      // Müşteriye randevudan sonraki otomatik anket zaten gittiyse ikinci soru gönderilmez (cevabı memnuniyet.anketPuani işler)
+      const r = (await pool.query('SELECT anket_gonderildi FROM randevular WHERE id=$1', [randevuId])).rows[0];
+      if (r?.anket_gonderildi) return;
+      if ((await pool.query('SELECT 1 FROM yorum_talepleri WHERE randevu_id=$1', [randevuId])).rows[0]) return;
+
       // Aynı müşteriye bu ay daha önce gönderilmiş mi? (spam önleme)
       const buAy = new Date().toISOString().slice(0, 7);
       const mevcut = (await pool.query(
@@ -61,28 +66,19 @@ class YorumAvcisiService {
       `)).rows;
 
       for (const t of talepler) {
-        if (!t.google_maps_link) {
-          await pool.query("UPDATE yorum_talepleri SET durum='link_yok' WHERE id=$1", [t.id]);
-          continue;
-        }
-
-        // Mesaj oluştur
-        let mesaj = t.yorum_mesaj_sablonu || 
-          `Merhaba {musteri_adi}! 😊\n\n{isletme_adi}'deki deneyiminiz nasıldı?\n\nBizi Google'da değerlendirirseniz çok mutlu oluruz ⭐\n{google_maps_link}\n\nTeşekkürler, iyi günler! 🙏`;
-        
-        mesaj = mesaj
-          .replace(/{musteri_adi}/g, t.musteri_isim || '')
-          .replace(/{isletme_adi}/g, t.isletme_isim || '')
-          .replace(/{google_maps_link}/g, t.google_maps_link || '');
+        // Önce memnuniyet sorusu (2026-10-14). Google linki müşteri puan verince gider; link yoksa da anket çalışır.
+        const mesaj = require('./memnuniyet').puanSorusu(t.musteri_isim, t.isletme_isim);
+        let tgChatId = null;
 
         const mesajWithSignature = siragoImza.imzaEkle(mesaj, { imza_gizle: !t.paket || t.paket === 'baslangic' ? false : null, ...t });
 
-        let durum = 'gonderildi';
+        let durum = 'puan_bekliyor';
         try {
           const isTelegram = t.telefon && t.telefon.startsWith('tg:');
           if (isTelegram && t.telegram_token) {
             const chatId = await this.telegramChatIdBul(t.telefon, t.isletme_id);
             if (chatId) {
+              tgChatId = String(chatId);
               const TelegramBot = require('node-telegram-bot-api');
               const bot = new TelegramBot(t.telegram_token);
               await bot.sendMessage(chatId, mesajWithSignature);
@@ -101,10 +97,10 @@ class YorumAvcisiService {
         }
 
         await pool.query(
-          "UPDATE yorum_talepleri SET durum=$1, gonderim_tarihi=NOW() WHERE id=$2",
-          [durum, t.id]
+          "UPDATE yorum_talepleri SET durum=$1, gonderim_tarihi=NOW(), tg_chat_id=$3 WHERE id=$2",
+          [durum, t.id, tgChatId]
         );
-        if (durum === 'gonderildi') {
+        if (durum === 'puan_bekliyor') {
           console.log(`⭐ Yorum talebi gönderildi: ${t.musteri_isim} → ${t.isletme_isim}`);
         }
       }

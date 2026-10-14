@@ -75,6 +75,8 @@ router.get('/grup/raporlar', authMiddleware, rolKontrol('grup_sahibi'), (req, re
 // ==================== ADMIN PANEL ====================
 router.get('/randevular', authMiddleware, odemeKontrol, (req, res) => adminController.randevulariGetir(req, res));
 router.post('/randevular/elle', authMiddleware, odemeKontrol, (req, res) => adminController.randevuElleEkle(req, res));
+router.get('/randevular/:id/islem', authMiddleware, (req, res) => adminController.randevuIslemGetir(req, res));
+router.put('/randevular/:id/islem', authMiddleware, (req, res) => adminController.randevuIslemKaydet(req, res));
 router.put('/randevular/:id/durum', authMiddleware, odemeKontrol, (req, res) => adminController.randevuDurumGuncelle(req, res));
 
 router.get('/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetleriGetir(req, res));
@@ -394,6 +396,10 @@ router.get('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, featureGuard('
 router.put('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumAyarlariGuncelle(req, res));
 router.get('/yorum-avcisi/log', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumLogGetir(req, res));
 router.get('/yorum-avcisi/istatistik', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumIstatistik(req, res));
+router.get('/bot/sekreter', authMiddleware, (req, res) => adminController.sekreterAyarGetir(req, res));
+router.put('/bot/sekreter', authMiddleware, (req, res) => adminController.sekreterAyarKaydet(req, res));
+router.get('/yorum-avcisi/memnuniyet', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.memnuniyetListe(req, res));
+router.put('/yorum-avcisi/memnuniyet/:id', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.memnuniyetCozuldu(req, res));
 
 // ==================== GECE RAPORU ====================
 router.get('/gece-raporu/ayarlar', authMiddleware, odemeKontrol, featureGuard('gece_raporu'), (req, res) => adminController.geceRaporuAyarlari(req, res));
@@ -491,6 +497,7 @@ router.get('/book/:slug/hizmetler', noCache, (req, res) => bookingController.hiz
 router.get('/book/:slug/calisanlar', noCache, (req, res) => bookingController.calisanlariGetir(req, res));
 router.get('/book/:slug/saatler', noCache, (req, res) => bookingController.musaitSaatler(req, res));
 router.post('/book/:slug/randevu', ddosGuard, (req, res) => bookingController.randevuOlustur(req, res));
+router.post('/book/:slug/bekleme', ddosGuard, (req, res) => bookingController.beklemeEkle(req, res));
 router.post('/book/:slug/otp-gonder', (req, res) => bookingController.otpGonder(req, res));
 router.post('/book/:slug/otp-dogrula', (req, res) => bookingController.otpDogrula(req, res));
 router.get('/book/:slug/telegram-chat-durum', noCache, (req, res) => bookingController.telegramChatDurum(req, res));

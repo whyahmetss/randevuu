@@ -404,3 +404,11 @@
 .bk-isik-ok { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%; border: none; background: rgba(255,255,255,.16); color: #fff; font-size: 26px; line-height: 1; cursor: pointer; }
 .bk-isik-ok.sol { left: 8px; } .bk-isik-ok.sag { right: 8px; }
 .bk-page[dir="rtl"] .bk-isik-kapat { right: auto; left: 12px; }
+
+/* ═══ Bekleme listesi (2026-10-14): dolu günde "yer açılırsa haber ver" ═══ */
+.bk-bekleme { margin-top: 14px; padding: 16px; border-radius: var(--bk-radius); background: var(--bk-accent-soft); display: flex; flex-direction: column; gap: 10px; }
+.bk-bekleme-baslik { font-weight: 700; font-size: 15px; color: var(--bk-text); }
+.bk-bekleme-aciklama { font-size: 13px; color: var(--bk-muted); line-height: 1.45; margin-top: -4px; }
+.bk-bekleme .bk-input { width: 100%; height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--bk-line-2); background: var(--bk-surface); color: var(--bk-text); font: inherit; font-size: 15px; box-sizing: border-box; }
+.bk-bekleme-hata { color: var(--bk-danger); font-size: 13px; }
+.bk-bekleme-tamam { display: flex; align-items: center; gap: 8px; color: var(--bk-accent); font-weight: 600; font-size: 14px; }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import KapidanGelen from './KapidanGelen';
+import IslemNotu from '../Randevu/IslemNotu';
 import { useCanliYenile } from '../../lib/socket';
 
 // Telefon "Bugün" ekranı (taslak 2026-10-13): üstte özet, onay bekleyen büyük kart, randevular saat sırasıyla,
@@ -10,7 +11,7 @@ const tl = (x) => `${Number(x || 0).toLocaleString('tr-TR', { maximumFractionDig
 const saat5 = (s) => String(s || '').slice(0, 5);
 const bugun = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
 const fiyat = (r) => Number(r.toplam_fiyat) || Number(r.fiyat) || 0;
-const kanal = { bot: "WhatsApp'tan", whatsapp: "WhatsApp'tan", online: 'randevu linkinden', manuel: 'sen ekledin', telegram: "Telegram'dan" };
+const kanal = { bot: "WhatsApp'tan", whatsapp: "WhatsApp'tan", online: 'randevu linkinden', manuel: 'sen ekledin', sekreter: 'sekreterden', telegram: "Telegram'dan" };
 
 export default function BugunMobil({ api, setSayfa }) {
   const [liste, setListe] = useState(null);
@@ -81,6 +82,7 @@ export default function BugunMobil({ api, setSayfa }) {
               </div>
               {et && <div style={{ fontSize: 12, fontWeight: 800, color: renk, textAlign: 'right' }}>{et}</div>}
             </button>
+            {r.durum !== 'iptal' && <IslemNotu api={api} r={r} buyuk degisti={(y) => setListe(l => l.map(x => x.id === y.id ? { ...x, ...y } : x))} />}
             {bekliyor && (
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button onClick={() => durumYap(r, 'onaylandi')} style={{ ...buyukBtn('#1f6f4a', '#fff'), flex: 1, fontSize: 17 }}>Onayla</button>

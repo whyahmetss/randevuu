@@ -10,6 +10,7 @@ const otpNumaraSayac = new Map(); // telefon → { gun, sayi } — numara başı
 const OTP_TTL = 5 * 60 * 1000; // 5 dakika
 const OTP_COOLDOWN = 60 * 1000; // 60 saniye - aynı numaraya tekrar gönderim
 const OTP_MAX_DENEME = 5; // max yanlış deneme
+const beklemeIpSayac = new Map(); // ip → [zaman damgaları] — randevu sayfasından bekleme listesine ekleme sınırı
 
 // Periyodik temizlik (10dk'da bir)
 setInterval(() => {
@@ -77,6 +78,9 @@ class BookingController {
       isletme.telegram_aktif = telegramAktif;
       isletme.telegram_bot_username = telegramBotUsername;
 
+      // Bekleme listesi kutusu yalnız WhatsApp botu bağlıyken görünür (haber botla gider)
+      try { isletme.bekleme_acik = require('../services/whatsappWeb').getDurum(isletme.id)?.durum === 'bagli'; } catch (e) { isletme.bekleme_acik = false; }
+
       // Mini site: galeri ve ekip kartları (yalnız liste; fotoğraflar ayrı adresten, önbellekli)
       try {
         const sc = require('./sayfaController');
@@ -91,6 +95,46 @@ class BookingController {
       res.json({ isletme });
     } catch (error) {
       res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // POST /api/book/:slug/bekleme — dolu güne "yer açılırsa haber ver" (2026-10-14)
+  // Kod doğrulaması yok: kayıt yalnız bir WhatsApp teklifi doğurur. Kötüye kullanım sınırı: IP başına saatte 5, numara+gün başına 1.
+  async beklemeEkle(req, res) {
+    try {
+      const ip = require('../utils/istemciIp').istemciIp(req) || 'x';
+      const simdi = Date.now();
+      const izler = (beklemeIpSayac.get(ip) || []).filter(z => simdi - z < 3600000);
+      if (izler.length >= 5) return res.status(429).json({ hata: 'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.' });
+      izler.push(simdi); beklemeIpSayac.set(ip, izler);
+
+      const isletme = (await pool.query('SELECT id, isim FROM isletmeler WHERE slug = $1 AND aktif = true', [req.params.slug])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      const { telefon, isim, tarih, hizmetIds } = req.body || {};
+      const tel = telefonNormalize(telefon);
+      if (!/^905\d{9}$/.test(tel)) return res.status(400).json({ hata: 'Geçerli bir cep telefonu girin (05xx xxx xx xx)' });
+      const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(tarih)) || tarih < bugunTarih() || tarih > gunSonraTarih(60)) return res.status(400).json({ hata: 'Geçersiz tarih' });
+      const ids = (Array.isArray(hizmetIds) ? hizmetIds : String(hizmetIds || '').split(',')).map(Number).filter(Boolean).slice(0, 6);
+      if (ids.length) {
+        const n = (await pool.query('SELECT COUNT(*)::int AS n FROM hizmetler WHERE id = ANY($1::int[]) AND isletme_id = $2', [ids, isletme.id])).rows[0].n;
+        if (n !== ids.length) return res.status(400).json({ hata: 'Hizmet bulunamadı' });
+      }
+      const bekleme = require('../services/beklemeListesi');
+      const sonuc = await bekleme.ekle({ isletmeId: isletme.id, telefon: tel, isim: String(isim || '').trim().slice(0, 80) || null, hizmetIds: ids, tarih, kaynak: 'web' });
+      if (sonuc.eklendi) {
+        // Müşteriye WhatsApp'tan teyit: kimin listesinde olduğunu bilsin, istemiyorsa yazabilsin
+        try {
+          const wa = require('../services/whatsappWeb');
+          if (wa.getDurum(isletme.id)?.durum === 'bagli') {
+            await wa.mesajGonder(isletme.id, tel, `📋 ${isletme.isim}: ${bekleme.tarihYazi(tarih)} için bekleme listesine eklendiniz.\n\nYer açılırsa buradan soracağız: almak isterseniz "evet", istemezseniz "hayır" demeniz yeterli.`);
+          }
+        } catch (e) { /* teyit gitmese de kayıt geçerli */ }
+      }
+      res.json({ tamam: true, zatenVar: !!sonuc.zatenVar });
+    } catch (error) {
+      console.error('Bekleme listesi ekleme:', error.message);
+      res.status(500).json({ hata: 'Eklenemedi, lütfen tekrar deneyin' });
     }
   }
 
