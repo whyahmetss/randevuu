@@ -61,6 +61,29 @@ function isletmeAcikMi(isletme, t) {
   return { acik: false, metin: t('closed') };
 }
 
+// Kapalıyken bir sonraki açılış (bugün daha açılmadıysa bugün, değilse ilk açık gün)
+function sonrakiAcilis(isletme) {
+  if (!isletme) return null;
+  const kapali = String(isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number);
+  const [bh, bm] = String(isletme.calisma_baslangic || '09:00').split(':').map(Number);
+  const simdi = new Date();
+  for (let g = 0; g < 8; g++) {
+    const d = new Date(simdi); d.setDate(d.getDate() + g);
+    if (kapali.includes(d.getDay())) continue;
+    if (g === 0 && simdi.getHours() * 60 + simdi.getMinutes() >= bh * 60 + bm) continue;
+    return { gun: g, tarih: d, saat: `${String(bh).padStart(2, '0')}:${String(bm).padStart(2, '0')}` };
+  }
+  return null;
+}
+
+// Vurgu rengi açıksa üstündeki yazı koyu olsun (okunurluk)
+function vurguStili(renk) {
+  if (!/^#[0-9a-f]{6}$/i.test(renk || '')) return undefined;
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(renk.slice(i, i + 2), 16));
+  const acik = (0.299 * r + 0.587 * g + 0.114 * b) > 160;
+  return { '--bk-accent': renk, '--bk-accent-d': renk, '--bk-accent-soft': `color-mix(in srgb, ${renk} 15%, transparent)`, '--bk-on-accent': acik ? '#111111' : '#ffffff' };
+}
+
 export default function BookingPage({ slug }) {
   const [adim, setAdim] = useState(0);
   const [isletme, setIsletme] = useState(null);
@@ -506,16 +529,25 @@ export default function BookingPage({ slug }) {
   }
 
   const durum = isletmeAcikMi(isletme, t);
+  const acilis = durum.acik ? null : sonrakiAcilis(isletme);
+  const gorselV = isletme?.sayfa_guncelleme ? new Date(isletme.sayfa_guncelleme).getTime() : 0;
+  const gorsel = (tur) => `${API_URL}/book/${slug}/gorsel/${tur}?v=${gorselV}`;
+  const temaSinif = isletme?.sayfa_tema && isletme.sayfa_tema !== 'sade' ? ` tema-${isletme.sayfa_tema}` : '';
 
   return (
-    <div className="bk-page" dir={rtl ? 'rtl' : 'ltr'} lang={dil}>
+    <div className={`bk-page${temaSinif}`} style={vurguStili(isletme?.sayfa_vurgu)} dir={rtl ? 'rtl' : 'ltr'} lang={dil}>
       <DilSecici />
       <div className="bk-container">
 
+        {/* ═══ KAPAK (esnaf yüklediyse) ═══ */}
+        {isletme?.kapak_var && <div className="bk-kapak"><img src={gorsel('kapak')} alt="" /></div>}
+
         {/* ═══ HEADER ═══ */}
-        <div className="bk-header">
+        <div className={`bk-header${isletme?.kapak_var ? ' kapakli' : ''}`}>
           <div className="bk-header-row">
-            <div className="bk-logo">{(isletme?.isim || 'S').trim().charAt(0).toLocaleUpperCase('tr')}</div>
+            <div className="bk-logo">{isletme?.logo_var
+              ? <img src={gorsel('logo')} alt={isletme?.isim || ''} />
+              : (isletme?.isim || 'S').trim().charAt(0).toLocaleUpperCase('tr')}</div>
             <div className="bk-info">
               <h1 className="bk-title">{isletme?.isim}</h1>
               {(isletme?.adres || isletme?.ilce) && (
@@ -531,9 +563,14 @@ export default function BookingPage({ slug }) {
               <div className={`bk-status ${durum.acik ? 'open' : 'closed'}`}>
                 <span className="bk-status-dot" />
                 {durum.metin}
+                {acilis && <span className="bk-status-ek">· {t('opensLabel')} {acilis.gun === 0 ? t('acilisBugun') : acilis.gun === 1 ? t('acilisYarin')
+                  : acilis.tarih.toLocaleDateString(locale, { weekday: 'long' })} {acilis.saat}</span>}
               </div>
+              {/* Kapalıyken müşteri ürkmesin: randevu yine de alınır */}
+              {!durum.acik && <span className="bk-status-online"><I.Check size={12} /> {t('onlineOpen')}</span>}
             </div>
           </div>
+          {isletme?.sayfa_tanitim && <p className="bk-tanitim">{isletme.sayfa_tanitim}</p>}
         </div>
 
         {/* ═══ STEPPER ═══ */}
@@ -1034,7 +1071,7 @@ export default function BookingPage({ slug }) {
         {/* ═══ BRAND FOOTER ═══ */}
         <div className="bk-footer">
           <a href="https://xn--srago-n4a.com" target="_blank" rel="noopener">
-            <span className="bk-footer-logo">S</span>
+            <img className="bk-footer-fiko" src="/img/tilki-ikon.webp" alt="" />
             {t('poweredBy')}
           </a>
           {/* Ürün kendini dağıtsın: sayfayı açan esnaf da kurabilsin; kayıt bu işletmenin davetine bağlanır */}
