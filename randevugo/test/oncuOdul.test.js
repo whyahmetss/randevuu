@@ -5,8 +5,9 @@ const path = require('path');
 const { hazirla, SRC } = require('./yardimci');
 
 test('öncü ödülü: başlangıç öncüsüne kasa/sadakat açık, öncü olmayana kapalı', async () => {
-  await hazirla(`CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, paket TEXT, oncu_no INT, grup_id INT);
-    INSERT INTO isletmeler (paket, oncu_no, grup_id) VALUES ('baslangic', 7, NULL), ('baslangic', NULL, NULL), ('baslangic', 3, 9), ('baslangic', NULL, 9);`);
+  await hazirla(`CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, paket TEXT, oncu_no INT, grup_id INT, paket_ayricalik TEXT[] NOT NULL DEFAULT '{}');
+    INSERT INTO isletmeler (paket, oncu_no, grup_id) VALUES ('baslangic', 7, NULL), ('baslangic', NULL, NULL), ('baslangic', 3, 9), ('baslangic', NULL, 9);
+    INSERT INTO isletmeler (paket, paket_ayricalik) VALUES ('baslangic', '{kapora,dogum_gunu}');`);
   const { isletmePaketi } = require(path.join(SRC, 'utils', 'oncu'));
   const featureGuard = require(path.join(SRC, 'middleware', 'featureGuard'));
 
@@ -21,6 +22,10 @@ test('öncü ödülü: başlangıç öncüsüne kasa/sadakat açık, öncü olma
   assert.equal(oncu.kapora, true);
   assert.equal(oncu.telegram, true);
   assert.equal((await isletmePaketi(4)).paket.kasa, true, 'şube merkezin öncülüğüne tabi');
+  // Kazanılmış hak (044): kuraldan önce açık olan özellik açık kalır, diğerleri kapalı
+  assert.equal((await isletmePaketi(2)).paket.dogum_gunu, false);
+  const eski = (await isletmePaketi(5)).paket;
+  assert.equal(eski.kapora, true); assert.equal(eski.dogum_gunu, true); assert.equal(eski.telegram, false); assert.equal(eski.kasa, false);
 
   const dene = async (id) => { let gecti = false, kod = 200;
     await featureGuard('kasa')({ kullanici: { isletme_id: id } }, { status: (k) => { kod = k; return { json: () => {} }; } }, () => { gecti = true; });

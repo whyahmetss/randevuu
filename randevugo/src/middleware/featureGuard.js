@@ -29,6 +29,7 @@ function featureGuard(featureKey, ozelIsim) {
     sube_yonetimi: 'Çok Şubeli Yönetim',
     kapora: 'Kapora / ön ödeme',
     telegram: 'Telegram botu',
+    dogum_gunu: 'Doğum günü mesajı',
   };
 
   const isim = ozelIsim || OZELLIK_ISIMLERI[featureKey] || featureKey;

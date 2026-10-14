@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Referans from '../Referans/Referans';
 import DogumGunu from '../DogumGunu/DogumGunu';
 
-export default function MusteriGetir({ api }) {
+export default function MusteriGetir({ api, dogumKilitli = false, paketAc }) {
   const [tab, setTab] = useState('referans');
 
   return (
@@ -38,13 +38,19 @@ export default function MusteriGetir({ api }) {
             fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .2s'
           }}
         >
-          🎂 Doğum Günü
+          🎂 Doğum Günü{dogumKilitli ? ' 🔒' : ''}
         </button>
       </div>
 
       {/* İçerik */}
       {tab === 'referans' && <Referans api={api} />}
-      {tab === 'dogumgunu' && <DogumGunu api={api} />}
+      {tab === 'dogumgunu' && (dogumKilitli ? (
+        <div style={{ padding: 24, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', maxWidth: 500 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>🔒 Doğum günü mesajı Standart pakette</div>
+          <div style={{ color: 'var(--dim)', fontSize: 13, marginBottom: 14 }}>Müşterine doğum gününde otomatik kutlama ve indirim mesajı gider.</div>
+          <button onClick={paketAc} style={{ padding: '10px 18px', borderRadius: 10, border: 'none', background: '#1f6f4a', color: '#fff', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Paketleri gör</button>
+        </div>
+      ) : <DogumGunu api={api} />)}
     </div>
   );
 }
