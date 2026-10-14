@@ -1693,6 +1693,9 @@ class AdminController {
     try {
       const { isim, email, telefon, mesaj, kaynak } = req.body;
       if (!isim && !telefon) return res.status(400).json({ hata: 'İsim veya telefon zorunlu.' });
+      // Doğrulama yalnız tarayıcıdaydı: "12" gibi numaralar ekibe "bugün arayın" bildirimi olarak düşüyordu
+      const rakam = String(telefon || '').replace(/\D/g, '');
+      if (telefon && (rakam.length < 10 || rakam.length > 15)) return res.status(400).json({ hata: 'Lütfen geçerli bir telefon numarası girin.' });
       if (mesaj && mesaj.length > 2000) return res.status(400).json({ hata: 'Mesaj çok uzun (max 2000 karakter).' });
 
       const kaydi = (await pool.query(

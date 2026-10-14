@@ -182,3 +182,50 @@ test('çakışma: aynı saati iki müşteri ister — ilk onaylayan alır, ötek
   assert.match(doldu, /başka boş saat kalmadı[\s\S]*bekleme listesine ekledim/, doldu);
   assert.equal((await db.query(`SELECT COUNT(*)::int AS n FROM bekleme_listesi WHERE musteri_telefon = '905550000005'`)).rows[0].n, 1);
 });
+
+test('sohbet: "11\'de" / "3\'te", onay beklerken "öğleden sonra olsun", yapay zekâ yokken fiyat', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  taklit('services/deepseek', { serbetCevap: async () => null });       // Gemini/DeepSeek cevap veremedi
+  const yaz = await konusma(db, '905556667788');
+  const ozet = await yaz("Yarın 11'de sakal tıraşı için yer var mı");
+  assert.match(ozet, /11:00[\s\S]*Sakal Tıraşı[\s\S]*oluşturayım mı/, ozet);
+  const dilim = await yaz('öğleden sonra olsun');
+  assert.match(dilim, /boş saatler: (1[2-6]:\d\d(, )?)+\./, dilim);
+  const fiyat = await yaz('fiyatı ne kadar');
+  assert.match(fiyat, /Sakal Tıraşı: 150₺[\s\S]*boş saatler/, fiyat);
+  assert.match(await yaz("yarın 3'te"), /15:00[\s\S]*oluşturayım mı/);
+  assert.match(await yaz('evet'), /15:00/);
+});
+
+test('sohbet: parantezli/benzer hizmet adları — "saç kesimi" → Erkek/Bayan sorulur, "erkek" seçer; yapay zekâ olmadan döngü yok', async () => {
+  const { db } = await hazirla(SEMA(1));
+  await db.exec(`DELETE FROM hizmetler; INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat) VALUES (1, 'Saç Kesim (Erkek)', 30, 200), (1, 'Saç Kesim (Bayan)', 45, 350),
+    (1, 'Saç Boyama', 90, 600), (1, 'Sakal Tıraş', 20, 100), (1, 'Fön', 30, 150), (1, 'Keratin Bakım', 60, 800)`);
+  ortam();
+  const yaz = await konusma(db, '905557778899');
+  assert.match(await yaz('Randevu alacaktım'), /Hangi hizmet[\s\S]*Keratin/);
+  const iki = await yaz('saç kesimi');
+  assert.match(iki, /Saç Kesim \(Erkek\)[\s\S]*Saç Kesim \(Bayan\)/, iki);
+  assert.doesNotMatch(iki, /Boyama|Keratin/, iki);
+  assert.match(await yaz('erkek'), /Hangi gün/);
+  assert.match(await yaz("yarın 3'te"), /15:00[\s\S]*Saç Kesim \(Erkek\)[\s\S]*oluşturayım mı/);
+
+  const yaz2 = await konusma(db, '905557778800');
+  assert.match(await yaz2('yarın 11de fön çektirmek istiyorum'), /11:00[\s\S]*Fön[\s\S]*oluşturayım mı/);
+  const yaz3 = await konusma(db, '905557778801');
+  assert.match(await yaz3('sakal tıraşı'), /Hangi gün/);
+});
+
+test('yapay zekâ şeması: Gemini boş enum değerini reddeder ("enum[0]: cannot be empty") — şemada boş değer yok', async () => {
+  await hazirla(SEMA(1));
+  ortam();
+  let istek = null;
+  taklit('utils/gemini', { anahtarlar: () => ['x'], geminiIstek: async (b) => { istek = b; return {}; }, metniAl: () => '{"niyet":"randevu"}' });
+  const sohbet = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  await sohbet.anla({ metin: 'haftaya bi ara saç kestirmek istiyorum', isletme: { isim: 'X' }, hizmetler: [{ id: 1, isim: 'Saç Kesimi' }], calisanlar: [], durum: {} });
+  assert.ok(istek, 'Gemini çağrıldı');
+  const bos = [];
+  (function gez(o, yol) { if (!o || typeof o !== 'object') return; if (Array.isArray(o.enum) && o.enum.some(v => v === '')) bos.push(yol); for (const k in o) gez(o[k], `${yol}.${k}`); })(istek.generationConfig.responseSchema, 'şema');
+  assert.deepEqual(bos, []);
+});
