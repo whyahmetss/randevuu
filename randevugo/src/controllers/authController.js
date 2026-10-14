@@ -81,7 +81,7 @@ class AuthController {
       // Email kontrolü
       const mevcutKullanici = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [email])).rows[0];
       if (mevcutKullanici) {
-        return res.status(400).json({ hata: 'Bu email zaten kayıtlı. Giriş yapmayı deneyin.' });
+        return res.status(400).json({ hata: 'Bu email zaten kayıtlı. Giriş yapmayı dene.' });
       }
 
       // İşletme oluştur
@@ -162,7 +162,7 @@ class AuthController {
       const g = r.ok ? await r.json() : null;
       if (!g || g.aud !== cid || !['accounts.google.com', 'https://accounts.google.com'].includes(g.iss)
           || !(g.email_verified === true || g.email_verified === 'true') || !(Number(g.exp) * 1000 > Date.now())) {
-        return res.status(401).json({ hata: 'Google girişi doğrulanamadı, tekrar deneyin' });
+        return res.status(401).json({ hata: 'Google girişi doğrulanamadı, tekrar dene' });
       }
       const email = String(g.email).toLowerCase();
       let kullanici = await kullaniciBul(email);
@@ -195,7 +195,7 @@ class AuthController {
       const tel = require('../utils/telefon').telefonNormalize(i?.telefon);
       if (!/^905\d{9}$/.test(tel)) return res.status(400).json({ hata: 'Hesabınızda kayıtlı telefon yok. siragobusiness@gmail.com adresine yazın, hemen yardımcı olalım.' });
       const son = (await pool.query("SELECT 1 FROM sifre_sifirlama WHERE kullanici_id = $1 AND olusturma > NOW() - INTERVAL '1 minute'", [k.id])).rows[0];
-      if (son) return res.status(429).json({ hata: 'Kod az önce gönderildi, 1 dakika sonra tekrar deneyin.' });
+      if (son) return res.status(429).json({ hata: 'Kod az önce gönderildi, 1 dakika sonra tekrar dene.' });
       const kod = String(require('crypto').randomInt(0, 1000000)).padStart(6, '0');
       await pool.query('DELETE FROM sifre_sifirlama WHERE kullanici_id = $1', [k.id]);
       await pool.query("INSERT INTO sifre_sifirlama (kullanici_id, kod_hash, son_gecerlilik) VALUES ($1, $2, NOW() + INTERVAL '15 minutes')", [k.id, await bcrypt.hash(kod, 8)]);

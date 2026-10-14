@@ -22,6 +22,8 @@ const FALLBACK_PAKETLER = {
     yorum_avcisi: false,     // ×
     gece_raporu: false,      // ×
     sms_hatirlatma: false,   // ×
+    kapora: false,           // × Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
+    telegram: false,         // × Telegram botu (Standart ve üstü)
     oncelikli_destek: false, // ×
     api_erisimi: false,      // ×
     ozellikler: [
@@ -29,6 +31,7 @@ const FALLBACK_PAKETLER = {
       '500 randevu / ay',
       'WhatsApp Bot',
       'Otomatik Hatırlatma',
+      'Tablet modu (tezgâh ekranı)',
       'Temel Analitik',
     ]
   },
@@ -52,6 +55,8 @@ const FALLBACK_PAKETLER = {
     yorum_avcisi: true,      // ✓
     gece_raporu: true,       // ✓
     sms_hatirlatma: false,   // ×
+    kapora: true,           // ✓ Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
+    telegram: true,         // ✓ Telegram botu (Standart ve üstü)
     oncelikli_destek: false, // ×
     api_erisimi: false,      // ×
     ozellikler: [
@@ -62,6 +67,8 @@ const FALLBACK_PAKETLER = {
       'Kayıp Müşteri Kurtarma',
       'Yorum Avcısı',
       'Gece Raporu',
+      'Kapora / ön ödeme',
+      'Telegram botu',
       'Bot 3 dilde: Türkçe · İngilizce · Arapça',
     ]
   },
@@ -85,6 +92,8 @@ const FALLBACK_PAKETLER = {
     yorum_avcisi: true,
     gece_raporu: true,
     sms_hatirlatma: false,
+    kapora: true,           // ✓ Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
+    telegram: true,         // ✓ Telegram botu (Standart ve üstü)
     oncelikli_destek: true,
     api_erisimi: false,
     sube_yonetimi: true,     // ✓ Çoklu şube (3'e kadar)
@@ -120,6 +129,8 @@ const FALLBACK_PAKETLER = {
     yorum_avcisi: true,      // ✓
     gece_raporu: true,       // ✓
     sms_hatirlatma: true,    // ✓
+    kapora: true,           // ✓ Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
+    telegram: true,         // ✓ Telegram botu (Standart ve üstü)
     oncelikli_destek: true,  // ✓
     api_erisimi: true,       // ✓
     sube_yonetimi: true,     // ✓ Çok şubeli işletme yönetimi
@@ -149,7 +160,7 @@ const FALLBACK_PAKETLER = {
     istatistik: true,
     export_aktif: true,
     coklu_dil: 99, kasa: true, magaza: true, prim: true, sadakat: true, winback: true,
-    yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true,
+    yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true, kapora: true, telegram: true,
     oncelikli_destek: true, api_erisimi: true, sube_yonetimi: true, sube_limit: 999,
     ozellikler: [
       'Sınırsız çalışan',
@@ -205,6 +216,9 @@ async function paketleriYukle() {
           oncelikli_destek: row.oncelikli_destek !== undefined ? !!row.oncelikli_destek : (fallback.oncelikli_destek || false),
           api_erisimi: row.api_erisimi !== undefined ? !!row.api_erisimi : (fallback.api_erisimi || false),
           sube_yonetimi: row.sube_yonetimi !== undefined ? !!row.sube_yonetimi : (fallback.sube_yonetimi || false),
+          // Veritabanında kolonu olmayan yeni bayraklar koddaki tanımdan gelir
+          kapora: row.kapora !== undefined ? !!row.kapora : (fallback.kapora !== undefined ? fallback.kapora : true),
+          telegram: row.telegram !== undefined ? !!row.telegram : (fallback.telegram !== undefined ? fallback.telegram : true),
           sube_limit: row.sube_limit !== undefined ? row.sube_limit : (fallback.sube_limit || 1),
           ozellikler: row.ozellikler ? row.ozellikler.split('\n').filter(Boolean) : [],
         };

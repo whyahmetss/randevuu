@@ -57,7 +57,7 @@ export default function GoogleCalendar({ api }) {
   };
 
   const kes = async () => {
-    if (!window.confirm("Google Calendar bağlantısını kesmek istediğinize emin misiniz? Mevcut randevular Google'da kalır ama yeni sync yapılmaz.")) return;
+    if (!window.confirm("Google Calendar bağlantısını kesmek istediğine emin misin? Mevcut randevular Google'da kalır ama yeni sync yapılmaz.")) return;
     setYukleniyor(true);
     try {
       await api.post("/admin/google-calendar/disconnect", {});
@@ -101,7 +101,7 @@ export default function GoogleCalendar({ api }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>Google Calendar Senkronizasyonu</div>
           <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>
-            Randevularınız otomatik Google Takvim'e yazılır. Google Takvim'deki özel etkinlikleriniz o saatlerde randevu alınmasını otomatik engeller.
+            Randevuların otomatik Google Takvim'e yazılır. Google Takvim'deki özel etkinliklerin o saatlerde randevu alınmasını otomatik engeller.
           </div>
         </div>
       </div>

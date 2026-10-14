@@ -92,8 +92,8 @@ function odemeSayfasiAc(paket, sure) {
   const w = window.open("", "_blank");
   const q = new URLSearchParams({ ...(paket ? { paket } : {}), ...(sure === "yil" ? { sure } : {}) }).toString();
   api.get(`/odeme/link${q ? `?${q}` : ""}`)
-    .then(d => { if (d?.url) { if (w) w.location.href = d.url; else window.location.href = d.url; } else { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); } })
-    .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar deneyin."); });
+    .then(d => { if (d?.url) { if (w) w.location.href = d.url; else window.location.href = d.url; } else { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar dene."); } })
+    .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar dene."); });
 }
 
 // Satış kapısı ortak parçaları (Avcı + Satış Bot)
@@ -140,7 +140,7 @@ function EslestirmeKodu({ api }) {
     setBekle(false);
     if (r?.kod) setKod(r.kod); else setHata(r?.hata || "Kod alınamadı");
   };
-  if (!acik) return <button onClick={() => setAcik(true)} style={{ marginTop: 10, background: "none", border: "none", color: "#1f6f4a", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>QR okutamıyor musunuz? Numara ile bağlayın →</button>;
+  if (!acik) return <button onClick={() => setAcik(true)} style={{ marginTop: 10, background: "none", border: "none", color: "#1f6f4a", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>QR okutamıyor musun? Numara ile bağla →</button>;
   return (
     <div style={{ marginTop: 14, padding: 14, borderRadius: 12, background: "var(--bg)", textAlign: "left" }}>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Numara ile bağla</div>
@@ -154,8 +154,8 @@ function EslestirmeKodu({ api }) {
           <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, fontFamily: "monospace" }}>{String(kod).slice(0, 4)}-{String(kod).slice(4)}</div>
           <ol style={{ fontSize: 13, color: "var(--dim)", paddingLeft: 18, marginTop: 8, lineHeight: 1.6 }}>
             <li>Telefonda WhatsApp → Ayarlar → <b>Bağlı cihazlar</b> → <b>Cihaz bağla</b></li>
-            <li>Alttaki <b>"Bunun yerine telefon numarasıyla bağla"</b>ya dokunun</li>
-            <li>Yukarıdaki 8 haneli kodu yazın. Kod birkaç dakika geçerlidir.</li>
+            <li>Alttaki <b>"Bunun yerine telefon numarasıyla bağla"</b>ya dokun</li>
+            <li>Yukarıdaki 8 haneli kodu yaz. Kod birkaç dakika geçerlidir.</li>
           </ol>
         </div>
       )}
@@ -186,7 +186,7 @@ const api = {
       if (res.status === 403) {
         const data = await res.json();
         if (data.pasif) {
-          alert("İşletmeniz pasif duruma alınmıştır. Lütfen destek ile iletişime geçin.");
+          alert("İşletmen pasif duruma alınmıştır. Lütfen destek ile iletişime geç.");
           this.token = null;
           oturumuKapat();
           window.location.reload();
@@ -269,7 +269,7 @@ function Login({ onLogin }) {
   };
   // Not: /auth/* 401 dönerse ortak api istemcisi oturumu kapatıp sayfayı yeniler; burada doğrudan fetch kullanılır
   const authPost = (yol, govde) => fetch(`${API_URL}${yol}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(govde) })
-    .then(r => r.json()).catch(() => ({ hata: "Bağlantı hatası, tekrar deneyin" }));
+    .then(r => r.json()).catch(() => ({ hata: "Bağlantı hatası, tekrar dene" }));
 
   const googleCevap = async (credential, isletmeAdi) => {
     setHata(""); setYukleniyor(true);
@@ -332,14 +332,14 @@ function Login({ onLogin }) {
     if (!kayitForm.isletmeAdi || !kayitForm.email || !kayitForm.sifre) return setHata("Tüm alanları doldurun");
     if (kayitForm.sifre.length < 8) return setHata("Şifre en az 8 karakter olmalı");
     if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
-    if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onaylayın");
+    if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onayla");
     setYukleniyor(true);
     const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
       kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined, sartlar_onay: true });
     if (data.basarili) {
       // Kayıttan sonra şifreyi tekrar yazdırmadan doğrudan panele
       const g = await authPost("/auth/giris", { email: kayitForm.email, sifre: kayitForm.sifre });
-      if (!oturumAc(g)) { setEkran("giris"); setEmail(kayitForm.email); setBilgi("Hesabınız oluşturuldu, giriş yapabilirsiniz."); }
+      if (!oturumAc(g)) { setEkran("giris"); setEmail(kayitForm.email); setBilgi("Hesabın oluşturuldu, giriş yapabilirsin."); }
     } else {
       setHata(data.hata || "Kayıt başarısız");
     }
@@ -360,8 +360,8 @@ function Login({ onLogin }) {
     <div className="login-hero login-hero-v2">
       <div className="lh-ust">
         <div className="lh-etiket">Bugün · 4 randevu</div>
-        <h2>Müşterileriniz WhatsApp'tan yazar, randevu kendiliğinden oluşur.</h2>
-        <p>Telefona bakamadığınız anda bile sıra dolmaya devam eder. Hatırlatmalar otomatik gider, gelmeyenler azalır.</p>
+        <h2>Müşterilerin WhatsApp'tan yazar, randevu kendiliğinden oluşur.</h2>
+        <p>Telefona bakamadığın anda bile sıra dolmaya devam eder. Hatırlatmalar otomatik gider, gelmeyenler azalır.</p>
       </div>
       <div className="lh-liste">
         {ornekRandevular.map(r => (
@@ -389,8 +389,8 @@ function Login({ onLogin }) {
           <span>SıraGO</span>
         </a>
         <div className="login-card">
-          <div className="login-title">{ekran === "giris" ? "Hoş Geldiniz" : ekran === "sifre" ? "Şifremi Unuttum" : googleYeni ? "Son bir adım" : "Hesap Oluştur"}</div>
-          <div className="login-subtitle">{ekran === "giris" ? "Panele erişmek için giriş yapın" : ekran === "sifre" ? "Kayıtlı WhatsApp numaranıza kod gönderelim" : googleYeni ? googleYeni.email : "14 gün ücretsiz deneyin, kredi kartı gerekmez"}</div>
+          <div className="login-title">{ekran === "giris" ? "Hoş Geldin" : ekran === "sifre" ? "Şifremi Unuttum" : googleYeni ? "Son bir adım" : "Hesap Oluştur"}</div>
+          <div className="login-subtitle">{ekran === "giris" ? "Panele erişmek için giriş yap" : ekran === "sifre" ? "Kayıtlı WhatsApp numarana kod gönderelim" : googleYeni ? googleYeni.email : "14 gün ücretsiz dene, kredi kartı gerekmez"}</div>
 
           {ekran !== "sifre" && !googleYeni && (
             <div className="login-tabs">
@@ -429,7 +429,7 @@ function Login({ onLogin }) {
               {bilgi && <div className="alert alert-success">{bilgi}</div>}
               {hata && <div className="alert alert-error">{hata}</div>}
               <button type="submit" disabled={yukleniyor || !sifreForm.email || (sifreForm.adim === 2 && sifreForm.kod.length !== 6)} className="login-btn-primary">
-                {yukleniyor ? "Bekleyin..." : sifreForm.adim === 1 ? "Kod gönder" : "Şifreyi değiştir ve giriş yap"}
+                {yukleniyor ? "Bekle..." : sifreForm.adim === 1 ? "Kod gönder" : "Şifreyi değiştir ve giriş yap"}
               </button>
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14 }}>
                 <button type="button" className="login-link" onClick={() => { setEkran("giris"); setHata(""); setBilgi(""); setSifreForm({ adim: 1, email: "", kod: "", sifre: "" }); }}>← Girişe dön</button>
@@ -437,7 +437,7 @@ function Login({ onLogin }) {
               </div>
             </form>
           ) : googleYeni ? (
-            <form onSubmit={e => { e.preventDefault(); if ((kayitForm.isletmeAdi || "").trim().length < 2) return setHata("İşletme adını yazın"); if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onaylayın"); googleCevap(googleYeni.credential, kayitForm.isletmeAdi.trim()); }}>
+            <form onSubmit={e => { e.preventDefault(); if ((kayitForm.isletmeAdi || "").trim().length < 2) return setHata("İşletme adını yaz"); if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onayla"); googleCevap(googleYeni.credential, kayitForm.isletmeAdi.trim()); }}>
               <div className="form-group">
                 <label className="form-label">İşletme Adı</label>
                 <input type="text" autoComplete="organization" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} autoFocus
@@ -527,7 +527,7 @@ function Login({ onLogin }) {
 
           {/* Telefonda sağdaki tanıtım görünmüyor: kısa tanıtım + siteye dönüş */}
           <div className="login-mobil-tanitim">
-            <b style={{ color: "var(--text)" }}>SıraGO nedir?</b> Müşterileriniz WhatsApp'tan yazar, yapay zekâ boş saati bulup randevuyu verir;
+            <b style={{ color: "var(--text)" }}>SıraGO nedir?</b> Müşterilerin WhatsApp'tan yazar, yapay zekâ boş saati bulup randevuyu verir;
             hatırlatmalar kendiliğinden gider. Berber, kuaför, güzellik salonu, dövme stüdyosu, diş kliniği ve veteriner için.
             <div style={{ marginTop: 8 }}><a href="https://xn--srago-n4a.com/">← Tanıtım sitesine dön</a></div>
           </div>
@@ -561,9 +561,9 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   };
 
   const sil = async (id) => {
-    if (!confirm("Bu hizmeti silmek istediğinize emin misiniz?")) return;
+    if (!confirm("Bu hizmeti silmek istediğine emin misin?")) return;
     const r = await api.del(`/hizmetler/${id}`);
-    if (r?.hata) alert(/foreign|violates|referans/i.test(r.hata) ? "Bu hizmet geçmiş randevularda kullanıldığı için silinemez. Düzenleyip pasife alabilirsiniz." : "Silinemedi: " + r.hata);
+    if (r?.hata) alert(/foreign|violates|referans/i.test(r.hata) ? "Bu hizmet geçmiş randevularda kullanıldığı için silinemez. Düzenleyip pasife alabilirsin." : "Silinemedi: " + r.hata);
     yukle();
   };
 
@@ -582,7 +582,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
           )}
           {/* Kota doluysa ekleme yerine paket yükseltme (eskiden buton açık kalıyordu) */}
           {paketDurum && limit < 999 && hizmetler.length >= limit
-            ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştınız" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
+            ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştın" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
             : <button onClick={() => { setDuzenleId(null); setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" }); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>}
         </div>
       </div>
@@ -694,7 +694,7 @@ function CalisanlarSayfasi({ paketDurum }) {
   };
 
   const sil = async (id) => {
-    if (!confirm("Bu çalışanı silmek istediğinize emin misiniz?")) return;
+    if (!confirm("Bu çalışanı silmek istediğine emin misin?")) return;
     await api.del(`/calisanlar/${id}`);
     yukle();
   };
@@ -738,7 +738,7 @@ function CalisanlarSayfasi({ paketDurum }) {
             </span>
           )}
           {paketDurum && limit < 999 && calisanlar.length >= limit
-            ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştınız" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
+            ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştın" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
             : <button onClick={() => { setForm(formSifirla()); setDuzenle(null); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Çalışan</button>}
         </div>
       </div>
@@ -877,7 +877,7 @@ function CalisanlarSayfasi({ paketDurum }) {
               <button onClick={() => setHizmetModal(null)} className="modal-close">✕</button>
             </div>
             <div style={{ padding: "16px 20px", color: "var(--dim)", fontSize: 12 }}>
-              Bu çalışanın yapabileceği hizmetleri seçin. Hiçbiri seçilmezse tüm hizmetlere atanır.
+              Bu çalışanın yapabileceği hizmetleri seç. Hiçbiri seçilmezse tüm hizmetlere atanır.
             </div>
             <div style={{ padding: "0 20px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
               {hizmetListesi.map(h => (
@@ -1048,7 +1048,7 @@ function BotBaglantiSayfasi() {
               <h3 className="mb-8" style={{ fontSize: 18, fontWeight: 600, color: "var(--green)" }}>WhatsApp Bağlı!</h3>
               {wpNo && <p className="mb-8" style={{ color: "var(--dim)", fontSize: 14 }}>Numara: <strong style={{ color: "var(--text)" }}>+{wpNo}</strong></p>}
               <p className="mb-24" style={{ color: "var(--dim)", fontSize: 13 }}>
-                Müşterileriniz bu numaraya WhatsApp'tan yazdığında bot otomatik olarak yanıt verecek.
+                Müşterilerin bu numaraya WhatsApp'tan yazdığında bot otomatik olarak yanıt verecek.
               </p>
               <button onClick={wpAyir} disabled={wpYukleniyor} style={btnCls("var(--red)", wpYukleniyor)}>
                 {wpYukleniyor ? "Ayrılıyor..." : "🔌 Bağlantıyı Kes"}
@@ -1084,7 +1084,7 @@ function BotBaglantiSayfasi() {
           <div className="card">
             {tgBagli ? (
               <div>
-                <div className="alert alert-success mb-16">✅ Telegram botunuz aktif. Müşterileriniz Telegram'dan randevu alabilir.</div>
+                <div className="alert alert-success mb-16">✅ Telegram botun aktif. Müşterilerin Telegram'dan randevu alabilir.</div>
                 <div className="row row-wrap gap-10">
                   <input value={tgToken} onChange={e => setTgToken(e.target.value)} placeholder="Yeni token ile değiştir..." className="input flex-1" style={{ minWidth: 0 }} />
                   <div className="row gap-8">
@@ -1134,7 +1134,7 @@ function CanliDurumu() {
   const metin = status === "connected" ? "Canlı" : status === "reconnecting" ? "Yeniden..." : "Bağlı değil";
   const title = status === "connected"
     ? `Canlı güncelleme aktif — ${cihazSayi} cihaz online`
-    : "Socket.IO bağlantısı yok — yeni randevular için sayfayı yenileyin";
+    : "Socket.IO bağlantısı yok — yeni randevular için sayfayı yenile";
   return (
     <div title={title} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: `${renk}14`, border: `1px solid ${renk}33`, fontSize: 11, fontWeight: 600, color: renk }}>
       <span style={{ width: 7, height: 7, borderRadius: "50%", background: renk, boxShadow: status === "connected" ? `0 0 0 3px ${renk}22` : "none", animation: status === "connected" ? "pulseDot 2s infinite" : "none" }} />
@@ -1259,7 +1259,7 @@ function Dashboard({ kullanici }) {
       window.history.replaceState({}, '', window.location.pathname);
       api.get("/odeme/durum").then(d => { if (!d.hata) setOdemeBilgi(d); });
     } else if (params.get('odeme') === 'basarisiz') {
-      alert('❌ Ödeme işlemi başarısız oldu. Lütfen tekrar deneyin.');
+      alert('❌ Ödeme işlemi başarısız oldu. Lütfen tekrar dene.');
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [verileriYukle]);
@@ -1443,9 +1443,9 @@ function Dashboard({ kullanici }) {
     if (payload?.sebep === 'unauthorized' && payload?.mesaj) {
       canliToast(`⚠️ ${payload.mesaj}`, "#b42318", 12000);
     } else if (payload?.sebep === 'qr_not_scanned') {
-      canliToast("⏱️ QR kod taranmadı — 'QR Kodu Göster' ile yeniden deneyin", "#a8590c", 6000);
+      canliToast("⏱️ QR kod taranmadı — 'QR Kodu Göster' ile yeniden dene", "#a8590c", 6000);
     } else if (payload?.sebep === 'max_reconnect') {
-      canliToast("⚠️ Yeniden bağlanma denemesi aşıldı — QR ile tekrar bağlayın", "#b42318", 8000);
+      canliToast("⚠️ Yeniden bağlanma denemesi aşıldı — QR ile tekrar bağla", "#b42318", 8000);
     } else {
       canliToast("⚠️ WhatsApp bağlantısı kesildi", "#b42318");
     }
@@ -1515,7 +1515,7 @@ function Dashboard({ kullanici }) {
           setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj, butonlar }]);
         });
       } else {
-        setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: d?.hata || "Bot yanıt veremedi. Loglara bakın." }]);
+        setTestCevaplar(prev => [...prev, { yon: "gelen", mesaj: d?.hata || "Bot yanıt veremedi. Loglara bak." }]);
       }
     } catch (err) {
       console.error("Bot test hatası:", err);
@@ -1729,7 +1729,7 @@ function Dashboard({ kullanici }) {
             const renderItem = (m, indent = false) => {
               const kilitli = m.featureKey && !ozellikAcik(m.featureKey);
               return (
-                <div key={m.id} onClick={() => { if (kilitli) { setPaketModal(true); } else { setSayfa(m.id); setMagazaRandevu(null); setMobileOpen(false); } }} className={`nav-item${sayfa === m.id ? ' active' : ''}${kilitli ? ' locked' : ''}`} style={indent ? { paddingLeft: 32 } : undefined} title={kilitli ? 'Bu özellik paketinizde yok — yükseltmek için tıklayın' : ''}>
+                <div key={m.id} onClick={() => { if (kilitli) { setPaketModal(true); } else { setSayfa(m.id); setMagazaRandevu(null); setMobileOpen(false); } }} className={`nav-item${sayfa === m.id ? ' active' : ''}${kilitli ? ' locked' : ''}`} style={indent ? { paddingLeft: 32 } : undefined} title={kilitli ? 'Bu özellik paketinde yok — yükseltmek için tıkla' : ''}>
                   <span className="nav-icon">{m.icon}</span>
                   <span>{m.label}</span>
                   {kilitli && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', opacity: 0.5 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
@@ -1774,7 +1774,7 @@ function Dashboard({ kullanici }) {
         {paketDurum && (
           <div className="paket-widget">
             <div className="pw-header">
-              <span className="pw-label">Paketiniz</span>
+              <span className="pw-label">Paketin</span>
               <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'proplus' ? 'badge-green' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
             </div>
             {[
@@ -2270,8 +2270,8 @@ function Dashboard({ kullanici }) {
 
                   {/* Başlık */}
                   <div style={{ padding: "0 20px", textAlign: "left", marginBottom: 10, paddingTop: 18 }}>
-                    <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Botu deneyin</div>
-                    <div style={{ color: "var(--muted)", fontSize: 11, lineHeight: 1.4 }}>Mesaj gönderin, botunuzun performansını test edin</div>
+                    <div style={{ color: "var(--text)", fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Botu dene</div>
+                    <div style={{ color: "var(--muted)", fontSize: 11, lineHeight: 1.4 }}>Mesaj gönder, botunuzun performansını test et</div>
                   </div>
 
                   {/* Chat area */}
@@ -2282,7 +2282,7 @@ function Dashboard({ kullanici }) {
                   }}>
                     {testCevaplar.length === 0 ? (
                       <div style={{ textAlign: "center", padding: "16px 0", color: "var(--dim)", fontSize: 11 }}>
-                        Bir mesaj göndererek botu test edin
+                        Bir mesaj göndererek botu test et
                       </div>
                     ) : testCevaplar.map((m, i) => (
                       <div key={i} style={{
@@ -2309,7 +2309,7 @@ function Dashboard({ kullanici }) {
                       value={testMesaj}
                       onChange={e => setTestMesaj(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && botTest()}
-                      placeholder="Mesaj yazın..."
+                      placeholder="Mesaj yaz..."
                       style={{
                         flex: 1, padding: "10px 14px", borderRadius: 10,
                         background: "var(--hover)", border: "1px solid var(--border)",
@@ -2505,7 +2505,7 @@ function Dashboard({ kullanici }) {
                   <div style={{ textAlign: "center", padding: "28px 16px", background: "var(--surface2)", borderRadius: 12 }}>
                     
                     <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 600 }}>Bugün boş</div>
-                    <div style={{ color: "var(--dim)", fontSize: 12, marginTop: 2 }}>Randevu yok, keyfinize bakın!</div>
+                    <div style={{ color: "var(--dim)", fontSize: 12, marginTop: 2 }}>Randevu yok, keyfinize bak!</div>
                   </div>
                 ) : (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
@@ -2589,7 +2589,7 @@ function Dashboard({ kullanici }) {
                           <div><strong>Hesap Sahibi:</strong> {odemeBilgi.banka?.hesap_sahibi}</div>
                           <div><strong>Açıklama:</strong> <span className="ref-kod">{odemeBilgi.banka?.aciklama}</span></div>
                         </div>
-                        <div className="ref-uyari" style={{ marginTop: 8 }}>⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutmayın!</div>
+                        <div className="ref-uyari" style={{ marginTop: 8 }}>⚠️ Havale yaparken açıklama kısmına <strong>{odemeBilgi.banka?.aciklama}</strong> yazmayı unutma!</div>
                         <button onClick={async () => {
                           setOdemeYukleniyor(true);
                           const d = await api.post("/odeme/havale", { dekont_notu: "" });
@@ -2602,7 +2602,7 @@ function Dashboard({ kullanici }) {
                     </div>
                   )}
                   {odemeBilgi.odeme?.durum === 'havale_bekliyor' && (
-                    <div className="alert alert-amber mt-12">Havale bildiriminiz alındı. SuperAdmin onayı bekleniyor.</div>
+                    <div className="alert alert-amber mt-12">Havale bildirimin alındı. SuperAdmin onayı bekleniyor.</div>
                   )}
                   {odemeBilgi.odeme?.durum === 'odendi' && (
                     <div style={{ background: "rgba(31,111,74,.06)", border: "1px solid rgba(31,111,74,.15)", borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
@@ -2805,7 +2805,7 @@ function Dashboard({ kullanici }) {
 
               {/* Durum özet kartları */}
               {randevular.length > 0 && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 20 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
                   {[
                     { key: "onaylandi", label: "Onaylı", emoji: "✅", color: "#1f6f4a" },
                     { key: "bekliyor", label: "Bekliyor", emoji: "⏳", color: "#a8590c" },
@@ -2813,16 +2813,11 @@ function Dashboard({ kullanici }) {
                     { key: "gelmedi", label: "Gelmedi", emoji: "❌", color: "#6b7280" },
                     { key: "iptal", label: "İptal", emoji: "🚫", color: "#b42318" },
                   ].filter(s => durumSayac[s.key] > 0).map(s => (
-                    <div key={s.key} style={{
-                      background: s.color + "12", borderRadius: 12, padding: "12px 14px",
-                      display: "flex", alignItems: "center", gap: 10, border: `1px solid ${s.color}20`
-                    }}>
-                      <span style={{ fontSize: 20 }}>{s.emoji}</span>
-                      <div>
-                        <div style={{ fontSize: 20, fontWeight: 600, color: s.color }}>{durumSayac[s.key]}</div>
-                        <div style={{ fontSize: 11, color: "var(--dim)" }}>{s.label}</div>
-                      </div>
-                    </div>
+                    /* Küçük rozet: koca kutu tek sayı için yer kaplıyordu (mobil rapor 2026-10-14) */
+                    <span key={s.key} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999,
+                      background: s.color + "12", border: `1px solid ${s.color}25`, color: s.color, fontSize: 13, fontWeight: 700 }}>
+                      {s.emoji} {durumSayac[s.key]} {s.label}
+                    </span>
                   ))}
                 </div>
               )}
@@ -3019,7 +3014,7 @@ function Dashboard({ kullanici }) {
                 </div>
                 <div ref={chatRef} className="chat-messages">
                   {testCevaplar.length === 0 && (
-                    <div className="chat-empty">Müşteri gibi mesaj yazarak botu test edin...</div>
+                    <div className="chat-empty">Müşteri gibi mesaj yazarak botu test et...</div>
                   )}
                   {testCevaplar.map((c, i) => (
                     <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>
@@ -3041,7 +3036,7 @@ function Dashboard({ kullanici }) {
                 <div className="chat-input">
                   <input value={testMesaj} onChange={e => setTestMesaj(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && !testYukleniyor && botTest()}
-                    placeholder="Mesaj yazın..." className="input flex-1" />
+                    placeholder="Mesaj yaz..." className="input flex-1" />
                   <button onClick={botTest} disabled={testYukleniyor} className="btn btn-primary" style={{ opacity: testYukleniyor ? 0.6 : 1 }}>Gönder</button>
                 </div>
               </div>
@@ -3085,7 +3080,7 @@ function Dashboard({ kullanici }) {
                       
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text)" }}>Kapora Ayarları</div>
-                        <div style={{ fontSize: 11, color: "var(--dim)" }}>Ön ödeme kurallarını belirleyin</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)" }}>Ön ödeme kurallarını belirle</div>
                       </div>
                     </div>
 
@@ -3093,9 +3088,9 @@ function Dashboard({ kullanici }) {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: fAyar.kapora_aktif ? "rgba(31,111,74,.06)" : "var(--surface2)", borderRadius: 12, marginBottom: 16, border: `1px solid ${fAyar.kapora_aktif ? "rgba(31,111,74,.2)" : "var(--border)"}` }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>💳 Kapora Sistemi</div>
-                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>{fAyar.kapora_aktif ? "Aktif — kapora alınıyor" : "Kapalı"}</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>{!ozellikAcik("kapora") ? "🔒 Standart pakette — açmak için dokun" : fAyar.kapora_aktif ? "Aktif — kapora alınıyor" : "Kapalı"}</div>
                       </div>
-                      <div onClick={() => setFAyar(p => ({ ...p, kapora_aktif: !p.kapora_aktif }))} style={{ width: 44, height: 24, borderRadius: 12, background: fAyar.kapora_aktif ? "#1f6f4a" : "#ccc", cursor: "pointer", position: "relative", transition: "all .2s" }}>
+                      <div onClick={() => (ozellikAcik("kapora") ? setFAyar(p => ({ ...p, kapora_aktif: !p.kapora_aktif })) : setPaketModal(true))} style={{ width: 44, height: 24, borderRadius: 12, background: fAyar.kapora_aktif ? "#1f6f4a" : "#ccc", cursor: "pointer", position: "relative", transition: "all .2s" }}>
                         <div style={{ width: 20, height: 20, borderRadius: 10, background: "#fff", position: "absolute", top: 2, left: fAyar.kapora_aktif ? 22 : 2, transition: "all .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)" }} />
                       </div>
                     </div>
@@ -3319,10 +3314,10 @@ function Dashboard({ kullanici }) {
           {/* ── QR KOD ── */}
           {sayfa === "qrkod" && (
             <div>
-              <div style={{ marginBottom: 20, color: "var(--dim)", fontSize: 13 }}>İşletmeniz için WhatsApp veya Online Randevu QR kodu oluşturun. Yazdırıp işletmenize asabilirsiniz.</div>
+              <div style={{ marginBottom: 20, color: "var(--dim)", fontSize: 13 }}>İşletmen için WhatsApp veya Online Randevu QR kodu oluşturun. Yazdırıp işletmene asabilirsin.</div>
               <div className="grid-2">
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)" }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: "0 0 16px" }}>QR Tipi Seçin</h3>
+                  <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: "0 0 16px" }}>QR Tipi Seç</h3>
                   <div className="row gap-8" style={{ marginBottom: 16 }}>
                     {[["whatsapp", "💬 WhatsApp"], ["booking", "📅 Online Randevu"]].map(([k, l]) => (
                       <button key={k} onClick={() => { setQrType(k); setQrData(null); }} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid " + (qrType === k ? (k === "whatsapp" ? "#1f6f4a" : "#2f56c6") : "var(--border)"), cursor: "pointer", background: qrType === k ? (k === "whatsapp" ? "rgba(31,111,74,.08)" : "rgba(47,86,198,.08)") : "var(--bg)", color: qrType === k ? (k === "whatsapp" ? "#1f6f4a" : "#2f56c6") : "var(--dim)", fontWeight: 600, fontSize: 13 }}>{l}</button>
@@ -3334,7 +3329,7 @@ function Dashboard({ kullanici }) {
                     <div style={{ fontSize: 11, color: "var(--dim)", lineHeight: 1.6 }}>
                       • <strong>WhatsApp:</strong> Müşteri QR okutarak doğrudan WhatsApp'tan mesaj atar<br/>
                       • <strong>Online Randevu:</strong> Müşteri QR okutarak web'den randevu alır<br/>
-                      • QR kodu indirip kartvizit, tezgah veya vitrine yapıştırabilirsiniz
+                      • QR kodu indirip kartvizit, tezgah veya vitrine yapıştırabilirsin
                     </div>
                   </div>
                 </div>
@@ -3365,14 +3360,14 @@ function Dashboard({ kullanici }) {
                   
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Google Haritalar Bağlantısı</div>
-                    <div style={{ fontSize: 12, color: "var(--dim)" }}>İşletmenizi Google'da bulsunlar, randevu linkinizi profilinize ekleyin.</div>
+                    <div style={{ fontSize: 12, color: "var(--dim)" }}>İşletmeni Google'da bulsunlar, randevu linkini profilinize ekle.</div>
                   </div>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }} className="settings-grid-2">
                   {/* Sol: Google Maps Profil Linki */}
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Google Maps Profil Linkiniz</label>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Google Maps Profil Linkin</label>
                     <input
                       type="url"
                       placeholder="https://maps.google.com/..."
@@ -3382,7 +3377,7 @@ function Dashboard({ kullanici }) {
                       style={{ width: "100%" }}
                     />
                     <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>
-                      Google Maps → İşletmeniz → "Paylaş" → "Bağlantıyı kopyala" ile alabilirsiniz.
+                      Google Maps → İşletmen → "Paylaş" → "Bağlantıyı kopyala" ile alabilirsin.
                     </div>
                     <button onClick={async () => { await api.put("/ayarlar", { google_maps_reserve_url: ayarlar?.google_maps_reserve_url || '' }); alert("Google Maps linki kaydedildi!"); }} style={{ marginTop: 10, padding: "8px 20px", borderRadius: 10, border: "none", background: "rgba(66,133,244,.1)", color: "#4285f4", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
                       💾 Kaydet
@@ -3406,8 +3401,8 @@ function Dashboard({ kullanici }) {
                       </div>
                       <div style={{ marginTop: 12, fontSize: 11, color: "var(--dim)", lineHeight: 1.8 }}>
                         <strong>Nasıl eklenir?</strong><br/>
-                        1. <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" style={{ color: "#4285f4" }}>Google Business</a> hesabınıza giriş yapın<br/>
-                        2. 'Profili Düzenle' menüsünden 'İletişim' sekmesine geçin<br/>
+                        1. <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" style={{ color: "#4285f4" }}>Google Business</a> hesabınıza giriş yap<br/>
+                        2. 'Profili Düzenle' menüsünden 'İletişim' sekmesine geç<br/>
                         3. 'Randevu bağlantısı' alanına yukarıdaki linki yapıştırın<br/>
                         <br/>
                         <span style={{ color: "var(--muted)", fontStyle: "italic" }}>ℹ️ Profilinizin iletişim kısmında tıklanabilir bir randevu linki oluşacaktır. Google'ın linki onaylaması 24 saati bulabilir.</span>
@@ -3546,7 +3541,7 @@ function Dashboard({ kullanici }) {
                   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
                     <form onSubmit={destekGonder} style={{ width: "100%", maxWidth: 500, background: "var(--surface)", borderRadius: 16, padding: 28, border: "1px solid var(--border)" }}>
                       <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 4, color: "var(--text)" }}>Yeni Destek Talebi</h3>
-                      <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 20 }}>Sorununuzu detaylı açıklayın, en kısa sürede dönüş yapacağız.</p>
+                      <p style={{ fontSize: 12, color: "var(--dim)", marginBottom: 20 }}>Sorununuzu detaylı açıkla, en kısa sürede dönüş yapacağız.</p>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         <div>
                           <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginBottom: 4, display: "block" }}>Konu</label>
@@ -3554,7 +3549,7 @@ function Dashboard({ kullanici }) {
                         </div>
                         <div>
                           <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginBottom: 4, display: "block" }}>Açıklama</label>
-                          <textarea value={yeniDestek.mesaj} onChange={e => setYeniDestek({...yeniDestek, mesaj: e.target.value})} placeholder="Sorununuzu olabildiğince detaylı açıklayın..." className="input" style={{ minHeight: 120, resize: "vertical", width: "100%" }} required />
+                          <textarea value={yeniDestek.mesaj} onChange={e => setYeniDestek({...yeniDestek, mesaj: e.target.value})} placeholder="Sorununuzu olabildiğince detaylı açıkla..." className="input" style={{ minHeight: 120, resize: "vertical", width: "100%" }} required />
                         </div>
                         <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
                           <div style={{ flex: 1 }}>
@@ -3631,7 +3626,7 @@ function Dashboard({ kullanici }) {
                   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, color: "var(--dim)" }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     <div style={{ fontSize: 15, fontWeight: 600 }}>Destek Merkezi</div>
-                    <div style={{ fontSize: 12 }}>Bir talep seçin veya yeni talep oluşturun</div>
+                    <div style={{ fontSize: 12 }}>Bir talep seç veya yeni talep oluşturun</div>
                   </div>
                 )}
               </div>
@@ -3652,7 +3647,7 @@ function Dashboard({ kullanici }) {
             </div>
             {oncu?.no ? (
               <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14, fontWeight: 600 }}>
-                🏆 Öncü Esnaf #{oncu.no} — {oncu.kilitli_fiyat ? `fiyatınız ömür boyu ${Number(oncu.kilitli_fiyat).toLocaleString("tr-TR")}₺` : "fiyatınız ömür boyu sabit"} · Kasa, sadakat, kayıp müşteri ve yorum avcısı her pakette açık
+                🏆 Öncü Esnaf #{oncu.no} — {oncu.kilitli_fiyat ? `fiyatın ömür boyu ${Number(oncu.kilitli_fiyat).toLocaleString("tr-TR")}₺` : "fiyatın ömür boyu sabit"} · Kasa, sadakat, kayıp müşteri ve yorum avcısı her pakette açık
               </div>
             ) : oncu?.kalan > 0 ? (
               <div style={{ margin: "0 0 16px", padding: "12px 16px", borderRadius: 12, background: "rgba(168,89,12,.07)", color: "#a8590c", fontSize: 14 }}>
@@ -3669,7 +3664,7 @@ function Dashboard({ kullanici }) {
             </div>
             <div className="price-grid-modal">
               {[
-                { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "İngilizce · Arapça bot", "SMS Hatırlatma"] },
+                { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma", "Tablet modu"], ozellikYok: ["Kapora / ön ödeme", "Telegram botu", "Kasa Takibi", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "SMS Hatırlatma"] },
                 { key: "profesyonel", isim: "Standart", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 499, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "Bot 3 dilde: Türkçe · İngilizce · Arapça"], ozellikYok: ["Çoklu Şube", "Öncelikli Destek", "SMS Hatırlatma"] },
                 { key: "proplus", isim: "Pro+", fiyat: paketDurum?.tum_paketler?.proplus?.fiyat || 1499, renk: "#1f6f4a", ozellikler: ["10 Çalışan", "Sınırsız Randevu", "Çoklu Şube (3 şube)", "Kasa Takibi & Prim Raporu", "Öncelikli Destek", "Tüm Standart Özellikler"], ozellikYok: ["SMS Hatırlatma", "API Erişimi"] },
                 { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 4999, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Şube", "SMS Hatırlatma", "API Erişimi", "Özel Onboarding", "Tüm Pro+ Özellikler"], ozellikYok: [] },
@@ -3731,7 +3726,7 @@ function Dashboard({ kullanici }) {
             
             <h2 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", marginBottom: 8 }}>Ödeme Gerekli</h2>
             <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 20 }}>
-              Bu ay için ödemeniz bulunmamaktadır. Paneli kullanmaya devam etmek için lütfen ödeme yapın.
+              Bu ay için ödemeniz bulunmamaktadır. Paneli kullanmaya devam etmek için lütfen ödeme yap.
             </p>
             <div style={{
               background: "rgba(180,35,24,.05)", border: "1px solid rgba(180,35,24,.15)",
@@ -3993,7 +3988,7 @@ function SuperAdminPanel({ kullanici }) {
     } catch (e) { alert("Şablon kaydetme hatası: " + e.message); }
   };
   const sablonSil = async (id) => {
-    if (!confirm("Bu şablonu silmek istediğinize emin misiniz?")) return;
+    if (!confirm("Bu şablonu silmek istediğine emin misin?")) return;
     try { await api.del(`/admin/satis-bot/sablonlar/${id}`); sablonlariYukle(); } catch (e) { alert("Silme hatası"); }
   };
 
@@ -4017,7 +4012,7 @@ function SuperAdminPanel({ kullanici }) {
     } catch (e) { alert("Kampanya kaydetme hatası: " + e.message); }
   };
   const kampanyaSil = async (id) => {
-    if (!confirm("Bu kampanyayı silmek istediğinize emin misiniz?")) return;
+    if (!confirm("Bu kampanyayı silmek istediğine emin misin?")) return;
     try { await api.del(`/admin/satis-bot/kampanyalar/${id}`); kampanyalariYukle(); } catch (e) { alert("Silme hatası"); }
   };
 
@@ -4321,7 +4316,7 @@ function SuperAdminPanel({ kullanici }) {
   };
 
   const isletmeSil = async (id, isim) => {
-    if (!confirm(`"${isim}" işletmesini silmek istediğinize emin misiniz?\nTüm randevuları ve müşteri verileri de silinecek!`)) return;
+    if (!confirm(`"${isim}" işletmesini silmek istediğine emin misin?\nTüm randevuları ve müşteri verileri de silinecek!`)) return;
     await api.del(`/admin/isletmeler/${id}`);
     isletmeleriYukle();
   };
@@ -4828,7 +4823,7 @@ function SuperAdminPanel({ kullanici }) {
                         if (res.token) {
                           localStorage.setItem("randevugo_impersonate_token", res.token);
                           const yeniSekme = window.open(window.location.origin + "?impersonate=1", "_blank");
-                          if (!yeniSekme) alert("Pop-up engellendi. Lütfen pop-up'lara izin verin.");
+                          if (!yeniSekme) alert("Pop-up engellendi. Lütfen pop-up'lara izin ver.");
                         }
                       } catch (e) { alert("Hata: " + e.message); }
                     }} title="Müşteri olarak giriş" style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>👤 Giriş</button>
@@ -5154,7 +5149,7 @@ function SuperAdminPanel({ kullanici }) {
                       <input type="text" value={ertelemeSebep} onChange={e => setErtelemeSebep(e.target.value)} placeholder="Örn: Müşteri talep etti" className="input mb-16" />
                       <div className="row gap-8">
                         <button onClick={async () => {
-                          if (!ertelemeDonem) { alert("Yeni dönem seçin"); return; }
+                          if (!ertelemeDonem) { alert("Yeni dönem seç"); return; }
                           const r = await api.post(`/admin/odemeler/${ertelemeModal.id}/ertele`, { yeni_donem: ertelemeDonem, sebep: ertelemeSebep });
                           if (r?.hata) { alert("Ertelenemedi: " + r.hata); return; }
                           setErtelemeModal(null);
@@ -5349,7 +5344,7 @@ function SuperAdminPanel({ kullanici }) {
                   <button onClick={async () => { await api.put("/admin/iletisim/" + m.id, { okundu: !m.okundu }); iletisimYukle(); }} className="btn btn-sm" style={{ background: m.okundu ? "rgba(168,89,12,.12)" : "rgba(31,111,74,.12)", color: m.okundu ? "var(--amber)" : "var(--green)", border: "none", fontWeight: 600 }}>
                     {m.okundu ? "Okunmadı İşaretle" : "Okundu İşaretle"}
                   </button>
-                  <button onClick={async () => { if (confirm("Bu mesajı silmek istediğinize emin misiniz?")) { await api.del("/admin/iletisim/" + m.id); iletisimYukle(); } }} className="btn btn-sm" style={{ background: "rgba(180,35,24,.1)", color: "var(--red)", border: "none" }}>Sil</button>
+                  <button onClick={async () => { if (confirm("Bu mesajı silmek istediğine emin misin?")) { await api.del("/admin/iletisim/" + m.id); iletisimYukle(); } }} className="btn btn-sm" style={{ background: "rgba(180,35,24,.1)", color: "var(--red)", border: "none" }}>Sil</button>
                   {m.email && <a href={"mailto:" + m.email} className="btn btn-sm" style={{ background: "rgba(93,75,181,.12)", color: "#5d4bb5", border: "none", textDecoration: "none" }}>Mail</a>}
                   {m.telefon && <a href={"https://wa.me/" + (d => d.startsWith("90") && d.length === 12 ? d : "90" + d.replace(/^0+/, ""))(String(m.telefon).replace(/\D/g, ""))} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "rgba(37,211,102,.12)", color: "#25d366", border: "none", textDecoration: "none" }}>WhatsApp</a>}
                 </div>
@@ -5562,7 +5557,7 @@ function SuperAdminPanel({ kullanici }) {
                   {/* Yanıt input */}
                   <div style={{ padding: "14px 24px", borderTop: "1px solid var(--border)", background: "var(--surface)" }}>
                     <div style={{ display: "flex", gap: 10 }}>
-                      <textarea value={destekYanitMetin} onChange={e => setDestekYanitMetin(e.target.value)} placeholder="Yanıtınızı yazın..." style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, fontFamily: "inherit", resize: "none", minHeight: 42, maxHeight: 120 }} />
+                      <textarea value={destekYanitMetin} onChange={e => setDestekYanitMetin(e.target.value)} placeholder="Yanıtınızı yaz..." style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13, fontFamily: "inherit", resize: "none", minHeight: 42, maxHeight: 120 }} />
                       <button onClick={async () => {
                         if (!destekYanitMetin.trim()) return;
                         await api.put(`/admin/destek/${secili.id}`, { admin_yanit: destekYanitMetin, durum: 'yanitlandi' });
@@ -5575,7 +5570,7 @@ function SuperAdminPanel({ kullanici }) {
                 <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, color: "var(--dim)" }}>
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>Destek Merkezi</div>
-                  <div style={{ fontSize: 12 }}>Bir talep seçerek görüntüleyin ve yanıtlayın</div>
+                  <div style={{ fontSize: 12 }}>Bir talep seçerek görüntüle ve yanıtla</div>
                 </div>
               )}
             </div>
@@ -5707,7 +5702,7 @@ function SuperAdminPanel({ kullanici }) {
                           </div>
                           <div className="row gap-6">
                             <button onClick={() => setDuzenlePaket({ id: p.id, kod: p.kod, isim: p.isim, fiyat: p.fiyat, calisan_limit: p.calisan_limit, hizmet_limit: p.hizmet_limit, aylik_randevu_limit: p.aylik_randevu_limit, bot_aktif: p.bot_aktif, hatirlatma: p.hatirlatma, istatistik: p.istatistik, export_aktif: p.export_aktif, ozellikler: p.ozellikler || "", sira: p.sira || 0 })} className="btn btn-sm" style={{ background: "rgba(47,86,198,.1)", color: "#2f56c6", border: "none", fontWeight: 600 }}>✏️ Düzenle</button>
-                            <button onClick={async () => { if(confirm(`"${p.isim}" paketini silmek istediğinize emin misiniz?`)) { await api.del(`/admin/paketler/${p.id}`); paketleriYukle(); } }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
+                            <button onClick={async () => { if(confirm(`"${p.isim}" paketini silmek istediğine emin misin?`)) { await api.del(`/admin/paketler/${p.id}`); paketleriYukle(); } }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
                           </div>
                         </div>
                         <div className="row row-wrap gap-12" style={{ fontSize: 12, color: "var(--dim)" }}>
@@ -5767,7 +5762,7 @@ function SuperAdminPanel({ kullanici }) {
                   Tümünü Seç ({zombiSecili.length}/{zombiler.length})
                 </label>
                 <div style={{ flex: 1 }} />
-                <button onClick={() => { if (zombiSecili.length === 0) return alert('Önce işletme seçin'); setZombiMesajModal(true); }}
+                <button onClick={() => { if (zombiSecili.length === 0) return alert('Önce işletme seç'); setZombiMesajModal(true); }}
                   style={{ padding: "8px 16px", borderRadius: 10, background: zombiSecili.length > 0 ? "#5d4bb5" : "#64748b40", color: zombiSecili.length > 0 ? "#fff" : "var(--dim)", border: "none", fontWeight: 600, fontSize: 13, cursor: zombiSecili.length > 0 ? "pointer" : "default" }}>
                   📨 Seçilenlere Mesaj Gönder ({zombiSecili.length})
                 </button>
@@ -6372,7 +6367,7 @@ function SuperAdminPanel({ kullanici }) {
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 6, display: "block" }}>İşletme Seç</label>
                   <select value={qrIsletmeId} onChange={e => { setQrIsletmeId(e.target.value); setQrData(null); }} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}>
-                    <option value="">— İşletme seçin —</option>
+                    <option value="">— İşletme seç —</option>
                     {(isletmeler || []).map(i => <option key={i.id} value={i.id}>{i.isim} ({etiket(i.kategori)})</option>)}
                   </select>
                 </div>
@@ -6395,7 +6390,7 @@ function SuperAdminPanel({ kullanici }) {
                   <div style={{ fontSize: 11, color: "var(--dim)", lineHeight: 1.6 }}>
                     • <strong>WhatsApp:</strong> Müşteri QR okutarak doğrudan WhatsApp'tan mesaj atar<br/>
                     • <strong>Online Randevu:</strong> Müşteri QR okutarak web'den randevu alır<br/>
-                    • QR kodu indirip kartvizit, tezgah veya vitrine yapıştırabilirsiniz
+                    • QR kodu indirip kartvizit, tezgah veya vitrine yapıştırabilirsin
                   </div>
                 </div>
               </div>
@@ -6584,7 +6579,7 @@ function SuperAdminPanel({ kullanici }) {
                     const isletme_id = document.getElementById('refIsletme').value;
                     const bedava_gun = parseInt(document.getElementById('refBedavaGun').value) || 30;
                     const min_davet = parseInt(document.getElementById('refMinDavet').value) || 1;
-                    if (!isletme_id) { alert('İşletme seçin'); return; }
+                    if (!isletme_id) { alert('İşletme seç'); return; }
                     const res = await api.post("/admin/referanslar", { isletme_id, bedava_gun, min_davet });
                     if (res.referans) { alert(`Referans kodu: ${res.referans.referans_kodu}\n${min_davet} davet → ${gunLabel(bedava_gun)} bedava`); referanslariYukle(); }
                   }} style={{ width: "100%", padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "#1f6f4a", color: "#fff", fontWeight: 600, fontSize: 13 }}>🔗 Oluştur</button>
@@ -6647,7 +6642,7 @@ function SuperAdminPanel({ kullanici }) {
                             </select>
                           </div>
                           <button onClick={async () => {
-                            if (!confirm(`"${r.isletme_isim}" — "${r.referans_kodu}" kodunu silmek istediğinize emin misiniz?`)) return;
+                            if (!confirm(`"${r.isletme_isim}" — "${r.referans_kodu}" kodunu silmek istediğine emin misin?`)) return;
                             await api.del(`/admin/referanslar/${r.id}`);
                             referanslariYukle();
                           }} title="Sil" style={{ width: 30, height: 30, borderRadius: 8, border: "none", background: "rgba(180,35,24,.06)", color: "#b42318", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>🗑️</button>
@@ -6714,7 +6709,7 @@ function SuperAdminPanel({ kullanici }) {
                     </select>
                   </div>
                 </div>
-                <div className="mt-12"><label className="form-label">Mesaj</label><textarea value={yeniDuyuru.mesaj} onChange={e => setYeniDuyuru({...yeniDuyuru, mesaj: e.target.value})} placeholder="Duyuru içeriğini yazın..." className="input" rows={3} required /></div>
+                <div className="mt-12"><label className="form-label">Mesaj</label><textarea value={yeniDuyuru.mesaj} onChange={e => setYeniDuyuru({...yeniDuyuru, mesaj: e.target.value})} placeholder="Duyuru içeriğini yaz..." className="input" rows={3} required /></div>
                 <div className="form-actions mt-12">
                   <button type="submit" className="btn" style={{ background: "var(--amber)", color: "#000", fontWeight: 600 }}>Yayınla 🚀</button>
                   <button type="button" onClick={() => setDuyuruFormAcik(false)} className="btn btn-ghost">İptal</button>
@@ -6741,7 +6736,7 @@ function SuperAdminPanel({ kullanici }) {
                         className="btn btn-sm" style={{ background: d.aktif ? "rgba(180,35,24,.12)" : "rgba(31,111,74,.12)", color: d.aktif ? "#b42318" : "#1f6f4a", border: "none", fontWeight: 600, fontSize: 11 }}>
                         {d.aktif ? "Pasifleştir" : "Aktifleştir"}
                       </button>
-                      <button onClick={async () => { if(confirm('Bu duyuruyu silmek istediğinize emin misiniz?')) { await api.del(`/admin/duyurular/${d.id}`); duyurulariYukle(); } }}
+                      <button onClick={async () => { if(confirm('Bu duyuruyu silmek istediğine emin misin?')) { await api.del(`/admin/duyurular/${d.id}`); duyurulariYukle(); } }}
                         className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
                       <span style={{ color: "var(--dim)", fontSize: 11 }}>{new Date(d.olusturma_tarihi).toLocaleString("tr-TR")}</span>
                     </div>
@@ -7337,7 +7332,7 @@ function SuperAdminPanel({ kullanici }) {
                   <div className="row gap-8">
                     {d === "bagli" && !satisBotDurum?.aktif && <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-baslat"); satisBotYukle(); }} style={sgBtn(SG.yesil, true)}>▶ Gönderimi başlat</button>}
                     {satisBotDurum?.aktif && <button onClick={async () => { await api.post("/admin/satis-bot/gonderim-durdur"); satisBotYukle(); }} style={sgBtn(SG.amber)}>⏸ Duraklat</button>}
-                    {d === "bagli" && <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={sgBtn(SG.kirmizi)}>⏹ Botu kapat</button>}
+                    {d === "bagli" && <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misin?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={sgBtn(SG.kirmizi)}>⏹ Botu kapat</button>}
                     <button onClick={satisBotYukle} style={sgBtn(SG.gri)}>↻</button>
                   </div>
                 </div>
@@ -7410,7 +7405,7 @@ function SuperAdminPanel({ kullanici }) {
                     <button onClick={async () => { setSatisBotYukleniyor(true); await api.post("/admin/satis-bot/baslat"); setTimeout(satisBotYukle, 3000); setSatisBotYukleniyor(false); }} disabled={satisBotYukleniyor} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "#1f6f4a", color: "#fff", fontWeight: 600, fontSize: 13, boxShadow: "none" }}>{satisBotYukleniyor ? '⏳ Başlatılıyor...' : '▶️ Botu Başlat'}</button>
                   )}
                   {satisBotDurum?.durum !== 'kapali' && satisBotDurum && (
-                    <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misiniz?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 13 }}>⏹️ Botu Kapat</button>
+                    <button onClick={async () => { if (!confirm("Bot durdurulacak ve oturum kapatılacak. Emin misin?")) return; await api.post("/admin/satis-bot/durdur"); satisBotYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 13 }}>⏹️ Botu Kapat</button>
                   )}
                 </div>
                 {/* Günlük ilerleme */}
@@ -7671,7 +7666,7 @@ function SuperAdminPanel({ kullanici }) {
 
               {/* Numara listesi */}
               {numaralar.length === 0 ? (
-                <div style={{ textAlign: "center", padding: 20, color: "var(--dim)", fontSize: 13 }}>Henüz numara yok. Numara ekleyip bağlayın!</div>
+                <div style={{ textAlign: "center", padding: 20, color: "var(--dim)", fontSize: 13 }}>Henüz numara yok. Numara ekleyip bağla!</div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {numaralar.map(n => {
@@ -7710,7 +7705,7 @@ function SuperAdminPanel({ kullanici }) {
                         {/* QR Kodu göster */}
                         {wsQr && nd?.qrBase64 && (
                           <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: "#5d4bb5", marginBottom: 8 }}>📱 {n.isim} için QR Kodu — WhatsApp'tan tarayın</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#5d4bb5", marginBottom: 8 }}>📱 {n.isim} için QR Kodu — WhatsApp'tan tara</div>
                             <img src={nd.qrBase64} alt="QR" style={{ width: 220, height: 220, borderRadius: 12 }} />
                           </div>
                         )}
@@ -7736,7 +7731,7 @@ function SuperAdminPanel({ kullanici }) {
 
               {merkezOtp?.numaralar?.length === 0 ? (
                 <div style={{ padding: 16, borderRadius: 10, background: "rgba(180,35,24,.05)", border: "1px dashed rgba(180,35,24,.2)", textAlign: "center", color: "var(--dim)", fontSize: 13 }}>
-                  Henüz merkez OTP numarası yok. Yeni bir numara ekleyin ve QR'ı tarayın — esnaf WA'sı yoksa müşteri kodları buradan gidecek.
+                  Henüz merkez OTP numarası yok. Yeni bir numara ekle ve QR'ı tara — esnaf WA'sı yoksa müşteri kodları buradan gidecek.
                 </div>
               ) : (
                 <div style={{ display: "grid", gap: 10 }}>
@@ -7764,7 +7759,7 @@ function SuperAdminPanel({ kullanici }) {
                       </div>
                       {n.durum === 'qr_bekliyor' && n.qr_base64 && (
                         <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: "#b42318", marginBottom: 8 }}>📱 QR'ı SıraGO sistem telefonunuzdan WhatsApp Web ile tarayın</div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#b42318", marginBottom: 8 }}>📱 QR'ı SıraGO sistem telefonunuzdan WhatsApp Web ile tara</div>
                           <img src={n.qr_base64} alt="QR" style={{ width: 220, height: 220, borderRadius: 12 }} />
                         </div>
                       )}
@@ -8259,7 +8254,7 @@ function SuperAdminPanel({ kullanici }) {
                     {/* Admin Notu */}
                     <div style={{ background: "var(--bg)", borderRadius: 14, padding: "16px 20px", marginBottom: 16 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", marginBottom: 8 }}>📝 Admin Notu</div>
-                      <textarea value={detayNot} onChange={e => setDetayNot(e.target.value)} placeholder="Bu işletme hakkında notlarınız..." rows={3} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, resize: "vertical", fontFamily: "inherit" }} />
+                      <textarea value={detayNot} onChange={e => setDetayNot(e.target.value)} placeholder="Bu işletme hakkında notların..." rows={3} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, resize: "vertical", fontFamily: "inherit" }} />
                       <button onClick={async () => { await api.put(`/admin/isletmeler/${isl.id}/not`, { not: detayNot }); alert("Not kaydedildi"); }} style={{ marginTop: 8, padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", background: "#2f56c6", color: "#fff", fontWeight: 600, fontSize: 12 }}>💾 Notu Kaydet</button>
                     </div>
 
@@ -8270,7 +8265,7 @@ function SuperAdminPanel({ kullanici }) {
                           <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>🧪 Demo Veri</div>
                           <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>Çalışan, hizmet, müşteri ve randevu demo verisi ekle</div>
                         </div>
-                        <button onClick={async () => { if (!confirm("Bu işletmeye demo veri basılacak. Emin misiniz?")) return; const r = await api.post(`/admin/isletmeler/${isl.id}/demo-veri`); alert(r.mesaj || r.hata || "Tamamlandı"); isletmeDetayYukle(isl.id); }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", background: "#a8590c", color: "#fff", fontWeight: 600, fontSize: 12, boxShadow: "none" }}>🚀 Demo Veri Bas</button>
+                        <button onClick={async () => { if (!confirm("Bu işletmeye demo veri basılacak. Emin misin?")) return; const r = await api.post(`/admin/isletmeler/${isl.id}/demo-veri`); alert(r.mesaj || r.hata || "Tamamlandı"); isletmeDetayYukle(isl.id); }} style={{ padding: "8px 18px", borderRadius: 8, border: "none", cursor: "pointer", background: "#a8590c", color: "#fff", fontWeight: 600, fontSize: 12, boxShadow: "none" }}>🚀 Demo Veri Bas</button>
                       </div>
                     </div>
 
@@ -8494,7 +8489,7 @@ function SuperAdminPanel({ kullanici }) {
                     {/* Tehlikeli İşlemler */}
                     <div style={{ background: "rgba(180,35,24,.04)", borderRadius: 14, padding: "18px 20px", border: "1px solid rgba(180,35,24,.1)" }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: "#b42318", marginBottom: 12 }}>⚠️ Tehlikeli İşlemler</div>
-                      <button onClick={async () => { if (!confirm(`"${isl.isim}" işletmesi kalıcı olarak silinecek! Emin misiniz?`)) return; if (!confirm("BU İŞLEM GERİ ALINAMAZ! Son kez onaylıyor musunuz?")) return; await api.del(`/admin/isletmeler/${isl.id}`); setDetayIsletme(null); isletmeleriYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid rgba(180,35,24,.2)", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 13 }}>🗑️ İşletmeyi Kalıcı Sil</button>
+                      <button onClick={async () => { if (!confirm(`"${isl.isim}" işletmesi kalıcı olarak silinecek! Emin misin?`)) return; if (!confirm("BU İŞLEM GERİ ALINAMAZ! Son kez onaylıyor musun?")) return; await api.del(`/admin/isletmeler/${isl.id}`); setDetayIsletme(null); isletmeleriYukle(); }} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid rgba(180,35,24,.2)", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 13 }}>🗑️ İşletmeyi Kalıcı Sil</button>
                     </div>
                   </>
                 )}

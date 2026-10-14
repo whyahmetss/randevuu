@@ -163,7 +163,7 @@ export default function Sadakat({ api }) {
             <div>
               <label style={S.label}>Ödül Hizmeti</label>
               <select value={ayarlar.odul_hizmet_id || ''} onChange={e => setAyarlar({...ayarlar, odul_hizmet_id: e.target.value ? parseInt(e.target.value) : null})} className="input" style={{ width: '100%' }}>
-                <option value="">Ödül hizmeti seçin</option>
+                <option value="">Ödül hizmeti seç</option>
                 {hizmetler.map(h => <option key={h.id} value={h.id}>{h.isim}</option>)}
               </select>
               <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Bu hizmet ödül olarak verilecektir</div>

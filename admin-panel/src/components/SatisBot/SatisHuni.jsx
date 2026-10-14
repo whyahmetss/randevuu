@@ -63,7 +63,7 @@ export default function SatisHuni({ api }) {
           </div>
           {(t.sert_ret || 0) > 0 && (
             <div style={{ fontSize: 12, color: '#b42318', marginBottom: 14 }}>
-              {t.sert_ret} kişi "yazmayın / spam" dedi ({yuzde(t.sert_ret, t.gonderilen)}). Bu oran yükselirse numara ban riski artar; mesaj dilini ya da hedef kitleyi gözden geçirin.
+              {t.sert_ret} kişi "yazma / spam" dedi ({yuzde(t.sert_ret, t.gonderilen)}). Bu oran yükselirse numara ban riski artar; mesaj dilini ya da hedef kitleyi gözden geçirin.
             </div>
           )}
           <div style={{ overflowX: 'auto' }}>

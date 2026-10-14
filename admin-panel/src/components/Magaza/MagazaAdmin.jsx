@@ -134,7 +134,7 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
           <div style={{ marginBottom: 14 }}>
             <button className="btn btn-primary btn-sm" disabled={!tedarikciler.length}
               onClick={() => setForm({ tur: 'urun', veri: { ...BOS_URUN, tedarikci_id: tedarikciler[0]?.id || '' } })}>Ürün ekle</button>
-            {!tedarikciler.length && <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--dim)' }}>Önce tedarikçi ekleyin.</span>}
+            {!tedarikciler.length && <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--dim)' }}>Önce tedarikçi ekle.</span>}
           </div>
           <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
             <table className="table">
@@ -158,19 +158,19 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
         <>
           <div className="card" style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 12 }}>
-              Kodu önce tedarikçinin sisteminde (ör. Shopify/İkas indirim kodu) tanımlatın, sonra burada işletmeyle eşleyin.
+              Kodu önce tedarikçinin sisteminde (ör. Shopify/İkas indirim kodu) tanımlatın, sonra burada işletmeyle eşle.
               Satış raporundaki kod bu eşleşmeyle işletmeye bağlanır.
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, alignItems: 'end' }}>
               <Alan etiket="İşletme">
                 <select className="input" value={kodForm.isletme_id} onChange={e => setKodForm({ ...kodForm, isletme_id: e.target.value })}>
-                  <option value="">Seçin</option>
+                  <option value="">Seç</option>
                   {isletmeler.map(i => <option key={i.id} value={i.id}>{i.isim}</option>)}
                 </select>
               </Alan>
               <Alan etiket="Tedarikçi">
                 <select className="input" value={kodForm.tedarikci_id} onChange={e => setKodForm({ ...kodForm, tedarikci_id: e.target.value })}>
-                  <option value="">Seçin</option>
+                  <option value="">Seç</option>
                   {tedarikciler.map(t => <option key={t.id} value={t.id}>{t.isim}</option>)}
                 </select>
               </Alan>
@@ -195,13 +195,13 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
       {tab === 'satis' && (
         <div className="card">
           <div style={{ fontSize: 12, color: 'var(--dim)', marginBottom: 12, lineHeight: 1.6 }}>
-            Tedarikçinin aylık sipariş raporunu CSV olarak yükleyin. Gerekli sütunlar: <b>siparis_no</b>, <b>indirim_kodu</b>, <b>tutar</b>; isteğe bağlı <b>durum</b> (iade/iptal olanlara komisyon yazılmaz).
+            Tedarikçinin aylık sipariş raporunu CSV olarak yükle. Gerekli sütunlar: <b>siparis_no</b>, <b>indirim_kodu</b>, <b>tutar</b>; isteğe bağlı <b>durum</b> (iade/iptal olanlara komisyon yazılmaz).
             Aynı sipariş tekrar yüklenirse güncellenir, iki kez sayılmaz.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
             <Alan etiket="Tedarikçi">
               <select className="input" value={csv.tedarikci_id} onChange={e => setCsv({ ...csv, tedarikci_id: e.target.value })}>
-                <option value="">Seçin</option>
+                <option value="">Seç</option>
                 {tedarikciler.map(t => <option key={t.id} value={t.id}>{t.isim}</option>)}
               </select>
             </Alan>

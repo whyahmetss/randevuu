@@ -57,7 +57,7 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
   const link = ayarlar?.slug ? bookingUrl(ayarlar.slug) : null;
   const kopyala = async () => {
     try { await navigator.clipboard.writeText(link); setKopyalandi(true); setTimeout(() => setKopyalandi(false), 2000); }
-    catch { window.prompt('Linki kopyalayın:', link); }
+    catch { window.prompt('Linki kopyala:', link); }
   };
 
   const liste = randevular || [];
@@ -105,7 +105,7 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
         {randevular === null && <div className="list-empty" style={{ padding: 20 }}>Yükleniyor…</div>}
         {randevular && liste.length === 0 && (
           <div style={{ padding: 24, color: 'var(--dim)', fontSize: 14, textAlign: 'center' }}>
-            Bugün randevu yok.{link ? ' Randevu linkini müşterilerinize gönderin 👇' : ''}
+            Bugün randevu yok.{link ? ' Randevu linkini müşterilerine gönder 👇' : ''}
           </div>
         )}
         {liste.map(r => {
@@ -142,8 +142,8 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 16 }}>
         {/* Randevu linki */}
         <div className="card" style={{ padding: 18 }}>
-          <b>Online randevu linkiniz</b>
-          <div style={{ fontSize: 13, color: 'var(--dim)', margin: '6px 0 12px' }}>Müşteri bu linkten saat seçer, telefonla uğraşmazsınız. Instagram ve Google profilinize de koyun.</div>
+          <b>Online randevu linkin</b>
+          <div style={{ fontSize: 13, color: 'var(--dim)', margin: '6px 0 12px' }}>Müşteri bu linkten saat seçer, telefonla uğraşmazsın. Instagram ve Google profilinize de koy.</div>
           {link ? (
             <>
               <div style={{ fontSize: 13, padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, wordBreak: 'break-all', marginBottom: 10 }}>{link}</div>
@@ -164,7 +164,7 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
             <b>Hizmetler ve fiyatlar</b>
             <button className="btn btn-ghost btn-sm" onClick={() => setSayfa('hizmetler')}>Ekle / düzenle →</button>
           </div>
-          {hizmetler.length === 0 && <div style={{ fontSize: 13, color: 'var(--dim)' }}>Henüz hizmet yok. Bot fiyat söyleyebilsin diye ekleyin.</div>}
+          {hizmetler.length === 0 && <div style={{ fontSize: 13, color: 'var(--dim)' }}>Henüz hizmet yok. Bot fiyat söyleyebilsin diye ekle.</div>}
           {hizmetler.filter(h => h.aktif !== false).map(h => (
             <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ flex: 1, minWidth: 0 }}>

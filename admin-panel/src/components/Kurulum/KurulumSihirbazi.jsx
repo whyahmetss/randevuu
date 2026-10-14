@@ -68,7 +68,7 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
           if (r?.hata) throw new Error(r.hata);
           setMevcutHz(l => [...l, r.hizmet || { isim }]);   // geri gelip Devam'a basınca iki kez eklenmesin
         }
-        if (!Object.keys(secili).length && !mevcutHz.length) throw new Error('En az bir hizmet seçin');
+        if (!Object.keys(secili).length && !mevcutHz.length) throw new Error('En az bir hizmet seç');
       }
       if (adim === 1) {
         const r = await api.put('/ayarlar', { calisma_baslangic: bas, calisma_bitis: bit, kapali_gunler: kapali.join(',') });
@@ -77,7 +77,7 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
       if (adim === 2) {
         const varOlan = new Set(mevcutCal.map(c => c.isim.toLocaleLowerCase('tr')));
         const yeni = calisanlar.map(x => x.trim()).filter(Boolean).filter(x => !varOlan.has(x.toLocaleLowerCase('tr')));
-        if (!yeni.length && !mevcutCal.length) throw new Error('En az bir kişi yazın (kendiniz de olabilirsiniz)');
+        if (!yeni.length && !mevcutCal.length) throw new Error('En az bir kişi yaz (kendin de olabilirsin)');
         if (calisanYer !== null && yeni.length > calisanYer) throw new Error(`Paketinde en fazla ${calisanSinir} kişi olabilir. Fazla satırları sil (✕); sonra paketini yükseltip ekleyebilirsin.`);
         for (const isim of yeni) {
           const r = await api.post('/calisanlar', { isim });

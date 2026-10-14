@@ -15,6 +15,11 @@ test('öncü ödülü: başlangıç öncüsüne kasa/sadakat açık, öncü olma
   assert.equal(oncu.calisan_limit, 2, 'limit paketinden');
   assert.equal(oncu.sms_hatirlatma, false, 'kurumsal özellik açılmaz');
   assert.equal((await isletmePaketi(2)).paket.kasa, false);
+  // Paket kuralı (2026-10-14): kapora ve Telegram Standart ve üstünde; Öncü Esnaf'ta Başlangıç'ta da açık
+  assert.equal((await isletmePaketi(2)).paket.kapora, false);
+  assert.equal((await isletmePaketi(2)).paket.telegram, false);
+  assert.equal(oncu.kapora, true);
+  assert.equal(oncu.telegram, true);
   assert.equal((await isletmePaketi(4)).paket.kasa, true, 'şube merkezin öncülüğüne tabi');
 
   const dene = async (id) => { let gecti = false, kod = 200;

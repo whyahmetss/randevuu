@@ -208,7 +208,7 @@ class AdminController {
       const paket = await paketGetir(isletme?.paket);
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       if (parseInt(mevcut.sayi) >= paket.hizmet_limit) {
-        return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
+        return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsin. Paketini yükselt.`, limit_asimi: true });
       }
       const result = await pool.query(
         'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
@@ -275,7 +275,7 @@ class AdminController {
       const paket = await paketGetir(isletme?.paket);
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
       if (parseInt(mevcut.sayi) >= paket.calisan_limit) {
-        return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.calisan_limit} çalışan ekleyebilirsiniz. Paketinizi yükseltin.`, limit_asimi: true });
+        return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.calisan_limit} çalışan ekleyebilirsin. Paketini yükselt.`, limit_asimi: true });
       }
       const result = await pool.query(
         `INSERT INTO calisanlar (isletme_id, isim, telefon, uzmanlik, calisma_baslangic, calisma_bitis, kapali_gunler, mola_saatleri)
@@ -497,7 +497,7 @@ class AdminController {
       // Paket kontrol
       const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const paketB = await paketGetir(isletme?.paket);
-      if (!paketB.export_aktif) return res.status(403).json({ hata: `Toplu kampanya gönderimi ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
+      if (!paketB.export_aktif) return res.status(403).json({ hata: `Toplu kampanya gönderimi ${paketB.isim} paketinde kullanılamıyor. Paketini yükselt!`, limit_asimi: true });
 
       const kampanya = (await pool.query('SELECT * FROM kampanyalar WHERE id=$1 AND isletme_id=$2', [id, isletmeId])).rows[0];
       if (!kampanya) return res.status(404).json({ hata: 'Kampanya bulunamadı' });
@@ -689,10 +689,10 @@ class AdminController {
         const isletmePaket = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
         const paketB = await paketGetir(isletmePaket?.paket);
         if (!paketB.coklu_dil && dilListesi.length > 1) {
-          return res.status(403).json({ hata: `Çoklu dil desteği ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true, ozellik: 'coklu_dil' });
+          return res.status(403).json({ hata: `Çoklu dil desteği ${paketB.isim} paketinde kullanılamıyor. Paketini yükselt!`, limit_asimi: true, ozellik: 'coklu_dil' });
         }
         if (typeof paketB.coklu_dil === 'number' && dilListesi.length > paketB.coklu_dil) {
-          return res.status(403).json({ hata: `${paketB.isim} paketinde en fazla ${paketB.coklu_dil} dil destekleniyor. Paketinizi yükseltin!`, limit_asimi: true, ozellik: 'coklu_dil' });
+          return res.status(403).json({ hata: `${paketB.isim} paketinde en fazla ${paketB.coklu_dil} dil destekleniyor. Paketini yükselt!`, limit_asimi: true, ozellik: 'coklu_dil' });
         }
       }
 
@@ -1548,7 +1548,7 @@ class AdminController {
       res.redirect(url);
     } catch (error) {
       console.error('❌ Shopier ödeme başlatma hatası:', error.message);
-      res.status(500).json({ hata: 'Ödeme sayfası oluşturulamadı, lütfen tekrar deneyin.' });
+      res.status(500).json({ hata: 'Ödeme sayfası oluşturulamadı, lütfen tekrar dene.' });
     }
   }
 
@@ -3296,7 +3296,7 @@ class AdminController {
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const paketBilgi = await paketGetir(isletme?.paket);
       if (!paketBilgi.export_aktif) {
-        return res.status(403).json({ hata: `Excel dışa aktarma ${paketBilgi.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
+        return res.status(403).json({ hata: `Excel dışa aktarma ${paketBilgi.isim} paketinde kullanılamıyor. Paketini yükselt!`, limit_asimi: true });
       }
       const musteriler = (await pool.query(`
         SELECT m.isim, m.telefon, COUNT(r.id) as randevu_sayisi, MAX(r.tarih) FILTER (WHERE r.tarih <= CURRENT_DATE) as son_randevu,
@@ -3348,7 +3348,7 @@ class AdminController {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const paketB = await paketGetir(isletme?.paket);
-      if (!paketB.export_aktif) return res.status(403).json({ hata: `Müşteri etiketleme ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
+      if (!paketB.export_aktif) return res.status(403).json({ hata: `Müşteri etiketleme ${paketB.isim} paketinde kullanılamıyor. Paketini yükselt!`, limit_asimi: true });
       const { isim, renk } = req.body;
       if (!isim) return res.status(400).json({ hata: 'Etiket adı gerekli' });
       const result = await pool.query(
@@ -3383,7 +3383,7 @@ class AdminController {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const paketB = await paketGetir(isletme?.paket);
-      if (!paketB.export_aktif) return res.status(403).json({ hata: `Bu özellik ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
+      if (!paketB.export_aktif) return res.status(403).json({ hata: `Bu özellik ${paketB.isim} paketinde kullanılamıyor. Paketini yükselt!`, limit_asimi: true });
       const { musteri_telefon, etiket_id } = req.body;
       if (!musteri_telefon || !etiket_id) return res.status(400).json({ hata: 'Telefon ve etiket ID gerekli' });
       const etiket = (await pool.query('SELECT id FROM musteri_etiketler WHERE id=$1 AND isletme_id=$2', [etiket_id, isletmeId])).rows[0];
@@ -3455,7 +3455,7 @@ class AdminController {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT google_maps_url, google_yorum_aktif, paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const paketB = (await require('../utils/oncu').isletmePaketi(isletmeId)).paket;
-      if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
+      if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketini yükselt!`, limit_asimi: true });
       res.json({ google_maps_url: isletme.google_maps_url, google_yorum_aktif: isletme.google_yorum_aktif });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
@@ -3465,7 +3465,7 @@ class AdminController {
       const isletmeId = req.kullanici.isletme_id;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const paketB = (await require('../utils/oncu').isletmePaketi(isletmeId)).paket;
-      if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
+      if (!paketB.yorum_avcisi) return res.status(403).json({ hata: `Yorum Avcısı ${paketB.isim} paketinde kullanılamıyor. Paketini yükselt!`, limit_asimi: true });
       const { google_maps_url, google_yorum_aktif } = req.body;
       await pool.query('UPDATE isletmeler SET google_maps_url=COALESCE($1,google_maps_url), google_yorum_aktif=COALESCE($2,google_yorum_aktif) WHERE id=$3',
         [google_maps_url, google_yorum_aktif, isletmeId]);
@@ -5549,7 +5549,7 @@ class AdminController {
       </body></html>`);
     } catch (e) {
       console.error('Google Calendar callback hatası:', e);
-      res.status(500).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Bağlantı başarısız</h2><p>Lütfen panelden tekrar deneyin.</p></body></html>`);
+      res.status(500).send(`<html><body style="font-family:system-ui;padding:40px;text-align:center"><h2>❌ Bağlantı başarısız</h2><p>Lütfen panelden tekrar dene.</p></body></html>`);
     }
   }
 

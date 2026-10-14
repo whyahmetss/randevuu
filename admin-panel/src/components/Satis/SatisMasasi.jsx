@@ -63,7 +63,7 @@ function AdayKarti({ a, api, yenile, onDemo, waSay }) {
           </div>
           {Array.isArray(a.yakindakiler) && a.yakindakiler.length > 0 && (
             <div style={{ fontSize: 12, color: RENK.yesil, fontWeight: 600, marginBottom: 8 }}>
-              🤝 {a.ilce}'de kullanan: {a.yakindakiler.map(y => `${y.isim}${y.gun >= 30 ? ` (${Math.floor(y.gun / 30)} aydır)` : y.gun >= 7 ? ` (${Math.floor(y.gun / 7)} haftadır)` : ''}`).join(', ')} — "isterseniz onlara da sorun" deyin
+              🤝 {a.ilce}'de kullanan: {a.yakindakiler.map(y => `${y.isim}${y.gun >= 30 ? ` (${Math.floor(y.gun / 30)} aydır)` : y.gun >= 7 ? ` (${Math.floor(y.gun / 7)} haftadır)` : ''}`).join(', ')} — "istersen onlara da sorun" de
             </div>
           )}
           {a.notlar && <div style={{ fontSize: 12, color: 'var(--dim)', fontStyle: 'italic', whiteSpace: 'pre-wrap', marginBottom: 8 }}>📝 {a.notlar.split('\n').slice(-2).join(' · ')}</div>}
@@ -134,7 +134,7 @@ export default function SatisMasasi({ api, kullanici }) {
     const r = await api.post('/admin/masa/cek', { adet: cek.adet, ilce: cek.ilce.trim() || undefined, kategori: cek.kategori || undefined });
     setCekiliyor(false);
     if (r?.hata) return alert(r.hata);
-    if (!r.cekilen) alert('Havuzda bu filtreye uyan aday kalmadı. Filtreyi boşaltın ya da Avcı\'dan yeni tarama yapın.');
+    if (!r.cekilen) alert('Havuzda bu filtreye uyan aday kalmadı. Filtreyi boşaltın ya da Avcı\'dan yeni tarama yap.');
     yenile();
   };
 

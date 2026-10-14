@@ -5,7 +5,7 @@ import { bookingUrl } from '../../lib/config';
 // Google İşletme Profili'ne eklemesi için adım adım rehber.
 const ADIMLAR = [
   ['Google İşletme Profili\'ni aç', 'Telefonda Google Haritalar\'da dükkânını ara ya da aşağıdaki butona dokun. Dükkânın sahibi olarak giriş yaptığın Google hesabıyla girmelisin.'],
-  ['"Profili düzenle"ye dokun', 'Dükkânının adı altında "Profili düzenle" (ya da "İşletmenizi düzenleyin") yazar.'],
+  ['"Profili düzenle"ye dokun', 'Dükkânının adı altında "Profili düzenle" (ya da "İşletmeni düzenle") yazar.'],
   ['"Rezervasyonlar" / "Randevu bağlantıları" kısmını bul', 'Bazen "İşletme bilgileri" → "Rezervasyonlar" altındadır. "Randevu bağlantısı ekle"ye dokun.'],
   ['Linkini yapıştır ve kaydet', 'Yukarıdaki "Kopyala" ile aldığın linki yapıştır, kaydet. Google birkaç saat içinde kontrol edip yayına alır.'],
 ];

@@ -117,7 +117,7 @@ const odemeKontrol = async (req, res, next) => {
     if (isletme?.grup_id && !(await require('../utils/subeLimit').subeIzinli(isletmeId, isletme.grup_id))) {
       return res.status(402).json({
         hata: 'Şube limiti aşıldı',
-        mesaj: 'Merkezin paketi bu kadar şubeyi kapsamıyor. Bu şubeyi kullanmak için paketi yükseltin ya da başka bir şubeyi kapatın.',
+        mesaj: 'Merkezin paketi bu kadar şubeyi kapsamıyor. Bu şubeyi kullanmak için paketi yükselt ya da başka bir şubeyi kapat.',
         limit_asimi: true,
       });
     }
