@@ -206,7 +206,9 @@ export default function BookingPage({ slug }) {
   const hizmetIdsParam = secilenHizmetler.map(h => h.id).join(',');
   const toplamSure = secilenHizmetler.reduce((s, h) => s + Number(h.sure_dk || 0), 0);
   const toplamFiyat = secilenHizmetler.reduce((s, h) => s + Number(h.fiyat || 0), 0);
-  const hizmetAdiOzet = secilenHizmetler.map(h => h.isim).join(' + ');
+  // Esnaf panelde İngilizce/Arapça ad girdiyse yabancı müşteriye o gösterilir (Türkçe dışı dillerde İngilizce ad)
+  const hizmetAd = (h) => (dil === 'ar' && h.isim_ar) || (dil !== 'tr' && h.isim_en) || h.isim;
+  const hizmetAdiOzet = secilenHizmetler.map(hizmetAd).join(' + ');
 
   useEffect(() => {
     if (secilenHizmetler.length === 0) return;
@@ -497,7 +499,6 @@ export default function BookingPage({ slug }) {
         aria-label={t('selectLang')}
       >
         <I.Globe size={14} />
-        <span className="bk-lang-flag">{aktifDil.bayrak}</span>
         <span className="bk-lang-code">{aktifDil.kisa}</span>
         <I.ChevronDown size={12} />
       </button>
@@ -694,7 +695,7 @@ export default function BookingPage({ slug }) {
                     </div>
                     <div className="bk-item-icon">{hizmetIconu(h.isim)}</div>
                     <div className="bk-item-body">
-                      <div className="bk-item-name">{h.isim}</div>
+                      <div className="bk-item-name">{hizmetAd(h)}</div>
                       <div className="bk-item-meta">
                         <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
                       </div>
@@ -1168,7 +1169,7 @@ export default function BookingPage({ slug }) {
                 <div className="bk-summary-row" key={h.id}>
                   <span className="bk-summary-key">{idx === 0 ? t('service') : ''}</span>
                   <span className="bk-summary-val">
-                    {h.isim}
+                    {hizmetAd(h)}
                     <span style={{ opacity: 0.6, marginLeft: 8 }}>
                       {h.sure_dk}{t('minutes')}{Number(h.fiyat) > 0 ? ` • ${Number(h.fiyat).toLocaleString(locale)}₺` : ''}
                     </span>

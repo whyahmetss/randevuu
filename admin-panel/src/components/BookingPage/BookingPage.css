@@ -412,3 +412,7 @@
 .bk-bekleme .bk-input { width: 100%; height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--bk-line-2); background: var(--bk-surface); color: var(--bk-text); font: inherit; font-size: 15px; box-sizing: border-box; }
 .bk-bekleme-hata { color: var(--bk-danger); font-size: 13px; }
 .bk-bekleme-tamam { display: flex; align-items: center; gap: 8px; color: var(--bk-accent); font-weight: 600; font-size: 14px; }
+
+/* Saat dilimi sekmesi tek satır ("Öğleden Sonra" dar ekranda ikiye bölünüyordu) */
+.bk-period-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-width: 400px) { .bk-period-tab { font-size: 12.5px; gap: 4px; } }

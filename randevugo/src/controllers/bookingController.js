@@ -146,7 +146,7 @@ class BookingController {
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
       const hizmetler = (await pool.query(
-        'SELECT id, isim, sure_dk, fiyat FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
+        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
         [isletme.id]
       )).rows;
 
