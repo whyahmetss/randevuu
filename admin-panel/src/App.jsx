@@ -17,6 +17,7 @@ const SatisRehberi = lazy(() => import("./components/Satis/SatisRehberi"));   //
 const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açılınca yüklenir (hızlı açılış)
 const Magaza = lazy(() => import("./components/Magaza/Magaza"));   // açılınca yüklenir (hızlı açılış)
 import KazancKarti from "./components/Mobil/KazancKarti";   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
+const RandevuSayfam = lazy(() => import("./components/Mobil/RandevuSayfam"));   // randevu sayfası teması, kapak, logo
 const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
 const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // SıraGO Vitrini (esnaf)
 const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
@@ -1457,7 +1458,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu", vitrin: "SıraGO Vitrini", googleharita: "Google Haritalar" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu", vitrin: "SıraGO Vitrini", googleharita: "Google Haritalar", randevusayfam: "Randevu sayfam" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1512,6 +1513,7 @@ function Dashboard({ kullanici }) {
       { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
       { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
       { id: "googleharita", icon: ICON.getir, label: "Google Haritalar" },
+      { id: "randevusayfam", icon: ICON.getir, label: "Randevu sayfam" },
     ]},
     { type: 'group', id: 'gr_bot', icon: ICON.bot, label: 'Bot & Sistem', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "Bot Bağlantısı" },
@@ -1989,12 +1991,13 @@ function Dashboard({ kullanici }) {
             <Dukkanim ayarlar={ayarlar} wpBagli={wpBagli}
               ac={(id) => { const m = tamMenu.flatMap(g => g.items).find(x => x.id === id); if (m?.featureKey && !ozellikAcik(m.featureKey)) setPaketModal(true); else setSayfa(id); window.scrollTo(0, 0); }}
               digerleri={tamMenu.flatMap(g => g.items)
-                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek', 'tablet', 'vitrin', 'googleharita'].includes(m.id))
+                .filter(m => !['anasayfa', 'randevular', 'musteriler', 'hizmetler', 'calisanlar', 'ayarlar', 'botbaglanti', 'qrkod', 'esnafgetir', 'destek', 'tablet', 'vitrin', 'googleharita', 'randevusayfam'].includes(m.id))
                 .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
                 .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
           )}
           {sayfa === "anasayfa" && <KazancKarti api={api} dar={liteMod || mobil} />}
           {sayfa === "googleharita" && <GoogleRehber ayarlar={ayarlar} />}
+          {sayfa === "randevusayfam" && <RandevuSayfam api={api} />}
           {sayfa === "anasayfa" && (liteMod || mobil) && (
             mobil ? <BugunMobil api={api} setSayfa={setSayfa} /> : <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}

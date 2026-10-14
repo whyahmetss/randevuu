@@ -1087,7 +1087,13 @@ app.get('/assets/:dosya', async (req, res) => {
     res.set('Content-Type', v.tip).set('Cache-Control', 'public, max-age=31536000, immutable').send(v.veri);
   } catch (e) { res.status(502).end(); }
 });
-app.get('/book/:slug', spaSun);
+// Randevu sayfası yalnız kendi panelimizin "Randevu sayfam" önizlemesinde iframe ile açılabilir (başka site gömemez)
+const panelGomebilir = (req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://admin.xn--srago-n4a.com http://localhost:5173");
+  next();
+};
+app.get('/book/:slug', panelGomebilir, spaSun);
 
 // Mağaza öneri linki — /m/:kod (tıklanmayı sayar, tedarikçinin ürün sayfasına yönlendirir)
 const magazaLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: 'Çok fazla istek', keyGenerator: limitAnahtari });

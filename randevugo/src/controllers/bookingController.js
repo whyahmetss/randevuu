@@ -38,7 +38,10 @@ class BookingController {
       const isletme = (await pool.query(
         `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
-                google_maps_reserve_url, booking_acik, telegram_token, demo
+                google_maps_reserve_url, booking_acik, telegram_token, demo,
+                sayfa_tema, sayfa_vurgu, sayfa_tanitim, sayfa_guncelleme,
+                (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = isletmeler.id AND g.tur = 'kapak')) AS kapak_var,
+                (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = isletmeler.id AND g.tur = 'logo')) AS logo_var
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
         [slug]
       )).rows[0];

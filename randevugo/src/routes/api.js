@@ -461,6 +461,11 @@ router.post('/push/test', authMiddleware, async (req, res) => {
 const noCache = (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); };
 router.get('/book/grup/:slug', noCache, (req, res) => bookingController.grupLanding(req, res));
 router.get('/book/:slug', noCache, (req, res) => bookingController.isletmeBilgileri(req, res));
+// Randevu sayfası görünümü: kapak/logo (herkese açık) + esnafın ayarı
+const sayfaController = require('../controllers/sayfaController');
+router.get('/book/:slug/gorsel/:tur', (req, res) => sayfaController.gorsel(req, res));
+router.get('/randevu-sayfasi', authMiddleware, (req, res) => sayfaController.getir(req, res));
+router.put('/randevu-sayfasi', authMiddleware, (req, res) => sayfaController.kaydet(req, res));
 router.get('/book/:slug/hizmetler', noCache, (req, res) => bookingController.hizmetleriGetir(req, res));
 router.get('/book/:slug/calisanlar', noCache, (req, res) => bookingController.calisanlariGetir(req, res));
 router.get('/book/:slug/saatler', noCache, (req, res) => bookingController.musaitSaatler(req, res));
