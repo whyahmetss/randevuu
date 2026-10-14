@@ -17,7 +17,8 @@ const SatisRehberi = lazy(() => import("./components/Satis/SatisRehberi"));   //
 const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açılınca yüklenir (hızlı açılış)
 const Magaza = lazy(() => import("./components/Magaza/Magaza"));   // açılınca yüklenir (hızlı açılış)
 import KazancKarti from "./components/Mobil/KazancKarti";
-import IslemNotu from "./components/Randevu/IslemNotu";   // hafıza kartı + seans rozeti   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
+import IslemNotu from "./components/Randevu/IslemNotu";   // hafıza kartı + seans rozeti
+import SekreterKarti from "./components/Settings/SekreterKarti";   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
 const RandevuSayfam = lazy(() => import("./components/Mobil/RandevuSayfam"));   // randevu sayfası teması, kapak, logo
 const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
 const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // SıraGO Vitrini (esnaf)
@@ -1123,6 +1124,9 @@ function BotBaglantiSayfasi() {
           </div>
         </div>
       )}
+
+      {/* Sekreter modu + sesli mesaj (2026-10-14) */}
+      <SekreterKarti api={api} />
     </div>
   );
 }

@@ -4464,6 +4464,34 @@ class AdminController {
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
+  // Sekreter modu + sesli mesaj ayarları (2026-10-14)
+  async sekreterAyarGetir(req, res) {
+    try {
+      const i = (await pool.query('SELECT sekreter_aktif, sekreter_telefon, sesli_mesaj_aktif, telefon FROM isletmeler WHERE id = $1', [req.kullanici.isletme_id])).rows[0];
+      if (!i) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      res.json({ sekreter_aktif: i.sekreter_aktif !== false, sekreter_telefon: i.sekreter_telefon || '', sesli_mesaj_aktif: i.sesli_mesaj_aktif !== false, kayit_telefon: i.telefon || '' });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async sekreterAyarKaydet(req, res) {
+    try {
+      const { sekreter_aktif, sekreter_telefon, sesli_mesaj_aktif } = req.body || {};
+      const set = [], deg = [];
+      const ekle = (k, v) => { deg.push(v); set.push(`${k} = $${deg.length}`); };
+      if (sekreter_aktif !== undefined) ekle('sekreter_aktif', !!sekreter_aktif);
+      if (sesli_mesaj_aktif !== undefined) ekle('sesli_mesaj_aktif', !!sesli_mesaj_aktif);
+      if (sekreter_telefon !== undefined) {
+        const t = require('../utils/telefon').telefonNormalize(sekreter_telefon);
+        if (sekreter_telefon && !/^90\d{10}$/.test(t)) return res.status(400).json({ hata: 'Telefonu 05xx xxx xx xx biçiminde yaz' });
+        ekle('sekreter_telefon', t || null);
+      }
+      if (!set.length) return res.json({ tamam: true });
+      deg.push(req.kullanici.isletme_id);
+      await pool.query(`UPDATE isletmeler SET ${set.join(', ')} WHERE id = $${deg.length}`, deg);
+      res.json({ tamam: true });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
   // ==================== GECE RAPORU ====================
 
   async geceRaporuAyarlari(req, res) {

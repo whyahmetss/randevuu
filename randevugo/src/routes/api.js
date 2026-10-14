@@ -396,6 +396,8 @@ router.get('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, featureGuard('
 router.put('/yorum-avcisi/ayarlar', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumAyarlariGuncelle(req, res));
 router.get('/yorum-avcisi/log', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumLogGetir(req, res));
 router.get('/yorum-avcisi/istatistik', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.yorumIstatistik(req, res));
+router.get('/bot/sekreter', authMiddleware, (req, res) => adminController.sekreterAyarGetir(req, res));
+router.put('/bot/sekreter', authMiddleware, (req, res) => adminController.sekreterAyarKaydet(req, res));
 router.get('/yorum-avcisi/memnuniyet', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.memnuniyetListe(req, res));
 router.put('/yorum-avcisi/memnuniyet/:id', authMiddleware, odemeKontrol, featureGuard('yorum_avcisi'), (req, res) => adminController.memnuniyetCozuldu(req, res));
 

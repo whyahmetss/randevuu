@@ -11,7 +11,7 @@ const tl = (x) => `${Number(x || 0).toLocaleString('tr-TR', { maximumFractionDig
 const saat5 = (s) => String(s || '').slice(0, 5);
 const bugun = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
 const fiyat = (r) => Number(r.toplam_fiyat) || Number(r.fiyat) || 0;
-const kanal = { bot: "WhatsApp'tan", whatsapp: "WhatsApp'tan", online: 'randevu linkinden', manuel: 'sen ekledin', telegram: "Telegram'dan" };
+const kanal = { bot: "WhatsApp'tan", whatsapp: "WhatsApp'tan", online: 'randevu linkinden', manuel: 'sen ekledin', sekreter: 'sekreterden', telegram: "Telegram'dan" };
 
 export default function BugunMobil({ api, setSayfa }) {
   const [liste, setListe] = useState(null);

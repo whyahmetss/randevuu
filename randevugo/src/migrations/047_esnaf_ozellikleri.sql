@@ -63,4 +63,7 @@ CREATE TABLE IF NOT EXISTS takvim_bloklari (
 );
 CREATE INDEX IF NOT EXISTS takvim_bloklari_tarih ON takvim_bloklari (isletme_id, tarih);
 ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sekreter_aktif BOOLEAN NOT NULL DEFAULT true;
+-- "Kendime mesaj" sohbeti her zaman çalışır (oraya yalnız telefonun sahibi yazar). Başka numaradan komut yalnız esnaf
+-- panelden bu numarayı girerse kabul edilir: kayıttaki telefon doğrulanmadığı için müşteri listesi yanlış kişiye açılmasın.
+ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sekreter_telefon VARCHAR(20);
 ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sesli_mesaj_aktif BOOLEAN NOT NULL DEFAULT true;
