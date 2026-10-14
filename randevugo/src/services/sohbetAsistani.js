@@ -219,13 +219,14 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
       return T.tekrar();
     }
   }
-  // Hizmet sorulmuştu: rakam ("2") ya da adın bir parçası ("saç") → tek eşleşme varsa o hizmet
-  if (d.sohbet_bekleyen === 'hizmet' && !a.hizmetId) {
-    if (/^\s*\d{1,2}\s*$/.test(metin)) { const h = hizmetler[Number(metin) - 1]; if (h) a.hizmetId = h.id; }
+  // Hizmet adı tam geçmedi: rakam ("2") ya da adın parçaları ("saç kesimi", "erkek") → en çok eşleşen tek hizmet;
+  // eşitlikte yalnız adaylar sorulur ("Saç Kesim (Erkek)" / "Saç Kesim (Bayan)")
+  if (!a.hizmetId && (d.sohbet_bekleyen === 'hizmet' || !d.secilen_hizmet_id)) {
+    if (d.sohbet_bekleyen === 'hizmet' && /^\s*\d{1,2}\s*$/.test(metin)) { const h = hizmetler[Number(metin) - 1]; if (h) a.hizmetId = h.id; }
     else {
-      const kel = sade(metin).split(/[^a-z0-9]+/).filter(w => w.length >= 3);
-      const es = hizmetler.filter(h => sade(h.isim).split(/[^a-z0-9]+/).some(p => kel.some(k => p.startsWith(k) || k.startsWith(p))));
-      if (es.length === 1) a.hizmetId = es[0].id;
+      const adaylar = hizmetAday(metin, hizmetler);
+      if (adaylar.length === 1) a.hizmetId = adaylar[0].id;
+      else if (adaylar.length > 1 && adaylar.length < hizmetler.length) d._adaylar = adaylar;
     }
   }
 
@@ -237,7 +238,7 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   if (a.saat) d.secilen_saat = a.saat;
   else if (a.dilim) d.secilen_saat = null;                              // onay beklerken "öğleden sonra olsun" → o dilimin saatleri
   d._dilim = a.dilim;
-  if (!surecte && a.niyet !== 'randevu' && !a.tarih && !a.saat && !a.hizmetId) return null;
+  if (!surecte && a.niyet !== 'randevu' && !a.tarih && !a.saat && !a.hizmetId && !d._adaylar) return null;
   return await sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId });
 }
 
@@ -251,7 +252,7 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
     if (hizmetler.length === 1) alan.secilen_hizmet_id = hizmetler[0].id;
     else {
       await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'hizmet' });
-      const liste = hizmetler.slice(0, 10).map(h => `• ${h.isim}${Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat).toLocaleString('tr-TR')}₺` : ''}`).join('\n');
+      const liste = (d._adaylar || hizmetler).slice(0, 10).map(h => `• ${h.isim}${Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat).toLocaleString('tr-TR')}₺` : ''}`).join('\n');
       return T.hizmet(liste);
     }
   }
@@ -336,6 +337,19 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
   const usta = alan.secilen_calisan_id ? (uygun.find(c => c.id === alan.secilen_calisan_id) || calisanlar.find(c => c.id === alan.secilen_calisan_id)) : null;
   const ozet = `📅 ${gunY} · 🕐 ${saat}\n✂️ ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
   return T.onay(ozet);
+}
+
+// Mesajdaki kelimelerle en çok örtüşen hizmet(ler). Kelime eşleşmesi ortak ön ek ile: "kesimi"~"kesim", "boyatmak"~"boyama"
+function hizmetAday(metin, hizmetler) {
+  const kel = sade(metin).split(/[^a-z0-9]+/).filter(w => w.length >= 3);
+  const benzer = (k, p) => { let i = 0; while (i < k.length && k[i] === p[i]) i++; return i >= Math.min(4, k.length, p.length) && Math.min(k.length, p.length) >= 3; };
+  let en = 0, adaylar = [];
+  for (const h of hizmetler) {
+    const parca = sade(h.isim).split(/[^a-z0-9]+/).filter(p => p.length >= 3);   // "(Erkek)" sonrası boş parça her şeyle eşleşiyordu
+    const puan = kel.filter(k => parca.some(p => benzer(k, p))).length;
+    if (puan > en) { en = puan; adaylar = [h]; } else if (puan && puan === en) adaylar.push(h);
+  }
+  return adaylar;
 }
 
 // Fiyat sorusu, yapay zekâ yokken: konuşulan (ya da mesajda geçen) hizmetin fiyatı, yoksa liste

@@ -197,3 +197,22 @@ test('sohbet: "11\'de" / "3\'te", onay beklerken "öğleden sonra olsun", yapay 
   assert.match(await yaz("yarın 3'te"), /15:00[\s\S]*oluşturayım mı/);
   assert.match(await yaz('evet'), /15:00/);
 });
+
+test('sohbet: parantezli/benzer hizmet adları — "saç kesimi" → Erkek/Bayan sorulur, "erkek" seçer; yapay zekâ olmadan döngü yok', async () => {
+  const { db } = await hazirla(SEMA(1));
+  await db.exec(`DELETE FROM hizmetler; INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat) VALUES (1, 'Saç Kesim (Erkek)', 30, 200), (1, 'Saç Kesim (Bayan)', 45, 350),
+    (1, 'Saç Boyama', 90, 600), (1, 'Sakal Tıraş', 20, 100), (1, 'Fön', 30, 150), (1, 'Keratin Bakım', 60, 800)`);
+  ortam();
+  const yaz = await konusma(db, '905557778899');
+  assert.match(await yaz('Randevu alacaktım'), /Hangi hizmet[\s\S]*Keratin/);
+  const iki = await yaz('saç kesimi');
+  assert.match(iki, /Saç Kesim \(Erkek\)[\s\S]*Saç Kesim \(Bayan\)/, iki);
+  assert.doesNotMatch(iki, /Boyama|Keratin/, iki);
+  assert.match(await yaz('erkek'), /Hangi gün/);
+  assert.match(await yaz("yarın 3'te"), /15:00[\s\S]*Saç Kesim \(Erkek\)[\s\S]*oluşturayım mı/);
+
+  const yaz2 = await konusma(db, '905557778800');
+  assert.match(await yaz2('yarın 11de fön çektirmek istiyorum'), /11:00[\s\S]*Fön[\s\S]*oluşturayım mı/);
+  const yaz3 = await konusma(db, '905557778801');
+  assert.match(await yaz3('sakal tıraşı'), /Hangi gün/);
+});
