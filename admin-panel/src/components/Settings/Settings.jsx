@@ -286,7 +286,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
         {/* Randevu Onay */}
         <div style={S.card}>
-          <CardHead emoji="✅" title="Randevu Onay Modu" color="#1f6f4a" desc="Otomatik onay mı, yoksa siz mi onaylayacaksın" />
+          <CardHead emoji="✅" title="Randevu Onay Modu" color="#1f6f4a" desc="Otomatik onay mı, yoksa sen mi onaylayacaksın" />
           <select value={ayarlar.randevu_onay_modu || 'otomatik'} onChange={e => setAyarlar({...ayarlar, randevu_onay_modu: e.target.value})} className="input" style={{ width: "100%", marginBottom: (ayarlar.randevu_onay_modu === 'manuel') ? 12 : 0 }}>
             <option value="otomatik">Otomatik Onay</option>
             <option value="manuel">Manuel Onay</option>
@@ -363,9 +363,9 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               <div style={{
                 flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(31,111,74,.06)",
                 border: "1px solid rgba(31,111,74,.15)", fontSize: 13, fontWeight: 600,
-                color: "#1f6f4a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                color: "#1f6f4a", overflowWrap: "break-word", minWidth: 0
               }}>
-                {bookingUrl(ayarlar.slug)}
+                {bookingUrl(ayarlar.slug).replace(/^https?:\/\//, "").split("/").flatMap((p, i) => i ? ["/", <wbr key={i} />, p] : [p])}
               </div>
               <button onClick={() => {
                 navigator.clipboard.writeText(bookingUrl(ayarlar.slug));
@@ -412,13 +412,13 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <input value={yeniKaraTelefon} onChange={e => setYeniKaraTelefon(e.target.value)} placeholder="905551234567" className="input" style={{ flex: 1, minWidth: 160 }} />
-            <select value={yeniKaraSebep} onChange={e => setYeniKaraSebep(e.target.value)} className="input" style={{ width: 130 }}>
-              <option value="manuel">Manuel</option>
-              <option value="no_show">No-Show</option>
-              <option value="kotu_davranis">Kötü Davranış</option>
-              <option value="spam">Spam</option>
+            <select value={yeniKaraSebep} onChange={e => setYeniKaraSebep(e.target.value)} className="input" style={{ width: 170 }} aria-label="Engelleme sebebi" title="Engelleme sebebi">
+              <option value="manuel">Sebep: belirtilmedi</option>
+              <option value="no_show">Sebep: gelmedi</option>
+              <option value="kotu_davranis">Sebep: kötü davranış</option>
+              <option value="spam">Sebep: spam</option>
             </select>
-            <button onClick={karaEkle} style={{ padding: "8px 16px", borderRadius: 10, border: "none", background: "#b42318", color: "#fff", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>+ Ekle</button>
+            <button onClick={karaEkle} style={{ flex: "1 0 auto", minHeight: 40, padding: "8px 16px", borderRadius: 10, border: "none", background: "#b42318", color: "#fff", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>+ Engelle</button>
           </div>
           {karaListe.length > 0 ? (
             <div style={{ maxHeight: 200, overflowY: 'auto', borderRadius: 10, border: '1px solid var(--border)' }}>
@@ -493,7 +493,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                 {ayarlar.kapora_aktif ? "Aktif" : "Kapalı"}
               </span>
             </label>
-            <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 8 }}>Kapora oranını Hizmetler sayfasından ayarlayın.</div>
+            <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 8 }}>Kapora oranı ve en düşük tutar Finans sayfasında; hizmete özel oran Hizmetler'de.</div>
           </div>
         </div>
       </div>

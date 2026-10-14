@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import KapidanGelen from './KapidanGelen';
 import IslemNotu from '../Randevu/IslemNotu';
+
+// Kapı müşterisi ve WhatsApp gizli kimliği (LID, 14-15 hane) aranamaz
+const aranabilir = (t) => { const s = String(t || ''); const d = s.replace(/\D/g, ''); return !!d && !s.startsWith('kapi') && !(d.length >= 14 && !d.startsWith('90')); };
 import { useCanliYenile } from '../../lib/socket';
 
 // Telefon "Bugün" ekranı (taslak 2026-10-13): üstte özet, onay bekleyen büyük kart, randevular saat sırasıyla,
@@ -86,7 +89,7 @@ export default function BugunMobil({ api, setSayfa }) {
             {bekliyor && (
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button onClick={() => durumYap(r, 'onaylandi')} style={{ ...buyukBtn('#1f6f4a', '#fff'), flex: 1, fontSize: 17 }}>Onayla</button>
-                {r.musteri_telefon && !String(r.musteri_telefon).startsWith('kapi') && <a href={`tel:+${String(r.musteri_telefon).replace(/\D/g, '')}`} aria-label="Ara" style={{ ...buyukBtn('var(--bg)', 'var(--text)'), display: 'flex', alignItems: 'center', textDecoration: 'none' }}>Ara</a>}
+                {aranabilir(r.musteri_telefon) && <a href={`tel:+${String(r.musteri_telefon).replace(/\D/g, '')}`} aria-label="Ara" style={{ ...buyukBtn('var(--bg)', 'var(--text)'), display: 'flex', alignItems: 'center', textDecoration: 'none' }}>Ara</a>}
                 <button onClick={() => durumYap(r, 'iptal')} style={buyukBtn('var(--bg)', '#b42318')}>Reddet</button>
               </div>
             )}
@@ -94,7 +97,7 @@ export default function BugunMobil({ api, setSayfa }) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 12 }}>
                 <button onClick={() => durumYap(r, 'tamamlandi')} style={buyukBtn('#1f6f4a', '#fff')}>Geldi ✓</button>
                 <button onClick={() => durumYap(r, 'gelmedi')} style={buyukBtn('var(--bg)', '#b42318')}>Gelmedi</button>
-                {r.musteri_telefon && !String(r.musteri_telefon).startsWith('kapi') && <a href={`tel:+${String(r.musteri_telefon).replace(/\D/g, '')}`} style={{ ...buyukBtn('var(--bg)', 'var(--text)'), display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Ara</a>}
+                {aranabilir(r.musteri_telefon) && <a href={`tel:+${String(r.musteri_telefon).replace(/\D/g, '')}`} style={{ ...buyukBtn('var(--bg)', 'var(--text)'), display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Ara</a>}
                 <button onClick={() => durumYap(r, 'iptal')} style={buyukBtn('var(--bg)', 'var(--dim)')}>İptal et</button>
               </div>
             )}
