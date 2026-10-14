@@ -39,7 +39,7 @@ class BookingController {
         `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
                 google_maps_reserve_url, booking_acik, telegram_token, demo,
-                sayfa_tema, sayfa_vurgu, sayfa_tanitim, sayfa_guncelleme,
+                sayfa_tema, sayfa_vurgu, sayfa_tanitim, sayfa_guncelleme, sayfa_hakkimizda, sayfa_instagram,
                 (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = isletmeler.id AND g.tur = 'kapak')) AS kapak_var,
                 (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = isletmeler.id AND g.tur = 'logo')) AS logo_var
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
@@ -76,6 +76,13 @@ class BookingController {
       delete isletme.telegram_token;
       isletme.telegram_aktif = telegramAktif;
       isletme.telegram_bot_username = telegramBotUsername;
+
+      // Mini site: galeri ve ekip kartları (yalnız liste; fotoğraflar ayrı adresten, önbellekli)
+      try {
+        const sc = require('./sayfaController');
+        isletme.galeri = await sc.galeriListe(isletme.id);
+        isletme.ekip = await sc.ekipListe(isletme.id);
+      } catch (e) { isletme.galeri = []; isletme.ekip = []; }
 
       // Randevu sayfasının altındaki "İşletmeniz için ücretsiz kurun" bağlantısı bu işletmeye bağlansın
       if (!isletme.demo) {

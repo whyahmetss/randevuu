@@ -311,6 +311,7 @@ class AdminController {
       if (!sahip) return res.status(404).json({ hata: 'Çalışan bulunamadı' });
       await pool.query('DELETE FROM calisan_hizmetler WHERE calisan_id=$1', [req.params.id]);
       await pool.query('DELETE FROM calisanlar WHERE id=$1 AND isletme_id=$2', [req.params.id, req.kullanici.isletme_id]);
+      await pool.query('DELETE FROM calisan_gorselleri WHERE calisan_id=$1 AND isletme_id=$2', [req.params.id, req.kullanici.isletme_id]).catch(() => {});
       res.json({ mesaj: 'Silindi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });

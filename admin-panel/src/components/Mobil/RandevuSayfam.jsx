@@ -11,20 +11,20 @@ const TEMA = {
   klinik: { ad: 'Klinik', kime: 'Diş, veteriner', bg: '#f2f8f9', yuzey: '#ffffff', yazi: '#12262b', vurgu: '#0f8b8d' },
 };
 
-// Fotoğraf tarayıcıda küçültülür: kapak 1600px genişlik, logo 400×400 kare (ortadan kırpılır)
+// Fotoğraf tarayıcıda küçültülür: kapak 1600px, galeri 1400px genişlik; logo ve ekip fotoğrafı 400×400 kare (ortadan kırpılır)
 function kucult(dosya, tur) {
   return new Promise((coz, red) => {
     const img = new Image();
     img.onload = () => {
       const c = document.createElement('canvas');
       const x = c.getContext('2d');
-      if (tur === 'logo') {
+      if (tur === 'logo' || tur === 'kisi') {
         const k = Math.min(img.width, img.height);
         c.width = c.height = 400;
         x.fillStyle = '#fff'; x.fillRect(0, 0, 400, 400);
         x.drawImage(img, (img.width - k) / 2, (img.height - k) / 2, k, k, 0, 0, 400, 400);
       } else {
-        const o = Math.min(1, 1600 / img.width);
+        const o = Math.min(1, (tur === 'galeri' ? 1400 : 1600) / img.width);
         c.width = Math.round(img.width * o); c.height = Math.round(img.height * o);
         x.drawImage(img, 0, 0, c.width, c.height);
       }
@@ -42,9 +42,42 @@ export default function RandevuSayfam({ api }) {
   const [bekle, setBekle] = useState(null);
   const [mesaj, setMesaj] = useState(null);
   const [onizlemeV, setOnizlemeV] = useState(0);
-  const kapakRef = useRef(), logoRef = useRef();
+  const [hakkimizda, setHakkimizda] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [uzmanlik, setUzmanlik] = useState({});   // çalışan id → yazılan uzmanlık
+  const kapakRef = useRef(), logoRef = useRef(), galeriRef = useRef(), kisiRef = useRef();
+  const kisiId = useRef(null);
 
-  useEffect(() => { api.get('/randevu-sayfasi').then(x => { if (x && !x.hata) { setD(x); setTanitim(x.tanitim || ''); } }); }, []);
+  useEffect(() => { api.get('/randevu-sayfasi').then(x => { if (x && !x.hata) {
+    setD(x); setTanitim(x.tanitim || ''); setHakkimizda(x.hakkimizda || ''); setInstagram(x.instagram || '');
+    setUzmanlik(Object.fromEntries((x.ekip || []).map(c => [c.id, c.uzmanlik || ''])));
+  } }); }, []);
+
+  // Galeri ve ekip ayrı adreslere kaydedilir; cevap güncel listeyi döner
+  const istek = async (yontem, yol, govde, ne) => {
+    setBekle(ne); setMesaj(null);
+    const x = await api[yontem](yol, govde);
+    setBekle(null);
+    if (!x || x.hata) { setMesaj({ hata: x?.hata || 'Kaydedilemedi' }); return false; }
+    setD(o => ({ ...o, ...x })); setOnizlemeV(v => v + 1);
+    setMesaj({ tamam: 'Kaydedildi — müşterilerin bunu görüyor.' });
+    setTimeout(() => setMesaj(null), 2500);
+    return true;
+  };
+  const galeriEkle = async (dosyalar) => {
+    const yer = (d.galeri_limit || 12) - (d.galeri || []).length;
+    const liste = Array.from(dosyalar || []).slice(0, Math.max(0, yer));
+    if (!liste.length) return setMesaj({ hata: `Galeride en fazla ${d.galeri_limit || 12} fotoğraf olabilir.` });
+    for (const f of liste) {
+      try { if (!(await istek('post', '/randevu-sayfasi/galeri', { veri: await kucult(f, 'galeri') }, 'galeri'))) break; }
+      catch (e) { setMesaj({ hata: e.message }); break; }
+    }
+  };
+  const kisiFoto = async (dosya) => {
+    if (!dosya || !kisiId.current) return;
+    try { await istek('put', `/randevu-sayfasi/ekip/${kisiId.current}`, { foto: await kucult(dosya, 'kisi') }, 'kisi' + kisiId.current); }
+    catch (e) { setMesaj({ hata: e.message }); }
+  };
 
   const kaydet = async (govde, ne) => {
     setBekle(ne); setMesaj(null);
@@ -87,6 +120,32 @@ export default function RandevuSayfam({ api }) {
           {resimKutusu('kapak', kapakRef, 'Kapak fotoğrafı', 'yatay, geniş', 'genis')}
           {resimKutusu('logo', logoRef, 'Logo', 'kare', 'kare')}
         </div>
+      </div>
+
+      <div style={kart}>
+        {baslik(`Galeri (${(d.galeri || []).length}/${d.galeri_limit || 12})`, 'Yaptığın işlerden, dükkânından fotoğraflar. Müşteri randevu almadan önce görür; Instagram\'daki en iyi fotoğraflarını buraya da koy.')}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+          {(d.galeri || []).map((g, i) => (
+            <div key={g.id} style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg)' }}>
+              <img src={`${API_URL}/book/${d.slug}/galeri/${g.id}`} alt="" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 6px' }}>
+                <button disabled={i === 0 || !!bekle} onClick={() => istek('put', `/randevu-sayfasi/galeri/${g.id}`, { yon: -1 }, 'galeri')} aria-label="Sola al"
+                  style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text)', opacity: i === 0 ? .3 : 1, padding: '2px 6px' }}>‹</button>
+                <button disabled={!!bekle} onClick={() => istek('delete', `/randevu-sayfasi/galeri/${g.id}`, undefined, 'galeri')}
+                  style={{ border: 'none', background: 'none', color: '#b42318', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Kaldır</button>
+                <button disabled={i === d.galeri.length - 1 || !!bekle} onClick={() => istek('put', `/randevu-sayfasi/galeri/${g.id}`, { yon: 1 }, 'galeri')} aria-label="Sağa al"
+                  style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text)', opacity: i === d.galeri.length - 1 ? .3 : 1, padding: '2px 6px' }}>›</button>
+              </div>
+            </div>
+          ))}
+          {(d.galeri || []).length < (d.galeri_limit || 12) && (
+            <button onClick={() => galeriRef.current?.click()} disabled={bekle === 'galeri'}
+              style={{ aspectRatio: '1 / 1', borderRadius: 12, border: '2px dashed var(--border)', background: 'var(--bg)', cursor: 'pointer', color: 'var(--dim)', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>
+              {bekle === 'galeri' ? 'Yükleniyor…' : <>＋<br />Fotoğraf ekle</>}
+            </button>
+          )}
+        </div>
+        <input ref={galeriRef} type="file" accept="image/*" multiple hidden onChange={e => { galeriEkle(e.target.files); e.target.value = ''; }} />
       </div>
 
       <div style={kart}>
@@ -133,6 +192,50 @@ export default function RandevuSayfam({ api }) {
           <button className="btn btn-primary" disabled={bekle === 'tanitim' || tanitim === (d.tanitim || '')} onClick={() => kaydet({ tanitim }, 'tanitim')}>{bekle === 'tanitim' ? 'Kaydediliyor…' : 'Kaydet'}</button>
         </div>
       </div>
+
+      <div style={kart}>
+        {baslik('Hakkımızda', 'Dükkânının hikâyesi: ne zamandan beri buradasın, neyi iyi yaparsın, müşteriyi nasıl karşılarsın. Sayfanın altında görünür.')}
+        <textarea className="input" rows={5} maxLength={1500} value={hakkimizda} onChange={e => setHakkimizda(e.target.value)}
+          placeholder="Örn: 2015'ten beri Kadıköy'deyiz. Usta kadromuzla klasik ve modern kesimler, sıcak havlu ile ustura tıraşı yapıyoruz…" style={{ width: '100%', fontSize: 15, borderRadius: 12 }} />
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: 8 }}>
+          <span style={{ flex: 1, fontSize: 12, color: 'var(--dim)' }}>{hakkimizda.length}/1500</span>
+          <button className="btn btn-primary" disabled={bekle === 'hakkimizda' || hakkimizda === (d.hakkimizda || '')} onClick={() => kaydet({ hakkimizda }, 'hakkimizda')}>{bekle === 'hakkimizda' ? 'Kaydediliyor…' : 'Kaydet'}</button>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, margin: '16px 0 8px' }}>Instagram <span style={{ fontWeight: 500, color: 'var(--dim)' }}>(kullanıcı adın ya da profil linkin)</span></div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input className="input" value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@dukkanin" style={{ flex: 1, fontSize: 15, borderRadius: 12 }} aria-label="Instagram kullanıcı adı" />
+          <button className="btn btn-primary" disabled={bekle === 'instagram' || instagram === (d.instagram || '')}
+            onClick={async () => { await kaydet({ instagram }, 'instagram'); }}>{bekle === 'instagram' ? '…' : 'Kaydet'}</button>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 8 }}>Adres ve çalışma saatleri Ayarlar'dan gelir; sayfada "Yol tarifi al" düğmesiyle görünür.</div>
+      </div>
+
+      {(d.ekip || []).length > 0 && (
+        <div style={kart}>
+          {baslik('Ekibin', 'Fotoğraf ve uzmanlık eklediğin çalışanlar sayfada "Ekibimiz" bölümünde görünür. Boş bırakılanlar görünmez.')}
+          {d.ekip.map(c => (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
+              <button onClick={() => { kisiId.current = c.id; kisiRef.current?.click(); }} aria-label={`${c.isim} fotoğrafı`}
+                style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', border: '2px dashed var(--border)', background: 'var(--bg)', cursor: 'pointer', padding: 0, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dim)', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>
+                {bekle === 'kisi' + c.id ? '…' : c.foto_v
+                  ? <img src={`${API_URL}/book/${d.slug}/ekip/${c.id}/foto?v=${c.foto_v}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : '📷'}
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>{c.isim}</div>
+                <input className="input" maxLength={80} value={uzmanlik[c.id] ?? ''} placeholder="Uzmanlık (örn: Sakal, ustura tıraşı)"
+                  onChange={e => setUzmanlik(u => ({ ...u, [c.id]: e.target.value }))}
+                  onBlur={() => { if ((uzmanlik[c.id] ?? '') !== (c.uzmanlik || '')) istek('put', `/randevu-sayfasi/ekip/${c.id}`, { uzmanlik: uzmanlik[c.id] ?? '' }, 'uzmanlik'); }}
+                  style={{ width: '100%', fontSize: 14, borderRadius: 10, marginTop: 4 }} aria-label={`${c.isim} uzmanlık`} />
+              </div>
+              {c.foto_v && <button onClick={() => istek('put', `/randevu-sayfasi/ekip/${c.id}`, { foto: null }, 'kisi' + c.id)}
+                style={{ border: 'none', background: 'none', color: '#b42318', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>Fotoğrafı kaldır</button>}
+            </div>
+          ))}
+          <input ref={kisiRef} type="file" accept="image/*" hidden onChange={e => { kisiFoto(e.target.files?.[0]); e.target.value = ''; }} />
+        </div>
+      )}
 
       {mesaj && <div className={`alert alert-${mesaj.hata ? 'error' : 'success'}`}>{mesaj.hata || mesaj.tamam}</div>}
 

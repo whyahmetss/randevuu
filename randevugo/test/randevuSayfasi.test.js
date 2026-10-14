@@ -11,7 +11,9 @@ const cevap = () => { const r = { kod: 200, basliklar: {} }; r.status = (k) => {
 test('randevu sayfası: tema, renk, kapak, logo, tanıtım', async () => {
   const { db } = await hazirla(`CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, slug TEXT, aktif BOOLEAN DEFAULT true);
     INSERT INTO isletmeler (isim, slug) VALUES ('Kemal', 'kemal');
-    ${fs.readFileSync(path.join(SRC, 'migrations', '038_randevu_sayfasi.sql'), 'utf8')}`);
+    CREATE TABLE calisanlar (id SERIAL PRIMARY KEY, isletme_id INT, isim TEXT, aktif BOOLEAN DEFAULT true);
+    ${fs.readFileSync(path.join(SRC, 'migrations', '038_randevu_sayfasi.sql'), 'utf8')}
+    ${fs.readFileSync(path.join(SRC, 'migrations', '046_mini_site.sql'), 'utf8')}`);
   const s = require(path.join(SRC, 'controllers', 'sayfaController'));
   const req = (body) => ({ kullanici: { isletme_id: 1 }, body });
 
