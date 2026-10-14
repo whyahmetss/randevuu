@@ -4,10 +4,10 @@ const pool = require('../config/db');
 
 const PANEL = process.env.ADMIN_PANEL_URL || 'https://admin.xn--srago-n4a.com';
 const ADIMLAR = [
-  { anahtar: 'hizmet', isim: 'Hizmetlerinizi ve fiyatlarınızı ekleyin', sayfa: 'hizmetler' },
-  { anahtar: 'calisan', isim: 'Çalışanlarınızı ekleyin', sayfa: 'calisanlar' },
-  { anahtar: 'bot', isim: "WhatsApp'ınızı bağlayın (QR)", sayfa: 'botbaglanti' },
-  { anahtar: 'randevu', isim: 'İlk randevunuzu alın (linkinizi paylaşın)', sayfa: 'qrkod' },
+  { anahtar: 'hizmet', isim: 'Hizmetlerini ve fiyatlarını ekle', sayfa: 'hizmetler' },
+  { anahtar: 'calisan', isim: 'Çalışanlarını ekle', sayfa: 'calisanlar' },
+  { anahtar: 'bot', isim: "WhatsApp'ını bağla (QR)", sayfa: 'botbaglanti' },
+  { anahtar: 'randevu', isim: 'İlk randevunu al (linkini paylaş)', sayfa: 'qrkod' },
 ];
 const HATIRLATMA = {
   hizmet: "Merhaba, SıraGO hesabınız açık ama henüz hizmet eklenmemiş. Hizmet ve fiyatları girmeniz 2 dakika sürer, sonra müşterileriniz randevu alabilir:",
