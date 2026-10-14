@@ -194,7 +194,8 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   if (a.niyet === 'iptal') return null;
   if (a.niyet === 'bilgi' || ((!a.niyet || a.niyet === 'diger') && !surecte)) {
     // Soru (fiyat, adres, saatler…): yapay zekâ işletme bilgisiyle kısa cevap verir; menü gösterilmez
-    const cevap = await require('./deepseek').serbetCevap(metin, isletme, hizmetler, 'whatsapp').catch(() => null);
+    const cevap = await require('./deepseek').serbetCevap(metin, isletme, hizmetler, 'whatsapp').catch(() => null)
+      || fiyatCevap(s, hizmetler, d, dil);                              // yapay zekâ cevap veremezse fiyat yine söylenir
     if (!surecte) {
       if (!cevap) return null;                                         // yapay zekâ yok → eski akış
       await kaydet(wa, musteriTelefon, isletmeId, 'ana_menu', {});
@@ -234,6 +235,7 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   if (a.farkEtmez) d._fark_etmez = true;
   if (a.tarih && a.tarih !== d.secilen_tarih) { d.secilen_tarih = a.tarih; d.secilen_saat = null; }
   if (a.saat) d.secilen_saat = a.saat;
+  else if (a.dilim) d.secilen_saat = null;                              // onay beklerken "öğleden sonra olsun" → o dilimin saatleri
   d._dilim = a.dilim;
   if (!surecte && a.niyet !== 'randevu' && !a.tarih && !a.saat && !a.hizmetId) return null;
   return await sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId });
@@ -336,6 +338,17 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
   return T.onay(ozet);
 }
 
+// Fiyat sorusu, yapay zekâ yokken: konuşulan (ya da mesajda geçen) hizmetin fiyatı, yoksa liste
+function fiyatCevap(s, hizmetler, d, dil) {
+  if (!/\b(fiyat|ucret|kac para|ne kadar|kac tl|price|how much|cost|سعر|كم)/.test(s)) return null;
+  const tl = (h) => `${h.isim}: ${Number(h.fiyat).toLocaleString('tr-TR')}₺`;
+  const fiyatli = hizmetler.filter(h => Number(h.fiyat) > 0);
+  const anilan = hizmetBul(s, hizmetler).hizmet;
+  const h = (anilan && Number(anilan.fiyat) > 0 && anilan) || fiyatli.find(x => x.id === d.secilen_hizmet_id);
+  if (h) return tl(h);
+  if (!fiyatli.length) return dil === 'tr' ? 'Fiyatı dükkânda öğrenebilirsiniz.' : null;
+  return fiyatli.slice(0, 10).map(x => `• ${tl(x)}`).join('\n');
+}
 async function kaydet(wa, tel, isletmeId, asama, alanlar) {
   const temiz = Object.fromEntries(Object.entries(alanlar).filter(([k]) => !k.startsWith('_')));
   await wa.durumGuncelle(tel, isletmeId, asama, temiz);

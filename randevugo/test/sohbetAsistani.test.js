@@ -182,3 +182,18 @@ test('çakışma: aynı saati iki müşteri ister — ilk onaylayan alır, ötek
   assert.match(doldu, /başka boş saat kalmadı[\s\S]*bekleme listesine ekledim/, doldu);
   assert.equal((await db.query(`SELECT COUNT(*)::int AS n FROM bekleme_listesi WHERE musteri_telefon = '905550000005'`)).rows[0].n, 1);
 });
+
+test('sohbet: "11\'de" / "3\'te", onay beklerken "öğleden sonra olsun", yapay zekâ yokken fiyat', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  taklit('services/deepseek', { serbetCevap: async () => null });       // Gemini/DeepSeek cevap veremedi
+  const yaz = await konusma(db, '905556667788');
+  const ozet = await yaz("Yarın 11'de sakal tıraşı için yer var mı");
+  assert.match(ozet, /11:00[\s\S]*Sakal Tıraşı[\s\S]*oluşturayım mı/, ozet);
+  const dilim = await yaz('öğleden sonra olsun');
+  assert.match(dilim, /boş saatler: (1[2-6]:\d\d(, )?)+\./, dilim);
+  const fiyat = await yaz('fiyatı ne kadar');
+  assert.match(fiyat, /Sakal Tıraşı: 150₺[\s\S]*boş saatler/, fiyat);
+  assert.match(await yaz("yarın 3'te"), /15:00[\s\S]*oluşturayım mı/);
+  assert.match(await yaz('evet'), /15:00/);
+});
