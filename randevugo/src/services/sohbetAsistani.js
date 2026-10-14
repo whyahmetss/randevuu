@@ -122,7 +122,7 @@ Kurallar: Tarihi YYYY-MM-DD ver ("yarın", "cuma", "haftaya salı" gibi ifadeler
           properties: {
             niyet: { type: 'STRING', enum: ['randevu', 'onay', 'red', 'bilgi', 'iptal', 'selam', 'diger'] },
             hizmet_id: { type: 'INTEGER' }, calisan_id: { type: 'INTEGER' }, fark_etmez: { type: 'BOOLEAN' },
-            tarih: { type: 'STRING' }, saat: { type: 'STRING' }, dilim: { type: 'STRING', enum: ['', 'sabah', 'ogle', 'aksam'] },
+            tarih: { type: 'STRING' }, saat: { type: 'STRING' }, dilim: { type: 'STRING', enum: ['sabah', 'ogle', 'aksam'] },
           },
           required: ['niyet'],
         },

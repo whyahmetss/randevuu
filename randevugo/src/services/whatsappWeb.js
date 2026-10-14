@@ -131,7 +131,8 @@ class WhatsAppWebService extends EventEmitter {
           keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         printQRInTerminal: false,
-        logger: pino({ level: 'silent' }),
+        // Teşhis (2026-10-15): Baileys yalnız hata seviyesinde loglar (gönderim/şifreleme hataları görünsün)
+        logger: pino({ level: 'error' }),
         // WhatsApp'ın tanıdığı standart browser imzası — custom string 401'e yol açıyor
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
@@ -535,7 +536,15 @@ class WhatsAppWebService extends EventEmitter {
     return sent;
   }
 
+  // Sahada mesajlar hatasız ve cevapsız kaldı (2026-10-15): 30 sn'de bitmeyen işlemde hangi adımda takıldığı loglanır
   async mesajIsle(msg, isletmeId) {
+    const iz = { adim: 'başlangıç' };
+    const bekci = setTimeout(() => console.error(`⏳ [${isletmeId}] mesaj 30 sn'dir işleniyor, takıldığı adım: ${iz.adim}`), 30000);
+    try { return await this._mesajIsle(msg, isletmeId, iz); }
+    finally { clearTimeout(bekci); }
+  }
+
+  async _mesajIsle(msg, isletmeId, iz) {
     const basla = Date.now();
     let metin = (this._getMsgText(msg) || '').trim();
     const sesVar = !metin && !!require('./sesliMesaj').sesMesaji(msg);   // sesli mesaj: aşağıda yazıya çevrilir
@@ -594,11 +603,13 @@ class WhatsAppWebService extends EventEmitter {
       musteriTelefon = remoteJid.replace('@c.us', '');
     }
 
+    iz.adim = 'işletme okuma';
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;
 
     // ═══ SEKRETER MODU — esnafın panelden girdiği numara (mesai dışında da çalışır) ═══
     try {
+      iz.adim = 'sekreter';
       const sekreter = require('./sekreter');
       if (sekreter.sahipNumarasiMi(isletme, musteriTelefon)) {
         let komut = metin, onEk = '';
@@ -685,6 +696,7 @@ class WhatsAppWebService extends EventEmitter {
 
     // ═══ MEMNUNİYET ANKETİ — "1–5" cevabı ya da düşük puan açıklaması (2026-10-14) ═══
     try {
+      iz.adim = 'memnuniyet';
       const anketCevap = await require('./memnuniyet').cevapIsle({ isletmeId, telefon: musteriTelefon, metin });
       if (anketCevap) {
         await this.mesajGonder(isletmeId, remoteJid, sesli(anketCevap));
@@ -696,6 +708,7 @@ class WhatsAppWebService extends EventEmitter {
 
     // ═══ AKILLI TEYİT ZİNCİRİ — Bot akışından ÖNCE yakala ═══
     const metinKucukTeyit = metin.toLowerCase();
+    iz.adim = 'teyit zinciri';
     const teyitSonuc = await this._teyitZinciriKontrol(metinKucukTeyit, metin, musteriTelefon, isletmeId, remoteJid);
     if (teyitSonuc) {
       // Zincir yakaladı — cevabı gönder ve bot akışına geçme
@@ -742,6 +755,7 @@ class WhatsAppWebService extends EventEmitter {
     // Sohbet asistanı (2026-10-14): menü yerine soru sorarak randevu; anlaşılmazsa null → eski menü akışı
     let cevap = null;
     try {
+      iz.adim = 'sohbet asistanı';
       cevap = await require('./sohbetAsistani').isle({ wa: this, metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId });
     } catch (e) {
       if (e.code === 'SLOT_DOLU') cevap = await this._saatKacti(isletme, musteriTelefon, isletmeId);
@@ -750,6 +764,7 @@ class WhatsAppWebService extends EventEmitter {
 
     // Eski akış (state machine) — DeepSeek sadece bilinmeyen mesajlarda
     if (!cevap) {
+    iz.adim = 'eski akış';
       try { cevap = await this.akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId); }
       catch (e) {
         // Aynı saati aynı anda iki müşteri istedi, öteki önce onayladı: bu müşteriye boş saatler / bekleme listesi
@@ -759,13 +774,14 @@ class WhatsAppWebService extends EventEmitter {
     }
 
     // Teşhis: her mesajın sonu loglanır (metin değil — KVKK; yalnız aşama, uzunluk, süre, gönderim sonucu)
-    const iz = `aşama=${botDurum.asama || '-'}, cevap=${cevap ? String(typeof cevap === 'object' ? cevap.metin : cevap).length : 0}, ${Date.now() - basla}ms`;
-    if (!cevap) console.log(`🔇 [${isletmeId}] cevap üretilmedi: ${iz}`);
+    const ozet = `aşama=${botDurum.asama || '-'}, cevap=${cevap ? String(typeof cevap === 'object' ? cevap.metin : cevap).length : 0}, ${Date.now() - basla}ms`;
+    if (!cevap) console.log(`🔇 [${isletmeId}] cevap üretilmedi: ${ozet}`);
     if (cevap) {
       const cevapMetin = typeof cevap === 'object' ? cevap.metin : cevap;
       const butonlar = typeof cevap === 'object' ? cevap.butonlar : null;
+      iz.adim = 'gönderim';
       const g = await this.mesajGonder(isletmeId, remoteJid, sesli(cevapMetin), butonlar);
-      console.log(`${g?.success ? '✉️' : '⚠️'} [${isletmeId}] cevap ${g?.success ? 'gönderildi' : 'GÖNDERİLEMEDİ: ' + g?.hata}: ${iz}, toplam ${Date.now() - basla}ms`);
+      console.log(`${g?.success ? '✉️' : '⚠️'} [${isletmeId}] cevap ${g?.success ? 'gönderildi' : 'GÖNDERİLEMEDİ: ' + g?.hata}: ${ozet}, toplam ${Date.now() - basla}ms`);
       await pool.query(
         'INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)',
         [musteriTelefon, isletmeId, 'giden', cevapMetin]

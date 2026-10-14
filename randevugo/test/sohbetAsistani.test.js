@@ -216,3 +216,16 @@ test('sohbet: parantezli/benzer hizmet adları — "saç kesimi" → Erkek/Bayan
   const yaz3 = await konusma(db, '905557778801');
   assert.match(await yaz3('sakal tıraşı'), /Hangi gün/);
 });
+
+test('yapay zekâ şeması: Gemini boş enum değerini reddeder ("enum[0]: cannot be empty") — şemada boş değer yok', async () => {
+  await hazirla(SEMA(1));
+  ortam();
+  let istek = null;
+  taklit('utils/gemini', { anahtarlar: () => ['x'], geminiIstek: async (b) => { istek = b; return {}; }, metniAl: () => '{"niyet":"randevu"}' });
+  const sohbet = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  await sohbet.anla({ metin: 'haftaya bi ara saç kestirmek istiyorum', isletme: { isim: 'X' }, hizmetler: [{ id: 1, isim: 'Saç Kesimi' }], calisanlar: [], durum: {} });
+  assert.ok(istek, 'Gemini çağrıldı');
+  const bos = [];
+  (function gez(o, yol) { if (!o || typeof o !== 'object') return; if (Array.isArray(o.enum) && o.enum.some(v => v === '')) bos.push(yol); for (const k in o) gez(o[k], `${yol}.${k}`); })(istek.generationConfig.responseSchema, 'şema');
+  assert.deepEqual(bos, []);
+});
