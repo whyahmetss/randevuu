@@ -24,6 +24,7 @@ const FALLBACK_PAKETLER = {
     sms_hatirlatma: false,   // ×
     kapora: false,           // × Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
     telegram: false,         // × Telegram botu (Standart ve üstü)
+    dogum_gunu: false,       // × Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: false, // ×
     api_erisimi: false,      // ×
     ozellikler: [
@@ -57,6 +58,7 @@ const FALLBACK_PAKETLER = {
     sms_hatirlatma: false,   // ×
     kapora: true,           // ✓ Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
     telegram: true,         // ✓ Telegram botu (Standart ve üstü)
+    dogum_gunu: true,       // ✓ Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: false, // ×
     api_erisimi: false,      // ×
     ozellikler: [
@@ -69,6 +71,7 @@ const FALLBACK_PAKETLER = {
       'Gece Raporu',
       'Kapora / ön ödeme',
       'Telegram botu',
+      'Doğum günü mesajı',
       'Bot 3 dilde: Türkçe · İngilizce · Arapça',
     ]
   },
@@ -94,6 +97,7 @@ const FALLBACK_PAKETLER = {
     sms_hatirlatma: false,
     kapora: true,           // ✓ Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
     telegram: true,         // ✓ Telegram botu (Standart ve üstü)
+    dogum_gunu: true,       // ✓ Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: true,
     api_erisimi: false,
     sube_yonetimi: true,     // ✓ Çoklu şube (3'e kadar)
@@ -131,6 +135,7 @@ const FALLBACK_PAKETLER = {
     sms_hatirlatma: true,    // ✓
     kapora: true,           // ✓ Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
     telegram: true,         // ✓ Telegram botu (Standart ve üstü)
+    dogum_gunu: true,       // ✓ Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: true,  // ✓
     api_erisimi: true,       // ✓
     sube_yonetimi: true,     // ✓ Çok şubeli işletme yönetimi
@@ -160,7 +165,7 @@ const FALLBACK_PAKETLER = {
     istatistik: true,
     export_aktif: true,
     coklu_dil: 99, kasa: true, magaza: true, prim: true, sadakat: true, winback: true,
-    yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true, kapora: true, telegram: true,
+    yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true, kapora: true, telegram: true, dogum_gunu: true,
     oncelikli_destek: true, api_erisimi: true, sube_yonetimi: true, sube_limit: 999,
     ozellikler: [
       'Sınırsız çalışan',
@@ -219,6 +224,7 @@ async function paketleriYukle() {
           // Veritabanında kolonu olmayan yeni bayraklar koddaki tanımdan gelir
           kapora: row.kapora !== undefined ? !!row.kapora : (fallback.kapora !== undefined ? fallback.kapora : true),
           telegram: row.telegram !== undefined ? !!row.telegram : (fallback.telegram !== undefined ? fallback.telegram : true),
+          dogum_gunu: row.dogum_gunu !== undefined ? !!row.dogum_gunu : (fallback.dogum_gunu !== undefined ? fallback.dogum_gunu : true),
           sube_limit: row.sube_limit !== undefined ? row.sube_limit : (fallback.sube_limit || 1),
           ozellikler: row.ozellikler ? row.ozellikler.split('\n').filter(Boolean) : [],
         };

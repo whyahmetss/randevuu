@@ -1657,6 +1657,9 @@ function Dashboard({ kullanici }) {
   // Aktif sayfa değişince o gruba geçilsin (farklı gruptan tıklanınca otomatik aç)
   useEffect(() => { if (aktifGrup) setAcikGrup(aktifGrup); }, [aktifGrup]);
 
+  // Kazanç kartı (kullanıcı kararı 2026-10-14): pazartesi ve ayın son günü en üstte, diğer günler altta
+  const kazancUstte = (() => { const d = new Date(); const yarin = new Date(d); yarin.setDate(d.getDate() + 1); return d.getDay() === 1 || yarin.getDate() === 1; })();
+
   // Özellik paket kontrolü helper
   const ozellikAcik = (featureKey) => {
     if (!featureKey || !paketDurum?.paket_bilgi) return true;
@@ -2070,14 +2073,15 @@ function Dashboard({ kullanici }) {
                 .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
                 .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
           )}
-          {sayfa === "anasayfa" && !mobil && <KazancKarti api={api} dar={liteMod} />}
+          {sayfa === "anasayfa" && !mobil && kazancUstte && <KazancKarti api={api} dar={liteMod} />}
+          {sayfa === "anasayfa" && mobil && kazancUstte && <div style={{ maxWidth: 560, margin: "0 auto 14px" }}><KazancKarti api={api} dar /></div>}
           {sayfa === "googleharita" && <GoogleRehber ayarlar={ayarlar} />}
           {sayfa === "randevusayfam" && <RandevuSayfam api={api} />}
           {sayfa === "anasayfa" && (liteMod || mobil) && (
             mobil ? <BugunMobil api={api} setSayfa={setSayfa} /> : <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
           {/* Telefonda motivasyon kartları günün işinin altında (mobil rapor 2026-10-14) */}
-          {sayfa === "anasayfa" && mobil && <div style={{ maxWidth: 560, margin: "14px auto 0" }}><KurulumKarti api={api} setSayfa={setSayfa} /><KazancKarti api={api} dar /></div>}
+          {sayfa === "anasayfa" && mobil && <div style={{ maxWidth: 560, margin: "14px auto 0" }}><KurulumKarti api={api} setSayfa={setSayfa} />{!kazancUstte && <KazancKarti api={api} dar />}</div>}
           {sayfa === "anasayfa" && !(liteMod || mobil) && (() => {
             const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
             const haftaRandevu = stats?.hafta?.toplam_randevu || 0;
@@ -3291,9 +3295,11 @@ function Dashboard({ kullanici }) {
             <Sadakat api={api} />
           )}
 
+          {sayfa === "anasayfa" && !mobil && !kazancUstte && <KazancKarti api={api} dar={liteMod} />}
+
           {/* ── MÜŞTERİ GETİR (Referans + Doğum Günü birleşik) ── */}
           {sayfa === "musterigetir" && (
-            <MusteriGetir api={api} />
+            <MusteriGetir api={api} dogumKilitli={!ozellikAcik("dogum_gunu")} paketAc={() => setPaketModal(true)} />
           )}
 
           {/* ── KASA ── */}
