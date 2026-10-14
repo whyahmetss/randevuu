@@ -60,7 +60,7 @@ export default function KurulumKarti({ api, setSayfa }) {
                 background: a.tamam ? '#1f6f4a' : 'var(--bg)', color: a.tamam ? '#fff' : 'var(--dim)', border: a.tamam ? 'none' : '1px solid var(--border)' }}>
                 {a.tamam ? '✓' : i + 1}
               </span>
-              <span style={{ flex: 1, fontSize: 14, color: a.tamam ? 'var(--dim)' : 'var(--text)', textDecoration: a.tamam ? 'line-through' : 'none' }}>{a.isim}</span>
+              <span style={{ flex: 1, fontSize: 14, color: a.tamam ? 'var(--dim)' : 'var(--text)' }}>{a.isim}</span>
               {!a.tamam && a.anahtar === 'randevu' && link && (
                 <button onClick={() => { navigator.clipboard?.writeText(link).then(() => { setKopyalandi(true); setTimeout(() => setKopyalandi(false), 2000); }).catch(() => {}); }}
                   style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>

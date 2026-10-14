@@ -24,6 +24,7 @@ export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
   const [kopya, setKopya] = useState(false);
   const link = ayarlar?.slug ? bookingUrl(ayarlar.slug) : null;
   const kart = { background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 14 };
+  const grupBaslik = { fontSize: 13, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em', margin: '18px 4px 8px' };
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -49,17 +50,25 @@ export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
         {ok}
       </button>
 
+      {/* Gruplu liste (mobil rapor 2026-10-14): İşletmem / Görünürlük / Cihazlar ve bağlantı */}
+      <div style={grupBaslik}>İşletmem</div>
       <div style={kart}>
         <Satir baslik="Hizmetler ve fiyatlar" onClick={() => ac('hizmetler')} />
         <Satir baslik="Çalışma saatleri ve ayarlar" alt={ayarlar?.calisma_baslangic ? `${String(ayarlar.calisma_baslangic).slice(0, 5)} – ${String(ayarlar.calisma_bitis || '').slice(0, 5)}` : null} onClick={() => ac('ayarlar')} />
         <Satir baslik="Çalışanlar" onClick={() => ac('calisanlar')} />
+      </div>
+      <div style={grupBaslik}>Görünürlük</div>
+      <div style={kart}>
         <Satir baslik="Randevu sayfam" alt="Kapak fotoğrafı, logo, tema — müşterinin gördüğü sayfa" onClick={() => ac('randevusayfam')} />
         <Satir baslik="Google Haritalar'da randevu butonu" alt="Müşteri seni Google'da bulunca kendi saatini seçsin" onClick={() => ac('googleharita')} />
         <Satir baslik="SıraGO Vitrini" alt="Tablet, stant, malzeme — dükkânın için" onClick={() => ac('vitrin')} />
-        <Satir baslik="Tablet modu" alt="Tezgâhtaki tablet için dükkan ekranı ve müşteri modu" onClick={() => ac('tablet')} />
+      </div>
+      <div style={grupBaslik}>Cihazlar ve bağlantı</div>
+      <div style={kart}>
         <Satir baslik="WhatsApp asistanı" alt={wpBagli ? `Bağlı · ${ayarlar?.randevu_onay_modu === 'manuel' ? 'randevuları önce sana sorar' : 'randevuları kendisi verir'}` : 'Bağlı değil — bağlamak için dokun'}
           renk={wpBagli ? '#1f6f4a' : '#b42318'} onClick={() => ac('botbaglanti')} />
-        <button onClick={() => setFazla(!fazla)} style={{ ...satir, borderBottom: 'none', color: 'var(--dim)' }}>
+        <Satir baslik="Tablet modu" alt="Tezgâhtaki tablet için dükkân ekranı ve müşteri modu" onClick={() => ac('tablet')} />
+        <button onClick={() => setFazla(!fazla)} style={{ ...satir, borderBottom: 'none', color: 'var(--muted)' }}>
           <span style={{ flex: 1, fontSize: 16, fontWeight: 600 }}>{fazla ? 'Daha azı' : 'Daha fazla (kasa, sadakat, raporlar…)'}</span>
           <span style={{ transform: fazla ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}>{ok}</span>
         </button>
