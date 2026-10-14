@@ -71,7 +71,7 @@ export default function GeceRaporu({ api }) {
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={!!ayarlar.gece_raporu_aktif} onChange={e => setAyarlar({...ayarlar, gece_raporu_aktif: e.target.checked})}
+                  <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.gece_raporu_aktif} onChange={e => setAyarlar({...ayarlar, gece_raporu_aktif: e.target.checked})}
                     style={{ accentColor: '#1f6f4a', width: 20, height: 20 }} />
                   <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.gece_raporu_aktif ? '#1f6f4a' : 'var(--dim)' }}>
                     {ayarlar.gece_raporu_aktif ? 'Aktif' : 'Kapalı'}

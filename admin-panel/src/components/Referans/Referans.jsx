@@ -148,7 +148,7 @@ export default function Referans({ api }) {
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={!!ayarlar.referans_aktif} onChange={e => setAyarlar({...ayarlar, referans_aktif: e.target.checked})}
+                  <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.referans_aktif} onChange={e => setAyarlar({...ayarlar, referans_aktif: e.target.checked})}
                     style={{ accentColor: '#5d4bb5', width: 20, height: 20 }} />
                   <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.referans_aktif ? '#5d4bb5' : 'var(--dim)' }}>
                     {ayarlar.referans_aktif ? 'Aktif' : 'Kapalı'}

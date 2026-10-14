@@ -484,7 +484,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           <div style={S.card}>
             <CardHead emoji="💳" title="Kapora / Ön Ödeme" color="#1f6f4a" />
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-              <input type="checkbox" checked={!!ayarlar.kapora_aktif} onChange={async (e) => {
+              <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.kapora_aktif} onChange={async (e) => {
                 const yeniDurum = e.target.checked;
                 setAyarlar({...ayarlar, kapora_aktif: yeniDurum});
                 await api.put("/kapora", { kapora_aktif: yeniDurum });
@@ -500,7 +500,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ═══════════════  🔊 BİLDİRİM SESLERİ (Dükkan için ideal)  ═══════════════ */}
       <div style={{ ...S.card, marginBottom: 16, background: "rgba(31,111,74,.04)", borderColor: "rgba(31,111,74,.25)" }}>
-        <CardHead emoji="🔊" title="Bildirim Sesleri" color="#1f6f4a" desc="Tabletini dükkana koy — randevu gelince ziiink diye ötsün, sen sadece hazırlan." />
+        <CardHead emoji="🔊" title="Bildirim Sesleri" color="#1f6f4a" desc="Tabletini dükkâna koy — randevu gelince ziiink diye ötsün, sen sadece hazırlan." />
 
         {/* Sessiz mod toggle */}
         <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, background: sesAyar.sessiz ? "rgba(180,35,24,.06)" : "var(--surface2)", cursor: "pointer", marginBottom: 14, border: sesAyar.sessiz ? "1px solid rgba(180,35,24,.2)" : "1px solid var(--border)" }}>
@@ -576,7 +576,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           <input type="checkbox" checked={!!sesAyar.dukkanModuAuto} onChange={e => sesGuncelle({ dukkanModuAuto: e.target.checked })}
             style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>🛍️ Dükkan Modu — Fullscreen Popup</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>🛍️ Dükkân Modu — Tam ekran bildirim</div>
             <div style={{ fontSize: 11, color: "var(--dim)", lineHeight: 1.4 }}>
               Yeni randevu geldiğinde tüm ekranı kaplayan büyük "YENİ RANDEVU" ekranı açılsın. Ses 3 kere tekrar eder, 1 metreden bile kaçırmazsın.
             </div>
@@ -670,7 +670,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           </label>
           {/* Haftalık Rapor */}
           <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, background: "var(--surface2)", cursor: "pointer" }}>
-            <input type="checkbox" checked={!!ayarlar.haftalik_rapor_aktif} onChange={e => setAyarlar({...ayarlar, haftalik_rapor_aktif: e.target.checked})}
+            <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.haftalik_rapor_aktif} onChange={e => setAyarlar({...ayarlar, haftalik_rapor_aktif: e.target.checked})}
               style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>📊 Haftalık Rapor</div>
@@ -682,7 +682,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
             <input type="checkbox" checked={ayarlar.rebook_aktif !== false} onChange={e => setAyarlar({...ayarlar, rebook_aktif: e.target.checked})}
               style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>📅 Otomatik Rebook</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>📅 Otomatik tekrar randevu teklifi</div>
               <div style={{ fontSize: 11, color: "var(--dim)" }}>Randevu tamamlandıktan 2 saat sonra tekrar randevu teklifi gönderir. (2 haftada 1 max)</div>
             </div>
           </label>

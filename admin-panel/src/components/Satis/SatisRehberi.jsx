@@ -75,7 +75,7 @@ function Metinler() {
       <H>Saha</H>
       <Liste items={[
         'Giriş: "Kolay gelsin usta, 2 dakikanı alırım. Satış yapmaya gelmedim, bir şey göstereyim."',
-        'Telefonda dükkânın kendi demo sayfasını aç, önüne koy: "Müşterin buraya giriyor, saç+sakal seçiyor, saatini alıyor. Sen traş ederken telefonla uğraşmıyorsun."',
+        'Telefonda dükkânın kendi demo sayfasını aç, önüne koy: "Müşterin buraya giriyor, saç+sakal seçiyor, saatini alıyor. Sen tıraş ederken telefonla uğraşmıyorsun."',
         '"Fiyatlarını söyle, şimdi sayfaya ekleyelim" → kurulumu orada bitir, QR kartı tezgâha koy, Masa\'da "Bağlandı" işaretle.',
       ]} />
       <H>WhatsApp (arama açılmazsa, tek mesaj)</H>
@@ -122,7 +122,7 @@ function Kurallar() {
         <>Yalan yok: "resmî WhatsApp API", "gelmeyen müşteri sıfıra iner", "binlerce esnaf kullanıyor", "SMS doğrulama", "iyzico" demeyin. Doğrulama kodu WhatsApp'tan, ödeme Shopier'den.</>,
         '"İstemiyorum" diyen bir daha aranmaz; Masa\'da "İlgilenmiyor" işaretlenir.',
         'Başkasının listesindeki dükkânı aramayın; Masa her adayı tek kişiye verir.',
-        'Satış botundan günde 30\'dan fazla mesaj atılmaz; numara yanarsa en güçlü kanalımız kapanır.',
+        'Sistem sınırı: satış botu yeni numarada günde 10 mesajla başlar, numara başı en fazla 50; kişisel numarandan tanımadığına günde en fazla 20 yaz. Numara yanarsa en güçlü kanalımız kapanır.',
         'Esnafın müşteri bilgisi ekip dışına çıkmaz; ekran görüntüsü paylaşırken isim ve numara kapatılır.',
         'Cevabını bilmediğiniz soruda uydurmayın: "Ekibe sorup döneyim" deyin ve gruba yazın.',
       ]} />

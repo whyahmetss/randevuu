@@ -163,7 +163,7 @@ class AvciBot {
           adres,
           sehir,
           tespit_ilce,
-          kategori,
+          require('../utils/kategori').kategoriNormalize(kategori),   // ana kategoriye (kampanya eşleşsin)
           yer.rating || null,
           yer.userRatingCount || 0,
           webSitesi,
@@ -750,7 +750,7 @@ class AvciBot {
           null,
           sehir,
           ilce || null,
-          kategori,
+          require('../utils/kategori').kategoriNormalize(kategori),   // ana kategoriye (kampanya eşleşsin)
           null,
           0,
           null,

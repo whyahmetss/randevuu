@@ -133,7 +133,7 @@ export default function Winback({ api }) {
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={!!ayarlar.winback_aktif} onChange={e => setAyarlar({...ayarlar, winback_aktif: e.target.checked})}
+                  <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.winback_aktif} onChange={e => setAyarlar({...ayarlar, winback_aktif: e.target.checked})}
                     style={{ accentColor: '#b42318', width: 20, height: 20 }} />
                   <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.winback_aktif ? '#b42318' : 'var(--dim)' }}>
                     {ayarlar.winback_aktif ? 'Aktif' : 'Kapalı'}
@@ -178,7 +178,7 @@ export default function Winback({ api }) {
 
           <button onClick={kaydet} style={{
             width: '100%', padding: '14px', borderRadius: 14, border: 'none',
-            background: '#b42318',
+            background: '#1f6f4a',
             color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(180,35,24,.3)', fontFamily: 'inherit',
           }}>Kaydet</button>

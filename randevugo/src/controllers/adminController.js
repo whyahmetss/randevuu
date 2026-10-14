@@ -22,7 +22,7 @@ class AdminController {
       
       let query = `
         SELECT r.*, m.isim as musteri_isim, m.telefon as musteri_telefon,
-               h.isim as hizmet_isim, h.fiyat, c.isim as calisan_isim,
+               h.isim as hizmet_isim, h.fiyat, h.sure_dk as hizmet_sure, c.isim as calisan_isim,
                (SELECT COUNT(*)::int FROM randevu_hizmetleri rh WHERE rh.randevu_id = r.id) as hizmet_adet,
                (SELECT STRING_AGG(hh.isim, ' + ' ORDER BY rh.sira)
                   FROM randevu_hizmetleri rh
@@ -623,7 +623,8 @@ class AdminController {
       const paketListesi = {};
       for (const [kod, p] of Object.entries(tumPaketler)) {
         if (kod === 'premium') continue; // alias'ı atla
-        paketListesi[kod] = { isim: p.isim, fiyat: p.fiyat };
+        // Paket ekranı özellik ve limitleri buradan gösterir (sabit yazılı liste veritabanıyla çelişiyordu)
+        paketListesi[kod] = { isim: p.isim, fiyat: p.fiyat, ozellikler: p.ozellikler || [], calisan_limit: p.calisan_limit, aylik_randevu_limit: p.aylik_randevu_limit };
       }
 
       res.json({
@@ -764,6 +765,15 @@ class AdminController {
         `UPDATE isletmeler SET ${fields.join(', ')} WHERE id=$${idx} RETURNING *`,
         values
       );
+      // Paket değişince bu ayın bekleyen ödeme kaydı yeni paketin fiyatına çekilir (eski paketin tutarı kalıyordu)
+      if (paket !== undefined && result.rows[0]) {
+        try {
+          const p = await paketGetir(paket);
+          const fiyat = require('../utils/oncu').etkinFiyat(result.rows[0], paket, p.fiyat);
+          await pool.query(`UPDATE odemeler SET tutar = $1 WHERE isletme_id = $2 AND donem = $3 AND durum IN ('bekliyor', 'odeme_bekliyor')`,
+            [fiyat, result.rows[0].id, bugunTarih().slice(0, 7)]);
+        } catch (e) { /* ödeme kaydı yoksa önemsiz */ }
+      }
       res.json({ isletme: result.rows[0] });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -1747,7 +1757,7 @@ class AdminController {
         SELECT r.tarih, COALESCE(SUM(h.fiyat),0) as gelir
         FROM randevular r
         JOIN hizmetler h ON r.hizmet_id = h.id
-        WHERE r.isletme_id=$1 AND r.tarih >= CURRENT_DATE - INTERVAL '29 days'
+        WHERE r.isletme_id=$1 AND r.tarih >= CURRENT_DATE - INTERVAL '29 days' AND r.tarih <= CURRENT_DATE
           AND r.durum IN ('onaylandi','tamamlandi')
         GROUP BY r.tarih ORDER BY r.tarih
       `, [isletmeId])).rows;
@@ -2218,9 +2228,11 @@ class AdminController {
       try {
         const odemeyenResult = (await pool.query(`
           SELECT COUNT(*) as c FROM isletmeler i
-          WHERE i.aktif = true
-            AND NOT EXISTS (SELECT 1 FROM odemeler o WHERE o.isletme_id = i.id AND o.donem = $1 AND o.durum = 'odendi')
-            AND i.olusturma_tarihi < (date_trunc('month', CURRENT_DATE) - interval '7 day')
+          WHERE i.aktif = true AND i.demo IS NOT TRUE
+            -- Ödemesi gecikmiş = deneme de ödenmiş dönem de bitmiş (denemedeki ve yıllık ödeyen sayılmaz; panel listesiyle aynı kural)
+            AND GREATEST(COALESCE(i.deneme_bitis_tarihi, 'epoch'), COALESCE(i.paket_bitis_tarihi, 'epoch')) < NOW()
+            AND (i.grup_id IS NULL OR i.id = (SELECT MIN(m.id) FROM isletmeler m WHERE m.grup_id = i.grup_id))
+            AND $1::text IS NOT NULL
         `, [buAy])).rows[0];
         buAyOdemeyenSayi = parseInt(odemeyenResult?.c) || 0;
       } catch(e) {}
@@ -2884,7 +2896,7 @@ class AdminController {
         SELECT i.id, i.isim, i.telefon, i.kategori, i.paket, i.olusturma_tarihi,
           i.bot_aktif, i.telegram_token, i.whatsapp_no,
           COUNT(r.id)::int as randevu_sayisi,
-          MAX(r.tarih) as son_randevu
+          MAX(r.tarih) FILTER (WHERE r.tarih <= CURRENT_DATE) as son_randevu
         FROM isletmeler i
         LEFT JOIN randevular r ON r.isletme_id = i.id
         WHERE i.aktif = true
@@ -2942,7 +2954,7 @@ class AdminController {
         SELECT i.id, i.isim, i.telefon, i.paket, i.aktif, i.zombi_uyari_gonderildi,
           i.olusturma_tarihi,
           COUNT(r.id) as randevu_sayisi,
-          MAX(r.tarih) as son_randevu
+          MAX(r.tarih) FILTER (WHERE r.tarih <= CURRENT_DATE) as son_randevu
         FROM isletmeler i
         LEFT JOIN randevular r ON r.isletme_id = i.id
         WHERE i.aktif = true
@@ -3287,7 +3299,7 @@ class AdminController {
         return res.status(403).json({ hata: `Excel dışa aktarma ${paketBilgi.isim} paketinde kullanılamıyor. Paketinizi yükseltin!`, limit_asimi: true });
       }
       const musteriler = (await pool.query(`
-        SELECT m.isim, m.telefon, COUNT(r.id) as randevu_sayisi, MAX(r.tarih) as son_randevu,
+        SELECT m.isim, m.telefon, COUNT(r.id) as randevu_sayisi, MAX(r.tarih) FILTER (WHERE r.tarih <= CURRENT_DATE) as son_randevu,
                COALESCE(SUM(h.fiyat), 0) as toplam_harcama
         FROM musteriler m
         JOIN randevular r ON r.musteri_id = m.id
@@ -4723,7 +4735,7 @@ class AdminController {
           COALESCE((SELECT COUNT(*) FROM musteriler m WHERE (m.son_gelinen_isletme_id = i.id OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = i.id))), 0) as musteri_sayisi,
           COALESCE((SELECT COUNT(*) FROM hizmetler h WHERE h.isletme_id = i.id), 0) as hizmet_sayisi,
           COALESCE((SELECT COUNT(*) FROM calisanlar c WHERE c.isletme_id = i.id), 0) as calisan_sayisi,
-          (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id) as son_randevu,
+          (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih <= CURRENT_DATE) as son_randevu,
           COALESCE((SELECT AVG(CASE WHEN r.durum = 'tamamlandi' THEN 1.0 ELSE 0.0 END) FROM randevular r WHERE r.isletme_id = i.id), 0) as tamamlanma_orani
         FROM isletmeler i
         WHERE i.aktif = true
@@ -4784,7 +4796,7 @@ class AdminController {
           COALESCE((SELECT COUNT(*) FROM odemeler o WHERE o.isletme_id = i.id AND o.durum = 'odendi'), 0) as odeme_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.isletme_id = i.id), 0) as randevu_sayisi,
           COALESCE((SELECT COUNT(*) FROM musteriler m WHERE (m.son_gelinen_isletme_id = i.id OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = m.id AND rx.isletme_id = i.id))), 0) as musteri_sayisi,
-          (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id) as son_randevu
+          (SELECT MAX(r.tarih) FROM randevular r WHERE r.isletme_id = i.id AND r.tarih <= CURRENT_DATE) as son_randevu
         FROM isletmeler i
         WHERE i.aktif = true
         ORDER BY 8 DESC
@@ -5064,7 +5076,7 @@ class AdminController {
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id), 0) as randevu_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id AND r.durum = 'tamamlandi'), 0) as tamamlanan_randevu,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id AND r.durum = 'iptal'), 0) as iptal_randevu,
-          (SELECT MAX(r.tarih) FROM randevular r WHERE r.musteri_id = m.id) as son_randevu_tarih,
+          (SELECT MAX(r.tarih) FROM randevular r WHERE r.musteri_id = m.id AND r.tarih <= CURRENT_DATE) as son_randevu_tarih,
           (SELECT MIN(r.tarih) FROM randevular r WHERE r.musteri_id = m.id) as ilk_randevu_tarih
         FROM musteriler m
         LEFT JOIN isletmeler i ON i.id = (SELECT r3.isletme_id FROM randevular r3 WHERE r3.musteri_id = m.id LIMIT 1)

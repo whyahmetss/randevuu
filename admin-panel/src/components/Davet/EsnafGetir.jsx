@@ -14,7 +14,9 @@ export default function EsnafGetir({ api }) {
     api.get('/oncu').then(x => !x?.hata && setOncu(x)).catch(() => {});
   }, [api]);
 
-  const mesaj = d ? `Selam, ben randevularımı SıraGO ile alıyorum; müşteri WhatsApp'tan ya da linkten kendisi randevu alıyor. 14 gün ücretsiz, bu linkten kurabilirsin: ${d.link}` : '';
+  // Görünen adres "sırago.com": "xn--srago-n4a" biçimi esnafa dolandırıcı linki gibi görünüyordu (tarayıcılar ikisini aynı açar)
+  const link = d?.link ? d.link.replace(/xn--srago-n4a/g, 'sırago') : '';
+  const mesaj = d ? `Selam, ben randevularımı SıraGO ile alıyorum; müşteri WhatsApp'tan ya da linkten kendisi randevu alıyor. 14 gün ücretsiz, bu linkten kurabilirsin: ${link}` : '';
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -40,8 +42,8 @@ export default function EsnafGetir({ api }) {
       <div style={kart}>
         <div style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 8 }}>Davet linkin</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <input readOnly value={d?.link || 'Yükleniyor…'} onFocus={e => e.target.select()} className="input" style={{ flex: '1 1 260px', borderRadius: 10, fontSize: 13 }} />
-          <button disabled={!d} onClick={() => { navigator.clipboard?.writeText(d.link).then(() => { setKopya(true); setTimeout(() => setKopya(false), 1800); }).catch(() => {}); }}
+          <input readOnly value={link || 'Yükleniyor…'} onFocus={e => e.target.select()} className="input" style={{ flex: '1 1 260px', borderRadius: 10, fontSize: 13 }} />
+          <button disabled={!d} onClick={() => { navigator.clipboard?.writeText(link).then(() => { setKopya(true); setTimeout(() => setKopya(false), 1800); }).catch(() => {}); }}
             style={{ padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer' }}>
             {kopya ? '✓ Kopyalandı' : 'Kopyala'}
           </button>

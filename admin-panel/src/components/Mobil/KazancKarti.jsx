@@ -28,7 +28,8 @@ export default function KazancKarti({ api, dar }) {
         {kutu(k.otomatik, 'sen uğraşmadan gelen randevu')}
         {k.otomatik_tutar > 0 && kutu(`≈ ${tl(k.otomatik_tutar)}`, 'bu randevuların değeri')}
         {k.mesai_disi > 0 && kutu(k.mesai_disi, 'dükkân kapalıyken alındı')}
-        {k.hatirlatilan > 0 && kutu(`${k.hatirlatilan_gelen}/${k.hatirlatilan}`, 'hatırlatma gitti, geldi')}
+        {/* "2/14" esnafa "14'ten 2'si geldi" gibi okunuyordu; hatırlatmanın kendisi gösterilir (2026-10-14 rapor) */}
+        {k.hatirlatilan > 0 && kutu(k.hatirlatilan, 'müşteriye otomatik hatırlatma gitti')}
       </div>
       <button onClick={() => setAcik(!acik)} style={{ marginTop: 10, border: 'none', background: 'none', padding: 0, color: 'var(--dim)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>
         {acik ? 'Kapat' : 'Bu sayılar nereden geliyor?'}

@@ -62,7 +62,7 @@ const FALLBACK_PAKETLER = {
       'Kayıp Müşteri Kurtarma',
       'Yorum Avcısı',
       'Gece Raporu',
-      '3 Dil Desteği',
+      'Bot 3 dilde: Türkçe · İngilizce · Arapça',
     ]
   },
   // Pro+ (kullanıcı kararı 2026-10-08): Standart (499; 2026-10-09'a kadar 699) ile Kurumsal (4999) arası 7 kat sıçrama yerine
@@ -130,7 +130,7 @@ const FALLBACK_PAKETLER = {
       'Çok Şubeli Yönetim',
       'Merkezi Müşteri & Sadakat',
       'Konsolide Raporlar',
-      'SMS Hatırlatma',
+      'SMS Hatırlatma (kendi NetGSM hesabınızla)',
       'Öncelikli Destek',
       'API Erişimi',
       'Özel Eğitim & Onboarding',
@@ -154,7 +154,7 @@ const FALLBACK_PAKETLER = {
     ozellikler: [
       'Sınırsız çalışan',
       'Sınırsız randevu',
-      'SMS Hatırlatma',
+      'SMS Hatırlatma (kendi NetGSM hesabınızla)',
       'Öncelikli Destek',
       'API Erişimi',
       'Özel Eğitim & Onboarding',
