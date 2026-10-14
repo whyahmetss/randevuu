@@ -39,6 +39,9 @@ services:
         sync: false
       - key: VAPID_CONTACT
         value: mailto:siragobusiness@gmail.com
+      # Google ile giriş (Google Cloud → OAuth istemci kimliği, Web uygulaması). Boşsa buton görünmez.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
 
   # PostgreSQL Database
   - type: pserv

@@ -203,18 +203,75 @@ function Login({ onLogin }) {
   // ?kayit=1 (tanıtım sitesindeki "Ücretsiz Dene") ya da davet linki → doğrudan kayıt ekranı
   const [ekran, setEkran] = useState(davetParam.kod || /[?&]kayit=1/.test(window.location.search) ? "kayit" : "giris"); // giris | kayit
   const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
+  const [bilgi, setBilgi] = useState("");
+  const [googleId, setGoogleId] = useState(null);          // sunucuda GOOGLE_CLIENT_ID varsa Google butonu çıkar
+  const [googleYeni, setGoogleYeni] = useState(null);      // { credential, email } → işletme adı sorulur
+  const [sifreForm, setSifreForm] = useState({ adim: 1, email: "", kod: "", sifre: "" });
+  const googleRef = useRef(null);
+
+  // Giriş/kayıt/şifre yenileme hepsi aynı cevabı döner (token + kullanıcı)
+  const oturumAc = (data) => {
+    if (!data?.token) return false;
+    api.token = data.token;
+    localStorage.setItem("randevugo_token", data.token);
+    onLogin(data.kullanici);
+    return true;
+  };
+  // Not: /auth/* 401 dönerse ortak api istemcisi oturumu kapatıp sayfayı yeniler; burada doğrudan fetch kullanılır
+  const authPost = (yol, govde) => fetch(`${API_URL}${yol}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(govde) })
+    .then(r => r.json()).catch(() => ({ hata: "Bağlantı hatası, tekrar deneyin" }));
+
+  const googleCevap = async (credential, isletmeAdi) => {
+    setHata(""); setYukleniyor(true);
+    const d = await authPost("/auth/google", { credential, isletmeAdi, davet: (kayitForm.davet || "").trim() || undefined,
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web" });
+    setYukleniyor(false);
+    if (d.yeni) { setGoogleYeni({ credential, email: d.email }); setEkran("kayit"); return; }
+    if (!oturumAc(d)) setHata(d.hata || "Google ile giriş yapılamadı");
+  };
+  const googleCevapRef = useRef(googleCevap);
+  googleCevapRef.current = googleCevap;
+
+  useEffect(() => {
+    fetch(`${API_URL}/auth/ayar`).then(r => r.json()).then(d => {
+      if (!d?.google_client_id) return;
+      const kur = () => {
+        window.google?.accounts?.id?.initialize({ client_id: d.google_client_id, callback: (c) => googleCevapRef.current(c.credential) });
+        setGoogleId(d.google_client_id);
+      };
+      if (window.google?.accounts?.id) return kur();
+      const s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.onload = kur;
+      document.head.appendChild(s);
+    }).catch(() => {});
+  }, []);
+  // Google butonu ekran değişince yeniden çizilir
+  useEffect(() => {
+    if (!googleId || !googleRef.current || !window.google?.accounts?.id) return;
+    googleRef.current.innerHTML = "";
+    window.google.accounts.id.renderButton(googleRef.current, { theme: "outline", size: "large", width: Math.min(360, googleRef.current.offsetWidth || 360),
+      text: ekran === "kayit" ? "signup_with" : "signin_with", locale: "tr" });
+  }, [googleId, ekran, googleYeni]);
 
   const giris = async (e) => {
     e.preventDefault();
     setYukleniyor(true);
     setHata("");
-    const data = await api.post("/auth/giris", { email, sifre });
-    if (data.token) {
-      api.token = data.token;
-      localStorage.setItem("randevugo_token", data.token);
-      onLogin(data.kullanici);
+    const data = await authPost("/auth/giris", { email, sifre });
+    if (!oturumAc(data)) setHata(data.hata || "Giriş başarısız");
+    setYukleniyor(false);
+  };
+
+  const sifreAdim = async (e) => {
+    e.preventDefault();
+    setHata(""); setBilgi(""); setYukleniyor(true);
+    if (sifreForm.adim === 1) {
+      const d = await authPost("/auth/sifre-kod", { email: sifreForm.email });
+      if (d.hata) setHata(d.hata); else { setBilgi(d.mesaj); setSifreForm(f => ({ ...f, adim: 2 })); }
     } else {
-      setHata(data.hata || "Giriş başarısız");
+      if (sifreForm.sifre.length < 8) { setYukleniyor(false); return setHata("Yeni şifre en az 8 karakter olmalı"); }
+      const d = await authPost("/auth/sifre-yenile", { email: sifreForm.email, kod: sifreForm.kod, sifre: sifreForm.sifre });
+      if (!oturumAc(d)) setHata(d.hata || "Şifre değiştirilemedi");
     }
     setYukleniyor(false);
   };
@@ -229,11 +286,9 @@ function Login({ onLogin }) {
     const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
       kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined });
     if (data.basarili) {
-      setHata("");
-      setEkran("giris");
-      setEmail(kayitForm.email);
-      setSifre("");
-      alert("✅ Hesabınız oluşturuldu! Şimdi giriş yapabilirsiniz.");
+      // Kayıttan sonra şifreyi tekrar yazdırmadan doğrudan panele
+      const g = await authPost("/auth/giris", { email: kayitForm.email, sifre: kayitForm.sifre });
+      if (!oturumAc(g)) { setEkran("giris"); setEmail(kayitForm.email); setBilgi("Hesabınız oluşturuldu, giriş yapabilirsiniz."); }
     } else {
       setHata(data.hata || "Kayıt başarısız");
     }
@@ -283,24 +338,82 @@ function Login({ onLogin }) {
           <span>SıraGO</span>
         </div>
         <div className="login-card">
-          <div className="login-title">{ekran === "giris" ? "Hoş Geldiniz" : "Hesap Oluştur"}</div>
-          <div className="login-subtitle">{ekran === "giris" ? "Panele erişmek için giriş yapın" : "Ücretsiz deneyin, kredi kartı gerekmez"}</div>
+          <div className="login-title">{ekran === "giris" ? "Hoş Geldiniz" : ekran === "sifre" ? "Şifremi Unuttum" : googleYeni ? "Son bir adım" : "Hesap Oluştur"}</div>
+          <div className="login-subtitle">{ekran === "giris" ? "Panele erişmek için giriş yapın" : ekran === "sifre" ? "Kayıtlı WhatsApp numaranıza kod gönderelim" : googleYeni ? googleYeni.email : "14 gün ücretsiz deneyin, kredi kartı gerekmez"}</div>
 
-          <div className="login-tabs">
-            <button className={`login-tab${ekran === "giris" ? " active" : ""}`} onClick={() => { setEkran("giris"); setHata(""); }}>Giriş Yap</button>
-            <button className={`login-tab${ekran === "kayit" ? " active" : ""}`} onClick={() => { setEkran("kayit"); setHata(""); }}>Kayıt Ol</button>
-          </div>
+          {ekran !== "sifre" && !googleYeni && (
+            <div className="login-tabs">
+              <button className={`login-tab${ekran === "giris" ? " active" : ""}`} onClick={() => { setEkran("giris"); setHata(""); setBilgi(""); }}>Giriş Yap</button>
+              <button className={`login-tab${ekran === "kayit" ? " active" : ""}`} onClick={() => { setEkran("kayit"); setHata(""); setBilgi(""); }}>Kayıt Ol</button>
+            </div>
+          )}
 
-          {ekran === "giris" ? (
+          {/* Google ile giriş/kayıt (sunucuda GOOGLE_CLIENT_ID tanımlıysa) */}
+          {googleId && ekran !== "sifre" && !googleYeni && (
+            <>
+              <div ref={googleRef} className="login-google" />
+              <div className="login-divider"><span>veya e-posta ile</span></div>
+            </>
+          )}
+
+          {ekran === "sifre" ? (
+            <form onSubmit={sifreAdim}>
+              <div className="form-group">
+                <label className="form-label">E-posta</label>
+                <input type="email" name="email" autoComplete="username" placeholder="ornek@email.com" value={sifreForm.email} disabled={sifreForm.adim === 2}
+                  onChange={e => setSifreForm(f => ({ ...f, email: e.target.value }))} className="input" />
+              </div>
+              {sifreForm.adim === 2 && (<>
+                <div className="form-group">
+                  <label className="form-label">WhatsApp'a gelen kod</label>
+                  <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="6 haneli kod" value={sifreForm.kod}
+                    onChange={e => setSifreForm(f => ({ ...f, kod: e.target.value.replace(/\D/g, "") }))} className="input" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Yeni şifre</label>
+                  <input type="password" autoComplete="new-password" placeholder="En az 8 karakter" value={sifreForm.sifre}
+                    onChange={e => setSifreForm(f => ({ ...f, sifre: e.target.value }))} className="input" />
+                </div>
+              </>)}
+              {bilgi && <div className="alert alert-success">{bilgi}</div>}
+              {hata && <div className="alert alert-error">{hata}</div>}
+              <button type="submit" disabled={yukleniyor || !sifreForm.email || (sifreForm.adim === 2 && sifreForm.kod.length !== 6)} className="login-btn-primary">
+                {yukleniyor ? "Bekleyin..." : sifreForm.adim === 1 ? "Kod gönder" : "Şifreyi değiştir ve giriş yap"}
+              </button>
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14 }}>
+                <button type="button" className="login-link" onClick={() => { setEkran("giris"); setHata(""); setBilgi(""); setSifreForm({ adim: 1, email: "", kod: "", sifre: "" }); }}>← Girişe dön</button>
+                {sifreForm.adim === 2 && <button type="button" className="login-link" onClick={() => { setSifreForm(f => ({ ...f, adim: 1, kod: "" })); setBilgi(""); }}>Kodu tekrar gönder</button>}
+              </div>
+            </form>
+          ) : googleYeni ? (
+            <form onSubmit={e => { e.preventDefault(); if ((kayitForm.isletmeAdi || "").trim().length < 2) return setHata("İşletme adını yazın"); googleCevap(googleYeni.credential, kayitForm.isletmeAdi.trim()); }}>
+              <div className="form-group">
+                <label className="form-label">İşletme Adı</label>
+                <input type="text" autoComplete="organization" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} autoFocus
+                  onChange={e => setKayitForm(p => ({ ...p, isletmeAdi: e.target.value }))} className="input" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Davet kodu <span style={{ fontWeight: 400, color: "var(--dim)" }}>(varsa)</span></label>
+                <input type="text" autoComplete="off" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
+              </div>
+              {hata && <div className="alert alert-error">{hata}</div>}
+              <button type="submit" disabled={yukleniyor} className="login-btn-primary">{yukleniyor ? "Hesap oluşturuluyor..." : "Hesabımı oluştur"}</button>
+              <button type="button" className="login-link" style={{ marginTop: 14 }} onClick={() => { setGoogleYeni(null); setHata(""); }}>← Vazgeç</button>
+            </form>
+          ) : ekran === "giris" ? (
             <form onSubmit={giris}>
               <div className="form-group">
                 <label className="form-label">E-posta</label>
-                <input type="email" placeholder="ornek@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
+                <input type="email" name="email" autoComplete="username" placeholder="ornek@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input" />
               </div>
               <div className="form-group">
-                <label className="form-label">Şifre</label>
-                <input type="password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
+                <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                  <span>Şifre</span>
+                  <button type="button" className="login-link" onClick={() => { setEkran("sifre"); setHata(""); setBilgi(""); setSifreForm({ adim: 1, email, kod: "", sifre: "" }); }}>Şifremi unuttum</button>
+                </label>
+                <input type="password" name="password" autoComplete="current-password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
               </div>
+              {bilgi && <div className="alert alert-success">{bilgi}</div>}
               {hata && <div className="alert alert-error">{hata}</div>}
               <button type="submit" disabled={yukleniyor} className="login-btn-primary">
                 {yukleniyor ? "Giriş yapılıyor..." : "Giriş Yap"}
@@ -308,7 +421,7 @@ function Login({ onLogin }) {
             </form>
           ) : (
             <>
-              <form onSubmit={kayitOl}>
+              <form onSubmit={kayitOl} autoComplete="off">
                 {davetParam.kod && (
                   <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(31,111,74,.08)", color: "#1f6f4a", fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
                     🎁 Bir esnaf sizi davet etti — 14 gün ücretsiz, kart istemiyoruz.
@@ -316,23 +429,23 @@ function Login({ onLogin }) {
                 )}
                 <div className="form-group">
                   <label className="form-label">İşletme Adı</label>
-                  <input type="text" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} onChange={e => setKayitForm(p => ({ ...p, isletmeAdi: e.target.value }))} className="input" />
+                  <input type="text" autoComplete="organization" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} onChange={e => setKayitForm(p => ({ ...p, isletmeAdi: e.target.value }))} className="input" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">E-posta</label>
-                  <input type="email" placeholder="ornek@email.com" value={kayitForm.email} onChange={e => setKayitForm(p => ({ ...p, email: e.target.value }))} className="input" />
+                  <input type="email" name="yeni-email" autoComplete="email" placeholder="ornek@email.com" value={kayitForm.email} onChange={e => setKayitForm(p => ({ ...p, email: e.target.value }))} className="input" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre</label>
-                  <input type="password" placeholder="En az 8 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
+                  <input type="password" autoComplete="new-password" placeholder="En az 8 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre Tekrar</label>
-                  <input type="password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} className="input" />
+                  <input type="password" autoComplete="new-password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} className="input" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Davet kodu <span style={{ fontWeight: 400, color: "var(--dim)" }}>(varsa)</span></label>
-                  <input type="text" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
+                  <input type="text" autoComplete="off" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
                 </div>
                 {hata && <div className="alert alert-error">{hata}</div>}
                 <button type="submit" disabled={yukleniyor} className="login-btn-primary">
@@ -352,6 +465,13 @@ function Login({ onLogin }) {
               </a>
             </>
           )}
+
+          {/* Telefonda sağdaki tanıtım görünmüyor: kısa tanıtım + siteye dönüş */}
+          <div className="login-mobil-tanitim">
+            <b style={{ color: "var(--text)" }}>SıraGO nedir?</b> Müşterileriniz WhatsApp'tan yazar, yapay zekâ boş saati bulup randevuyu verir;
+            hatırlatmalar kendiliğinden gider. Berber, kuaför ve güzellik salonları için.
+            <div style={{ marginTop: 8 }}><a href="https://xn--srago-n4a.com/">← Tanıtım sitesine dön</a></div>
+          </div>
         </div>
       </div>
       {heroPanel}
