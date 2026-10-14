@@ -546,7 +546,7 @@ export default function BookingPage({ slug }) {
         <div className={`bk-header${isletme?.kapak_var ? ' kapakli' : ''}`}>
           <div className="bk-header-row">
             <div className="bk-logo">{isletme?.logo_var
-              ? <img src={gorsel('logo')} alt={isletme?.isim || ''} />
+              ? <img src={gorsel('logo')} alt="" />
               : (isletme?.isim || 'S').trim().charAt(0).toLocaleUpperCase('tr')}</div>
             <div className="bk-info">
               <h1 className="bk-title">{isletme?.isim}</h1>

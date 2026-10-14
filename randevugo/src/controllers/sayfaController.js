@@ -60,7 +60,8 @@ class SayfaController {
         WHERE i.slug = $1 AND i.aktif = true AND g.tur = $2`, [req.params.slug, req.params.tur])).rows[0];
       const m = String(r?.veri || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
       if (!m) return res.status(404).end();
-      res.set('Content-Type', m[1]).set('Cache-Control', 'public, max-age=31536000, immutable').send(Buffer.from(m[2], 'base64'));
+      // Panel ve randevu sayfası başka alan adında: helmet'in same-origin kuralı görseli engelliyordu
+      res.set('Content-Type', m[1]).set('Cache-Control', 'public, max-age=31536000, immutable').set('Cross-Origin-Resource-Policy', 'cross-origin').send(Buffer.from(m[2], 'base64'));
     } catch (e) { res.status(404).end(); }
   }
 }

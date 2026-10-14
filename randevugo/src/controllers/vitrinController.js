@@ -67,7 +67,8 @@ class VitrinController {
       const u = (await pool.query('SELECT gorsel_veri FROM magaza_urunler WHERE id = $1', [parseInt(req.params.id)])).rows[0];
       const m = String(u?.gorsel_veri || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
       if (!m) return res.status(404).end();
-      res.set('Content-Type', m[1]).set('Cache-Control', 'public, max-age=31536000, immutable').send(Buffer.from(m[2], 'base64'));
+      // Panel ve randevu sayfası başka alan adında: helmet'in same-origin kuralı görseli engelliyordu
+      res.set('Content-Type', m[1]).set('Cache-Control', 'public, max-age=31536000, immutable').set('Cross-Origin-Resource-Policy', 'cross-origin').send(Buffer.from(m[2], 'base64'));
     } catch (e) { res.status(404).end(); }
   }
 
