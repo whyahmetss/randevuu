@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from 'react';
-import { API_URL } from '../../lib/config';
+import { API_URL, SOCKET_URL } from '../../lib/config';
 import { DILLER, TRANSLATIONS, detectLang, saveLang } from './translations';
 import './BookingPage.css';
 
@@ -169,6 +169,27 @@ export default function BookingPage({ slug }) {
     fetch(`${API_URL}/book/${slug}/hizmetler`).then(r => r.json()).then(d => setHizmetler(d.hizmetler || []));
   }, [isletme]);
 
+  // ─── Canlı (2026-10-14): sayfayı açık tutan müşteri de güncel görür, yenilemek gerekmez ───
+  // saatler:degisti → biri randevu aldı/iptal etti; sayfa:degisti → esnaf hizmet ya da görünümü değiştirdi.
+  // Bağlantı giriş istemez, yalnız bu dükkânın odasını dinler; içerik (kim, ne) gelmez.
+  const [canliSayac, setCanliSayac] = useState(0);
+  const [sayfaSayac, setSayfaSayac] = useState(0);
+  useEffect(() => {
+    let soket = null, kapandi = false, ilk = true;
+    import('socket.io-client').then(({ io }) => {
+      if (kapandi) return;
+      soket = io(SOCKET_URL, { auth: { slug }, transports: ['websocket', 'polling'], reconnectionDelayMax: 10000 });
+      soket.on('saatler:degisti', () => setCanliSayac(c => c + 1));
+      soket.on('sayfa:degisti', () => setSayfaSayac(c => c + 1));
+      soket.on('connect', () => { if (!ilk) setCanliSayac(c => c + 1); ilk = false; });   // kopukken kaçanlar
+    }).catch(() => { /* canlı yoksa sayfa yine çalışır */ });
+    return () => { kapandi = true; try { soket?.disconnect(); } catch { /* yok */ } };
+  }, [slug]);
+  useEffect(() => {
+    if (!sayfaSayac) return;
+    fetch(`${API_URL}/book/${slug}`).then(r => r.json()).then(d => { if (d?.isletme && !d.hata && !d.bookingKapali) setIsletme(d.isletme); }).catch(() => {});
+  }, [sayfaSayac]);
+
   // ─── Çoklu hizmet helper'ları ───
   const hizmetIdsParam = secilenHizmetler.map(h => h.id).join(',');
   const toplamSure = secilenHizmetler.reduce((s, h) => s + Number(h.sure_dk || 0), 0);
@@ -195,9 +216,17 @@ export default function BookingPage({ slug }) {
     if (secilenCalisan) params.set('calisanId', secilenCalisan.id);
     fetch(`${API_URL}/book/${slug}/saatler?${params}`).then(r => r.json()).then(d => {
       if (d.hata) console.error('Saatler alınamadı:', d.hata);
-      setSaatler(d.saatler || []);
+      const yeni = d.saatler || [];
+      setSaatler(yeni);
+      // Müşteri bilgi girerken seçtiği saati başkası aldıysa: saat seçimine geri dön, söyle
+      if (canliSayac && !yukleniyor && adim !== 7 && secilenSaat && !yeni.includes(secilenSaat)) {   // kendi gönderimi sırasında değil
+        setAdim(a => (a === 5 || a === 6 ? 4 : a));
+        setSecilenSaat(s => (yeni.includes(s) ? s : ''));
+        setHata(t('slotTaken'));
+      }
     }).catch(() => setSaatler([]));
-  }, [secilenTarih, secilenCalisan, hizmetIdsParam]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secilenTarih, secilenCalisan, hizmetIdsParam, canliSayac]);
 
   // ─── Handlers ───
   const hizmetToggle = (h) => {

@@ -21,7 +21,7 @@ export const DILLER = [
 
 export const TRANSLATIONS = {
   tr: {
-    open: 'Şu an açık', closed: 'Şu an kapalı', closedToday: 'Bugün kapalı', opensLabel: 'açılış', acilisBugun: 'bugün', acilisYarin: 'yarın', onlineOpen: 'Online randevu açık',
+    open: 'Şu an açık', closed: 'Şu an kapalı', closedToday: 'Bugün kapalı', opensLabel: 'açılış', acilisBugun: 'bugün', acilisYarin: 'yarın', onlineOpen: 'Online randevu açık', slotTaken: 'Seçtiğiniz saat az önce doldu, lütfen başka bir saat seçin.',
     stepService: 'Hizmet', stepStaff: 'Personel', stepDate: 'Tarih', stepConfirm: 'Onay',
     selectService: 'Hizmet Seçin', selectStaff: 'Personel Seçin',
     selectDate: 'Tarih Seçin', selectTime: 'Saat Seçin',
@@ -66,7 +66,7 @@ export const TRANSLATIONS = {
     locale: 'tr-TR',
   },
   en: {
-    open: 'Open now', closed: 'Closed now', closedToday: 'Closed today', opensLabel: 'opens', acilisBugun: 'today', acilisYarin: 'tomorrow', onlineOpen: 'Online booking open',
+    open: 'Open now', closed: 'Closed now', closedToday: 'Closed today', opensLabel: 'opens', acilisBugun: 'today', acilisYarin: 'tomorrow', onlineOpen: 'Online booking open', slotTaken: 'The time you picked was just booked. Please choose another time.',
     stepService: 'Service', stepStaff: 'Staff', stepDate: 'Date', stepConfirm: 'Confirm',
     selectService: 'Select Service', selectStaff: 'Select Staff',
     selectDate: 'Select Date', selectTime: 'Select Time',
@@ -111,7 +111,7 @@ export const TRANSLATIONS = {
     locale: 'en-US',
   },
   ru: {
-    open: 'Сейчас открыто', closed: 'Сейчас закрыто', closedToday: 'Сегодня закрыто', opensLabel: 'открытие', acilisBugun: 'сегодня', acilisYarin: 'завтра', onlineOpen: 'Онлайн-запись открыта',
+    open: 'Сейчас открыто', closed: 'Сейчас закрыто', closedToday: 'Сегодня закрыто', opensLabel: 'открытие', acilisBugun: 'сегодня', acilisYarin: 'завтра', onlineOpen: 'Онлайн-запись открыта', slotTaken: 'Выбранное время только что заняли. Выберите другое время.',
     stepService: 'Услуга', stepStaff: 'Мастер', stepDate: 'Дата', stepConfirm: 'Подтвердить',
     selectService: 'Выберите услугу', selectStaff: 'Выберите мастера',
     selectDate: 'Выберите дату', selectTime: 'Выберите время',
@@ -145,7 +145,7 @@ export const TRANSLATIONS = {
     locale: 'ru-RU',
   },
   de: {
-    open: 'Jetzt geöffnet', closed: 'Jetzt geschlossen', closedToday: 'Heute geschlossen', opensLabel: 'öffnet', acilisBugun: 'heute', acilisYarin: 'morgen', onlineOpen: 'Online-Buchung offen',
+    open: 'Jetzt geöffnet', closed: 'Jetzt geschlossen', closedToday: 'Heute geschlossen', opensLabel: 'öffnet', acilisBugun: 'heute', acilisYarin: 'morgen', onlineOpen: 'Online-Buchung offen', slotTaken: 'Die gewählte Uhrzeit wurde gerade gebucht. Bitte wählen Sie eine andere.',
     stepService: 'Service', stepStaff: 'Personal', stepDate: 'Datum', stepConfirm: 'Bestätigen',
     selectService: 'Service wählen', selectStaff: 'Personal wählen',
     selectDate: 'Datum wählen', selectTime: 'Zeit wählen',
@@ -179,7 +179,7 @@ export const TRANSLATIONS = {
     locale: 'de-DE',
   },
   ar: {
-    open: 'مفتوح الآن', closed: 'مغلق الآن', closedToday: 'مغلق اليوم', opensLabel: 'يفتح', acilisBugun: 'اليوم', acilisYarin: 'غدًا', onlineOpen: 'الحجز عبر الإنترنت متاح',
+    open: 'مفتوح الآن', closed: 'مغلق الآن', closedToday: 'مغلق اليوم', opensLabel: 'يفتح', acilisBugun: 'اليوم', acilisYarin: 'غدًا', onlineOpen: 'الحجز عبر الإنترنت متاح', slotTaken: 'تم حجز الوقت الذي اخترته للتو، يرجى اختيار وقت آخر.',
     stepService: 'الخدمة', stepStaff: 'الموظف', stepDate: 'التاريخ', stepConfirm: 'التأكيد',
     selectService: 'اختر الخدمة', selectStaff: 'اختر الموظف',
     selectDate: 'اختر التاريخ', selectTime: 'اختر الوقت',

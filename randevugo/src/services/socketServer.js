@@ -12,6 +12,11 @@
  *   - wa:qr / wa:bagli / wa:ayrildi
  *   - bildirim:yeni
  *   - destek:cevap
+ *   - veri:degisti { tur: hizmet|calisan|ayar|randevu } — başka cihazdaki değişiklik, ekran kendini tazeler
+ *
+ * Misafir (giriş yapmamış müşteri, randevu sayfası, 2026-10-14):
+ *   - handshake auth.slug → yalnız `book:${slug}` odası; içerik taşımayan sinyaller alır:
+ *     saatler:degisti (biri randevu aldı/iptal etti), sayfa:degisti (hizmet ya da görünüm değişti)
  */
 
 const { Server } = require('socket.io');
@@ -40,6 +45,8 @@ function init(httpServer, allowedOrigins = [], corsCheck = null) {
   io.use((socket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+      const slug = String(socket.handshake.auth?.slug || '');
+      if (!token && /^[a-z0-9-]{1,100}$/.test(slug)) { socket.data.misafir = slug; return next(); }
       if (!token) return next(new Error('Token yok'));
       const decoded = jwt.verify(token, jwtSecret);
       socket.data.kullanici = decoded;
@@ -50,6 +57,7 @@ function init(httpServer, allowedOrigins = [], corsCheck = null) {
   });
 
   io.on('connection', async (socket) => {
+    if (socket.data.misafir) { socket.join(`book:${socket.data.misafir}`); return; }
     const k = socket.data.kullanici;
     if (!k) { socket.disconnect(true); return; }
 
@@ -87,10 +95,28 @@ function init(httpServer, allowedOrigins = [], corsCheck = null) {
 
 function getIo() { return io; }
 
+// Randevu sayfasındaki müşterilere sinyal (içerik yok: kim, ne aldı gitmez)
+const slugCache = new Map();   // isletmeId → { slug, zaman }
+async function emitToBook(isletmeId, event) {
+  if (!io || !isletmeId) return;
+  try {
+    let c = slugCache.get(isletmeId);
+    if (!c || Date.now() - c.zaman > 10 * 60 * 1000) {
+      const r = (await require('../config/db').query('SELECT slug FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      c = { slug: r?.slug || null, zaman: Date.now() };
+      slugCache.set(isletmeId, c);
+    }
+    if (c.slug) io.to(`book:${c.slug}`).emit(event, {});
+  } catch (e) { /* sinyal önemsiz */ }
+}
+
 // Helpers — graceful (io yoksa sessizce yut)
 function emitToIsletme(isletmeId, event, data) {
   if (!io || !isletmeId) return;
   try { io.to(`isletme:${isletmeId}`).emit(event, data); } catch (e) {}
+  // Randevu değişince randevu sayfasındaki müşterilerin boş saatleri tazelensin
+  if (String(event).startsWith('randevu:') || (event === 'veri:degisti' && data?.tur === 'randevu')) emitToBook(isletmeId, 'saatler:degisti');
+  else if (event === 'veri:degisti' && ['hizmet', 'calisan', 'ayar'].includes(data?.tur)) emitToBook(isletmeId, 'sayfa:degisti');
 }
 
 function emitToUser(userId, event, data) {
@@ -115,4 +141,5 @@ module.exports = {
   emitToUser,
   emitToAdmin,
   emitAll,
+  emitToBook,
 };

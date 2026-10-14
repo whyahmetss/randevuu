@@ -10,6 +10,21 @@ const { numaraRateLimit, payloadDogrula } = require('../middleware/webhookGuard'
 const { ddosGuard } = require('../middleware/ddosGuard');
 const featureGuard = require('../middleware/featureGuard');
 
+// Canlı tazeleme (2026-10-14): başarılı değişiklikten sonra aynı işletmenin diğer cihazlarına "veri:degisti" gider,
+// randevu sayfasındaki müşteriye de sinyal (socketServer.emitToIsletme). Kimse sayfayı yenilemek zorunda kalmaz.
+const CANLI_TUR = [[/^\/hizmetler/, 'hizmet'], [/^\/calisanlar/, 'calisan'], [/^\/(ayarlar|randevu-sayfasi)/, 'ayar'], [/^\/randevular/, 'randevu']];
+router.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  const eslesme = CANLI_TUR.find(([d]) => d.test(req.path));
+  if (!eslesme) return next();
+  res.on('finish', () => {
+    if (res.statusCode >= 400) return;
+    const isletmeId = req.kullanici?.aktif_isletme_id || req.kullanici?.isletme_id;
+    if (isletmeId) require('../services/socketServer').emitToIsletme(isletmeId, 'veri:degisti', { tur: eslesme[1] });
+  });
+  next();
+});
+
 // ==================== AUTH ====================
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
 router.post('/auth/kayit', (req, res) => authController.botKayit(req, res));
