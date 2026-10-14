@@ -33,6 +33,7 @@ class GoogleYorumService {
         WHERE r.durum = 'tamamlandi'
           AND i.paket IN ('profesyonel', 'proplus', 'kurumsal', 'premium')
           AND i.google_yorum_aktif = true
+          AND COALESCE(i.yorum_avcisi_aktif, false) = false
           AND i.google_maps_url IS NOT NULL
           AND i.google_maps_url != ''
           AND (r.tarih + r.saat) <= (NOW() - INTERVAL '2 hours')

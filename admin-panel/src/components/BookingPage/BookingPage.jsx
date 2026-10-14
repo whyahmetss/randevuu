@@ -120,6 +120,8 @@ export default function BookingPage({ slug }) {
 
   const [honeypot, setHoneypot] = useState(''); // bot tuzağı — gerçek kullanıcı boş bırakır
   const [buyukFoto, setBuyukFoto] = useState(null); // galeri: açık fotoğrafın sırası
+  const [bekleme, setBekleme] = useState({ isim: '', tel: '', durum: '', hata: '' }); // dolu gün: "yer açılırsa haber ver"
+  useEffect(() => { setBekleme(b => ({ ...b, durum: '', hata: '' })); }, [secilenTarih]);   // başka gün seçilince form yeniden açılır
   const [emailConfirm, setEmailConfirm] = useState(''); // ikinci tuzak
   const [formBaslangic] = useState(Date.now()); // form açıldığı zaman (bot tespiti)
   // Basit browser fingerprint (deterministic)
@@ -879,12 +881,37 @@ export default function BookingPage({ slug }) {
                   <I.Clock size={11} /> {t('selectTime')}
                 </span>
               </div>
-              {saatler.length === 0 ? (
+              {saatler.length === 0 ? (<>
                 <div className="bk-empty">
                   <I.CalendarX size={28} />
                   <div>{t('noSlots')}</div>
                 </div>
-              ) : (
+                {/* Bekleme listesi: iptal olursa WhatsApp'tan teklif gider (yalnız bot bağlıyken) */}
+                {isletme?.bekleme_acik && (
+                  <div className="bk-bekleme">
+                    {bekleme.durum === 'tamam' || bekleme.durum === 'var' ? (
+                      <div className="bk-bekleme-tamam"><I.Check size={16} /> {bekleme.durum === 'var' ? t('waitAlready') : t('waitOk')}</div>
+                    ) : (<>
+                      <div className="bk-bekleme-baslik">🔔 {t('waitTitle')}</div>
+                      <div className="bk-bekleme-aciklama">{t('waitDesc')}</div>
+                      <input className="bk-input" value={bekleme.isim} onChange={e => setBekleme(b => ({ ...b, isim: e.target.value }))} placeholder={t('waitName')} autoComplete="name" maxLength={80} />
+                      <input className="bk-input" value={bekleme.tel} onChange={e => setBekleme(b => ({ ...b, tel: e.target.value }))} placeholder={t('waitPhone')} inputMode="tel" autoComplete="tel" maxLength={20} />
+                      {bekleme.hata && <div className="bk-bekleme-hata">{bekleme.hata}</div>}
+                      <button className="bk-btn" disabled={bekleme.durum === 'gonderiliyor' || String(bekleme.tel).replace(/\D/g, '').length < 10}
+                        onClick={async () => {
+                          setBekleme(b => ({ ...b, durum: 'gonderiliyor', hata: '' }));
+                          try {
+                            const r = await fetch(`${API_URL}/book/${slug}/bekleme`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ telefon: bekleme.tel, isim: bekleme.isim, tarih: secilenTarih, hizmetIds: secilenHizmetler.map(h => h.id) }) });
+                            const d = await r.json().catch(() => ({}));
+                            if (!r.ok || d.hata) return setBekleme(b => ({ ...b, durum: '', hata: d.hata || '⚠️' }));
+                            setBekleme(b => ({ ...b, durum: d.zatenVar ? 'var' : 'tamam' }));
+                          } catch (e) { setBekleme(b => ({ ...b, durum: '', hata: '⚠️' })); }
+                        }}>{bekleme.durum === 'gonderiliyor' ? '…' : t('waitBtn')}</button>
+                    </>)}
+                  </div>
+                )}
+              </>) : (
                 <>
                   <div className="bk-period-tabs">
                     <button

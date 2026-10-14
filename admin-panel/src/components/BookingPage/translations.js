@@ -21,6 +21,8 @@ export const DILLER = [
 
 export const TRANSLATIONS = {
   tr: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'Yer açılırsa haber verelim mi?', waitDesc: 'Bu günden biri iptal ederse WhatsApp\'tan size yazarız; "evet" demeniz yeterli.', waitName: 'Adınız', waitPhone: 'Cep telefonunuz', waitBtn: 'Yer açılırsa haber ver', waitOk: 'Listeye eklendiniz. Yer açılırsa WhatsApp\'tan yazacağız.', waitAlready: 'Bu gün için zaten listedesiniz.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Hizmetler', siteGallery: 'Galeri', siteTeam: 'Ekibimiz', siteAbout: 'Hakkımızda', siteContact: 'İletişim', siteContactTitle: 'Konum ve iletişim', siteDirections: 'Yol tarifi al', siteInstagram: "Instagram'da takip edin", siteHours: 'Çalışma saatleri', siteClosed: 'Kapalı', siteCloseBtn: 'Kapat', siteBook: 'Randevu al',
     open: 'Şu an açık', closed: 'Şu an kapalı', closedToday: 'Bugün kapalı', opensLabel: 'açılış', acilisBugun: 'bugün', acilisYarin: 'yarın', onlineOpen: 'Online randevu açık', slotTaken: 'Seçtiğiniz saat az önce doldu, lütfen başka bir saat seçin.',
@@ -68,6 +70,8 @@ export const TRANSLATIONS = {
     locale: 'tr-TR',
   },
   en: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'Want us to let you know if a spot opens?', waitDesc: 'If someone cancels on this day, we\'ll message you on WhatsApp; just reply "yes".', waitName: 'Your name', waitPhone: 'Mobile number', waitBtn: 'Notify me if a spot opens', waitOk: 'You\'re on the list. We\'ll message you on WhatsApp if a spot opens.', waitAlready: 'You\'re already on the list for this day.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Services', siteGallery: 'Gallery', siteTeam: 'Our team', siteAbout: 'About us', siteContact: 'Contact', siteContactTitle: 'Location & contact', siteDirections: 'Get directions', siteInstagram: 'Follow us on Instagram', siteHours: 'Opening hours', siteClosed: 'Closed', siteCloseBtn: 'Close', siteBook: 'Book now',
     open: 'Open now', closed: 'Closed now', closedToday: 'Closed today', opensLabel: 'opens', acilisBugun: 'today', acilisYarin: 'tomorrow', onlineOpen: 'Online booking open', slotTaken: 'The time you picked was just booked. Please choose another time.',
@@ -115,6 +119,8 @@ export const TRANSLATIONS = {
     locale: 'en-US',
   },
   ru: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'Сообщить, если освободится место?', waitDesc: 'Если кто-то отменит запись на этот день, мы напишем вам в WhatsApp — просто ответьте «да».', waitName: 'Ваше имя', waitPhone: 'Мобильный телефон', waitBtn: 'Сообщить об освободившемся месте', waitOk: 'Вы в списке. Напишем в WhatsApp, если место освободится.', waitAlready: 'Вы уже в списке на этот день.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Услуги', siteGallery: 'Галерея', siteTeam: 'Наша команда', siteAbout: 'О нас', siteContact: 'Контакты', siteContactTitle: 'Адрес и контакты', siteDirections: 'Проложить маршрут', siteInstagram: 'Мы в Instagram', siteHours: 'Часы работы', siteClosed: 'Выходной', siteCloseBtn: 'Закрыть', siteBook: 'Записаться',
     open: 'Сейчас открыто', closed: 'Сейчас закрыто', closedToday: 'Сегодня закрыто', opensLabel: 'открытие', acilisBugun: 'сегодня', acilisYarin: 'завтра', onlineOpen: 'Онлайн-запись открыта', slotTaken: 'Выбранное время только что заняли. Выберите другое время.',
@@ -151,6 +157,8 @@ export const TRANSLATIONS = {
     locale: 'ru-RU',
   },
   de: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'Sollen wir Sie benachrichtigen, wenn etwas frei wird?', waitDesc: 'Wenn jemand an diesem Tag absagt, schreiben wir Ihnen per WhatsApp – antworten Sie einfach „ja“.', waitName: 'Ihr Name', waitPhone: 'Handynummer', waitBtn: 'Benachrichtigen, wenn frei', waitOk: 'Sie stehen auf der Liste. Wir schreiben Ihnen per WhatsApp, sobald etwas frei wird.', waitAlready: 'Sie stehen für diesen Tag bereits auf der Liste.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Leistungen', siteGallery: 'Galerie', siteTeam: 'Unser Team', siteAbout: 'Über uns', siteContact: 'Kontakt', siteContactTitle: 'Standort & Kontakt', siteDirections: 'Route planen', siteInstagram: 'Folgen Sie uns auf Instagram', siteHours: 'Öffnungszeiten', siteClosed: 'Geschlossen', siteCloseBtn: 'Schließen', siteBook: 'Termin buchen',
     open: 'Jetzt geöffnet', closed: 'Jetzt geschlossen', closedToday: 'Heute geschlossen', opensLabel: 'öffnet', acilisBugun: 'heute', acilisYarin: 'morgen', onlineOpen: 'Online-Buchung offen', slotTaken: 'Die gewählte Uhrzeit wurde gerade gebucht. Bitte wählen Sie eine andere.',
@@ -187,6 +195,8 @@ export const TRANSLATIONS = {
     locale: 'de-DE',
   },
   ar: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'هل نخبرك إذا توفر موعد؟', waitDesc: 'إذا ألغى أحدهم موعده في هذا اليوم سنراسلك عبر واتساب، ويكفي أن ترد بـ "نعم".', waitName: 'اسمك', waitPhone: 'رقم الجوال', waitBtn: 'أخبرني إذا توفر موعد', waitOk: 'تمت إضافتك إلى القائمة. سنراسلك عبر واتساب إذا توفر موعد.', waitAlready: 'أنت بالفعل في القائمة لهذا اليوم.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'الخدمات', siteGallery: 'المعرض', siteTeam: 'فريقنا', siteAbout: 'من نحن', siteContact: 'التواصل', siteContactTitle: 'الموقع والتواصل', siteDirections: 'احصل على الاتجاهات', siteInstagram: 'تابعونا على إنستغرام', siteHours: 'ساعات العمل', siteClosed: 'مغلق', siteCloseBtn: 'إغلاق', siteBook: 'احجز الآن',
     open: 'مفتوح الآن', closed: 'مغلق الآن', closedToday: 'مغلق اليوم', opensLabel: 'يفتح', acilisBugun: 'اليوم', acilisYarin: 'غدًا', onlineOpen: 'الحجز عبر الإنترنت متاح', slotTaken: 'تم حجز الوقت الذي اخترته للتو، يرجى اختيار وقت آخر.',
@@ -234,6 +244,8 @@ export const TRANSLATIONS = {
     locale: 'ar-SA',
   },
   fr: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'On vous prévient si une place se libère ?', waitDesc: 'Si quelqu\'un annule ce jour-là, nous vous écrirons sur WhatsApp ; répondez simplement « oui ».', waitName: 'Votre nom', waitPhone: 'Numéro de portable', waitBtn: 'Me prévenir si une place se libère', waitOk: 'Vous êtes sur la liste. Nous vous écrirons sur WhatsApp si une place se libère.', waitAlready: 'Vous êtes déjà sur la liste pour ce jour.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Services', siteGallery: 'Galerie', siteTeam: 'Notre équipe', siteAbout: 'À propos', siteContact: 'Contact', siteContactTitle: 'Adresse et contact', siteDirections: 'Itinéraire', siteInstagram: 'Suivez-nous sur Instagram', siteHours: 'Horaires', siteClosed: 'Fermé', siteCloseBtn: 'Fermer', siteBook: 'Réserver',
     open: 'Ouvert maintenant', closed: 'Fermé maintenant', closedToday: "Fermé aujourd'hui",
@@ -270,6 +282,8 @@ export const TRANSLATIONS = {
     locale: 'fr-FR',
   },
   uk: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'Повідомити, якщо звільниться місце?', waitDesc: 'Якщо хтось скасує запис на цей день, ми напишемо вам у WhatsApp — просто дайте відповідь «так».', waitName: 'Ваше ім\'я', waitPhone: 'Мобільний телефон', waitBtn: 'Повідомити про вільне місце', waitOk: 'Ви в списку. Напишемо у WhatsApp, якщо місце звільниться.', waitAlready: 'Ви вже в списку на цей день.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Послуги', siteGallery: 'Галерея', siteTeam: 'Наша команда', siteAbout: 'Про нас', siteContact: 'Контакти', siteContactTitle: 'Адреса та контакти', siteDirections: 'Прокласти маршрут', siteInstagram: 'Ми в Instagram', siteHours: 'Години роботи', siteClosed: 'Вихідний', siteCloseBtn: 'Закрити', siteBook: 'Записатися',
     open: 'Зараз відкрито', closed: 'Зараз зачинено', closedToday: 'Сьогодні зачинено',
@@ -306,6 +320,8 @@ export const TRANSLATIONS = {
     locale: 'uk-UA',
   },
   fa: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'اگر وقتی خالی شد خبرتان کنیم؟', waitDesc: 'اگر کسی وقتش را در این روز لغو کند، در واتس‌اپ به شما پیام می‌دهیم؛ کافی است «بله» بگویید.', waitName: 'نام شما', waitPhone: 'شماره موبایل', waitBtn: 'اگر وقت خالی شد خبرم کن', waitOk: 'به فهرست اضافه شدید. اگر وقتی خالی شود در واتس‌اپ پیام می‌دهیم.', waitAlready: 'شما از قبل در فهرست این روز هستید.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'خدمات', siteGallery: 'گالری', siteTeam: 'تیم ما', siteAbout: 'درباره ما', siteContact: 'تماس', siteContactTitle: 'موقعیت و تماس', siteDirections: 'مسیریابی', siteInstagram: 'ما را در اینستاگرام دنبال کنید', siteHours: 'ساعات کاری', siteClosed: 'تعطیل', siteCloseBtn: 'بستن', siteBook: 'رزرو کنید',
     open: 'اکنون باز است', closed: 'اکنون بسته است', closedToday: 'امروز تعطیل',
@@ -342,6 +358,8 @@ export const TRANSLATIONS = {
     locale: 'fa-IR',
   },
   es: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: '¿Te avisamos si se libera un hueco?', waitDesc: 'Si alguien cancela ese día, te escribiremos por WhatsApp; solo responde «sí».', waitName: 'Tu nombre', waitPhone: 'Número de móvil', waitBtn: 'Avísame si se libera', waitOk: 'Estás en la lista. Te escribiremos por WhatsApp si se libera un hueco.', waitAlready: 'Ya estás en la lista para este día.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Servicios', siteGallery: 'Galería', siteTeam: 'Nuestro equipo', siteAbout: 'Sobre nosotros', siteContact: 'Contacto', siteContactTitle: 'Ubicación y contacto', siteDirections: 'Cómo llegar', siteInstagram: 'Síguenos en Instagram', siteHours: 'Horario', siteClosed: 'Cerrado', siteCloseBtn: 'Cerrar', siteBook: 'Reservar',
     open: 'Abierto ahora', closed: 'Cerrado ahora', closedToday: 'Cerrado hoy',
@@ -378,6 +396,8 @@ export const TRANSLATIONS = {
     locale: 'es-ES',
   },
   nl: {
+    // Bekleme listesi (2026-10-14)
+    waitTitle: 'Zullen we je laten weten als er plek vrijkomt?', waitDesc: 'Als iemand op deze dag afzegt, sturen we je een WhatsApp-bericht; antwoord gewoon "ja".', waitName: 'Je naam', waitPhone: 'Mobiel nummer', waitBtn: 'Laat het me weten als er plek is', waitOk: 'Je staat op de lijst. We sturen je een WhatsApp-bericht als er plek vrijkomt.', waitAlready: 'Je staat al op de lijst voor deze dag.',
     // Mini site bölümleri (2026-10-14)
     siteServices: 'Diensten', siteGallery: 'Galerij', siteTeam: 'Ons team', siteAbout: 'Over ons', siteContact: 'Contact', siteContactTitle: 'Locatie & contact', siteDirections: 'Route plannen', siteInstagram: 'Volg ons op Instagram', siteHours: 'Openingstijden', siteClosed: 'Gesloten', siteCloseBtn: 'Sluiten', siteBook: 'Afspraak maken',
     open: 'Nu geopend', closed: 'Nu gesloten', closedToday: 'Vandaag gesloten',

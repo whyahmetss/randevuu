@@ -4351,15 +4351,49 @@ class AdminController {
       const stat = (await pool.query(`
         SELECT
           COUNT(*) as toplam,
-          COUNT(*) FILTER (WHERE durum = 'gonderildi') as gonderilen,
-          COUNT(*) FILTER (WHERE durum = 'bekliyor') as bekleyen
+          COUNT(*) FILTER (WHERE durum IN ('gonderildi', 'puan_bekliyor', 'yorum_bekliyor', 'tamamlandi')) as gonderilen,
+          COUNT(*) FILTER (WHERE durum = 'bekliyor') as bekleyen,
+          COUNT(puan) as puanlanan,
+          ROUND(AVG(puan)::numeric, 1) as ortalama
         FROM yorum_talepleri WHERE isletme_id=$1 AND TO_CHAR(olusturma_tarihi, 'YYYY-MM') = $2
       `, [isletmeId, buAy])).rows[0];
+      // Çözülmemiş düşük puanlar (ay sınırı yok: geçen ayın şikâyeti de unutulmasın)
+      const dusuk = (await pool.query(
+        'SELECT COUNT(*)::int AS n FROM yorum_talepleri WHERE isletme_id=$1 AND puan <= 3 AND cozuldu = false', [isletmeId])).rows[0];
       res.json({
         toplam: parseInt(stat.toplam),
         gonderilen: parseInt(stat.gonderilen),
-        bekleyen: parseInt(stat.bekleyen)
+        bekleyen: parseInt(stat.bekleyen),
+        puanlanan: parseInt(stat.puanlanan) || 0,
+        ortalama: stat.ortalama !== null ? Number(stat.ortalama) : null,
+        dusuk_acik: dusuk.n,
       });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // Memnuniyet: puan veren müşteriler (son 90 gün); düşük puan ve çözülmemiş olanlar önce
+  async memnuniyetListe(req, res) {
+    try {
+      const r = await pool.query(`
+        SELECT yt.id, yt.puan, yt.geri_bildirim, yt.puan_zamani, yt.cozuldu, yt.telefon, m.isim AS musteri_isim,
+               h.isim AS hizmet_isim, c.isim AS calisan_isim
+          FROM yorum_talepleri yt
+          LEFT JOIN musteriler m ON m.id = yt.musteri_id
+          LEFT JOIN randevular r ON r.id = yt.randevu_id
+          LEFT JOIN hizmetler h ON h.id = r.hizmet_id
+          LEFT JOIN calisanlar c ON c.id = r.calisan_id
+         WHERE yt.isletme_id = $1 AND yt.puan IS NOT NULL AND yt.puan_zamani > NOW() - INTERVAL '90 days'
+         ORDER BY (yt.puan <= 3 AND NOT yt.cozuldu) DESC, yt.puan_zamani DESC LIMIT 200`, [req.kullanici.isletme_id]);
+      res.json({ liste: r.rows });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async memnuniyetCozuldu(req, res) {
+    try {
+      const r = await pool.query('UPDATE yorum_talepleri SET cozuldu = $1 WHERE id = $2 AND isletme_id = $3 RETURNING id',
+        [req.body?.cozuldu !== false, req.params.id, req.kullanici.isletme_id]);
+      if (!r.rows[0]) return res.status(404).json({ hata: 'Kayıt bulunamadı' });
+      res.json({ tamam: true });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 

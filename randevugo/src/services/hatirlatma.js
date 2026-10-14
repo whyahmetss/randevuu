@@ -169,42 +169,10 @@ class HatirlatmaService {
     } catch (e) { console.error('❌ Sessiz onay hatası:', e.message); }
   }
 
-  // Bekleme listesi - iptal olunca bildir
+  // Bekleme listesi: zaman aşımı + panel/randevu sayfası iptalleriyle açılan yerler (services/beklemeListesi)
   async beklemeListesiBildirim() {
-    try {
-      const bekleyenler = await pool.query(`
-        SELECT bl.*, i.isim as isletme_isim, i.telegram_token, h.isim as hizmet_isim
-        FROM bekleme_listesi bl
-        JOIN isletmeler i ON bl.isletme_id = i.id
-        LEFT JOIN hizmetler h ON bl.hizmet_id = h.id
-        WHERE bl.durum = 'bekliyor' AND bl.istenen_tarih >= CURRENT_DATE
-      `);
-      for (const b of bekleyenler.rows) {
-        const saatler = await randevuService.musaitSaatleriGetir(b.isletme_id, tarihFormatla(b.istenen_tarih));
-        if (saatler.length > 0) {
-          const mesaj = `🔔 *Müjde!*\n\n📅 *${this.tarihFormat(b.istenen_tarih)}* tarihinde yer açıldı!\n${b.hizmet_isim ? '💊 ' + b.hizmet_isim + '\n' : ''}\nHemen randevu almak ister misiniz?`;
-          // Telegram üzerinden bildirim
-          if (b.telegram_token) {
-            try {
-              const TelegramBot = require('node-telegram-bot-api');
-              const chatId = await this.telegramChatIdBul(b.musteri_telefon, b.isletme_id);
-              if (chatId) {
-                const bot = new TelegramBot(b.telegram_token);
-                await bot.sendMessage(chatId, mesaj, {
-                  parse_mode: 'Markdown',
-                  reply_markup: { inline_keyboard: [
-                    [{ text: '📅 Randevu Al', callback_data: '1' }],
-                    [{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]
-                  ]}
-                });
-              }
-            } catch (e) { /* skip */ }
-          }
-          await pool.query('UPDATE bekleme_listesi SET durum = $1 WHERE id = $2', ['bildirildi', b.id]);
-          console.log(`🔔 Bekleme listesi bildirim: ${b.musteri_telefon}`);
-        }
-      }
-    } catch (e) { console.error('❌ Bekleme listesi hatası:', e.message); }
+    try { await require('./beklemeListesi').kontrol(); }
+    catch (e) { console.error('❌ Bekleme listesi hatası:', e.message); }
   }
 
   // Telegram veya WP üzerinden mesaj gönder (Baileys öncelikli) — imza otomatik ekleniyor

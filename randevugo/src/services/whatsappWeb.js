@@ -565,6 +565,17 @@ class WhatsAppWebService extends EventEmitter {
       [musteriTelefon, isletmeId, 'gelen', metin]
     );
 
+    // ═══ MEMNUNİYET ANKETİ — "1–5" cevabı ya da düşük puan açıklaması (2026-10-14) ═══
+    try {
+      const anketCevap = await require('./memnuniyet').cevapIsle({ isletmeId, telefon: musteriTelefon, metin });
+      if (anketCevap) {
+        await this.mesajGonder(isletmeId, remoteJid, anketCevap);
+        await pool.query('INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)',
+          [musteriTelefon, isletmeId, 'giden', anketCevap]);
+        return;
+      }
+    } catch (e) { console.error('Memnuniyet cevabı hatası:', e.message); }
+
     // ═══ AKILLI TEYİT ZİNCİRİ — Bot akışından ÖNCE yakala ═══
     const metinKucukTeyit = metin.toLowerCase();
     const teyitSonuc = await this._teyitZinciriKontrol(metinKucukTeyit, metin, musteriTelefon, isletmeId, remoteJid);
@@ -1310,43 +1321,43 @@ class WhatsAppWebService extends EventEmitter {
       }
 
       case 'bekleme_onay': {
-        // Bekleme listesinden bildirildi — müşteri "evet" derse otomatik randevu oluştur
+        // Bekleme listesinden teklif gitti — "evet" → randevu kurulur, "hayır" → sıradaki kişiye geçilir (services/beklemeListesi)
         const randevuService = require('./randevu');
+        const bekleme = require('./beklemeListesi');
+        const temizle = { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null };
         if (metin === '1' || metinKucuk.includes('evet') || metinKucuk.includes('onayla') || metinKucuk.includes('yes') || metinKucuk.includes('نعم')) {
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          if (sd?.secilen_tarih && sd?.secilen_saat) {
+          const teklif = await bekleme.aktifTeklif(isletmeId, musteriTelefon);
+          const hizmetIds = (teklif?.hizmet_ids?.length ? teklif.hizmet_ids : [sd?.secilen_hizmet_id || teklif?.hizmet_id]).filter(Boolean);
+          if (sd?.secilen_tarih && sd?.secilen_saat && hizmetIds.length) {
             try {
               const sonuc = await randevuService.randevuOlustur({
-                isletmeId, musteriTelefon,
-                hizmetId: sd.secilen_hizmet_id,
-                tarih: sd.secilen_tarih,
-                saat: sd.secilen_saat,
-                kaynak: 'bot'
+                isletmeId, musteriTelefon, musteriIsim: teklif?.musteri_isim || undefined,
+                hizmetIds, tarih: sd.secilen_tarih, saat: String(sd.secilen_saat).slice(0, 5), kaynak: 'bot'
               });
-              await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
-              // Bekleme listesini tamamlandı yap
-              try { await pool.query("UPDATE bekleme_listesi SET durum='randevu_alindi' WHERE musteri_telefon=$1 AND isletme_id=$2 AND durum='bildirildi'", [musteriTelefon, isletmeId]); } catch(e) {}
+              await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', temizle);
+              await bekleme.dolduruldu(isletmeId, musteriTelefon, sonuc.randevu);
               return { metin: botMesajlar.get(isletme, 'randevuOnaylandi', {
                 isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim,
                 tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat)
               }), butonlar: null };
-            } catch (limitErr) {
-              if (limitErr.code === 'LIMIT_ASIMI') {
-                await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
+            } catch (err) {
+              await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', temizle);
+              if (err.code === 'LIMIT_ASIMI') {
+                await bekleme.vazgecti(isletmeId, musteriTelefon, 'hata');
                 return { metin: '😔 Üzgünüz, şu anda randevu kapasitemiz dolmuştur.\nLütfen daha sonra tekrar deneyin. 🙏', butonlar: null };
               }
-              throw limitErr;
+              if (['SLOT_DOLU', 'GECMIS_TARIH'].includes(err.code)) {
+                await bekleme.vazgecti(isletmeId, musteriTelefon, 'kacti');
+                return { metin: '😔 Üzgünüz, bu saat az önce doldu. Başka bir gün ya da saat için "randevu" yazabilirsiniz.', butonlar: null };
+              }
+              throw err;
             }
           }
         }
-        // Hayır veya 30dk geçti
-        await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
-        try { await pool.query("UPDATE bekleme_listesi SET durum='vazgecti' WHERE musteri_telefon=$1 AND isletme_id=$2 AND durum='bildirildi'", [musteriTelefon, isletmeId]); } catch(e) {}
-        // Sıradaki müşteriye bildir
-        const sd2 = (await pool.query('SELECT secilen_tarih, secilen_saat, secilen_hizmet_id FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-        if (sd2?.secilen_tarih) {
-          try { await this._beklemeListesiBildir(isletmeId, isletme, sd2.secilen_tarih, sd2.secilen_saat, sd2.secilen_hizmet_id); } catch(e) {}
-        }
+        // Hayır (ya da cevap anlaşılmadı) → teklif bırakılır, sıradaki kişiye gider
+        await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', temizle);
+        try { await bekleme.vazgecti(isletmeId, musteriTelefon); } catch (e) { console.error('Bekleme listesi sıradaki:', e.message); }
         return await this.anaMenu(isletme, musteriTelefon, isletmeId, hizmetler);
       }
 
@@ -1646,45 +1657,10 @@ class WhatsAppWebService extends EventEmitter {
     return null; // Zincir yakalamadı → normal bot akışına devam
   }
 
-  // Bekleme listesi — iptal olduğunda ilk sıradaki müşteriye bildir
+  // Bekleme listesi — iptal olduğunda sıradaki müşteriye teklif (services/beklemeListesi)
   async _beklemeListesiBildir(isletmeId, isletme, tarih, saat, hizmetId) {
-    try {
-      const tarihStr = typeof tarih === 'string' ? tarih : tarihFormatla(tarih);
-      const bekleyen = (await pool.query(`
-        SELECT bl.*, h.isim as hizmet_isim
-        FROM bekleme_listesi bl
-        LEFT JOIN hizmetler h ON bl.hizmet_id = h.id
-        WHERE bl.isletme_id = $1 AND bl.istenen_tarih = $2 AND bl.durum = 'bekliyor'
-          AND (bl.hizmet_id = $3 OR bl.hizmet_id IS NULL OR $3 IS NULL)
-        ORDER BY bl.olusturma_tarihi ASC LIMIT 1
-      `, [isletmeId, tarihStr, hizmetId])).rows[0];
-
-      if (!bekleyen) return;
-
-      const saatStr = String(saat).substring(0, 5);
-      const mesaj = botMesajlar.get(isletme, 'beklemeListesiMusait', {
-        tarihStr: this.tarihFormat(tarih),
-        saatStr,
-        hizmetAd: bekleyen.hizmet_isim
-      });
-
-      const jid = bekleyen.musteri_telefon.includes('@') ? bekleyen.musteri_telefon : `${bekleyen.musteri_telefon.replace(/^\+/, '')}@s.whatsapp.net`;
-      await this.mesajGonder(isletmeId, jid, mesaj);
-
-      // Durumu güncelle — bildirildi, 30dk timeout başlat
-      await pool.query("UPDATE bekleme_listesi SET durum='bildirildi', bildirim_zamani=NOW(), bildirim_sayisi=bildirim_sayisi+1 WHERE id=$1", [bekleyen.id]);
-
-      // Bot durumunu bekleme_onay aşamasına al (müşteri cevap verirse otomatik randevu oluşturulsun)
-      await this.durumGuncelle(bekleyen.musteri_telefon, isletmeId, 'bekleme_onay', {
-        secilen_tarih: tarihStr,
-        secilen_saat: saatStr,
-        secilen_hizmet_id: hizmetId
-      });
-
-      console.log(`🔔 Bekleme listesi bildirim: ${bekleyen.musteri_telefon} → ${tarihStr} ${saatStr}`);
-    } catch (e) {
-      console.error('❌ Bekleme listesi bildirim hatası:', e.message);
-    }
+    try { await require('./beklemeListesi').bildir(isletmeId, tarih, saat); }
+    catch (e) { console.error('❌ Bekleme listesi bildirim hatası:', e.message); }
   }
 
   async durumGuncelle(musteriTelefon, isletmeId, asama, ekstra = {}) {

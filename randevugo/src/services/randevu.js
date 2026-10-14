@@ -89,6 +89,19 @@ class RandevuService {
 
     const mevcutRandevular = (await pool.query(randevuQuery, params)).rows;
 
+    // Tarihe özel kapalı aralıklar (sekreter modu "14-16 kapat" / panel): tüm dükkân ya da o çalışan
+    let bloklar = [];
+    try {
+      bloklar = (await pool.query(
+        'SELECT baslangic, bitis FROM takvim_bloklari WHERE isletme_id = $1 AND tarih = $2 AND (calisan_id IS NULL OR calisan_id = $3)',
+        [isletmeId, tarih, calisanId ? parseInt(calisanId) : null]
+      )).rows.map(b => {
+        const [bH, bM] = String(b.baslangic).split(':').map(Number);
+        const [eH, eM] = String(b.bitis).split(':').map(Number);
+        return { bas: bH * 60 + (bM || 0), bit: eH * 60 + (eM || 0) };
+      });
+    } catch (e) { /* tablo yoksa (eski kurulum) kapalı aralık yok */ }
+
     // ─── SEANS MODU: aynı slota birden fazla müşteri alınabilir ───
     if (randevuModu === 'seans') {
       // Aktif çalışan sayısı = eşzamanlı kapasite
@@ -116,6 +129,8 @@ class RandevuService {
           molaAraliklari.push({ bas: mBH * 60 + mBM, bit: mBtH * 60 + mBtM });
         }
       });
+
+      molaAraliklari.push(...bloklar);
 
       const [basH, basM] = baslangic.split(':').map(Number);
       const [bitH, bitM] = bitis.split(':').map(Number);
@@ -160,6 +175,8 @@ class RandevuService {
         doluAraliklar.push({ bas: mBH * 60 + mBM, bit: mBtH * 60 + mBtM });
       }
     });
+
+    doluAraliklar.push(...bloklar);
 
     // Çakışma kontrol fonksiyonu
     const cakismaVar = (dk) => {

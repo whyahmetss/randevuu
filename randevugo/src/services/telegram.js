@@ -135,6 +135,12 @@ class TelegramService {
       if (kara) return;
     } catch (e) { /* kara_liste tablosu yoksa devam et */ }
 
+    // Memnuniyet anketi cevabı ("1–5" ya da düşük puan açıklaması) — 2026-10-14
+    try {
+      const anketCevap = await require('./memnuniyet').cevapIsle({ isletmeId, tgChatId: chatId, metin });
+      if (anketCevap) { await bot.sendMessage(chatId, anketCevap); return; }
+    } catch (e) { console.error('Memnuniyet cevabı hatası (TG):', e.message); }
+
     // Mesai dışı kontrolü
     try {
       const simdi = new Date();
