@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS satis_itiraz (
 INSERT INTO satis_itiraz (itiraz, cevap)
 SELECT * FROM (VALUES
   ('Müşterim yaşlı, kullanmaz.', 'Yaşlı müşteri yine telefon etsin. Gençler aramayı sevmiyor, mesajla halletmek istiyor; onları kaçırmayalım yeter.'),
-  ('Telefonla hallediyoruz zaten.', 'Doğru. Peki traş ederken ya da gece 11''de yazanı kim karşılıyor? Sistem o anlar için.'),
+  ('Telefonla hallediyoruz zaten.', 'Doğru. Peki tıraş ederken ya da gece 11''de yazanı kim karşılıyor? Sistem o anlar için.'),
   ('Ne kadar?', '14 gün ücretsiz, kart yok. Sonra paketine göre aylık; ayda 2 kaçan müşteriyi kurtarsa kendini öder. İlk 100 esnafın fiyatı ömür boyu sabit.'),
   ('Numaram kapanır mı?', 'WhatsApp Web gibi bağlanıyor; dışarı toplu mesaj atmıyor, sadece size yazana cevap veriyor. (Resmî WhatsApp API''si olduğunu SÖYLEMEYİN.)'),
   ('Bilgisayardan anlamam.', 'WhatsApp kullanabiliyorsanız yeter. Kurulumu ben yapıyorum, 5 dakika.'),

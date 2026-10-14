@@ -119,6 +119,8 @@ export const TRANSLATIONS = {
     locale: 'en-US',
   },
   ru: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "Куда отправить код?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Сначала подключитесь к Telegram-боту", telegramStartPrompt: "Отправьте /start нашему Telegram-боту. Окно закроется автоматически после подключения.", telegramOpenBot: "Открыть бота", telegramConnecting: "Ожидание подключения…", telegramTimeout: "Не удалось подключиться. Попробуйте ещё раз или выберите WhatsApp.", noSlotsInPeriod: "В этот период нет свободного времени",
     // Bekleme listesi (2026-10-14)
     waitTitle: 'Сообщить, если освободится место?', waitDesc: 'Если кто-то отменит запись на этот день, мы напишем вам в WhatsApp — просто ответьте «да».', waitName: 'Ваше имя', waitPhone: 'Мобильный телефон', waitBtn: 'Сообщить об освободившемся месте', waitOk: 'Вы в списке. Напишем в WhatsApp, если место освободится.', waitAlready: 'Вы уже в списке на этот день.',
     // Mini site bölümleri (2026-10-14)
@@ -157,6 +159,8 @@ export const TRANSLATIONS = {
     locale: 'ru-RU',
   },
   de: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "Wohin sollen wir den Code senden?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Zuerst mit dem Telegram-Bot verbinden", telegramStartPrompt: "Senden Sie /start an unseren Telegram-Bot. Dieses Fenster schließt sich nach der Verbindung automatisch.", telegramOpenBot: "Bot öffnen", telegramConnecting: "Warte auf Verbindung…", telegramTimeout: "Verbindung fehlgeschlagen. Versuchen Sie es erneut oder wählen Sie WhatsApp.", noSlotsInPeriod: "In diesem Zeitraum sind keine Zeiten frei",
     // Bekleme listesi (2026-10-14)
     waitTitle: 'Sollen wir Sie benachrichtigen, wenn etwas frei wird?', waitDesc: 'Wenn jemand an diesem Tag absagt, schreiben wir Ihnen per WhatsApp – antworten Sie einfach „ja“.', waitName: 'Ihr Name', waitPhone: 'Handynummer', waitBtn: 'Benachrichtigen, wenn frei', waitOk: 'Sie stehen auf der Liste. Wir schreiben Ihnen per WhatsApp, sobald etwas frei wird.', waitAlready: 'Sie stehen für diesen Tag bereits auf der Liste.',
     // Mini site bölümleri (2026-10-14)
@@ -244,6 +248,8 @@ export const TRANSLATIONS = {
     locale: 'ar-SA',
   },
   fr: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "Où devons-nous envoyer le code ?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Connectez-vous d'abord au bot Telegram", telegramStartPrompt: "Envoyez /start à notre bot Telegram. Cette fenêtre se fermera automatiquement une fois connecté.", telegramOpenBot: "Ouvrir le bot", telegramConnecting: "En attente de connexion…", telegramTimeout: "Connexion impossible. Réessayez ou choisissez WhatsApp.", noSlotsInPeriod: "Aucun créneau disponible sur cette période", opensLabel: "ouvre", acilisBugun: "aujourd'hui", acilisYarin: "demain", onlineOpen: "Réservation en ligne ouverte", slotTaken: "Ce créneau vient d'être réservé. Veuillez en choisir un autre.", pickAnotherDate: "Choisir une autre date", noServices: "Aucun service disponible pour le moment", slotExpired: "Le créneau choisi n'est plus disponible. Veuillez en choisir un nouveau.", loadingServices: "Chargement des services...", loadingStaff: "Chargement de l'équipe...", loadingSlots: "Vérification des disponibilités...", depositRequired: "Acompte requis", depositDesc: "Un acompte est nécessaire pour confirmer votre réservation.", payDeposit: "Payer l'acompte", bookingSecure: "Votre créneau est réservé — il sera confirmé dès le paiement de l'acompte.",
     // Bekleme listesi (2026-10-14)
     waitTitle: 'On vous prévient si une place se libère ?', waitDesc: 'Si quelqu\'un annule ce jour-là, nous vous écrirons sur WhatsApp ; répondez simplement « oui ».', waitName: 'Votre nom', waitPhone: 'Numéro de portable', waitBtn: 'Me prévenir si une place se libère', waitOk: 'Vous êtes sur la liste. Nous vous écrirons sur WhatsApp si une place se libère.', waitAlready: 'Vous êtes déjà sur la liste pour ce jour.',
     // Mini site bölümleri (2026-10-14)
@@ -282,6 +288,8 @@ export const TRANSLATIONS = {
     locale: 'fr-FR',
   },
   uk: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "Куди надіслати код?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Спочатку підключіться до Telegram-бота", telegramStartPrompt: "Надішліть /start нашому Telegram-боту. Вікно закриється автоматично після підключення.", telegramOpenBot: "Відкрити бота", telegramConnecting: "Очікування підключення…", telegramTimeout: "Не вдалося підключитися. Спробуйте ще раз або оберіть WhatsApp.", noSlotsInPeriod: "У цей період немає вільного часу", opensLabel: "відкриття", acilisBugun: "сьогодні", acilisYarin: "завтра", onlineOpen: "Онлайн-запис відкритий", slotTaken: "Обраний час щойно зайняли. Будь ласка, оберіть інший.", pickAnotherDate: "Обрати іншу дату", noServices: "Послуг поки немає", slotExpired: "Обраний час більше недоступний. Будь ласка, оберіть новий.", loadingServices: "Завантаження послуг...", loadingStaff: "Завантаження майстрів...", loadingSlots: "Перевірка вільного часу...", depositRequired: "Потрібна передоплата", depositDesc: "Для підтвердження запису потрібна передоплата.", payDeposit: "Сплатити передоплату", bookingSecure: "Ваш час заброньовано — запис підтвердиться після оплати передоплати.",
     // Bekleme listesi (2026-10-14)
     waitTitle: 'Повідомити, якщо звільниться місце?', waitDesc: 'Якщо хтось скасує запис на цей день, ми напишемо вам у WhatsApp — просто дайте відповідь «так».', waitName: 'Ваше ім\'я', waitPhone: 'Мобільний телефон', waitBtn: 'Повідомити про вільне місце', waitOk: 'Ви в списку. Напишемо у WhatsApp, якщо місце звільниться.', waitAlready: 'Ви вже в списку на цей день.',
     // Mini site bölümleri (2026-10-14)
@@ -320,6 +328,8 @@ export const TRANSLATIONS = {
     locale: 'uk-UA',
   },
   fa: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "کد را کجا بفرستیم؟", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "ابتدا به ربات تلگرام وصل شوید", telegramStartPrompt: "به ربات تلگرام ما /start بفرستید. پس از اتصال این پنجره خودکار بسته می‌شود.", telegramOpenBot: "باز کردن ربات", telegramConnecting: "در انتظار اتصال…", telegramTimeout: "اتصال برقرار نشد. دوباره تلاش کنید یا واتس‌اپ را انتخاب کنید.", noSlotsInPeriod: "در این بازه وقت خالی نیست", opensLabel: "باز می‌شود", acilisBugun: "امروز", acilisYarin: "فردا", onlineOpen: "رزرو آنلاین باز است", slotTaken: "وقتی که انتخاب کردید همین الان رزرو شد. لطفاً وقت دیگری انتخاب کنید.", pickAnotherDate: "انتخاب تاریخ دیگر", noServices: "هنوز خدمتی تعریف نشده است", slotExpired: "وقت انتخابی دیگر در دسترس نیست. لطفاً وقت جدیدی انتخاب کنید.", loadingServices: "در حال بارگذاری خدمات...", loadingStaff: "در حال بارگذاری کارکنان...", loadingSlots: "در حال بررسی وقت‌های خالی...", depositRequired: "پیش‌پرداخت لازم است", depositDesc: "برای تأیید رزرو، پیش‌پرداخت لازم است.", payDeposit: "پرداخت پیش‌پرداخت", bookingSecure: "وقت شما نگه داشته شده است — با پرداخت پیش‌پرداخت تأیید می‌شود.",
     // Bekleme listesi (2026-10-14)
     waitTitle: 'اگر وقتی خالی شد خبرتان کنیم؟', waitDesc: 'اگر کسی وقتش را در این روز لغو کند، در واتس‌اپ به شما پیام می‌دهیم؛ کافی است «بله» بگویید.', waitName: 'نام شما', waitPhone: 'شماره موبایل', waitBtn: 'اگر وقت خالی شد خبرم کن', waitOk: 'به فهرست اضافه شدید. اگر وقتی خالی شود در واتس‌اپ پیام می‌دهیم.', waitAlready: 'شما از قبل در فهرست این روز هستید.',
     // Mini site bölümleri (2026-10-14)
@@ -358,6 +368,8 @@ export const TRANSLATIONS = {
     locale: 'fa-IR',
   },
   es: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "¿Dónde te enviamos el código?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Conéctate primero al bot de Telegram", telegramStartPrompt: "Envía /start a nuestro bot de Telegram. Esta ventana se cerrará automáticamente al conectarse.", telegramOpenBot: "Abrir bot", telegramConnecting: "Esperando conexión…", telegramTimeout: "No se pudo conectar. Inténtalo de nuevo o elige WhatsApp.", noSlotsInPeriod: "No hay horas disponibles en este periodo", opensLabel: "abre", acilisBugun: "hoy", acilisYarin: "mañana", onlineOpen: "Reservas online abiertas", slotTaken: "La hora que elegiste acaba de ocuparse. Elige otra, por favor.", pickAnotherDate: "Elegir otra fecha", noServices: "Aún no hay servicios disponibles", slotExpired: "La hora elegida ya no está disponible. Elige una nueva, por favor.", loadingServices: "Cargando servicios...", loadingStaff: "Cargando equipo...", loadingSlots: "Comprobando disponibilidad...", depositRequired: "Se requiere señal", depositDesc: "Se necesita una señal para confirmar tu reserva.", payDeposit: "Pagar señal", bookingSecure: "Tu hora está reservada; se confirma al pagar la señal.",
     // Bekleme listesi (2026-10-14)
     waitTitle: '¿Te avisamos si se libera un hueco?', waitDesc: 'Si alguien cancela ese día, te escribiremos por WhatsApp; solo responde «sí».', waitName: 'Tu nombre', waitPhone: 'Número de móvil', waitBtn: 'Avísame si se libera', waitOk: 'Estás en la lista. Te escribiremos por WhatsApp si se libera un hueco.', waitAlready: 'Ya estás en la lista para este día.',
     // Mini site bölümleri (2026-10-14)
@@ -396,6 +408,8 @@ export const TRANSLATIONS = {
     locale: 'es-ES',
   },
   nl: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "Waar sturen we de code naartoe?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Maak eerst verbinding met de Telegram-bot", telegramStartPrompt: "Stuur /start naar onze Telegram-bot. Dit venster sluit automatisch zodra er verbinding is.", telegramOpenBot: "Bot openen", telegramConnecting: "Wachten op verbinding…", telegramTimeout: "Verbinden mislukt. Probeer het opnieuw of kies WhatsApp.", noSlotsInPeriod: "Geen tijden beschikbaar in deze periode", opensLabel: "opent", acilisBugun: "vandaag", acilisYarin: "morgen", onlineOpen: "Online boeken staat open", slotTaken: "De gekozen tijd is net geboekt. Kies een andere tijd.", pickAnotherDate: "Kies een andere datum", noServices: "Nog geen diensten beschikbaar", slotExpired: "De gekozen tijd is niet meer beschikbaar. Kies een nieuwe tijd.", loadingServices: "Diensten laden...", loadingStaff: "Team laden...", loadingSlots: "Beschikbaarheid controleren...", depositRequired: "Aanbetaling vereist", depositDesc: "Er is een aanbetaling nodig om je afspraak te bevestigen.", payDeposit: "Aanbetaling betalen", bookingSecure: "Je tijd is gereserveerd — de afspraak wordt bevestigd zodra de aanbetaling is betaald.",
     // Bekleme listesi (2026-10-14)
     waitTitle: 'Zullen we je laten weten als er plek vrijkomt?', waitDesc: 'Als iemand op deze dag afzegt, sturen we je een WhatsApp-bericht; antwoord gewoon "ja".', waitName: 'Je naam', waitPhone: 'Mobiel nummer', waitBtn: 'Laat het me weten als er plek is', waitOk: 'Je staat op de lijst. We sturen je een WhatsApp-bericht als er plek vrijkomt.', waitAlready: 'Je staat al op de lijst voor deze dag.',
     // Mini site bölümleri (2026-10-14)
@@ -434,6 +448,8 @@ export const TRANSLATIONS = {
     locale: 'nl-NL',
   },
   it: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "Dove ti inviamo il codice?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Collegati prima al bot Telegram", telegramStartPrompt: "Invia /start al nostro bot Telegram. Questa finestra si chiuderà automaticamente una volta collegato.", telegramOpenBot: "Apri il bot", telegramConnecting: "In attesa di connessione…", telegramTimeout: "Connessione non riuscita. Riprova o scegli WhatsApp.", noSlotsInPeriod: "Nessun orario disponibile in questa fascia", opensLabel: "apre", acilisBugun: "oggi", acilisYarin: "domani", onlineOpen: "Prenotazione online aperta", slotTaken: "L'orario scelto è appena stato prenotato. Scegline un altro.", pickAnotherDate: "Scegli un'altra data", noServices: "Nessun servizio disponibile al momento", slotExpired: "L'orario scelto non è più disponibile. Scegline uno nuovo.", loadingServices: "Caricamento servizi...", loadingStaff: "Caricamento staff...", loadingSlots: "Verifica disponibilità...", depositRequired: "Acconto richiesto", depositDesc: "Per confermare la prenotazione è richiesto un acconto.", payDeposit: "Paga l'acconto", bookingSecure: "Il tuo orario è riservato: si conferma con il pagamento dell'acconto.", waitTitle: "Vuoi che ti avvisiamo se si libera un posto?", waitDesc: "Se qualcuno disdice in questo giorno, ti scriviamo su WhatsApp; basta rispondere \"sì\".", waitName: "Il tuo nome", waitPhone: "Numero di cellulare", waitBtn: "Avvisami se si libera", waitOk: "Sei in lista. Ti scriveremo su WhatsApp se si libera un posto.", waitAlready: "Sei già in lista per questo giorno.", siteServices: "Servizi", siteGallery: "Galleria", siteTeam: "Il nostro team", siteAbout: "Chi siamo", siteContact: "Contatti", siteContactTitle: "Indirizzo e contatti", siteDirections: "Indicazioni stradali", siteInstagram: "Seguici su Instagram", siteHours: "Orari di apertura", siteClosed: "Chiuso", siteCloseBtn: "Chiudi", siteBook: "Prenota ora",
     open: 'Aperto ora', closed: 'Chiuso ora', closedToday: 'Chiuso oggi',
     stepService: 'Servizio', stepStaff: 'Personale', stepDate: 'Data', stepConfirm: 'Conferma',
     selectService: 'Seleziona servizio', selectStaff: 'Seleziona personale',
@@ -468,6 +484,8 @@ export const TRANSLATIONS = {
     locale: 'it-IT',
   },
   pl: {
+    // Tamamlanan çeviriler (2026-10-14): eksik metinler Türkçe görünüyordu
+    otpChannelLabel: "Gdzie wysłać kod?", channelWhatsapp: "WhatsApp", channelTelegram: "Telegram", telegramNotReadyTitle: "Najpierw połącz się z botem Telegram", telegramStartPrompt: "Wyślij /start do naszego bota w Telegramie. To okno zamknie się automatycznie po połączeniu.", telegramOpenBot: "Otwórz bota", telegramConnecting: "Czekam na połączenie…", telegramTimeout: "Nie udało się połączyć. Spróbuj ponownie lub wybierz WhatsApp.", noSlotsInPeriod: "Brak wolnych terminów w tym przedziale", opensLabel: "otwarcie", acilisBugun: "dziś", acilisYarin: "jutro", onlineOpen: "Rezerwacja online otwarta", slotTaken: "Wybrany termin właśnie został zajęty. Wybierz inny.", pickAnotherDate: "Wybierz inną datę", noServices: "Brak dostępnych usług", slotExpired: "Wybrany termin nie jest już dostępny. Wybierz nowy.", loadingServices: "Wczytywanie usług...", loadingStaff: "Wczytywanie zespołu...", loadingSlots: "Sprawdzanie dostępności...", depositRequired: "Wymagana zaliczka", depositDesc: "Aby potwierdzić rezerwację, wymagana jest zaliczka.", payDeposit: "Zapłać zaliczkę", bookingSecure: "Termin jest zarezerwowany — zostanie potwierdzony po wpłacie zaliczki.", waitTitle: "Dać znać, gdy zwolni się miejsce?", waitDesc: "Jeśli ktoś odwoła wizytę tego dnia, napiszemy do Ciebie na WhatsAppie; wystarczy odpisać \"tak\".", waitName: "Twoje imię", waitPhone: "Numer telefonu", waitBtn: "Daj znać, gdy się zwolni", waitOk: "Jesteś na liście. Napiszemy na WhatsAppie, gdy zwolni się miejsce.", waitAlready: "Jesteś już na liście na ten dzień.", siteServices: "Usługi", siteGallery: "Galeria", siteTeam: "Nasz zespół", siteAbout: "O nas", siteContact: "Kontakt", siteContactTitle: "Adres i kontakt", siteDirections: "Wyznacz trasę", siteInstagram: "Obserwuj nas na Instagramie", siteHours: "Godziny otwarcia", siteClosed: "Zamknięte", siteCloseBtn: "Zamknij", siteBook: "Zarezerwuj",
     open: 'Otwarte teraz', closed: 'Zamknięte teraz', closedToday: 'Dziś zamknięte',
     stepService: 'Usługa', stepStaff: 'Pracownik', stepDate: 'Data', stepConfirm: 'Potwierdź',
     selectService: 'Wybierz usługę', selectStaff: 'Wybierz pracownika',

@@ -67,3 +67,10 @@ ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sekreter_aktif BOOLEAN NOT NULL 
 -- panelden bu numarayı girerse kabul edilir: kayıttaki telefon doğrulanmadığı için müşteri listesi yanlış kişiye açılmasın.
 ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sekreter_telefon VARCHAR(20);
 ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sesli_mesaj_aktif BOOLEAN NOT NULL DEFAULT true;
+
+-- Yazım (rapor 2026-10-14): satış masası kopya kâğıdında "traş" → "tıraş"
+DO $$ BEGIN
+  IF to_regclass('satis_itiraz') IS NOT NULL THEN
+    UPDATE satis_itiraz SET cevap = REPLACE(cevap, 'traş', 'tıraş') WHERE cevap LIKE '%traş%';
+  END IF;
+END $$;

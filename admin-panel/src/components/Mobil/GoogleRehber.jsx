@@ -10,6 +10,9 @@ const ADIMLAR = [
   ['Linkini yapıştır ve kaydet', 'Yukarıdaki "Kopyala" ile aldığın linki yapıştır, kaydet. Google birkaç saat içinde kontrol edip yayına alır.'],
 ];
 
+// Link "/" işaretlerinden sonra kırılır (kelime ortasından kesilmesin)
+const linkKirik = (u) => String(u || '').replace(/^https?:\/\//, '').split('/').flatMap((p, i) => i ? ['/', <wbr key={i} />, p] : [p]);
+
 export default function GoogleRehber({ ayarlar }) {
   const [kopya, setKopya] = useState(false);
   const link = ayarlar?.slug ? bookingUrl(ayarlar.slug) : null;
@@ -28,7 +31,7 @@ export default function GoogleRehber({ ayarlar }) {
       <div style={kart}>
         <div style={{ fontSize: 14, color: 'var(--dim)', fontWeight: 600 }}>Senin randevu linkin</div>
         {link ? (<>
-          <div style={{ fontSize: 16, fontWeight: 700, margin: '4px 0 12px', wordBreak: 'break-all' }}>{link.replace(/^https?:\/\//, '')}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, margin: '4px 0 12px', overflowWrap: 'break-word' }}>{linkKirik(link)}</div>
           <button onClick={() => { navigator.clipboard?.writeText(link); setKopya(true); setTimeout(() => setKopya(false), 2000); }}
             style={{ width: '100%', height: 52, borderRadius: 14, border: 'none', background: '#1f6f4a', color: '#fff', fontWeight: 800, fontSize: 16, fontFamily: 'inherit', cursor: 'pointer' }}>
             {kopya ? '✓ Kopyalandı' : 'Linki kopyala'}

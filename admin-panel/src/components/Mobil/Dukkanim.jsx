@@ -19,6 +19,9 @@ function Satir({ baslik, alt, onClick, renk, kilitli }) {
   );
 }
 
+// Link "/" işaretlerinden sonra kırılır (kelime ortasından kesilmesin)
+const linkKirik = (u) => String(u || '').replace(/^https?:\/\//, '').split('/').flatMap((p, i) => i ? ['/', <wbr key={i} />, p] : [p]);
+
 export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
   const [fazla, setFazla] = useState(false);
   const [kopya, setKopya] = useState(false);
@@ -31,7 +34,7 @@ export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
       {link && (
         <div style={{ ...kart, padding: 16 }}>
           <div style={{ fontSize: 14, color: 'var(--dim)', fontWeight: 600 }}>Randevu linkin</div>
-          <div style={{ fontSize: 15, fontWeight: 700, margin: '4px 0 12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={link}>{link.replace(/^https?:\/\//, '')}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, margin: '4px 0 12px', overflowWrap: 'break-word' }} title={link}>{linkKirik(link)}</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a href={`https://wa.me/?text=${encodeURIComponent('Randevunu buradan kendin alabilirsin: ' + link)}`} target="_blank" rel="noreferrer"
               style={{ flex: 1, height: 52, borderRadius: 14, background: '#25d366', color: '#0b3d20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>WhatsApp'ta paylaş</a>

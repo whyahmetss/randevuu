@@ -801,7 +801,8 @@ select.input { appearance: none; }
   .main-wrap > .top-bar .ust-canli, .main-wrap > .top-bar .ust-ekip { display: none !important; }
   /* Takvim aksiyonları parmakla basılabilir (en az 44px) */
   .rdv-aksiyon { min-height: 44px; padding: 8px 14px !important; font-size: 14px !important; flex: 1 1 auto; }
-  .mobile-topbar .hamburger-btn { display: none; }
+  /* Esnafta üst şerit zaten gizli (alt sekmeler var); süper admin hamburgerle menüyü açar */
+  .mobile-topbar.esnaf-ust .hamburger-btn { display: none; }
 }
 .top-bar { padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); box-shadow: 0 1px 3px rgba(22,5,39,.03); }
 .top-bar h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.2px; color: var(--text); }
@@ -1222,3 +1223,9 @@ input.anahtar::after { content: ''; position: absolute; top: 3px; left: 3px; wid
 input.anahtar:checked { background: #1f6f4a; }
 input.anahtar:checked::after { transform: translateX(18px); }
 input.anahtar:focus-visible { outline: 2px solid #1f6f4a; outline-offset: 2px; }
+
+/* Süper admin telefonda (rapor 2026-10-14): sonradan gelen genel .main-panel dolgusu mobil üst boşluğu eziyordu;
+   başlık sabit "SıraGO" şeridinin altında kalıyordu. */
+@media (max-width: 768px) {
+  .main-panel { padding: 72px 16px 24px; }
+}

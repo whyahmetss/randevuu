@@ -69,6 +69,8 @@ function waBicim(metin) {
 // Telefon okunur biçimde: +905990000008 → 0599 000 00 08 (mobil rapor 2026-10-14)
 const telGoster = (t) => {
   const d = String(t || "").replace(/\D/g, "");
+  // WhatsApp bazı kişilerde numara yerine gizli kimlik (LID, 14-15 hane) verir: arama yapılamaz
+  if (d.length >= 14 && !d.startsWith("90")) return "WhatsApp (numara gizli)";
   const yerel = d.startsWith("90") && d.length === 12 ? "0" + d.slice(2) : d.length === 10 && d.startsWith("5") ? "0" + d : d;
   return /^0\d{10}$/.test(yerel) ? `${yerel.slice(0, 4)} ${yerel.slice(4, 7)} ${yerel.slice(7, 9)} ${yerel.slice(9)}` : (t || "");
 };
@@ -451,7 +453,7 @@ function Login({ onLogin }) {
               </div>
               <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5, margin: "4px 0 12px", cursor: "pointer" }}>
                   <input type="checkbox" checked={sartOnay} onChange={e => setSartOnay(e.target.checked)} style={{ marginTop: 3 }} />
-                  <span><a href="https://xn--srago-n4a.com/kullanim.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>Kullanım Şartları</a>'nı okudum, kabul ediyorum; kişisel verilerimin <a href="https://xn--srago-n4a.com/kvkk.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>KVKK Aydınlatma Metni</a>'ne göre işlenmesini biliyorum.</span>
+                  <span><a href="https://xn--srago-n4a.com/kullanim.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>Kullanım Şartları</a>'nı okudum, kabul ediyorum; kişisel verilerimin <a href="https://xn--srago-n4a.com/kvkk.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>KVKK Aydınlatma Metni</a>'ne göre işleneceğini biliyorum.</span>
                 </label>
               {hata && <div className="alert alert-error">{hata}</div>}
               <button type="submit" disabled={yukleniyor} className="login-btn-primary">{yukleniyor ? "Hesap oluşturuluyor..." : "Hesabımı oluştur"}</button>
@@ -506,7 +508,7 @@ function Login({ onLogin }) {
                 </div>
                 <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5, margin: "4px 0 12px", cursor: "pointer" }}>
                   <input type="checkbox" checked={sartOnay} onChange={e => setSartOnay(e.target.checked)} style={{ marginTop: 3 }} />
-                  <span><a href="https://xn--srago-n4a.com/kullanim.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>Kullanım Şartları</a>'nı okudum, kabul ediyorum; kişisel verilerimin <a href="https://xn--srago-n4a.com/kvkk.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>KVKK Aydınlatma Metni</a>'ne göre işlenmesini biliyorum.</span>
+                  <span><a href="https://xn--srago-n4a.com/kullanim.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>Kullanım Şartları</a>'nı okudum, kabul ediyorum; kişisel verilerimin <a href="https://xn--srago-n4a.com/kvkk.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>KVKK Aydınlatma Metni</a>'ne göre işleneceğini biliyorum.</span>
                 </label>
                 {hata && <div className="alert alert-error">{hata}</div>}
                 <button type="submit" disabled={yukleniyor} className="login-btn-primary">
@@ -3339,7 +3341,7 @@ function Dashboard({ kullanici }) {
           {/* ── QR KOD ── */}
           {sayfa === "qrkod" && (
             <div>
-              <div style={{ marginBottom: 20, color: "var(--dim)", fontSize: 13 }}>İşletmen için WhatsApp veya Online Randevu QR kodu oluşturun. Yazdırıp işletmene asabilirsin.</div>
+              <div style={{ marginBottom: 20, color: "var(--dim)", fontSize: 13 }}>İşletmen için WhatsApp veya Online Randevu QR kodu oluştur. Yazdırıp işletmene asabilirsin.</div>
               <div className="grid-2">
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, border: "1px solid var(--border)" }}>
                   <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--text)", margin: "0 0 16px" }}>QR Tipi Seç</h3>
@@ -3373,7 +3375,7 @@ function Dashboard({ kullanici }) {
                   ) : (
                     <div style={{ textAlign: "center", color: "var(--dim)" }}>
                       
-                      <p style={{ fontSize: 13 }}>QR tipi seçip oluşturun</p>
+                      <p style={{ fontSize: 13 }}>QR tipi seçip oluştur</p>
                     </div>
                   )}
                 </div>
@@ -3385,7 +3387,7 @@ function Dashboard({ kullanici }) {
                   
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>Google Haritalar Bağlantısı</div>
-                    <div style={{ fontSize: 12, color: "var(--dim)" }}>İşletmeni Google'da bulsunlar, randevu linkini profilinize ekle.</div>
+                    <div style={{ fontSize: 12, color: "var(--dim)" }}>İşletmeni Google'da bulsunlar, randevu linkini profiline ekle.</div>
                   </div>
                 </div>
 
@@ -3414,7 +3416,7 @@ function Dashboard({ kullanici }) {
                     <div style={{ padding: 16, borderRadius: 12, background: "rgba(66,133,244,.06)", border: "1px solid rgba(66,133,244,.15)" }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#4285f4", marginBottom: 8 }}>📅 Google Business Randevu Linki</div>
                       <div style={{ fontSize: 12, color: "var(--text)", lineHeight: 1.6, marginBottom: 8 }}>
-                        Aşağıdaki size özel linki Google Business profilinize yapıştırın:
+                        Aşağıdaki sana özel linki Google Business profiline yapıştır:
                       </div>
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <div style={{ flex: 1, padding: "10px 14px", borderRadius: 10, background: "rgba(66,133,244,.06)", border: "1px solid rgba(66,133,244,.15)", fontSize: 12, fontWeight: 600, color: "#4285f4", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -3651,7 +3653,7 @@ function Dashboard({ kullanici }) {
                   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, color: "var(--dim)" }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     <div style={{ fontSize: 15, fontWeight: 600 }}>Destek Merkezi</div>
-                    <div style={{ fontSize: 12 }}>Bir talep seç veya yeni talep oluşturun</div>
+                    <div style={{ fontSize: 12 }}>Bir talep seç ya da yeni talep oluştur</div>
                   </div>
                 )}
               </div>
@@ -6436,7 +6438,7 @@ function SuperAdminPanel({ kullanici }) {
                 ) : (
                   <div style={{ textAlign: "center", color: "var(--dim)" }}>
                     
-                    <p style={{ fontSize: 13 }}>İşletme seçip QR oluşturun</p>
+                    <p style={{ fontSize: 13 }}>İşletme seçip QR oluştur</p>
                   </div>
                 )}
               </div>
@@ -6984,7 +6986,7 @@ function SuperAdminPanel({ kullanici }) {
             {avciStats && (
               <HuniSerit adimlar={[
                 { ad: "Toplam aday", deger: avciStats.toplam, alt: `${avciStats.yeni ?? 0} yeni` },
-                { ad: "Ulaşıldı", deger: (avciStats.bot_yazdi || 0) + (avciStats.arandi || 0), renk: SG.mavi },
+                { ad: "Ulaşıldı", deger: avciStats.ulasildi ?? ((avciStats.bot_yazdi || 0) + (avciStats.arandi || 0)), renk: SG.mavi },
                 { ad: "İlgileniyor", deger: avciStats.ilgileniyor, renk: SG.amber },
                 { ad: "Müşteri oldu", deger: avciStats.musteri_oldu, renk: SG.yesil },
               ]} />

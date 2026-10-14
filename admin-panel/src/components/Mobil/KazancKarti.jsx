@@ -7,7 +7,10 @@ const tl = (n) => `${Math.round(n).toLocaleString('tr-TR')}₺`;
 export default function KazancKarti({ api, sol = false, dar }) {
   const [k, setK] = useState(null);
   const [acik, setAcik] = useState(false);
-  useEffect(() => { api.get('/kazanc').then(d => !d?.hata && setK(d)).catch(() => {}); }, []);
+  useEffect(() => {
+    const ay = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
+    api.get(`/kazanc?ay=${ay}`).then(d => !d?.hata && setK(d)).catch(() => {});
+  }, []);
   if (!k || !k.toplam) return null;
 
   const ozetAyar = async (aktif) => { setK({ ...k, whatsapp_ozet: aktif }); await api.put('/kazanc/ayar', { aktif }); };
