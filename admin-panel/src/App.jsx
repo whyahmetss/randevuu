@@ -64,6 +64,19 @@ function waBicim(metin) {
     : /^_[^_]+_$/.test(p) ? <em key={i}>{p.slice(1, -1)}</em> : p));
 }
 
+// Telefon okunur biçimde: +905990000008 → 0599 000 00 08 (mobil rapor 2026-10-14)
+const telGoster = (t) => {
+  const d = String(t || "").replace(/\D/g, "");
+  const yerel = d.startsWith("90") && d.length === 12 ? "0" + d.slice(2) : d.length === 10 && d.startsWith("5") ? "0" + d : d;
+  return /^0\d{10}$/.test(yerel) ? `${yerel.slice(0, 4)} ${yerel.slice(4, 7)} ${yerel.slice(7, 9)} ${yerel.slice(9)}` : (t || "");
+};
+const basHarf = (isim) => String(isim || "?").trim().split(/\s+/).slice(0, 2).map(x => x.charAt(0).toLocaleUpperCase("tr")).join("") || "?";
+const sonGelis = (tarih) => {
+  if (!tarih) return null;
+  const gun = Math.floor((new Date(new Date().toDateString()) - new Date(new Date(tarih).toDateString())) / 86400000);
+  return gun <= 0 ? "Son: bugün" : gun === 1 ? "Son: dün" : gun < 30 ? `Son: ${gun} gün önce` : `Son: ${new Date(tarih).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}`;
+};
+
 // Veritabanı kodlarını ekranda okunur Türkçeye çevirir (2026-10-14 tasarım raporu: "guzellik", "odeme_bekliyor", "baslangic" ham görünüyordu)
 const ETIKET = {
   berber: "Berber", kuafor: "Kuaför", guzellik: "Güzellik salonu", disci: "Diş kliniği", veteriner: "Veteriner", dovme: "Dövme",
@@ -1193,6 +1206,7 @@ function Dashboard({ kullanici }) {
   const [yeniDestek, setYeniDestek] = useState({ konu: "", mesaj: "", oncelik: "normal" });
   const [destekSecili, setDestekSecili] = useState(null);
   const [destekFiltre2, setDestekFiltre2] = useState("hepsi");
+  const [musteriAra, setMusteriAra] = useState("");   // Müşteriler sayfası arama
   const chatRef = useRef(null);
   const [qrType, setQrType] = useState('whatsapp');
   const [qrData, setQrData] = useState(null);
@@ -1677,7 +1691,7 @@ function Dashboard({ kullanici }) {
       )}
 
       {/* Mobile top bar */}
-      <div className="mobile-topbar">
+      <div className="mobile-topbar esnaf-ust">
         <span className="brand-name">SıraGO</span>
         <button className="hamburger-btn" onClick={() => setMobileOpen(true)}>
           <span/><span/><span/>
@@ -1821,15 +1835,15 @@ function Dashboard({ kullanici }) {
       <div className="main-wrap">
         <div className="top-bar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{(liteMod || mobil) && sayfa === "anasayfa" ? "Bugün" : sayfaBaslik[sayfa]}</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text)", margin: 0 }}>{(liteMod || mobil) && sayfa === "anasayfa" ? "Bugün" : mobil && sayfa === "randevular" ? "Takvim" : sayfaBaslik[sayfa]}</h1>
             {sayfa === "anasayfa" && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{new Date().toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>}
           </div>
           <div className="top-bar-right" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {/* Canlı bağlantı göstergesi */}
-            <CanliDurumu />
+            <span className="ust-canli"><CanliDurumu /></span>
             {/* Çalışan Avatarları + Ekip Dropdown */}
             {dashCalisanlar.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", position: "relative" }}
+              <div className="ust-ekip" style={{ display: "flex", alignItems: "center", position: "relative" }}
                 onClick={() => setCalisanPopover(calisanPopover ? null : "ekip")}>
                 {dashCalisanlar.slice(0, 4).map((c, i) => (
                   <div key={c.id} style={{
@@ -2044,7 +2058,7 @@ function Dashboard({ kullanici }) {
               </div>
             );
           })}
-          {sayfa === "anasayfa" && <KurulumKarti api={api} setSayfa={setSayfa} />}
+          {sayfa === "anasayfa" && !mobil && <KurulumKarti api={api} setSayfa={setSayfa} />}
           {sayfa === "esnafgetir" && <EsnafGetir api={api} />}
           <KurulumSihirbazi api={api} ayarlar={ayarlar} kullanici={kullanici} setSayfa={setSayfa} ayarlariYenile={ayarlariYukle} />
           {sayfa === "tablet" && <TabletEkrani api={api} ayarlar={ayarlar} eposta={kullanici?.email} kapat={() => setSayfa("anasayfa")} />}
@@ -2056,12 +2070,14 @@ function Dashboard({ kullanici }) {
                 .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
                 .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
           )}
-          {sayfa === "anasayfa" && <KazancKarti api={api} dar={liteMod || mobil} />}
+          {sayfa === "anasayfa" && !mobil && <KazancKarti api={api} dar={liteMod} />}
           {sayfa === "googleharita" && <GoogleRehber ayarlar={ayarlar} />}
           {sayfa === "randevusayfam" && <RandevuSayfam api={api} />}
           {sayfa === "anasayfa" && (liteMod || mobil) && (
             mobil ? <BugunMobil api={api} setSayfa={setSayfa} /> : <LiteBugun api={api} ayarlar={ayarlar} setSayfa={setSayfa} />
           )}
+          {/* Telefonda motivasyon kartları günün işinin altında (mobil rapor 2026-10-14) */}
+          {sayfa === "anasayfa" && mobil && <div style={{ maxWidth: 560, margin: "14px auto 0" }}><KurulumKarti api={api} setSayfa={setSayfa} /><KazancKarti api={api} dar /></div>}
           {sayfa === "anasayfa" && !(liteMod || mobil) && (() => {
             const bugunRandevu = stats?.bugun?.toplam_randevu || 0;
             const haftaRandevu = stats?.hafta?.toplam_randevu || 0;
@@ -2867,7 +2883,7 @@ function Dashboard({ kullanici }) {
                             )}
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 12, color: "var(--dim)" }}>
-                            <span>📞 {r.musteri_telefon}</span>
+                            <span>📞 {telGoster(r.musteri_telefon)}</span>
                             {(r.hizmetler_adlari || r.hizmet_isim) && <span>✂️ {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}{(Number(r.toplam_fiyat) || Number(r.fiyat)) ? ` · ${(Number(r.toplam_fiyat) || Number(r.fiyat)).toLocaleString("tr-TR")}₺` : ""}</span>}
                             {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
                             {r.kapora_durumu && r.kapora_durumu !== 'yok' && (
@@ -2902,7 +2918,7 @@ function Dashboard({ kullanici }) {
                       {!bitmis && (
                         <div style={{ display: "flex", gap: 6, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
                           {[["onaylandi","✅ Onayla"], ["tamamlandi","✔️ Tamam"], ["gelmedi","❌ Gelmedi"], ["iptal","🚫 İptal"]].filter(([d]) => d !== r.durum).map(([d, l]) => (
-                            <button key={d}
+                            <button key={d} className="rdv-aksiyon"
                               onClick={() => durumDegistir(r, d)}
                               style={{
                                 padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer",
@@ -2957,24 +2973,32 @@ function Dashboard({ kullanici }) {
           {/* ── MÜŞTERİLER ── */}
           {sayfa === "musteriler" && (
             <>
-              <div className="mb-20" style={{ color: "var(--dim)", fontSize: 13 }}>{musteriler.length} müşteri kayıtlı</div>
+              <div className="mb-20" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <input value={musteriAra} onChange={e => setMusteriAra(e.target.value)} placeholder="🔍 İsim ya da telefon ara" className="input"
+                  style={{ flex: "1 1 240px", height: 46, fontSize: 15, borderRadius: 12 }} aria-label="Müşteri ara" />
+                <span style={{ color: "var(--muted)", fontSize: 13 }}>{musteriler.length} müşteri</span>
+              </div>
               {musteriler.length === 0 ? (
                 <div className="card text-center" style={{ padding: "50px 0" }}>
                   <div style={{ fontSize: 40 }} className="mb-10">👥</div>
                   <div style={{ color: "var(--dim)" }}>Henüz müşteri yok</div>
                   <div style={{ color: "var(--dim)", fontSize: 13 }} className="mt-6">WhatsApp botu üzerinden gelen müşteriler burada görünecek</div>
                 </div>
-              ) : musteriler.map(m => (
+              ) : musteriler.filter(m => {
+                  const q = musteriAra.trim().toLocaleLowerCase("tr"); if (!q) return true;
+                  const rakam = q.replace(/\D/g, "");
+                  return String(m.isim || "").toLocaleLowerCase("tr").includes(q) || (rakam.length >= 3 && String(m.telefon || "").replace(/\D/g, "").includes(rakam.replace(/^0/, "")));
+                }).map(m => (
                 <div key={m.id} className="list-item list-item-lg">
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(31,111,74,.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }} className="shrink-0">👤</div>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(31,111,74,.12)", color: "#1f6f4a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }} className="shrink-0">{basHarf(m.isim)}</div>
                   <div className="flex-1">
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{m.isim || "İsimsiz"}</div>
-                    <div className="list-item-sub">📞 {m.telefon}</div>
+                    <div className="list-item-sub">📞 {telGoster(m.telefon)}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ color: "var(--green)", fontWeight: 600, fontSize: 15 }}>{m.randevu_sayisi}</div>
                     <div style={{ color: "var(--dim)", fontSize: 11 }}>randevu</div>
-                    {m.son_randevu && <div style={{ color: "var(--dim)", fontSize: 11 }} className="mt-2">{new Date(m.son_randevu).toLocaleDateString("tr-TR")}</div>}
+                    {m.son_randevu && <div style={{ color: "var(--muted)", fontSize: 12 }} className="mt-2">{sonGelis(m.son_randevu)}</div>}
                   </div>
                 </div>
               ))}

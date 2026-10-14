@@ -14,7 +14,7 @@
   --border2:  #d9d5cc;
   --text:     #1b1a17;
   --muted:    #5d5952;
-  --dim:      #8f8a81;
+  --dim:      #77716a;   /* 2026-10-14 mobil rapor: #8f8a81 güneşte okunmuyordu */
   --primary:      #1f6f4a;
   --primary-d:    #185a3c;
   --primary-glow: rgba(31,111,74,.14);
@@ -790,11 +790,17 @@ select.input { appearance: none; }
     color: var(--dim); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-height: 56px; }
   .alt-sekmeler button.aktif { color: #1f6f4a; font-weight: 800; }
   /* Üstteki sabit "SıraGO" çubuğu (56px) içeriği örtmesin (2026-10-14: "Bugün" başlığı ve tarih altında kalıyordu) */
-  .main-wrap { padding-top: 56px; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
-  /* Başlık solda, durum/ekip/zil sağda tek satır; sığmazsa sağ taraf kendi içinde kayar */
-  .main-wrap > .top-bar { flex-direction: row !important; align-items: center !important; gap: 10px !important; flex-wrap: nowrap !important; }
-  .main-wrap > .top-bar > div:first-child { min-width: 0; flex-shrink: 1; }
-  .main-wrap > .top-bar .top-bar-right { flex-wrap: nowrap !important; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  /* Mobil rapor (2026-10-14): esnaf panelinde üstteki "SıraGO" şeridi yok; tek başlık satırı ekranın üstüne yapışık */
+  .mobile-topbar.esnaf-ust { display: none !important; }
+  .main-wrap { padding-top: 0; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .main-wrap > .top-bar { position: sticky; top: 0; z-index: 90; flex-direction: row !important; align-items: center !important; gap: 10px !important; flex-wrap: nowrap !important; }
+  .main-wrap > .top-bar > div:first-child { min-width: 0; flex: 1 1 auto; }
+  .main-wrap > .top-bar h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .main-wrap > .top-bar .top-bar-right { flex: 0 0 auto; flex-wrap: nowrap !important; }
+  /* Telefonda yalnız başlık + zil + işletme: canlı rozeti ve ekip avatarları gizli (başlıkla çakışıyordu) */
+  .main-wrap > .top-bar .ust-canli, .main-wrap > .top-bar .ust-ekip { display: none !important; }
+  /* Takvim aksiyonları parmakla basılabilir (en az 44px) */
+  .rdv-aksiyon { min-height: 44px; padding: 8px 14px !important; font-size: 14px !important; flex: 1 1 auto; }
   .mobile-topbar .hamburger-btn { display: none; }
 }
 .top-bar { padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); box-shadow: 0 1px 3px rgba(22,5,39,.03); }
