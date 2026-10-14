@@ -46,7 +46,7 @@ async function oncuDurum(isletmeId) {
 
 // Öncü ödülü (kullanıcı kararı 2026-10-13): öncü hangi paketten öderse ödesin Standart'ın özellikleri açılır.
 // Limitler (çalışan, hizmet, randevu) ve fiyat paketinden gelir; ödül geri alınmaz.
-const ONCU_ODUL = ['kasa', 'magaza', 'prim', 'sadakat', 'winback', 'yorum_avcisi', 'gece_raporu', 'istatistik', 'kapora', 'telegram'];
+const ONCU_ODUL = ['kasa', 'magaza', 'prim', 'sadakat', 'winback', 'yorum_avcisi', 'gece_raporu', 'istatistik', 'kapora', 'telegram', 'dogum_gunu'];
 function oncuPaket(paket, oncuNo) {
   if (!oncuNo || !paket) return paket;
   const p = { ...paket, oncu_odul: true };
@@ -57,10 +57,13 @@ function oncuPaket(paket, oncuNo) {
 async function isletmePaketi(isletmeId) {
   const { paketGetir } = require('../config/paketler');
   const i = (await pool.query(
-    `SELECT COALESCE(m.paket, i.paket) AS paket, COALESCE(m.oncu_no, i.oncu_no) AS oncu_no
+    `SELECT COALESCE(m.paket, i.paket) AS paket, COALESCE(m.oncu_no, i.oncu_no) AS oncu_no, i.paket_ayricalik
        FROM isletmeler i LEFT JOIN LATERAL (SELECT paket, oncu_no FROM isletmeler WHERE grup_id = i.grup_id AND i.grup_id IS NOT NULL ORDER BY id LIMIT 1) m ON true
       WHERE i.id = $1`, [isletmeId])).rows[0];
-  return { kod: i?.paket || 'baslangic', paket: oncuPaket(await paketGetir(i?.paket), i?.oncu_no) };
+  const paket = oncuPaket(await paketGetir(i?.paket), i?.oncu_no);
+  // Kazanılmış hak (044): paket kuralından önce açık olan özellik bu işletmede açık kalır
+  const ayricalik = Array.isArray(i?.paket_ayricalik) ? i.paket_ayricalik : [];
+  return { kod: i?.paket || 'baslangic', paket: ayricalik.length ? { ...paket, ...Object.fromEntries(ayricalik.map(k => [k, true])) } : paket };
 }
 
 module.exports = { oncuOdeme, etkinFiyat, oncuDurum, oncuPaket, isletmePaketi, ONCU_LIMIT, ONCU_ODUL };

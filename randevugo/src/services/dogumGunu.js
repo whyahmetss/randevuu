@@ -21,7 +21,7 @@ class DogumGunuService {
 
       const isletmeler = (await pool.query(
         `SELECT id, isim, dogum_gunu_aktif, dogum_gunu_indirim, dogum_gunu_mesaj_sablonu, telegram_token
-         FROM isletmeler WHERE dogum_gunu_aktif = true AND paket IN ('profesyonel', 'proplus', 'kurumsal', 'premium')`
+         FROM isletmeler WHERE dogum_gunu_aktif = true AND (paket IN ('profesyonel', 'proplus', 'kurumsal', 'premium') OR oncu_no IS NOT NULL OR 'dogum_gunu' = ANY(paket_ayricalik))`
       )).rows;
 
       for (const isletme of isletmeler) {
