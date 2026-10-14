@@ -121,7 +121,7 @@ export default function GoogleCalendar({ api }) {
             <div style={{ display: "grid", gap: 6, color: "var(--dim)" }}>
               <div>✅ SıraGO'da randevu açıldığında → Google Takvim'e etkinlik olarak eklenir</div>
               <div>✅ Randevu iptal olunca → Google'dan otomatik silinir</div>
-              <div>✅ Google'da kendi eventiniz (örn. doktor, öğle yemeği) varsa → o saat online booking'de görünmez</div>
+              <div>✅ Google Takvim'inde özel bir etkinliğin varsa (örn. doktor, öğle yemeği) → o saat online randevuda görünmez</div>
               <div>✅ Randevu ertelenince → Google'da da güncellenir</div>
             </div>
           </div>

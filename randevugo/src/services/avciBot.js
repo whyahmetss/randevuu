@@ -943,6 +943,7 @@ class AvciBot {
         COUNT(*) FILTER (WHERE durum = 'demo_yapildi') as demo_yapildi,
         COUNT(*) FILTER (WHERE durum = 'musteri_oldu') as musteri_oldu,
         COUNT(*) FILTER (WHERE wp_mesaj_durumu = 'gonderildi') as bot_yazdi,
+        COUNT(*) FILTER (WHERE wp_mesaj_durumu = 'gonderildi' OR COALESCE(durum, 'yeni') <> 'yeni') as ulasildi,
         COUNT(*) FILTER (
           WHERE wp_mesaj_durumu = 'gonderildi'
             AND id NOT IN (

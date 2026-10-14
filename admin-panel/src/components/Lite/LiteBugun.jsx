@@ -145,7 +145,7 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
         {/* Randevu linki */}
         <div className="card" style={{ padding: 18 }}>
           <b>Online randevu linkin</b>
-          <div style={{ fontSize: 13, color: 'var(--dim)', margin: '6px 0 12px' }}>Müşteri bu linkten saat seçer, telefonla uğraşmazsın. Instagram ve Google profilinize de koy.</div>
+          <div style={{ fontSize: 13, color: 'var(--dim)', margin: '6px 0 12px' }}>Müşteri bu linkten saat seçer, telefonla uğraşmazsın. Instagram ve Google profiline de koy.</div>
           {link ? (
             <>
               <div style={{ fontSize: 13, padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, wordBreak: 'break-all', marginBottom: 10 }}>{link}</div>

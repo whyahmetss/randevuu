@@ -120,6 +120,15 @@ export default function BookingPage({ slug }) {
 
   const [honeypot, setHoneypot] = useState(''); // bot tuzağı — gerçek kullanıcı boş bırakır
   const [buyukFoto, setBuyukFoto] = useState(null); // galeri: açık fotoğrafın sırası
+  // Sekme başlığı ve ikonu müşteri için: "Kemal Berber · Online randevu" (eskiden "SıraGO - Admin Panel" yazıyordu)
+  useEffect(() => {
+    if (!isletme?.isim) return;
+    document.title = `${isletme.isim} · Online randevu`;
+    if (isletme.logo_var) {
+      const v = isletme.sayfa_guncelleme ? new Date(isletme.sayfa_guncelleme).getTime() : 0;
+      document.querySelectorAll('link[rel="icon"]').forEach(l => { l.href = `${API_URL}/book/${slug}/gorsel/logo?v=${v}`; l.removeAttribute('type'); });
+    }
+  }, [isletme?.isim, isletme?.logo_var]);
   const [bekleme, setBekleme] = useState({ isim: '', tel: '', durum: '', hata: '' }); // dolu gün: "yer açılırsa haber ver"
   useEffect(() => { setBekleme(b => ({ ...b, durum: '', hata: '' })); }, [secilenTarih]);   // başka gün seçilince form yeniden açılır
   const [emailConfirm, setEmailConfirm] = useState(''); // ikinci tuzak

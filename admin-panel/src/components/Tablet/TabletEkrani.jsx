@@ -72,7 +72,9 @@ export default function TabletEkrani({ api, ayarlar, eposta, kapat }) {
   const icerde = aktifler.filter(r => r.durum !== 'tamamlandi' && dk(r.saat) <= sDk && dk(r.saat) > sDk - 60);
   const kasa = liste.filter(r => r.durum === 'tamamlandi').reduce((t, r) => t + (Number(r.toplam_fiyat) || Number(r.fiyat) || 0), 0);
 
-  const kok = { position: 'fixed', inset: 0, zIndex: 3000, fontFamily: 'inherit', overflow: 'hidden', display: 'flex', flexDirection: 'column' };
+  // Süper admin işletmeye girdiyse üstte 34px'lik turuncu bant var: tam ekran onun altından başlar
+  let bantUst = 0; try { bantUst = sessionStorage.getItem('randevugo_imp_token') ? 34 : 0; } catch (e) { /* depolama kapalı */ }
+  const kok = { position: 'fixed', inset: 0, top: bantUst, zIndex: 3000, fontFamily: 'inherit', overflow: 'hidden', display: 'flex', flexDirection: 'column' };
 
   if (mod === 'musteri') return <MusteriModu api={api} ayarlar={ayarlar} liste={aktifler} sDk={sDk} cik={() => setMod('dukkan')} yenile={yukle} kok={kok} eposta={eposta} />;
 

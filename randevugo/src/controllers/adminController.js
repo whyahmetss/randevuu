@@ -5201,7 +5201,7 @@ class AdminController {
       let sorgu = `
         SELECT m.id, m.isim, m.telefon, m.olusturma_tarihi,
           COALESCE(m.puan_bakiye, 0) as puan, m.referans_kodu,
-          (SELECT r2.isletme_id FROM randevular r2 WHERE r2.musteri_id = m.id LIMIT 1) as isletme_id,
+          COALESCE((SELECT r2.isletme_id FROM randevular r2 WHERE r2.musteri_id = m.id LIMIT 1), m.son_gelinen_isletme_id) as isletme_id,
           i.isim as isletme_isim, i.kategori, i.paket,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id), 0) as randevu_sayisi,
           COALESCE((SELECT COUNT(*) FROM randevular r WHERE r.musteri_id = m.id AND r.durum = 'tamamlandi'), 0) as tamamlanan_randevu,
@@ -5209,13 +5209,14 @@ class AdminController {
           (SELECT MAX(r.tarih) FROM randevular r WHERE r.musteri_id = m.id AND r.tarih <= CURRENT_DATE) as son_randevu_tarih,
           (SELECT MIN(r.tarih) FROM randevular r WHERE r.musteri_id = m.id) as ilk_randevu_tarih
         FROM musteriler m
-        LEFT JOIN isletmeler i ON i.id = (SELECT r3.isletme_id FROM randevular r3 WHERE r3.musteri_id = m.id LIMIT 1)
+        LEFT JOIN isletmeler i ON i.id = COALESCE((SELECT r3.isletme_id FROM randevular r3 WHERE r3.musteri_id = m.id LIMIT 1), m.son_gelinen_isletme_id)
       `;
 
       const params = [];
-      const where = [];
+      // Hiç randevusu olmayan ve hiçbir işletmenin botuna yazmamış kayıtlar (eski satış görüşmeleri, test) müşteri değil
+      const where = [`(m.son_gelinen_isletme_id IS NOT NULL OR EXISTS (SELECT 1 FROM randevular r5 WHERE r5.musteri_id = m.id))`];
 
-      if (isletme_id) { params.push(parseInt(isletme_id)); where.push(`EXISTS (SELECT 1 FROM randevular r4 WHERE r4.musteri_id = m.id AND r4.isletme_id = $${params.length})`); }
+      if (isletme_id) { params.push(parseInt(isletme_id)); where.push(`(m.son_gelinen_isletme_id = $${params.length} OR EXISTS (SELECT 1 FROM randevular r4 WHERE r4.musteri_id = m.id AND r4.isletme_id = $${params.length}))`); }
       if (arama) { params.push(`%${arama}%`); where.push(`(m.isim ILIKE $${params.length} OR m.telefon ILIKE $${params.length})`); }
 
       if (where.length > 0) sorgu += ' WHERE ' + where.join(' AND ');
