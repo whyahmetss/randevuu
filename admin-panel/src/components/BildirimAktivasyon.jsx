@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 import { sesKilidiAc, bildirimCal, ayarOku, ayarYaz } from '../lib/bildirim';
 import { pushDesteklenir, pushIzinDurumu, pushAc } from '../lib/push';
 
-const STORAGE_KEY = 'randevugo_aktivasyon_tamam';
+// v2 (2026-10-15): eski banner yalnız izin istiyordu, telefonu push'a kaydetmiyordu → herkese bir kez daha gösterilir
+const STORAGE_KEY = 'randevugo_aktivasyon_v2';
+
+// iPhone/iPad'de web bildirimi yalnız "Ana Ekrana Ekle" ile kurulan uygulamada çalışır (Safari sekmesinde çalışmaz)
+const iosCihaz = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const anaEkranda = () => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
 /**
  * İlk giriş banner'ı — kullanıcıdan ses + bildirim iznini tek tıkla alır.
@@ -16,9 +21,13 @@ export default function BildirimAktivasyon() {
     try {
       const tamam = localStorage.getItem(STORAGE_KEY);
       if (tamam) return;
-      // Biraz gecikme → sayfa yüklendikten sonra göster
-      const t = setTimeout(() => setGoster(true), 2000);
-      return () => clearTimeout(t);
+      let iptal = false;
+      // Bu cihaz zaten bildirime kayıtlıysa gösterme
+      const t = setTimeout(async () => {
+        try { const d = await pushIzinDurumu(); if (d.aboneMi && d.izin === 'granted') return; } catch {}
+        if (!iptal) setGoster(true);
+      }, 2000);
+      return () => { iptal = true; clearTimeout(t); };
     } catch {}
   }, []);
 
@@ -45,8 +54,10 @@ export default function BildirimAktivasyon() {
         try { await Notification.requestPermission(); } catch {}
       }
 
-      // 4) Push desteği varsa kullanıcıya seçenek ver (zorla değil — Settings'te yapsın)
-      // Şimdi zorla push register yapmıyoruz, çünkü VAPID backend çağrısı vs lazım
+      // 4) Telefonu push'a kaydet — site arkadayken / ekran kilitliyken de bildirim gelsin
+      if (pushDesteklenir() && 'Notification' in window && Notification.permission === 'granted') {
+        try { await pushAc(); } catch (e) { console.error('[BildirimAktivasyon] push kaydı:', e.message); }
+      }
 
       // 5) Wake Lock (pasif - kendisi aktif olur)
 
@@ -65,6 +76,7 @@ export default function BildirimAktivasyon() {
   };
 
   if (!goster) return null;
+  const iosSafari = iosCihaz() && !anaEkranda();
 
   return (
     <div style={{
@@ -78,13 +90,15 @@ export default function BildirimAktivasyon() {
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 3 }}>
-          Sesli bildirimleri aktifleştirin
+          {iosSafari ? 'iPhone\'da bildirim almak için' : 'Sesli bildirimleri aktifleştirin'}
         </div>
         <div style={{ fontSize: 12, opacity: .92, lineHeight: 1.4 }}>
-          Tabletinizi dükkana koy, randevu geldiğinde anında ötsün. Tek tıkla hazır.
+          {iosSafari
+            ? <>Safari'de alttaki <b>Paylaş</b> düğmesine bas → <b>Ana Ekrana Ekle</b>. Sonra SıraGO'yu ana ekrandaki simgeden aç ve bildirimleri orada aç. Safari sekmesinde iPhone bildirim göndermez.</>
+            : 'Telefonun ya da tabletin, site kapalıyken bile randevu geldiğinde ötsün. Tek tıkla hazır.'}
         </div>
       </div>
-      <button onClick={aktifEt} disabled={yukleniyor} style={{
+      {!iosSafari && <button onClick={aktifEt} disabled={yukleniyor} style={{
         padding: '10px 18px', borderRadius: 10, border: 'none',
         background: '#f6f5f2', color: '#1b1a17', fontWeight: 500, fontSize: 13,
         cursor: 'pointer', whiteSpace: 'nowrap',
@@ -92,7 +106,7 @@ export default function BildirimAktivasyon() {
         opacity: yukleniyor ? 0.6 : 1
       }}>
         {yukleniyor ? '⏳ Aktifleştiriliyor...' : '✓ Aktifleştir'}
-      </button>
+      </button>}
       <button onClick={() => kapat(true)} style={{
         background: 'rgba(255,255,255,.15)', border: 'none',
         color: '#fff', fontSize: 18, cursor: 'pointer',

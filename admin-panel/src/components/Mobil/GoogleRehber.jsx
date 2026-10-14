@@ -36,7 +36,7 @@ export default function GoogleRehber({ ayarlar }) {
             style={{ width: '100%', height: 52, borderRadius: 14, border: 'none', background: '#1f6f4a', color: '#fff', fontWeight: 800, fontSize: 16, fontFamily: 'inherit', cursor: 'pointer' }}>
             {kopya ? '✓ Kopyalandı' : 'Linki kopyala'}
           </button>
-        </>) : <div style={{ fontSize: 15, marginTop: 6 }}>Önce Dükkanım → Çalışma saatleri ve ayarlar'dan dükkân bilgilerini kaydet.</div>}
+        </>) : <div style={{ fontSize: 15, marginTop: 6 }}>Önce Dükkanım → Ayarlar'dan dükkân bilgilerini kaydet.</div>}
       </div>
 
       <div style={kart}>

@@ -1957,7 +1957,7 @@ function Dashboard({ kullanici }) {
               {bildirimPopover && (
                 <>
                   <div onClick={() => setBildirimPopover(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 49 }} />
-                  <div style={{ position: "absolute", top: 44, right: 0, zIndex: 50, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, width: 340, maxHeight: 420, overflow: "hidden", boxShadow: "0 16px 48px rgba(22,5,39,.14)", animation: "fadeIn .18s ease" }}>
+                  <div className="bildirim-popover" style={{ position: "absolute", top: 44, right: 0, zIndex: 50, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, width: 340, maxHeight: 420, overflow: "hidden", boxShadow: "0 16px 48px rgba(22,5,39,.14)", animation: "fadeIn .18s ease" }}>
                     <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Bildirimler</div>
                       {bildirimSayi > 0 && (

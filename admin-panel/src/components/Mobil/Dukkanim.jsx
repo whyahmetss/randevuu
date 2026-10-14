@@ -57,7 +57,7 @@ export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
       <div style={grupBaslik}>İşletmem</div>
       <div style={kart}>
         <Satir baslik="Hizmetler ve fiyatlar" onClick={() => ac('hizmetler')} />
-        <Satir baslik="Çalışma saatleri ve ayarlar" alt={ayarlar?.calisma_baslangic ? `${String(ayarlar.calisma_baslangic).slice(0, 5)} – ${String(ayarlar.calisma_bitis || '').slice(0, 5)}` : null} onClick={() => ac('ayarlar')} />
+        <Satir baslik="Ayarlar" alt={ayarlar?.calisma_baslangic ? `${String(ayarlar.calisma_baslangic).slice(0, 5)} – ${String(ayarlar.calisma_bitis || '').slice(0, 5)}` : null} onClick={() => ac('ayarlar')} />
         <Satir baslik="Çalışanlar" onClick={() => ac('calisanlar')} />
       </div>
       <div style={grupBaslik}>Görünürlük</div>
