@@ -172,8 +172,10 @@ function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok, eposta }) {
   useEffect(() => { clearTimeout(geriSay.current); if (ekran !== 'ana') geriSay.current = setTimeout(() => { setEkran('ana'); setTel(''); setIsim(''); setSonuc(null); }, 45000); return () => clearTimeout(geriSay.current); }, [ekran, tel, isim]);
 
   const kayitliPin = () => { try { return localStorage.getItem('tablet_pin') || ''; } catch { return ''; } };
-  const koseBas = () => { basili.current = setTimeout(() => setPinIste(true), 3000); };
-  const koseBirak = () => clearTimeout(basili.current);
+  const [koseDurum, setKoseDurum] = useState(null);   // null | 'basili' | 'ipucu'
+  const koseBas = () => { setKoseDurum('basili'); basili.current = setTimeout(() => { setKoseDurum(null); setPinIste(true); }, 3000); };
+  // Erken bırakılırsa nasıl çıkılacağı söylenir (2026-10-14: köşe gizliydi, esnaf çıkamadı)
+  const koseBirak = () => { clearTimeout(basili.current); setKoseDurum(d => (d === 'basili' ? 'ipucu' : d)); setTimeout(() => setKoseDurum(d => (d === 'ipucu' ? null : d)), 2500); };
   const pinDene = () => {
     const k = kayitliPin();
     if (!k) { if (/^\d{4}$/.test(pin)) { try { localStorage.setItem('tablet_pin', pin); } catch { /* yok */ } cik(); } return; }
@@ -207,11 +209,13 @@ function MusteriModu({ api, ayarlar, liste, sDk, cik, yenile, kok, eposta }) {
 
   return (
     <div style={koyu}>
-      <button aria-label="Esnaf ekranına dön" onPointerDown={koseBas} onPointerUp={koseBirak} onPointerLeave={koseBirak}
-        style={{ position: 'absolute', top: 0, right: 0, width: 110, height: 90, background: 'transparent', border: 'none', color: 'rgba(244,241,234,.45)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, fontFamily: 'inherit', cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}>
-        <span style={{ fontSize: 22 }} aria-hidden="true">🔒</span>
-        <span style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2, textAlign: 'center' }}>Esnaf çıkışı:<br />3 sn basılı tut</span>
+      <button aria-label="Esnaf ekranına dön (3 saniye basılı tut)" onPointerDown={koseBas} onPointerUp={koseBirak} onPointerLeave={() => koseDurum === 'basili' && koseBirak()}
+        onContextMenu={e => e.preventDefault()}
+        style={{ position: 'absolute', left: 20, bottom: 20, zIndex: 5, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 999,
+          border: '1px solid rgba(244,241,234,.25)', background: koseDurum === 'basili' ? 'rgba(244,241,234,.22)' : 'rgba(244,241,234,.08)',
+          color: 'rgba(244,241,234,.85)', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', touchAction: 'none' }}>
+        <span aria-hidden="true">🔒</span>
+        {koseDurum === 'basili' ? 'Bırakma… (3 sn)' : koseDurum === 'ipucu' ? 'Çıkmak için 3 saniye basılı tut' : 'Esnaf çıkışı'}
       </button>
       <div style={{ display: 'flex', gap: 36, flex: 1, minHeight: 0 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
