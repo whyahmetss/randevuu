@@ -94,7 +94,7 @@ const FALLBACK_PAKETLER = {
     winback: true,
     yorum_avcisi: true,
     gece_raporu: true,
-    sms_hatirlatma: false,
+    sms_hatirlatma: true,    // ✓ (kullanıcı kararı 2026-10-14: SMS Pro+'a indi; kendi NetGSM hesabıyla)
     kapora: true,           // ✓ Kapora / ön ödeme (2026-10-14 paket kuralı: Standart ve üstü)
     telegram: true,         // ✓ Telegram botu (Standart ve üstü)
     dogum_gunu: true,       // ✓ Doğum günü mesajı (Standart ve üstü)
@@ -105,6 +105,7 @@ const FALLBACK_PAKETLER = {
     ozellikler: [
       '10 çalışan',
       'Sınırsız randevu',
+      'SMS hatırlatma (kendi NetGSM hesabınla)',
       'Çoklu şube (3 şube)',
       'Kasa Takibi & Prim Raporu',
       'Sadakat, Kayıp Müşteri, Yorum Avcısı',
