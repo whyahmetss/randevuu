@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 // esnafın kendi WhatsApp'ına gider (services/aylikKazanc.js).
 const tl = (n) => `${Math.round(n).toLocaleString('tr-TR')}₺`;
 
-export default function KazancKarti({ api, dar }) {
+export default function KazancKarti({ api, sol = false, dar }) {
   const [k, setK] = useState(null);
   const [acik, setAcik] = useState(false);
   useEffect(() => { api.get('/kazanc').then(d => !d?.hata && setK(d)).catch(() => {}); }, []);
@@ -19,7 +19,7 @@ export default function KazancKarti({ api, dar }) {
   );
 
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 16, marginBottom: 14, ...(dar ? { maxWidth: 560, margin: '0 auto 14px' } : {}) }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 16, marginBottom: 14, ...(sol ? { maxWidth: 860, margin: '0 0 14px' } : dar ? { maxWidth: 560, margin: '0 auto 14px' } : {}) }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
         <div style={{ flex: 1, fontSize: 17, fontWeight: 800 }}>Bu ay kazandırdığımız</div>
         <div style={{ fontSize: 13, color: 'var(--dim)' }}>{k.ay_adi}</div>

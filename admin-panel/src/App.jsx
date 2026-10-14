@@ -2073,7 +2073,7 @@ function Dashboard({ kullanici }) {
                 .filter(m => !m.rolOnly || m.rolOnly.includes(kullanici?.rol))
                 .map(m => ({ id: m.id, label: m.label, kilitli: !!(m.featureKey && !ozellikAcik(m.featureKey)) }))} />
           )}
-          {sayfa === "anasayfa" && !mobil && kazancUstte && <KazancKarti api={api} dar={liteMod} />}
+          {sayfa === "anasayfa" && !mobil && kazancUstte && <KazancKarti api={api} dar={liteMod} sol={liteMod} />}
           {sayfa === "anasayfa" && mobil && kazancUstte && <div style={{ maxWidth: 560, margin: "0 auto 14px" }}><KazancKarti api={api} dar /></div>}
           {sayfa === "googleharita" && <GoogleRehber ayarlar={ayarlar} />}
           {sayfa === "randevusayfam" && <RandevuSayfam api={api} />}
@@ -3295,7 +3295,7 @@ function Dashboard({ kullanici }) {
             <Sadakat api={api} />
           )}
 
-          {sayfa === "anasayfa" && !mobil && !kazancUstte && <KazancKarti api={api} dar={liteMod} />}
+          {sayfa === "anasayfa" && !mobil && !kazancUstte && <KazancKarti api={api} dar={liteMod} sol={liteMod} />}
 
           {/* ── MÜŞTERİ GETİR (Referans + Doğum Günü birleşik) ── */}
           {sayfa === "musterigetir" && (
@@ -8560,7 +8560,7 @@ export default function App() {
     // Müşteri olarak giriş sekmesi: görünür uyarı + çıkış (oturum yalnız bu sekmede)
     return (<>
       {/* Şerit sabit: sayfa, yan menü ve telefon üst çubuğu şerit kadar aşağı insin (başlıkları örtüyordu) */}
-      <style>{"body{padding-top:34px} .sidebar,.mobile-topbar{top:34px !important} .sidebar{height:calc(100vh - 34px) !important}"}</style>
+      <style>{"body{padding-top:34px} .sidebar,.mobile-topbar,.main-wrap>.top-bar{top:34px !important} .sidebar{height:calc(100vh - 34px) !important}"}</style>
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 34, boxSizing: "border-box", zIndex: 10000, background: "#a8590c", color: "#000", padding: "6px 12px", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
         👤 Müşteri olarak görüntülüyorsunuz: {kullanici.isletme_isim || kullanici.email}{" "}
         <button onClick={() => { sessionStorage.removeItem("randevugo_imp_token"); window.close(); window.location.reload(); }} style={{ marginLeft: 8, padding: "2px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 600 }}>Çıkış</button>
