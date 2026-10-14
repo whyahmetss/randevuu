@@ -511,7 +511,12 @@ class WhatsAppWebService extends EventEmitter {
       }
 
       // Normal metin mesajı — her zaman YENİ mesaj gönder (edit karışıklık yapıyor)
-      await state.sock.sendMessage(jid, { text: mesaj });
+      // Sahada gönderim hiç dönmeyip log'a iz bırakmadan asılı kaldı (2026-10-15): süre sınırı, hata olarak loglanır
+      let zamanlayici;
+      await Promise.race([
+        state.sock.sendMessage(jid, { text: mesaj }),
+        new Promise((_, red) => { zamanlayici = setTimeout(() => red(new Error('sendMessage 25 sn içinde dönmedi')), 25000); }),
+      ]).finally(() => clearTimeout(zamanlayici));
       return { success: true };
     } catch (err) {
       console.error(`❌ mesajGonder hata [${isletmeId}]:`, err.message);
@@ -531,6 +536,7 @@ class WhatsAppWebService extends EventEmitter {
   }
 
   async mesajIsle(msg, isletmeId) {
+    const basla = Date.now();
     let metin = (this._getMsgText(msg) || '').trim();
     const sesVar = !metin && !!require('./sesliMesaj').sesMesaji(msg);   // sesli mesaj: aşağıda yazıya çevrilir
     const remoteJid = msg.key.remoteJid;
@@ -614,7 +620,7 @@ class WhatsAppWebService extends EventEmitter {
            AND (aktif=true OR (bloke_bitis IS NOT NULL AND bloke_bitis > NOW()))`,
         [isletmeId, musteriTelefon]
       )).rows[0];
-      if (kara) return;
+      if (kara) { console.log(`🚫 [${isletmeId}] kara listedeki numara: cevap verilmedi`); return; }
     } catch (e) { /* kara_liste tablosu yoksa devam et */ }
 
     // Mesai dışı kontrolü
@@ -752,10 +758,14 @@ class WhatsAppWebService extends EventEmitter {
       }
     }
 
+    // Teşhis: her mesajın sonu loglanır (metin değil — KVKK; yalnız aşama, uzunluk, süre, gönderim sonucu)
+    const iz = `aşama=${botDurum.asama || '-'}, cevap=${cevap ? String(typeof cevap === 'object' ? cevap.metin : cevap).length : 0}, ${Date.now() - basla}ms`;
+    if (!cevap) console.log(`🔇 [${isletmeId}] cevap üretilmedi: ${iz}`);
     if (cevap) {
       const cevapMetin = typeof cevap === 'object' ? cevap.metin : cevap;
       const butonlar = typeof cevap === 'object' ? cevap.butonlar : null;
-      await this.mesajGonder(isletmeId, remoteJid, sesli(cevapMetin), butonlar);
+      const g = await this.mesajGonder(isletmeId, remoteJid, sesli(cevapMetin), butonlar);
+      console.log(`${g?.success ? '✉️' : '⚠️'} [${isletmeId}] cevap ${g?.success ? 'gönderildi' : 'GÖNDERİLEMEDİ: ' + g?.hata}: ${iz}, toplam ${Date.now() - basla}ms`);
       await pool.query(
         'INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)',
         [musteriTelefon, isletmeId, 'giden', cevapMetin]
