@@ -27,8 +27,8 @@ export default function KurulumKarti({ api, setSayfa }) {
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '18px 20px', marginBottom: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Kurulumu tamamlayın</div>
-          <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 2 }}>{d.tamam}/{d.toplam} adım bitti. Birkaç dakika sonra müşterileriniz kendi randevusunu alabilir.</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Kurulumu tamamla</div>
+          <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 2 }}>{d.tamam}/{d.toplam} adım bitti. Birkaç dakika sonra müşterilerin kendi randevusunu alabilir.</div>
         </div>
         <div style={{ fontSize: 22, fontWeight: 700, color: '#1f6f4a' }}>%{yuzde}</div>
       </div>

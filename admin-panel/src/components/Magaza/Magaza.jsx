@@ -26,7 +26,7 @@ export default function Magaza({ api, randevuId = null }) {
 
   const kopyala = async () => {
     try { await navigator.clipboard.writeText(oneri.mesaj); setKopyalandi(true); }
-    catch { window.prompt('Mesajı kopyalayın:', oneri.mesaj); }
+    catch { window.prompt('Mesajı kopyala:', oneri.mesaj); }
   };
 
   const kategoriler = ['hepsi', ...new Set((urunler || []).map(u => u.kategori).filter(Boolean))];
@@ -43,8 +43,8 @@ export default function Magaza({ api, randevuId = null }) {
       {tab === 'urunler' && (
         <>
           <div className="info-banner" style={{ marginBottom: 16, fontSize: 13, lineHeight: 1.6 }}>
-            Müşterinize uygun ürünü seçin, linki kendi WhatsApp'ınızdan gönderin. Müşteri sizin indirim kodunuzla
-            alırsa satıştan komisyon kazanırsınız. Ödeme, kargo ve iade tedarikçide; sizin stok tutmanız gerekmez.
+            Müşterinize uygun ürünü seç, linki kendi WhatsApp'ınızdan gönder. Müşteri sizin indirim kodunuzla
+            alırsa satıştan komisyon kazanırsın. Ödeme, kargo ve iade tedarikçide; sizin stok tutman gerekmez.
           </div>
 
           {kategoriler.length > 2 && (
@@ -112,7 +112,7 @@ export default function Magaza({ api, randevuId = null }) {
               </div>
               <div className="card">
                 <div className="card-title" style={{ marginBottom: 10 }}>Son öneriler</div>
-                {kazanc.son_oneriler.length === 0 && <div className="list-empty">Henüz öneri göndermediniz.</div>}
+                {kazanc.son_oneriler.length === 0 && <div className="list-empty">Henüz öneri göndermedin.</div>}
                 {kazanc.son_oneriler.map(o => (
                   <div key={o.kisa_kod} className="list-item">
                     <div className="list-item-body">
@@ -152,7 +152,7 @@ export default function Magaza({ api, randevuId = null }) {
                       </a>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>
-                      Mesaj sizin WhatsApp'ınızdan, seçtiğiniz kişiye gider. SıraGO kimseye otomatik mesaj atmaz.
+                      Mesaj sizin WhatsApp'ınızdan, seçtiğin kişiye gider. SıraGO kimseye otomatik mesaj atmaz.
                     </div>
                   </>
                 )}

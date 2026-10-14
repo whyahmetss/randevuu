@@ -226,6 +226,8 @@ class RandevuService {
   async kaporaHesapla(isletmeId, hizmetIdOrIds) {
     const isletme = (await pool.query('SELECT kapora_aktif, kapora_alt_siniri, kapora_orani FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme || !isletme.kapora_aktif) return { gerekli: false, tutar: 0, yuzde: 0 };
+    // Paket kuralı (2026-10-14): kapora Standart ve üstünde (Öncü Esnaf dahil); paket düşerse kapora istenmez
+    try { if (!(await require('../utils/oncu').isletmePaketi(isletmeId)).paket?.kapora) return { gerekli: false, tutar: 0, yuzde: 0 }; } catch (e) { /* paket okunamazsa eski davranış */ }
 
     const hizmetIds = Array.isArray(hizmetIdOrIds)
       ? hizmetIdOrIds.map(x => parseInt(x)).filter(Boolean)

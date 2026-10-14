@@ -81,7 +81,7 @@ export default function BildirimAktivasyon() {
           Sesli bildirimleri aktifleştirin
         </div>
         <div style={{ fontSize: 12, opacity: .92, lineHeight: 1.4 }}>
-          Tabletinizi dükkana koyun, randevu geldiğinde anında ötsün. Tek tıkla hazır.
+          Tabletinizi dükkana koy, randevu geldiğinde anında ötsün. Tek tıkla hazır.
         </div>
       </div>
       <button onClick={aktifEt} disabled={yukleniyor} style={{

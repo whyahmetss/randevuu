@@ -88,7 +88,7 @@ router.put('/calisanlar/:id', authMiddleware, odemeKontrol, (req, res) => adminC
 router.delete('/calisanlar/:id', authMiddleware, odemeKontrol, (req, res) => adminController.calisanSil(req, res));
 router.get('/calisanlar/:id/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.calisanHizmetleriGetir(req, res));
 router.put('/calisanlar/:id/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.calisanHizmetleriGuncelle(req, res));
-router.put('/kapora', authMiddleware, odemeKontrol, (req, res) => adminController.kaporaToggle(req, res));
+router.put('/kapora', authMiddleware, odemeKontrol, featureGuard('kapora'), (req, res) => adminController.kaporaToggle(req, res));
 
 router.get('/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.musterileriGetir(req, res));
 
@@ -120,7 +120,7 @@ router.get('/paketler/fiyatlar', async (req, res) => {
 router.get('/paket', authMiddleware, (req, res) => adminController.paketBilgisi(req, res));
 router.get('/bot/durum', authMiddleware, (req, res) => adminController.botDurum(req, res));
 router.put('/bot/ayarlar', authMiddleware, odemeKontrol, (req, res) => adminController.botAyarlarGuncelle(req, res));
-router.post('/bot/telegram/bagla', authMiddleware, odemeKontrol, (req, res) => adminController.telegramBagla(req, res));
+router.post('/bot/telegram/bagla', authMiddleware, odemeKontrol, featureGuard('telegram'), (req, res) => adminController.telegramBagla(req, res));
 router.post('/bot/telegram/ayir', authMiddleware, odemeKontrol, (req, res) => adminController.telegramAyir(req, res));
 router.post('/bot/whatsapp/bagla', authMiddleware, odemeKontrol, (req, res) => adminController.whatsappBagla(req, res));
 router.get('/bot/wp/durum', authMiddleware, odemeKontrol, (req, res) => adminController.wpWebDurum(req, res));

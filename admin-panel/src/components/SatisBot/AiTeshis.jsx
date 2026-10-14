@@ -22,7 +22,7 @@ export default function AiTeshis({ api }) {
       {d?.hata && <div style={{ color: '#b42318', marginTop: 10 }}>{d.hata}</div>}
       {d?.saglayicilar && (
         <div style={{ marginTop: 14, display: 'grid', gap: 8 }}>
-          {d.ai_cevap_acik === false && <div style={{ padding: 10, borderRadius: 10, background: 'rgba(180,35,24,.08)', color: '#b42318', fontWeight: 700 }}>"AI Cevap" ayarı KAPALI — aşağıdan açın; kapalıyken bot yalnız hazır cevap verir.</div>}
+          {d.ai_cevap_acik === false && <div style={{ padding: 10, borderRadius: 10, background: 'rgba(180,35,24,.08)', color: '#b42318', fontWeight: 700 }}>"AI Cevap" ayarı KAPALI — aşağıdan aç; kapalıyken bot yalnız hazır cevap verir.</div>}
           {!calisan && <div style={{ padding: 10, borderRadius: 10, background: 'rgba(180,35,24,.08)', color: '#b42318', fontWeight: 700 }}>Hiçbir yapay zekâ cevap vermiyor; bot şu an hazır (kurallı) cevaplarla çalışıyor.</div>}
           {Object.entries(d.saglayicilar).map(([ad, x]) => (
             <div key={ad} style={{ display: 'flex', gap: 12, alignItems: 'baseline', padding: '10px 12px', borderRadius: 10, background: 'var(--bg)', flexWrap: 'wrap' }}>

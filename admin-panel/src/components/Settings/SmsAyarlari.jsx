@@ -68,7 +68,7 @@ export default function SmsAyarlari({ api }) {
               <span style={{ fontSize: 28 }}>📱</span>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>SMS Hatırlatma (NetGSM)</div>
-                <div style={{ fontSize: 12, color: 'var(--dim)' }}>Müşterilerinize randevu hatırlatma SMS'i gönderin</div>
+                <div style={{ fontSize: 12, color: 'var(--dim)' }}>Müşterilerine randevu hatırlatma SMS'i gönder</div>
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
@@ -89,7 +89,7 @@ export default function SmsAyarlari({ api }) {
               </div>
               <div>
                 <label style={S.label}>NetGSM Şifre</label>
-                <input type="password" value={ayarlar.netgsm_sifre || ''} onChange={e => setAyarlar({...ayarlar, netgsm_sifre: e.target.value})} placeholder={ayarlar.netgsm_sifre_kayitli ? 'Kayıtlı (değiştirmek için yazın)' : ''} className="input" />
+                <input type="password" value={ayarlar.netgsm_sifre || ''} onChange={e => setAyarlar({...ayarlar, netgsm_sifre: e.target.value})} placeholder={ayarlar.netgsm_sifre_kayitli ? 'Kayıtlı (değiştirmek için yaz)' : ''} className="input" />
               </div>
               <div>
                 <label style={S.label}>SMS Başlığı</label>

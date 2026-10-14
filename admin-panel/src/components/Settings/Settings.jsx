@@ -46,7 +46,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   };
 
   const pushTestGonder = async () => {
-    try { await pushTest(); alert('✅ Test bildirimi gönderildi — bildirim gelmezse tarayıcı izinlerini kontrol edin'); }
+    try { await pushTest(); alert('✅ Test bildirimi gönderildi — bildirim gelmezse tarayıcı izinlerini kontrol et'); }
     catch (e) { alert('Hata: ' + e.message); }
   };
 
@@ -286,7 +286,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
         {/* Randevu Onay */}
         <div style={S.card}>
-          <CardHead emoji="✅" title="Randevu Onay Modu" color="#1f6f4a" desc="Otomatik onay mı, yoksa siz mi onaylayacaksınız" />
+          <CardHead emoji="✅" title="Randevu Onay Modu" color="#1f6f4a" desc="Otomatik onay mı, yoksa siz mi onaylayacaksın" />
           <select value={ayarlar.randevu_onay_modu || 'otomatik'} onChange={e => setAyarlar({...ayarlar, randevu_onay_modu: e.target.value})} className="input" style={{ width: "100%", marginBottom: (ayarlar.randevu_onay_modu === 'manuel') ? 12 : 0 }}>
             <option value="otomatik">Otomatik Onay</option>
             <option value="manuel">Manuel Onay</option>
@@ -342,7 +342,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ═══════════════  ROW 3.5: Online Randevu Linki  ═══════════════ */}
       <div style={{ ...S.card, marginBottom: 16 }}>
-        <CardHead emoji="🔗" title="Online Randevu Linki" color="#1f6f4a" desc="Müşterileriniz bu link ile doğrudan randevu alabilir" />
+        <CardHead emoji="🔗" title="Online Randevu Linki" color="#1f6f4a" desc="Müşterilerin bu link ile doğrudan randevu alabilir" />
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 6, display: "block" }}>Slug (URL Kısaltması)</label>
@@ -356,7 +356,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                 style={{ flex: 1, fontWeight: 600 }}
               />
             </div>
-            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Sadece küçük harf, rakam ve tire (-) kullanabilirsiniz</div>
+            <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>Sadece küçük harf, rakam ve tire (-) kullanabilirsin</div>
           </div>
           {ayarlar.slug && (
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -595,7 +595,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
       {/* ═══════════════  Bildirim Tercihleri  ═══════════════ */}
       <div style={S.card}>
-        <CardHead emoji="🔔" title="Bildirim Tercihleri" color="#a8590c" desc="Hangi kanallardan bildirim almak istersiniz?" />
+        <CardHead emoji="🔔" title="Bildirim Tercihleri" color="#a8590c" desc="Hangi kanallardan bildirim almak istersin?" />
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
           {/* 🆕 Push Bildirim (Tablet/Masaüstü) */}
           <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(31,111,74,.08)", border: "1px solid rgba(31,111,74,.2)" }}>
@@ -609,10 +609,10 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                   Tablet açık ama panel kapalı olsa bile yeni randevu/bildirim geldiğinde ekran uyanır ve bildirim görünür. Dükkandaki tablet için ideal.
                 </div>
                 {!pushDurum.desteklenir && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: "#b42318", fontWeight: 600 }}>⚠️ Tarayıcınız push bildirimleri desteklemiyor (Chrome, Edge, Firefox önerilir)</div>
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#b42318", fontWeight: 600 }}>⚠️ Tarayıcın push bildirimleri desteklemiyor (Chrome, Edge, Firefox önerilir)</div>
                 )}
                 {pushDurum.izin === 'denied' && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: "#b42318", fontWeight: 600 }}>⚠️ Bildirim izni engelli — tarayıcı site ayarlarından "Bildirimler: İzin Ver" yapın</div>
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#b42318", fontWeight: 600 }}>⚠️ Bildirim izni engelli — tarayıcı site ayarlarından "Bildirimler: İzin Ver" yap</div>
                 )}
               </div>
               {pushDurum.desteklenir && pushDurum.izin !== 'denied' && (
@@ -674,7 +674,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               style={{ accentColor: "#5d4bb5", width: 18, height: 18 }} />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>📊 Haftalık Rapor</div>
-              <div style={{ fontSize: 11, color: "var(--dim)" }}>Her Pazartesi 09:00'da WhatsApp'tan haftalık özet rapor alın.</div>
+              <div style={{ fontSize: 11, color: "var(--dim)" }}>Her Pazartesi 09:00'da WhatsApp'tan haftalık özet rapor al.</div>
             </div>
           </label>
           {/* Otomatik Rebook */}

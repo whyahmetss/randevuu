@@ -50,7 +50,7 @@ function Plan() {
         ['3. saat', '"Evet" diyenlerle ekrandan birlikte 5 dakikada kurulum', 'Kurulum + QR kart'],
         ['4. saat', 'Geri aranacaklar + denemesi süren dükkânlara "ilk randevu geldi mi?"', 'Ertesi günün sokak listesi'],
       ]} />
-      <P>Esnafı en rahat <B>10:00–12:00</B> ve <B>14:00–16:00</B> arası yakalarsınız; akşam ve cumartesi öğleden sonra aramayın. Her aramadan sonra sonucu Masa'da tek tıkla işaretleyin; işaretlenmeyen arama sayılmaz.</P>
+      <P>Esnafı en rahat <B>10:00–12:00</B> ve <B>14:00–16:00</B> arası yakalarsın; akşam ve cumartesi öğleden sonra arama. Her aramadan sonra sonucu Masa'da tek tıkla işaretle; işaretlenmeyen arama sayılmaz.</P>
     </div>
   );
 }
@@ -61,17 +61,17 @@ function Metinler() {
       <P>Ezberlemeyin, kendi ağzınıza uydurun. Amaç sunum değil, üç soruyla derdi buldurmak.</P>
       <H>Telefon</H>
       <Liste sirali items={[
-        '"Merhaba, [dükkân adı] ile mi görüşüyorum? Ben SıraGO\'dan [isim], 1 dakikanız var mı?"',
-        '"Randevuları şu an nasıl alıyorsunuz, telefondan mı WhatsApp\'tan mı?"',
-        '"Yoğunken ya da akşam yazan müşteriye hemen cevap verebiliyor musunuz?"',
-        '"Cevap veremediğiniz için başka yere giden müşteri oluyor mu?"',
-        '"Tam bunun için bir sistem yaptık: müşteri WhatsApp\'tan ya da linkten kendi saatini seçiyor, siz sadece onaylıyorsunuz. Size özel sayfanızı hazırladım, WhatsApp\'tan göndereyim mi?"',
+        '"Merhaba, [dükkân adı] ile mi görüşüyorum? Ben SıraGO\'dan [isim], 1 dakikan var mı?"',
+        '"Randevuları şu an nasıl alıyorsun, telefondan mı WhatsApp\'tan mı?"',
+        '"Yoğunken ya da akşam yazan müşteriye hemen cevap verebiliyor musun?"',
+        '"Cevap veremediğin için başka yere giden müşteri oluyor mu?"',
+        '"Tam bunun için bir sistem yaptık: müşteri WhatsApp\'tan ya da linkten kendi saatini seçiyor, siz sadece onaylıyorsun. Size özel sayfanı hazırladım, WhatsApp\'tan göndereyim mi?"',
         'Baktıysa: "14 gün ücretsiz, kart istemiyoruz. Şimdi 5 dakikada birlikte kuralım mı?"',
       ]} />
       <H>Kime vakit ayıralım (müşteri testi, 10 Ekim)</H>
-      <P><B>Sıcak:</B> "WhatsApp'a yetişemiyorum", Instagram'ı aktif, yoğun salon. Bunlara demo gösterin, kurulumu hemen yapın.</P>
-      <P><B>Soğuk:</B> "Defterle gayet iyi idare ediyorum", her kuruşu soran, zaten başka program kullanan. Testte 26 kişiden hiçbiri almadı. Israr etmeyin: <i>"Anlıyorum, şu an size uymayabilir; WhatsApp yoğunlaşırsa numaram sizde."</i> Masa'da "İlgilenmiyor" işaretleyip sıradakine geçin.</P>
-      <P><B>Güven:</B> En büyük itiraz "yanlış saat verir / firma kapanır / numara banlanır". Kartta "yakınında kullanan" dükkân varsa adını verin: "Moda'da X üç aydır kullanıyor, isterseniz onlara da sorun." Tanıdık esnaf, her madde açıklamasından güçlüdür.</P>
+      <P><B>Sıcak:</B> "WhatsApp'a yetişemiyorum", Instagram'ı aktif, yoğun salon. Bunlara demo gösterin, kurulumu hemen yap.</P>
+      <P><B>Soğuk:</B> "Defterle gayet iyi idare ediyorum", her kuruşu soran, zaten başka program kullanan. Testte 26 kişiden hiçbiri almadı. Israr etme: <i>"Anlıyorum, şu an size uymayabilir; WhatsApp yoğunlaşırsa numaram sizde."</i> Masa'da "İlgilenmiyor" işaretleyip sıradakine geç.</P>
+      <P><B>Güven:</B> En büyük itiraz "yanlış saat verir / firma kapanır / numara banlanır". Kartta "yakınında kullanan" dükkân varsa adını ver: "Moda'da X üç aydır kullanıyor, istersen onlara da sorun." Tanıdık esnaf, her madde açıklamasından güçlüdür.</P>
       <H>Saha</H>
       <Liste items={[
         'Giriş: "Kolay gelsin usta, 2 dakikanı alırım. Satış yapmaya gelmedim, bir şey göstereyim."',
@@ -102,13 +102,15 @@ function UrunSss() {
       <P>Güncel fiyatlar Süper Admin → Paketler'de; tanıtım sitesi de oradan okur. 14 gün ücretsiz, kart istenmez. İlk 100 ödeyen esnaf "Öncü Esnaf": fiyatı ömür boyu sabit (ortaklık değil, fiyat kilidi).</P>
       <H>Sık sorular</H>
       <Tablo basliklar={['Soru', 'Cevap']} satirlar={[
-        ['WhatsApp numaram değişir mi?', 'Hayır; QR okutup bağlıyorsunuz, telefonunuzda WhatsApp normal çalışır.'],
-        ['Numaram kapanır mı?', 'Bot dışarı toplu mesaj atmaz; sadece size yazana cevap verir ve hatırlatma gönderir.'],
+        ['WhatsApp numaram değişir mi?', 'Hayır; QR okutup bağlıyorsun, telefonunda WhatsApp normal çalışır.'],
+        ['Numaram kapanır mı?', 'Bot dışarı toplu mesaj atmaz; sadece sana yazana cevap verir ve hatırlatma gönderir.'],
         ['Müşteri uygulama indirecek mi?', 'Hayır. WhatsApp\'tan yazar ya da linke tıklar.'],
-        ['Kart bilgisi istiyor musunuz?', '14 günlük denemede hayır. Ödeme zamanı WhatsApp\'tan link gelir.'],
-        ['İptal edersem?', 'Ödemezseniz panel kapanır, bilgiler silinmez; ödeyince kaldığı yerden devam.'],
+        ['Kart bilgisi istiyor musun?', '14 günlük denemede hayır. Ödeme zamanı WhatsApp\'tan link gelir.'],
+        ['İptal edersem?', 'Ödemezsen panel kapanır, bilgiler silinmez; ödeyince kaldığı yerden devam.'],
         ['Kurulum ne kadar sürer?', '5 dakika: hizmetler, çalışanlar, WhatsApp QR. Birlikte yapıyoruz.'],
         ['Yabancı müşteri yazarsa?', 'Standart ve üstünde bot İngilizce ve Arapça da cevap verir.'],
+        ['Kapora alabilir miyim?', 'Standart ve üstünde: müşteri randevu alırken ön ödeme yapar, gelmezse kapora yanar. Öncü Esnaf için Başlangıç paketinde de açık.'],
+        ['Tablet modu hangi pakette?', 'Hepsinde, Başlangıç dahil: tezgâhta sıra ekranı ve kapıdan gelen müşteri.'],
       ]} />
     </div>
   );
@@ -118,13 +120,13 @@ function Kurallar() {
   return (
     <div>
       <Liste sirali items={[
-        <>Alan adımız <B>sırago.com</B> ve <B>randevu.sırago.com</B>. "sirago.com" (ı'sız) başkasının sitesi; asla yazmayın, söylemeyin.</>,
-        <>Yalan yok: "resmî WhatsApp API", "gelmeyen müşteri sıfıra iner", "binlerce esnaf kullanıyor", "SMS doğrulama", "iyzico" demeyin. Doğrulama kodu WhatsApp'tan, ödeme Shopier'den.</>,
+        <>Alan adımız <B>sırago.com</B> ve <B>randevu.sırago.com</B>. "sirago.com" (ı'sız) başkasının sitesi; asla yazma, söyleme.</>,
+        <>Yalan yok: "resmî WhatsApp API", "gelmeyen müşteri sıfıra iner", "binlerce esnaf kullanıyor", "SMS doğrulama", "iyzico" deme. Doğrulama kodu WhatsApp'tan, ödeme Shopier'den.</>,
         '"İstemiyorum" diyen bir daha aranmaz; Masa\'da "İlgilenmiyor" işaretlenir.',
-        'Başkasının listesindeki dükkânı aramayın; Masa her adayı tek kişiye verir.',
+        'Başkasının listesindeki dükkânı arama; Masa her adayı tek kişiye verir.',
         'Sistem sınırı: satış botu yeni numarada günde 10 mesajla başlar, numara başı en fazla 50; kişisel numarandan tanımadığına günde en fazla 20 yaz. Numara yanarsa en güçlü kanalımız kapanır.',
         'Esnafın müşteri bilgisi ekip dışına çıkmaz; ekran görüntüsü paylaşırken isim ve numara kapatılır.',
-        'Cevabını bilmediğiniz soruda uydurmayın: "Ekibe sorup döneyim" deyin ve gruba yazın.',
+        'Cevabını bilmediğin soruda uydurma: "Ekibe sorup döneyim" de ve gruba yaz.',
       ]} />
     </div>
   );

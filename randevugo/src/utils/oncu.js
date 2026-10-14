@@ -46,7 +46,7 @@ async function oncuDurum(isletmeId) {
 
 // Öncü ödülü (kullanıcı kararı 2026-10-13): öncü hangi paketten öderse ödesin Standart'ın özellikleri açılır.
 // Limitler (çalışan, hizmet, randevu) ve fiyat paketinden gelir; ödül geri alınmaz.
-const ONCU_ODUL = ['kasa', 'magaza', 'prim', 'sadakat', 'winback', 'yorum_avcisi', 'gece_raporu', 'istatistik'];
+const ONCU_ODUL = ['kasa', 'magaza', 'prim', 'sadakat', 'winback', 'yorum_avcisi', 'gece_raporu', 'istatistik', 'kapora', 'telegram'];
 function oncuPaket(paket, oncuNo) {
   if (!oncuNo || !paket) return paket;
   const p = { ...paket, oncu_odul: true };

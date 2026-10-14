@@ -43,7 +43,7 @@ export default function Kasa({ api }) {
   };
 
   const sil = async (id) => {
-    if (!confirm('Bu kaydı silmek istediğinize emin misiniz?')) return;
+    if (!confirm('Bu kaydı silmek istediğine emin misin?')) return;
     await api.del(`/kasa/${id}`);
     yukle();
   };

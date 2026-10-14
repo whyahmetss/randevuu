@@ -93,7 +93,7 @@ export default function YorumAvcisi({ api }) {
                 <label style={S.label}>Google Maps Yorum Linki *</label>
                 <input value={ayarlar.google_maps_link || ''} onChange={e => setAyarlar({...ayarlar, google_maps_link: e.target.value})}
                   className="input" placeholder="https://g.page/r/xxxxxxx/review" />
-                <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Google Maps'te işletmenize gidin → "Yorum Yaz" → URL'yi kopyalayın</div>
+                <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>Google Maps'te işletmene git → "Yorum Yaz" → URL'yi kopyala</div>
               </div>
               <div>
                 <label style={S.label}>Gecikme Süresi</label>

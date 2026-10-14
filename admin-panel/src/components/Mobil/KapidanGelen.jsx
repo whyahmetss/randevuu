@@ -37,7 +37,7 @@ export default function KapidanGelen({ api, saat, tarih, calisanId, kapat, eklen
               {h.isim}{Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat)}₺` : ''}
             </button>
           ))}
-          {hizmetler.length === 0 && <div style={{ fontSize: 15, color: 'var(--dim)' }}>Önce Dükkanım → Hizmetler'den hizmet ekleyin.</div>}
+          {hizmetler.length === 0 && <div style={{ fontSize: 15, color: 'var(--dim)' }}>Önce Dükkanım → Hizmetler'den hizmet ekle.</div>}
         </div>
         <label style={{ fontSize: 14, color: 'var(--dim)', fontWeight: 600 }}>Ad (isteğe bağlı)
           <input value={isim} onChange={e => setIsim(e.target.value)} placeholder="Müşterinin adı" className="input" style={{ width: '100%', height: 52, fontSize: fs, marginTop: 6, borderRadius: 12 }} />

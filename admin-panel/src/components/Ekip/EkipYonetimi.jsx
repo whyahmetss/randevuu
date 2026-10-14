@@ -30,7 +30,7 @@ export default function EkipYonetimi({ api }) {
     const d = await api.post('/admin/ekip', form);
     setKaydediliyor(false);
     if (d?.hata) return bildir(d);
-    bildir(d, `${form.isim} eklendi. Giriş: ${form.email} · geçici şifre: ${form.sifre} — ilk girişte değiştirmesini söyleyin.`);
+    bildir(d, `${form.isim} eklendi. Giriş: ${form.email} · geçici şifre: ${form.sifre} — ilk girişte değiştirmesini söyle.`);
     setForm(null); yukle();
   };
 
@@ -134,7 +134,7 @@ export default function EkipYonetimi({ api }) {
               <button className="btn btn-primary btn-block" disabled={kaydediliyor || !form.isim || !form.email || form.sifre.length < 8} onClick={ekle}>
                 {kaydediliyor ? 'Ekleniyor…' : 'Ekle'}
               </button>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>Şifreyi kişiye kendiniz iletin (WhatsApp/telefon). Şifre e-postayla gönderilmez.</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>Şifreyi kişiye kendin iletin (WhatsApp/telefon). Şifre e-postayla gönderilmez.</div>
             </div>
           </div>
         </div>

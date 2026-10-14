@@ -67,7 +67,7 @@ export default function GeceRaporu({ api }) {
               <span style={{ fontSize: 28 }}>🌙</span>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Otomatik Gece Raporu</div>
-                <div style={{ fontSize: 12, color: 'var(--dim)' }}>Her gün belirlediğiniz saatte günlük özet rapor alın</div>
+                <div style={{ fontSize: 12, color: 'var(--dim)' }}>Her gün belirlediğin saatte günlük özet rapor al</div>
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>

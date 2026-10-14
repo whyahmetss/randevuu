@@ -244,7 +244,7 @@ function SubeListe({ api, subeler, onSubeSec, onYenile }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <h3 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 600 }}>Şubeleriniz</h3>
+          <h3 style={{ margin: 0, color: C.text, fontSize: 18, fontWeight: 600 }}>Şubelerin</h3>
           <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{subeler.length} şube</div>
         </div>
         <button onClick={() => { setDuzenle(null); setModalAcik(true); }} style={{
@@ -282,7 +282,7 @@ function SubeKart({ sube, api, onSubeSec, onDuzenle, onYenile }) {
   const [hover, setHover] = useState(false);
 
   async function sil() {
-    if (!confirm(`"${sube.isim}" şubesini devre dışı bırakmak istiyor musunuz?`)) return;
+    if (!confirm(`"${sube.isim}" şubesini devre dışı bırakmak istiyor musun?`)) return;
     await api.delete(`/grup/sube/${sube.id}`);
     onYenile();
   }
