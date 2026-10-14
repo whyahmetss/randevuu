@@ -108,4 +108,31 @@ export function useSocketStatus() {
   return state;
 }
 
-export default { connect, disconnect, getSocket, useSocketEvent, useSocketStatus };
+/**
+ * Hook: verilen olaylardan biri gelince YA DA bağlantı (yeniden) kurulunca fn çalışır.
+ * Kopukken kaçan olaylar da böylece kaybolmaz; ekranı yenilemeye gerek kalmaz (2026-10-14).
+ * Art arda gelen olaylar 300 ms içinde tek yenilemeye toplanır.
+ */
+export function useCanliYenile(fn, olaylar) {
+  const ref = useRef(fn);
+  ref.current = fn;
+  const anahtar = olaylar.join(',');
+  useEffect(() => {
+    let zaman = null, ilk = true;
+    const tetik = () => { clearTimeout(zaman); zaman = setTimeout(() => { try { ref.current?.(); } catch (e) { /* yok say */ } }, 300); };
+    const bagla = () => { if (!socket) return; olaylar.forEach(o => { socket.off(o, tetik); socket.on(o, tetik); }); };
+    bagla();
+    const durum = (st) => {
+      if (st.status !== 'connected') return;
+      bagla();
+      if (!ilk) tetik();          // yeniden bağlanınca kaçırılanları al
+      ilk = false;
+    };
+    if (socket?.connected) ilk = false;
+    listeners.add(durum);
+    return () => { clearTimeout(zaman); olaylar.forEach(o => { try { socket?.off(o, tetik); } catch (e) { /* yok */ } }); listeners.delete(durum); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anahtar]);
+}
+
+export default { connect, disconnect, getSocket, useSocketEvent, useSocketStatus, useCanliYenile };

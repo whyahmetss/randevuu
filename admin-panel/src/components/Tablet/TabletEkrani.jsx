@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import KapidanGelen from '../Mobil/KapidanGelen';
 import { API_URL } from '../../lib/config';
+import { useCanliYenile } from '../../lib/socket';
 
 // Tablet modu (kullanıcı kararı 2026-10-13): dükkana hediye edilen tablet tezgâhta durur.
 // Dükkan ekranı: saat, sıradaki müşteri (Geldi/Gelmedi), kapıdan gelen, çalışan sütunları, yeni randevu sesi.
@@ -43,10 +44,12 @@ export default function TabletEkrani({ api, ayarlar, eposta, kapat }) {
       setListe(l);
     }).catch(() => setCevrimdisi(true));
   };
+  useCanliYenile(yukle, ['randevu:yeni', 'randevu:guncellendi', 'veri:degisti']);
   useEffect(() => {
     yukle();
     api.get('/calisanlar').then(d => setCalisanlar((d?.calisanlar || []).filter(c => c.aktif !== false))).catch(() => {});
-    const t1 = setInterval(yukle, 20000), t2 = setInterval(() => setSaat(new Date()), 15000);
+    // Aralıklı yenileme yalnız yedek; asıl tazeleme canlı (useCanliYenile)
+    const t1 = setInterval(yukle, 90000), t2 = setInterval(() => setSaat(new Date()), 15000);
     // Ekran kapanmasın (destekleyen tarayıcılarda)
     let kilit = null;
     const uyanik = async () => { try { kilit = await navigator.wakeLock?.request('screen'); } catch { /* yok */ } };

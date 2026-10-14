@@ -34,7 +34,7 @@ const DogumGunu = lazy(() => import("./components/DogumGunu/DogumGunu"));   // a
 const MusteriGetir = lazy(() => import("./components/MusteriGetir/MusteriGetir"));   // açılınca yüklenir (hızlı açılış)
 const AvciToplu = lazy(() => import("./components/AvciToplu/AvciToplu"));   // açılınca yüklenir (hızlı açılış)
 import * as socketClient from "./lib/socket";
-const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, useSocketStatus } = socketClient;
+const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, useSocketStatus, useCanliYenile } = socketClient;
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -1288,6 +1288,17 @@ function Dashboard({ kullanici }) {
     // İstatistiği tazele (arka planda)
     api.get("/istatistikler").then(s => { if (s && !s.hata) setStats(s); }).catch(() => {});
   });
+
+  // Başka cihazda (telefon, tablet, ekip) yapılan değişiklik: ilgili liste anında tazelenir (2026-10-14)
+  useSocketEvent("veri:degisti", (p) => {
+    const tur = p?.tur;
+    if (tur === "hizmet") hizmetleriYukle().catch(() => {});
+    if (tur === "calisan") api.get("/calisanlar").then(d => setDashCalisanlar(d.calisanlar || [])).catch(() => {});
+    if (tur === "ayar") ayarlariYukle().catch(() => {});
+    if (tur === "randevu") verileriYukle();
+  });
+  // Bağlantı kopup gelince kaçırılan değişiklikler alınsın
+  useCanliYenile(() => verileriYukle(), []);
 
   // Randevu durumu güncellendi (onay, iptal, tamamlandı, gelmedi...)
   useSocketEvent("randevu:guncellendi", (payload) => {

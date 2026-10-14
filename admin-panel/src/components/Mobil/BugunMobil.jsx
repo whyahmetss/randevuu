@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import KapidanGelen from './KapidanGelen';
+import { useCanliYenile } from '../../lib/socket';
 
 // Telefon "Bugün" ekranı (taslak 2026-10-13): üstte özet, onay bekleyen büyük kart, randevular saat sırasıyla,
 // kapıdan gelen müşteri tek dokunuş. Bir randevuya dokununca: Geldi / Gelmedi / Ara / İptal.
@@ -21,7 +22,9 @@ export default function BugunMobil({ api, setSayfa }) {
     api.get(`/randevular?tarih=${bugun()}`).then(d => setListe((d?.randevular || []).sort((a, b) => String(a.saat).localeCompare(String(b.saat))))).catch(() => setListe([]));
     api.get('/bot/wp/durum').then(d => setWp(d?.durum || null)).catch(() => {});
   };
-  useEffect(() => { yukle(); const t = setInterval(yukle, 30000); return () => clearInterval(t); }, []);
+  // Canlı: randevu gelince/değişince anında tazelenir; aralıklı yenileme yalnız yedek
+  useEffect(() => { yukle(); const t = setInterval(yukle, 120000); return () => clearInterval(t); }, []);
+  useCanliYenile(yukle, ['randevu:yeni', 'randevu:guncellendi', 'veri:degisti']);
 
   const durumYap = async (r, durum) => {
     if (durum === 'iptal' && !window.confirm(`${r.musteri_isim || 'Müşteri'} randevusu iptal edilsin mi?`)) return;

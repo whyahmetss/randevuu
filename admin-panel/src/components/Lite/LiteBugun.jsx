@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { bookingUrl } from '../../lib/config';
+import { useCanliYenile } from '../../lib/socket';
 
 // SıraGO Lite — esnafın tek ekranı (kullanıcı kararı 2026-10-08):
 // bugünkü randevular, WhatsApp durumu, günlük ciro, hizmet/fiyat. Gerisi Pro görünümde.
@@ -27,7 +28,9 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
     api.get('/hizmetler').then(d => setHizmetler(d?.hizmetler || []));
     api.get('/bot/wp/durum').then(d => setWp(d?.hata ? { durum: 'bilinmiyor' } : d));
   };
-  useEffect(() => { yukle(); const t = setInterval(yukle, 60000); return () => clearInterval(t); }, []);
+  // Canlı: randevu gelince/değişince anında tazelenir; aralıklı yenileme yalnız yedek
+  useEffect(() => { yukle(); const t = setInterval(yukle, 120000); return () => clearInterval(t); }, []);
+  useCanliYenile(yukle, ['randevu:yeni', 'randevu:guncellendi', 'veri:degisti']);
 
   const bildir = (metin, tip = 'success') => { setMesaj({ metin, tip }); setTimeout(() => setMesaj(null), 3000); };
 
