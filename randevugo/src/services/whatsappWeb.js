@@ -703,8 +703,14 @@ class WhatsAppWebService extends EventEmitter {
       'SELECT * FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id', [isletmeId]
     )).rows;
 
-    // Önce state machine (akışIsle) çalışsın — DeepSeek sadece bilinmeyen mesajlarda
-    let cevap = await this.akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId);
+    // Sohbet asistanı (2026-10-14): menü yerine soru sorarak randevu; anlaşılmazsa null → eski menü akışı
+    let cevap = null;
+    try {
+      cevap = await require('./sohbetAsistani').isle({ wa: this, metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId });
+    } catch (e) { console.error('Sohbet asistanı:', e.message); cevap = null; }
+
+    // Eski akış (state machine) — DeepSeek sadece bilinmeyen mesajlarda
+    if (!cevap) cevap = await this.akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId);
 
     if (cevap) {
       const cevapMetin = typeof cevap === 'object' ? cevap.metin : cevap;
@@ -955,7 +961,7 @@ class WhatsAppWebService extends EventEmitter {
       }
     }
 
-    switch (botDurum.asama) {
+    switch (botDurum.asama === 'sohbet' ? 'ana_menu' : botDurum.asama) {
       case 'ana_menu': {
         const randevuAl = metin === '1' || metinKucuk.includes('randevu al') || metinKucuk === 'randevu' || metinKucuk === 'al' || metinKucuk === 'almak istiyorum' || metinKucuk === 'randevu almak istiyorum';
         const randevularim = metin === '2' || metinKucuk.includes('randevularım') || metinKucuk.includes('randevularim');

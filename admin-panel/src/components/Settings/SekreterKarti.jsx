@@ -32,8 +32,31 @@ export default function SekreterKarti({ api }) {
     </label>
   );
 
+  const tarzBtn = (deger, baslik, ornek) => (
+    <button onClick={() => kaydet({ bot_tarzi: deger })} aria-pressed={d.bot_tarzi === deger}
+      style={{ flex: '1 1 220px', textAlign: 'left', padding: 12, borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+        border: `2px solid ${d.bot_tarzi === deger ? '#1f6f4a' : 'var(--border)'}`, background: d.bot_tarzi === deger ? 'rgba(31,111,74,.06)' : 'var(--surface)' }}>
+      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{d.bot_tarzi === deger ? '✓ ' : ''}{baslik}</div>
+      <div style={{ fontSize: 12.5, color: 'var(--dim)', marginTop: 4, whiteSpace: 'pre-line' }}>{ornek}</div>
+    </button>
+  );
+
   return (
     <>
+      <div style={kart}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+          <div style={{ fontSize: 26 }}>💬</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Asistan nasıl konuşsun?</div>
+            <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: 2 }}>Müşterine numaralı menü yerine bir insan gibi soru sorabilir.</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {tarzBtn('sohbet', 'Sohbet (önerilen)', '— Randevu alacaktım\n— Tabii! Hangi gün gelmek istersiniz?\n— Yarın 3\'te\n— Maalesef 15:00 dolu. 15:40 uygun mu?')}
+          {tarzBtn('menu', 'Numaralı menü', '1️⃣ Randevu al\n2️⃣ Randevularım\n3️⃣ Randevu iptal')}
+        </div>
+      </div>
+
       <div style={kart}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div style={{ fontSize: 26 }}>🤵</div>
