@@ -772,6 +772,7 @@ class RandevuService {
       )).rows[0];
       if (!r) return;
       await pool.query(`UPDATE randevular SET durum='tamamlandi' WHERE id=$1`, [randevuId]);
+      try { await require('./seans').randevuTamamlandi(randevuId); } catch (e) { console.error('Seans sayacı:', e.message); }
       try {
         const guvenlikSkor = require('./guvenlikSkor');
         await guvenlikSkor.logla(r.telefon, 'randevu_geldi', r.isletme_id, `randevuId=${randevuId}`);

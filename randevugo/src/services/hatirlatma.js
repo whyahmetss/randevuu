@@ -24,6 +24,11 @@ class HatirlatmaService {
 
     console.log('⏰ Hatırlatma servisi başlatıldı — Hatırlatma Zinciri aktif (24h+1h+15dk, her 5 dk)');
 
+    // Seans takibi: her gün 10:30'da zamanı gelen seansları müşteriye hatırlat
+    cron.schedule('30 10 * * *', async () => {
+      try { await require('./seans').hatirlatmalariGonder(); } catch (e) { console.error('Seans hatırlatma:', e.message); }
+    });
+
     // Win-back: Günlük sabah 10:00'da kayıp müşterileri tara
     cron.schedule('0 10 * * *', async () => {
       try { const winback = require('./winback'); await winback.kayipMusterileriTara(); } catch (e) { /* skip */ }
@@ -164,6 +169,7 @@ class HatirlatmaService {
       `);
       for (const r of result.rows) {
         await pool.query("UPDATE randevular SET durum = 'tamamlandi' WHERE id = $1", [r.id]);
+        try { await require('./seans').randevuTamamlandi(r.id); } catch (e) { console.error('Seans sayacı:', e.message); }
         console.log(`🔇 Sessiz onay → tamamlandı: ${r.musteri_isim} (${r.isletme_isim}) - ${String(r.saat).substring(0,5)}`);
       }
     } catch (e) { console.error('❌ Sessiz onay hatası:', e.message); }

@@ -1642,6 +1642,14 @@ class WhatsAppWebService extends EventEmitter {
 
           const yildizlar = '⭐'.repeat(puan);
           console.log(`⭐ Anket → ${puan} puan: ${musteriTelefon} - ${anketRandevu.isletme_isim}`);
+          try { await require('./seans').randevuTamamlandi(anketRandevu.id); } catch (e) { console.error('Seans sayacı:', e.message); }
+
+          // Yorum Avcısı açıksa: düşük puanda esnafa alarm + açıklama isteği, yüksekte Google linki (2026-10-14)
+          try {
+            const ozel = await require('./memnuniyet').anketPuani({
+              isletmeId: anketRandevu.isletme_id, randevuId: anketRandevu.id, musteriId: anketRandevu.musteri_id, telefon: musteriTelefon, puan });
+            if (ozel) return `${yildizlar}\n\n${ozel}`;
+          } catch (e) { console.error('Memnuniyet (otomatik anket):', e.message); }
 
           if (puan >= 4) {
             return `${yildizlar}\n\n*Teşekkür ederiz!* Memnuniyetiniz bizim için çok değerli. 🙏\n\nTekrar görüşmek üzere!\n\n📅 Yeni randevu için *1* yazın.`;

@@ -11,6 +11,13 @@ const QRCode = require('qrcode');
 const socketServer = require('../services/socketServer');
 const pushService = require('../services/pushService');
 
+// Seanslı hizmet: 2–50 seans, 1–365 gün aralık; 0/boş → seanssız
+function seansAlanlari(sayi, aralik) {
+  const n = parseInt(sayi);
+  if (!(n >= 2)) return [null, null];
+  return [Math.min(n, 50), Math.min(Math.max(parseInt(aralik) || 30, 1), 365)];
+}
+
 class AdminController {
 
   // ==================== RANDEVULAR ====================
@@ -29,11 +36,30 @@ class AdminController {
                   LEFT JOIN hizmetler hh ON hh.id = rh.hizmet_id
                  WHERE rh.randevu_id = r.id) as hizmetler_adlari,
                (SELECT COALESCE(SUM(rh.fiyat), 0) FROM randevu_hizmetleri rh WHERE rh.randevu_id = r.id) as toplam_fiyat,
-               (SELECT COALESCE(SUM(rh.sure_dk), 0) FROM randevu_hizmetleri rh WHERE rh.randevu_id = r.id) as toplam_sure
+               (SELECT COALESCE(SUM(rh.sure_dk), 0) FROM randevu_hizmetleri rh WHERE rh.randevu_id = r.id) as toplam_sure,
+               EXISTS (SELECT 1 FROM randevu_fotolari f WHERE f.randevu_id = r.id) as islem_foto_var,
+               son.id as son_islem_randevu_id, son.islem_notu as son_islem_notu, son.tarih as son_islem_tarihi, son.foto as son_islem_foto_var,
+               h.seans_sayisi, sp.toplam as seans_toplam, sp.tamamlanan as seans_tamamlanan
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id
         LEFT JOIN calisanlar c ON r.calisan_id = c.id
+        -- Hafıza kartı: aynı müşterinin bu dükkândaki önceki randevularından not ya da fotoğraf olan en yenisi
+        LEFT JOIN LATERAL (
+          SELECT r2.id, r2.islem_notu, r2.tarih, EXISTS (SELECT 1 FROM randevu_fotolari f2 WHERE f2.randevu_id = r2.id) AS foto
+            FROM randevular r2
+           WHERE r2.isletme_id = r.isletme_id AND r2.musteri_id = r.musteri_id AND r2.id <> r.id
+             AND (r2.tarih < r.tarih OR (r2.tarih = r.tarih AND r2.saat < r.saat))
+             AND (r2.islem_notu IS NOT NULL OR EXISTS (SELECT 1 FROM randevu_fotolari f3 WHERE f3.randevu_id = r2.id))
+           ORDER BY r2.tarih DESC, r2.saat DESC LIMIT 1
+        ) son ON true
+        -- Seans: tamamlanmış randevunun kendi seansı, değilse müşterinin bu hizmetteki devam eden paketi
+        LEFT JOIN LATERAL (
+          SELECT ms.toplam, ms.tamamlanan FROM musteri_seanslari ms
+           WHERE (r.seans_id IS NOT NULL AND ms.id = r.seans_id)
+              OR (r.seans_id IS NULL AND ms.isletme_id = r.isletme_id AND ms.musteri_id = r.musteri_id AND ms.hizmet_id = r.hizmet_id AND ms.durum = 'aktif')
+           ORDER BY ms.id DESC LIMIT 1
+        ) sp ON true
         WHERE r.isletme_id = $1
       `;
       const params = [isletmeId];
@@ -50,6 +76,37 @@ class AdminController {
     }
   }
 
+  // Hafıza kartı (2026-10-14): randevuya işlem notu + fotoğraf. Fotoğraf yalnız esnafa görünür (giriş gerekir).
+  async randevuIslemGetir(req, res) {
+    try {
+      const r = (await pool.query(
+        `SELECT r.id, r.islem_notu, f.veri AS foto FROM randevular r LEFT JOIN randevu_fotolari f ON f.randevu_id = r.id
+          WHERE r.id = $1 AND r.isletme_id = $2`, [req.params.id, req.kullanici.isletme_id])).rows[0];
+      if (!r) return res.status(404).json({ hata: 'Randevu bulunamadı' });
+      res.json({ islem_notu: r.islem_notu || '', foto: r.foto || null });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  async randevuIslemKaydet(req, res) {
+    try {
+      const isletmeId = req.kullanici.isletme_id;
+      const r = (await pool.query('SELECT id FROM randevular WHERE id = $1 AND isletme_id = $2', [req.params.id, isletmeId])).rows[0];
+      if (!r) return res.status(404).json({ hata: 'Randevu bulunamadı' });
+      const { islem_notu, foto } = req.body || {};
+      if (foto !== undefined && foto !== null && (!/^data:image\/(jpeg|png|webp);base64,/.test(String(foto)) || String(foto).length > 1_500_000)) {
+        return res.status(400).json({ hata: 'Fotoğraf JPG, PNG ya da WEBP olmalı ve çok büyük olmamalı' });
+      }
+      if (islem_notu !== undefined) await pool.query('UPDATE randevular SET islem_notu = $1 WHERE id = $2', [String(islem_notu || '').trim().slice(0, 500) || null, r.id]);
+      if (foto === null) await pool.query('DELETE FROM randevu_fotolari WHERE randevu_id = $1', [r.id]);
+      else if (foto !== undefined) await pool.query(
+        `INSERT INTO randevu_fotolari (randevu_id, isletme_id, veri) VALUES ($1, $2, $3)
+         ON CONFLICT (randevu_id) DO UPDATE SET veri = EXCLUDED.veri, guncelleme = NOW()`, [r.id, isletmeId, foto]);
+      const son = (await pool.query(
+        `SELECT r.islem_notu, EXISTS (SELECT 1 FROM randevu_fotolari f WHERE f.randevu_id = r.id) AS foto_var FROM randevular r WHERE r.id = $1`, [r.id])).rows[0];
+      res.json({ islem_notu: son.islem_notu || '', islem_foto_var: son.foto_var });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
   async randevuDurumGuncelle(req, res) {
     try {
       const { id } = req.params;
@@ -63,6 +120,11 @@ class AdminController {
         [durum, id, isletmeId]
       );
       await this.auditLogYaz(req.kullanici, `randevu_${durum}`, `Randevu #${id} durumu: ${durum}`, 'randevular', parseInt(id), require('../utils/istemciIp').istemciIp(req));
+
+      // Seans takibi: tamamlanan seans sayılır, sıradaki seansın hatırlatması kurulur
+      if (durum === 'tamamlandi' && result.rows[0]) {
+        try { await require('../services/seans').randevuTamamlandi(result.rows[0].id); } catch (e) { console.error('Seans sayacı:', e.message); }
+      }
 
       // Randevu tamamlandığında otomatik kasa gelir kaydı oluştur
       if (durum === 'tamamlandi' && result.rows[0]) {
@@ -203,7 +265,7 @@ class AdminController {
 
   async hizmetEkle(req, res) {
     try {
-      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk } = req.body;
+      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
       const paket = await paketGetir(isletme?.paket);
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
@@ -211,8 +273,8 @@ class AdminController {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsin. Paketini yükselt.`, limit_asimi: true });
       }
       const result = await pool.query(
-        'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-        [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0]
+        'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
+        [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, ...seansAlanlari(seans_sayisi, seans_aralik_gun)]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
@@ -223,11 +285,16 @@ class AdminController {
   async hizmetGuncelle(req, res) {
     try {
       const { id } = req.params;
-      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi, tampon_dk } = req.body;
+      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun } = req.body;
       const result = await pool.query(
         'UPDATE hizmetler SET isim=$1, isim_en=$2, isim_ar=$3, sure_dk=$4, fiyat=$5, aciklama=$6, aktif=$7, emoji=$8, kapora_yuzdesi=$9, tampon_dk=$10 WHERE id=$11 AND isletme_id=$12 RETURNING *',
         [isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, id, req.kullanici.isletme_id]
       );
+      // Seans alanları yalnız formdan gönderildiyse değişir (Bugün ekranındaki hızlı fiyat düzenlemesi bunları göndermez)
+      if (result.rows[0] && seans_sayisi !== undefined) {
+        const [ss, sa] = seansAlanlari(seans_sayisi, seans_aralik_gun);
+        result.rows[0] = (await pool.query('UPDATE hizmetler SET seans_sayisi=$1, seans_aralik_gun=$2 WHERE id=$3 RETURNING *', [ss, sa, result.rows[0].id])).rows[0];
+      }
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
       res.status(500).json({ hata: error.message });

@@ -16,7 +16,8 @@ const SatisMasasi = lazy(() => import("./components/Satis/SatisMasasi"));   // a
 const SatisRehberi = lazy(() => import("./components/Satis/SatisRehberi"));   // açılınca yüklenir (hızlı açılış)
 const EkipTakip = lazy(() => import("./components/Satis/EkipTakip"));   // açılınca yüklenir (hızlı açılış)
 const Magaza = lazy(() => import("./components/Magaza/Magaza"));   // açılınca yüklenir (hızlı açılış)
-import KazancKarti from "./components/Mobil/KazancKarti";   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
+import KazancKarti from "./components/Mobil/KazancKarti";
+import IslemNotu from "./components/Randevu/IslemNotu";   // hafıza kartı + seans rozeti   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
 const RandevuSayfam = lazy(() => import("./components/Mobil/RandevuSayfam"));   // randevu sayfası teması, kapak, logo
 const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
 const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // SıraGO Vitrini (esnaf)
@@ -541,21 +542,21 @@ function Login({ onLogin }) {
 // ==================== HİZMETLER SAYFASI ====================
 function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   const [formAcik, setFormAcik] = useState(false);
-  const [form, setForm] = useState({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" });
+  const [form, setForm] = useState({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30" });
   const [hata, setHata] = useState("");
   const [duzenleId, setDuzenleId] = useState(null); // düzenlenen hizmet (yoksa yeni ekleme)
 
   const duzenleAc = (h) => {
-    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), aktif: h.aktif !== false });
+    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false });
     setDuzenleId(h.id); setHata(""); setFormAcik(true);
   };
 
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0 });
+    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0, seans_sayisi: parseInt(form.seans_sayisi) || 0, seans_aralik_gun: parseInt(form.seans_aralik_gun) || 30 });
     if (res.hata) { setHata(res.hata); return; }
-    setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" });
+    setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30" });
     setFormAcik(false); setDuzenleId(null);
     yukle();
   };
@@ -583,7 +584,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
           {/* Kota doluysa ekleme yerine paket yükseltme (eskiden buton açık kalıyordu) */}
           {paketDurum && limit < 999 && hizmetler.length >= limit
             ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştın" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
-            : <button onClick={() => { setDuzenleId(null); setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" }); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>}
+            : <button onClick={() => { setDuzenleId(null); setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30" }); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>}
         </div>
       </div>
 
@@ -628,6 +629,16 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               <input type="number" min="0" max="60" placeholder="0" value={form.tampon_dk} onChange={e => setForm({...form, tampon_dk: e.target.value})} className="input" />
               <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>0 = işletme varsayılanı. Randevular arası hazırlık süresi</div>
             </div>
+            <div className="full">
+              <label className="form-label">🔁 Seanslı hizmet (lazer, cilt bakımı, kontrol, aşı…)</label>
+              <div className="row gap-8" style={{ alignItems: "center", flexWrap: "wrap" }}>
+                <input type="number" min="0" max="50" placeholder="—" value={form.seans_sayisi} onChange={e => setForm({...form, seans_sayisi: e.target.value})} className="input" style={{ width: 90 }} aria-label="Toplam seans" />
+                <span style={{ fontSize: 13 }}>seans,</span>
+                <input type="number" min="1" max="365" value={form.seans_aralik_gun} onChange={e => setForm({...form, seans_aralik_gun: e.target.value})} className="input" style={{ width: 90 }} aria-label="Kaç günde bir" disabled={!(parseInt(form.seans_sayisi) > 1)} />
+                <span style={{ fontSize: 13 }}>günde bir</span>
+              </div>
+              <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>Boş bırak = tek seferlik hizmet. Doldurursan müşterinin ilerlemesi "Seans 2/6" diye görünür, sıradaki seansın zamanı gelince müşteriye WhatsApp'tan hatırlatma gider.</div>
+            </div>
           </div>
           <div className="form-actions">
             <button type="submit" className="btn btn-primary">Kaydet</button>
@@ -651,6 +662,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
             <span className="tag-sm" style={{ background: "rgba(31,111,74,.12)", color: "var(--green)", fontWeight: 600 }}>{h.fiyat} ₺</span>
             {h.kapora_yuzdesi > 0 && <span className="tag-sm" style={{ background: "rgba(168,89,12,.12)", color: "var(--amber)", fontWeight: 600 }}>💳 %{h.kapora_yuzdesi} kapora</span>}
             {h.tampon_dk > 0 && <span className="tag-sm" style={{ background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontWeight: 600 }}>⏳ {h.tampon_dk}dk tampon</span>}
+            {h.seans_sayisi > 1 && <span className="tag-sm" style={{ background: "rgba(47,86,198,.08)", color: "#2f56c6", fontWeight: 600 }}>🔁 {h.seans_sayisi} seans · {h.seans_aralik_gun || 30} günde bir</span>}
           </div>
           <button onClick={() => duzenleAc(h)} title="Düzenle" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", fontSize: 15 }}>✏️</button>
           <button onClick={() => sil(h.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", transition: "all .2s" }} onMouseOver={e => { e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-s)"; }} onMouseOut={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "none"; }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -2912,6 +2924,9 @@ function Dashboard({ kullanici }) {
                           )}
                         </div>
                       </div>
+
+                      {/* Hafıza kartı: önceki işlem notu, seans, bu randevuya not/fotoğraf */}
+                      {r.durum !== "iptal" && <IslemNotu api={api} r={r} degisti={(y) => setRandevular(l => l.map(x => x.id === y.id ? { ...x, ...y } : x))} />}
 
                       {/* Aksiyon butonları — sadece aktif durumlar için */}
                       {!bitmis && (

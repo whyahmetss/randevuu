@@ -100,3 +100,26 @@ test('bekleme listesi: tek teklif, hayır → sıradaki, zaman aşımı, tekrar 
   assert.deepEqual(durumlar, ['vazgecti', 'zaman_asimi']);
   assert.equal((await db.query("SELECT asama FROM bot_durum WHERE musteri_telefon = '905550000002'")).rows[0].asama, 'ana_menu');
 });
+
+test('memnuniyet: otomatik anket cevabı Yorum Avcısı açıksa kayda geçer, kapalıysa eski mesaj', async () => {
+  const { db } = await hazirla(`
+    CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, google_maps_link TEXT, yorum_mesaj_sablonu TEXT, yorum_avcisi_aktif BOOLEAN, paket TEXT);
+    CREATE TABLE musteriler (id SERIAL PRIMARY KEY, isim TEXT);
+    CREATE TABLE yorum_talepleri (id SERIAL PRIMARY KEY, isletme_id INT, randevu_id INT, musteri_id INT, telefon VARCHAR(20),
+      gonderim_zamani TIMESTAMP, durum VARCHAR(20) DEFAULT 'bekliyor', gonderim_tarihi TIMESTAMP, olusturma_tarihi TIMESTAMP DEFAULT NOW(),
+      puan SMALLINT, geri_bildirim TEXT, puan_zamani TIMESTAMPTZ, tg_chat_id VARCHAR(40), cozuldu BOOLEAN NOT NULL DEFAULT false);
+    INSERT INTO isletmeler (isim, google_maps_link, yorum_avcisi_aktif, paket) VALUES ('Açık', 'https://g.page/r/a/review', true, 'profesyonel'), ('Kapalı', 'https://g.page/r/b/review', false, 'profesyonel');
+    INSERT INTO musteriler (isim) VALUES ('Ali');`);
+  const alarmlar = [];
+  taklit('services/pushService', { sendToIsletme: async (id, p) => { alarmlar.push(p.title); } });
+  taklit('services/socketServer', { emitToIsletme: () => {} });
+  delete require.cache[require.resolve(path.join(SRC, 'services', 'memnuniyet'))];
+  const m = require(path.join(SRC, 'services', 'memnuniyet'));
+  assert.equal(await m.anketPuani({ isletmeId: 2, randevuId: 9, musteriId: 1, telefon: '905551', puan: 1 }), null, 'Yorum Avcısı kapalı');
+  const cevapMetni = await m.anketPuani({ isletmeId: 1, randevuId: 7, musteriId: 1, telefon: '905551', puan: 2 });
+  assert.match(cevapMetni, /üzüldük/); assert.equal(alarmlar.length, 1);
+  // Müşterinin açıklaması cevapIsle ile yakalanır
+  assert.match(await m.cevapIsle({ isletmeId: 1, telefon: '905551', metin: 'Bekletildim' }), /ilettik/);
+  const k = (await db.query('SELECT puan, geri_bildirim FROM yorum_talepleri WHERE randevu_id = 7')).rows[0];
+  assert.deepEqual([k.puan, k.geri_bildirim], [2, 'Bekletildim']);
+});

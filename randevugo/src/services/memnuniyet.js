@@ -80,4 +80,32 @@ async function cevapIsle({ isletmeId, telefon, tgChatId, metin }) {
   return `Teşekkür ederiz, ilettik. ${t.isletme_isim} en kısa sürede sizinle ilgilenecek. 🙏`;
 }
 
-module.exports = { puanAl, puanSorusu, linkMesaji, cevapIsle, esnafaBildir, DUSUK_PUAN };
+// Randevudan 1 saat sonraki otomatik anket (hatirlatma.postRandevuAnket) cevaplandığında: Yorum Avcısı açıksa
+// aynı puan buraya da yazılır → düşük puanda alarm, yüksekte Google linki. Müşteriye ikinci anket gitmez.
+// Yorum Avcısı kapalıysa null döner (bot eski teşekkür mesajını gönderir).
+async function anketPuani({ isletmeId, randevuId, musteriId, telefon, puan }) {
+  const t = (await pool.query(
+    `SELECT i.isim AS isletme_isim, i.google_maps_link, i.yorum_mesaj_sablonu, m.isim AS musteri_isim
+       FROM isletmeler i LEFT JOIN musteriler m ON m.id = $2
+      WHERE i.id = $1 AND i.yorum_avcisi_aktif = true AND i.paket IN ('profesyonel', 'proplus', 'kurumsal', 'premium')`,
+    [isletmeId, musteriId])).rows[0];
+  if (!t) return null;
+  const dusuk = puan <= DUSUK_PUAN;
+  const zaten = (await pool.query('SELECT id FROM yorum_talepleri WHERE randevu_id = $1', [randevuId])).rows[0];
+  if (zaten) {
+    await pool.query(`UPDATE yorum_talepleri SET puan = $1, puan_zamani = NOW(), durum = $2, gonderim_tarihi = COALESCE(gonderim_tarihi, NOW()) WHERE id = $3`,
+      [puan, dusuk ? 'yorum_bekliyor' : 'tamamlandi', zaten.id]);
+  } else {
+    await pool.query(
+      `INSERT INTO yorum_talepleri (isletme_id, randevu_id, musteri_id, telefon, gonderim_zamani, gonderim_tarihi, durum, puan, puan_zamani)
+       VALUES ($1, $2, $3, $4, NOW(), NOW(), $5, $6, NOW())`,
+      [isletmeId, randevuId, musteriId, telefon, dusuk ? 'yorum_bekliyor' : 'tamamlandi', puan]);
+  }
+  if (dusuk) {
+    await esnafaBildir(isletmeId, `⚠️ ${t.musteri_isim || 'Bir müşteri'} ${puan}/5 verdi`,
+      'Müşterin memnun kalmamış. Hemen arayıp gönlünü almak, kötü yorumu önler.', { randevuId, puan });
+  }
+  return linkMesaji(t, puan);
+}
+
+module.exports = { puanAl, puanSorusu, linkMesaji, cevapIsle, anketPuani, esnafaBildir, DUSUK_PUAN };

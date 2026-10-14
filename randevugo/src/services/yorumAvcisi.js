@@ -22,6 +22,11 @@ class YorumAvcisiService {
 
       if (!isletme?.yorum_avcisi_aktif) return;
 
+      // Müşteriye randevudan sonraki otomatik anket zaten gittiyse ikinci soru gönderilmez (cevabı memnuniyet.anketPuani işler)
+      const r = (await pool.query('SELECT anket_gonderildi FROM randevular WHERE id=$1', [randevuId])).rows[0];
+      if (r?.anket_gonderildi) return;
+      if ((await pool.query('SELECT 1 FROM yorum_talepleri WHERE randevu_id=$1', [randevuId])).rows[0]) return;
+
       // Aynı müşteriye bu ay daha önce gönderilmiş mi? (spam önleme)
       const buAy = new Date().toISOString().slice(0, 7);
       const mevcut = (await pool.query(
