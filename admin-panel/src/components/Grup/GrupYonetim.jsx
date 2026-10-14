@@ -92,7 +92,7 @@ export default function GrupYonetim({ api, onSubeSec }) {
               <span style={{
                 fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
                 color: C.primary, background: C.primaryDim, padding: '3px 8px', borderRadius: 4,
-              }}>Kurumsal Grup</span>
+              }}>Şube Grubu</span>
             </div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, color: C.text }}>{grup.isim}</h1>
             <div style={{ color: C.dim, fontSize: 13, marginTop: 4 }}>
@@ -161,7 +161,8 @@ function GrupKur({ api, onOk, hata: dishata }) {
   const [isim, setIsim] = useState('');
   const [slug, setSlug] = useState('');
   const [kurYukleniyor, setKurYukleniyor] = useState(false);
-  const [hata, setHata] = useState(dishata || null);
+  // "Grup bulunamadı" hata değil: henüz grup kurulmamış demek; form temiz açılır
+  const [hata, setHata] = useState(dishata && !/bulunamad|yetki/i.test(dishata) ? dishata : null);
 
   async function kur(e) {
     e.preventDefault();
@@ -197,7 +198,7 @@ function GrupKur({ api, onOk, hata: dishata }) {
           }}>🏢</div>
           <h2 style={{ margin: 0, color: C.text, fontSize: 22, fontWeight: 600 }}>Şube Grubu Kur</h2>
           <p style={{ color: C.dim, fontSize: 13, margin: '8px 0 0', lineHeight: 1.6 }}>
-            Kurumsal paketteki zincir işletmeler için grup yönetimi.<br />
+            Birden çok şubesi olan işletmeler için grup yönetimi (Pro+: 3 şubeye kadar, Kurumsal: sınırsız).<br />
             Bu işletme ilk şube olarak gruba eklenecek.
           </p>
         </div>
@@ -447,11 +448,11 @@ function SubeModal({ api, sube, onKapat, onOk }) {
                 </div>
                 <div>
                   <Label>Müdür Email</Label>
-                  <Input type="email" value={form.mudur_email} onChange={e => set('mudur_email', e.target.value)} />
+                  <Input type="email" autoComplete="off" name="sube-mudur-eposta" value={form.mudur_email} onChange={e => set('mudur_email', e.target.value)} />
                 </div>
               </div>
               <Label>Müdür Şifre</Label>
-              <Input type="password" value={form.mudur_sifre} onChange={e => set('mudur_sifre', e.target.value)} />
+              <Input type="password" autoComplete="new-password" name="sube-mudur-sifre" value={form.mudur_sifre} onChange={e => set('mudur_sifre', e.target.value)} />
             </>
           )}
 

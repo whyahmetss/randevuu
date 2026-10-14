@@ -101,7 +101,7 @@ export default function GoogleCalendar({ api }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>Google Calendar Senkronizasyonu</div>
           <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>
-            Randevularınız otomatik Google Takvim'e yazılır. Google'daki özel eventleriniz booking'i otomatik bloke eder.
+            Randevularınız otomatik Google Takvim'e yazılır. Google Takvim'deki özel etkinlikleriniz o saatlerde randevu alınmasını otomatik engeller.
           </div>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function GoogleCalendar({ api }) {
           }}>
             <div style={{ fontWeight: 600, marginBottom: 8 }}>🔄 İki yönlü takvim senkronizasyonu</div>
             <div style={{ display: "grid", gap: 6, color: "var(--dim)" }}>
-              <div>✅ SıraGO'da randevu açıldığında → Google Takvim'e event olarak eklenir</div>
+              <div>✅ SıraGO'da randevu açıldığında → Google Takvim'e etkinlik olarak eklenir</div>
               <div>✅ Randevu iptal olunca → Google'dan otomatik silinir</div>
               <div>✅ Google'da kendi eventiniz (örn. doktor, öğle yemeği) varsa → o saat online booking'de görünmez</div>
               <div>✅ Randevu ertelenince → Google'da da güncellenir</div>

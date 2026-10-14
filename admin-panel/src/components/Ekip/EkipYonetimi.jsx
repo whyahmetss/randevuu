@@ -97,7 +97,7 @@ export default function EkipYonetimi({ api }) {
           {Object.entries(gorevler).map(([k, g]) => (
             <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px, 180px) 1fr', gap: 12, fontSize: 13, alignItems: 'baseline' }}>
               <b>{g.ad}</b>
-              <span style={{ color: 'var(--dim)' }}>{g.yetkiler ? g.yetkiler.map(y => yetkiler[y]).join(' · ') : 'Her şey; ekip yönetimi, işlem kaydı ve işletme silme yalnız burada.'}</span>
+              <span style={{ color: 'var(--dim)' }}>{g.yetkiler ? g.yetkiler.map(y => yetkiler[y]).join(' · ') : 'Tüm bölümler; ekip yönetimi ve ekip takibi yalnız patronda (👑).'}</span>
             </div>
           ))}
         </div>

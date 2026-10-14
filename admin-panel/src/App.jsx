@@ -56,6 +56,25 @@ const oturumuKapat = () => {
 
 // Ödeme sayfası: giriş anahtarı URL'ye konmaz; sunucudan süreli, yalnız ödeme açan link alınır.
 // Pencere tıklama anında açılır (sonradan açılırsa tarayıcı açılır pencere engeline takılır).
+
+// WhatsApp biçimi (*kalın*, _italik_) Bot Test'te ham yıldız olarak görünüyordu: telefondaki gibi gösterilir
+function waBicim(metin) {
+  const parcalar = String(metin).split(/(\*[^*\n]+\*|_[^_\n]+_)/g);
+  return parcalar.map((p, i) => (/^\*[^*]+\*$/.test(p) ? <strong key={i}>{p.slice(1, -1)}</strong>
+    : /^_[^_]+_$/.test(p) ? <em key={i}>{p.slice(1, -1)}</em> : p));
+}
+
+// Veritabanı kodlarını ekranda okunur Türkçeye çevirir (2026-10-14 tasarım raporu: "guzellik", "odeme_bekliyor", "baslangic" ham görünüyordu)
+const ETIKET = {
+  berber: "Berber", kuafor: "Kuaför", guzellik: "Güzellik salonu", disci: "Diş kliniği", veteriner: "Veteriner", dovme: "Dövme",
+  diyetisyen: "Diyetisyen", spa: "Spa", fizyoterapi: "Fizyoterapi", psikolog: "Psikolog", genel: "Genel", diger: "Diğer",
+  baslangic: "Başlangıç", profesyonel: "Standart", proplus: "Pro+", kurumsal: "Kurumsal", premium: "Kurumsal",
+  odeme_bekliyor: "Ödeme bekliyor", bekliyor: "Bekliyor", odendi: "Ödendi", havale_bekliyor: "Havale bekliyor", gecikti: "Gecikti",
+  eslestirilmedi: "Eşleşmedi", iptal: "İptal", onaylandi: "Onaylandı", onay_bekliyor: "Onay bekliyor", tamamlandi: "Tamamlandı",
+  gelmedi: "Gelmedi", kapora_bekliyor: "Kapora bekliyor", bagli: "Bağlı", qr_bekliyor: "QR bekliyor", aktif: "Aktif", pasif: "Pasif",
+};
+const etiket = (k) => (k == null || k === "" ? k : ETIKET[k] || String(k).replace(/_/g, " "));
+
 function odemeSayfasiAc(paket, sure) {
   const w = window.open("", "_blank");
   const q = new URLSearchParams({ ...(paket ? { paket } : {}), ...(sure === "yil" ? { sure } : {}) }).toString();
@@ -80,7 +99,9 @@ function HuniSerit({ adimlar }) {
     <div style={{ ...sgKart, display: "flex", alignItems: "stretch", gap: 0, overflowX: "auto", padding: 0, marginBottom: 20 }}>
       {adimlar.map((a, i) => {
         const onceki = i > 0 ? adimlar[i - 1].deger : null;
-        const oran = onceki ? Math.round(((a.deger || 0) / onceki) * 100) : null;
+        // %100'ü geçen oran (ör. aynı adaya birden çok mesaj) anlamsız: gösterilmez
+        const oranHam = onceki ? Math.round(((a.deger || 0) / onceki) * 100) : null;
+        const oran = oranHam !== null && oranHam <= 100 ? oranHam : null;
         return (
           <div key={a.ad} style={{ flex: "1 0 120px", padding: "14px 16px", borderLeft: i ? "1px solid var(--border)" : "none", position: "relative" }}>
             <div style={{ fontSize: 11, color: "var(--dim)", fontWeight: 600, marginBottom: 4 }}>{a.ad}</div>
@@ -194,6 +215,20 @@ function useDestekWp() {
   return n;
 }
 
+// Şifre alanı + göster/gizle (mobilde yazım hatasını görmek için; tasarım raporu 2026-10-14)
+function SifreAlani({ value, onChange, placeholder, autoComplete, name }) {
+  const [goster, setGoster] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <input type={goster ? "text" : "password"} name={name} autoComplete={autoComplete} placeholder={placeholder} value={value} onChange={onChange}
+        className="input" style={{ paddingRight: 72 }} />
+      <button type="button" onClick={() => setGoster(g => !g)} aria-label={goster ? "Şifreyi gizle" : "Şifreyi göster"}
+        style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", border: "none", background: "none", color: "var(--dim)",
+          fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "6px 8px", fontFamily: "inherit" }}>{goster ? "Gizle" : "Göster"}</button>
+    </div>
+  );
+}
+
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [sifre, setSifre] = useState("");
@@ -205,6 +240,7 @@ function Login({ onLogin }) {
   const [ekran, setEkran] = useState(davetParam.kod || /[?&]kayit=1/.test(window.location.search) ? "kayit" : "giris"); // giris | kayit
   const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
   const [bilgi, setBilgi] = useState("");
+  const [sartOnay, setSartOnay] = useState(false);   // Kullanım Şartları + KVKK onayı (kayıtta zorunlu)
   const [googleId, setGoogleId] = useState(null);          // sunucuda GOOGLE_CLIENT_ID varsa Google butonu çıkar
   const [googleYeni, setGoogleYeni] = useState(null);      // { credential, email } → işletme adı sorulur
   const [sifreForm, setSifreForm] = useState({ adim: 1, email: "", kod: "", sifre: "" });
@@ -224,7 +260,7 @@ function Login({ onLogin }) {
 
   const googleCevap = async (credential, isletmeAdi) => {
     setHata(""); setYukleniyor(true);
-    const d = await authPost("/auth/google", { credential, isletmeAdi, davet: (kayitForm.davet || "").trim() || undefined,
+    const d = await authPost("/auth/google", { credential, isletmeAdi, sartlar_onay: isletmeAdi ? true : undefined, davet: (kayitForm.davet || "").trim() || undefined,
       kayitKanal: davetParam.kod ? davetParam.kanal : "web" });
     setYukleniyor(false);
     if (d.yeni) { setGoogleYeni({ credential, email: d.email }); setEkran("kayit"); return; }
@@ -283,9 +319,10 @@ function Login({ onLogin }) {
     if (!kayitForm.isletmeAdi || !kayitForm.email || !kayitForm.sifre) return setHata("Tüm alanları doldurun");
     if (kayitForm.sifre.length < 8) return setHata("Şifre en az 8 karakter olmalı");
     if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
+    if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onaylayın");
     setYukleniyor(true);
     const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
-      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined });
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined, sartlar_onay: true });
     if (data.basarili) {
       // Kayıttan sonra şifreyi tekrar yazdırmadan doğrudan panele
       const g = await authPost("/auth/giris", { email: kayitForm.email, sifre: kayitForm.sifre });
@@ -319,7 +356,7 @@ function Login({ onLogin }) {
             <span className="lh-saat">{r.saat}</span>
             <span className="lh-kisi">{r.isim}<small>{r.hizmet}</small></span>
             <span className="lh-kanal">{r.kanal}</span>
-            <span className={`lh-durum${r.durum === "Onaylı" ? " ok" : ""}`}>{r.durum}</span>
+            <span className={`lh-durum${r.durum === "Onaylı" ? " ok" : ""}`}>{etiket(r.durum)}</span>
           </div>
         ))}
       </div>
@@ -327,17 +364,17 @@ function Login({ onLogin }) {
         <div className="lh-balon">Randevun hazır! ✅</div>
         <img src="/img/tilki-maskot.webp" alt="" />
       </div>
-      <div className="lh-alt">Berber, kuaför ve güzellik salonları için.</div>
+      <div className="lh-alt">Berber, kuaför, güzellik salonu, dövme stüdyosu, diş kliniği ve veteriner için.</div>
     </div>
   );
 
   return (
     <div className="login-page">
       <div className="login-form-panel">
-        <div className="login-form-logo">
+        <a className="login-form-logo" href="https://xn--srago-n4a.com/" title="Tanıtım sitesine dön" style={{ textDecoration: "none" }}>
           <img className="marka-monogram" src="/img/tilki-ikon.webp" alt="SıraGO" />
           <span>SıraGO</span>
-        </div>
+        </a>
         <div className="login-card">
           <div className="login-title">{ekran === "giris" ? "Hoş Geldiniz" : ekran === "sifre" ? "Şifremi Unuttum" : googleYeni ? "Son bir adım" : "Hesap Oluştur"}</div>
           <div className="login-subtitle">{ekran === "giris" ? "Panele erişmek için giriş yapın" : ekran === "sifre" ? "Kayıtlı WhatsApp numaranıza kod gönderelim" : googleYeni ? googleYeni.email : "14 gün ücretsiz deneyin, kredi kartı gerekmez"}</div>
@@ -387,7 +424,7 @@ function Login({ onLogin }) {
               </div>
             </form>
           ) : googleYeni ? (
-            <form onSubmit={e => { e.preventDefault(); if ((kayitForm.isletmeAdi || "").trim().length < 2) return setHata("İşletme adını yazın"); googleCevap(googleYeni.credential, kayitForm.isletmeAdi.trim()); }}>
+            <form onSubmit={e => { e.preventDefault(); if ((kayitForm.isletmeAdi || "").trim().length < 2) return setHata("İşletme adını yazın"); if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onaylayın"); googleCevap(googleYeni.credential, kayitForm.isletmeAdi.trim()); }}>
               <div className="form-group">
                 <label className="form-label">İşletme Adı</label>
                 <input type="text" autoComplete="organization" placeholder="Örn: Ali Kuaför" value={kayitForm.isletmeAdi} autoFocus
@@ -397,6 +434,10 @@ function Login({ onLogin }) {
                 <label className="form-label">Davet kodu <span style={{ fontWeight: 400, color: "var(--dim)" }}>(varsa)</span></label>
                 <input type="text" autoComplete="off" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
               </div>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5, margin: "4px 0 12px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={sartOnay} onChange={e => setSartOnay(e.target.checked)} style={{ marginTop: 3 }} />
+                  <span><a href="https://xn--srago-n4a.com/kullanim.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>Kullanım Şartları</a>'nı okudum, kabul ediyorum; kişisel verilerimin <a href="https://xn--srago-n4a.com/kvkk.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>KVKK Aydınlatma Metni</a>'ne göre işlenmesini biliyorum.</span>
+                </label>
               {hata && <div className="alert alert-error">{hata}</div>}
               <button type="submit" disabled={yukleniyor} className="login-btn-primary">{yukleniyor ? "Hesap oluşturuluyor..." : "Hesabımı oluştur"}</button>
               <button type="button" className="login-link" style={{ marginTop: 14 }} onClick={() => { setGoogleYeni(null); setHata(""); }}>← Vazgeç</button>
@@ -412,7 +453,7 @@ function Login({ onLogin }) {
                   <span>Şifre</span>
                   <button type="button" className="login-link" onClick={() => { setEkran("sifre"); setHata(""); setBilgi(""); setSifreForm({ adim: 1, email, kod: "", sifre: "" }); }}>Şifremi unuttum</button>
                 </label>
-                <input type="password" name="password" autoComplete="current-password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} className="input" />
+                <SifreAlani name="password" autoComplete="current-password" placeholder="••••••••" value={sifre} onChange={(e) => setSifre(e.target.value)} />
               </div>
               {bilgi && <div className="alert alert-success">{bilgi}</div>}
               {hata && <div className="alert alert-error">{hata}</div>}
@@ -438,23 +479,27 @@ function Login({ onLogin }) {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre</label>
-                  <input type="password" autoComplete="new-password" placeholder="En az 8 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} className="input" />
+                  <SifreAlani autoComplete="new-password" placeholder="En az 8 karakter" value={kayitForm.sifre} onChange={e => setKayitForm(p => ({ ...p, sifre: e.target.value }))} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Şifre Tekrar</label>
-                  <input type="password" autoComplete="new-password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} className="input" />
+                  <SifreAlani autoComplete="new-password" placeholder="••••••••" value={kayitForm.sifreTekrar} onChange={e => setKayitForm(p => ({ ...p, sifreTekrar: e.target.value }))} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Davet kodu <span style={{ fontWeight: 400, color: "var(--dim)" }}>(varsa)</span></label>
                   <input type="text" autoComplete="off" placeholder="SG ile başlayan kod" value={kayitForm.davet} onChange={e => setKayitForm(p => ({ ...p, davet: e.target.value.toUpperCase() }))} className="input" maxLength={12} />
                 </div>
+                <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5, margin: "4px 0 12px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={sartOnay} onChange={e => setSartOnay(e.target.checked)} style={{ marginTop: 3 }} />
+                  <span><a href="https://xn--srago-n4a.com/kullanim.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>Kullanım Şartları</a>'nı okudum, kabul ediyorum; kişisel verilerimin <a href="https://xn--srago-n4a.com/kvkk.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>KVKK Aydınlatma Metni</a>'ne göre işlenmesini biliyorum.</span>
+                </label>
                 {hata && <div className="alert alert-error">{hata}</div>}
                 <button type="submit" disabled={yukleniyor} className="login-btn-primary">
                   {yukleniyor ? "Hesap oluşturuluyor..." : "Ücretsiz Hesap Oluştur"}
                 </button>
               </form>
 
-              <div className="login-divider"><span>veya hızlı kayıt</span></div>
+              <div className="login-divider"><span>{WP_NUMARA ? "veya hızlı kayıt" : "veya Telegram'dan kayıt"}</span></div>
 
               {WP_NUMARA && <a href={`https://wa.me/${WP_NUMARA}?text=${encodeURIComponent("kayıt")}`} target="_blank" rel="noopener noreferrer" className="login-alt-btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -470,7 +515,7 @@ function Login({ onLogin }) {
           {/* Telefonda sağdaki tanıtım görünmüyor: kısa tanıtım + siteye dönüş */}
           <div className="login-mobil-tanitim">
             <b style={{ color: "var(--text)" }}>SıraGO nedir?</b> Müşterileriniz WhatsApp'tan yazar, yapay zekâ boş saati bulup randevuyu verir;
-            hatırlatmalar kendiliğinden gider. Berber, kuaför ve güzellik salonları için.
+            hatırlatmalar kendiliğinden gider. Berber, kuaför, güzellik salonu, dövme stüdyosu, diş kliniği ve veteriner için.
             <div style={{ marginTop: 8 }}><a href="https://xn--srago-n4a.com/">← Tanıtım sitesine dön</a></div>
           </div>
         </div>
@@ -522,7 +567,10 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               {hizmetler.length}/{limit >= 999 ? "∞" : limit} kullanıldı
             </span>
           )}
-          <button onClick={() => { setDuzenleId(null); setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" }); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>
+          {/* Kota doluysa ekleme yerine paket yükseltme (eskiden buton açık kalıyordu) */}
+          {paketDurum && limit < 999 && hizmetler.length >= limit
+            ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştınız" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
+            : <button onClick={() => { setDuzenleId(null); setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0" }); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>}
         </div>
       </div>
 
@@ -676,7 +724,9 @@ function CalisanlarSayfasi({ paketDurum }) {
               {calisanlar.length}/{limit >= 999 ? "∞" : limit} kullanıldı
             </span>
           )}
-          <button onClick={() => { setForm(formSifirla()); setDuzenle(null); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Çalışan</button>
+          {paketDurum && limit < 999 && calisanlar.length >= limit
+            ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştınız" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
+            : <button onClick={() => { setForm(formSifirla()); setDuzenle(null); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Çalışan</button>}
         </div>
       </div>
 
@@ -695,7 +745,7 @@ function CalisanlarSayfasi({ paketDurum }) {
             </div>
             <div className="full">
               <label className="form-label">Uzmanlık (virgülle ayır)</label>
-              <input placeholder="sac_kesimi, sakal, cilt_bakimi" value={form.uzmanlik} onChange={e => setForm({...form, uzmanlik: e.target.value})} className="input" />
+              <input placeholder="Saç kesimi, sakal, cilt bakımı" value={form.uzmanlik} onChange={e => setForm({...form, uzmanlik: e.target.value})} className="input" />
             </div>
           </div>
 
@@ -797,7 +847,7 @@ function CalisanlarSayfasi({ paketDurum }) {
           </div>
           <div className="row gap-8" style={{ flexWrap: "wrap" }}>
             {c.uzmanlik && c.uzmanlik.split(",").map(u => (
-              <span key={u} className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>{u.trim()}</span>
+              <span key={u} className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>{etiket(u.trim())}</span>
             ))}
             {c.calisma_baslangic && <span className="tag-sm" style={{ background: "rgba(47,86,198,.1)", color: "var(--blue)" }}>🕐 {String(c.calisma_baslangic).substring(0,5)} - {String(c.calisma_bitis || '').substring(0,5)}</span>}
             {c.kapali_gunler && <span className="tag-sm" style={{ background: "rgba(180,35,24,.1)", color: "var(--red)" }}>Kapalı: {c.kapali_gunler.split(",").filter(Boolean).map(g => gunler.find(gl => gl[0] === g)?.[1] || g).join(", ")}</span>}
@@ -1718,13 +1768,13 @@ function Dashboard({ kullanici }) {
               { label: 'Hizmet', used: paketDurum.kullanim.hizmet, limit: paketDurum.paket_bilgi.hizmet_limit, renk: 'var(--blue)' },
               { label: 'Bu ay randevu', used: paketDurum.kullanim.randevu, limit: paketDurum.paket_bilgi.aylik_randevu_limit, renk: 'var(--purple)' },
             ].map(item => {
-              const pct = item.limit >= 9999 ? 4 : Math.min(100, Math.round(item.used / item.limit * 100));
+              const pct = item.limit >= 999 ? 4 : Math.min(100, Math.round(item.used / item.limit * 100));
               const dolu = pct >= 90;
               return (
                 <div key={item.label}>
                   <div className="pw-bar-label">
                     <span>{item.label}</span>
-                    <span style={{ color: dolu ? 'var(--red)' : 'var(--dim)' }}>{item.limit >= 9999 ? `${item.used} / ∞` : `${item.used}/${item.limit}`}</span>
+                    <span style={{ color: dolu ? 'var(--red)' : 'var(--dim)' }}>{item.limit >= 999 ? `${item.used} / ∞` : `${item.used}/${item.limit}`}</span>
                   </div>
                   <div className="pw-bar-track">
                     <div className="pw-bar-fill" style={{ width: `${pct}%`, background: dolu ? 'var(--red)' : item.renk }} />
@@ -1843,7 +1893,7 @@ function Dashboard({ kullanici }) {
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.isim}</div>
                                 <div style={{ fontSize: 11, color: "var(--dim)" }}>
-                                  {c.uzmanlik || (c.calisma_baslangic ? `${c.calisma_baslangic?.slice(0,5)} – ${c.calisma_bitis?.slice(0,5)}` : "Çalışan")}
+                                  {etiket(c.uzmanlik) || (c.calisma_baslangic ? `${c.calisma_baslangic?.slice(0,5)} – ${c.calisma_bitis?.slice(0,5)}` : "Çalışan")}
                                 </div>
                               </div>
                               {c.telefon && (
@@ -1927,7 +1977,7 @@ function Dashboard({ kullanici }) {
                   }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", lineHeight: 1.2 }}>{ayarlar.isim}</div>
-                    <div style={{ fontSize: 10, color: "var(--dim)" }}>{ayarlar.kategori || "İşletme"}</div>
+                    <div style={{ fontSize: 10, color: "var(--dim)" }}>{etiket(ayarlar.kategori) || "İşletme"}</div>
                   </div>
                 </div>
                 {profilPopover && (
@@ -1947,7 +1997,7 @@ function Dashboard({ kullanici }) {
                         }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{ayarlar.isim}</div>
-                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{ayarlar.kategori || "İşletme"}</div>
+                          <div style={{ fontSize: 11, color: "var(--dim)" }}>{etiket(ayarlar.kategori) || "İşletme"}</div>
                         </div>
                       </div>
                       {paketDurum && (
@@ -2483,7 +2533,7 @@ function Dashboard({ kullanici }) {
                       
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text)" }}>Paket & Ödeme Durumu</div>
-                        <div style={{ fontSize: 11, color: "var(--dim)" }}>{odemeBilgi.donem} · {dashEkstra?.paket || odemeBilgi.paket || ''}</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)" }}>{odemeBilgi.donem} · {etiket(dashEkstra?.paket || odemeBilgi.paket || '')}</div>
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2663,7 +2713,9 @@ function Dashboard({ kullanici }) {
                   {/* Randevu blokları */}
                   {randevular.map(r => {
                     const rMin = saatToMin(r.saat);
-                    const rEnd = r.bitis_saati ? saatToMin(r.bitis_saati) : rMin + 30;
+                    // Kutu, hizmet süresi kadar uzar (bitiş saati eksik/kısa kaydedilmiş randevular 15 dk gibi çiziliyordu)
+                    const sure = Number(r.toplam_sure) || Number(r.hizmet_sure) || 30;
+                    const rEnd = Math.max(r.bitis_saati ? saatToMin(r.bitis_saati) : 0, rMin + sure);
                     const top = (rMin - baslangic * 60) / 60 * slotYukseklik;
                     const h = Math.max(28, (rEnd - rMin) / 60 * slotYukseklik - 4);
                     const renk = DR[r.durum] || "#a8590c";
@@ -2849,7 +2901,7 @@ function Dashboard({ kullanici }) {
                       {/* Aksiyon butonları — sadece aktif durumlar için */}
                       {!bitmis && (
                         <div style={{ display: "flex", gap: 6, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
-                          {[["onaylandi","✅ Onayla"], ["tamamlandi","✔️ Tamam"], ["gelmedi","❌ Gelmedi"], ["iptal","🚫 İptal"]].map(([d, l]) => (
+                          {[["onaylandi","✅ Onayla"], ["tamamlandi","✔️ Tamam"], ["gelmedi","❌ Gelmedi"], ["iptal","🚫 İptal"]].filter(([d]) => d !== r.durum).map(([d, l]) => (
                             <button key={d}
                               onClick={() => durumDegistir(r, d)}
                               style={{
@@ -2947,7 +2999,7 @@ function Dashboard({ kullanici }) {
                   )}
                   {testCevaplar.map((c, i) => (
                     <div key={i} className={`chat-bubble ${c.yon === "giden" ? "out" : "in"}`}>
-                      <span style={{ whiteSpace: "pre-wrap" }}>{String(c.mesaj ?? "")}</span>
+                      <span style={{ whiteSpace: "pre-wrap" }}>{waBicim(String(c.mesaj ?? ""))}</span>
                       {c.butonlar?.length > 0 && (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
                           {c.butonlar.map((b, j) => (
@@ -3347,7 +3399,7 @@ function Dashboard({ kullanici }) {
           {sayfa === "ayarlar" && ayarlar && (
             <div className="card" style={{ padding: 18, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               <div style={{ minWidth: 0 }}>
-                <b>Panel görünümü: {liteMod ? "Sade (Lite)" : "Tam (Pro)"}</b>
+                <b>Panel görünümü: {liteMod ? "Sade" : "Gelişmiş"}</b>
                 <div style={{ fontSize: 13, color: "var(--dim)", marginTop: 4 }}>
                   {liteMod ? "Sadece günlük iş: bugünkü randevular, WhatsApp, fiyatlar. Kasa, pazarlama ve raporlar gizli."
                            : "Tüm modüller açık: kasa, finans, pazarlama, raporlar, şubeler."}
@@ -3593,11 +3645,11 @@ function Dashboard({ kullanici }) {
             </div>
             <div className="price-grid-modal">
               {[
-                { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "Çoklu Dil", "SMS Hatırlatma"] },
-                { key: "profesyonel", isim: "Standart", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 499, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "3 Dil Desteği"], ozellikYok: ["Çoklu Şube", "Öncelikli Destek", "SMS Hatırlatma"] },
+                { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma"], ozellikYok: ["Kasa Takibi", "Prim Raporu", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "Gece Raporu", "İngilizce · Arapça bot", "SMS Hatırlatma"] },
+                { key: "profesyonel", isim: "Standart", fiyat: paketDurum?.tum_paketler?.profesyonel?.fiyat || 499, renk: "#2f56c6", ozellikler: ["5 Çalışan", "Sınırsız Randevu", "Kasa Takibi & Prim Raporu", "Sadakat Puan Sistemi", "Kayıp Müşteri Kurtarma", "Yorum Avcısı", "Gece Raporu", "Bot 3 dilde: Türkçe · İngilizce · Arapça"], ozellikYok: ["Çoklu Şube", "Öncelikli Destek", "SMS Hatırlatma"] },
                 { key: "proplus", isim: "Pro+", fiyat: paketDurum?.tum_paketler?.proplus?.fiyat || 1499, renk: "#1f6f4a", ozellikler: ["10 Çalışan", "Sınırsız Randevu", "Çoklu Şube (3 şube)", "Kasa Takibi & Prim Raporu", "Öncelikli Destek", "Tüm Standart Özellikler"], ozellikYok: ["SMS Hatırlatma", "API Erişimi"] },
                 { key: "kurumsal", isim: "Kurumsal", fiyat: paketDurum?.tum_paketler?.kurumsal?.fiyat || 4999, renk: "#a8590c", ozellikler: ["Sınırsız Çalışan", "Sınırsız Şube", "SMS Hatırlatma", "API Erişimi", "Özel Onboarding", "Tüm Pro+ Özellikler"], ozellikYok: [] },
-              ].map(p => {
+              ].map(p => ({ ...p, ozellikler: paketDurum?.tum_paketler?.[p.key]?.ozellikler?.length ? paketDurum.tum_paketler[p.key].ozellikler : p.ozellikler })).map(p => {
                 const aktif = paketDurum?.paket === p.key;
                 return (
                   <div key={p.key} className={`price-item${aktif ? ' active' : ''}`} style={{ background: aktif ? `${p.renk}10` : "var(--bg)", borderColor: aktif ? p.renk : undefined, color: p.renk }}>
@@ -4351,7 +4403,9 @@ function SuperAdminPanel({ kullanici }) {
 
   const buAy = new Date().toLocaleDateString('sv-SE').slice(0, 7);
   const buAyOdeyenler = odemeler.filter(o => o.donem === buAy && o.durum === "odendi");
-  const buAyOdemeyenler = isletmeler.filter(i => i.aktif && !odemeler.find(o => o.isletme_id == i.id && o.donem === buAy && o.durum === "odendi"));
+  // Ödemesi gecikmiş = deneme de ödenmiş dönem de bitmiş (denemedekiler ve yıllık ödeyenler sayılmaz; sunucudaki sayımla aynı kural)
+  const sureBitti = (i) => Math.max(i.deneme_bitis_tarihi ? new Date(i.deneme_bitis_tarihi).getTime() : 0, i.paket_bitis_tarihi ? new Date(i.paket_bitis_tarihi).getTime() : 0) < Date.now();
+  const buAyOdemeyenler = isletmeler.filter(i => i.aktif && !i.demo && sureBitti(i) && !odemeler.find(o => o.isletme_id == i.id && o.donem === buAy && o.durum === "odendi"));
   const toplamGelir = odemeler.filter(o => o.durum === "odendi").reduce((s, o) => s + parseFloat(o.tutar || 0), 0);
   const buAyGelir = buAyOdeyenler.reduce((s, o) => s + parseFloat(o.tutar || 0), 0);
 
@@ -4681,7 +4735,7 @@ function SuperAdminPanel({ kullanici }) {
                   <div className="row gap-10">
                     <div className={`dot-sm ${i.aktif ? 'dot-green' : 'dot-red'}`} />
                     <span style={{ color: "var(--text)", fontSize: 14, fontWeight: 600 }}>{i.isim}</span>
-                    <span className="tag-xs" style={{ background: (kategoriRenk[i.kategori] || "#6f6a62") + "22", color: kategoriRenk[i.kategori] || "#6f6a62" }}>{i.kategori}</span>
+                    <span className="tag-xs" style={{ background: (kategoriRenk[i.kategori] || "#6f6a62") + "22", color: kategoriRenk[i.kategori] || "#6f6a62" }}>{etiket(i.kategori)}</span>
                   </div>
                   <div className="row gap-8">
                     <span style={{ color: "var(--muted)", fontSize: 12 }}>📅 {i.toplam_randevu || 0}</span>
@@ -4732,7 +4786,7 @@ function SuperAdminPanel({ kullanici }) {
                         <span style={{ width: 7, height: 7, borderRadius: "50%", background: i.aktif ? "#1f6f4a" : "#b42318", flexShrink: 0 }} />
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                        <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}12`, color: kRenk, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{i.kategori || "genel"}</span>
+                        <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}12`, color: kRenk, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{etiket(i.kategori || "genel")}</span>
                         <span style={{ padding: "2px 8px", borderRadius: 6, background: `${pRenk}12`, color: pRenk, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{i.paket || "—"}</span>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 12, color: "var(--dim)" }}>
@@ -4806,7 +4860,7 @@ function SuperAdminPanel({ kullanici }) {
                       background: isletmeKategoriFiltre === k ? `${renk}18` : "var(--surface)",
                       color: isletmeKategoriFiltre === k ? renk : "var(--dim)",
                       border: isletmeKategoriFiltre === k ? `1px solid ${renk}40` : "1px solid var(--border)" }}>
-                    {(kategoriLabel[k] || k).split(" ")[0]} {k} <span style={{ background: `${renk}15`, color: renk, padding: "1px 6px", borderRadius: 8, fontSize: 10, fontWeight: 600 }}>{sayi}</span>
+                    {(kategoriLabel[k] || k).split(" ")[0]} {etiket(k)} <span style={{ background: `${renk}15`, color: renk, padding: "1px 6px", borderRadius: 8, fontSize: 10, fontWeight: 600 }}>{sayi}</span>
                   </button>
                 );
               })}
@@ -5128,11 +5182,12 @@ function SuperAdminPanel({ kullanici }) {
                 {isletmeler.map(i => {
                   const iOdemeleri = odemeler.filter(o => o.isletme_id === i.id);
                   const buAyO = iOdemeleri.find(o => o.donem === buAy);
-                  const olusturmaGun = Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000);
-                  const deneme = olusturmaGun <= 7;
+                  // Deneme: işletmenin kendi deneme bitişine göre (eskiden "7 gün" sabit yazılıydı, deneme 14 gün)
+                  const denemeKalan = i.deneme_bitis_tarihi ? Math.ceil((new Date(i.deneme_bitis_tarihi) - new Date()) / 86400000) : 0;
+                  const deneme = denemeKalan > 0;
                   const durum = buAyO ? buAyO.durum : (deneme ? "deneme" : "odenmedi");
                   const durumRenk = durum === "odendi" ? "#1f6f4a" : durum === "deneme" ? "#2f56c6" : durum === "bekliyor" ? "#a8590c" : durum === "havale_bekliyor" ? "#5d4bb5" : "#b42318";
-                  const durumText = durum === "odendi" ? "✓ Ödendi" : durum === "deneme" ? `⏳ Deneme (${7 - olusturmaGun} gün)` : durum === "bekliyor" ? "⏳ Bekliyor" : durum === "havale_bekliyor" ? "🏦 Havale" : durum === "gecikti" ? "⚠ Gecikti" : "✕ Ödenmedi";
+                  const durumText = durum === "odendi" ? "✓ Ödendi" : durum === "deneme" ? `⏳ Deneme (${denemeKalan} gün)` : durum === "bekliyor" ? "⏳ Bekliyor" : durum === "havale_bekliyor" ? "🏦 Havale" : durum === "gecikti" ? "⚠ Gecikti" : "✕ Ödenmedi";
                   return (
                     <div key={i.id} className="list-item mb-8" style={{ cursor: "pointer" }} onClick={() => odemeProfiliYukle(i.id)}>
                       <div className="row row-between row-wrap gap-8" style={{ width: "100%" }}>
@@ -5341,12 +5396,12 @@ function SuperAdminPanel({ kullanici }) {
                 </div>
 
                 <div className="stats-grid">
-                  <div className="stat-card green"><div className="sc-icon">⏱️</div><div className="sc-label">Uptime</div><div className="sc-val">{sistemDurum.sunucu.uptime_saat} saat</div></div>
+                  <div className="stat-card green"><div className="sc-icon">⏱️</div><div className="sc-label">Sunucu çalışma süresi</div><div className="sc-val">{sistemDurum.sunucu.uptime_saat} saat</div></div>
                   <div className="stat-card blue"><div className="sc-icon">💾</div><div className="sc-label">Bellek</div><div className="sc-val">{sistemDurum.sunucu.bellek_mb} MB</div><div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>/ {sistemDurum.sunucu.bellek_toplam_mb} MB</div></div>
                   <div className="stat-card" style={{"--card-accent": sistemDurum.veritabani.durum === 'saglikli' ? "#1f6f4a" : "#b42318"}}>
                     <div className="sc-icon">🗄️</div><div className="sc-label">Veritabanı</div>
                     <div className="sc-val" style={{ color: sistemDurum.veritabani.durum === 'saglikli' ? "#1f6f4a" : "#b42318" }}>{sistemDurum.veritabani.yanit_ms}ms</div>
-                    <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>{sistemDurum.veritabani.durum}</div>
+                    <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 4 }}>{({ saglikli: 'Sağlıklı', yavas: 'Yavaş' })[sistemDurum.veritabani.durum] || sistemDurum.veritabani.durum}</div>
                   </div>
                   <div className="stat-card amber"><div className="sc-icon">📅</div><div className="sc-label">24s Randevu</div><div className="sc-val">{sistemDurum.son_24_saat.randevu}</div></div>
                 </div>
@@ -5357,8 +5412,8 @@ function SuperAdminPanel({ kullanici }) {
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {Object.entries(sistemDurum.servisler).map(([k, v]) => (
                       <div key={k} className="row row-between" style={{ padding: "10px 14px", background: "var(--bg)", borderRadius: 8 }}>
-                        <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{k.replace(/_/g, ' ')}</span>
-                        <span className="tag" style={{ background: v === 'bagli' || v === 'aktif' ? "rgba(31,111,74,.15)" : "rgba(168,89,12,.15)", color: v === 'bagli' || v === 'aktif' ? "#1f6f4a" : "#a8590c", fontWeight: 600 }}>{v}</span>
+                        <span style={{ color: "var(--text)", fontWeight: 600, fontSize: 14 }}>{({ whatsapp_bot: 'WhatsApp bot', satis_bot: 'Satış Bot', telegram: 'Telegram', cron: 'Zamanlanmış işler', socket: 'Canlı bağlantı' })[k] || etiket(k)}</span>
+                        <span className="tag" style={{ background: v === 'bagli' || v === 'aktif' ? "rgba(31,111,74,.15)" : "rgba(168,89,12,.15)", color: v === 'bagli' || v === 'aktif' ? "#1f6f4a" : "#a8590c", fontWeight: 600 }}>{({ bagli: 'Bağlı', aktif: 'Aktif', kapali: 'Kapalı', bilinmiyor: 'Bilinmiyor', hata: 'Hata', baslatiyor: 'Başlatılıyor' })[v] || etiket(v)}</span>
                       </div>
                     ))}
                   </div>
@@ -5546,10 +5601,12 @@ function SuperAdminPanel({ kullanici }) {
             )}
 
             {(() => {
+              // Eksik paket oluşturulurken kullanılan varsayılanlar = config/paketler.js (site ve paket ekranıyla aynı)
               const PLAN_DEFS = {
-                baslangic: { isim: "Başlangıç", fiyat: 299, calisan_limit: 1, hizmet_limit: 5, aylik_randevu_limit: 200, bot_aktif: true, hatirlatma: true, istatistik: false, export_aktif: false, ozellikler: "1 Çalışan\n200 Randevu/Ay\nOtomatik Hatırlatma\nTemel Analitik", sira: 1 },
-                profesyonel: { isim: "Profesyonel", fiyat: 999, calisan_limit: 3, hizmet_limit: 20, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "3 Çalışan\nSınırsız Randevu\nTelegram Desteği\nGelişmiş Analitik\nGoogle Calendar Sync\n5 Dil Desteği", sira: 2 },
-                kurumsal: { isim: "Kurumsal", fiyat: 0, calisan_limit: 999, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "Sınırsız Çalışan\nSınırsız Randevu\nÖzel API Entegrasyonu\nÖzel Eğitim & Onboarding\nSLA Garantisi\n3 Dil (TR · EN · AR)", sira: 3 }
+                baslangic: { isim: "Başlangıç", fiyat: 299, calisan_limit: 2, hizmet_limit: 10, aylik_randevu_limit: 500, bot_aktif: true, hatirlatma: true, istatistik: false, export_aktif: true, ozellikler: "2 çalışan\n500 randevu / ay\nWhatsApp Bot\nOtomatik Hatırlatma\nTemel Analitik", sira: 1 },
+                profesyonel: { isim: "Standart", fiyat: 499, calisan_limit: 5, hizmet_limit: 50, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "5 çalışan\nSınırsız randevu\nKasa Takibi & Prim Raporu\nSadakat Puan Sistemi\nKayıp Müşteri Kurtarma\nYorum Avcısı\nGece Raporu\nBot 3 dilde: Türkçe · İngilizce · Arapça", sira: 2 },
+                proplus: { isim: "Pro+", fiyat: 1499, calisan_limit: 10, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "10 çalışan\nSınırsız randevu\nÇoklu şube (3 şube)\nKasa Takibi & Prim Raporu\nSadakat, Kayıp Müşteri, Yorum Avcısı\nGece Raporu\nÖncelikli Destek\nTüm Standart Özellikler", sira: 3 },
+                kurumsal: { isim: "Kurumsal", fiyat: 4999, calisan_limit: 999, hizmet_limit: 999, aylik_randevu_limit: 99999, bot_aktif: true, hatirlatma: true, istatistik: true, export_aktif: true, ozellikler: "Sınırsız çalışan\nSınırsız randevu\nÇok Şubeli Yönetim\nSMS Hatırlatma (kendi NetGSM hesabınızla)\nÖncelikli Destek\nAPI Erişimi\nTüm Pro+ Özellikler", sira: 4 },
               };
               const mevcutKodlar = paketTanimlar.map(p => p.kod);
               const eksikler = Object.entries(PLAN_DEFS).filter(([kod]) => !mevcutKodlar.includes(kod));
@@ -5723,7 +5780,7 @@ function SuperAdminPanel({ kullanici }) {
                           </div>
                           <div style={{ display: "flex", gap: 10, marginTop: 4, fontSize: 11, color: "var(--dim)", flexWrap: "wrap" }}>
                             <span>📞 {z.telefon}</span>
-                            <span>{z.kategori} · {z.paket}</span>
+                            <span>{etiket(z.kategori)} · {etiket(z.paket)}</span>
                             <span>Kayıt: {z.olusturma_tarihi ? new Date(z.olusturma_tarihi).toLocaleDateString("tr-TR") : "—"} ({gunOnce} gün önce)</span>
                             <span>📅 {parseInt(z.randevu_sayisi) || 0} randevu</span>
                             {z.son_randevu && <span>Son: {new Date(z.son_randevu).toLocaleDateString("tr-TR")}</span>}
@@ -5818,7 +5875,7 @@ function SuperAdminPanel({ kullanici }) {
                               <div className="row gap-6" style={{ alignItems: "center" }}>
                                 <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{a.isletme_isim || `#${a.isletme_id}`}</span>
                                 <span style={{ padding: "1px 6px", borderRadius: 4, background: `${dr}15`, color: dr, fontSize: 10, fontWeight: 600 }}>{a.aksiyon_tipi}</span>
-                                <span style={{ padding: "1px 6px", borderRadius: 4, background: `${dr}15`, color: dr, fontSize: 10, fontWeight: 600 }}>{a.durum}</span>
+                                <span style={{ padding: "1px 6px", borderRadius: 4, background: `${dr}15`, color: dr, fontSize: 10, fontWeight: 600 }}>{etiket(a.durum)}</span>
                               </div>
                               {a.sonuc && a.sonuc !== a.durum && <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 2 }}>Sonuç: {a.sonuc}</div>}
                             </div>
@@ -5923,7 +5980,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div className="row gap-6" style={{ alignItems: "center" }}>
                               <span onClick={() => isletmeDetayYukle(i.id)} style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", cursor: "pointer" }}>{i.isim}</span>
                               <span style={{ padding: "2px 8px", borderRadius: 6, background: `${yuzdeRenk}12`, color: yuzdeRenk, fontSize: 10, fontWeight: 600 }}>%{i.tamamYuzde}</span>
-                              <span style={{ fontSize: 10, color: "var(--dim)" }}>{i.kategori} · {i.paket}</span>
+                              <span style={{ fontSize: 10, color: "var(--dim)" }}>{etiket(i.kategori)} · {etiket(i.paket)}</span>
                             </div>
                             <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>Kayıt: {i.olusturma_tarihi ? new Date(i.olusturma_tarihi).toLocaleDateString("tr-TR") : "—"}</div>
                           </div>
@@ -6012,7 +6069,7 @@ function SuperAdminPanel({ kullanici }) {
                         <div className="row gap-6" style={{ alignItems: "center" }}>
                           <span onClick={() => isletmeDetayYukle(i.id)} style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>{i.isim}</span>
                           <span style={{ padding: "1px 6px", borderRadius: 5, background: `${inf.renk}12`, color: inf.renk, fontSize: 10, fontWeight: 600 }}>{inf.label}</span>
-                          <span style={{ fontSize: 10, color: "var(--dim)" }}>{i.kategori} · {i.paket}</span>
+                          <span style={{ fontSize: 10, color: "var(--dim)" }}>{etiket(i.kategori)} · {etiket(i.paket)}</span>
                         </div>
                         <div className="row gap-10" style={{ marginTop: 3, fontSize: 11, color: "var(--dim)" }}>
                           <span>📅 {parseInt(i.randevu_sayisi) || 0} randevu</span>
@@ -6059,7 +6116,7 @@ function SuperAdminPanel({ kullanici }) {
             <div className="stats-grid" style={{ marginBottom: 16 }}>
               <div className="stat-card" style={{"--card-accent":"#1f6f4a"}}><div className="sc-icon">💰</div><div className="sc-label">Ort. Gelir</div><div className="sc-val">₺{(ort.gelir || 0).toLocaleString("tr-TR")}</div></div>
               <div className="stat-card blue"><div className="sc-icon">📅</div><div className="sc-label">Ort. Randevu</div><div className="sc-val">{ort.randevu || 0}</div></div>
-              <div className="stat-card amber"><div className="sc-icon">📊</div><div className="sc-label">Ort. Aylık Randevu</div><div className="sc-val">{ort.aylikRandevu || 0}</div></div>
+              <div className="stat-card amber"><div className="sc-icon">📊</div><div className="sc-label">Ort. randevu (son 30 gün)</div><div className="sc-val">{ort.aylikRandevu || 0}</div></div>
               <div className="stat-card" style={{"--card-accent":"#5d4bb5"}}><div className="sc-icon">👥</div><div className="sc-label">Ort. Müşteri</div><div className="sc-val">{ort.musteri || 0}</div></div>
             </div>
 
@@ -6097,7 +6154,7 @@ function SuperAdminPanel({ kullanici }) {
                       <th style={{ textAlign: "left", padding: "6px 10px", fontWeight: 600 }}>İşletme</th>
                       <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600 }}>Gelir</th>
                       <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600 }}>Randevu</th>
-                      <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600 }}>Aylık</th>
+                      <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600 }}>Son 30 gün</th>
                       <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600 }}>Müşteri</th>
                       <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600 }}>Hizmet</th>
                       <th style={{ textAlign: "center", padding: "6px 10px", fontWeight: 600 }}>Bot</th>
@@ -6112,7 +6169,7 @@ function SuperAdminPanel({ kullanici }) {
                           <td style={{ padding: "8px 10px", borderRadius: "8px 0 0 8px", fontWeight: 600, fontSize: 12, color: idx < 3 ? "#a8590c" : "var(--dim)" }}>{idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}</td>
                           <td style={{ padding: "8px 10px" }}>
                             <span onClick={() => isletmeDetayYukle(i.id)} style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", cursor: "pointer" }}>{i.isim}</span>
-                            <div style={{ fontSize: 10, color: "var(--dim)" }}>{i.kategori} · {i.paket} · {i.kayit_gun}g</div>
+                            <div style={{ fontSize: 10, color: "var(--dim)" }}>{etiket(i.kategori)} · {etiket(i.paket)} · {i.kayit_gun}g</div>
                           </td>
                           <td style={{ textAlign: "center", fontWeight: 600, fontSize: 13, color: i.toplam_gelir > ort.gelir ? "#1f6f4a" : "var(--text)", padding: "8px 10px" }}>₺{i.toplam_gelir.toLocaleString("tr-TR")}</td>
                           <td style={{ textAlign: "center", fontWeight: 600, fontSize: 13, color: "var(--text)", padding: "8px 10px" }}>{i.randevu_sayisi}</td>
@@ -6262,7 +6319,7 @@ function SuperAdminPanel({ kullanici }) {
                             <span style={{ color: "var(--text)" }}>{r.hizmet || "?"}</span>
                             <span style={{ color: "var(--dim)" }}>{r.calisan || ""}</span>
                             <div style={{ flex: 1 }} />
-                            <span style={{ padding: "1px 6px", borderRadius: 4, background: `${durumRenk[r.durum] || "#6f6a62"}12`, color: durumRenk[r.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{r.durum}</span>
+                            <span style={{ padding: "1px 6px", borderRadius: 4, background: `${durumRenk[r.durum] || "#6f6a62"}12`, color: durumRenk[r.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{etiket(r.durum)}</span>
                           </div>
                         );
                       })}
@@ -6292,7 +6349,7 @@ function SuperAdminPanel({ kullanici }) {
                   <label style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", marginBottom: 6, display: "block" }}>İşletme Seç</label>
                   <select value={qrIsletmeId} onChange={e => { setQrIsletmeId(e.target.value); setQrData(null); }} style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: 13 }}>
                     <option value="">— İşletme seçin —</option>
-                    {(isletmeler || []).map(i => <option key={i.id} value={i.id}>{i.isim} ({i.kategori})</option>)}
+                    {(isletmeler || []).map(i => <option key={i.id} value={i.id}>{i.isim} ({etiket(i.kategori)})</option>)}
                   </select>
                 </div>
 
@@ -6360,7 +6417,7 @@ function SuperAdminPanel({ kullanici }) {
 
             {/* Sistem Kartları */}
             <div className="stats-grid" style={{ marginBottom: 16 }}>
-              <div className="stat-card" style={{"--card-accent":"#1f6f4a"}}><div className="sc-icon">⏱️</div><div className="sc-label">Uptime</div><div className="sc-val" style={{ fontSize: 16 }}>{d.uptime || "—"}</div></div>
+              <div className="stat-card" style={{"--card-accent":"#1f6f4a"}}><div className="sc-icon">⏱️</div><div className="sc-label">Uygulama çalışma süresi</div><div className="sc-val" style={{ fontSize: 16 }}>{d.uptime || "—"}</div></div>
               <div className="stat-card blue"><div className="sc-icon">💾</div><div className="sc-label">DB Boyut</div><div className="sc-val" style={{ fontSize: 16 }}>{d.dbBoyut || "—"}</div></div>
               <div className="stat-card amber"><div className="sc-icon">🔗</div><div className="sc-label">Aktif Bağlantı</div><div className="sc-val">{d.aktiveBaglanti || 0}</div></div>
               <div className="stat-card" style={{"--card-accent":"#5d4bb5"}}><div className="sc-icon">🧠</div><div className="sc-label">Heap Kullanım</div><div className="sc-val" style={{ fontSize: 16 }}>{mem.heapUsed || 0}/{mem.heapTotal || 0} MB</div></div>
@@ -6429,7 +6486,7 @@ function SuperAdminPanel({ kullanici }) {
                       <div key={i} style={{ padding: "8px 12px", borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 8, height: 8, borderRadius: 4, background: renk, flexShrink: 0 }} />
                         <span style={{ fontWeight: 600, fontSize: 12, color: "var(--text)" }}>İşletme #{b.isletme_id}</span>
-                        <span style={{ padding: "1px 8px", borderRadius: 5, background: `${renk}12`, color: renk, fontSize: 10, fontWeight: 600 }}>{b.durum}</span>
+                        <span style={{ padding: "1px 8px", borderRadius: 5, background: `${renk}12`, color: renk, fontSize: 10, fontWeight: 600 }}>{etiket(b.durum)}</span>
                         <div style={{ flex: 1 }} />
                         <span style={{ fontSize: 10, color: "var(--dim)" }}>{b.son_aktivite ? new Date(b.son_aktivite).toLocaleString("tr-TR") : "—"}</span>
                       </div>
@@ -6582,9 +6639,9 @@ function SuperAdminPanel({ kullanici }) {
             <div style={{ marginTop: 16, background: "rgba(47,86,198,.04)", borderRadius: 12, padding: "14px 18px", border: "1px solid rgba(47,86,198,.1)" }}>
               <div style={{ fontWeight: 600, fontSize: 13, color: "#2f56c6", marginBottom: 6 }}>💡 Referans Nasıl Çalışır?</div>
               <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.8 }}>
-                <strong style={{ color: "var(--text)" }}>1.</strong> İşletmeye referans kodu oluşturursun (ör: REF-ABC123)<br/>
+                <strong style={{ color: "var(--text)" }}>1.</strong> İşletmenin davet kodu kendiliğinden oluşur (ör: SGZEK0ID)<br/>
                 <strong style={{ color: "var(--text)" }}>2.</strong> İşletme bu kodu tanıdığı esnafa paylaşır<br/>
-                <strong style={{ color: "var(--text)" }}>3.</strong> Yeni esnaf <strong style={{ color: "#1f6f4a" }}>satış botu üzerinden kayıt olurken referans kodunu girer</strong><br/>
+                <strong style={{ color: "var(--text)" }}>3.</strong> Yeni esnaf <strong style={{ color: "#1f6f4a" }}>web sitesinden ya da satış botundan kayıt olurken referans kodunu girer</strong><br/>
                 <strong style={{ color: "var(--text)" }}>4.</strong> Belirlediğin sayıda davet tamamlanınca → işletmeye otomatik bedava süre eklenir<br/>
                 <strong style={{ color: "var(--text)" }}>5.</strong> Süre ve min davet sayısını her referans için ayrı ayrı değiştirebilirsin<br/>
                 <div style={{ marginTop: 8, padding: "8px 12px", background: "rgba(168,89,12,.06)", borderRadius: 8, border: "1px solid rgba(168,89,12,.12)" }}>
@@ -6725,7 +6782,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div>
                               <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text)" }}>{a.isim}</div>
                               <div className="row gap-6" style={{ marginTop: 3 }}>
-                                <span className="tag-xs" style={{ background: `${kategoriR[a.kategori] || "#6f6a62"}15`, color: kategoriR[a.kategori] || "#6f6a62" }}>{a.kategori}</span>
+                                <span className="tag-xs" style={{ background: `${kategoriR[a.kategori] || "#6f6a62"}15`, color: kategoriR[a.kategori] || "#6f6a62" }}>{etiket(a.kategori)}</span>
                                 <span className="tag-xs" style={{ background: `${odemeR[a.odeme_durumu] || "#b42318"}15`, color: odemeR[a.odeme_durumu] || "#b42318" }}>
                                   {a.odeme_durumu === "odendi" ? "✓ Ödendi" : a.odeme_durumu === "havale_bekliyor" ? "🏦 Havale" : "✕ Ödenmedi"}
                                 </span>
@@ -7015,7 +7072,7 @@ function SuperAdminPanel({ kullanici }) {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="row row-wrap gap-8" style={{ alignItems: "center", marginBottom: 4 }}>
                           <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15 }}>{idx + 1}. {m.isletme_adi}</span>
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "var(--bg)", color: "var(--dim)", fontSize: 11, fontWeight: 600 }}>{m.kategori}</span>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "var(--bg)", color: "var(--dim)", fontSize: 11, fontWeight: 600 }}>{etiket(m.kategori)}</span>
                           {m.ilce && <span style={{ fontSize: 12, color: "var(--dim)" }}>📍 {m.ilce}</span>}
                         </div>
                         {/* Neden sıcak: skorun sebepleri */}
@@ -7203,7 +7260,7 @@ function SuperAdminPanel({ kullanici }) {
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, color: "var(--dim)", fontSize: 12, marginBottom: 4 }}>
                             {m.telefon && <span>📞 {m.telefon}</span>}
-                            {m.kategori && <span>🏷️ {m.kategori}</span>}
+                            {m.kategori && <span>🏷️ {etiket(m.kategori)}</span>}
                             {m.ilce && <span>📍 {m.ilce}</span>}
                             {!sosyal && !m.web_sitesi && <span style={{ color: "#1f6f4a" }}>🌐 Web yok</span>}
                             {!sosyal && m.google_maps_url && <a href={m.google_maps_url} target="_blank" rel="noreferrer" style={{ color: "#2f56c6", textDecoration: "none" }}>🗺️ Maps</a>}
@@ -7443,7 +7500,7 @@ function SuperAdminPanel({ kullanici }) {
                     <div style={cellStyle}>
                       <label style={labelStyle}>Günlük Limit</label>
                       <select value={ay.gunlukLimit} onChange={(e) => ayarGuncelle({ gunlukLimit: parseInt(e.target.value) })} style={selStyle}>
-                        {[5,10,15,20,30,40,50,75,100,150,200].map(s => <option key={s} value={s}>{s} mesaj</option>)}
+                        {[5,10,15,20,30,40,50].map(s => <option key={s} value={s}>{s} mesaj</option>)}
                       </select>
                     </div>
                     <div style={cellStyle}>
@@ -7522,7 +7579,7 @@ function SuperAdminPanel({ kullanici }) {
                           <div style={{ fontSize: 12, color: "var(--dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.gelen_mesajlar ? `💬 ${k.gelen_mesajlar.slice(0, 60)}...` : `📤 ${(k.gonderilen_mesaj || '').slice(0, 60)}...`}</div>
                         </div>
                         <div className="row gap-4" style={{ flexShrink: 0 }}>
-                          {k.kategori && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontSize: 10, fontWeight: 600 }}>{k.kategori}</span>}
+                          {k.kategori && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontSize: 10, fontWeight: 600 }}>{etiket(k.kategori)}</span>}
                           <a href={`https://wa.me/${k.telefon}`} target="_blank" rel="noreferrer" style={{ padding: "6px 12px", borderRadius: 8, background: "#25d366", color: "#fff", fontWeight: 600, fontSize: 11, textDecoration: "none", display: "flex", alignItems: "center", gap: 4, boxShadow: "none" }}>💬 WA</a>
                         </div>
                       </div>
@@ -7546,7 +7603,7 @@ function SuperAdminPanel({ kullanici }) {
                   {wpYokListe.map(m => (
                     <div key={m.id} className="row gap-12" style={{ padding: "10px 14px", borderRadius: 10, background: "var(--bg)", alignItems: "center" }}>
                       <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", flex: 1 }}>{m.isletme_adi}</span>
-                      <span style={{ fontSize: 11, color: "var(--dim)" }}>{m.kategori}</span>
+                      <span style={{ fontSize: 11, color: "var(--dim)" }}>{etiket(m.kategori)}</span>
                       <span style={{ fontSize: 11, color: "#a8590c", fontWeight: 600 }}>Skor: {m.skor}</span>
                       <a href={`tel:${m.telefon}`} style={{ padding: "6px 12px", borderRadius: 8, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontWeight: 600, fontSize: 12, textDecoration: "none" }}>📞 {m.telefon}</a>
                       <button onClick={async () => { await api.put(`/admin/avci/${m.id}`, { durum: "arandi" }); satisBotYukle(); }} style={{ padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontWeight: 600, fontSize: 11 }}>✅ Arandı</button>
@@ -7667,7 +7724,7 @@ function SuperAdminPanel({ kullanici }) {
                             {n.numara || '(henüz numara yok)'} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--dim)" }}>#{n.id}</span>
                           </div>
                           <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 3 }}>
-                            Durum: <strong style={{ color: n.durum === 'bagli' ? '#1f6f4a' : n.durum === 'qr_bekliyor' ? '#a8590c' : '#b42318' }}>{n.durum}</strong>
+                            Durum: <strong style={{ color: n.durum === 'bagli' ? '#1f6f4a' : n.durum === 'qr_bekliyor' ? '#a8590c' : '#b42318' }}>{etiket(n.durum)}</strong>
                             &nbsp;·&nbsp; Bugün: {n.gunluk_gonderim || 0} gönderim
                           </div>
                         </div>
@@ -7768,7 +7825,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div className="row gap-8" style={{ alignItems: "center" }}>
                               <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{s.isim}</span>
                               <span style={{ padding: "2px 8px", borderRadius: 6, background: s.aktif ? "rgba(31,111,74,.08)" : "rgba(180,35,24,.08)", color: s.aktif ? "#1f6f4a" : "#b42318", fontSize: 10, fontWeight: 600 }}>{s.aktif ? "● Aktif" : "● Pasif"}</span>
-                              <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 10, fontWeight: 600 }}>{s.kategori}</span>
+                              <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 10, fontWeight: 600 }}>{etiket(s.kategori)}</span>
                             </div>
                           </div>
                         </div>
@@ -7823,7 +7880,7 @@ function SuperAdminPanel({ kullanici }) {
                               <tr key={s.id} style={{ background: enIyi ? "rgba(31,111,74,.04)" : "var(--bg)", borderRadius: 10 }}>
                                 <td style={{ padding: "10px 12px", borderRadius: "10px 0 0 10px", fontWeight: 600, fontSize: 13, color: "var(--text)" }}>
                                   {enIyi && <span style={{ marginRight: 6 }}>🏆</span>}{s.isim}
-                                  <div style={{ fontSize: 10, color: "var(--dim)", fontWeight: 400 }}>{s.kategori}</div>
+                                  <div style={{ fontSize: 10, color: "var(--dim)", fontWeight: 400 }}>{etiket(s.kategori)}</div>
                                 </td>
                                 <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--text)", padding: "10px 12px" }}>{s.gonderilen}</td>
                                 <td style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: "var(--text)", padding: "10px 12px" }}>{s.cevap_gelen}</td>
@@ -7855,7 +7912,7 @@ function SuperAdminPanel({ kullanici }) {
                 <div className="row gap-6 mb-8" style={{ alignItems: "center" }}><span style={{ fontWeight: 600, fontSize: 14, color: "#a8590c" }}>Anti-Ban Koruması</span></div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--dim)" }}>
                   <span>• {satisBotDurum?.ayarlar?.minBekleme || 8}-{satisBotDurum?.ayarlar?.maxBekleme || 15} dk rastgele bekleme</span>
-                  <span>• Günlük max {satisBotDurum?.ayarlar?.gunlukLimit || 50} mesaj</span>
+                  <span>• Günlük max {Math.min(satisBotDurum?.ayarlar?.gunlukLimit || 50, 50)} mesaj (yeni numarada 10'dan başlar)</span>
                   <span>• Mesai: {satisBotDurum?.ayarlar?.mesaiBaslangic || 9}:00 — {satisBotDurum?.ayarlar?.mesaiBitis || 19}:00</span>
                   <span>• "Yazıyor..." simülasyonu</span>
                   <span>• Kısa, kişiye özel açılış mesajları</span>
@@ -7964,7 +8021,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div style={{ flex: 1 }}>
                               <div className="row gap-8" style={{ alignItems: "center", marginBottom: 6 }}>
                                 <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{k.isim}</span>
-                                <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 10, fontWeight: 600 }}>{k.kategori}</span>
+                                <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 10, fontWeight: 600 }}>{etiket(k.kategori)}</span>
                                 <span style={{ padding: "2px 8px", borderRadius: 6, background: k.aktif ? "rgba(31,111,74,.08)" : "rgba(180,35,24,.08)", color: k.aktif ? "#1f6f4a" : "#b42318", fontSize: 10, fontWeight: 600 }}>{k.aktif ? "Aktif" : "Pasif"}</span>
                                 <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontSize: 10, fontWeight: 600 }}>Öncelik: {k.oncelik}</span>
                               </div>
@@ -8046,7 +8103,7 @@ function SuperAdminPanel({ kullanici }) {
                           const kampanya = kampanyalar.find(k => k.kategori.toLowerCase() === d.kategori);
                           return (
                             <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
-                              <td style={{ padding: "10px 14px", fontWeight: 600, color: "var(--text)", textTransform: "capitalize" }}>{d.kategori}</td>
+                              <td style={{ padding: "10px 14px", fontWeight: 600, color: "var(--text)", textTransform: "capitalize" }}>{etiket(d.kategori)}</td>
                               <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#2f56c6" }}>{parseInt(d.toplam).toLocaleString()}</td>
                               <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#a8590c" }}>{parseInt(d.bekleyen).toLocaleString()}</td>
                               <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#5d4bb5" }}>{parseInt(d.gonderilen).toLocaleString()}</td>
@@ -8220,7 +8277,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div style={{ flex: 1 }}>
                               <div className="row gap-6" style={{ alignItems: "center" }}>
                                 <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{o.donem}</span>
-                                <span style={{ padding: "1px 8px", borderRadius: 6, background: `${durumRenk[o.durum] || "#6f6a62"}15`, color: durumRenk[o.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{o.durum}</span>
+                                <span style={{ padding: "1px 8px", borderRadius: 6, background: `${durumRenk[o.durum] || "#6f6a62"}15`, color: durumRenk[o.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{etiket(o.durum)}</span>
                               </div>
                             </div>
                             <span style={{ fontWeight: 600, fontSize: 15, color: "var(--text)" }}>{o.tutar}₺</span>
@@ -8287,7 +8344,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div style={{ width: 36, height: 36, borderRadius: 10, background: "#5d4bb5", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 14 }}>{(c.isim || "?")[0]}</div>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{c.isim}</div>
-                              <div style={{ fontSize: 11, color: "var(--dim)" }}>{c.uzmanlik || "—"}</div>
+                              <div style={{ fontSize: 11, color: "var(--dim)" }}>{etiket(c.uzmanlik) || "—"}</div>
                             </div>
                             <span style={{ padding: "2px 8px", borderRadius: 6, background: c.aktif !== false ? "rgba(31,111,74,.08)" : "rgba(180,35,24,.08)", color: c.aktif !== false ? "#1f6f4a" : "#b42318", fontSize: 10, fontWeight: 600 }}>{c.aktif !== false ? "Aktif" : "Pasif"}</span>
                           </div>
@@ -8305,7 +8362,7 @@ function SuperAdminPanel({ kullanici }) {
                           <div key={h.id} className="row gap-10" style={{ padding: "12px 14px", borderRadius: 10, background: "var(--bg)", alignItems: "center" }}>
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>{h.isim}</div>
-                              <div style={{ fontSize: 11, color: "var(--dim)" }}>{h.sure || "—"} dk</div>
+                              <div style={{ fontSize: 11, color: "var(--dim)" }}>{h.sure_dk || h.sure || "—"} dk</div>
                             </div>
                             <span style={{ fontWeight: 600, fontSize: 14, color: "#1f6f4a" }}>{h.fiyat || 0}₺</span>
                           </div>
@@ -8477,7 +8534,9 @@ export default function App() {
   if (sessionStorage.getItem("randevugo_imp_token")) {
     // Müşteri olarak giriş sekmesi: görünür uyarı + çıkış (oturum yalnız bu sekmede)
     return (<>
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10000, background: "#a8590c", color: "#000", padding: "6px 12px", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
+      {/* Şerit sabit: sayfa, yan menü ve telefon üst çubuğu şerit kadar aşağı insin (başlıkları örtüyordu) */}
+      <style>{"body{padding-top:34px} .sidebar,.mobile-topbar{top:34px !important} .sidebar{height:calc(100vh - 34px) !important}"}</style>
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 34, boxSizing: "border-box", zIndex: 10000, background: "#a8590c", color: "#000", padding: "6px 12px", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
         👤 Müşteri olarak görüntülüyorsunuz: {kullanici.isletme_isim || kullanici.email}{" "}
         <button onClick={() => { sessionStorage.removeItem("randevugo_imp_token"); window.close(); window.location.reload(); }} style={{ marginLeft: 8, padding: "2px 10px", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 600 }}>Çıkış</button>
       </div>

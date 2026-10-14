@@ -72,7 +72,7 @@ export default function SmsAyarlari({ api }) {
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={!!ayarlar.sms_aktif} onChange={e => setAyarlar({...ayarlar, sms_aktif: e.target.checked})}
+                  <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.sms_aktif} onChange={e => setAyarlar({...ayarlar, sms_aktif: e.target.checked})}
                     style={{ accentColor: '#1f6f4a', width: 20, height: 20 }} />
                   <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.sms_aktif ? '#1f6f4a' : 'var(--dim)' }}>
                     {ayarlar.sms_aktif ? 'Aktif' : 'Kapalı'}
@@ -107,7 +107,7 @@ export default function SmsAyarlari({ api }) {
               <div>
                 <label style={S.label}>Randevu Onay SMS</label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 8 }}>
-                  <input type="checkbox" checked={!!ayarlar.sms_onay_aktif} onChange={e => setAyarlar({...ayarlar, sms_onay_aktif: e.target.checked})}
+                  <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.sms_onay_aktif} onChange={e => setAyarlar({...ayarlar, sms_onay_aktif: e.target.checked})}
                     style={{ accentColor: '#1f6f4a', width: 16, height: 16 }} />
                   <span style={{ fontWeight: 600, fontSize: 13 }}>Randevu onaylandığında SMS gönder</span>
                 </label>

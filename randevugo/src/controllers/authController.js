@@ -98,6 +98,10 @@ class AuthController {
          VALUES ($1, $2, $3, 'admin', $4, true) RETURNING *`,
         [isletmeAdi, email, hashSifre, isletme.id]
       )).rows[0];
+      // Web kaydında Kullanım Şartları + KVKK onayı alındıysa tarihi saklanır
+      if (req.body.sartlar_onay === true) {
+        try { await pool.query('UPDATE admin_kullanicilar SET sartlar_onay_tarihi = NOW() WHERE id = $1', [kullanici.id]); } catch (e) { /* kolon yoksa */ }
+      }
 
       // Davet/referans kodu varsa yalnız bağla — ödül davet edilen ilk ödemesini yapınca (suistimal koruması)
       let referansMesaj = '';
@@ -168,7 +172,7 @@ class AuthController {
         // Kayıt, normal kaydın aynısı (davet, kanal, bildirim); şifre rastgele — istenirse "Şifremi unuttum" ile belirlenir
         let sonuc = null;
         await this.botKayit({ body: { isletmeAdi, email, sifre: require('crypto').randomBytes(24).toString('hex'),
-          kayitKanal: req.body.kayitKanal, davet: req.body.davet } },
+          kayitKanal: req.body.kayitKanal, davet: req.body.davet, sartlar_onay: req.body.sartlar_onay === true } },
           { status: () => ({ json: (d) => { sonuc = d; } }), json: (d) => { sonuc = d; } });
         if (!sonuc?.basarili) return res.status(400).json({ hata: sonuc?.hata || 'Kayıt yapılamadı' });
         kullanici = await kullaniciBul(email);

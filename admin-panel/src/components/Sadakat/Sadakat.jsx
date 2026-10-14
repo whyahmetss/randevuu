@@ -134,7 +134,7 @@ export default function Sadakat({ api }) {
               </div>
               <div style={{ marginLeft: 'auto' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={!!ayarlar.sadakat_aktif} onChange={e => setAyarlar({...ayarlar, sadakat_aktif: e.target.checked})}
+                  <input type="checkbox" className="anahtar" role="switch" checked={!!ayarlar.sadakat_aktif} onChange={e => setAyarlar({...ayarlar, sadakat_aktif: e.target.checked})}
                     style={{ accentColor: '#a8590c', width: 20, height: 20 }} />
                   <span style={{ fontWeight: 600, fontSize: 14, color: ayarlar.sadakat_aktif ? '#a8590c' : 'var(--dim)' }}>
                     {ayarlar.sadakat_aktif ? 'Aktif' : 'Kapalı'}
@@ -171,7 +171,7 @@ export default function Sadakat({ api }) {
           </div>
           <button onClick={kaydet} style={{
             width: '100%', padding: '14px', borderRadius: 14, border: 'none',
-            background: '#a8590c',
+            background: '#1f6f4a',
             color: '#fff', fontWeight: 600, fontSize: 15, cursor: 'pointer',
             boxShadow: '0 4px 16px rgba(168,89,12,.3)', fontFamily: 'inherit',
           }}>Kaydet</button>
