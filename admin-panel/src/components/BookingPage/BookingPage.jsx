@@ -119,6 +119,7 @@ export default function BookingPage({ slug }) {
   const [tgStartLink, setTgStartLink] = useState('');
 
   const [honeypot, setHoneypot] = useState(''); // bot tuzağı — gerçek kullanıcı boş bırakır
+  const [buyukFoto, setBuyukFoto] = useState(null); // galeri: açık fotoğrafın sırası
   const [emailConfirm, setEmailConfirm] = useState(''); // ikinci tuzak
   const [formBaslangic] = useState(Date.now()); // form açıldığı zaman (bot tespiti)
   // Basit browser fingerprint (deterministic)
@@ -562,6 +563,21 @@ export default function BookingPage({ slug }) {
   const gorselV = isletme?.sayfa_guncelleme ? new Date(isletme.sayfa_guncelleme).getTime() : 0;
   const gorsel = (tur) => `${API_URL}/book/${slug}/gorsel/${tur}?v=${gorselV}`;
   const temaSinif = isletme?.sayfa_tema && isletme.sayfa_tema !== 'sade' ? ` tema-${isletme.sayfa_tema}` : '';
+  // Mini site (2026-10-14): esnaf doldurduysa galeri, ekip, hakkımızda ve konum bölümleri; randevu akışı en üstte kalır
+  const galeri = isletme?.galeri || [];
+  const ekip = (isletme?.ekip || []).filter(c => c.foto_v || c.uzmanlik);
+  const instagram = isletme?.sayfa_instagram || '';
+  const adresMetni = [isletme?.adres, isletme?.ilce].filter(Boolean).join(', ');
+  const siteGoster = adim === 1;
+  const bolumler = siteGoster ? [
+    galeri.length > 0 && ['bk-galeri', t('siteGallery')],
+    ekip.length > 0 && ['bk-ekip', t('siteTeam')],
+    isletme?.sayfa_hakkimizda && ['bk-hakkimizda', t('siteAbout')],
+    (adresMetni || instagram) && ['bk-iletisim', t('siteContact')],
+  ].filter(Boolean) : [];
+  const bolumeGit = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const kapaliGunAdlari = String(isletme?.kapali_gunler || '').split(',').filter(Boolean).map(Number)
+    .map(g => new Date(2024, 0, 7 + g).toLocaleDateString(locale, { weekday: 'long' }));
 
   return (
     <div className={`bk-page${temaSinif}`} style={vurguStili(isletme?.sayfa_vurgu)} dir={rtl ? 'rtl' : 'ltr'} lang={dil}>
@@ -602,9 +618,17 @@ export default function BookingPage({ slug }) {
           {isletme?.sayfa_tanitim && <p className="bk-tanitim">{isletme.sayfa_tanitim}</p>}
         </div>
 
+        {/* ═══ BÖLÜM MENÜSÜ (mini site) ═══ */}
+        {bolumler.length > 0 && (
+          <nav className="bk-bolum-nav" aria-label={t('siteContact')}>
+            <button onClick={() => bolumeGit('bk-hizmetler')}>{t('siteServices')}</button>
+            {bolumler.map(([id, ad]) => <button key={id} onClick={() => bolumeGit(id)}>{ad}</button>)}
+          </nav>
+        )}
+
         {/* ═══ STEPPER ═══ */}
         {adim < 7 && (
-          <div className="bk-stepper">
+          <div className="bk-stepper" id="bk-hizmetler">
             {stepLabels.map((label, i) => (
               <Fragment key={i}>
                 <div
@@ -684,6 +708,92 @@ export default function BookingPage({ slug }) {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ═══ MİNİ SİTE: GALERİ ═══ */}
+        {siteGoster && galeri.length > 0 && (
+          <section className="bk-site-bolum" id="bk-galeri">
+            <h2 className="bk-site-baslik">{t('siteGallery')}</h2>
+            <div className="bk-galeri">
+              {galeri.map((g, i) => (
+                <button key={g.id} className="bk-galeri-oge" onClick={() => setBuyukFoto(i)} aria-label={g.aciklama || `${t('siteGallery')} ${i + 1}`}>
+                  <img src={`${API_URL}/book/${slug}/galeri/${g.id}`} alt={g.aciklama || ''} loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ═══ MİNİ SİTE: EKİP ═══ */}
+        {siteGoster && ekip.length > 0 && (
+          <section className="bk-site-bolum" id="bk-ekip">
+            <h2 className="bk-site-baslik">{t('siteTeam')}</h2>
+            <div className="bk-ekip">
+              {ekip.map(c => (
+                <div key={c.id} className="bk-ekip-kart">
+                  <div className="bk-ekip-foto">{c.foto_v
+                    ? <img src={`${API_URL}/book/${slug}/ekip/${c.id}/foto?v=${c.foto_v}`} alt={c.isim} loading="lazy" />
+                    : (c.isim || '?').trim().charAt(0).toLocaleUpperCase('tr')}</div>
+                  <div className="bk-ekip-isim">{c.isim}</div>
+                  {c.uzmanlik && <div className="bk-ekip-uzmanlik">{c.uzmanlik}</div>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ═══ MİNİ SİTE: HAKKIMIZDA ═══ */}
+        {siteGoster && isletme?.sayfa_hakkimizda && (
+          <section className="bk-site-bolum bk-card" id="bk-hakkimizda">
+            <h2 className="bk-site-baslik">{t('siteAbout')}</h2>
+            <p className="bk-hakkimizda">{isletme.sayfa_hakkimizda}</p>
+          </section>
+        )}
+
+        {/* ═══ MİNİ SİTE: KONUM VE İLETİŞİM ═══ */}
+        {siteGoster && (adresMetni || instagram) && (
+          <section className="bk-site-bolum bk-card" id="bk-iletisim">
+            <h2 className="bk-site-baslik">{t('siteContactTitle')}</h2>
+            {adresMetni && (
+              <div className="bk-iletisim-satir">
+                <I.MapPin size={16} />
+                <div style={{ flex: 1 }}>
+                  <div>{adresMetni}</div>
+                  <a className="bk-iletisim-link" target="_blank" rel="noopener"
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([isletme.isim, adresMetni].join(' '))}`}>{t('siteDirections')} ↗</a>
+                </div>
+              </div>
+            )}
+            <div className="bk-iletisim-satir">
+              <I.Clock size={16} />
+              <div style={{ flex: 1 }}>
+                <div>{t('siteHours')}: {(isletme?.calisma_baslangic || '09:00').slice(0, 5)} — {(isletme?.calisma_bitis || '19:00').slice(0, 5)}</div>
+                {kapaliGunAdlari.length > 0 && <div className="bk-iletisim-alt">{t('siteClosed')}: {kapaliGunAdlari.join(', ')}</div>}
+              </div>
+            </div>
+            {instagram && (
+              <div className="bk-iletisim-satir">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+                <a className="bk-iletisim-link" style={{ marginTop: 0 }} href={`https://www.instagram.com/${instagram}/`} target="_blank" rel="noopener">@{instagram} · {t('siteInstagram')}</a>
+              </div>
+            )}
+            <button className="bk-btn" style={{ marginTop: 14 }} onClick={() => bolumeGit('bk-hizmetler')}>{t('siteBook')}</button>
+          </section>
+        )}
+
+        {/* ═══ GALERİ: büyük fotoğraf ═══ */}
+        {buyukFoto !== null && galeri[buyukFoto] && (
+          <div className="bk-isik" role="dialog" aria-modal="true" onClick={() => setBuyukFoto(null)}
+            onKeyDown={e => { if (e.key === 'Escape') setBuyukFoto(null); if (e.key === 'ArrowRight') setBuyukFoto((buyukFoto + 1) % galeri.length); if (e.key === 'ArrowLeft') setBuyukFoto((buyukFoto - 1 + galeri.length) % galeri.length); }}
+            tabIndex={-1} ref={el => el?.focus()}>
+            <img src={`${API_URL}/book/${slug}/galeri/${galeri[buyukFoto].id}`} alt={galeri[buyukFoto].aciklama || ''} onClick={e => e.stopPropagation()} />
+            {galeri[buyukFoto].aciklama && <div className="bk-isik-aciklama">{galeri[buyukFoto].aciklama}</div>}
+            {galeri.length > 1 && <>
+              <button className="bk-isik-ok sol" aria-label="‹" onClick={e => { e.stopPropagation(); setBuyukFoto((buyukFoto - 1 + galeri.length) % galeri.length); }}>‹</button>
+              <button className="bk-isik-ok sag" aria-label="›" onClick={e => { e.stopPropagation(); setBuyukFoto((buyukFoto + 1) % galeri.length); }}>›</button>
+            </>}
+            <button className="bk-isik-kapat" onClick={() => setBuyukFoto(null)}>{t('siteCloseBtn')} ✕</button>
           </div>
         )}
 

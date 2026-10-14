@@ -21,6 +21,8 @@ export const DILLER = [
 
 export const TRANSLATIONS = {
   tr: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Hizmetler', siteGallery: 'Galeri', siteTeam: 'Ekibimiz', siteAbout: 'Hakkımızda', siteContact: 'İletişim', siteContactTitle: 'Konum ve iletişim', siteDirections: 'Yol tarifi al', siteInstagram: "Instagram'da takip edin", siteHours: 'Çalışma saatleri', siteClosed: 'Kapalı', siteCloseBtn: 'Kapat', siteBook: 'Randevu al',
     open: 'Şu an açık', closed: 'Şu an kapalı', closedToday: 'Bugün kapalı', opensLabel: 'açılış', acilisBugun: 'bugün', acilisYarin: 'yarın', onlineOpen: 'Online randevu açık', slotTaken: 'Seçtiğiniz saat az önce doldu, lütfen başka bir saat seçin.',
     stepService: 'Hizmet', stepStaff: 'Personel', stepDate: 'Tarih', stepConfirm: 'Onay',
     selectService: 'Hizmet Seçin', selectStaff: 'Personel Seçin',
@@ -66,6 +68,8 @@ export const TRANSLATIONS = {
     locale: 'tr-TR',
   },
   en: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Services', siteGallery: 'Gallery', siteTeam: 'Our team', siteAbout: 'About us', siteContact: 'Contact', siteContactTitle: 'Location & contact', siteDirections: 'Get directions', siteInstagram: 'Follow us on Instagram', siteHours: 'Opening hours', siteClosed: 'Closed', siteCloseBtn: 'Close', siteBook: 'Book now',
     open: 'Open now', closed: 'Closed now', closedToday: 'Closed today', opensLabel: 'opens', acilisBugun: 'today', acilisYarin: 'tomorrow', onlineOpen: 'Online booking open', slotTaken: 'The time you picked was just booked. Please choose another time.',
     stepService: 'Service', stepStaff: 'Staff', stepDate: 'Date', stepConfirm: 'Confirm',
     selectService: 'Select Service', selectStaff: 'Select Staff',
@@ -111,6 +115,8 @@ export const TRANSLATIONS = {
     locale: 'en-US',
   },
   ru: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Услуги', siteGallery: 'Галерея', siteTeam: 'Наша команда', siteAbout: 'О нас', siteContact: 'Контакты', siteContactTitle: 'Адрес и контакты', siteDirections: 'Проложить маршрут', siteInstagram: 'Мы в Instagram', siteHours: 'Часы работы', siteClosed: 'Выходной', siteCloseBtn: 'Закрыть', siteBook: 'Записаться',
     open: 'Сейчас открыто', closed: 'Сейчас закрыто', closedToday: 'Сегодня закрыто', opensLabel: 'открытие', acilisBugun: 'сегодня', acilisYarin: 'завтра', onlineOpen: 'Онлайн-запись открыта', slotTaken: 'Выбранное время только что заняли. Выберите другое время.',
     stepService: 'Услуга', stepStaff: 'Мастер', stepDate: 'Дата', stepConfirm: 'Подтвердить',
     selectService: 'Выберите услугу', selectStaff: 'Выберите мастера',
@@ -145,6 +151,8 @@ export const TRANSLATIONS = {
     locale: 'ru-RU',
   },
   de: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Leistungen', siteGallery: 'Galerie', siteTeam: 'Unser Team', siteAbout: 'Über uns', siteContact: 'Kontakt', siteContactTitle: 'Standort & Kontakt', siteDirections: 'Route planen', siteInstagram: 'Folgen Sie uns auf Instagram', siteHours: 'Öffnungszeiten', siteClosed: 'Geschlossen', siteCloseBtn: 'Schließen', siteBook: 'Termin buchen',
     open: 'Jetzt geöffnet', closed: 'Jetzt geschlossen', closedToday: 'Heute geschlossen', opensLabel: 'öffnet', acilisBugun: 'heute', acilisYarin: 'morgen', onlineOpen: 'Online-Buchung offen', slotTaken: 'Die gewählte Uhrzeit wurde gerade gebucht. Bitte wählen Sie eine andere.',
     stepService: 'Service', stepStaff: 'Personal', stepDate: 'Datum', stepConfirm: 'Bestätigen',
     selectService: 'Service wählen', selectStaff: 'Personal wählen',
@@ -179,6 +187,8 @@ export const TRANSLATIONS = {
     locale: 'de-DE',
   },
   ar: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'الخدمات', siteGallery: 'المعرض', siteTeam: 'فريقنا', siteAbout: 'من نحن', siteContact: 'التواصل', siteContactTitle: 'الموقع والتواصل', siteDirections: 'احصل على الاتجاهات', siteInstagram: 'تابعونا على إنستغرام', siteHours: 'ساعات العمل', siteClosed: 'مغلق', siteCloseBtn: 'إغلاق', siteBook: 'احجز الآن',
     open: 'مفتوح الآن', closed: 'مغلق الآن', closedToday: 'مغلق اليوم', opensLabel: 'يفتح', acilisBugun: 'اليوم', acilisYarin: 'غدًا', onlineOpen: 'الحجز عبر الإنترنت متاح', slotTaken: 'تم حجز الوقت الذي اخترته للتو، يرجى اختيار وقت آخر.',
     stepService: 'الخدمة', stepStaff: 'الموظف', stepDate: 'التاريخ', stepConfirm: 'التأكيد',
     selectService: 'اختر الخدمة', selectStaff: 'اختر الموظف',
@@ -224,6 +234,8 @@ export const TRANSLATIONS = {
     locale: 'ar-SA',
   },
   fr: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Services', siteGallery: 'Galerie', siteTeam: 'Notre équipe', siteAbout: 'À propos', siteContact: 'Contact', siteContactTitle: 'Adresse et contact', siteDirections: 'Itinéraire', siteInstagram: 'Suivez-nous sur Instagram', siteHours: 'Horaires', siteClosed: 'Fermé', siteCloseBtn: 'Fermer', siteBook: 'Réserver',
     open: 'Ouvert maintenant', closed: 'Fermé maintenant', closedToday: "Fermé aujourd'hui",
     stepService: 'Service', stepStaff: 'Personnel', stepDate: 'Date', stepConfirm: 'Confirmer',
     selectService: 'Choisir un service', selectStaff: 'Choisir le personnel',
@@ -258,6 +270,8 @@ export const TRANSLATIONS = {
     locale: 'fr-FR',
   },
   uk: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Послуги', siteGallery: 'Галерея', siteTeam: 'Наша команда', siteAbout: 'Про нас', siteContact: 'Контакти', siteContactTitle: 'Адреса та контакти', siteDirections: 'Прокласти маршрут', siteInstagram: 'Ми в Instagram', siteHours: 'Години роботи', siteClosed: 'Вихідний', siteCloseBtn: 'Закрити', siteBook: 'Записатися',
     open: 'Зараз відкрито', closed: 'Зараз зачинено', closedToday: 'Сьогодні зачинено',
     stepService: 'Послуга', stepStaff: 'Майстер', stepDate: 'Дата', stepConfirm: 'Підтвердити',
     selectService: 'Оберіть послугу', selectStaff: 'Оберіть майстра',
@@ -292,6 +306,8 @@ export const TRANSLATIONS = {
     locale: 'uk-UA',
   },
   fa: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'خدمات', siteGallery: 'گالری', siteTeam: 'تیم ما', siteAbout: 'درباره ما', siteContact: 'تماس', siteContactTitle: 'موقعیت و تماس', siteDirections: 'مسیریابی', siteInstagram: 'ما را در اینستاگرام دنبال کنید', siteHours: 'ساعات کاری', siteClosed: 'تعطیل', siteCloseBtn: 'بستن', siteBook: 'رزرو کنید',
     open: 'اکنون باز است', closed: 'اکنون بسته است', closedToday: 'امروز تعطیل',
     stepService: 'خدمت', stepStaff: 'کارمند', stepDate: 'تاریخ', stepConfirm: 'تأیید',
     selectService: 'خدمت را انتخاب کنید', selectStaff: 'کارمند را انتخاب کنید',
@@ -326,6 +342,8 @@ export const TRANSLATIONS = {
     locale: 'fa-IR',
   },
   es: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Servicios', siteGallery: 'Galería', siteTeam: 'Nuestro equipo', siteAbout: 'Sobre nosotros', siteContact: 'Contacto', siteContactTitle: 'Ubicación y contacto', siteDirections: 'Cómo llegar', siteInstagram: 'Síguenos en Instagram', siteHours: 'Horario', siteClosed: 'Cerrado', siteCloseBtn: 'Cerrar', siteBook: 'Reservar',
     open: 'Abierto ahora', closed: 'Cerrado ahora', closedToday: 'Cerrado hoy',
     stepService: 'Servicio', stepStaff: 'Personal', stepDate: 'Fecha', stepConfirm: 'Confirmar',
     selectService: 'Elegir servicio', selectStaff: 'Elegir personal',
@@ -360,6 +378,8 @@ export const TRANSLATIONS = {
     locale: 'es-ES',
   },
   nl: {
+    // Mini site bölümleri (2026-10-14)
+    siteServices: 'Diensten', siteGallery: 'Galerij', siteTeam: 'Ons team', siteAbout: 'Over ons', siteContact: 'Contact', siteContactTitle: 'Locatie & contact', siteDirections: 'Route plannen', siteInstagram: 'Volg ons op Instagram', siteHours: 'Openingstijden', siteClosed: 'Gesloten', siteCloseBtn: 'Sluiten', siteBook: 'Afspraak maken',
     open: 'Nu geopend', closed: 'Nu gesloten', closedToday: 'Vandaag gesloten',
     stepService: 'Service', stepStaff: 'Personeel', stepDate: 'Datum', stepConfirm: 'Bevestigen',
     selectService: 'Kies service', selectStaff: 'Kies personeel',
