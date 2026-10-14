@@ -797,6 +797,9 @@ select.input { appearance: none; }
   .main-wrap > .top-bar > div:first-child { min-width: 0; flex: 1 1 auto; }
   .main-wrap > .top-bar h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .main-wrap > .top-bar .top-bar-right { flex: 0 0 auto; flex-wrap: nowrap !important; }
+  /* Bildirim paneli telefonda zilin sağına hizalanınca ekranın soluna taşıyordu (2026-10-15): ekran genişliğinde, başlığın altında */
+  .bildirim-popover { position: fixed !important; top: calc(env(safe-area-inset-top) + 76px) !important; left: 12px !important; right: 12px !important;
+    width: auto !important; max-height: 70vh !important; overflow-y: auto !important; }
   /* Telefonda yalnız başlık + zil + işletme: canlı rozeti ve ekip avatarları gizli (başlıkla çakışıyordu) */
   .main-wrap > .top-bar .ust-canli, .main-wrap > .top-bar .ust-ekip { display: none !important; }
   /* Takvim aksiyonları parmakla basılabilir (en az 44px) */
