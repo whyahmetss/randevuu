@@ -8,8 +8,9 @@ const HAZIR = {
   guzellik: [['Manikür', 45], ['Pedikür', 60], ['Kaş tasarım', 20], ['Cilt bakımı', 60], ['Ağda', 30]],
   disci: [['Muayene', 30], ['Diş taşı temizliği', 45], ['Dolgu', 60]],
   veteriner: [['Muayene', 30], ['Aşı', 15], ['Tıraş ve bakım', 60]],
-  genel: [['Randevu', 30], ['Uzun randevu', 60]],
 };
+// Kayıtta kategori 'genel' gelir: hazır hizmetlerden önce dükkân türü sorulur (2026-10-14: "Randevu / Uzun randevu" anlamsızdı)
+const TURLER = [['berber', 'Berber'], ['kuafor', 'Kuaför'], ['guzellik', 'Güzellik salonu'], ['disci', 'Diş kliniği'], ['veteriner', 'Veteriner'], ['diger', 'Diğer']];
 const GUNLER = [[1, 'Pzt'], [2, 'Sal'], [3, 'Çar'], [4, 'Per'], [5, 'Cum'], [6, 'Cmt'], [0, 'Paz']];
 const SAATLER = Array.from({ length: 33 }, (_, i) => { const dk = 6 * 60 + i * 30; return `${String(Math.floor(dk / 60)).padStart(2, '0')}:${String(dk % 60).padStart(2, '0')}`; });
 
@@ -28,6 +29,8 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
   const [onay, setOnay] = useState('manuel');
   const [bekle, setBekle] = useState(false);
   const [hata, setHata] = useState(null);
+  const [tur, setTur] = useState(null);                 // seçilen dükkân türü (kategori)
+  const [calisanSinir, setCalisanSinir] = useState(null);
 
   useEffect(() => {
     try { if (localStorage.getItem(anahtar)) return; } catch { /* yok say */ }
@@ -37,6 +40,7 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
     }).catch(() => {});
     api.get('/hizmetler').then(d => setMevcutHz(d?.hizmetler || [])).catch(() => {});
     api.get('/calisanlar').then(d => setMevcutCal(d?.calisanlar || [])).catch(() => {});
+    api.get('/paket').then(d => { const n = d?.paket_bilgi?.calisan_limit; if (n && n < 999) setCalisanSinir(n); }).catch(() => {});
   }, []);
   useEffect(() => {
     if (ayarlar?.calisma_baslangic) setBas(String(ayarlar.calisma_baslangic).slice(0, 5));
@@ -47,7 +51,10 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
 
   if (!goster) return null;
   const bitir = () => { try { localStorage.setItem(anahtar, '1'); } catch { /* yok say */ } setGoster(false); ayarlariYenile?.(); };
-  const hazir = HAZIR[ayarlar?.kategori] || HAZIR.genel;
+  const kat = tur || (HAZIR[ayarlar?.kategori] ? ayarlar.kategori : null);
+  const hazir = HAZIR[kat] || [];
+  const turSec = (k) => { setTur(k); setSecili({}); if (k !== 'diger') api.put('/ayarlar', { kategori: k }).catch(() => {}); };
+  const calisanYer = calisanSinir ? Math.max(0, calisanSinir - mevcutCal.length) : null;   // pakette kalan yer
   const sec = (isim, sure) => setSecili(s => { const y = { ...s }; if (y[isim]) delete y[isim]; else y[isim] = { sure, fiyat: '' }; return y; });
 
   const kaydetVeIlerle = async () => {
@@ -59,6 +66,7 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
           if (varOlan.has(isim.toLocaleLowerCase('tr'))) continue;
           const r = await api.post('/hizmetler', { isim, sure_dk: v.sure, fiyat: Number(v.fiyat) || 0 });
           if (r?.hata) throw new Error(r.hata);
+          setMevcutHz(l => [...l, r.hizmet || { isim }]);   // geri gelip Devam'a basınca iki kez eklenmesin
         }
         if (!Object.keys(secili).length && !mevcutHz.length) throw new Error('En az bir hizmet seçin');
       }
@@ -70,7 +78,14 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
         const varOlan = new Set(mevcutCal.map(c => c.isim.toLocaleLowerCase('tr')));
         const yeni = calisanlar.map(x => x.trim()).filter(Boolean).filter(x => !varOlan.has(x.toLocaleLowerCase('tr')));
         if (!yeni.length && !mevcutCal.length) throw new Error('En az bir kişi yazın (kendiniz de olabilirsiniz)');
-        for (const isim of yeni) { const r = await api.post('/calisanlar', { isim }); if (r?.hata) throw new Error(r.hata); }
+        if (calisanYer !== null && yeni.length > calisanYer) throw new Error(`Paketinde en fazla ${calisanSinir} kişi olabilir. Fazla satırları sil (✕); sonra paketini yükseltip ekleyebilirsin.`);
+        for (const isim of yeni) {
+          const r = await api.post('/calisanlar', { isim });
+          if (r?.hata) throw new Error(r.hata);
+          // Kaydedilen kişi listeye girer; "Devam"a tekrar basılınca bir daha eklenmeye çalışılmaz
+          setMevcutCal(l => [...l, r.calisan || r]);
+          setCalisanlar(l => l.filter(x => x.trim().toLocaleLowerCase('tr') !== isim.toLocaleLowerCase('tr')));
+        }
       }
       if (adim === 3) {
         await api.put('/ayarlar', { randevu_onay_modu: onay });
@@ -98,7 +113,10 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
 
         {adim === 0 && (
           <>
-            <div style={{ fontSize: 16, color: 'var(--dim)', marginTop: -6 }}>Dokunarak seç, fiyatını yaz. Sonra değiştirebilirsin.</div>
+            <div style={{ fontSize: 16, color: 'var(--dim)', marginTop: -6 }}>{kat ? 'Dokunarak seç, fiyatını yaz. Sonra değiştirebilirsin.' : 'Önce dükkânının türünü seç, hazır hizmetleri getirelim.'}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {TURLER.map(([k, ad]) => <button key={k} onClick={() => turSec(k)} style={{ ...buton((tur || ayarlar?.kategori) === k), minHeight: 44, fontSize: 15 }}>{ad}</button>)}
+            </div>
             {mevcutHz.length > 0 && <div style={{ fontSize: 14, color: '#1f6f4a', fontWeight: 600 }}>Zaten ekli: {mevcutHz.map(h => h.isim).join(', ')}</div>}
             {[...hazir, ...Object.keys(secili).filter(k => !hazir.some(([h]) => h === k)).map(k => [k, secili[k].sure])].map(([isim, sure]) => (
               <div key={isim} style={{ ...buton(!!secili[isim]), display: 'flex', alignItems: 'center', gap: 12, padding: '6px 14px' }}>
@@ -140,10 +158,18 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
           <>
             <div style={{ fontSize: 16, color: 'var(--dim)', marginTop: -6 }}>Müşteri randevu alırken kimi seçeceğini görür. Tek başınaysan sadece kendi adın yeter.</div>
             {mevcutCal.length > 0 && <div style={{ fontSize: 14, color: '#1f6f4a', fontWeight: 600 }}>Zaten ekli: {mevcutCal.map(c => c.isim).join(', ')}</div>}
+            {calisanSinir && <div style={{ fontSize: 14, color: 'var(--dim)' }}>Paketinde en fazla <b>{calisanSinir} kişi</b> olabilir{calisanYer !== null ? ` · ${calisanYer} yer kaldı` : ''}.</div>}
             {calisanlar.map((c, i) => (
-              <input key={i} value={c} onChange={e => setCalisanlar(l => l.map((x, j) => (j === i ? e.target.value : x)))} placeholder={i === 0 ? 'Adın' : 'Çalışanın adı'} className="input" style={{ height: 56, fontSize: 18, borderRadius: 12 }} />
+              <div key={i} style={{ display: 'flex', gap: 8 }}>
+                <input value={c} onChange={e => setCalisanlar(l => l.map((x, j) => (j === i ? e.target.value : x)))} placeholder={i === 0 && !mevcutCal.length ? 'Adın' : 'Çalışanın adı'} className="input" style={{ flex: 1, height: 56, fontSize: 18, borderRadius: 12 }} />
+                {(calisanlar.length > 1 || mevcutCal.length > 0) && (
+                  <button onClick={() => { setCalisanlar(l => l.filter((_, j) => j !== i)); setHata(null); }} aria-label="Bu satırı sil" style={{ ...buton(false), width: 56, padding: 0, fontSize: 18 }}>✕</button>
+                )}
+              </div>
             ))}
-            <button onClick={() => setCalisanlar(l => [...l, ''])} style={buton(false)}>＋ Bir kişi daha</button>
+            {(calisanYer === null || calisanlar.filter(x => x.trim()).length < calisanYer) && (
+              <button onClick={() => setCalisanlar(l => [...l, ''])} style={buton(false)}>＋ Bir kişi daha</button>
+            )}
           </>
         )}
 
