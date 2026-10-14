@@ -789,7 +789,12 @@ select.input { appearance: none; }
   .alt-sekmeler button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: none; background: none;
     color: var(--dim); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-height: 56px; }
   .alt-sekmeler button.aktif { color: #1f6f4a; font-weight: 800; }
-  .main-wrap { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  /* Üstteki sabit "SıraGO" çubuğu (56px) içeriği örtmesin (2026-10-14: "Bugün" başlığı ve tarih altında kalıyordu) */
+  .main-wrap { padding-top: 56px; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  /* Başlık solda, durum/ekip/zil sağda tek satır; sığmazsa sağ taraf kendi içinde kayar */
+  .main-wrap > .top-bar { flex-direction: row !important; align-items: center !important; gap: 10px !important; flex-wrap: nowrap !important; }
+  .main-wrap > .top-bar > div:first-child { min-width: 0; flex-shrink: 1; }
+  .main-wrap > .top-bar .top-bar-right { flex-wrap: nowrap !important; min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .mobile-topbar .hamburger-btn { display: none; }
 }
 .top-bar { padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); box-shadow: 0 1px 3px rgba(22,5,39,.03); }
