@@ -142,3 +142,43 @@ test('sohbet: yapay zekâ anlamayı tamamlar ("haftaya salı akşamüstü"), men
   const isletme = (await db.query('SELECT * FROM isletmeler WHERE id = 1')).rows[0];
   assert.equal(await sohbet.isle({ wa: {}, metin: 'yarın 3te', botDurum: { asama: 'ana_menu' }, isletme, hizmetler: [{ id: 1, isim: 'x' }], musteriTelefon: '9', isletmeId: 1 }), null);
 });
+
+test('çakışma: aynı saati iki müşteri ister — ilk onaylayan alır, ötekine boş saatler; gün dolduysa bekleme listesi', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  const { gunSonraTarih } = require(path.join(SRC, 'utils', 'tarih'));
+  const yarin = gunSonraTarih(1);
+  const wa = require(path.join(SRC, 'services', 'whatsappWeb'));
+  // mesajIsle'deki gibi: saat kaçtıysa müşteriye cevapsız kalınmaz
+  const konus = async (tel) => { const yaz = await konusma(db, tel); return async (m) => { try { return await yaz(m); } catch (e) {
+    if (e.code !== 'SLOT_DOLU') throw e; const isletme = (await db.query('SELECT * FROM isletmeler WHERE id = 1')).rows[0];
+    return (await wa._saatKacti(isletme, tel, 1)).metin; } }; };
+  const ayse = await konus('905550000001');
+  const can = await konus('905550000002');
+  assert.match(await ayse('yarın 15:00 saç kesimi'), /oluşturayım mı/);
+  assert.match(await can('yarın 15:00 saç kesimi'), /oluşturayım mı/, 'ikisine de aynı saat önerildi (henüz kimse onaylamadı)');
+  assert.match(await can('evet'), /15:00/, 'önce onaylayan alır');
+  const kacti = await ayse('evet');
+  assert.match(kacti, /az önce başka bir müşteri aldı[\s\S]*boş saatler: [\s\S]*Size hangisi uygun/, kacti);
+  assert.match(await ayse('16:00'), /oluşturayım mı/);
+  assert.match(await ayse('evet'), /16:00/);
+  const n = (await db.query(`SELECT COUNT(*)::int AS n FROM randevular WHERE tarih = $1 AND saat = '15:00'`, [yarin])).rows[0].n;
+  assert.equal(n, 1, 'aynı saate tek randevu');
+
+  // Ustası olmayan dükkân: veritabanı kontrolü ikinci randevuyu reddeder
+  await db.query('DELETE FROM calisanlar');
+  const randevu = require(path.join(SRC, 'services', 'randevu'));
+  await randevu.randevuOlustur({ isletmeId: 1, musteriTelefon: '905550000003', hizmetId: 1, tarih: yarin, saat: '11:00', kaynak: 'web' });
+  await assert.rejects(randevu.randevuOlustur({ isletmeId: 1, musteriTelefon: '905550000004', hizmetId: 1, tarih: yarin, saat: '11:00', kaynak: 'web' }), { code: 'SLOT_DOLU' });
+  await assert.rejects(randevu.randevuOlustur({ isletmeId: 1, musteriTelefon: '905550000004', hizmetId: 1, tarih: yarin, saat: '11:15', kaynak: 'web' }), { code: 'SLOT_DOLU' }, 'üst üste binen de olmaz');
+
+  // Gün tamamen doldu → saati kaçıran bekleme listesine eklenir
+  await db.query(`UPDATE isletmeler SET calisma_baslangic = '09:00', calisma_bitis = '09:30'`);
+  const ertesi = gunSonraTarih(2);
+  const ali = await konus('905550000005');
+  await ali(`${ertesi.slice(8, 10)}.${ertesi.slice(5, 7)} 09:00 saç kesimi`);
+  await randevu.randevuOlustur({ isletmeId: 1, musteriTelefon: '905550000006', hizmetId: 1, tarih: ertesi, saat: '09:00', kaynak: 'web' });
+  const doldu = await ali('evet');
+  assert.match(doldu, /başka boş saat kalmadı[\s\S]*bekleme listesine ekledim/, doldu);
+  assert.equal((await db.query(`SELECT COUNT(*)::int AS n FROM bekleme_listesi WHERE musteri_telefon = '905550000005'`)).rows[0].n, 1);
+});

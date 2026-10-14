@@ -289,6 +289,11 @@ export default function BookingPage({ slug }) {
         })
       });
       const d = await res.json();
+      if (res.status === 409) {
+        // Bu saati başka bir müşteri az önce aldı: saat seçimine dön, güncel boş saatleri getir
+        setSecilenSaat(''); setAdim(4); setCanliSayac(c => c + 1); setHata(t('slotTaken'));
+        setYukleniyor(false); return;
+      }
       if (d.basarili) { setSonuc(d); setAdim(7); }
       else if (d.otpGerekli) { setOtpToken(''); setOtpStage('giris'); setAdim(5); setHata(d.hata || t('genericError')); }
       else setHata(d.hata || t('genericError'));
