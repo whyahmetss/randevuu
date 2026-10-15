@@ -307,6 +307,8 @@ router.get('/admin/paketler', authMiddleware, superAdminMiddleware, (req, res) =
 router.post('/admin/paketler', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimiEkle(req, res));
 router.put('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimiGuncelle(req, res));
 router.delete('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimiSil(req, res));
+router.put('/admin/paketler/:id/gorsel', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketGorselKaydet(req, res));
+router.get('/paket-gorsel/:kod', (req, res) => adminController.paketGorsel(req, res));
 
 // ==================== ZOMBİ MÜŞTERİ TAKİBİ ====================
 router.get('/admin/zombiler', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiMusteriler(req, res));

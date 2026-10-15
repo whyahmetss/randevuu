@@ -14,7 +14,9 @@ const pushService = require('./pushService');
 // 4. Backend PENDING ödemeyi bulur → paket yükseltir / ödenir → ürünü Shopier'dan siler
 
 const API_BASE = 'https://api.shopier.com/v1';
-const PLACEHOLDER_IMAGE = 'https://dmih5ui1qqea9.cloudfront.net/pictures_large/Camiseta6855_cobalt-blue-t-shirt.jpg';
+// Ürün görseli: Paket Yönetimi'nden yüklenen paket görseli; yoksa Fiko (eskiden yabancı bir tişört fotoğrafıydı ve bazen açılmıyordu)
+const API_ADRES = (process.env.BASE_URL || 'https://randevu.xn--srago-n4a.com').replace(/\/$/, '');
+const VARSAYILAN_GORSEL = `${(process.env.ADMIN_PANEL_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '')}/icon-512.png`;
 
 class ShopierService {
   constructor() {
@@ -23,12 +25,12 @@ class ShopierService {
   }
 
   // ─── Shopier API'de dijital ürün oluştur ───
-  async urunOlustur({ baslik, aciklama, fiyat }) {
+  async urunOlustur({ baslik, aciklama, fiyat, gorselUrl }) {
     const res = await axios.post(`${API_BASE}/products`, {
       title: baslik,
       description: aciklama,
       type: 'digital',
-      media: [{ url: PLACEHOLDER_IMAGE, type: 'image', placement: 1 }],
+      media: [{ url: gorselUrl || VARSAYILAN_GORSEL, type: 'image', placement: 1 }],
       priceData: {
         currency: 'TRY',
         price: fiyat.toFixed(2),
@@ -90,7 +92,14 @@ class ShopierService {
     // Önceki ödenmemiş ürün Shopier'da kalmasın (eskiden her tıklamada yeni ürün birikiyordu)
     if (merkez.bekleyen_shopier_urun_id) this.urunSil(merkez.bekleyen_shopier_urun_id).catch(() => {});
 
+    let gorselUrl = null;
+    try {
+      const g = (await pool.query('SELECT gorsel_guncelleme FROM paket_tanimlari WHERE kod = $1 AND gorsel IS NOT NULL', [secilenPaket])).rows[0];
+      if (g) gorselUrl = `${API_ADRES}/api/paket-gorsel/${encodeURIComponent(secilenPaket)}?v=${new Date(g.gorsel_guncelleme).getTime()}`;
+    } catch (e) { /* kolon yoksa varsayılan görsel */ }
+
     const urun = await this.urunOlustur({
+      gorselUrl,
       baslik: `SıraGO ${paketLabel} Paket${yillik ? ' Yıllık' : ''} [${refKod}]`,
       aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket, ${yillik ? `12 aylık kullanım (${YILLIK_ODENEN_AY} ay öde)` : '1 aylık kullanım'} (${buAy})\nİşletme: ${merkez.isim}\nRef: ${refKod}`,
       fiyat: paketBilgi.fiyat,

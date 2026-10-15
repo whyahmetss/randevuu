@@ -41,6 +41,7 @@ const { connect: socketConnect, disconnect: socketDisconnect, useSocketEvent, us
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
 import { API_URL, API_ORIGIN, bookingUrl } from './lib/config';
+import PaketGorsel from './components/PaketGorsel';
 import BackendHealth from './components/BackendHealth';
 import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
 import BildirimAktivasyon from './components/BildirimAktivasyon';
@@ -5699,6 +5700,7 @@ function SuperAdminPanel({ kullanici }) {
                             <button type="button" onClick={() => setDuzenlePaket(null)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid var(--border)", cursor: "pointer", background: "transparent", color: "var(--dim)", fontSize: 12 }}>İptal</button>
                           </div>
                         </div>
+                        <PaketGorsel api={api} paket={p} onDegisti={paketleriYukle} />
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
                           <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>İsim</label><input value={duzenlePaket.isim} onChange={e => setDuzenlePaket({...duzenlePaket, isim: e.target.value})} className="input" style={{ fontSize: 13 }} /></div>
                           <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Kod</label><input value={duzenlePaket.kod} onChange={e => setDuzenlePaket({...duzenlePaket, kod: e.target.value})} className="input" style={{ fontSize: 13 }} /></div>
@@ -5721,7 +5723,8 @@ function SuperAdminPanel({ kullanici }) {
                       /* ── Normal Görünüm ── */
                       <div key={p.id} className="list-item" style={{ flexDirection: "column", gap: 10 }}>
                         <div className="row row-between row-wrap gap-8">
-                          <div className="row row-wrap gap-8">
+                          <div className="row row-wrap gap-8" style={{ alignItems: "center" }}>
+                            <PaketGorsel api={api} paket={p} kucuk />
                             <span style={{ color: paketRenk[p.kod] || "#5d4bb5", fontWeight: 600, fontSize: 16 }}>{p.isim}</span>
                             <span className="tag" style={{ background: "rgba(168,89,12,.12)", color: "#a8590c", fontWeight: 600 }}>{parseFloat(p.fiyat)}₺/ay</span>
                             <span style={{ color: "var(--dim)", fontSize: 12 }}>kod: {p.kod}</span>
