@@ -1183,18 +1183,20 @@ class SatisBot extends EventEmitter {
     const kategori = (lead.kategori || '').toLowerCase();
     let mesaj = '';
     let sablonId = null;
+    // "Yorumlar on numara" gibi övgü içeren şablon yalnız Google puanı yeterli dükkâna gider (min_puan, 2026-10-16)
+    const puanSayi = parseFloat(lead.puan) || 0;
     try {
       let dbSablonlar;
       if (kampanya) {
         dbSablonlar = (await pool.query(
-          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id = $1 ORDER BY RANDOM() LIMIT 1",
-          [kampanya.id]
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id = $1 AND (min_puan IS NULL OR $2::numeric >= min_puan) ORDER BY RANDOM() LIMIT 1",
+          [kampanya.id, puanSayi]
         )).rows;
       }
       if (!dbSablonlar || dbSablonlar.length === 0) {
         dbSablonlar = (await pool.query(
-          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id IS NULL AND (kategori = $1 OR kategori = 'genel') ORDER BY RANDOM() LIMIT 1",
-          [kategori || 'genel']
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id IS NULL AND (kategori = $1 OR kategori = 'genel') AND (min_puan IS NULL OR $2::numeric >= min_puan) ORDER BY RANDOM() LIMIT 1",
+          [kategori || 'genel', puanSayi]
         )).rows;
       }
       if (dbSablonlar.length > 0) {
@@ -1911,6 +1913,11 @@ class SatisBot extends EventEmitter {
         await this._telegramBildirimGonder(`📞 *Aranmak istiyor*\n\n🏪 ${this._mdKacis(konusma.isletme_adi)}\n📞 +${this._mdKacis(telefon)}\n💬 "${this._mdKacis(metin.slice(0, 300))}"\n\n👉 Bugün arayın.`);
       } catch (e) { /* bildirim önemsiz */ }
     }
+    // Tek kişi düzeni (2026-10-16): aranmak isteyen / sıcak / fiyat soran / olumlu aday Satış Masası'na düşer
+    try {
+      const sebep = require('./devir').sebepBul({ metin, durum, arama: cevap.arama });
+      if (sebep) await require('./devir').devret(konusma.id, sebep);
+    } catch (e) { console.error('Sıcak aday devri:', e.message); }
 
     if (durum === 'sicak' || durum === 'olumlu') {
       if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);

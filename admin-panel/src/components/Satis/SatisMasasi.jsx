@@ -3,6 +3,7 @@ import { kart, dugme, sekmeStil, RENK, waTel, ilkMesaj, SONUC, saatTarih } from 
 import ItirazBankasi from './ItirazBankasi';
 import HesapAc, { panelAc } from './HesapAc';
 import QrKart from './QrKart';
+import SicakAdaylar from './SicakAdaylar';
 
 // Satış Masası (kullanıcı kararı 2026-10-10): her ekip üyesinin günlük çalışma ekranı.
 // Üstte takım hedefi ve benim günüm; ortada kendi arama listem; yanda liderlik ve kopya kâğıdı.
@@ -131,13 +132,23 @@ export default function SatisMasasi({ api, kullanici }) {
   const [kopya, setKopya] = useState(false);
   const [hesapAday, setHesapAday] = useState(null);   // {} = adaysız (listede olmayan dükkân) | aday satırı
   const [qrAcik, setQrAcik] = useState(false);
+  const [sicak, setSicak] = useState([]);
+  const [ozetMetin, setOzetMetin] = useState(null);
 
   const yenile = useCallback(() => {
     api.get('/admin/masa/ozet').then(d => !d?.hata && setOzet(d)).catch(() => {});
     api.get('/admin/masa/listem').then(d => !d?.hata && setListe({ bugun: d.bugun || [], ileride: d.ileride || [] })).catch(() => {});
     api.get('/admin/masa/aktiviteler').then(d => setAktiviteler(d.aktiviteler || [])).catch(() => {});
+    api.get('/admin/masa/sicak').then(d => !d?.hata && setSicak(d.adaylar || [])).catch(() => {});
   }, [api]);
-  useEffect(() => { yenile(); const t = setInterval(() => api.get('/admin/masa/ozet').then(d => !d?.hata && setOzet(d)).catch(() => {}), 60000); return () => clearInterval(t); }, [yenile]);
+  useEffect(() => {
+    yenile();
+    const t = setInterval(() => {
+      api.get('/admin/masa/ozet').then(d => !d?.hata && setOzet(d)).catch(() => {});
+      api.get('/admin/masa/sicak').then(d => !d?.hata && setSicak(d.adaylar || [])).catch(() => {});
+    }, 60000);
+    return () => clearInterval(t);
+  }, [yenile]);
 
   const adayCek = async () => {
     setCekiliyor(true);
@@ -162,6 +173,8 @@ export default function SatisMasasi({ api, kullanici }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <button onClick={() => setHesapAday({})} title="Listende olmayan dükkânda da açılır" style={dugme(RENK.yesil, true)}>🏪 Sahada hesap aç</button>
           <button onClick={() => setQrAcik(true)} title="Sana özel QR kart: okutan esnaf sana yazılır" style={dugme(RENK.mor)}>🎴 QR kartım</button>
+          <button onClick={async () => { const d = await api.get('/admin/masa/sabah-ozeti'); if (d?.hata) return alert(d.hata); setOzetMetin(d.metin); }}
+            title="Her sabah 08:45'te Telegram'a kendiliğinden gider" style={dugme(RENK.amber)}>☀️ Sabah özeti</button>
           <button onClick={() => setKopya(!kopya)} style={dugme(RENK.mor, kopya)}>📋 Kopya kâğıdı (itirazlar)</button>
           <button onClick={async () => {
             // Saha demosu: içi dolu demo dükkân paneli yeni sekmede (pencere tıklama anında açılır, engellenmesin)
@@ -175,6 +188,21 @@ export default function SatisMasasi({ api, kullanici }) {
       </div>
       {hesapAday && <HesapAc api={api} aday={hesapAday.id ? hesapAday : null} onKapat={() => setHesapAday(null)} onAcildi={() => yenile()} />}
       {qrAcik && <QrKart api={api} onKapat={() => setQrAcik(false)} />}
+
+      <SicakAdaylar api={api} adaylar={sicak} yenile={yenile} />
+      {ozetMetin && (
+        <div onClick={() => setOzetMetin(null)} style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...kart, width: '100%', maxWidth: 520 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <b style={{ fontSize: 16, color: 'var(--text)' }}>☀️ Sabah özeti</b>
+              <button onClick={() => setOzetMetin(null)} style={{ ...dugme(RENK.gri), padding: '4px 10px' }} aria-label="Kapat">✕</button>
+            </div>
+            <div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>{ozetMetin.replace(/\\([_*`[])/g, '$1').replace(/\*/g, '')}</div>
+            <div style={{ fontSize: 11, color: 'var(--dim)', margin: '10px 0' }}>Her sabah 08:45'te Telegram'a kendiliğinden gider.</div>
+            <button onClick={async () => { const d = await api.post('/admin/masa/sabah-ozeti', {}); alert(d?.hata || 'Telegram\'a gönderildi'); }} style={dugme(RENK.yesil, true)}>📨 Şimdi Telegram'a gönder</button>
+          </div>
+        </div>
+      )}
 
       {/* Takım hedefi */}
       {h && (

@@ -607,6 +607,11 @@ router.get('/admin/masa/aktiviteler', ...saMw, (req, res) => masaController.akti
 router.post('/admin/masa/hesap-ac', ...saMw, (req, res) => masaController.hesapAc(req, res));
 router.post('/admin/masa/hesap/:id/panel', ...saMw, (req, res) => masaController.hesapPanel(req, res));
 router.get('/admin/masa/qr-kart', ...saMw, (req, res) => masaController.qrKart(req, res));
+// Tek kişi düzeni (2026-10-16): bot sıcak adayı devreder; sabah özeti
+router.get('/admin/masa/sicak', ...saMw, (req, res) => masaController.sicakAdaylar(req, res));
+router.post('/admin/masa/sicak/:id/kapat', ...saMw, (req, res) => masaController.sicakKapat(req, res));
+router.get('/admin/masa/sabah-ozeti', ...saMw, (req, res) => masaController.sabahOzeti(req, res));
+router.post('/admin/masa/sabah-ozeti', ...saMw, (req, res) => masaController.sabahOzeti(req, res));
 router.put('/admin/masa/hedef', ...saMw, (req, res) => masaController.hedefGuncelle(req, res));
 router.get('/admin/masa/itirazlar', ...saMw, (req, res) => masaController.itirazlar(req, res));
 router.post('/admin/masa/itirazlar', ...saMw, (req, res) => masaController.itirazEkle(req, res));

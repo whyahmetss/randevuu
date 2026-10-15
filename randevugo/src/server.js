@@ -960,6 +960,12 @@ const PORT = process.env.PORT || 3000;
     `ALTER TABLE merkez_otp_bot ADD COLUMN IF NOT EXISTS uyari TEXT`,
     // Şablon otomatik freni (2026-10-16, migration 052'de de var)
     `ALTER TABLE satis_bot_sablonlar ADD COLUMN IF NOT EXISTS durdurma_notu TEXT`,
+    `ALTER TABLE satis_bot_sablonlar ADD COLUMN IF NOT EXISTS min_puan NUMERIC(2,1)`,
+    // Sıcak aday devri (2026-10-16, migration 054'te de var)
+    `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS devir_sebep VARCHAR(20)`,
+    `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS devir_zamani TIMESTAMP`,
+    `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS devir_kapandi TIMESTAMP`,
+    `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS devir_ertele TIMESTAMP`,
     // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
     `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
   ];
@@ -1260,6 +1266,7 @@ httpServer.listen(PORT, () => {
   // Saha satışı (2026-10-15): WhatsApp'ta takılan kurulum ekibe düşer; ilk randevu tebriği ve 10. randevuda davet isteği
   try { require('./services/otopilot').zamanlayiciBaslat(); } catch (e) { console.log('⚠️ Otopilot denetimi başlatılamadı:', e.message); }
   try { require('./services/esnafTesvik').baslat(); } catch (e) { console.log('⚠️ Esnaf teşviki başlatılamadı:', e.message); }
+  try { require('./services/sabahOzeti').baslat(); } catch (e) { console.log('⚠️ Sabah özeti başlatılamadı:', e.message); }
 
   // Render keep-alive: 14 dakikada bir self-ping (uyku modunu engelle)
   const keepAliveUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
