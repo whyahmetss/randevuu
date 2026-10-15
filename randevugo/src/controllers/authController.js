@@ -12,8 +12,10 @@ function oturumCevabi(kullanici) {
     { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null },
     jwtSecret, { expiresIn: '7d' });
   return { token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null,
-    ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null, patron: kullanici.patron === true } };
+    ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null, patron: kullanici.patron === true,
+    sifre_degistirmeli: kullanici.sifre_degistirmeli === true } };
 }
+const sifreGecerli = (s) => String(s || '').length >= 8 && String(s).length <= 72;
 // E-posta büyük/küçük harf duyarsız (Google "Ali@…" ile "ali@…" aynı hesap)
 const kullaniciBul = async (email) => (await pool.query(
   'SELECT * FROM admin_kullanicilar WHERE LOWER(email) = LOWER($1) AND aktif = true ORDER BY id LIMIT 1', [String(email || '').trim()])).rows[0];
@@ -30,12 +32,6 @@ class AuthController {
         return res.status(401).json({ hata: 'Email veya şifre hatalı' });
       }
 
-      const token = jwt.sign(
-        { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null },
-        jwtSecret,
-        { expiresIn: '7d' }
-      );
-
       // Audit log — giriş kaydı
       try {
         await pool.query(
@@ -46,9 +42,7 @@ class AuthController {
       } catch(e) { /* audit log opsiyonel */ }
 
       if (kullanici.rol === 'superadmin') pool.query('UPDATE admin_kullanicilar SET son_giris = NOW() WHERE id = $1', [kullanici.id]).catch(() => {});
-      res.json({ token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null,
-        ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null,
-        patron: kullanici.patron === true } });
+      res.json(oturumCevabi(kullanici));
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);
       res.status(500).json({ hata: 'Sunucu hatası oluştu' });
@@ -122,6 +116,13 @@ class AuthController {
         try { await pool.query('UPDATE isletmeler SET kayit_kanali = $1 WHERE id = $2', [davetKod && kanal === 'web' ? 'davet' : kanal, isletme.id]); } catch (e) { /* kolon yoksa */ }
       }
 
+      // QR kart (Satış Bot bağlı değilken web kaydına düşen): ?saha=S12 → işletme o ekip üyesine yazılır
+      const sahaUye = require('../utils/sahaKodu').linkKodu(req.body.saha_kodu);
+      if (sahaUye) {
+        try { await require('../utils/sahaKodu').kayittaUygula(sahaUye, isletme.id, { notu: 'QR karttan web ile kayıt oldu' }); }
+        catch (e) { console.error('QR kart kaydı bağlanamadı:', e.message); }
+      }
+
       console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}${referansMesaj}`);
 
       // Süper admin panele canlı yayın + push
@@ -172,7 +173,7 @@ class AuthController {
         // Kayıt, normal kaydın aynısı (davet, kanal, bildirim); şifre rastgele — istenirse "Şifremi unuttum" ile belirlenir
         let sonuc = null;
         await this.botKayit({ body: { isletmeAdi, email, sifre: require('crypto').randomBytes(24).toString('hex'),
-          kayitKanal: req.body.kayitKanal, davet: req.body.davet, sartlar_onay: req.body.sartlar_onay === true } },
+          kayitKanal: req.body.kayitKanal, davet: req.body.davet, sartlar_onay: req.body.sartlar_onay === true, saha_kodu: req.body.saha_kodu } },
           { status: () => ({ json: (d) => { sonuc = d; } }), json: (d) => { sonuc = d; } });
         if (!sonuc?.basarili) return res.status(400).json({ hata: sonuc?.hata || 'Kayıt yapılamadı' });
         kullanici = await kullaniciBul(email);
@@ -227,8 +228,9 @@ class AuthController {
         return res.status(400).json({ hata: 'Kod yanlış' });
       }
       await pool.query('UPDATE admin_kullanicilar SET sifre = $1 WHERE id = $2', [await bcrypt.hash(String(sifre), 10), k.id]);
+      await pool.query('UPDATE admin_kullanicilar SET sifre_degistirmeli = false WHERE id = $1', [k.id]).catch(() => {});
       await pool.query('DELETE FROM sifre_sifirlama WHERE kullanici_id = $1', [k.id]);
-      res.json(oturumCevabi(k));
+      res.json(oturumCevabi({ ...k, sifre_degistirmeli: false }));
     } catch (error) {
       console.error('❌ Şifre yenileme hatası:', error.message);
       res.status(500).json({ hata: 'Şifre değiştirilemedi' });
@@ -246,9 +248,45 @@ class AuthController {
         kullanici.ekip_yetkileri = req.kullanici.ekip_yetkileri || null;
         kullanici.patron = req.kullanici.patron === true;
       }
+      if (kullanici) {
+        // Ayrı sorgu: kolon henüz yoksa profil yine açılsın
+        try {
+          const f = (await pool.query('SELECT sifre_degistirmeli FROM admin_kullanicilar WHERE id = $1', [kullanici.id])).rows[0];
+          kullanici.sifre_degistirmeli = f?.sifre_degistirmeli === true;
+        } catch (e) { kullanici.sifre_degistirmeli = false; }
+        kullanici.impersonated = req.kullanici.impersonated === true;
+      }
       res.json({ kullanici });
     } catch (error) {
       res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Şifremi değiştir (2026-10-15): esnaf ve ekip kendi şifresini panelden değiştirir. Geçici şifreyle girene
+  // (sifre_degistirmeli) mevcut şifre sorulmaz; panel o değiştirene kadar başka ekran açmaz.
+  async sifreDegistir(req, res) {
+    try {
+      if (req.kullanici.impersonated) return res.status(403).json({ hata: 'Müşteri olarak girişte şifre değiştirilemez' });
+      const { mevcut, yeni } = req.body || {};
+      if (!sifreGecerli(yeni)) return res.status(400).json({ hata: 'Yeni şifre en az 8 karakter olmalı' });
+      const k = (await pool.query('SELECT * FROM admin_kullanicilar WHERE id = $1 AND aktif = true', [req.kullanici.id])).rows[0];
+      if (!k) return res.status(404).json({ hata: 'Kullanıcı bulunamadı' });
+      const zorunlu = k.sifre_degistirmeli === true;
+      if (!zorunlu && !(await bcrypt.compare(String(mevcut || ''), k.sifre))) return res.status(400).json({ hata: 'Mevcut şifre yanlış' });
+      if (await bcrypt.compare(String(yeni), k.sifre)) {
+        return res.status(400).json({ hata: zorunlu ? 'Geçici şifreden farklı bir şifre belirleyin' : 'Yeni şifre eskisiyle aynı' });
+      }
+      await pool.query('UPDATE admin_kullanicilar SET sifre = $1, sifre_degistirmeli = false WHERE id = $2', [await bcrypt.hash(String(yeni), 10), k.id]);
+      await pool.query('DELETE FROM sifre_sifirlama WHERE kullanici_id = $1', [k.id]).catch(() => {});
+      try {
+        await pool.query(
+          `INSERT INTO audit_log (isletme_id, kullanici_id, kullanici_email, islem, detay, ip_adresi) VALUES ($1, $2, $3, 'sifre_degistirildi', $4, $5)`,
+          [k.isletme_id, k.id, k.email, zorunlu ? 'Geçici şifre ilk girişte değiştirildi' : 'Şifre panelden değiştirildi', require('../utils/istemciIp').istemciIp(req)]);
+      } catch (e) { /* audit log opsiyonel */ }
+      res.json({ ok: true, mesaj: 'Şifren değişti' });
+    } catch (error) {
+      console.error('❌ Şifre değiştirme hatası:', error.message);
+      res.status(500).json({ hata: 'Şifre değiştirilemedi' });
     }
   }
 }

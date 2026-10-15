@@ -25,6 +25,8 @@ export const SONUC = {
   ilgileniyor: { ad: 'İlgileniyor', renk: RENK.amber },
   demo: { ad: 'Demo gönderildi', renk: RENK.mor },
   kurulum: { ad: 'Bağlandı ✓', renk: RENK.yesil },
+  ziyaret: { ad: 'Ziyaret edildi', renk: RENK.mavi },
+  kart: { ad: 'QR kart bırakıldı', renk: RENK.mor },
   not: { ad: 'Not', renk: RENK.gri },
 };
 

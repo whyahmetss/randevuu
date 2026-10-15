@@ -8,7 +8,7 @@ const SEVIYE = {
   uyari: { renk: '#a8590c', zemin: 'rgba(168,89,12,.08)', ad: 'Uyarı' },
   bilgi: { renk: '#2f56c6', zemin: 'rgba(47,86,198,.08)', ad: 'Bilgi' },
 };
-const TIP = { alarm: '🚨 Alarm', cevapsiz: '🔇 Cevapsız mesaj', gonderim: '⚠️ Gönderim', odeme: '💳 Ödeme' };
+const TIP = { alarm: '🚨 Alarm', cevapsiz: '🔇 Cevapsız mesaj', gonderim: '⚠️ Gönderim', odeme: '💳 Ödeme', kurulum: '🧭 Kurulum takıldı', numara: '📵 Numara çakışması' };
 
 export default function SistemUyarilari({ api, onSayiDegisti, isletmeAc }) {
   const [durum, setDurum] = useState('acik');

@@ -3,6 +3,19 @@
 // sonucunu tek tıkla kaydeder; hedef, liderlik tablosu ve itiraz bankası buradan. Patron herkesi izler.
 const pool = require('../config/db');
 const { patronMu } = require('../config/ekip');
+const { denemeGun } = require('../config/deneme');
+const { telefonNormalize } = require('../utils/telefon');
+
+// QR kart linki: randevu sayfasıyla aynı sunucu (/k/S12 → o an bağlı Satış Bot numarasına WhatsApp)
+const KART_TABAN = (process.env.KART_LINK_TABAN || 'https://randevu.xn--srago-n4a.com').replace(/\/$/, '');
+const kartMetni = (kod) => `Merhaba, SıraGO'yu denemek istiyorum (kart: ${kod})`;
+
+// Satış ekibinin "işletme olarak giriş" yetkisi yok: yalnız kendi açtığı hesabın paneline buradan girer (2 saat)
+function panelAnahtari(kullanici, ekipUyesi) {
+  const jwt = require('jsonwebtoken');
+  return jwt.sign({ id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, impersonated: true, impersonator: ekipUyesi.email },
+    require('../middleware/auth').jwtSecret, { expiresIn: '2h' });
+}
 
 const TIPLER = {
   arama_yok: { ad: 'Ulaşılamadı', durum: 'cevapsiz' },
@@ -11,14 +24,18 @@ const TIPLER = {
   ilgileniyor: { ad: 'İlgileniyor', durum: 'ilgileniyor' },
   demo: { ad: 'Demo gönderildi', durum: 'ilgileniyor' },
   kurulum: { ad: 'Kuruldu / bağlandı', durum: 'musteri_oldu' },
+  // Saha (2026-10-15): dükkâna gidildi; QR kart bırakıldıysa esnaf karttan Satış Bot'a yazınca kayıt bu üyeye yazılır
+  ziyaret: { ad: 'Ziyaret edildi', durum: 'arandi' },
+  kart: { ad: 'QR kart bırakıldı', durum: 'ilgileniyor' },
   not: { ad: 'Not', durum: null },
 };
+// "Arama" telefon denemesidir; ziyaret ayrı sayılır ama görüşmeye girer (yüz yüze konuşuldu)
 const ARAMA_SAYILAN = ['arama_yok', 'gorustu', 'ilgilenmiyor', 'ilgileniyor', 'demo', 'kurulum'];
 // Kişisel numaradan soğuk WhatsApp sınırı (2026-10-14: önceki numara ban yedi). 'wa_mesaj' sonuç değil, sayaçtır.
 const WA_GUNLUK = 20;
 const waBugun = async (kid) => (await pool.query(
   `SELECT COUNT(*)::int AS n FROM satis_aktivite WHERE kullanici_id = $1 AND tip = 'wa_mesaj' AND olusturma_tarihi >= ${gunBasi}`, [kid])).rows[0].n;
-const GORUSME_SAYILAN = ['gorustu', 'ilgilenmiyor', 'ilgileniyor', 'demo', 'kurulum'];
+const GORUSME_SAYILAN = ['gorustu', 'ilgilenmiyor', 'ilgileniyor', 'demo', 'kurulum', 'ziyaret'];
 
 const hata = (res, mesaj, kod = 400) => res.status(kod).json({ hata: mesaj });
 const gunBasi = "date_trunc('day', NOW() AT TIME ZONE 'Europe/Istanbul') AT TIME ZONE 'Europe/Istanbul'";
@@ -52,6 +69,8 @@ async function sayilar(aralik = 'bugun', kullaniciId = null) {
       COUNT(a.id) FILTER (WHERE a.tip = ANY($2))::int AS gorusme,
       COUNT(a.id) FILTER (WHERE a.tip = 'demo')::int AS demo,
       COUNT(a.id) FILTER (WHERE a.tip = 'kurulum')::int AS kurulum,
+      COUNT(a.id) FILTER (WHERE a.tip = 'ziyaret')::int AS ziyaret,
+      COUNT(a.id) FILTER (WHERE a.tip = 'kart')::int AS kart,
       MAX(a.olusturma_tarihi) AS son_aktivite
     FROM admin_kullanicilar u
     LEFT JOIN satis_aktivite a ON a.kullanici_id = u.id AND a.olusturma_tarihi >= ${bas}
@@ -67,7 +86,7 @@ class MasaController {
     try {
       const hedef = await hedefDurum();
       const [bugun, hafta] = await Promise.all([sayilar('bugun'), sayilar('hafta')]);
-      const ben = bugun.find(x => x.id === req.kullanici.id) || { arama: 0, gorusme: 0, demo: 0, kurulum: 0 };
+      const ben = bugun.find(x => x.id === req.kullanici.id) || { arama: 0, gorusme: 0, demo: 0, kurulum: 0, ziyaret: 0, kart: 0 };
       const benimHedef = ben.gunluk_hedef || hedef.kisi_gunluk;
       const bekleyen = (await pool.query(`
         SELECT COUNT(*) FILTER (WHERE sonraki_arama IS NULL OR sonraki_arama <= NOW())::int AS bugun,
@@ -166,6 +185,7 @@ class MasaController {
       let sonraki = null;
       if (geri_ara) { const t = new Date(geri_ara); if (!isNaN(t)) sonraki = t; }
       else if (tip === 'arama_yok') sonraki = new Date(Date.now() + 20 * 3600 * 1000);   // ulaşılamadı → yarın tekrar
+      else if (tip === 'kart') sonraki = new Date(Date.now() + 2 * 24 * 3600 * 1000);     // kart bırakıldı → 2 gün sonra yokla
       await pool.query(`
         UPDATE potansiyel_musteriler SET
           atanan_id = COALESCE(atanan_id, $2),
@@ -195,7 +215,7 @@ class MasaController {
       if (req.query.kullanici && patronMu(req.kullanici)) kid = parseInt(req.query.kullanici);
       const gun = Math.min(Math.max(parseInt(req.query.gun) || 1, 1), 90);
       const r = await pool.query(`
-        SELECT a.id, a.tip, a.notu, a.otomatik, a.olusturma_tarihi, p.isletme_adi, p.telefon, i.isim AS isletme_isim
+        SELECT a.id, a.tip, a.notu, a.otomatik, a.olusturma_tarihi, a.isletme_id, p.isletme_adi, p.telefon, i.isim AS isletme_isim
         FROM satis_aktivite a
         LEFT JOIN potansiyel_musteriler p ON p.id = a.lead_id
         LEFT JOIN isletmeler i ON i.id = a.isletme_id
@@ -211,6 +231,142 @@ class MasaController {
       await pool.query("INSERT INTO satis_aktivite (kullanici_id, lead_id, tip) VALUES ($1, $2, 'wa_mesaj')", [req.kullanici.id, parseInt(req.params.id) || null]);
       res.json({ wa_bugun: await waBugun(req.kullanici.id), wa_sinir: WA_GUNLUK });
     } catch (e) { hata(res, 'Kaydedilemedi', 500); }
+  }
+
+  // ── Sahada hesap aç (kullanıcı kararı 2026-10-15) ──
+  // Dükkânda esnafın yanında: hesap 1 dakikada açılır, işletme bu üyeye yazılır (getiren_id), geçici şifre esnafın
+  // WhatsApp'ına gider, üye aynı anda esnafın panelini açıp WhatsApp'ı QR ile bağlar. Venüs demosu varsa o sahiplenilir.
+  async hesapAc(req, res) {
+    const b = req.body || {};
+    const isletmeAdi = String(b.isletme_adi || '').trim();
+    const email = String(b.email || '').trim().toLowerCase();
+    const tel = telefonNormalize(b.telefon);
+    const yetkili = String(b.yetkili_adi || '').trim().slice(0, 60);
+    if (isletmeAdi.length < 2 || isletmeAdi.length > 100) return hata(res, 'İşletme adını yazın');
+    if (!/^905\d{9}$/.test(tel)) return hata(res, 'Cep telefonunu 05xx xxx xx xx şeklinde yazın');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 150) return hata(res, 'Geçerli bir e-posta yazın (telefonundaki Gmail adresi olur)');
+    let client = null;
+    try {
+      let lead = null;
+      if (b.lead_id) {
+        lead = (await pool.query('SELECT * FROM potansiyel_musteriler WHERE id = $1', [parseInt(b.lead_id)])).rows[0];
+        if (!lead) return hata(res, 'Aday bulunamadı', 404);
+        if (lead.atanan_id && lead.atanan_id !== req.kullanici.id && !patronMu(req.kullanici)) return hata(res, 'Bu aday başka bir ekip arkadaşında', 403);
+      }
+      if ((await pool.query('SELECT 1 FROM admin_kullanicilar WHERE LOWER(email) = $1', [email])).rows[0]) {
+        return hata(res, 'Bu e-postayla zaten bir hesap var. Şifresini unuttuysa işletme detayından geçici şifre verilir.');
+      }
+      const { hizmetSablonu, KATEGORI_KOD } = require('../services/demo');
+      const kategoriAd = String(b.kategori || lead?.kategori || '').toLocaleLowerCase('tr');
+      const kategori = KATEGORI_KOD[kategoriAd] || (Object.values(KATEGORI_KOD).includes(kategoriAd) ? kategoriAd : 'genel');
+      const sifre = require('../utils/geciciSifre').geciciSifreUret();
+      const hash = await require('bcryptjs').hash(sifre, 10);
+
+      client = await pool.connect();
+      await client.query('BEGIN');
+      // Bu dükkân için açılmış demo (aday kartındaki ya da aynı telefonlu) gerçek hesaba döner; saha demosu hariç
+      let isletme = (await client.query(`
+        UPDATE isletmeler SET isim = $1, telefon = $2, kategori = CASE WHEN $3 = 'genel' THEN kategori ELSE $3 END, demo = false,
+          olusturma_tarihi = NOW(), deneme_bitis_tarihi = NOW() + make_interval(days => $4), getiren_id = $5, kayit_kanali = 'saha'
+        WHERE id = (SELECT id FROM isletmeler WHERE demo = true AND COALESCE(slug, '') <> 'sirago-demo-berber'
+                      AND (id = $6 OR telefon = $2) ORDER BY (id = $6) DESC, id DESC LIMIT 1)
+        RETURNING *`, [isletmeAdi, tel, kategori, denemeGun(), req.kullanici.id, parseInt(lead?.demo_isletme_id) || 0])).rows[0];
+      const demodan = !!isletme;
+      if (!isletme) {
+        isletme = (await client.query(`
+          INSERT INTO isletmeler (isim, telefon, kategori, ilce, adres, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi, getiren_id, kayit_kanali)
+          VALUES ($1, $2, $3, $4, $5, true, 'baslangic', NOW(), NOW() + make_interval(days => $6), $7, 'saha') RETURNING *`,
+          [isletmeAdi, tel, kategori, lead?.ilce || null, lead?.adres || null, denemeGun(), req.kullanici.id])).rows[0];
+        // Örnek hizmetler (fiyat 0 = "fiyat dükkânda"; esnafla birlikte düzenlenir) ve esnafın kendisi çalışan olarak
+        for (const [isim, sure] of hizmetSablonu(kategoriAd || kategori)) {
+          await client.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aktif) VALUES ($1, $2, $3, 0, true)', [isletme.id, isim, sure]);
+        }
+        await client.query("INSERT INTO calisanlar (isletme_id, isim, uzmanlik, aktif) VALUES ($1, $2, '', true)", [isletme.id, yetkili || 'Usta']);
+      } else if (yetkili) {
+        await client.query("UPDATE calisanlar SET isim = $1 WHERE isletme_id = $2 AND isim = 'Usta'", [yetkili, isletme.id]);
+      }
+      const kullanici = (await client.query(
+        `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif, sifre_degistirmeli)
+         VALUES ($1, $2, $3, 'admin', $4, true, true) RETURNING id, email, rol, isletme_id`,
+        [yetkili || isletmeAdi, email, hash, isletme.id])).rows[0];
+      await client.query('COMMIT');
+      client.release(); client = null;
+
+      // Satış kaydı: "Bağladım" sayılır; aday listeden düşer
+      try {
+        await pool.query("INSERT INTO satis_aktivite (kullanici_id, lead_id, isletme_id, tip, notu) VALUES ($1, $2, $3, 'kurulum', $4)",
+          [req.kullanici.id, lead?.id || null, isletme.id, demodan ? 'Sahada hesap açıldı (demo sahiplenildi)' : 'Sahada hesap açıldı']);
+        if (lead) {
+          await pool.query(`UPDATE potansiyel_musteriler SET durum = 'musteri_oldu', atanan_id = COALESCE(atanan_id, $2), son_temas = NOW(),
+            sonraki_arama = NULL, demo_isletme_id = COALESCE(demo_isletme_id, $3) WHERE id = $1`, [lead.id, req.kullanici.id, isletme.id]);
+        }
+      } catch (e) { console.error('saha hesap: satış kaydı yazılamadı:', e.message); }
+
+      const link = await require('../utils/randevuLinki').randevuLinki(isletme).catch(() => null);
+      const { esnafaYaz } = require('../utils/esnafaYaz');
+      const wa = await esnafaYaz(isletme,
+        `🎉 SıraGO hesabınız açıldı: *${isletmeAdi}*\n\nGiriş: https://admin.sırago.com\nE-posta: ${email}\nGeçici şifre: *${sifre}*\n` +
+        `(İlk girişte kendi şifrenizi belirleyeceksiniz.)\n\n${denemeGun()} gün ücretsiz, kart bilgisi yok.${link ? `\nRandevu linkiniz: ${link}` : ''}`);
+      const ip = require('../utils/istemciIp').istemciIp(req);
+      pool.query(`INSERT INTO audit_log (isletme_id, kullanici_id, kullanici_email, islem, detay, hedef_tablo, hedef_id, ip_adresi)
+        VALUES ($1, $2, $3, 'saha_hesap_ac', $4, 'isletmeler', $1, $5)`,
+        [isletme.id, req.kullanici.id, req.kullanici.email, `${req.kullanici.email} sahada hesap açtı: ${isletmeAdi} (${email})`, ip]).catch(() => {});
+      try {
+        require('../services/socketServer').emitToAdmin('isletme:yeni', { isletme, kanal: 'saha' });
+        const bot = require('../services/satisBot');
+        const md = (x) => bot._mdKacis(x);
+        bot._telegramBildirimGonder(`🏪 *Sahada hesap açıldı*\n\n${md(isletmeAdi)} (${md(kategori)})\n📞 +${md(tel)}\n👤 ${md(req.kullanici.email)}`).catch(() => {});
+      } catch (e) { /* bildirim önemsiz */ }
+
+      res.json({ isletme_id: isletme.id, isletme_isim: isletmeAdi, email, sifre, link, demodan, wa_gonderildi: wa.gitti,
+        token: panelAnahtari(kullanici, req.kullanici) });
+    } catch (e) {
+      if (client) { await client.query('ROLLBACK').catch(() => {}); client.release(); }
+      if (e.code === '23505') return hata(res, 'Bu e-postayla zaten bir hesap var');
+      console.error('saha hesap aç:', e.message);
+      hata(res, 'Hesap açılamadı', 500);
+    }
+  }
+
+  // Sahada açtığım hesabın paneline yeniden gir (sekme kapandıysa): yalnız getiren üye, ilk 3 gün; patron her zaman
+  async hesapPanel(req, res) {
+    try {
+      const i = (await pool.query(
+        `SELECT id, isim, getiren_id, olusturma_tarihi > NOW() - INTERVAL '3 days' AS yeni FROM isletmeler WHERE id = $1 AND demo IS NOT TRUE`,
+        [parseInt(req.params.id)])).rows[0];
+      if (!i || !(patronMu(req.kullanici) || (i.getiren_id === req.kullanici.id && i.yeni))) return hata(res, 'Bu işletmenin paneline buradan giremezsin', 403);
+      const k = (await pool.query("SELECT id, email, rol, isletme_id FROM admin_kullanicilar WHERE isletme_id = $1 AND aktif = true AND rol <> 'superadmin' ORDER BY id LIMIT 1", [i.id])).rows[0];
+      if (!k) return hata(res, 'Bu işletmenin giriş hesabı yok', 404);
+      pool.query(`INSERT INTO audit_log (isletme_id, kullanici_id, kullanici_email, islem, detay, hedef_tablo, hedef_id)
+        VALUES ($1, $2, $3, 'impersonate', $4, 'admin_kullanicilar', $5)`,
+        [i.id, req.kullanici.id, req.kullanici.email, `${req.kullanici.email} sahada açtığı hesabın paneline girdi (${i.isim})`, k.id]).catch(() => {});
+      res.json({ token: panelAnahtari(k, req.kullanici), isletme_isim: i.isim });
+    } catch (e) { hata(res, 'Panel açılamadı', 500); }
+  }
+
+  // ── QR kart (2026-10-15): üyeye özel kod (S<id>). Esnaf okutunca Satış Bot'a "kart: S12" yazılı mesaj gider;
+  // kayıt olursa işletme bu üyeye yazılır. Link numaradan bağımsız: Satış Bot numarası değişse de basılı kart çalışır.
+  async qrKart(req, res) {
+    try {
+      const kod = `S${req.kullanici.id}`;
+      const link = `${KART_TABAN}/k/${kod}`;
+      const qr = await require('qrcode').toDataURL(link, { margin: 1, width: 640, errorCorrectionLevel: 'M' });
+      const isim = (await pool.query('SELECT isim FROM admin_kullanicilar WHERE id = $1', [req.kullanici.id])).rows[0]?.isim || '';
+      let numaralar = [];
+      try { numaralar = require('../services/satisBot').bagliNumaralar(); } catch (e) { /* bot yüklenemedi */ }
+      res.json({ kod, link, qr, isim, bagli: numaralar.length > 0, mesaj: kartMetni(kod) });
+    } catch (e) { console.error('qr kart:', e.message); hata(res, 'QR kart hazırlanamadı', 500); }
+  }
+
+  // Herkese açık: /k/S12 → o an bağlı Satış Bot numarasına hazır mesajlı WhatsApp (numara yoksa tanıtım sitesi)
+  async kartYonlendir(req, res) {
+    const kod = String(req.params.kod || '').toUpperCase();
+    if (!/^S\d{1,6}$/.test(kod)) return res.status(404).send('Bulunamadı');
+    let numara = null;
+    try { numara = require('../services/satisBot').bagliNumaralar()[0] || null; } catch (e) { /* yok */ }
+    // Bot bağlı değilse web kaydı; kod taşınır, kayıt yine bu üyeye yazılır (authController.botKayit)
+    if (!numara) return res.redirect(302, `${(process.env.ADMIN_PANEL_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '')}/?kayit=1&saha=${kod}`);
+    res.redirect(302, `https://wa.me/${numara}?text=${encodeURIComponent(kartMetni(kod))}`);
   }
 
   // ── Hedef (okuma herkes, değiştirme patron) ──

@@ -952,6 +952,13 @@ const PORT = process.env.PORT || 3000;
     // Paket yükseltme: ödeme başlatılırken seçilen paket, ödeme gelince uygulanır
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_paket VARCHAR(30)`,
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_shopier_urun_id VARCHAR(100)`,
+    // Saha satışı (2026-10-15, migration 051'de de var): giriş, Satış Bot ve teşvik işi bu kolonları okur
+    `ALTER TABLE admin_kullanicilar ADD COLUMN IF NOT EXISTS sifre_degistirmeli BOOLEAN NOT NULL DEFAULT false`,
+    `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS kurulum_durum JSONB`,
+    `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS ref_kullanici_id INT`,
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ilk_randevu_tebrik TIMESTAMP`,
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_tesvik TIMESTAMP`,
+    `ALTER TABLE merkez_otp_bot ADD COLUMN IF NOT EXISTS uyari TEXT`,
     // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
     `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
   ];
@@ -1111,6 +1118,8 @@ app.get('/book/:slug', panelGomebilir, spaSun);
 // Mağaza öneri linki — /m/:kod (tıklanmayı sayar, tedarikçinin ürün sayfasına yönlendirir)
 const magazaLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, message: 'Çok fazla istek', keyGenerator: limitAnahtari });
 app.get('/m/:kod', magazaLimiter, (req, res) => require('./controllers/magazaController').yonlendir(req, res));
+// Satışçı QR kartı — /k/S12 → o an bağlı Satış Bot numarasına "kart: S12" yazılı WhatsApp (masaController)
+app.get('/k/:kod', magazaLimiter, (req, res) => require('./controllers/masaController').kartYonlendir(req, res));
 
 // Grup Booking sayfası — /g/:slug
 app.get('/g/:slug', spaSun);
@@ -1247,6 +1256,9 @@ httpServer.listen(PORT, () => {
 
   // Kurulumda takılan esnafa otomatik yardım mesajı (saatlik kontrol)
   try { require('./services/kurulum').baslat(); } catch (e) { console.log('⚠️ Kurulum hatırlatma başlatılamadı:', e.message); }
+  // Saha satışı (2026-10-15): WhatsApp'ta takılan kurulum ekibe düşer; ilk randevu tebriği ve 10. randevuda davet isteği
+  try { require('./services/otopilot').zamanlayiciBaslat(); } catch (e) { console.log('⚠️ Otopilot denetimi başlatılamadı:', e.message); }
+  try { require('./services/esnafTesvik').baslat(); } catch (e) { console.log('⚠️ Esnaf teşviki başlatılamadı:', e.message); }
 
   // Render keep-alive: 14 dakikada bir self-ping (uyku modunu engelle)
   const keepAliveUrl = process.env.BASE_URL || `http://localhost:${PORT}`;

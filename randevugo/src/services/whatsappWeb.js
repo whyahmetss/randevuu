@@ -632,6 +632,14 @@ class WhatsAppWebService extends EventEmitter {
       musteriTelefon = remoteJid.replace('@c.us', '');
     }
 
+    // SıraGO'nun kendi numaraları (Satış Bot, Merkez OTP) müşteri değil: esnaf numarasını bağlayınca iki bot
+    // birbirine sonsuz cevap yazmasın (kurulum mesajları, şifre kodu, hatırlatmalar bu numaralardan gelir)
+    if (require('../utils/sistemNumaralari').sistemNumarasi(musteriTelefon) ||
+        (msg.key.remoteJidAlt && require('../utils/sistemNumaralari').sistemNumarasi(msg.key.remoteJidAlt))) {
+      sus('SıraGO sistem numarası');
+      return;
+    }
+
     iz.adim = 'işletme okuma';
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme) return;

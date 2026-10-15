@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { kart, dugme, sekmeStil, RENK, waTel, ilkMesaj, SONUC, saatTarih } from './ortak';
 import ItirazBankasi from './ItirazBankasi';
+import HesapAc, { panelAc } from './HesapAc';
+import QrKart from './QrKart';
 
 // Satış Masası (kullanıcı kararı 2026-10-10): her ekip üyesinin günlük çalışma ekranı.
 // Üstte takım hedefi ve benim günüm; ortada kendi arama listem; yanda liderlik ve kopya kâğıdı.
@@ -17,7 +19,7 @@ function Ilerleme({ deger, hedef, renk = RENK.yesil, yukseklik = 8 }) {
   );
 }
 
-function AdayKarti({ a, api, yenile, onDemo, waSay }) {
+function AdayKarti({ a, api, yenile, onDemo, waSay, onHesapAc }) {
   const [acik, setAcik] = useState(null);          // 'ilgileniyor' | 'not' | 'kurulum' → ek alan
   const [notu, setNotu] = useState('');
   const [bekle, setBekle] = useState(false);
@@ -92,6 +94,12 @@ function AdayKarti({ a, api, yenile, onDemo, waSay }) {
             <button disabled={bekle} onClick={() => setAcik(acik === 'kurulum' ? null : 'kurulum')} style={dugme(RENK.yesil, true)}>✓ Bağlandı</button>
             <button disabled={bekle} onClick={() => setAcik(acik === 'not' ? null : 'not')} style={dugme(RENK.gri)}>📝 Not</button>
           </div>
+          {/* 3) Sahada: ziyaret, kart, hesabı orada aç */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            <button disabled={bekle} onClick={() => kaydet('ziyaret')} style={dugme(SONUC.ziyaret.renk)}>🚶 Ziyaret ettim</button>
+            <button disabled={bekle} onClick={() => kaydet('kart')} title="2 gün sonra tekrar listene düşer" style={dugme(SONUC.kart.renk)}>🎴 Kart bıraktım</button>
+            <button disabled={bekle} onClick={() => onHesapAc?.(a)} style={dugme(RENK.yesil)}>🏪 Hesabını aç</button>
+          </div>
           {acik && (
             <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: 'var(--bg)' }}>
               <input value={notu} onChange={e => setNotu(e.target.value)} placeholder={acik === 'kurulum' ? 'Not (ör. QR kart bırakıldı, fiyatları girildi)' : acik === 'ilgileniyor' ? 'Ne dedi? (ör. akşam ortağıyla konuşacak)' : 'Not'}
@@ -121,6 +129,8 @@ export default function SatisMasasi({ api, kullanici }) {
   const [cek, setCek] = useState({ adet: 10, ilce: '', kategori: '' });
   const [cekiliyor, setCekiliyor] = useState(false);
   const [kopya, setKopya] = useState(false);
+  const [hesapAday, setHesapAday] = useState(null);   // {} = adaysız (listede olmayan dükkân) | aday satırı
+  const [qrAcik, setQrAcik] = useState(false);
 
   const yenile = useCallback(() => {
     api.get('/admin/masa/ozet').then(d => !d?.hata && setOzet(d)).catch(() => {});
@@ -149,16 +159,22 @@ export default function SatisMasasi({ api, kullanici }) {
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Satış Masası</h1>
           <p style={{ color: 'var(--dim)', fontSize: 13, margin: '4px 0 0' }}>Merhaba {kullanici?.isim || ''} — listeni ara, her aramanın sonucunu işaretle. İşaretlenmeyen arama sayılmaz.</p>
         </div>
-        <button onClick={() => setKopya(!kopya)} style={dugme(RENK.mor, kopya)}>📋 Kopya kâğıdı (itirazlar)</button>
-        <button onClick={async () => {
-          // Saha demosu: içi dolu demo dükkân paneli yeni sekmede (pencere tıklama anında açılır, engellenmesin)
-          const w = window.open('', '_blank');
-          const d = await api.post('/admin/saha-demo', {});
-          if (!d?.token) { w?.close(); return alert(d?.hata || 'Saha demosu açılamadı'); }
-          localStorage.setItem('randevugo_impersonate_token', d.token);
-          if (w) w.location.href = window.location.origin + '?impersonate=1'; else window.location.href = window.location.origin + '?impersonate=1';
-        }} title="Esnafa göstermek için içi dolu demo dükkân paneli" style={dugme(RENK.yesil)}>📱 Saha demosu</button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button onClick={() => setHesapAday({})} title="Listende olmayan dükkânda da açılır" style={dugme(RENK.yesil, true)}>🏪 Sahada hesap aç</button>
+          <button onClick={() => setQrAcik(true)} title="Sana özel QR kart: okutan esnaf sana yazılır" style={dugme(RENK.mor)}>🎴 QR kartım</button>
+          <button onClick={() => setKopya(!kopya)} style={dugme(RENK.mor, kopya)}>📋 Kopya kâğıdı (itirazlar)</button>
+          <button onClick={async () => {
+            // Saha demosu: içi dolu demo dükkân paneli yeni sekmede (pencere tıklama anında açılır, engellenmesin)
+            const w = window.open('', '_blank');
+            const d = await api.post('/admin/saha-demo', {});
+            if (!d?.token) { w?.close(); return alert(d?.hata || 'Saha demosu açılamadı'); }
+            localStorage.setItem('randevugo_impersonate_token', d.token);
+            if (w) w.location.href = window.location.origin + '?impersonate=1'; else window.location.href = window.location.origin + '?impersonate=1';
+          }} title="Esnafa göstermek için içi dolu demo dükkân paneli" style={dugme(RENK.yesil)}>📱 Saha demosu</button>
+        </div>
       </div>
+      {hesapAday && <HesapAc api={api} aday={hesapAday.id ? hesapAday : null} onKapat={() => setHesapAday(null)} onAcildi={() => yenile()} />}
+      {qrAcik && <QrKart api={api} onKapat={() => setQrAcik(false)} />}
 
       {/* Takım hedefi */}
       {h && (
@@ -179,8 +195,8 @@ export default function SatisMasasi({ api, kullanici }) {
         <div style={{ minWidth: 0 }}>
           {/* Benim günüm */}
           {ben && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 10, marginBottom: 14 }}>
-              {[['Arama', ben.arama, 20, RENK.mavi], ['Görüşme', ben.gorusme, 5, RENK.mor], ['Demo', ben.demo, 3, RENK.amber], ['Bağladım', benimBaglanan, ben.hedef, RENK.yesil]].map(([ad, n, hd, r]) => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 14 }}>
+              {[['Arama', ben.arama, 20, RENK.mavi], ['Ziyaret', ben.ziyaret || 0, 10, RENK.mavi], ['Görüşme', ben.gorusme, 5, RENK.mor], ['Demo', ben.demo, 3, RENK.amber], ['Bağladım', benimBaglanan, ben.hedef, RENK.yesil]].map(([ad, n, hd, r]) => (
                 <div key={ad} style={{ ...kart, padding: '12px 14px' }}>
                   <div style={{ fontSize: 12, color: 'var(--dim)' }}>{ad} <span style={{ opacity: .7 }}>/ {hd}</span></div>
                   <div style={{ fontSize: 24, fontWeight: 700, color: r, margin: '2px 0 6px' }}>{n}</div>
@@ -220,12 +236,12 @@ export default function SatisMasasi({ api, kullanici }) {
               </div>
               {liste.bugun.length === 0
                 ? <div style={{ ...kart, textAlign: 'center', color: 'var(--dim)', fontSize: 14 }}>Bugün aranacak kimse yok. Yukarıdan listene aday çek.</div>
-                : liste.bugun.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} waSay={waSay} />)}
+                : liste.bugun.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} waSay={waSay} onHesapAc={setHesapAday} />)}
             </>
           )}
           {sekme === 'ileride' && (liste.ileride.length === 0
             ? <div style={{ ...kart, color: 'var(--dim)', fontSize: 14 }}>Geri aranacak kimse yok.</div>
-            : liste.ileride.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} waSay={waSay} />))}
+            : liste.ileride.map(a => <AdayKarti key={a.id} a={a} api={api} yenile={yenile} waSay={waSay} onHesapAc={setHesapAday} />))}
           {sekme === 'yaptim' && (
             <div style={{ ...kart, padding: 0 }}>
               {aktiviteler.length === 0 && <div style={{ padding: 16, color: 'var(--dim)', fontSize: 14 }}>Bugün henüz kayıt yok.</div>}
@@ -235,6 +251,12 @@ export default function SatisMasasi({ api, kullanici }) {
                   <span style={{ fontWeight: 600, color: SONUC[x.tip]?.renk || 'var(--text)', minWidth: 110 }}>{SONUC[x.tip]?.ad || x.tip}{x.otomatik ? ' (otomatik)' : ''}</span>
                   <span style={{ color: 'var(--text)' }}>{x.isletme_adi || x.isletme_isim || ''}</span>
                   {x.notu && <span style={{ color: 'var(--dim)' }}>— {x.notu}</span>}
+                  {x.tip === 'kurulum' && x.isletme_id && !x.otomatik && (
+                    <button onClick={async () => {
+                      const d = await api.post(`/admin/masa/hesap/${x.isletme_id}/panel`, {});
+                      if (d?.token) panelAc(d.token, 'botbaglanti'); else alert(d?.hata || 'Panel açılamadı');
+                    }} style={{ ...dugme(RENK.mavi), marginLeft: 'auto', padding: '4px 10px', fontSize: 11 }}>Panelini aç</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -260,6 +282,7 @@ export default function SatisMasasi({ api, kullanici }) {
               <thead><tr style={{ color: 'var(--dim)' }}>
                 <th style={{ textAlign: 'left', padding: '4px 2px', fontWeight: 600 }}>Kişi</th>
                 <th style={{ textAlign: 'right', padding: '4px 2px', fontWeight: 600 }} title="Arama">Ara</th>
+                <th style={{ textAlign: 'right', padding: '4px 2px', fontWeight: 600 }} title="Ziyaret">Zyr</th>
                 <th style={{ textAlign: 'right', padding: '4px 2px', fontWeight: 600 }} title="Görüşme">Gör</th>
                 <th style={{ textAlign: 'right', padding: '4px 2px', fontWeight: 600 }}>Demo</th>
                 <th style={{ textAlign: 'right', padding: '4px 2px', fontWeight: 600, color: RENK.yesil }}>Bağ.</th>
@@ -269,6 +292,7 @@ export default function SatisMasasi({ api, kullanici }) {
                   <tr key={x.id} style={{ background: x.id === kullanici?.id ? 'rgba(31,111,74,.07)' : 'transparent' }}>
                     <td style={{ padding: '6px 2px', color: 'var(--text)', fontWeight: x.id === kullanici?.id ? 700 : 500 }}>{i === 0 && x.kurulum > 0 ? '🥇 ' : ''}{x.isim}</td>
                     <td style={{ textAlign: 'right', padding: '6px 2px' }}>{x.arama}</td>
+                    <td style={{ textAlign: 'right', padding: '6px 2px' }}>{x.ziyaret || 0}</td>
                     <td style={{ textAlign: 'right', padding: '6px 2px' }}>{x.gorusme}</td>
                     <td style={{ textAlign: 'right', padding: '6px 2px' }}>{x.demo}</td>
                     <td style={{ textAlign: 'right', padding: '6px 2px', fontWeight: 700, color: RENK.yesil }}>{x.kurulum}</td>

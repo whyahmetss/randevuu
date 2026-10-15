@@ -29,6 +29,8 @@ const ONEK = {
   isletmeler: 'isletmeler', impersonate: 'isletmeler', zombiler: 'isletmeler', onboarding: 'isletmeler',
   destek: 'destek', iletisim: 'destek', duyurular: 'destek',
   avci: 'satis', 'satis-bot': 'satis', 'musteri-crm': 'satis', referanslar: 'satis', 'qr-kod': 'satis', masa: 'satis',
+  // Saha demosu satışın aracı (2026-10-15: satış ekibi 403 alıyordu). Yalnız demo dükkâna girer, gerçek işletmeye değil
+  'saha-demo': 'satis',
   odemeler: 'odemeler', hakedis: 'odemeler',
   paketler: 'paketler',
   magaza: 'magaza',

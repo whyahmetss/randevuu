@@ -48,7 +48,9 @@ import SistemUyarilari from './components/Platform/SistemUyarilari';
 import BotMesajlari from './components/Platform/BotMesajlari';
 import Ozellikler from './components/Platform/Ozellikler';
 import Kuponlar from './components/Platform/Kuponlar';
+import MerkezOtp from './components/Platform/MerkezOtp';
 import BackendHealth from './components/BackendHealth';
+import SifreBelirle, { SifreFormu } from './components/SifreDegistir';
 import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
 import BildirimAktivasyon from './components/BildirimAktivasyon';
 import DukkanModuPopup from './components/DukkanModuPopup';
@@ -116,6 +118,58 @@ const sgBtn = (renk, dolu) => ({ padding: "7px 12px", borderRadius: 9, border: d
   background: dolu ? renk : "var(--surface)", color: dolu ? "#fff" : (renk || "var(--text)"), fontWeight: 600, fontSize: 12,
   textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap", fontFamily: "inherit" });
 const sgKart = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "18px 20px" };
+
+// Geçici şifre (2026-10-15): esnaf şifresini unutup aradığında. Önce arayanın işletme sahibi olduğu doğrulanır;
+// şifre ekranda görünür ve işletmenin kayıtlı WhatsApp'ına da gider. Esnaf ilk girişte kendi şifresini belirler.
+function GeciciSifreButonu({ isl }) {
+  const [sonuc, setSonuc] = useState(null);
+  const [bekle, setBekle] = useState(false);
+  const ver = async () => {
+    if (!confirm(`Arayan kişi "${isl.isim}" sahibi mi? Kayıtlı numaradan (${isl.telefon || "numara yok"}) aradığından ya da işletmeyi tanıdığından emin ol.\n\nYeni geçici şifre oluşturulacak, eski şifre artık çalışmayacak. Şifre işletmenin kayıtlı WhatsApp'ına da gönderilecek.`)) return;
+    setBekle(true);
+    const d = await api.post(`/admin/isletmeler/${isl.id}/gecici-sifre`, { gonder: true });
+    setBekle(false);
+    if (d?.hata) return alert(d.hata);
+    setSonuc(d);
+  };
+  if (sonuc) return (
+    <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(31,111,74,.07)", border: "1px solid rgba(31,111,74,.2)" }}>
+      <div style={{ fontWeight: 600, fontSize: 13, color: "#1f6f4a", marginBottom: 6 }}>🔑 Geçici şifre hazır</div>
+      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1, fontFamily: "ui-monospace, monospace", color: "var(--text)" }}>{sonuc.sifre}</div>
+      <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 4, lineHeight: 1.5 }}>
+        E-posta: <b>{sonuc.email}</b><br />
+        {sonuc.gonderildi ? `WhatsApp'a da gönderildi (${sonuc.tel}).` : "WhatsApp'a gönderilemedi: şifreyi esnafa sen söyle."}<br />
+        İlk girişte kendi şifresini belirleyecek.
+      </div>
+      <button onClick={() => kopyala(`${sonuc.email} / ${sonuc.sifre}`)} style={{ ...sgBtn(SG.yesil), marginTop: 8 }}>Kopyala</button>
+    </div>
+  );
+  return (
+    <button onClick={ver} disabled={bekle} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: bekle ? "wait" : "pointer", background: "rgba(31,111,74,.06)", textAlign: "left" }}>
+      <div style={{ fontWeight: 600, fontSize: 14, color: "#1f6f4a" }}>🔑 {bekle ? "Hazırlanıyor…" : "Geçici şifre ver"}</div>
+      <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>Şifresini unutan esnaf için; ilk girişte değiştirir</div>
+    </button>
+  );
+}
+
+// Ekip üyesi kendi şifresini değiştirir (yan menünün altında; pencere içinde form)
+function EkipSifreDugmesi() {
+  const [acik, setAcik] = useState(false);
+  return (<>
+    <button onClick={() => setAcik(true)} className="btn btn-ghost btn-sm" style={{ flex: 1 }} title="Şifremi değiştir">🔒 Şifre</button>
+    {acik && (
+      <div onClick={() => setAcik(false)} style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 380, background: "var(--surface)", borderRadius: 16, padding: "20px 22px", border: "1px solid var(--border)" }}>
+          <div className="row row-between" style={{ marginBottom: 12 }}>
+            <b style={{ fontSize: 16 }}>🔒 Şifremi değiştir</b>
+            <button onClick={() => setAcik(false)} className="btn btn-sm btn-ghost" aria-label="Kapat">✕</button>
+          </div>
+          <SifreFormu api={api} onTamam={() => setTimeout(() => setAcik(false), 1200)} />
+        </div>
+      </div>
+    )}
+  </>);
+}
 
 // Huni şeridi: [{ ad, deger, renk }] → oklarla bağlı adımlar, her adımda bir öncekine göre dönüşüm
 function HuniSerit({ adimlar }) {
@@ -260,6 +314,8 @@ function Login({ onLogin }) {
   const [yukleniyor, setYukleniyor] = useState(false);
   // Davet linki: ?davet=KOD (&k=randevu_sayfasi) → doğrudan kayıt ekranı, kod otomatik
   const davetParam = (() => { try { const q = new URLSearchParams(window.location.search); return { kod: q.get("davet") || "", kanal: q.get("k") === "randevu_sayfasi" ? "randevu_sayfasi" : "davet" }; } catch { return { kod: "", kanal: "web" }; } })();
+  // QR kart (Satış Bot bağlı değilken buraya düşer): ?saha=S12 → kayıt o ekip üyesine yazılır
+  const sahaKodu = (() => { try { const k = new URLSearchParams(window.location.search).get("saha") || ""; return /^S\d{1,6}$/i.test(k) ? k.toUpperCase() : undefined; } catch { return undefined; } })();
   // ?kayit=1 (tanıtım sitesindeki "Ücretsiz Dene") ya da davet linki → doğrudan kayıt ekranı
   const [ekran, setEkran] = useState(davetParam.kod || /[?&]kayit=1/.test(window.location.search) ? "kayit" : "giris"); // giris | kayit
   const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
@@ -285,7 +341,7 @@ function Login({ onLogin }) {
   const googleCevap = async (credential, isletmeAdi) => {
     setHata(""); setYukleniyor(true);
     const d = await authPost("/auth/google", { credential, isletmeAdi, sartlar_onay: isletmeAdi ? true : undefined, davet: (kayitForm.davet || "").trim() || undefined,
-      kayitKanal: davetParam.kod ? davetParam.kanal : "web" });
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web", saha_kodu: sahaKodu });
     setYukleniyor(false);
     if (d.yeni) { setGoogleYeni({ credential, email: d.email }); setEkran("kayit"); return; }
     if (!oturumAc(d)) setHata(d.hata || "Google ile giriş yapılamadı");
@@ -346,7 +402,7 @@ function Login({ onLogin }) {
     if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onayla");
     setYukleniyor(true);
     const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
-      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined, sartlar_onay: true });
+      kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined, sartlar_onay: true, saha_kodu: sahaKodu });
     if (data.basarili) {
       // Kayıttan sonra şifreyi tekrar yazdırmadan doğrudan panele
       const g = await authPost("/auth/giris", { email: kayitForm.email, sifre: kayitForm.sifre });
@@ -3888,8 +3944,6 @@ function SuperAdminPanel({ kullanici }) {
   const [numaralar, setNumaralar] = useState([]);
   const [numaraFormAcik, setNumaraFormAcik] = useState(false);
   const [yeniNumara, setYeniNumara] = useState({ isim: "", telefon: "" });
-  // Merkez OTP Bot (SıraGO sistem numaraları — esnaf WA'sı yoksa fallback)
-  const [merkezOtp, setMerkezOtp] = useState({ durum: 'kapali', numaralar: [] });
   // Satış Bot Şablonlar
   const [sablonlar, setSablonlar] = useState([]);
   const [sablonEnIyi, setSablonEnIyi] = useState(null);
@@ -4055,10 +4109,6 @@ function SuperAdminPanel({ kullanici }) {
     try { const d = await api.get("/admin/satis-bot/numaralar"); setNumaralar(d.numaralar || []); } catch (e) { console.log("Numara yükleme hatası:", e); }
   };
 
-  const merkezOtpYukle = async () => {
-    try { const d = await api.get("/admin/merkez-otp/numaralar"); setMerkezOtp(d && Array.isArray(d.numaralar) ? d : { durum: 'kapali', numaralar: [] }); }
-    catch (e) { console.log("Merkez OTP yükleme hatası:", e); }
-  };
 
   const sablonlariYukle = async () => {
     try { const d = await api.get("/admin/satis-bot/sablonlar"); setSablonlar(d.sablonlar || []); setSablonEnIyi(d.enIyiId); } catch (e) { console.log("Şablon yükleme hatası:", e); }
@@ -4348,22 +4398,13 @@ function SuperAdminPanel({ kullanici }) {
     return () => clearInterval(interval);
   }, [sayfa, satisBotDurum?.durum, satisBotDurum?.numaraDurumlari?.length]);
 
-  // Merkez OTP polling — QR bekliyorken 3sn
-  useEffect(() => {
-    if (sayfa !== "satisBot") return;
-    const qrBekliyor = merkezOtp?.numaralar?.some(n => n.durum === 'qr_bekliyor');
-    const sure = qrBekliyor ? 3000 : 15000;
-    const interval = setInterval(merkezOtpYukle, sure);
-    return () => clearInterval(interval);
-  }, [sayfa, merkezOtp?.durum, merkezOtp?.numaralar?.length]);
-
   useEffect(() => {
     if (sayfa === "dashboard") saasMetrikleriYukle();
     if (sayfa === "isletmeler") isletmeleriYukle();
     if (sayfa === "odemeler") odemeleriYukle();
     if (sayfa === "avci") { avciStatsYukle(); avciListeYukle(); avciGunlukYukle(); avciSehirleriYukle(); avciIlceleriYukle(avciSehir); }
     if (sayfa === "iletisim") iletisimYukle();
-    if (sayfa === "satisBot") { numaralariYukle(); sablonlariYukle(); kampanyalariYukle(); kategoriDagiliminiYukle(); merkezOtpYukle(); }
+    if (sayfa === "satisBot") { numaralariYukle(); sablonlariYukle(); kampanyalariYukle(); kategoriDagiliminiYukle(); }
     if (sayfa === "auditLog") auditLogYukle();
     if (sayfa === "sistemDurum") sistemDurumuYukle();
     if (sayfa === "destek") destekYukle();
@@ -4463,7 +4504,7 @@ function SuperAdminPanel({ kullanici }) {
     destek: 'destek', duyurular: 'destek', iletisim: 'destek',
     avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
     odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza', kuponlar: 'odemeler',
-    apiDash: 'sistem', sistemDurum: 'sistem', sistemUyarilari: 'sistem', auditLog: 'patron', ekip: 'patron',
+    apiDash: 'sistem', sistemDurum: 'sistem', sistemUyarilari: 'sistem', merkezOtp: 'sistem', auditLog: 'patron', ekip: 'patron',
     masa: 'satis', rehber: 'genel', ekipTakip: 'patron',
     // Tüm işletmeleri etkiler: yalnız kurucu (sunucu da aynı kuralı uygular, config/ekip.js)
     platformAyarlari: 'kurucu', botMesajlari: 'kurucu', ozellikler: 'kurucu',
@@ -4514,6 +4555,7 @@ function SuperAdminPanel({ kullanici }) {
       { id: "auditLog", icon: SVGA.auditLog, label: "Audit Log" },
       { id: "apiDash", icon: SVGA.sistemDurum, label: "API Dashboard" },
       { id: "sistemDurum", icon: SVGA.sistemDurum, label: "Sistem Durumu" },
+      { id: "merkezOtp", icon: SVGA.iletisim, label: "Merkez OTP Numaraları" },
     ]},
   ];
   const menuGruplari = MENU_GRUPLARI
@@ -4640,7 +4682,10 @@ function SuperAdminPanel({ kullanici }) {
             <CanliDurumu />
             <BackendHealth />
           </div>
-          <button onClick={cikisYap} className="btn btn-ghost btn-block btn-sm">Çıkış Yap</button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <EkipSifreDugmesi />
+            <button onClick={cikisYap} className="btn btn-ghost btn-sm" style={{ flex: 1 }}>Çıkış Yap</button>
+          </div>
         </div>
       </aside>
 
@@ -5427,6 +5472,7 @@ function SuperAdminPanel({ kullanici }) {
 
         {/* SATIŞ MASASI · REHBER · EKİP TAKİP (patron) */}
         {sayfa === "masa" && izinli('satis') && <SatisMasasi api={api} kullanici={kullanici} />}
+        {sayfa === "merkezOtp" && izinli('sistem') && <MerkezOtp api={api} />}
         {sayfa === "rehber" && <SatisRehberi api={api} patron={patron} />}
         {sayfa === "ekipTakip" && patron && <EkipTakip api={api} />}
 
@@ -7633,6 +7679,7 @@ function SuperAdminPanel({ kullanici }) {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
                     {[
                       ["kayitAktif", "📝 WhatsApp Kayıt", "Bot üzerinden hesap açma"],
+                      ["otopilotKurulum", "🧭 Otopilot Kurulum", "Kayıttan sonra hizmet, çalışan ve WhatsApp bağlantısını sohbette kurar"],
                       ["aiCevapAktif", "🤖 AI Cevap", "Gemini / DeepSeek ile temsilci gibi cevap"],
                       ["takipAktif", "🔔 Takip Mesajı", "Cevap vermeyenlere hatırlatma"],
                       ["gelenMesajCevap", "💬 Gelen Mesaj Cevap", "Gelen mesajlara otomatik cevap"],
@@ -7865,57 +7912,11 @@ function SuperAdminPanel({ kullanici }) {
               )}
             </div>
 
-            {/* ═══ SıraGO MERKEZ OTP BOT ═══ */}
-            <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 16, borderLeft: "3px solid #b42318" }}>
-              <div className="row row-between mb-16" style={{ alignItems: "center" }}>
-                <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", margin: 0 }}>SıraGO Merkez OTP Numaraları</h3>
-                  <p style={{ fontSize: 12, color: "var(--dim)", margin: "4px 0 0", maxWidth: 680 }}>
-                    Esnaf WhatsApp'ı bağlı değilse / kopuksa bu numaralardan otomatik olarak doğrulama kodu gönderilir.
-                    Müşteri yine WhatsApp kodu alır, bypass yok. Birden fazla numara eklenirse round-robin + günlük limit yönetimi devreye girer.
-                  </p>
-                </div>
-                <button onClick={async () => { await api.post("/admin/merkez-otp/numaralar", {}); setTimeout(merkezOtpYukle, 500); }} style={{ padding: "8px 16px", borderRadius: 10, border: "none", cursor: "pointer", background: "#b42318", color: "#fff", fontWeight: 600, fontSize: 12 }}>+ Yeni Numara</button>
-              </div>
-
-              {merkezOtp?.numaralar?.length === 0 ? (
-                <div style={{ padding: 16, borderRadius: 10, background: "rgba(180,35,24,.05)", border: "1px dashed rgba(180,35,24,.2)", textAlign: "center", color: "var(--dim)", fontSize: 13 }}>
-                  Henüz merkez OTP numarası yok. Yeni bir numara ekle ve QR'ı tara — esnaf WA'sı yoksa müşteri kodları buradan gidecek.
-                </div>
-              ) : (
-                <div style={{ display: "grid", gap: 10 }}>
-                  {merkezOtp.numaralar.map(n => (
-                    <div key={n.id} style={{ padding: 14, borderRadius: 10, background: "var(--bg)", border: "1px solid var(--border)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>
-                            {n.numara || '(henüz numara yok)'} <span style={{ fontSize: 11, fontWeight: 500, color: "var(--dim)" }}>#{n.id}</span>
-                          </div>
-                          <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 3 }}>
-                            Durum: <strong style={{ color: n.durum === 'bagli' ? '#1f6f4a' : n.durum === 'qr_bekliyor' ? '#a8590c' : '#b42318' }}>{etiket(n.durum)}</strong>
-                            &nbsp;·&nbsp; Bugün: {n.gunluk_gonderim || 0} gönderim
-                          </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          {n.durum !== 'bagli' && (
-                            <button onClick={async () => { await api.post(`/admin/merkez-otp/numaralar/${n.id}/baslat`); setTimeout(merkezOtpYukle, 1500); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "#b42318", color: "#fff", fontWeight: 600, fontSize: 11 }}>Başlat / Yeni QR</button>
-                          )}
-                          {n.durum === 'bagli' && (
-                            <button onClick={async () => { await api.post(`/admin/merkez-otp/numaralar/${n.id}/durdur`); setTimeout(merkezOtpYukle, 500); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 11 }}>Durdur</button>
-                          )}
-                          <button onClick={async () => { if (confirm(`Numara #${n.id} silinsin mi?`)) { await api.del(`/admin/merkez-otp/numaralar/${n.id}`); merkezOtpYukle(); }}} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.04)", color: "var(--dim)", fontSize: 11 }}>✕</button>
-                        </div>
-                      </div>
-                      {n.durum === 'qr_bekliyor' && n.qr_base64 && (
-                        <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: "#b42318", marginBottom: 8 }}>📱 QR'ı SıraGO sistem telefonunuzdan WhatsApp Web ile tara</div>
-                          <img src={n.qr_base64} alt="QR" style={{ width: 220, height: 220, borderRadius: 12 }} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+            {/* Merkez OTP numaraları ayrı sayfada (2026-10-15): iki sistem karışmasın */}
+            <div style={{ fontSize: 12, color: "var(--dim)", padding: "10px 14px", borderRadius: 10, background: "rgba(47,86,198,.05)", border: "1px solid rgba(47,86,198,.12)", marginBottom: 16 }}>
+              Bu numaralar yalnız <b>satış konuşması</b> içindir. Doğrulama kodu (OTP) ve sistem bildirimi numaraları ayrı:{" "}
+              {izinli("sistem") ? <button onClick={() => setSayfa("merkezOtp")} style={{ border: "none", background: "none", padding: 0, color: "#2f56c6", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>Yönetim → Merkez OTP Numaraları</button> : <b>Yönetim → Merkez OTP Numaraları</b>}.
+              Bir numara iki sisteme birden bağlanamaz; burada bağlanan numara Merkez OTP'den otomatik çıkarılır.
             </div>
 
             </>}
@@ -8640,6 +8641,8 @@ function SuperAdminPanel({ kullanici }) {
                         <div style={{ fontWeight: 600, fontSize: 14, color: "#a8590c" }}>Müşteri Olarak Giriş</div>
                         <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İşletmenin panelini gör</div>
                       </button>
+
+                      <GeciciSifreButonu isl={isl} />
                     </div>
 
                     {/* Tehlikeli İşlemler */}
@@ -8673,7 +8676,9 @@ export default function App() {
         sessionStorage.setItem("randevugo_imp_token", impToken);
         api.token = impToken;
         localStorage.removeItem("randevugo_impersonate_token");
-        window.history.replaceState({}, "", window.location.pathname);
+        // Hedef sayfa korunur (Sahada hesap aç → ?sayfa=botbaglanti); Dashboard açıp adresi temizler
+        const sayfa = params.get("sayfa");
+        window.history.replaceState({}, "", window.location.pathname + (sayfa ? `?sayfa=${encodeURIComponent(sayfa)}` : ""));
       }
     }
 
@@ -8705,6 +8710,11 @@ export default function App() {
   );
 
   if (!kullanici) return <Login onLogin={setKullanici} />;
+  // Geçici şifreyle açılan hesap (sahada açıldı / şifre sıfırlandı): kendi şifresini belirlemeden panel açılmaz
+  if (kullanici.sifre_degistirmeli && !kullanici.impersonated && !sessionStorage.getItem("randevugo_imp_token")) {
+    return <SifreBelirle api={api} kullanici={kullanici} onTamam={() => setKullanici({ ...kullanici, sifre_degistirmeli: false })}
+      onCikis={() => { api.token = null; oturumuKapat(); window.location.reload(); }} />;
+  }
   if (kullanici.rol === "superadmin") return <SuperAdminPanel kullanici={kullanici} />;
   if (sessionStorage.getItem("randevugo_imp_token")) {
     // Müşteri olarak giriş sekmesi: görünür uyarı + çıkış (oturum yalnız bu sekmede)

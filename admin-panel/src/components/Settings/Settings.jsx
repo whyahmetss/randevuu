@@ -4,6 +4,7 @@ import { ayarOku as bildirimAyarOku, ayarYaz as bildirimAyarYaz, sesListesi, bil
 import GoogleCalendar from './GoogleCalendar';
 import { bookingUrl, BOOKING_BASE } from '../../lib/config';
 import { dosyaIndir } from '../Platform/ortak';
+import { SifreFormu } from '../SifreDegistir';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -328,12 +329,13 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           {/* Mesai Dışı */}
           <div>
             <div style={S.sectionLabel}>Mesai Dışı Davranış</div>
-            <select value={ayarlar.mesai_disi_mod || 'kapali_mesaj'} onChange={e => setAyarlar({...ayarlar, mesai_disi_mod: e.target.value})} className="input" style={{ width: "100%", marginBottom: 8 }}>
+            {/* Boş değer botta "Normal Çalış" demek (whatsappWeb): seçim de öyle görünsün */}
+            <select value={ayarlar.mesai_disi_mod || 'randevu_ver'} onChange={e => setAyarlar({...ayarlar, mesai_disi_mod: e.target.value})} className="input" style={{ width: "100%", marginBottom: 8 }}>
+              <option value="randevu_ver">Normal Çalış (gece de randevu alır)</option>
               <option value="kapali_mesaj">Kapalı Mesajı Gönder</option>
               <option value="sessiz">Sessiz (Cevap Verme)</option>
-              <option value="randevu_ver">Normal Çalış (Randevu Al)</option>
             </select>
-            {(ayarlar.mesai_disi_mod === 'kapali_mesaj' || !ayarlar.mesai_disi_mod) && (
+            {ayarlar.mesai_disi_mod === 'kapali_mesaj' && (
               <textarea value={ayarlar.mesai_disi_mesaj || ''} onChange={e => setAyarlar({...ayarlar, mesai_disi_mesaj: e.target.value})}
                 className="input" rows={2} placeholder="Şu an kapalıyız. Çalışma saatlerimiz: ..." style={{ width: '100%', resize: 'vertical', fontSize: 12 }} />
             )}
@@ -760,6 +762,20 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
           💡 <strong>OTP Kaynağı:</strong> Esnaf WhatsApp'ınız bağlıysa doğrulama kodları oradan gider (müşteri "siz" olarak görür). Bağlı değilken otomatik olarak SıraGO Merkez OTP Servisi devreye girer — müşteri yine kod alır, bu sayede her randevu doğrulanmış olur.
         </div>
       </div>
+
+      {/* ═══════════════  Şifremi değiştir (2026-10-15; müşteri olarak girişte gizli)  ═══════════════ */}
+      {!sessionStorage.getItem('randevugo_imp_token') && (
+        <details style={{ ...S.card, marginTop: 16 }}>
+          <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>🔒 Şifremi değiştir</div>
+              <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 2 }}>Panele giriş şifren. Unutursan girişteki "Şifremi unuttum" ile WhatsApp'tan kod alırsın.</div>
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#2f56c6' }}>Değiştir</span>
+          </summary>
+          <div style={{ maxWidth: 380, marginTop: 14 }}><SifreFormu api={api} /></div>
+        </details>
+      )}
 
       {/* ═══════════════  Verilerim (KVKK md. 11, 2026-10-15)  ═══════════════ */}
       <div style={{ ...S.card, marginTop: 16 }}>

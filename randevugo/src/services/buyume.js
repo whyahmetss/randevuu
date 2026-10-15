@@ -4,7 +4,7 @@
 const pool = require('../config/db');
 
 const KANAL_AD = { whatsapp: 'WhatsApp satış botu', demo: 'Kişisel demo (Venüs)', telegram: 'Telegram botu', referans: 'Esnaf daveti',
-  randevu_sayfasi: 'Randevu sayfası (müşteriden)', web: 'Web sitesi / panel' };
+  randevu_sayfasi: 'Randevu sayfası (müşteriden)', web: 'Web sitesi / panel', saha: 'Sahada açılan (ekip)', qr_kart: 'QR kart (ekip)' };
 
 async function buyumeRaporu(gun = 30) {
   gun = Math.min(Math.max(parseInt(gun) || 30, 1), 365);
@@ -12,6 +12,7 @@ async function buyumeRaporu(gun = 30) {
     SELECT i.id,
       CASE
         WHEN i.kayit_kanali = 'randevu_sayfasi' THEN 'randevu_sayfasi'
+        WHEN i.kayit_kanali IN ('saha', 'qr_kart') THEN i.kayit_kanali
         WHEN i.telefon LIKE 'tg\_%' THEN 'telegram'
         WHEN i.demo_lead_id IS NOT NULL THEN 'demo'
         WHEN EXISTS (SELECT 1 FROM satis_konusmalar k WHERE k.kayit_isletme_id = i.id) THEN 'whatsapp'
