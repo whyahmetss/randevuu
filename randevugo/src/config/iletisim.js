@@ -1,4 +1,7 @@
-// Destek/satış WhatsApp numarası tek yerden (2026-10-13: eski sanal numara ban yedi).
-// Render → DESTEK_WP=905xxxxxxxxx. Boşsa panel ve sayfalardaki WhatsApp butonları gizlenir.
-const DESTEK_WP = String(process.env.DESTEK_WP || '').replace(/\D/g, '') || null;
-module.exports = { DESTEK_WP };
+// Destek/satış iletişim bilgileri tek yerden (2026-10-13: eski sanal numara ban yedi).
+// 2026-10-15: Platform Ayarları'ndan değişir; DESTEK_WP env yalnız varsayılan. Boş numara → WhatsApp butonları gizlenir.
+const ayar = () => require('../utils/platformAyar');
+module.exports = {
+  get DESTEK_WP() { return ayar().al('destek_whatsapp') || null; },
+  get DESTEK_EPOSTA() { return ayar().al('destek_eposta'); },
+};

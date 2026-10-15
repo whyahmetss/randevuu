@@ -287,7 +287,7 @@ const PORT = process.env.PORT || 3000;
     await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS paket_bitis_tarihi TIMESTAMP`);
     await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS deneme_bitis_tarihi TIMESTAMP`);
     // Mevcut işletmeler: deneme_bitis_tarihi boşsa olusturma_tarihi + deneme süresi (config/deneme.js)
-    await adim(`UPDATE isletmeler SET deneme_bitis_tarihi = olusturma_tarihi + make_interval(days => $1) WHERE deneme_bitis_tarihi IS NULL AND olusturma_tarihi IS NOT NULL`, [require('./config/deneme').DENEME_GUN]);
+    await adim(`UPDATE isletmeler SET deneme_bitis_tarihi = olusturma_tarihi + make_interval(days => $1) WHERE deneme_bitis_tarihi IS NULL AND olusturma_tarihi IS NOT NULL`, [require('./config/deneme').denemeGun()]);
 
     // ─── DİNAMİK PAKETLER ───
     await adim(`CREATE TABLE IF NOT EXISTS paket_tanimlari (
@@ -933,6 +933,11 @@ const PORT = process.env.PORT || 3000;
   } catch (e) {
     console.log('⚠️ Migration hatası (önemsiz olabilir):', e.message);
   }
+  // Platform yönetimi (2026-10-15): panelden değişen ayarlar, özellik anahtarları ve bot şablonları belleğe.
+  // Migration bloğunun dışında: önceki bir adım hata verse de yüklensinler (tablo yoksa varsayılanlar kalır)
+  require('./utils/platformAyar').baslat();
+  require('./utils/ozellik').baslat();
+  require('./utils/botMesajlar').sablonBaslat();
 })();
 
 // Eksik kolonlar — büyük migration bloğu tek try içinde olduğundan bir hata sonrakileri atlıyor;
@@ -941,6 +946,9 @@ const PORT = process.env.PORT || 3000;
   const ekKolonlar = [
     `ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS iptal_randevu_id INTEGER`,
     `ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS notlar TEXT`,
+    // Kupon (2026-10-15, migration 050'de de var): ödeme başlatma bu kolona yazar, migration atlansa da olsun
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_kupon_id INT`,
+    `ALTER TABLE odemeler ADD COLUMN IF NOT EXISTS kupon_kodu VARCHAR(40)`,
     // Paket yükseltme: ödeme başlatılırken seçilen paket, ödeme gelince uygulanır
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_paket VARCHAR(30)`,
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_shopier_urun_id VARCHAR(100)`,

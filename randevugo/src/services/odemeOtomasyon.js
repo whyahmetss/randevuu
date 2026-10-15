@@ -14,8 +14,9 @@ const b64 = (s) => Buffer.from(s).toString('base64url');
 const imza = (govde) => crypto.createHmac('sha256', GIZLI).update('odeme:' + govde).digest('base64url');
 
 // Yalnız ödeme başlatabilen, süreli link anahtarı (giriş anahtarı değil: panele erişim vermez)
-function linkAnahtari(isletmeId, paket, sure) {
-  const govde = b64(JSON.stringify({ i: isletmeId, p: paket || null, ...(sure === 'yil' ? { s: 'yil' } : {}), e: Date.now() + LINK_GUN * 86400000 }));
+function linkAnahtari(isletmeId, paket, sure, kupon) {
+  const govde = b64(JSON.stringify({ i: isletmeId, p: paket || null, ...(sure === 'yil' ? { s: 'yil' } : {}), ...(kupon ? { k: String(kupon) } : {}),
+    e: Date.now() + LINK_GUN * 86400000 }));
   return `${govde}.${imza(govde)}`;
 }
 function anahtarCoz(anahtar) {
@@ -28,7 +29,7 @@ function anahtarCoz(anahtar) {
     return v.e > Date.now() && Number.isInteger(v.i) ? v : null;
   } catch (e) { return null; }
 }
-const odemeLinki = (isletmeId, paket, sure) => `${API}/api/odeme/ode/${linkAnahtari(isletmeId, paket, sure)}`;
+const odemeLinki = (isletmeId, paket, sure, kupon) => `${API}/api/odeme/ode/${linkAnahtari(isletmeId, paket, sure, kupon)}`;
 
 const tarih = (d) => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', timeZone: 'Europe/Istanbul' });
 

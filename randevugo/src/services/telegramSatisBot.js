@@ -1,5 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
-const { DENEME_GUN } = require('../config/deneme');
+const { denemeGun } = require('../config/deneme');
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
@@ -98,7 +98,7 @@ class TelegramSatisBot {
       `✅ 7/24 online randevu\n` +
       `✅ WhatsApp hatırlatma\n` +
       `✅ Kolay yönetim paneli\n` +
-      `✅ ${DENEME_GUN} gün ücretsiz, kart bilgisi yok.\n\n` +
+      `✅ ${denemeGun()} gün ücretsiz, kart bilgisi yok.\n\n` +
       `Hemen başlamak için aşağıdaki butona tıklayın 👇`,
       {
         parse_mode: 'Markdown',
@@ -266,7 +266,7 @@ class TelegramSatisBot {
       const isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
          VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + make_interval(days => $3)) RETURNING *`,
-        [k.isletmeAdi, telFormatli, DENEME_GUN]
+        [k.isletmeAdi, telFormatli, denemeGun()]
       )).rows[0];
 
       // Admin kullanıcı oluştur
@@ -291,7 +291,7 @@ class TelegramSatisBot {
         `📧 E-posta: *${k.email}*\n\n` +
         `Artık admin panelinize giriş yapabilirsiniz:\n\n` +
         `🔗 *admin.sırago.com*\n\n` +
-        `E-posta ve şifrenizle giriş yapın.\n${DENEME_GUN} gün ücretsiz deneyebilirsiniz 🚀`,
+        `E-posta ve şifrenizle giriş yapın.\n${denemeGun()} gün ücretsiz deneyebilirsiniz 🚀`,
         {
           parse_mode: 'Markdown',
           reply_markup: {

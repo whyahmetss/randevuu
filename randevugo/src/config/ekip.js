@@ -34,6 +34,9 @@ const ONEK = {
   magaza: 'magaza',
   'sistem-durumu': 'sistem', 'api-dashboard': 'sistem', 'merkez-otp': 'sistem',
   'audit-log': 'patron', ekip: 'patron', 'ekip-takip': 'patron',
+  // 2026-10-15: Sistem Uyarıları sistem ekibinin, kuponlar ödemelerin. Platform Ayarları, Bot Mesajları ve
+  // Özellik Anahtarları tüm işletmeleri etkiler: tanımlı değil → yalnız kurucu
+  'sistem-uyarilari': 'sistem', kuponlar: 'odemeler',
 };
 
 function yolYetkisi(method, url) {

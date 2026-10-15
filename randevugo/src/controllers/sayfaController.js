@@ -7,7 +7,7 @@ const TEMALAR = ['sade', 'klasik', 'gece', 'pudra', 'klinik'];
 const VURGULAR = ['#1f6f4a', '#2fd27a', '#c9973f', '#c2637c', '#0f8b8d', '#2f56c6', '#7c3aed', '#b42318'];
 const GORSEL = /^data:image\/(jpeg|png|webp);base64,/;
 const hata = (res, m, k = 400) => res.status(k).json({ hata: m });
-const GALERI_LIMIT = 12;
+const galeriLimit = () => require('../utils/platformAyar').al('galeri_limit');   // Platform Ayarları (varsayılan 12)
 const GORSEL_MAX = 2_000_000;
 // Instagram: "@kemalberber", "instagram.com/kemalberber/" ya da tam adres → kullanıcı adı
 const instagramAd = (v) => {
@@ -50,7 +50,7 @@ class SayfaController {
       const i = await oku(getIsletmeId(req));
       if (!i) return hata(res, 'İşletme bulunamadı', 404);
       const id = getIsletmeId(req);
-      res.json({ ...disari(i), temalar: TEMALAR, vurgular: VURGULAR, galeri_limit: GALERI_LIMIT, galeri: await galeriListe(id), ekip: await ekipListe(id) });
+      res.json({ ...disari(i), temalar: TEMALAR, vurgular: VURGULAR, galeri_limit: galeriLimit(), galeri: await galeriListe(id), ekip: await ekipListe(id) });
     } catch (e) { hata(res, 'Alınamadı', 500); }
   }
 
@@ -92,7 +92,7 @@ class SayfaController {
       const { veri, aciklama } = req.body || {};
       if (!gorselGecerli(veri)) return hata(res, 'Fotoğraf JPG, PNG ya da WEBP olmalı ve çok büyük olmamalı');
       const n = (await pool.query('SELECT COUNT(*)::int AS n, COALESCE(MAX(sira), 0) AS s FROM sayfa_galeri WHERE isletme_id = $1', [id])).rows[0];
-      if (n.n >= GALERI_LIMIT) return hata(res, `Galeride en fazla ${GALERI_LIMIT} fotoğraf olabilir. Önce birini kaldır.`);
+      if (n.n >= galeriLimit()) return hata(res, `Galeride en fazla ${galeriLimit()} fotoğraf olabilir. Önce birini kaldır.`);
       await pool.query('INSERT INTO sayfa_galeri (isletme_id, veri, aciklama, sira) VALUES ($1, $2, $3, $4)',
         [id, veri, String(aciklama || '').trim().slice(0, 120) || null, Number(n.s) + 1]);
       await sayfaDegisti(id);

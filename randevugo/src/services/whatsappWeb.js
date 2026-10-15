@@ -207,6 +207,9 @@ class WhatsAppWebService extends EventEmitter {
             );
           }
           console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara}) — booking gate açık`);
+          // Bağlantı geri geldi: açık WhatsApp uyarıları kendiliğinden kapanır
+          const su = require('../utils/sistemUyari');
+          su.coz(`alarm:WhatsApp çıkış: ${isletmeIsim}`); su.coz(`alarm:WhatsApp bağlanamıyor: ${isletmeIsim}`);
           this.emit(`bagli_${isletmeId}`, numara);
           socketServer.emitToIsletme(isletmeId, 'wa:bagli', { numara, durum: 'bagli' });
         }
@@ -259,7 +262,7 @@ class WhatsAppWebService extends EventEmitter {
             }
             try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [isletmeId]); } catch (e) {}
             const sebep = statusCode === 401 ? 'unauthorized' : 'logged_out';
-            require('../utils/alarm').alarm(`WhatsApp çıkış: ${isletmeIsim}`, `İşletme #${isletmeId} WhatsApp oturumu kapandı (${sebep}). Bot bu işletmede çalışmıyor; esnafın tekrar QR okutması gerekiyor, arayın.`);
+            require('../utils/alarm').alarm(`WhatsApp çıkış: ${isletmeIsim}`, `İşletme #${isletmeId} WhatsApp oturumu kapandı (${sebep}). Bot bu işletmede çalışmıyor; esnafın tekrar QR okutması gerekiyor, arayın.`, { isletmeId });
             this.emit(`ayrildi_${isletmeId}`, sebep);
             socketServer.emitToIsletme(isletmeId, 'wa:ayrildi', {
               sebep,
@@ -275,7 +278,7 @@ class WhatsAppWebService extends EventEmitter {
               // Anahtarları SİLME: ağ/WhatsApp kesintisi geçicidir; yalnız gerçek çıkışta (401/loggedOut)
               // silinir. 5 dakikada bir sessizce yeniden dene.
               console.log(`⏸️ ${isletmeIsim} — ${ra - 1} hızlı deneme başarısız, 5 dk'da bir denenecek`);
-              require('../utils/alarm').alarm(`WhatsApp bağlanamıyor: ${isletmeIsim}`, `İşletme #${isletmeId} 5 denemede bağlanamadı, 5 dk'da bir tekrar deneniyor.`);
+              require('../utils/alarm').alarm(`WhatsApp bağlanamıyor: ${isletmeIsim}`, `İşletme #${isletmeId} 5 denemede bağlanamadı, 5 dk'da bir tekrar deneniyor.`, { isletmeId });
               this.isletmeler[isletmeId].durum = 'bagli_degil';
               this.isletmeler[isletmeId]._baslatiliyor = false;
               this.isletmeler[isletmeId].sock = null;
@@ -548,7 +551,10 @@ class WhatsAppWebService extends EventEmitter {
     finally {
       clearTimeout(bekci);
       if (iz.musteriMesaji && !iz.gonderildi && !iz.sessiz) {
-        console.error(`🔇 [${isletmeId}] müşteri mesajı CEVAPSIZ kaldı — adım: ${iz.adim}${hata ? `, hata: ${hata.message}` : ''}`);
+        const neden = `adım: ${iz.adim}${hata ? `, hata: ${hata.message}` : ''}`;
+        console.error(`🔇 [${isletmeId}] müşteri mesajı CEVAPSIZ kaldı — ${neden}`);
+        require('../utils/sistemUyari').uyar({ tip: 'cevapsiz', anahtar: `cevapsiz:${isletmeId}`, seviye: 'kritik', isletmeId,
+          baslik: `Bot müşteri mesajını cevapsız bıraktı (işletme #${isletmeId})`, detay: neden });
       }
     }
   }
@@ -562,7 +568,11 @@ class WhatsAppWebService extends EventEmitter {
     const gonder = async (...a) => {
       const g = await this.mesajGonder(...a);
       if (g?.success) iz.gonderildi = true;
-      else console.error(`⚠️ [${isletmeId}] cevap GÖNDERİLEMEDİ (${iz.adim}): ${g?.hata}`);
+      else {
+        console.error(`⚠️ [${isletmeId}] cevap GÖNDERİLEMEDİ (${iz.adim}): ${g?.hata}`);
+        require('../utils/sistemUyari').uyar({ tip: 'gonderim', anahtar: `gonderim:${isletmeId}`, isletmeId,
+          baslik: `WhatsApp cevabı gönderilemedi (işletme #${isletmeId})`, detay: `${iz.adim}: ${g?.hata}` });
+      }
       return g;
     };
     const sus = (sebep) => { iz.sessiz = sebep; console.log(`🤫 [${isletmeId}] bilerek cevap verilmedi: ${sebep}`); };
@@ -582,7 +592,7 @@ class WhatsAppWebService extends EventEmitter {
     if (sc.mute_bitis > simdi) { sus('anti-spam'); return; } // mute aktif
     if (simdi - sc.pencereBas > 60000) { sc.sayac = 1; sc.pencereBas = simdi; }
     else { sc.sayac++; }
-    if (sc.sayac >= 15) {
+    if (sc.sayac >= require('../utils/platformAyar').al('spam_esik')) {   // Platform Ayarları (varsayılan 15)
       sc.mute_bitis = simdi + 10 * 60 * 1000;
       console.log(`🤐 Anti-spam: ${remoteJid} → 10dk mute (dakikada ${sc.sayac} mesaj)`);
       try {
@@ -674,7 +684,7 @@ class WhatsAppWebService extends EventEmitter {
           if (!this._kapaliMesajSon) this._kapaliMesajSon = new Map();
           const kmKey = `${isletmeId}:${remoteJid}`;
           const sonGonderim = this._kapaliMesajSon.get(kmKey) || 0;
-          if (Date.now() - sonGonderim > 6 * 60 * 60 * 1000) {
+          if (Date.now() - sonGonderim > require('../utils/platformAyar').al('kapali_mesaj_tekrar_saat') * 60 * 60 * 1000) {
             const mesaj = isletme.mesai_disi_mesaj || botMesajlar.get(isletme, 'mesaiDisi', { basSaat, bitSaat });
             const g = await gonder(isletmeId, remoteJid, mesaj);
             if (g?.success) this._kapaliMesajSon.set(kmKey, Date.now());   // yalnız gerçekten gittiyse işaretle

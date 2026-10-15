@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { DENEME_GUN } = require('../config/deneme');
+const { denemeGun } = require('../config/deneme');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const socketServer = require('../services/socketServer');
@@ -88,7 +88,7 @@ class AuthController {
       const isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
          VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + make_interval(days => $3)) RETURNING *`,
-        [isletmeAdi, telefon || '', DENEME_GUN]
+        [isletmeAdi, telefon || '', denemeGun()]
       )).rows[0];
 
       // Admin kullanıcı oluştur
@@ -193,7 +193,7 @@ class AuthController {
       if (!k) return res.json(genel);
       const i = k.isletme_id ? (await pool.query('SELECT id, telefon FROM isletmeler WHERE id = $1', [k.isletme_id])).rows[0] : null;
       const tel = require('../utils/telefon').telefonNormalize(i?.telefon);
-      if (!/^905\d{9}$/.test(tel)) return res.status(400).json({ hata: 'Hesabınızda kayıtlı telefon yok. siragobusiness@gmail.com adresine yazın, hemen yardımcı olalım.' });
+      if (!/^905\d{9}$/.test(tel)) return res.status(400).json({ hata: `Hesabınızda kayıtlı telefon yok. ${require('../config/iletisim').DESTEK_EPOSTA} adresine yazın, hemen yardımcı olalım.` });
       const son = (await pool.query("SELECT 1 FROM sifre_sifirlama WHERE kullanici_id = $1 AND olusturma > NOW() - INTERVAL '1 minute'", [k.id])).rows[0];
       if (son) return res.status(429).json({ hata: 'Kod az önce gönderildi, 1 dakika sonra tekrar dene.' });
       const kod = String(require('crypto').randomInt(0, 1000000)).padStart(6, '0');
@@ -206,7 +206,7 @@ class AuthController {
         if (wa.getDurum(i.id)?.durum === 'bagli') gitti = (await wa.mesajGonder(i.id, tel, metin))?.success;
       } catch (e) { /* yedeğe geç */ }
       if (!gitti) { try { gitti = (await require('../services/merkezOtpBot').mesajGonder(tel, metin))?.success; } catch (e) { /* aşağıda */ } }
-      if (!gitti) return res.status(502).json({ hata: 'Kod şu an gönderilemedi. siragobusiness@gmail.com adresine yazın, hemen yardımcı olalım.' });
+      if (!gitti) return res.status(502).json({ hata: `Kod şu an gönderilemedi. ${require('../config/iletisim').DESTEK_EPOSTA} adresine yazın, hemen yardımcı olalım.` });
       res.json({ mesaj: `Kodu ${telMaskele(tel)} numaralı WhatsApp'a gönderdik.` });
     } catch (error) {
       console.error('❌ Şifre kodu hatası:', error.message);

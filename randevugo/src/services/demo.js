@@ -3,7 +3,7 @@
 // kayıt olursa demo onun gerçek hesabına dönüşür (satisBot _hesapOlustur).
 // Fiyat uydurulmaz (0 → sayfada "fiyat dükkanda"); hizmetler kategoriye göre örnek isimlerdir.
 const pool = require('../config/db');
-const { DENEME_GUN } = require('../config/deneme');
+const { denemeGun } = require('../config/deneme');
 const { telefonNormalize } = require('../utils/telefon');
 const { randevuLinki } = require('../utils/randevuLinki');
 
@@ -23,7 +23,7 @@ const KATEGORI_KOD = { berber: 'berber', 'kuaför': 'kuafor', 'güzellik salonu'
 
 function mesajUret(isletmeAdi, link) {
   return `Merhaba, ${isletmeAdi} için 2 dakikada online randevu sayfanızı hazırladım: ${link}\n\n` +
-    `Müşterileriniz telefon açmadan saat seçebilir. Bir göz atın, beğenirseniz ${DENEME_GUN} gün ücretsiz kullanın; ` +
+    `Müşterileriniz telefon açmadan saat seçebilir. Bir göz atın, beğenirseniz ${denemeGun()} gün ücretsiz kullanın; ` +
     `hizmet ve fiyatları birlikte düzenleriz.`;
 }
 
@@ -44,7 +44,7 @@ async function demoOlustur(leadId) {
                              calisma_baslangic, calisma_bitis, olusturma_tarihi, deneme_bitis_tarihi)
      VALUES ($1, $2, $3, $4, $5, true, 'baslangic', true, true, $6, '09:00', '20:00', NOW(), NOW() + make_interval(days => $7))
      RETURNING *`,
-    [lead.isletme_adi, tel, lead.adres || null, lead.ilce || null, KATEGORI_KOD[kategori] || 'genel', lead.id, DENEME_GUN])).rows[0];
+    [lead.isletme_adi, tel, lead.adres || null, lead.ilce || null, KATEGORI_KOD[kategori] || 'genel', lead.id, denemeGun()])).rows[0];
   await pool.query("INSERT INTO calisanlar (isletme_id, isim, uzmanlik, aktif) VALUES ($1, 'Usta', '', true)", [isletme.id]);
   for (const [isim, sure] of (HIZMETLER[kategori] || [['Randevu', 30], ['Uzun Randevu', 60]])) {
     await pool.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aktif) VALUES ($1, $2, $3, 0, true)', [isletme.id, isim, sure]);

@@ -25,8 +25,8 @@ test('paketler: Pro+ 1499₺ ve 3 şube, Standart şube açamaz', () => {
   assert.ok(!P.profesyonel.sube_yonetimi);
 });
 
-test('deneme süresi 14 gün', () => {
-  assert.strictEqual(require(SRC + '/config/deneme').DENEME_GUN, 14);
+test('deneme süresi 14 gün (Platform Ayarları boşken varsayılan)', () => {
+  assert.strictEqual(require(SRC + '/config/deneme').denemeGun(), 14);
 });
 
 test('alarm: aynı konu 30 dk içinde bir kez gönderilir', async () => {

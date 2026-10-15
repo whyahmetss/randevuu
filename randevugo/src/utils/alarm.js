@@ -6,7 +6,9 @@ const axios = require('axios');
 const son = new Map();
 const SESSIZ_MS = 30 * 60 * 1000;
 
-async function alarm(konu, detay = '') {
+async function alarm(konu, detay = '', { isletmeId = null, seviye = 'kritik' } = {}) {
+  // Panelde Sistem Uyarıları'na da düşer (Telegram 30 dk susturulsa bile adet artar)
+  require('./sistemUyari').uyar({ tip: 'alarm', anahtar: `alarm:${konu}`, baslik: konu, detay, seviye, isletmeId });
   try {
     const simdi = Date.now();
     if (son.has(konu) && simdi - son.get(konu) < SESSIZ_MS) return;

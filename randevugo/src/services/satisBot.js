@@ -32,9 +32,8 @@ function turkiyeSaati() {
 // ═══════════════════════════════════════════════════
 // Mesaj Varyasyonları — Her seferinde farklı mesaj
 // ═══════════════════════════════════════════════════
-const { DENEME_GUN } = require('../config/deneme');
+const { denemeGun } = require('../config/deneme');
 const { telefonNormalize } = require('../utils/telefon');
-const G = DENEME_GUN;
 const satisAI = require('./satisAI');
 
 // İlk mesajın sonuna eklenen ret satırı — istemeyen şikâyet etmek yerine "dur" yazsın (ban riskini düşürür)
@@ -158,13 +157,13 @@ const MESAJ_SABLONLARI = {
 for (const k of ['dövme', 'spa', 'tırnak salonu']) MESAJ_SABLONLARI[k] = ACILIS_GENEL;
 const TAKIP_SABLONLARI = {
   1: [
-    (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${G} gün ücretsiz, merak ederseniz yazın, ilgilenmiyorsanız söylemeniz yeterli.`,
-    (ad) => `Tekrar merhaba, ${ad} için yazmıştım. Randevuları otomatik alan bir sistemimiz var, ${G} gün ücretsiz denenebiliyor. Sorunuz olursa buradayım; ilgilenmiyorsanız söylemeniz yeterli.`,
+    (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${denemeGun()} gün ücretsiz, merak ederseniz yazın, ilgilenmiyorsanız söylemeniz yeterli.`,
+    (ad) => `Tekrar merhaba, ${ad} için yazmıştım. Randevuları otomatik alan bir sistemimiz var, ${denemeGun()} gün ücretsiz denenebiliyor. Sorunuz olursa buradayım; ilgilenmiyorsanız söylemeniz yeterli.`,
     (ad) => `Merhaba, mesajım arada kaybolmuş olabilir. ${ad} için online randevu sistemini göstermek isterim, uygun olunca yazın; ilgilenmiyorsanız söylemeniz yeterli.`,
   ],
   2: [
-    (ad) => `Son kez rahatsız ediyorum. Denemek isterseniz *kayıt* yazmanız yeterli, ${G} gün ücretsiz. İlgilenmiyorsanız hiç sorun değil, iyi çalışmalar.`,
-    (ad) => `Son bir not bırakayım: ${ad} için ${G} günlük ücretsiz deneme hâlâ açık, *kayıt* yazarsanız hesabı buradan açarım. İlgilenmiyorsanız söylemeniz yeterli, kolay gelsin.`,
+    (ad) => `Son kez rahatsız ediyorum. Denemek isterseniz *kayıt* yazmanız yeterli, ${denemeGun()} gün ücretsiz. İlgilenmiyorsanız hiç sorun değil, iyi çalışmalar.`,
+    (ad) => `Son bir not bırakayım: ${ad} için ${denemeGun()} günlük ücretsiz deneme hâlâ açık, *kayıt* yazarsanız hesabı buradan açarım. İlgilenmiyorsanız söylemeniz yeterli, kolay gelsin.`,
   ]
 };
 
@@ -1459,7 +1458,7 @@ class SatisBot extends EventEmitter {
     const d = { adim: 'isletme_adi', onerilenAd, kategori: konusma?.kategori || null };
     this.konusmalar[telefon] = { ...(this.konusmalar[telefon] || {}), kayit: d };
     await this._kayitDurumKaydet(telefon, d);
-    const giris = `Harika, hesabınızı hemen açalım: ${DENEME_GUN} gün ücretsiz, kart bilgisi istemiyoruz.`;
+    const giris = `Harika, hesabınızı hemen açalım: ${denemeGun()} gün ücretsiz, kart bilgisi istemiyoruz.`;
     const txt = onerilenAd
       ? `${giris}\n\nİşletme adı *${onerilenAd}* olarak kalsın mı? Doğruysa *evet* yazın, değilse doğru adı yazın.`
       : `${giris}\n\nİşletmenizin adını yazın:`;
@@ -1568,13 +1567,13 @@ class SatisBot extends EventEmitter {
         isletme = (await pool.query(
           `UPDATE isletmeler SET isim = $1, demo = false, olusturma_tarihi = NOW(), deneme_bitis_tarihi = NOW() + make_interval(days => $3)
            WHERE id = (SELECT id FROM isletmeler WHERE demo = true AND telefon = $2 ORDER BY id DESC LIMIT 1) RETURNING *`,
-          [d.isletmeAdi, tel, DENEME_GUN])).rows[0];
+          [d.isletmeAdi, tel, denemeGun()])).rows[0];
         demodan = !!isletme;
       } catch (e) { /* demo kolonu yoksa yeni hesap */ }
       if (!isletme) isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi)
          VALUES ($1, $2, $3, true, 'baslangic', NOW(), NOW() + make_interval(days => $4)) RETURNING *`,
-        [d.isletmeAdi, tel, kategori, DENEME_GUN])).rows[0];
+        [d.isletmeAdi, tel, kategori, denemeGun()])).rows[0];
       const hash = await bcrypt.hash(sifre, 10);
       await pool.query(
         `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) VALUES ($1, $2, $3, 'admin', $4, true)`,
@@ -1608,7 +1607,7 @@ class SatisBot extends EventEmitter {
       }
 
       await yaz(
-        `🎉 Hesabınız hazır! ${DENEME_GUN} gün ücretsiz deneyebilirsiniz, kart bilgisi istemiyoruz.\n\n` +
+        `🎉 Hesabınız hazır! ${denemeGun()} gün ücretsiz deneyebilirsiniz, kart bilgisi istemiyoruz.\n\n` +
         `Giriş: https://admin.sırago.com\nE-posta: ${d.email}\n\n` +
         `İlk 3 adım (10 dakika):\n1. Hizmetlerinizi ve çalışanlarınızı ekleyin\n2. WhatsApp botunu bağlayın (QR okutmanız yeterli)\n3. Randevu linkinizi müşterilerinize gönderin\n\n` +
         `Takıldığınız yerde buraya yazın, birlikte kuralım. Güvenliğiniz için şifrenizi yazdığınız mesajı silebilirsiniz.`);
@@ -1755,7 +1754,7 @@ class SatisBot extends EventEmitter {
       const veda = {
         sert: 'Anlaşıldı, sizi listeden çıkardım; bir daha yazmayacağım. İyi çalışmalar.',
         normal: 'Tamam, sorun değil. Fikriniz değişirse buraya *kayıt* yazmanız yeterli. İyi çalışmalar 🙏',
-        kibar: `Tabii, acelesi yok. Vaktiniz olunca bakarsınız: https://sırago.com (${DENEME_GUN} gün ücretsiz). İyi çalışmalar 🙏`,
+        kibar: `Tabii, acelesi yok. Vaktiniz olunca bakarsınız: https://sırago.com (${denemeGun()} gün ücretsiz). İyi çalışmalar 🙏`,
       }[ret];
       const yeniDurum = ret === 'kibar' ? 'sonra' : 'olumsuz';
       try { await this._yaz(sock, remoteJid, veda); } catch (e) { console.error('Veda gönderilemedi:', e.message); }
@@ -1846,22 +1845,22 @@ class SatisBot extends EventEmitter {
     const fiyat = enUcuz ? `sonrası aylık ${enUcuz}₺'den başlıyor` : 'sonrası için paketleri sitede görebilirsiniz';
     const kayit = `İsterseniz hesabınızı buradan 1 dakikada açayım, *kayıt* yazmanız yeterli.`;
     const ret = redTipi(musteriMesaj);
-    if (ret === 'kibar') return { mesaj: `Tabii, acelesi yok. Vaktiniz olunca bakarsınız: https://sırago.com (${DENEME_GUN} gün ücretsiz).`, durum: 'bekliyor' };
+    if (ret === 'kibar') return { mesaj: `Tabii, acelesi yok. Vaktiniz olunca bakarsınız: https://sırago.com (${denemeGun()} gün ücretsiz).`, durum: 'bekliyor' };
     if (ret) return { mesaj: `Tamam, sorun değil. Fikriniz değişirse buraya *kayıt* yazmanız yeterli. İyi çalışmalar 🙏`, durum: 'olumsuz' };
     if (ifadeVar(sade, ['fiyat', 'fiyatı', 'ücret', 'ücreti', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'aylık', 'aylik', 'paket', 'paketler']))
-      return { mesaj: `${DENEME_GUN} gün ücretsiz, kart bilgisi istemiyoruz; ${fiyat}. ${kayit}`, durum: 'sicak' };
+      return { mesaj: `${denemeGun()} gün ücretsiz, kart bilgisi istemiyoruz; ${fiyat}. ${kayit}`, durum: 'sicak' };
     if (ifadeVar(sade, ['pahalı', 'pahali', 'çok para', 'cok para', 'param yok', 'bütçe', 'butce', 'karşılayamam']))
-      return { mesaj: `Ayda birkaç kaçan randevu bile ücretini çıkarır; önce ${DENEME_GUN} gün ücretsiz deneyip kendiniz görün. ${kayit}`, durum: 'olumlu' };
+      return { mesaj: `Ayda birkaç kaçan randevu bile ücretini çıkarır; önce ${denemeGun()} gün ücretsiz deneyip kendiniz görün. ${kayit}`, durum: 'olumlu' };
     if (ifadeVar(sade, ['bilmem', 'anlamam', 'anlamıyorum', 'teknoloji', 'bilgisayar', 'zor', 'yapamam', 'kurulum']))
       return { mesaj: `WhatsApp kullanabiliyorsanız yeterli; kurulumda da birlikte yardımcı oluyoruz. ${kayit}`, durum: 'olumlu' };
     if (ifadeVar(sade, ['telefonla', 'zaten yapıyoruz', 'zaten yapiyoruz', 'hallediyoruz', 'hallediyorum', 'defter', 'deftere']))
-      return { mesaj: `Siz işlemdeyken telefona bakamadığınız anlarda randevuyu sistem alır, siz sadece onaylarsınız. ${DENEME_GUN} gün ücretsiz deneyebilirsiniz.`, durum: 'olumlu' };
+      return { mesaj: `Siz işlemdeyken telefona bakamadığınız anlarda randevuyu sistem alır, siz sadece onaylarsınız. ${denemeGun()} gün ücretsiz deneyebilirsiniz.`, durum: 'olumlu' };
     if (ifadeVar(sade, ['nedir', 'nasıl', 'nasil', 'açıkla', 'acikla', 'detay', 'bilgi', 'anlat', 'özellik', 'ozellik', 'video', 'demo', 'göster', 'goster']))
       return { mesaj: `Müşterileriniz WhatsApp'tan ya da size özel linkten 7/24 randevu alır, randevudan önce hatırlatma otomatik gider. ${kayit}`, durum: 'sicak' };
     if (ifadeVar(sade, ['tamam', 'olur', 'evet', 'ilgileniyorum', 'denerim', 'süper', 'harika', 'güzel', 'guzel', 'at', 'atın', 'gönder']))
       return { mesaj: `Güzel. ${kayit}`, durum: 'sicak' };
     if (ifadeVar(sade, ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'günaydın', 'gunaydin', 'kimsiniz', 'kim']))
-      return { mesaj: `Merhaba, ben SıraGO'nun dijital asistanıyım. ${konusma.isletme_adi || 'İşletmeniz'} için WhatsApp'tan otomatik randevu sistemi hakkında yazmıştım; ${DENEME_GUN} gün ücretsiz. Randevuları şu an nasıl alıyorsunuz?`, durum: 'bekliyor' };
+      return { mesaj: `Merhaba, ben SıraGO'nun dijital asistanıyım. ${konusma.isletme_adi || 'İşletmeniz'} için WhatsApp'tan otomatik randevu sistemi hakkında yazmıştım; ${denemeGun()} gün ücretsiz. Randevuları şu an nasıl alıyorsunuz?`, durum: 'bekliyor' };
     return { mesaj: `Merak ettiğiniz bir şey olursa buradan sorabilirsiniz; denemek isterseniz *kayıt* yazmanız yeterli.`, durum: 'bekliyor' };
   }
 
@@ -1872,7 +1871,7 @@ class SatisBot extends EventEmitter {
     const gecmis = konusma.gelen_mesajlar || '';
     const mesajSayisi = (gecmis.match(/Müşteri:/g) || []).length + 1;
     const { enUcuz, liste } = await this._fiyatlar();
-    const fiyatCumle = enUcuz ? `${DENEME_GUN} gün ücretsiz, sonrası aylık ${enUcuz}₺'den başlıyor.` : `${DENEME_GUN} gün ücretsiz; paketler https://sırago.com sayfasında.`;
+    const fiyatCumle = enUcuz ? `${denemeGun()} gün ücretsiz, sonrası aylık ${enUcuz}₺'den başlıyor.` : `${denemeGun()} gün ücretsiz; paketler https://sırago.com sayfasında.`;
 
     const prompt = `Sen SıraGO'nun WhatsApp satış asistanısın. Bir esnafla konuşuyorsun: kısa, saygılı ve samimi yaz, "siz" diye hitap et.
 
@@ -1880,7 +1879,7 @@ class SatisBot extends EventEmitter {
 
 PAKETLER:
 ${liste || '(fiyat bilgisi yok — fiyat sorulursa sitede yazdığını söyle)'}
-Deneme: ${DENEME_GUN} gün ücretsiz, kart bilgisi istenmez. Kurulum telefondan birkaç dakika.
+Deneme: ${denemeGun()} gün ücretsiz, kart bilgisi istenmez. Kurulum telefondan birkaç dakika.
 
 ÜRÜN (yalnız bunları söyle, başka özellik uydurma):
 - Müşteriler WhatsApp'tan ya da işletmeye özel linkten 7/24 kendi randevusunu alır.
