@@ -176,6 +176,7 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   const T = M[dil];
   const s = ' ' + sade(metin) + ' ';
   if (DEVRET.test(s)) return null;
+  if (require('../utils/randevuSorgusu').randevuSorgusu(metin)) return null;   // var olan randevuyu soruyor: eski akış listeler
 
   const randevuService = require('./randevu');
   const calisanlar = (await pool.query('SELECT id, isim FROM calisanlar WHERE isletme_id = $1 AND (aktif IS NULL OR aktif = true) ORDER BY id', [isletmeId])).rows;

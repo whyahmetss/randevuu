@@ -927,6 +927,15 @@ class WhatsAppWebService extends EventEmitter {
   async akisIsle(metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId) {
     const metinKucuk = metin.toLowerCase();
 
+    // "Randevum kaçtaydı?": hangi adımda olursa olsun var olan randevuyu söyle (yeni randevu akışı başlatma)
+    if (require('../utils/randevuSorgusu').randevuSorgusu(metin)) {
+      const randevular = await require('./randevu').musteriRandevulari(musteriTelefon, isletmeId);
+      await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu');
+      if (randevular.length === 0) return { metin: botMesajlar.get(isletme, 'randevuYok'), butonlar: null };
+      const liste = randevular.slice(0, 3).map(r => ({ ...r, tarihStr: this.tarihFormat(r.tarih), saatStr: String(r.saat).substring(0, 5) }));
+      return { metin: botMesajlar.get(isletme, 'randevularim', { randevular: liste }), butonlar: null };
+    }
+
     // === DOĞUM TARİHİ BEKLİYOR — sıradaki mesaj cevap olarak parse edilir ===
     if (botDurum.asama === 'dogum_tarihi_bekleniyor') {
       const { parseDogumTarihi, formatDogumTarihi } = require('../utils/dogumTarihi');
