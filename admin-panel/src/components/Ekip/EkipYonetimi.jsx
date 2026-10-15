@@ -84,6 +84,15 @@ export default function EkipYonetimi({ api }) {
                   onClick={() => { if (!u.aktif || window.confirm(`${u.isim || u.email} hesabı kapatılsın mı? Açık oturumu hemen düşer.`)) kaydet({ id: u.id, aktif: !u.aktif }, u.aktif ? 'Hesap kapatıldı' : 'Hesap açıldı'); }}>
                   {u.aktif ? 'Hesabı kapat' : 'Yeniden aç'}
                 </button>
+                {!u.aktif && (
+                  <button className="btn btn-sm" style={{ background: 'var(--red-s)', color: 'var(--red)' }}
+                    onClick={async () => {
+                      if (!window.confirm(`${u.isim || u.email} kalıcı olarak silinsin mi? Geri alınamaz. Listesindeki adaylar havuza döner.`)) return;
+                      const d = await api.del(`/admin/ekip/${u.id}`);
+                      if (d?.hata) return alert(d.hata);
+                      yukle();
+                    }}>Sil</button>
+                )}
               </div>
             )}
           </div>

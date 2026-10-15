@@ -86,6 +86,21 @@ class EkipController {
       res.json({ uye: r.rows[0] });
     } catch (err) { hata(res, 'Üye güncellenemedi', 500); }
   }
+
+  // Silme (2026-10-16): yalnız önce kapatılmış hesap. Listesindeki adaylar havuza döner; geçmiş satış kayıtları kalır.
+  async sil(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const uye = (await pool.query("SELECT * FROM admin_kullanicilar WHERE id = $1 AND rol = 'superadmin'", [id])).rows[0];
+      if (!uye) return hata(res, 'Üye bulunamadı', 404);
+      if (uye.patron || id === req.kullanici.id) return hata(res, 'Bu hesap silinemez', 403);
+      if (uye.aktif) return hata(res, 'Önce hesabı kapatın, sonra silin');
+      await pool.query('UPDATE potansiyel_musteriler SET atanan_id = NULL, atanma_tarihi = NULL WHERE atanan_id = $1', [id]).catch(() => {});
+      await pool.query('DELETE FROM admin_kullanicilar WHERE id = $1', [id]);
+      kaydet(req, 'ekip_sil', `${uye.email} silindi`);
+      res.json({ ok: true });
+    } catch (err) { hata(res, 'Üye silinemedi', 500); }
+  }
 }
 
 module.exports = new EkipController();
