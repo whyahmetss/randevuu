@@ -549,8 +549,7 @@ const PORT = process.env.PORT || 3000;
     // ─── ŞABLON V2 GÜNCELLEMESİ ───
     // Eski düşük dönüşümlü şablonları pasifle, yeni A/B test şablonları ekle
     try {
-      // "Soru Soran" → pasif
-      await adim("UPDATE satis_bot_sablonlar SET aktif = false WHERE isim = 'Soru Soran' AND aktif = true");
+      // (2026-10-16: "Soru Soran"ı her açılışta pasife çeken satır kaldırıldı — en iyi şablon her deploy'da kapanıyordu)
       // "Bey" kaldır — cinsiyet nötr
       await adim("UPDATE satis_bot_sablonlar SET mesaj = REPLACE(mesaj, '{isletme_sahibi} Bey', '{isletme_sahibi}') WHERE mesaj LIKE '%{isletme_sahibi} Bey%'");
       // "Değer Öneren" ve "Rakip Müşterisi" → sil (0 gönderim veya düşük performans)
@@ -959,6 +958,8 @@ const PORT = process.env.PORT || 3000;
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ilk_randevu_tebrik TIMESTAMP`,
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS referans_tesvik TIMESTAMP`,
     `ALTER TABLE merkez_otp_bot ADD COLUMN IF NOT EXISTS uyari TEXT`,
+    // Şablon otomatik freni (2026-10-16, migration 052'de de var)
+    `ALTER TABLE satis_bot_sablonlar ADD COLUMN IF NOT EXISTS durdurma_notu TEXT`,
     // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
     `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
   ];

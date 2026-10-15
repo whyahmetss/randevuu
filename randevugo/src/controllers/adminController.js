@@ -5113,17 +5113,18 @@ class AdminController {
 
   async satisSablonlariGetir(req, res) {
     try {
-      const sablonlar = (await pool.query('SELECT * FROM satis_bot_sablonlar ORDER BY id')).rows;
-      // En iyi performans: en yüksek dönüş oranı
+      // Asıl ölçü kayıt (2026-10-16): cevap oranı yanıltıcı (cevapların çoğu ret olabiliyor)
+      let sablonlar = (await pool.query('SELECT * FROM satis_bot_sablonlar ORDER BY id')).rows;
+      const kayitlar = {};
+      try {
+        for (const r of (await pool.query(`SELECT sablon_id, COUNT(*)::int AS n FROM satis_konusmalar
+          WHERE sablon_id IS NOT NULL AND kayit_isletme_id IS NOT NULL GROUP BY sablon_id`)).rows) kayitlar[r.sablon_id] = r.n;
+      } catch (e) { /* kolon yoksa 0 */ }
+      sablonlar = sablonlar.map(s => ({ ...s, kayit: kayitlar[s.id] || 0 }));
+      // En iyi: önce kayıt oranı, sonra (olumlu − ret) oranı; en az 20 gönderim
+      const puan = (s) => (s.kayit * 10 + (s.olumlu || 0) - (s.olumsuz || 0)) / s.gonderilen;
       let enIyiId = null;
-      let enIyiOran = -1;
-      sablonlar.forEach(s => {
-        const oran = s.gonderilen > 0 ? (s.cevap_gelen / s.gonderilen) * 100 : 0;
-        if (s.gonderilen >= 5 && oran > enIyiOran) {
-          enIyiOran = oran;
-          enIyiId = s.id;
-        }
-      });
+      for (const s of sablonlar) if (s.gonderilen >= 20 && (enIyiId === null || puan(s) > puan(sablonlar.find(x => x.id === enIyiId)))) enIyiId = s.id;
       res.json({ sablonlar, enIyiId });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -5149,7 +5150,8 @@ class AdminController {
       const { id } = req.params;
       const { isim, mesaj, kategori, aktif, gonderim_modu } = req.body;
       const result = await pool.query(
-        'UPDATE satis_bot_sablonlar SET isim=$1, mesaj=$2, kategori=$3, aktif=$4, gonderim_modu=$5 WHERE id=$6 RETURNING *',
+        `UPDATE satis_bot_sablonlar SET isim=$1, mesaj=$2, kategori=$3, aktif=$4, gonderim_modu=$5,
+           durdurma_notu = CASE WHEN $4 THEN NULL ELSE durdurma_notu END WHERE id=$6 RETURNING *`,
         [isim, mesaj, kategori || 'genel', aktif, gonderim_modu || 'rastgele', id]
       );
       res.json({ sablon: result.rows[0] });
