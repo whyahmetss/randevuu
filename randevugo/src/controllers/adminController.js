@@ -2904,7 +2904,10 @@ class AdminController {
   async paketTanimlariGetir(req, res) {
     try {
       const result = await pool.query("SELECT * FROM paket_tanimlari ORDER BY sira, id");
-      res.json({ paketler: result.rows });
+      // Görsel verisi listede gönderilmez (büyük); panel /api/paket-gorsel/:kod?v= adresinden gösterir
+      res.json({ paketler: result.rows.map(({ gorsel, ...p }) => ({
+        ...p, gorsel_var: !!gorsel, gorsel_v: p.gorsel_guncelleme ? new Date(p.gorsel_guncelleme).getTime() : 0,
+      })) });
     } catch (error) {
       // Tablo yoksa veya boşsa config'den dön
       res.json({ paketler: [] });
@@ -2940,6 +2943,34 @@ class AdminController {
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
+  }
+
+  // Paket ödeme görseli (Shopier ürününde görünür): data URL ya da null (varsayılan Fiko görseline döner)
+  async paketGorselKaydet(req, res) {
+    try {
+      const { veri } = req.body || {};
+      if (veri !== null && !(/^data:image\/(jpeg|png|webp);base64,/.test(String(veri || '')) && String(veri).length <= 2_000_000)) {
+        return res.status(400).json({ hata: 'Görsel JPG, PNG ya da WEBP olmalı ve 1,5 MB\'ı geçmemeli' });
+      }
+      const r = await pool.query('UPDATE paket_tanimlari SET gorsel = $1, gorsel_guncelleme = NOW() WHERE id = $2 RETURNING kod, isim',
+        [veri, req.params.id]);
+      if (!r.rows[0]) return res.status(404).json({ hata: 'Paket bulunamadı' });
+      await this.auditLogYaz(req.kullanici, 'paket_gorsel', `${r.rows[0].isim}: ${veri ? 'görsel değişti' : 'varsayılana döndü'}`, 'paket_tanimlari', Number(req.params.id));
+      res.json({ mesaj: 'Kaydedildi' });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Herkese açık: /api/paket-gorsel/:kod — Shopier ürün görseli buradan çekilir (adres ?v= ile değişir)
+  async paketGorsel(req, res) {
+    try {
+      const r = (await pool.query('SELECT gorsel FROM paket_tanimlari WHERE kod = $1', [req.params.kod])).rows[0];
+      const m = String(r?.gorsel || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+      if (!m) return res.status(404).end();
+      res.set('Content-Type', m[1]).set('Cache-Control', 'public, max-age=31536000, immutable')
+        .set('Cross-Origin-Resource-Policy', 'cross-origin').send(Buffer.from(m[2], 'base64'));
+    } catch (e) { res.status(404).end(); }
   }
 
   async paketTanimiSil(req, res) {
