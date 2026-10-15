@@ -369,6 +369,43 @@ class MasaController {
     res.redirect(302, `https://wa.me/${numara}?text=${encodeURIComponent(kartMetni(kod))}`);
   }
 
+  // ── Bot sana devretti (2026-10-16, tek kişi düzeni): sıcak adaylar, hazır arama notuyla ──
+  async sicakAdaylar(req, res) {
+    try { res.json({ adaylar: await require('../services/devir').liste(30) }); }
+    catch (e) { console.error('sıcak adaylar:', e.message); hata(res, 'Sıcak adaylar alınamadı', 500); }
+  }
+
+  // Arandı: sonuç Satış Masası aktivitesine yazılır; "ulaşamadım" 3 saat sonra yine listeye düşer
+  async sicakKapat(req, res) {
+    try {
+      const SONUC = { gorustu: 'gorustu', ulasilamadi: 'arama_yok', ilgilenmiyor: 'ilgilenmiyor' };
+      const sonuc = req.body?.sonuc;
+      if (!SONUC[sonuc]) return hata(res, 'Geçersiz sonuç');
+      const k = (await pool.query('SELECT id, lead_id FROM satis_konusmalar WHERE id = $1', [parseInt(req.params.id)])).rows[0];
+      if (!k) return hata(res, 'Konuşma bulunamadı', 404);
+      if (sonuc === 'ulasilamadi') await pool.query("UPDATE satis_konusmalar SET devir_ertele = NOW() + INTERVAL '3 hours' WHERE id = $1", [k.id]);
+      else await pool.query('UPDATE satis_konusmalar SET devir_kapandi = NOW() WHERE id = $1', [k.id]);
+      if (sonuc === 'ilgilenmiyor') {
+        // Bot da bir daha yazmasın
+        await pool.query("UPDATE satis_konusmalar SET durum = 'olumsuz' WHERE id = $1", [k.id]);
+        if (k.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [k.lead_id]).catch(() => {});
+      }
+      await pool.query('INSERT INTO satis_aktivite (kullanici_id, lead_id, tip, notu) VALUES ($1, $2, $3, $4)',
+        [req.kullanici.id, k.lead_id || null, SONUC[sonuc], String(req.body?.notu || '').slice(0, 500) || 'Bot devretti'])
+        .catch(e => console.error('sıcak aday aktivitesi:', e.message));
+      res.json({ ok: true });
+    } catch (e) { console.error('sıcak kapat:', e.message); hata(res, 'Kaydedilemedi', 500); }
+  }
+
+  // Sabah özeti: önizleme ve şimdi gönder (normalde her sabah 08:45'te kendiliğinden gider)
+  async sabahOzeti(req, res) {
+    try {
+      const o = require('../services/sabahOzeti');
+      if (req.method === 'POST') return res.json({ metin: await o.gonder(), gonderildi: true });
+      res.json({ metin: await o.hazirla() });
+    } catch (e) { console.error('sabah özeti:', e.message); hata(res, 'Özet hazırlanamadı', 500); }
+  }
+
   // ── Hedef (okuma herkes, değiştirme patron) ──
   async hedefGuncelle(req, res) {
     try {

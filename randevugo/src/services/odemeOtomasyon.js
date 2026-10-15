@@ -38,8 +38,25 @@ const ASAMALAR = [
   { gun: 3, metin: (x) => `Merhaba, ${x.isim} için SıraGO ${x.deneme ? 'ücretsiz denemeniz' : 'paketiniz'} ${x.tarih} tarihinde bitiyor. Kesinti olmasın diye tek dokunuşla yenileyebilirsiniz (${x.paketAd}, ${x.fiyat}₺/ay):` },
   { gun: 1, metin: (x) => `Merhaba, ${x.isim} için SıraGO ${x.deneme ? 'denemeniz' : 'paketiniz'} yarın bitiyor. Müşterileriniz randevu almaya devam etsin diye buradan ödeyebilirsiniz (${x.fiyat}₺):` },
   { gun: 0, metin: (x) => `Merhaba, SıraGO ${x.deneme ? 'denemeniz' : 'paketiniz'} bugün bitti. Ödeme yapınca paneliniz anında açılır, bilgileriniz duruyor (${x.fiyat}₺):` },
-  { gun: -3, metin: (x) => `Merhaba, ${x.isim} paneliniz 3 gündür kapalı. Randevu ve müşteri bilgileriniz silinmedi; ödeme yapınca her şey kaldığı yerden devam eder. Bir sorun varsa bu mesaja yazın:` },
+  // Bu numara gelen mesajı okumaz (Merkez OTP): "bu mesaja yazın" yerine destek iletişimi (2026-10-16)
+  { gun: -3, metin: (x) => `Merhaba, ${x.isim} paneliniz 3 gündür kapalı. Randevu ve müşteri bilgileriniz silinmedi; ödeme yapınca her şey kaldığı yerden devam eder. Bir sorun varsa bize yazın: ${destek()}\nÖdeme linki:` },
 ];
+
+function destek() {
+  const { DESTEK_WP, DESTEK_EPOSTA } = require('../config/iletisim');
+  const wp = String(DESTEK_WP || '').replace(/\D/g, '');
+  return wp ? `https://wa.me/${wp}` : DESTEK_EPOSTA;
+}
+
+// Denemede kaç randevu aldı (2026-10-16): ödeme mesajı somut değerle gider; hiç randevu yoksa önce yardım teklifi
+async function denemeOzeti(isletmeId) {
+  try {
+    const r = (await pool.query(`SELECT COUNT(*)::int AS n, COUNT(*) FILTER (WHERE kaynak IN ('bot', 'online', 'web'))::int AS oto
+      FROM randevular WHERE isletme_id = $1 AND COALESCE(durum, '') <> 'iptal'`, [isletmeId])).rows[0];
+    if (r.n > 0) return `\n\nDeneme sürenizde SıraGO size *${r.n} randevu* aldı${r.oto ? ` (${r.oto} tanesi WhatsApp ve online sayfadan, siz uğraşmadan)` : ''}.`;
+    return `\n\nHenüz randevu gelmediyse kurulumu birlikte bitirelim, 5 dakika sürer: ${destek()}`;
+  } catch (e) { return ''; }
+}
 
 async function hatirlatmalariGonder({ gonder, simdi = new Date() } = {}) {
   const saat = Number(simdi.toLocaleString('en-US', { timeZone: 'Europe/Istanbul', hour: 'numeric', hour12: false }));
@@ -69,7 +86,8 @@ async function hatirlatmalariGonder({ gonder, simdi = new Date() } = {}) {
     const yillik = !a.deneme && a.son_odeme_sure === 'yil';
     const aylik = require('../utils/oncu').etkinFiyat(a, a.paket, p.fiyat);
     const fiyat = yillik ? aylik * require('../config/paketler').YILLIK_ODENEN_AY : aylik;
-    const metin = asama.metin({ isim: a.isim, deneme: a.deneme, tarih: tarih(a.bitis), paketAd: yillik ? `${p.isim} (yıllık)` : p.isim, fiyat });
+    let metin = asama.metin({ isim: a.isim, deneme: a.deneme, tarih: tarih(a.bitis), paketAd: yillik ? `${p.isim} (yıllık)` : p.isim, fiyat });
+    if (a.deneme && asama.gun >= 0) metin = metin.replace(/:\s*$/, '.') + await denemeOzeti(a.id) + '\nÖdeme linki:';
     const sonuc = await gonderFn(a.telefon, `${metin}\n${odemeLinki(a.id, a.paket, yillik ? 'yil' : null)}`);
     if (sonuc?.success) {
       n++;

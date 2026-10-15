@@ -1913,6 +1913,11 @@ class SatisBot extends EventEmitter {
         await this._telegramBildirimGonder(`📞 *Aranmak istiyor*\n\n🏪 ${this._mdKacis(konusma.isletme_adi)}\n📞 +${this._mdKacis(telefon)}\n💬 "${this._mdKacis(metin.slice(0, 300))}"\n\n👉 Bugün arayın.`);
       } catch (e) { /* bildirim önemsiz */ }
     }
+    // Tek kişi düzeni (2026-10-16): aranmak isteyen / sıcak / fiyat soran / olumlu aday Satış Masası'na düşer
+    try {
+      const sebep = require('./devir').sebepBul({ metin, durum, arama: cevap.arama });
+      if (sebep) await require('./devir').devret(konusma.id, sebep);
+    } catch (e) { console.error('Sıcak aday devri:', e.message); }
 
     if (durum === 'sicak' || durum === 'olumlu') {
       if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgileniyor' WHERE id = $1", [konusma.lead_id]);

@@ -64,7 +64,9 @@ async function demoOlustur(leadId) {
 // Demo sayfası açıldı (randevu sayfası her yüklendiğinde) — kişisel veri tutmaz, yalnız sayaç
 function demoGoruntulendi(isletmeId) {
   pool.query('UPDATE isletmeler SET demo_goruntulenme = COALESCE(demo_goruntulenme, 0) + 1, demo_son_goruntulenme = NOW() WHERE id = $1 AND demo = true',
-    [isletmeId]).catch(() => {});
+    [isletmeId])
+    .then(() => require('./devir').demoAcildi(isletmeId))   // demosunu açan aday Satış Masası'na düşer
+    .catch(() => {});
 }
 
 module.exports = { demoOlustur, demoGoruntulendi, mesajUret, hizmetSablonu, KATEGORI_KOD };

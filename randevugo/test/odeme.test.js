@@ -45,3 +45,21 @@ test('bitiş hatırlatması: 3 gün kala link gider, aynı aşama tekrar gitmez,
   assert.strictEqual(await o.hatirlatmalariGonder({ gonder }), 1);
   assert.match(giden[1][1], /bugün bitti/);
 });
+
+test('deneme ödeme hatırlatmasında aldığı randevu sayısı yazar; hiç yoksa önce yardım teklif edilir', async () => {
+  const { db } = await ortam;
+  await db.exec(`CREATE TABLE IF NOT EXISTS randevular (id SERIAL PRIMARY KEY, isletme_id INT, kaynak TEXT, durum TEXT);
+    INSERT INTO randevular (isletme_id, kaynak, durum) VALUES (1, 'bot', 'onaylandi'), (1, 'online', 'tamamlandi'), (1, 'manuel', 'onaylandi'), (1, 'bot', 'iptal');
+    UPDATE isletmeler SET deneme_bitis_tarihi = NOW() + INTERVAL '20 hours' WHERE id = 1;
+    INSERT INTO isletmeler (isim, telefon, paket, deneme_bitis_tarihi) VALUES ('Boş Berber', '905329990000', 'profesyonel', NOW() + INTERVAL '20 hours');`);
+  const o = require(SRC + '/services/odemeOtomasyon');
+  const giden = [];
+  await o.hatirlatmalariGonder({ gonder: async (tel, m) => { giden.push([tel, m]); return { success: true }; } });
+  const dolu = giden.find(([t]) => t === '905321112233')[1];
+  assert.match(dolu, /yarın bitiyor/);
+  assert.match(dolu, /size \*3 randevu\* aldı \(2 tanesi WhatsApp ve online sayfadan/);
+  assert.match(dolu, /Ödeme linki:\nhttps?:\/\/\S+\/api\/odeme\/ode\//);
+  const bos = giden.find(([t]) => t === '905329990000')[1];
+  assert.match(bos, /Henüz randevu gelmediyse kurulumu birlikte bitirelim/);
+  assert.doesNotMatch(bos, /bu mesaja yazın/);
+});
