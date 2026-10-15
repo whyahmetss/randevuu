@@ -1183,18 +1183,20 @@ class SatisBot extends EventEmitter {
     const kategori = (lead.kategori || '').toLowerCase();
     let mesaj = '';
     let sablonId = null;
+    // "Yorumlar on numara" gibi övgü içeren şablon yalnız Google puanı yeterli dükkâna gider (min_puan, 2026-10-16)
+    const puanSayi = parseFloat(lead.puan) || 0;
     try {
       let dbSablonlar;
       if (kampanya) {
         dbSablonlar = (await pool.query(
-          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id = $1 ORDER BY RANDOM() LIMIT 1",
-          [kampanya.id]
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id = $1 AND (min_puan IS NULL OR $2::numeric >= min_puan) ORDER BY RANDOM() LIMIT 1",
+          [kampanya.id, puanSayi]
         )).rows;
       }
       if (!dbSablonlar || dbSablonlar.length === 0) {
         dbSablonlar = (await pool.query(
-          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id IS NULL AND (kategori = $1 OR kategori = 'genel') ORDER BY RANDOM() LIMIT 1",
-          [kategori || 'genel']
+          "SELECT * FROM satis_bot_sablonlar WHERE aktif = true AND kampanya_id IS NULL AND (kategori = $1 OR kategori = 'genel') AND (min_puan IS NULL OR $2::numeric >= min_puan) ORDER BY RANDOM() LIMIT 1",
+          [kategori || 'genel', puanSayi]
         )).rows;
       }
       if (dbSablonlar.length > 0) {

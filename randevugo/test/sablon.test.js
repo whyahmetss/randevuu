@@ -45,3 +45,15 @@ test('migration temizliği ve otomatik fren', async () => {
   assert.match(k.durdurma_notu, /11 ret \/ 40 gönderim/);
   assert.ok((await db.query("SELECT 1 FROM sistem_uyarilari WHERE tip = 'sablon'")).rows[0]);
 });
+
+test('övgü içeren şablon yalnız 4,5+ puanlı dükkâna gider', async () => {
+  const { db } = await ortam;
+  await db.exec(fs.readFileSync(SRC + '/migrations/053_sablon_min_puan.sql', 'utf8'));
+  const m = Object.fromEntries((await db.query('SELECT isim, min_puan FROM satis_bot_sablonlar')).rows.map(r => [r.isim, r.min_puan]));
+  assert.strictEqual(Number(m['Soru Soran']), 4.5, '"yorumlar on numara" diyen şablon filtrelendi');
+  assert.strictEqual(m['Kendini Tanıtan'], null);
+  await db.query("UPDATE satis_bot_sablonlar SET aktif = (isim IN ('Soru Soran', 'Kendini Tanıtan'))");
+  const sec = async (puan) => (await db.query(`SELECT isim FROM satis_bot_sablonlar WHERE aktif = true AND (min_puan IS NULL OR $1::numeric >= min_puan) ORDER BY isim`, [puan])).rows.map(r => r.isim);
+  assert.deepStrictEqual(await sec(3.9), ['Kendini Tanıtan']);
+  assert.deepStrictEqual(await sec(4.7), ['Kendini Tanıtan', 'Soru Soran']);
+});

@@ -960,6 +960,7 @@ const PORT = process.env.PORT || 3000;
     `ALTER TABLE merkez_otp_bot ADD COLUMN IF NOT EXISTS uyari TEXT`,
     // Şablon otomatik freni (2026-10-16, migration 052'de de var)
     `ALTER TABLE satis_bot_sablonlar ADD COLUMN IF NOT EXISTS durdurma_notu TEXT`,
+    `ALTER TABLE satis_bot_sablonlar ADD COLUMN IF NOT EXISTS min_puan NUMERIC(2,1)`,
     // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
     `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
   ];

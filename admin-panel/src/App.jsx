@@ -7965,6 +7965,11 @@ function SuperAdminPanel({ kullanici }) {
                       <option value="rastgele">Rastgele</option>
                       <option value="sirasıyla">Sırasıyla</option>
                     </select>
+                    <select value={yeniSablon.min_puan ?? ""} onChange={e => setYeniSablon({...yeniSablon, min_puan: e.target.value})} title="Övgü içeren metinler yalnız puanı yüksek dükkâna gitsin" style={{ padding: "10px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }}>
+                      <option value="">Tüm dükkânlar</option>
+                      <option value="4">Google ⭐ 4,0+</option>
+                      <option value="4.5">Google ⭐ 4,5+</option>
+                    </select>
                   </div>
                   <textarea value={yeniSablon.mesaj} onChange={e => setYeniSablon({...yeniSablon, mesaj: e.target.value})} placeholder="Mesaj metni... {isletme_adi}, {isletme_sahibi}, {kategori} değişkenlerini kullanabilirsiniz." rows={5} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, resize: "vertical", fontFamily: "inherit" }} />
                   <div className="row gap-8" style={{ marginTop: 12 }}>
@@ -7998,6 +8003,7 @@ function SuperAdminPanel({ kullanici }) {
                                 onClick={async () => { const d = await api.put(`/admin/satis-bot/sablonlar/${s.id}`, { isim: s.isim, mesaj: s.mesaj, kategori: s.kategori, aktif: !s.aktif, gonderim_modu: s.gonderim_modu || "rastgele" }); if (d?.hata) alert(d.hata); sablonlariYukle(); }}
                                 style={{ padding: "2px 8px", borderRadius: 6, border: "none", cursor: "pointer", background: s.aktif ? "rgba(31,111,74,.08)" : "rgba(180,35,24,.08)", color: s.aktif ? "#1f6f4a" : "#b42318", fontSize: 10, fontWeight: 600, fontFamily: "inherit" }}>{s.aktif ? "● Aktif" : "● Pasif"}</button>
                               <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 10, fontWeight: 600 }}>{etiket(s.kategori)}</span>
+                              {s.min_puan && <span title="Yalnız bu puan ve üstündeki dükkânlara gider" style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.08)", color: "#a8590c", fontSize: 10, fontWeight: 600 }}>⭐ {String(s.min_puan).replace(".", ",")}+</span>}
                             </div>
                           </div>
                         </div>
@@ -8012,7 +8018,7 @@ function SuperAdminPanel({ kullanici }) {
                             <span style={{ color: "#5d4bb5", fontWeight: 700 }} title="Bu şablonla başlayıp hesap açan">🎉 Kayıt {s.kayit || 0}{s.gonderilen > 0 && ` (%${((s.kayit || 0) * 100 / s.gonderilen).toFixed(1)})`}</span>
                           </div>
                           <div className="row gap-6">
-                            <button onClick={() => { setSablonDuzenle(s); setYeniSablon({ isim: s.isim, mesaj: s.mesaj, kategori: s.kategori, aktif: s.aktif, gonderim_modu: s.gonderim_modu || "rastgele" }); setSablonFormAcik(true); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontSize: 11 }}>✏️</button>
+                            <button onClick={() => { setSablonDuzenle(s); setYeniSablon({ isim: s.isim, mesaj: s.mesaj, kategori: s.kategori, aktif: s.aktif, gonderim_modu: s.gonderim_modu || "rastgele", min_puan: s.min_puan ?? "" }); setSablonFormAcik(true); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontSize: 11 }}>✏️</button>
                             <button onClick={() => sablonSil(s.id)} style={{ padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.06)", color: "#b42318", fontSize: 11 }}>🗑️</button>
                           </div>
                         </div>

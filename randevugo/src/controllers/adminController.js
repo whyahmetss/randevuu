@@ -5,6 +5,8 @@ const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
 const { paketGetir, paketleriYukle, paketCacheTemizle } = require('../config/paketler');
+// Şablonun gideceği en düşük Google puanı (boş = herkese)
+const minPuan = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return n > 0 && n <= 5 ? n : null; };
 const avciBot = require('../services/avciBot');
 const iyzicoService = require('../services/iyzicoService');
 const shopierService = require('../services/shopierService');
@@ -5136,8 +5138,8 @@ class AdminController {
       const { isim, mesaj, kategori, aktif, gonderim_modu } = req.body;
       if (!isim || !mesaj) return res.status(400).json({ hata: 'İsim ve mesaj zorunlu' });
       const result = await pool.query(
-        'INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori, aktif, gonderim_modu) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [isim, mesaj, kategori || 'genel', aktif !== false, gonderim_modu || 'rastgele']
+        'INSERT INTO satis_bot_sablonlar (isim, mesaj, kategori, aktif, gonderim_modu, min_puan) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [isim, mesaj, kategori || 'genel', aktif !== false, gonderim_modu || 'rastgele', minPuan(req.body.min_puan)]
       );
       res.json({ sablon: result.rows[0] });
     } catch (error) {
@@ -5151,8 +5153,9 @@ class AdminController {
       const { isim, mesaj, kategori, aktif, gonderim_modu } = req.body;
       const result = await pool.query(
         `UPDATE satis_bot_sablonlar SET isim=$1, mesaj=$2, kategori=$3, aktif=$4, gonderim_modu=$5,
-           durdurma_notu = CASE WHEN $4 THEN NULL ELSE durdurma_notu END WHERE id=$6 RETURNING *`,
-        [isim, mesaj, kategori || 'genel', aktif, gonderim_modu || 'rastgele', id]
+           durdurma_notu = CASE WHEN $4 THEN NULL ELSE durdurma_notu END,
+           min_puan = CASE WHEN $7 THEN $8::numeric ELSE min_puan END WHERE id=$6 RETURNING *`,
+        [isim, mesaj, kategori || 'genel', aktif, gonderim_modu || 'rastgele', id, 'min_puan' in req.body, minPuan(req.body.min_puan)]
       );
       res.json({ sablon: result.rows[0] });
     } catch (error) {
