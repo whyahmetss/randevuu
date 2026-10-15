@@ -68,10 +68,10 @@ export default function EkipTakip({ api }) {
       </div>
 
       <div style={{ ...kart, padding: 0, overflowX: 'auto', marginBottom: 14 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
           <thead><tr style={{ color: 'var(--dim)' }}>
             <th style={{ ...hucre, textAlign: 'left' }}>Kişi</th>
-            <th style={hucre}>Arama</th><th style={hucre}>Görüşme</th><th style={hucre}>Demo</th>
+            <th style={hucre}>Arama</th><th style={hucre}>Ziyaret</th><th style={hucre}>Görüşme</th><th style={hucre}>Demo</th><th style={hucre} title="QR kart bırakılan dükkân">Kart</th>
             <th style={{ ...hucre, color: RENK.yesil }}>Bağladı</th>
             <th style={hucre}>Listesinde</th><th style={hucre}>Getirdiği / ödeyen</th>
             <th style={hucre}>Son çalışma</th><th style={hucre}>Son giriş</th>
@@ -82,7 +82,7 @@ export default function EkipTakip({ api }) {
               return (
                 <tr key={u.id} onClick={() => setSecili({ id: u.id, isim: u.isim })} style={{ cursor: 'pointer', background: secili?.id === u.id ? 'rgba(31,111,74,.06)' : 'transparent' }}>
                   <td style={{ ...hucre, textAlign: 'left', fontWeight: 600, color: 'var(--text)' }}>{u.patron ? '👑 ' : ''}{u.isim}</td>
-                  <td style={hucre}>{s.arama ?? 0}</td><td style={hucre}>{s.gorusme ?? 0}</td><td style={hucre}>{s.demo ?? 0}</td>
+                  <td style={hucre}>{s.arama ?? 0}</td><td style={hucre}>{s.ziyaret ?? 0}</td><td style={hucre}>{s.gorusme ?? 0}</td><td style={hucre}>{s.demo ?? 0}</td><td style={hucre}>{s.kart ?? 0}</td>
                   <td style={{ ...hucre, fontWeight: 700, color: RENK.yesil }}>{s.kurulum ?? 0}</td>
                   <td style={hucre}>{u.listede}</td>
                   <td style={hucre}>{u.getirdigi} / {u.odeyen}</td>

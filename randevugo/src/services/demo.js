@@ -21,6 +21,13 @@ const HIZMETLER = {
 const KATEGORI_KOD = { berber: 'berber', 'kuaför': 'kuafor', 'güzellik salonu': 'guzellik', 'tırnak salonu': 'guzellik',
   'diş kliniği': 'disci', veteriner: 'veteriner', diyetisyen: 'diyetisyen', spa: 'spa', 'dövme': 'dovme' };
 
+// Kategori adı ("kuaför") ya da kodu ("kuafor") → örnek hizmetler [[isim, süre dk], ...] (sahada hesap, otopilot kurulum)
+function hizmetSablonu(kategori) {
+  const k = String(kategori || '').toLocaleLowerCase('tr');
+  const ad = HIZMETLER[k] ? k : Object.keys(KATEGORI_KOD).find(x => KATEGORI_KOD[x] === k && HIZMETLER[x]);
+  return HIZMETLER[ad] || [['Randevu', 30], ['Uzun Randevu', 60]];
+}
+
 function mesajUret(isletmeAdi, link) {
   return `Merhaba, ${isletmeAdi} için 2 dakikada online randevu sayfanızı hazırladım: ${link}\n\n` +
     `Müşterileriniz telefon açmadan saat seçebilir. Bir göz atın, beğenirseniz ${denemeGun()} gün ücretsiz kullanın; ` +
@@ -46,7 +53,7 @@ async function demoOlustur(leadId) {
      RETURNING *`,
     [lead.isletme_adi, tel, lead.adres || null, lead.ilce || null, KATEGORI_KOD[kategori] || 'genel', lead.id, denemeGun()])).rows[0];
   await pool.query("INSERT INTO calisanlar (isletme_id, isim, uzmanlik, aktif) VALUES ($1, 'Usta', '', true)", [isletme.id]);
-  for (const [isim, sure] of (HIZMETLER[kategori] || [['Randevu', 30], ['Uzun Randevu', 60]])) {
+  for (const [isim, sure] of hizmetSablonu(kategori)) {
     await pool.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, aktif) VALUES ($1, $2, $3, 0, true)', [isletme.id, isim, sure]);
   }
   await pool.query('UPDATE potansiyel_musteriler SET demo_isletme_id = $1 WHERE id = $2', [isletme.id, lead.id]);
@@ -60,4 +67,4 @@ function demoGoruntulendi(isletmeId) {
     [isletmeId]).catch(() => {});
 }
 
-module.exports = { demoOlustur, demoGoruntulendi, mesajUret };
+module.exports = { demoOlustur, demoGoruntulendi, mesajUret, hizmetSablonu, KATEGORI_KOD };

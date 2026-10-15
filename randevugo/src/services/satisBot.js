@@ -206,6 +206,7 @@ class SatisBot extends EventEmitter {
       mod: 'hepsi',          // 'hepsi' = kayıt+satış+ai, 'sadece_kayit' = sadece kayıt akışı, 'sadece_satis' = sadece giden mesaj (kayıt kapalı), 'sadece_ai' = gelen cevap+ai (giden mesaj yok), 'kapali' = hiçbir şey yapma
       aiCevapAktif: true,    // AI ile otomatik cevap versin mi
       kayitAktif: true,      // WhatsApp'tan kayıt olma aktif mi
+      otopilotKurulum: true, // kayıttan sonra kurulumu WhatsApp'ta bot yaptırsın (services/otopilot.js)
       takipAktif: true,      // 12 saat takip mesajı aktif mi
       takipSaati: 12,        // Kaç saat sonra takip mesajı (varsayılan 12)
       maxTakipSayisi: 2,     // Maksimum kaç takip mesajı gönderilsin
@@ -238,6 +239,16 @@ class SatisBot extends EventEmitter {
       if (ns.durum === 'bagli' && ns.sock) baglilar.push(ns);
     }
     return baglilar;
+  }
+
+  // O an bağlı satış numaraları (yalnız rakam): QR kart yönlendirmesi ve sistem numarası kontrolü
+  bagliNumaralar() {
+    const rakam = (u) => String(u?.id || '').split(':')[0].split('@')[0].replace(/\D/g, '');
+    const l = [];
+    for (const [, ns] of this.numaraSockets) { const n = ns.durum === 'bagli' ? rakam(ns.sock?.user) : ''; if (n && !l.includes(n)) l.push(n); }
+    const tek = this.durum === 'bagli' ? rakam(this.sock?.user) : '';
+    if (tek && !l.includes(tek)) l.push(tek);
+    return l;
   }
 
   // Genel durum: en az 1 numara bağlıysa 'bagli'
@@ -438,6 +449,8 @@ class SatisBot extends EventEmitter {
         console.log(`✅ [#${numaraId}] WhatsApp bağlandı — numara: ${numara} (user doğrulandı)`);
         // DB'de numarayı güncelle
         try { await pool.query("UPDATE satis_bot_numaralar SET durum='aktif', telefon=$1 WHERE id=$2", [numara, numaraId]); } catch(e) {}
+        // Bir numara yalnız bir sisteme (kullanıcı kararı 2026-10-15): Merkez OTP'de de bağlıysa oradan çıkarılır
+        require('./merkezOtpBot').satisaGecti(numara).catch(e => console.error('Merkez OTP çakışma kontrolü:', e.message));
         this.emit('bagli', { numaraId });
         this._senkronEt();
         // Takip timer'ı başlat (ilk bağlanan numara başlatsın)
@@ -562,7 +575,9 @@ class SatisBot extends EventEmitter {
   async _handleTekNumaraUpdate(update, authId) {
     const { connection, lastDisconnect, qr } = update;
     if (qr) { this.durum = 'qr_bekleniyor'; try { this.qrBase64 = await qrcode.toDataURL(qr); } catch(e) {} }
-    if (connection === 'open') { this.durum = 'bagli'; this.qrBase64 = null; this.reconnectAttempts = 0; this.basariliOturumVardi = true; console.log('✅ Satış Bot WhatsApp bağlandı'); this.takipTimerBaslat(); if (this.aktif && !this.gonderimTimer) this.sonrakiGonderim(); }
+    if (connection === 'open') { this.durum = 'bagli'; this.qrBase64 = null; this.reconnectAttempts = 0; this.basariliOturumVardi = true; console.log('✅ Satış Bot WhatsApp bağlandı'); this.takipTimerBaslat(); if (this.aktif && !this.gonderimTimer) this.sonrakiGonderim();
+      const no = String(this.sock?.user?.id || '').split(':')[0];
+      if (no) require('./merkezOtpBot').satisaGecti(no).catch(e => console.error('Merkez OTP çakışma kontrolü:', e.message)); }
     if (connection === 'close') { if (global.__kapaniyor) return; // kapanırken yeniden bağlanma (deploy çakışması)
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       if (statusCode === DisconnectReason.loggedOut) { this.durum = 'kapali'; this.sock = null; try { await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id=$1', [authId]); } catch(e) {} }
@@ -1549,12 +1564,18 @@ class SatisBot extends EventEmitter {
         await yaz(d.isletmeAdi ? `E-posta adresinizi tekrar yazar mısınız?` : `İşletmenizin adını tekrar yazar mısınız?`);
         return true;
       }
-      return this._hesapOlustur(remoteJid, telefon, ham, d, yaz);
+      return this._hesapOlustur(remoteJid, telefon, ham, d, yaz, sock);
     }
     return false;
   }
 
-  async _hesapOlustur(remoteJid, telefon, sifre, d, yaz) {
+  // Gelen mesajın socket'i hangi satış numarası (otopilot cevabı aynı numaradan gitsin)
+  _numaraIdBul(sock) {
+    for (const [id, ns] of this.numaraSockets) if (ns.sock === sock) return id;
+    return null;
+  }
+
+  async _hesapOlustur(remoteJid, telefon, sifre, d, yaz, sock) {
     let isletme = null;
     let demodan = false;
     try {
@@ -1580,9 +1601,11 @@ class SatisBot extends EventEmitter {
         [d.isletmeAdi, d.email, hash, isletme.id]);
 
       delete this.konusmalar[telefon].kayit;
+      // Konuşma, mesaj işlemedeki gibi esnek eşleşir (numara "+90…" ya da "0…" biçiminde kayıtlı olabilir)
       await pool.query(
         `UPDATE satis_konusmalar SET kayit_isletme_id = $1, durum = 'musteri', kayit_durum = NULL
-         WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $2 ORDER BY olusturma_tarihi DESC LIMIT 1)`,
+         WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $2 OR telefon = '+' || $2 OR telefon LIKE '%' || right($2, 10)
+                     ORDER BY (telefon = $2) DESC, olusturma_tarihi DESC LIMIT 1)`,
         [isletme.id, telefon]).catch(() => {});
       await pool.query(
         `UPDATE potansiyel_musteriler SET durum = 'musteri'
@@ -1602,18 +1625,41 @@ class SatisBot extends EventEmitter {
              WHERE NOT EXISTS (SELECT 1 FROM satis_aktivite WHERE lead_id = $2 AND tip = 'kurulum')`, [l.atanan_id, l.id, isletme.id]);
         }
       } catch (e) { /* masa tabloları yoksa geç */ }
+      // QR karttan geldiyse (konuşmada "kart: S12"): aday kimseye atanmadıysa kartı bırakan üyeye yazılır
+      let kartSahibi = null;
+      try {
+        const ref = (await pool.query(
+          `SELECT ref_kullanici_id FROM satis_konusmalar WHERE (telefon = $1 OR telefon = '+' || $1 OR telefon LIKE '%' || right($1, 10))
+             AND ref_kullanici_id IS NOT NULL ORDER BY olusturma_tarihi DESC LIMIT 1`,
+          [telefon])).rows[0]?.ref_kullanici_id;
+        if (ref) kartSahibi = await require('../utils/sahaKodu').kayittaUygula(ref, isletme.id, { notu: 'QR karttan WhatsApp ile kayıt oldu' });
+      } catch (e) { /* kolon yoksa geç */ }
       if (d.davet) {
         try { await require('../utils/davet').kayittaUygula(d.davet, isletme.id); } catch (e) { console.error('Davet bağlanamadı:', e.message); }
       }
 
+      // Otopilot (2026-10-15): kurulumu bu sohbette sürdür; başlamazsa eski 3 adım metni gider
+      let ilkSoru = null;
+      if (this.ayarlar.otopilotKurulum !== false) {
+        try {
+          ilkSoru = await require('./otopilot').baslat({ isletmeId: isletme.id, telefon, jid: remoteJid, numaraId: this._numaraIdBul(sock) });
+        } catch (e) { console.error('Otopilot başlatılamadı:', e.message); }
+      }
+      const otopilotta = !!ilkSoru;
       await yaz(
         `🎉 Hesabınız hazır! ${denemeGun()} gün ücretsiz deneyebilirsiniz, kart bilgisi istemiyoruz.\n\n` +
         `Giriş: https://admin.sırago.com\nE-posta: ${d.email}\n\n` +
-        `İlk 3 adım (10 dakika):\n1. Hizmetlerinizi ve çalışanlarınızı ekleyin\n2. WhatsApp botunu bağlayın (QR okutmanız yeterli)\n3. Randevu linkinizi müşterilerinize gönderin\n\n` +
-        `Takıldığınız yerde buraya yazın, birlikte kuralım. Güvenliğiniz için şifrenizi yazdığınız mesajı silebilirsiniz.`);
+        (otopilotta ? '' : `İlk 3 adım (10 dakika):\n1. Hizmetlerinizi ve çalışanlarınızı ekleyin\n2. WhatsApp botunu bağlayın (QR okutmanız yeterli)\n3. Randevu linkinizi müşterilerinize gönderin\n\n` +
+          `Takıldığınız yerde buraya yazın, birlikte kuralım. `) +
+        `Güvenliğiniz için şifrenizi yazdığınız mesajı silebilirsiniz.`);
+      if (otopilotta) {
+        this.konusmalar[telefon] = { ...(this.konusmalar[telefon] || {}), kurulum: true };
+        try { await new Promise(r => setTimeout(r, 1500)); await yaz(ilkSoru); } catch (e) { console.error('Otopilot ilk soru gönderilemedi:', e.message); }
+      }
       try {
         await this._telegramBildirimGonder(
-          `🎉 *WhatsApp'tan yeni kayıt*\n\n🏪 ${this._mdKacis(d.isletmeAdi)}\n🏷️ ${this._mdKacis(kategori)}\n📞 +${this._mdKacis(tel)}\n📧 ${this._mdKacis(d.email)}\n\n👉 İlk 24 saatte arayıp kurulumu birlikte yapın.`);
+          `🎉 *WhatsApp'tan yeni kayıt*\n\n🏪 ${this._mdKacis(d.isletmeAdi)}\n🏷️ ${this._mdKacis(kategori)}\n📞 +${this._mdKacis(tel)}\n📧 ${this._mdKacis(d.email)}` +
+          `${kartSahibi ? `\n🎴 QR kart: ${this._mdKacis(kartSahibi.isim)}` : ''}\n\n👉 ${otopilotta ? 'Kurulumu bot WhatsApp\'ta yaptırıyor; takılırsa Sistem Uyarıları\'na düşer.' : 'İlk 24 saatte arayıp kurulumu birlikte yapın.'}`);
       } catch (e) { /* bildirim önemsiz */ }
       return true;
     } catch (err) {
@@ -1652,7 +1698,8 @@ class SatisBot extends EventEmitter {
     const t = this._tampon.get(anahtar) || { metinler: [], ilk: Date.now(), zaman: null };
     t.metinler.push(metin); t.msg = msg; t.numaraId = numaraId;
     clearTimeout(t.zaman);
-    const bekle = Date.now() - t.ilk > 17000 ? 0 : (this.ayarlar.mesajBekleMs ?? 8000);
+    // Kurulum sohbetinde kısa bekle (alt alta yazılan hizmet satırları yine tek mesaj olur)
+    const bekle = Date.now() - t.ilk > 17000 ? 0 : (this.konusmalar[telefon]?.kurulum ? 2500 : (this.ayarlar.mesajBekleMs ?? 8000));
     t.zaman = setTimeout(() => {
       this._tampon.delete(anahtar);
       this._mesajIsle(t.msg, t.numaraId, t.metinler.join('\n')).catch(e => console.error('Satış mesajı işlenemedi:', e.message));
@@ -1710,6 +1757,12 @@ class SatisBot extends EventEmitter {
       }
     }
     const ilkCevap = konusma.durum === 'bekliyor' && !konusma.gelen_mesajlar;
+    // QR kart: "kart: S12" → kayıt olursa ekip üyesi 12'ye yazılır (utils/sahaKodu)
+    const kartUye = require('../utils/sahaKodu').kodYakala(metin);
+    if (kartUye && !konusma.ref_kullanici_id) {
+      konusma.ref_kullanici_id = kartUye;
+      pool.query('UPDATE satis_konusmalar SET ref_kullanici_id = $1 WHERE id = $2', [kartUye, konusma.id]).catch(() => {});
+    }
 
     // Gelen mesajı kaydet; cevap geldi → takip sekansı durur
     await pool.query(
@@ -1718,6 +1771,15 @@ class SatisBot extends EventEmitter {
     );
     if (ilkCevap && konusma.sablon_id) {
       try { await pool.query('UPDATE satis_bot_sablonlar SET cevap_gelen = cevap_gelen + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {}
+    }
+
+    // ─── Otopilot kurulum sürüyorsa mesaj kurulumun parçası (destek akışına düşmez) ───
+    if (konusma.kurulum_durum) {
+      try {
+        const handled = await require('./otopilot').mesaj({ bot: this, konusma, telefon, jid: remoteJid, numaraId, sock, metin, pushName: msg.pushName });
+        if (handled) { this.konusmalar[telefon].kurulum = true; return; }
+      } catch (e) { console.error('Otopilot mesajı işlenemedi:', e.message); }
+      delete this.konusmalar[telefon].kurulum;
     }
 
     // ─── Kayıtlı müşteri yazdı → satış değil destek: ekibe ilet ───

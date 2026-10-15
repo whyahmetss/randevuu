@@ -2647,6 +2647,37 @@ class AdminController {
     }
   }
 
+  // Geçici şifre (kullanıcı kararı 2026-10-15): esnaf şifresini unutup aradığında. Şifre ekrana gelir ve istenirse
+  // işletmenin KAYITLI WhatsApp numarasına gider (arayanı doğrulamanın en güvenli yolu). İlk girişte değiştirmek zorunlu.
+  async geciciSifre(req, res) {
+    try {
+      const isletmeId = parseInt(req.params.id);
+      const isletme = (await pool.query('SELECT id, isim, telefon FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      const k = (await pool.query(
+        'SELECT id, email FROM admin_kullanicilar WHERE isletme_id = $1 AND aktif = true AND rol <> \'superadmin\' ORDER BY id LIMIT 1', [isletmeId])).rows[0];
+      if (!k) return res.status(404).json({ hata: 'Bu işletmenin giriş hesabı yok' });
+      const sifre = require('../utils/geciciSifre').geciciSifreUret();
+      await pool.query('UPDATE admin_kullanicilar SET sifre = $1, sifre_degistirmeli = true WHERE id = $2', [await bcrypt.hash(sifre, 10), k.id]);
+      await pool.query('DELETE FROM sifre_sifirlama WHERE kullanici_id = $1', [k.id]).catch(() => {});
+      const { esnafaYaz, telMaskele } = require('../utils/esnafaYaz');
+      let wa = { gitti: false, tel: null };
+      if (req.body?.gonder !== false) {
+        wa = await esnafaYaz(isletme,
+          `SıraGO geçici şifreniz: *${sifre}*\nGiriş: https://admin.sırago.com\nE-posta: ${k.email}\n\nİlk girişte kendi şifrenizi belirlemeniz istenecek. ` +
+          `Bu isteği siz yapmadıysanız hemen ${require('../config/iletisim').DESTEK_EPOSTA} adresine yazın.`,
+          { kendineDe: true });
+      }
+      await this.auditLogYaz(req.kullanici, 'gecici_sifre',
+        `${req.kullanici.email} → İşletme #${isletmeId} (${k.email}) geçici şifre verdi${wa.gitti ? ', WhatsApp ile gönderildi' : ''}`,
+        'admin_kullanicilar', k.id, require('../utils/istemciIp').istemciIp(req));
+      res.json({ sifre, email: k.email, gonderildi: wa.gitti, tel: wa.tel ? telMaskele(wa.tel) : null });
+    } catch (error) {
+      console.error('geçici şifre:', error.message);
+      res.status(500).json({ hata: 'Geçici şifre verilemedi' });
+    }
+  }
+
   // ==================== SATIŞ BOT — ÇOKLU NUMARA ====================
 
   async satisBotNumaralar(req, res) {

@@ -13,6 +13,7 @@ const qrcode = require('qrcode');
 const pino = require('pino');
 const pool = require('../config/db');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
+const { telefonNormalize } = require('../utils/telefon');
 
 const AUTH_ID_BASE = 800000;
 const MAX_RECONNECT = 5;
@@ -58,8 +59,7 @@ class MerkezOtpBot {
 
   async numaraListe() {
     const rows = (await pool.query(
-      `SELECT id, numara, auth_id, durum, qr_base64, gunluk_gonderim, bugun_tarihi, aktif 
-       FROM merkez_otp_bot ORDER BY id`
+      `SELECT * FROM merkez_otp_bot ORDER BY id`
     )).rows;
     return rows.map(r => {
       const mem = this.sockets.get(r.id);
@@ -156,11 +156,17 @@ class MerkezOtpBot {
         }
 
         if (connection === 'open') {
+          const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
+          // Bir numara yalnız bir sisteme (kullanıcı kararı 2026-10-15): Satış Bot numarası Merkez OTP olamaz
+          if (numara && await require('../utils/sistemNumaralari').digerSistemde(numara, 'merkez')) {
+            await this._reddet(numaraId, authId, numara, sock, `+${numara} Satış Bot numarası; Merkez OTP'ye bağlanamaz. Merkez için ayrı bir numara bağlayın.`);
+            return;
+          }
           state.durum = 'bagli';
           state.qrBase64 = null;
           state.basariliOturum = true;
           state.reconnectAttempts = 0;
-          const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
+          pool.query('UPDATE merkez_otp_bot SET uyari = NULL WHERE id = $1', [numaraId]).catch(() => {});
           if (numara) {
             await pool.query(
               `UPDATE merkez_otp_bot SET durum='bagli', qr_base64=NULL, numara=$1 WHERE id=$2`,
@@ -217,6 +223,40 @@ class MerkezOtpBot {
       state.durum = 'hata';
       throw e;
     }
+  }
+
+  // Çakışan bağlantıyı reddet: oturumu kapat (telefondaki bağlı cihaz silinir), sebebi panelde ve Sistem Uyarıları'nda
+  async _reddet(numaraId, authId, numara, sock, metin) {
+    console.error(`⛔ Merkez OTP #${numaraId}: ${metin}`);
+    const state = this.sockets.get(numaraId);
+    if (state) { if (state._reconnectTimer) clearTimeout(state._reconnectTimer); state.durum = 'kapali'; state.qrBase64 = null; state.basariliOturum = false; }
+    await pool.query("UPDATE merkez_otp_bot SET durum = 'kapali', qr_base64 = NULL WHERE id = $1", [numaraId]).catch(() => {});
+    await pool.query('UPDATE merkez_otp_bot SET uyari = $1 WHERE id = $2', [metin, numaraId]).catch(() => {});
+    await require('../utils/sistemUyari').uyar({ tip: 'numara', anahtar: `numara_cakisma:${telefonNormalize(numara)}`, seviye: 'kritik',
+      baslik: `+${telefonNormalize(numara)} hem Satış Bot hem Merkez OTP'ye bağlanmak istendi`, detay: metin });
+    try { await sock?.logout(); } catch (e) { try { sock?.end(); } catch (e2) { /* kapalı */ } }
+    this.sockets.delete(numaraId);
+    await pool.query('DELETE FROM wa_auth_keys WHERE isletme_id = $1', [authId]).catch(() => {});
+  }
+
+  // Satış Bot bu numarayı bağladı: Merkez OTP'de aynı numara varsa oradan çıkarılır (çakışmada satış kazanır)
+  async satisaGecti(numara) {
+    const t = telefonNormalize(numara);
+    if (!t) return 0;
+    const idler = new Set();
+    try { for (const r of (await pool.query('SELECT id, numara FROM merkez_otp_bot WHERE numara IS NOT NULL')).rows) if (telefonNormalize(r.numara) === t) idler.add(r.id); }
+    catch (e) { /* tablo yoksa */ }
+    for (const [id, s] of this.sockets) if (telefonNormalize(String(s.sock?.user?.id || '').split(':')[0].split('@')[0]) === t) idler.add(id);
+    const metin = `+${t} Satış Bot'a bağlandı; Merkez OTP'den çıkarıldı. Merkez için ayrı bir numara bağlayın.`;
+    for (const id of idler) {
+      console.error(`⛔ Merkez OTP #${id}: ${metin}`);
+      await this.numaraDurdur(id);
+      await pool.query('UPDATE merkez_otp_bot SET numara = NULL WHERE id = $1', [id]).catch(() => {});
+      await pool.query('UPDATE merkez_otp_bot SET uyari = $1 WHERE id = $2', [metin, id]).catch(() => {});
+      await require('../utils/sistemUyari').uyar({ tip: 'numara', anahtar: `numara_cakisma:${t}`, seviye: 'kritik',
+        baslik: `+${t} hem Satış Bot hem Merkez OTP'ye bağlıydı`, detay: metin });
+    }
+    return idler.size;
   }
 
   // ─── Aktif bağlı socket var mı ───

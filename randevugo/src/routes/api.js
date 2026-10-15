@@ -33,6 +33,7 @@ router.post('/auth/google', (req, res) => authController.google(req, res));
 router.post('/auth/sifre-kod', (req, res) => authController.sifreKod(req, res));
 router.post('/auth/sifre-yenile', (req, res) => authController.sifreYenile(req, res));
 router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim(req, res));
+router.post('/auth/sifre-degistir', authMiddleware, (req, res) => authController.sifreDegistir(req, res));
 
 // ==================== İLETİŞİM (public) ====================
 router.post('/iletisim', (req, res) => adminController.iletisimGonder(req, res));
@@ -153,6 +154,8 @@ router.get('/admin/isletmeler/:id/detay', authMiddleware, superAdminMiddleware, 
 router.post('/admin/isletmeler/:id/deneme-uzat', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeDenemeUzat(req, res));
 router.put('/admin/isletmeler/:id/not', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeNotEkle(req, res));
 router.post('/admin/impersonate/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.impersonate(req, res));
+// Geçici şifre (2026-10-15): esnaf şifresini unutup aradığında; ilk girişte değiştirmesi zorunlu
+router.post('/admin/isletmeler/:id/gecici-sifre', authMiddleware, superAdminMiddleware, (req, res) => adminController.geciciSifre(req, res));
 router.post('/admin/saha-demo', authMiddleware, superAdminMiddleware, (req, res) => adminController.sahaDemo(req, res));
 router.post('/admin/isletmeler/:id/demo-veri', authMiddleware, superAdminMiddleware, (req, res) => adminController.demoVeriBas(req, res));
 
@@ -600,6 +603,10 @@ router.post('/admin/masa/lead/:id/sonuc', ...saMw, (req, res) => masaController.
 router.post('/admin/masa/lead/:id/birak', ...saMw, (req, res) => masaController.birak(req, res));
 router.post('/admin/masa/lead/:id/wa', ...saMw, (req, res) => masaController.waMesaj(req, res));
 router.get('/admin/masa/aktiviteler', ...saMw, (req, res) => masaController.aktiviteler(req, res));
+// Saha (2026-10-15): dükkânda hesap aç, açtığım hesabın paneline gir, satışçı kodlu QR kart
+router.post('/admin/masa/hesap-ac', ...saMw, (req, res) => masaController.hesapAc(req, res));
+router.post('/admin/masa/hesap/:id/panel', ...saMw, (req, res) => masaController.hesapPanel(req, res));
+router.get('/admin/masa/qr-kart', ...saMw, (req, res) => masaController.qrKart(req, res));
 router.put('/admin/masa/hedef', ...saMw, (req, res) => masaController.hedefGuncelle(req, res));
 router.get('/admin/masa/itirazlar', ...saMw, (req, res) => masaController.itirazlar(req, res));
 router.post('/admin/masa/itirazlar', ...saMw, (req, res) => masaController.itirazEkle(req, res));
