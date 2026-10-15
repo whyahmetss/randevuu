@@ -51,6 +51,23 @@ function kisiselSatir(lead = {}) {
   return '';
 }
 
+// Şablon değişkenlerini doldur; boş kalan alanın bıraktığı "Selam ," / çift boşluk gibi izleri temizle (2026-10-16)
+function sablonDoldur(metin, lead = {}) {
+  return String(metin || '')
+    .replace(/{isletme_adi}/g, lead.isletme_adi || '')
+    .replace(/{isletme_sahibi}/g, lead.isletme_sahibi || '')
+    .replace(/{kategori}/g, lead.kategori || 'işletme')
+    .replace(/{telefon}/g, lead.telefon || '')
+    .replace(/{kisisel}/g, kisiselSatir(lead).trim())
+    .replace(/{puan}/g, lead.puan ? String(lead.puan).replace('.', ',') : '')
+    .replace(/{yorum_sayisi}/g, lead.yorum_sayisi || '')
+    .replace(/[ \t]+([,.!?])/g, '$1')        // "Selam ," → "Selam,"
+    .replace(/([,.!?]){2,}/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/^[ \t]+|[ \t]+$/gm, '')
+    .trim();
+}
+
 // WhatsApp'ta tıklanır link: sırago.com → https://sırago.com (ASCII sirago.com başkasına ait park alanı)
 function linkDuzelt(m) {
   return String(m || '')
@@ -239,6 +256,21 @@ class SatisBot extends EventEmitter {
       if (ns.durum === 'bagli' && ns.sock) baglilar.push(ns);
     }
     return baglilar;
+  }
+
+  // Şablon freni (2026-10-16): en az 30 gönderimde reddedenler gönderilenin %25'ini geçerse şablon kendiliğinden
+  // pasife düşer (çok ret = şikâyet = numara banı). Sebep panelde ve Sistem Uyarıları'nda görünür.
+  async _sablonFreni(sablonId) {
+    const r = (await pool.query(
+      `UPDATE satis_bot_sablonlar SET aktif = false,
+         durdurma_notu = 'Otomatik durduruldu: ' || olumsuz || ' ret / ' || gonderilen || ' gönderim (%' || ROUND(olumsuz * 100.0 / gonderilen) || ')'
+       WHERE id = $1 AND aktif = true AND gonderilen >= 30 AND olumsuz * 4 > gonderilen
+       RETURNING isim, durdurma_notu`, [sablonId])).rows[0];
+    if (!r) return false;
+    console.log(`🛑 Şablon durduruldu: ${r.isim} — ${r.durdurma_notu}`);
+    await require('../utils/sistemUyari').uyar({ tip: 'sablon', anahtar: `sablon_fren:${sablonId}`, seviye: 'uyari',
+      baslik: `Satış şablonu durduruldu: ${r.isim}`, detay: `${r.durdurma_notu}. Metni değiştirip yeniden açabilirsiniz.` });
+    return true;
   }
 
   // O an bağlı satış numaraları (yalnız rakam): QR kart yönlendirmesi ve sistem numarası kontrolü
@@ -1168,14 +1200,7 @@ class SatisBot extends EventEmitter {
       if (dbSablonlar.length > 0) {
         const s = dbSablonlar[0];
         sablonId = s.id;
-        mesaj = s.mesaj
-          .replace(/{isletme_adi}/g, lead.isletme_adi || '')
-          .replace(/{isletme_sahibi}/g, lead.isletme_sahibi || lead.isletme_adi || '')
-          .replace(/{kategori}/g, lead.kategori || 'işletme')
-          .replace(/{telefon}/g, lead.telefon || '')
-          .replace(/{kisisel}/g, kisiselSatir(lead).trim())
-          .replace(/{puan}/g, lead.puan ? String(lead.puan).replace('.', ',') : '')
-          .replace(/{yorum_sayisi}/g, lead.yorum_sayisi || '');
+        mesaj = sablonDoldur(s.mesaj, lead);
         await pool.query('UPDATE satis_bot_sablonlar SET gonderilen = gonderilen + 1 WHERE id = $1', [sablonId]);
       }
     } catch(e) { console.log('DB şablon hatası (fallback):', e.message); }
@@ -1825,7 +1850,7 @@ class SatisBot extends EventEmitter {
         await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
       }
       if (konusma.sablon_id && yeniDurum === 'olumsuz') {
-        try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {}
+        try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); await this._sablonFreni(konusma.sablon_id); } catch (e) {}
       }
       return;
     }
@@ -1895,7 +1920,7 @@ class SatisBot extends EventEmitter {
       if (durum === 'sicak' && konusma.durum !== 'sicak') this._sicakLeadBildirim(konusma, metin);
     } else if (durum === 'olumsuz') {
       if (konusma.lead_id) await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
-      if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); } catch (e) {} }
+      if (konusma.sablon_id) { try { await pool.query('UPDATE satis_bot_sablonlar SET olumsuz = olumsuz + 1 WHERE id = $1', [konusma.sablon_id]); await this._sablonFreni(konusma.sablon_id); } catch (e) {} }
     }
     // Tanıtım videosu kapalı (kullanıcı kararı 2026-10-08: tanımadığı numaradan video bot gibi duruyor)
   }
@@ -2094,4 +2119,4 @@ Yalnızca JSON döndür: {"mesaj": "...", "durum": "olumlu" | "olumsuz" | "bekli
 }
 
 module.exports = new SatisBot();
-module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, yalnizNezaket };
+module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, yalnizNezaket, sablonDoldur };

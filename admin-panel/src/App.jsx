@@ -7927,7 +7927,7 @@ function SuperAdminPanel({ kullanici }) {
               <div className="row row-between mb-16" style={{ alignItems: "center" }}>
                 <div>
                   <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", margin: 0 }}>Mesaj Şablonları</h3>
-                  <p style={{ fontSize: 12, color: "var(--dim)", margin: "4px 0 0" }}>Bot'un kullanacağı mesaj şablonları — performans takibi ve A/B test</p>
+                  <p style={{ fontSize: 12, color: "var(--dim)", margin: "4px 0 0" }}>Aktif şablonlar arasından rastgele seçilir. Asıl ölçü 🎉 Kayıt; 30 gönderimden sonra reddedenler %25'i geçen şablon kendiliğinden durur.</p>
                 </div>
                 <div className="row gap-8">
                   {["liste", "performans"].map(t => (
@@ -7993,18 +7993,23 @@ function SuperAdminPanel({ kullanici }) {
                           <div>
                             <div className="row gap-8" style={{ alignItems: "center" }}>
                               <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{s.isim}</span>
-                              <span style={{ padding: "2px 8px", borderRadius: 6, background: s.aktif ? "rgba(31,111,74,.08)" : "rgba(180,35,24,.08)", color: s.aktif ? "#1f6f4a" : "#b42318", fontSize: 10, fontWeight: 600 }}>{s.aktif ? "● Aktif" : "● Pasif"}</span>
+                              {/* Tek tıkla aç/kapat (2026-10-16): eskiden düzenleme formu açmak gerekiyordu */}
+                              <button title={s.aktif ? "Durdurmak için tıkla" : "Göndermeye başlamak için tıkla"}
+                                onClick={async () => { const d = await api.put(`/admin/satis-bot/sablonlar/${s.id}`, { isim: s.isim, mesaj: s.mesaj, kategori: s.kategori, aktif: !s.aktif, gonderim_modu: s.gonderim_modu || "rastgele" }); if (d?.hata) alert(d.hata); sablonlariYukle(); }}
+                                style={{ padding: "2px 8px", borderRadius: 6, border: "none", cursor: "pointer", background: s.aktif ? "rgba(31,111,74,.08)" : "rgba(180,35,24,.08)", color: s.aktif ? "#1f6f4a" : "#b42318", fontSize: 10, fontWeight: 600, fontFamily: "inherit" }}>{s.aktif ? "● Aktif" : "● Pasif"}</button>
                               <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(47,86,198,.08)", color: "#2f56c6", fontSize: 10, fontWeight: 600 }}>{etiket(s.kategori)}</span>
                             </div>
                           </div>
                         </div>
                         <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.5, maxHeight: 60, overflow: "hidden", textOverflow: "ellipsis", marginBottom: 10, whiteSpace: "pre-wrap" }}>{s.mesaj}</div>
+                        {s.durdurma_notu && <div style={{ fontSize: 11, fontWeight: 600, color: "#b42318", background: "rgba(180,35,24,.06)", borderRadius: 8, padding: "6px 10px", marginBottom: 8 }}>🛑 {s.durdurma_notu}. Metni değiştirip yeniden açabilirsin.</div>}
                         <div className="row row-between" style={{ alignItems: "center" }}>
                           <div className="row gap-12" style={{ fontSize: 11, color: "var(--dim)" }}>
                             <span>📤 {s.gonderilen}</span>
                             <span>📩 {s.cevap_gelen} <span style={{ color: parseFloat(donusOrani) > 20 ? "#1f6f4a" : parseFloat(donusOrani) > 10 ? "#a8590c" : "#b42318" }}>(%{donusOrani})</span></span>
                             <span style={{ color: "#1f6f4a" }}>👍 {s.olumlu}</span>
-                            <span style={{ color: "#b42318" }}>👎 {s.olumsuz}</span>
+                            <span style={{ color: "#b42318" }} title="Reddeden / gönderilen">👎 {s.olumsuz}{s.gonderilen > 0 && ` (%${Math.round(s.olumsuz * 100 / s.gonderilen)})`}</span>
+                            <span style={{ color: "#5d4bb5", fontWeight: 700 }} title="Bu şablonla başlayıp hesap açan">🎉 Kayıt {s.kayit || 0}{s.gonderilen > 0 && ` (%${((s.kayit || 0) * 100 / s.gonderilen).toFixed(1)})`}</span>
                           </div>
                           <div className="row gap-6">
                             <button onClick={() => { setSablonDuzenle(s); setYeniSablon({ isim: s.isim, mesaj: s.mesaj, kategori: s.kategori, aktif: s.aktif, gonderim_modu: s.gonderim_modu || "rastgele" }); setSablonFormAcik(true); }} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid var(--border)", cursor: "pointer", background: "var(--surface)", color: "var(--dim)", fontSize: 11 }}>✏️</button>
