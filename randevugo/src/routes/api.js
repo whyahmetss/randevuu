@@ -620,5 +620,6 @@ const ekipController = require('../controllers/ekipController');
 router.get('/admin/ekip', ...saMw, (req, res) => ekipController.liste(req, res));
 router.post('/admin/ekip', ...saMw, (req, res) => ekipController.ekle(req, res));
 router.put('/admin/ekip/:id', ...saMw, (req, res) => ekipController.guncelle(req, res));
+router.delete('/admin/ekip/:id', ...saMw, (req, res) => ekipController.sil(req, res));
 
 module.exports = router;
