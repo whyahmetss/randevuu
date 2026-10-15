@@ -67,9 +67,8 @@ class ShopierService {
     }
   }
 
-  // ─── Ödeme başlat: işletmeye özel tek kullanımlık ürün → Shopier ödeme sayfası URL'si ───
-  // sure: 'yil' → 12 ay kullanım, YILLIK_ODENEN_AY (9) aylık ücret
-  async odemeBaslat(isletmeId, paketIstek, sure) {
+  // ─── Fiyat: paket + Öncü kilitli fiyat + yıllık (kupon hariç). Kupon kontrolü ve ödeme aynı hesabı kullanır ───
+  async fiyatHesapla(isletmeId, paketIstek, sure) {
     const { paketGetir, FALLBACK_PAKETLER, YILLIK_ODENEN_AY } = require('../config/paketler');
     const yillik = sure === 'yil';
     const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
@@ -79,12 +78,30 @@ class ShopierService {
     if (isletme.grup_id) {
       merkez = (await pool.query('SELECT * FROM isletmeler WHERE grup_id = $1 ORDER BY id LIMIT 1', [isletme.grup_id])).rows[0] || isletme;
     }
-    const secilenPaket = (paketIstek && FALLBACK_PAKETLER[paketIstek]) ? paketIstek : (merkez.paket || 'baslangic');
-    const paketBilgi = { ...(await paketGetir(secilenPaket)) };
+    const paket = (paketIstek && FALLBACK_PAKETLER[paketIstek]) ? paketIstek : (merkez.paket || 'baslangic');
+    const paketBilgi = { ...(await paketGetir(paket)) };
     if (!(paketBilgi.fiyat > 0)) throw new Error('Paket fiyatı tanımsız');
     // Öncü Esnaf: kilitli paket için kilitli fiyat
-    paketBilgi.fiyat = require('../utils/oncu').etkinFiyat(merkez, secilenPaket, paketBilgi.fiyat);
-    if (yillik) paketBilgi.fiyat = paketBilgi.fiyat * YILLIK_ODENEN_AY;
+    let fiyat = require('../utils/oncu').etkinFiyat(merkez, paket, paketBilgi.fiyat);
+    if (yillik) fiyat = fiyat * YILLIK_ODENEN_AY;
+    return { merkez, merkezId: merkez.id, paket, paketBilgi, fiyat, yillik };
+  }
+
+  // ─── Ödeme başlat: işletmeye özel tek kullanımlık ürün → Shopier ödeme sayfası URL'si ───
+  // sure: 'yil' → 12 ay kullanım, YILLIK_ODENEN_AY (9) aylık ücret. kuponKod: Kuponlar sayfasındaki kod (opsiyonel)
+  async odemeBaslat(isletmeId, paketIstek, sure, kuponKod = null) {
+    const { YILLIK_ODENEN_AY } = require('../config/paketler');
+    const f = await this.fiyatHesapla(isletmeId, paketIstek, sure);
+    if (!f) return null;
+    const { merkez, yillik } = f;
+    const secilenPaket = f.paket;
+    const paketBilgi = { ...f.paketBilgi, fiyat: f.fiyat };
+    let kuponBilgi = null;
+    if (kuponKod) {
+      const d = await require('./kupon').dogrula({ kod: kuponKod, isletmeId: merkez.id, paket: secilenPaket, tutar: f.fiyat });
+      kuponBilgi = d.kupon;
+      paketBilgi.fiyat = d.indirimli;
+    }
     const buAy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
     const refKod = `SRGO-${merkez.id}`;
     const paketLabel = paketBilgi.isim || secilenPaket;
@@ -101,10 +118,10 @@ class ShopierService {
     const urun = await this.urunOlustur({
       gorselUrl,
       baslik: `SıraGO ${paketLabel} Paket${yillik ? ' Yıllık' : ''} [${refKod}]`,
-      aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket, ${yillik ? `12 aylık kullanım (${YILLIK_ODENEN_AY} ay öde)` : '1 aylık kullanım'} (${buAy})\nİşletme: ${merkez.isim}\nRef: ${refKod}`,
+      aciklama: `SıraGO Randevu Sistemi - ${paketLabel} Paket, ${yillik ? `12 aylık kullanım (${YILLIK_ODENEN_AY} ay öde)` : '1 aylık kullanım'} (${buAy})\nİşletme: ${merkez.isim}\nRef: ${refKod}${kuponBilgi ? `\nKupon: ${kuponBilgi.kod}` : ''}`,
       fiyat: paketBilgi.fiyat,
     });
-    await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2, bekleyen_sure=$4 WHERE id=$3', [secilenPaket, String(urun.id), merkez.id, yillik ? 'yil' : null]);
+    await pool.query('UPDATE isletmeler SET bekleyen_paket=$1, bekleyen_shopier_urun_id=$2, bekleyen_sure=$4, bekleyen_kupon_id=$5 WHERE id=$3', [secilenPaket, String(urun.id), merkez.id, yillik ? 'yil' : null, kuponBilgi?.id || null]);
 
     const mevcut = (await pool.query("SELECT id, durum FROM odemeler WHERE isletme_id = $1 AND donem = $2", [merkez.id, buAy])).rows[0];
     if (mevcut && ['odendi', 'havale_bekliyor'].includes(mevcut.durum)) {
@@ -192,10 +209,10 @@ class ShopierService {
 
     // İşletme ID'yi bul: önce ödeme başlatılırken saklanan ürün, sonra başlık/not
     let isletmeId = null;
-    let bekleyenPaket = null, bekleyenSure = null;
+    let bekleyenPaket = null, bekleyenSure = null, bekleyenKuponId = null;
     if (urunId) {
-      const b = (await pool.query('SELECT id, bekleyen_paket, bekleyen_sure FROM isletmeler WHERE bekleyen_shopier_urun_id = $1', [String(urunId)])).rows[0];
-      if (b) { isletmeId = b.id; bekleyenPaket = b.bekleyen_paket; bekleyenSure = b.bekleyen_sure; }
+      const b = (await pool.query('SELECT id, bekleyen_paket, bekleyen_sure, bekleyen_kupon_id FROM isletmeler WHERE bekleyen_shopier_urun_id = $1', [String(urunId)])).rows[0];
+      if (b) { isletmeId = b.id; bekleyenPaket = b.bekleyen_paket; bekleyenSure = b.bekleyen_sure; bekleyenKuponId = b.bekleyen_kupon_id; }
     }
     const refMatch = (urunBaslik + ' ' + siparisNotu).match(/SRGO-(\d+)/);
     if (!isletmeId && refMatch) {
@@ -290,16 +307,26 @@ class ShopierService {
           const p = await paketGetir(bekleyenPaket);
           const isl = (await pool.query('SELECT oncu_no, kilitli_paket, kilitli_fiyat FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
           const aylik = require('../utils/oncu').etkinFiyat(isl, bekleyenPaket, p.fiyat || 0);
-          if (tutar + 1 >= aylik) yeniPaket = bekleyenPaket;
+          // Kuponlu ödemede beklenen tutar kuponlu fiyattır (yoksa indirimli ödeyenin paketi değişmezdi)
+          let kuponObj = null;
+          if (bekleyenKuponId) kuponObj = (await pool.query('SELECT * FROM kuponlar WHERE id = $1', [bekleyenKuponId])).rows[0] || null;
+          const beklenen = (t) => (kuponObj ? require('./kupon').uygula(kuponObj, t) : t);
+          const tamTutar = bekleyenSure === 'yil' ? aylik * YILLIK_ODENEN_AY : aylik;
+          if (tutar + 1 >= beklenen(bekleyenSure === 'yil' ? tamTutar : aylik)) yeniPaket = bekleyenPaket;
+          else if (!kuponObj && tutar + 1 >= aylik) yeniPaket = bekleyenPaket;
           else console.warn(`⚠️ Shopier tutarı (${tutar}) ${bekleyenPaket} fiyatından (${p.fiyat}) düşük — paket değiştirilmedi`);
-          // Yıllık: tam yıllık tutar ödendiyse 12 ay (365 gün) uzar
-          if (bekleyenSure === 'yil' && tutar + 1 >= aylik * YILLIK_ODENEN_AY) gun = 365;
+          // Yıllık: tam yıllık tutar (kuponluysa kuponlu hâli) ödendiyse 12 ay (365 gün) uzar
+          if (bekleyenSure === 'yil' && tutar + 1 >= beklenen(tamTutar)) gun = 365;
+          if (kuponObj && yeniPaket) {
+            await require('./kupon').kullanildi({ kuponId: kuponObj.id, isletmeId, once: tamTutar, sonra: tutar });
+            await pool.query('UPDATE odemeler SET kupon_kodu = $1 WHERE isletme_id = $2 AND donem = $3', [kuponObj.kod, isletmeId, buAy]);
+          }
         } catch (e) {}
       }
       // Bitiş tarihi: kalan günler silinmesin (eskiden NOW()+30 yazılıyordu)
       await pool.query(
         `UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + make_interval(days => $3),
-           aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL, bekleyen_sure = NULL,
+           aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL, bekleyen_sure = NULL, bekleyen_kupon_id = NULL,
            son_odeme_sure = CASE WHEN $3 >= 365 THEN 'yil' ELSE 'ay' END WHERE id = $1`,
         [isletmeId, yeniPaket, gun]
       );

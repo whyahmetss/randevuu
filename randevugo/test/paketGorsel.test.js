@@ -21,7 +21,7 @@ const PNG = 'data:image/png;base64,' + Buffer.from('sahte-png').toString('base64
 test('paket görseli: yüklenir, sunulur, Shopier ürününde kullanılır; kaldırılınca Fiko', async () => {
   const { db } = await hazirla(`
     CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, telefon TEXT, paket TEXT, grup_id INT, aktif BOOLEAN DEFAULT true, demo BOOLEAN DEFAULT false,
-      paket_bitis_tarihi TIMESTAMP, bekleyen_paket TEXT, bekleyen_shopier_urun_id TEXT, bekleyen_sure VARCHAR(5), oncu_no INT, kilitli_paket TEXT, kilitli_fiyat NUMERIC);
+      paket_bitis_tarihi TIMESTAMP, bekleyen_paket TEXT, bekleyen_shopier_urun_id TEXT, bekleyen_sure VARCHAR(5), bekleyen_kupon_id INT, oncu_no INT, kilitli_paket TEXT, kilitli_fiyat NUMERIC);
     CREATE TABLE odemeler (id SERIAL PRIMARY KEY, isletme_id INT, tutar NUMERIC, donem TEXT, durum TEXT, odeme_yontemi TEXT, referans_kodu TEXT, shopier_urun_id TEXT);
     CREATE UNIQUE INDEX ON odemeler (isletme_id, donem);
     CREATE TABLE paket_tanimlari (id SERIAL PRIMARY KEY, kod TEXT, isim TEXT, fiyat NUMERIC, aktif BOOLEAN DEFAULT true, sira INT DEFAULT 0);

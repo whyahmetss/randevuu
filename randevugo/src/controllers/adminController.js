@@ -1,5 +1,6 @@
 const pool = require('../config/db');
-const { DENEME_GUN } = require('../config/deneme');
+const { denemeGun } = require('../config/deneme');
+const platformAyar = require('../utils/platformAyar');
 const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
@@ -797,7 +798,7 @@ class AdminController {
       
       const isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, adres, ilce, kategori, olusturma_tarihi, deneme_bitis_tarihi) VALUES ($1, $2, $3, $4, $5, NOW(), NOW() + make_interval(days => $6)) RETURNING *`,
-        [isim, telefon, adres, ilce, kategori, DENEME_GUN]
+        [isim, telefon, adres, ilce, kategori, denemeGun()]
       )).rows[0];
 
       if (email && sifre) {
@@ -1595,10 +1596,10 @@ class AdminController {
         tutar: paketBilgi.fiyat,
         donem: buAy,
         referans_kodu: kod,
-        banka: {
-          banka_adi: 'Garanti BBVA',
-          iban: 'TR54 0006 2000 7440 0006 8578 09',
-          hesap_sahibi: 'Ahmet Çavdar',
+        banka: {   // Platform Ayarları → Havale bilgileri
+          banka_adi: platformAyar.al('havale_banka'),
+          iban: platformAyar.al('havale_iban'),
+          hesap_sahibi: platformAyar.al('havale_alici'),
           aciklama: kod
         }
       });
@@ -1629,12 +1630,16 @@ class AdminController {
       if (!shopierService.webhookToken) {
         // Doğrulanamayan webhook kabul edilmez: sahte 'paid' isteğiyle bedava abonelik/kapora onayı mümkündü.
         console.error('❌ SHOPIER_WEBHOOK_TOKEN tanımlı değil — webhook reddedildi');
+        require('../utils/sistemUyari').uyar({ tip: 'odeme', anahtar: 'shopier:token', seviye: 'kritik',
+          baslik: 'SHOPIER_WEBHOOK_TOKEN tanımlı değil', detay: 'Kartla gelen ödemeler otomatik işlenmiyor. Render ortam değişkenine ekleyin.' });
         return res.status(503).send('Webhook token not configured');
       }
       if (signature) {
         const gecerli = shopierService.webhookDogrula(rawBody, signature);
         if (!gecerli) {
           console.log('❌ Shopier webhook signature geçersiz');
+          require('../utils/sistemUyari').uyar({ tip: 'odeme', anahtar: 'shopier:imza', seviye: 'kritik',
+            baslik: 'Shopier webhook imzası geçersiz', detay: 'SHOPIER_WEBHOOK_TOKEN Shopier panelindekiyle aynı mı? Ödemeler otomatik işlenmiyor olabilir.' });
           return res.status(401).send('Invalid signature');
         }
       } else {
@@ -1651,6 +1656,8 @@ class AdminController {
       res.status(200).json({ ok: true });
     } catch (error) {
       console.error('❌ Shopier webhook hatası:', error);
+      require('../utils/sistemUyari').uyar({ tip: 'odeme', anahtar: 'shopier:hata', seviye: 'kritik',
+        baslik: 'Shopier ödemesi işlenirken hata', detay: `Sipariş #${req.body?.id || '?'}: ${error.message}. Ödemeler'den kontrol edin.` });
       res.status(200).json({ ok: true }); // Shopier retry yapmaması için 200 dön
     }
   }

@@ -42,6 +42,12 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 
 import { API_URL, API_ORIGIN, bookingUrl } from './lib/config';
 import PaketGorsel from './components/PaketGorsel';
+import { dosyaIndir } from './components/Platform/ortak';
+import PlatformAyarlari from './components/Platform/PlatformAyarlari';
+import SistemUyarilari from './components/Platform/SistemUyarilari';
+import BotMesajlari from './components/Platform/BotMesajlari';
+import Ozellikler from './components/Platform/Ozellikler';
+import Kuponlar from './components/Platform/Kuponlar';
 import BackendHealth from './components/BackendHealth';
 import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
 import BildirimAktivasyon from './components/BildirimAktivasyon';
@@ -93,11 +99,11 @@ const ETIKET = {
 };
 const etiket = (k) => (k == null || k === "" ? k : ETIKET[k] || String(k).replace(/_/g, " "));
 
-function odemeSayfasiAc(paket, sure) {
+function odemeSayfasiAc(paket, sure, kupon) {
   const w = window.open("", "_blank");
-  const q = new URLSearchParams({ ...(paket ? { paket } : {}), ...(sure === "yil" ? { sure } : {}) }).toString();
+  const q = new URLSearchParams({ ...(paket ? { paket } : {}), ...(sure === "yil" ? { sure } : {}), ...(kupon ? { kupon } : {}) }).toString();
   api.get(`/odeme/link${q ? `?${q}` : ""}`)
-    .then(d => { if (d?.url) { if (w) w.location.href = d.url; else window.location.href = d.url; } else { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar dene."); } })
+    .then(d => { if (d?.url) { if (w) w.location.href = d.url; else window.location.href = d.url; } else { w?.close(); alert(d?.hata || "Ödeme sayfası açılamadı, lütfen tekrar dene."); } })
     .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar dene."); });
 }
 
@@ -225,11 +231,11 @@ const api = {
   delete: (e) => api.fetch(e, { method: "DELETE" }),
 };
 
-// Destek WhatsApp numarası sunucudan (DESTEK_WP); numara yoksa null döner, butonlar gizlenir
-let _destekWp;
+// Destek WhatsApp numarası ve e-postası sunucudan (Platform Ayarları); numara yoksa null döner, butonlar gizlenir
+let _destekWp, _destekEposta = "siragobusiness@gmail.com";
 function useDestekWp() {
   const [n, setN] = useState(_destekWp ?? null);
-  useEffect(() => { if (_destekWp === undefined) api.get("/iletisim").then(d => { _destekWp = d?.whatsapp || null; setN(_destekWp); }).catch(() => {}); }, []);
+  useEffect(() => { if (_destekWp === undefined) api.get("/iletisim").then(d => { _destekWp = d?.whatsapp || null; if (d?.eposta) _destekEposta = d.eposta; setN(_destekWp); }).catch(() => {}); }, []);
   return n;
 }
 
@@ -1196,6 +1202,20 @@ function Dashboard({ kullanici }) {
   const [ayarKaydedildi, setAyarKaydedildi] = useState(false);
   const [paketModal, setPaketModal] = useState(false);
   const [yillik, setYillik] = useState(false);   // paket ekranı: 12 ay kullan, 9 ay öde
+  // Kupon (2026-10-15): kod paket kartlarına uygulanır; kartla ödemede geçerli
+  const [kuponGiris, setKuponGiris] = useState("");
+  const [kuponAcik, setKuponAcik] = useState(false);
+  const [kupon, setKupon] = useState(null);   // { kod, paketler: { key: { sonra } | { hata } } }
+  const kuponUygula = async () => {
+    const kod = kuponGiris.trim().toUpperCase();
+    if (!kod) return;
+    const sonuc = {};
+    for (const key of ["baslangic", "profesyonel", "proplus", "kurumsal"]) {
+      const d = await api.get(`/kupon/kontrol?${new URLSearchParams({ kod, paket: key, ...(yillik ? { sure: "yil" } : {}) })}`);
+      sonuc[key] = d.hata ? { hata: d.hata } : { sonra: d.sonra, aciklama: d.aciklama };
+    }
+    setKupon({ kod, yillik, paketler: sonuc });
+  };
   const [grafikVeri, setGrafikVeri] = useState(null);
   const [dashEkstra, setDashEkstra] = useState(null);
   const [odemeBilgi, setOdemeBilgi] = useState(null);
@@ -3690,6 +3710,18 @@ function Dashboard({ kullanici }) {
                 ))}
               </div>
             </div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+              {!kuponAcik ? (
+                <button onClick={() => setKuponAcik(true)} style={{ background: "none", border: "none", color: "var(--dim)", fontSize: 13, cursor: "pointer", textDecoration: "underline", fontFamily: "inherit" }}>🎟️ Kupon kodun var mı?</button>
+              ) : (
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+                  <input className="input" value={kuponGiris} onChange={e => { setKuponGiris(e.target.value.toUpperCase()); setKupon(null); }} placeholder="KUPON KODU" style={{ width: 160, textTransform: "uppercase" }} />
+                  <button className="btn btn-sm" onClick={kuponUygula} style={{ background: "#1f6f4a", color: "#fff", fontWeight: 700 }}>Uygula</button>
+                  {kupon && Object.values(kupon.paketler).every(x => x.hata) && <span style={{ fontSize: 12, color: "#b42318", fontWeight: 600 }}>{Object.values(kupon.paketler)[0].hata}</span>}
+                  {kupon && kupon.yillik !== yillik && <span style={{ fontSize: 12, color: "var(--dim)" }}>Aylık/yıllık değişti, tekrar uygula</span>}
+                </div>
+              )}
+            </div>
             <div className="price-grid-modal">
               {[
                 { key: "baslangic", isim: "Başlangıç", fiyat: paketDurum?.tum_paketler?.baslangic?.fiyat || 299, renk: "#6f6a62", ozellikler: ["2 Çalışan", "500 Randevu/Ay", "WhatsApp Bot", "Otomatik Hatırlatma", "Tablet modu"], ozellikYok: ["Kapora / ön ödeme", "Telegram botu", "Kasa Takibi", "Sadakat Puan", "Kayıp Müşteri", "Yorum Avcısı", "SMS Hatırlatma"] },
@@ -3705,6 +3737,9 @@ function Dashboard({ kullanici }) {
                     <div className="p-name" style={{ color: p.renk }}>{p.isim}</div>
                     <div className="p-price">{p.fiyat ? `${yillik ? (p.fiyat * 9).toLocaleString("tr-TR") : p.fiyat}₺` : "Özel"}<span>{p.fiyat ? (yillik ? "/yıl" : "/ay") : ""}</span></div>
                     {yillik && p.fiyat && <div style={{ fontSize: 12, color: "var(--dim)", marginTop: -4 }}>3 ay bedava · {(p.fiyat * 3).toLocaleString("tr-TR")}₺ kazancın</div>}
+                    {kupon && kupon.yillik === yillik && kupon.paketler[p.key]?.sonra != null && (
+                      <div style={{ fontSize: 13, color: "#1f6f4a", fontWeight: 700, marginTop: 2 }}>🎟️ {kupon.kod}: {Number(kupon.paketler[p.key].sonra).toLocaleString("tr-TR")}₺ <span style={{ fontWeight: 500, color: "var(--dim)" }}>(kartla ödemede)</span></div>
+                    )}
                     <div className="p-divider">
                       {p.ozellikler.map((o, i) => (
                         <div key={i} className="price-feature"><span style={{ color: p.renk }}>✓</span> {o}</div>
@@ -3713,17 +3748,22 @@ function Dashboard({ kullanici }) {
                         <div key={`yok-${i}`} className="price-feature" style={{ opacity: .4, textDecoration: "line-through" }}><span style={{ color: "var(--red)" }}>✕</span> {o}</div>
                       ))}
                     </div>
-                    {(!aktif || yillik) && p.fiyat && (
-                      <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        odemeSayfasiAc(p.key, yillik ? "yil" : null);
-                        setPaketModal(false);
-                      }}>
-                        {yillik ? (aktif ? "Yıllığa geç" : "Yıllık al") : p.key === "baslangic" ? "Başla" : "Yükselt"}
-                      </button>
-                    )}
+                    {(() => {
+                      // Kupon geçerliyse mevcut paket de kuponla ödenebilir (deneme bitiyor, "İlk ay %50" vb.)
+                      const kuponGecerli = kupon && kupon.yillik === yillik && kupon.paketler[p.key]?.sonra != null;
+                      if (!((!aktif || yillik || kuponGecerli) && p.fiyat)) return null;
+                      return (
+                        <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
+                          odemeSayfasiAc(p.key, yillik ? "yil" : null, kuponGecerli ? kupon.kod : null);
+                          setPaketModal(false);
+                        }}>
+                          {aktif && !yillik ? "Kuponla öde" : yillik ? (aktif ? "Yıllığa geç" : "Yıllık al") : p.key === "baslangic" ? "Başla" : "Yükselt"}
+                        </button>
+                      );
+                    })()}
                     {!aktif && !p.fiyat && (
                       <button className="btn btn-block mt-8" style={{ background: p.renk, color: "#fff" }} onClick={() => {
-                        window.open(destekWp ? `https://wa.me/${destekWp}?text=${encodeURIComponent("Merhaba, Kurumsal paket hakkında bilgi almak istiyorum.")}` : "mailto:siragobusiness@gmail.com?subject=Kurumsal%20paket", "_blank");
+                        window.open(destekWp ? `https://wa.me/${destekWp}?text=${encodeURIComponent("Merhaba, Kurumsal paket hakkında bilgi almak istiyorum.")}` : `mailto:${_destekEposta}?subject=Kurumsal%20paket`, "_blank");
                         setPaketModal(false);
                       }}>
                         WhatsApp ile Görüşün
@@ -3810,6 +3850,26 @@ function SuperAdminPanel({ kullanici }) {
   const izinli = (y) => patron || (y !== 'patron' && (!ekipYetki || (y !== 'kurucu' && ekipYetki.includes(y))));
   const GOREV_AD = { satis: 'SATIŞ', destek: 'DESTEK & KURULUM', finans: 'FİNANS & OPERASYON' };
   const [sayfa, setSayfa] = useState(() => (izinli("satis") ? "masa" : "dashboard"));   // ekibin günlük işi Satış Masası'nda başlar
+  // Menü (2026-10-15): kapalı gruplar hatırlanır; telefonda yalnız bulunulan grup açık gelir; menüde arama
+  const [menuArama, setMenuArama] = useState("");
+  const [kapaliGruplar, setKapaliGruplar] = useState(() => { try { return new Set(JSON.parse(localStorage.getItem("sa_menu_kapali") || "[]")); } catch { return new Set(); } });
+  const [mobilAcikGruplar, setMobilAcikGruplar] = useState(() => new Set());
+  const grupDegistir = (id, mobil) => {
+    if (mobil) { setMobilAcikGruplar(o => { const n = new Set(o); n.has(id) ? n.delete(id) : n.add(id); return n; }); return; }
+    setKapaliGruplar(o => {
+      const n = new Set(o); n.has(id) ? n.delete(id) : n.add(id);
+      try { localStorage.setItem("sa_menu_kapali", JSON.stringify([...n])); } catch {}
+      return n;
+    });
+  };
+  const [uyariSayi, setUyariSayi] = useState({ acik: 0, kritik: 0 });
+  const uyariSayisiYukle = () => api.get("/admin/sistem-uyarilari/sayi").then(d => { if (d && !d.hata) setUyariSayi(d); }).catch(() => {});
+  useEffect(() => {
+    if (!izinli("sistem")) return;
+    uyariSayisiYukle();
+    const t = setInterval(uyariSayisiYukle, 60000);
+    return () => clearInterval(t);
+  }, []);
   const [isletmeler, setIsletmeler] = useState([]);
   const [odemeler, setOdemeler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -4402,40 +4462,64 @@ function SuperAdminPanel({ kullanici }) {
     isletmeler: 'genel', zombiler: 'isletmeler', onboarding: 'isletmeler',
     destek: 'destek', duyurular: 'destek', iletisim: 'destek',
     avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
-    odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza',
-    apiDash: 'sistem', sistemDurum: 'sistem', auditLog: 'patron', ekip: 'patron',
+    odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza', kuponlar: 'odemeler',
+    apiDash: 'sistem', sistemDurum: 'sistem', sistemUyarilari: 'sistem', auditLog: 'patron', ekip: 'patron',
     masa: 'satis', rehber: 'genel', ekipTakip: 'patron',
+    // Tüm işletmeleri etkiler: yalnız kurucu (sunucu da aynı kuralı uygular, config/ekip.js)
+    platformAyarlari: 'kurucu', botMesajlari: 'kurucu', ozellikler: 'kurucu',
   };
-  const tumMenu = [
-    { id: "masa", icon: SVGA.satisBot, label: "Satış Masası" },
-    { id: "rehber", icon: SVGA.duyurular, label: "Satış Rehberi" },
-    { id: "ekipTakip", icon: SVGA.referanslar, label: "Ekip Takip 👑" },
-    { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
-    { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
-    { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
-    { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
-    { id: "aktivite", icon: SVGA.aktivite, label: "Aktivite" },
-    { id: "odemeler", icon: SVGA.odemeler, label: "Ödemeler" },
-    { id: "destek", icon: SVGA.destek, label: "Destek" },
-    { id: "paketler", icon: SVGA.paketler, label: "Paketler" },
-    { id: "zombiler", icon: SVGA.zombiler, label: "Zombiler" },
-    { id: "onboarding", icon: SVGA.referanslar, label: "Onboarding" },
-    { id: "segmentasyon", icon: SVGA.isletmeler, label: "Segmentasyon" },
-    { id: "karsilastirma", icon: SVGA.aktivite, label: "Karşılaştırma" },
-    { id: "referanslar", icon: SVGA.referanslar, label: "Referanslar" },
-    { id: "duyurular", icon: SVGA.duyurular, label: "Duyurular" },
-    { id: "iletisim", icon: SVGA.iletisim, label: "İletişim" },
-    { id: "avci", icon: SVGA.avci, label: "Avcı Bot" },
-    { id: "satisBot", icon: SVGA.satisBot, label: "Satış Bot" },
-    { id: "musteriCRM", icon: SVGA.odemeler, label: "Müşteri CRM" },
-    { id: "magaza", icon: SVGA.magaza, label: "Mağaza" },
-    { id: "qrKod", icon: SVGA.iletisim, label: "QR Kod" },
-    { id: "apiDash", icon: SVGA.sistemDurum, label: "API Dashboard" },
-    { id: "auditLog", icon: SVGA.auditLog, label: "Audit Log" },
-    { id: "sistemDurum", icon: SVGA.sistemDurum, label: "Sistem Durumu" },
-    { id: "ekip", icon: SVGA.referanslar, label: "Ekip" },
+  // Menü grupları (2026-10-15): 28+ sekme düz listede kayboluyordu. Yeni sayfa eklerken yalnız ilgili gruba eklenir;
+  // ekip yetkisi korunur, yetkili sekmesi olmayan grup hiç görünmez.
+  const MENU_GRUPLARI = [
+    { id: "genel", label: "Genel", items: [
+      { id: "dashboard", icon: SVGA.dashboard, label: "Dashboard" },
+      { id: "bildirimler", icon: SVGA.bildirimler, label: "Bildirimler" },
+      { id: "sistemUyarilari", icon: SVGA.sistemDurum, label: "Sistem Uyarıları" },
+    ]},
+    { id: "satis", label: "Satış", items: [
+      { id: "masa", icon: SVGA.satisBot, label: "Satış Masası" },
+      { id: "rehber", icon: SVGA.duyurular, label: "Satış Rehberi" },
+      { id: "avci", icon: SVGA.avci, label: "Avcı Bot" },
+      { id: "satisBot", icon: SVGA.satisBot, label: "Satış Bot" },
+      { id: "musteriCRM", icon: SVGA.odemeler, label: "Müşteri CRM" },
+      { id: "segmentasyon", icon: SVGA.isletmeler, label: "Kampanyalar" },
+      { id: "referanslar", icon: SVGA.referanslar, label: "Referanslar" },
+      { id: "qrKod", icon: SVGA.iletisim, label: "QR Kod" },
+    ]},
+    { id: "isletmeler", label: "İşletmeler", items: [
+      { id: "isletmeler", icon: SVGA.isletmeler, label: "İşletmeler" },
+      { id: "onboarding", icon: SVGA.referanslar, label: "Kurulum Takibi" },
+      { id: "zombiler", icon: SVGA.zombiler, label: "Riskli İşletmeler" },
+      { id: "destek", icon: SVGA.destek, label: "Destek" },
+      { id: "iletisim", icon: SVGA.iletisim, label: "İletişim Formu" },
+      { id: "duyurular", icon: SVGA.duyurular, label: "Duyurular" },
+    ]},
+    { id: "gelir", label: "Gelir", items: [
+      { id: "odemeler", icon: SVGA.odemeler, label: "Ödemeler" },
+      { id: "paketler", icon: SVGA.paketler, label: "Paketler" },
+      { id: "kuponlar", icon: SVGA.odemeler, label: "Kuponlar" },
+      { id: "magaza", icon: SVGA.magaza, label: "Mağaza" },
+    ]},
+    { id: "analiz", label: "Analiz", items: [
+      { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
+      { id: "karsilastirma", icon: SVGA.aktivite, label: "Karşılaştırma" },
+      { id: "aktivite", icon: SVGA.aktivite, label: "Aktivite" },
+    ]},
+    { id: "yonetim", label: "Yönetim", items: [
+      { id: "ekip", icon: SVGA.referanslar, label: "Ekip" },
+      { id: "ekipTakip", icon: SVGA.referanslar, label: "Ekip Takip" },
+      { id: "platformAyarlari", icon: SVGA.sistemDurum, label: "Platform Ayarları" },
+      { id: "botMesajlari", icon: SVGA.satisBot, label: "Bot Mesajları" },
+      { id: "ozellikler", icon: SVGA.paketler, label: "Özellik Anahtarları" },
+      { id: "auditLog", icon: SVGA.auditLog, label: "Audit Log" },
+      { id: "apiDash", icon: SVGA.sistemDurum, label: "API Dashboard" },
+      { id: "sistemDurum", icon: SVGA.sistemDurum, label: "Sistem Durumu" },
+    ]},
   ];
-  const menuItems = tumMenu.filter(m => izinli(MENU_YETKI[m.id] || 'kurucu'));
+  const menuGruplari = MENU_GRUPLARI
+    .map(g => ({ ...g, items: g.items.filter(m => izinli(MENU_YETKI[m.id] || 'kurucu')) }))
+    .filter(g => g.items.length > 0);
+  const menuItems = menuGruplari.flatMap(g => g.items);
 
   const kategoriRenk = { berber: "#2f56c6", kuafor: "#5d4bb5", guzellik: "#ec4899", spa: "#a8590c", disci: "#1f6f4a", veteriner: "#b42318", diyetisyen: "#2f56c6", psikolog: "#5d4bb5", fizyoterapi: "#2f56c6", restoran: "#a8590c", cafe: "#a16207", spor: "#1f6f4a", egitim: "#5d4bb5", foto: "#d946ef", dovme: "#b42318", oto: "#6f6a62", hukuk: "#475569", genel: "#94a3b8" };
   const kategoriLabel = { berber: "💈 Berber", kuafor: "✂️ Kuaför", guzellik: "💅 Güzellik", spa: "🧖 Spa", disci: "🦷 Diş Kliniği", veteriner: "🐾 Veteriner", diyetisyen: "🥗 Diyetisyen", psikolog: "🧠 Psikolog", fizyoterapi: "🏥 Fizyoterapi", restoran: "🍽️ Restoran", cafe: "☕ Kafe", spor: "🏋️ Spor", egitim: "📚 Eğitim", foto: "📸 Fotoğraf", dovme: "🎨 Dövme", oto: "🚗 Oto Servis", hukuk: "⚖️ Hukuk", genel: "🏢 Genel" };
@@ -4463,12 +4547,14 @@ function SuperAdminPanel({ kullanici }) {
     destek: acikDestekSayi,
     iletisim: okunmamisSayi,
     bildirimler: yuksekBildirimSayi,
+    sistemUyarilari: uyariSayi.acik,
   };
   const badgeRenkleri = {
     odemeler: "#b42318",
     destek: "#a8590c",
     iletisim: "#5d4bb5",
     bildirimler: "#b42318",
+    sistemUyarilari: uyariSayi.kritik ? "#b42318" : "#a8590c",
   };
 
   const filtreliIsletmeler = isletmeler.filter(i => {
@@ -4513,15 +4599,41 @@ function SuperAdminPanel({ kullanici }) {
           <span className="sidebar-badge gold">{patron ? '👑 PATRON' : ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
         </div>
         <nav className="sidebar-nav">
-          {menuItems.map(m => (
-            <div key={m.id} onClick={() => { setSayfa(m.id); setMobileOpen(false); }} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
-              <span className="nav-icon">{m.icon}</span>
-              <span>{m.label}</span>
-              {badgeSayilari[m.id] > 0
-                ? <span className="nav-badge" style={{ background: badgeRenkleri[m.id] || "#b42318" }}>{badgeSayilari[m.id]}</span>
-                : sayfa === m.id && <div className="active-dot" />}
-            </div>
-          ))}
+          <input className="nav-arama" value={menuArama} onChange={e => setMenuArama(e.target.value)} placeholder="Menüde ara…" aria-label="Menüde ara" />
+          {(() => {
+            const mobil = typeof window !== "undefined" && window.innerWidth <= 768;
+            const ara = menuArama.trim().toLocaleLowerCase("tr");
+            const ogeCiz = (m) => (
+              <div key={m.id} onClick={() => { setSayfa(m.id); setMobileOpen(false); setMenuArama(""); }} className={`nav-item${sayfa === m.id ? ' active' : ''}`}>
+                <span className="nav-icon">{m.icon}</span>
+                <span>{m.label}</span>
+                {badgeSayilari[m.id] > 0
+                  ? <span className="nav-badge" style={{ background: badgeRenkleri[m.id] || "#b42318" }}>{badgeSayilari[m.id]}</span>
+                  : sayfa === m.id && <div className="active-dot" />}
+              </div>
+            );
+            if (ara) {
+              const bulunan = menuItems.filter(m => m.label.toLocaleLowerCase("tr").includes(ara));
+              return bulunan.length ? bulunan.map(ogeCiz) : <div className="nav-arama-bos">Sonuç yok</div>;
+            }
+            return menuGruplari.map(g => {
+              const icinde = g.items.some(m => m.id === sayfa);
+              const acik = mobil ? (icinde || mobilAcikGruplar.has(g.id)) : !kapaliGruplar.has(g.id);
+              const rozet = g.items.reduce((t, m) => t + (badgeSayilari[m.id] > 0 ? badgeSayilari[m.id] : 0), 0);
+              const rozetRenk = g.items.map(m => badgeSayilari[m.id] > 0 && badgeRenkleri[m.id]).find(Boolean) || "#b42318";
+              return (
+                <div key={g.id} className="nav-grup">
+                  <div className="nav-grup-baslik" onClick={() => grupDegistir(g.id, mobil)} role="button" aria-expanded={acik}>
+                    <span>{g.label}</span>
+                    {!acik && rozet > 0 && <span className="nav-badge" style={{ background: rozetRenk, marginLeft: 6 }}>{rozet}</span>}
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ marginLeft: "auto", transform: acik ? "rotate(180deg)" : "none", transition: "transform .2s" }}><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  {acik && g.items.map(ogeCiz)}
+                </div>
+              );
+            });
+          })()}
         </nav>
         <div className="sidebar-footer">
           <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
@@ -5605,6 +5717,13 @@ function SuperAdminPanel({ kullanici }) {
           </div>
           );
         })()}
+
+        {/* PLATFORM YÖNETİMİ (2026-10-15) */}
+        {sayfa === "sistemUyarilari" && <SistemUyarilari api={api} onSayiDegisti={uyariSayisiYukle} isletmeAc={isletmeDetayYukle} />}
+        {sayfa === "platformAyarlari" && <PlatformAyarlari api={api} />}
+        {sayfa === "botMesajlari" && <BotMesajlari api={api} />}
+        {sayfa === "ozellikler" && <Ozellikler api={api} />}
+        {sayfa === "kuponlar" && <Kuponlar api={api} />}
 
         {/* DİNAMİK PAKETLER */}
         {sayfa === "paketler" && (
@@ -8507,6 +8626,13 @@ function SuperAdminPanel({ kullanici }) {
                           ))}
                         </div>
                       </div>
+
+                      {/* KVKK veri dışa aktarma (2026-10-15) */}
+                      <button onClick={async () => { try { await dosyaIndir(`/admin/isletmeler/${isl.id}/disa-aktar`, `sirago-veri-${isl.id}.json`); } catch (e) { alert(e.message); } }}
+                        style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: "rgba(47,86,198,.06)", textAlign: "left" }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: "#2f56c6" }}>⬇️ Verileri indir (KVKK)</div>
+                        <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İşletmenin tüm verisi tek dosyada (şifreler hariç)</div>
+                      </button>
 
                       {/* Müşteri Olarak Giriş */}
                       <button onClick={async () => { const res = await api.post(`/admin/impersonate/${isl.id}`); if (res.token) { localStorage.setItem("randevugo_impersonate_token", res.token); window.open(`${window.location.origin}?impersonate=1`, '_blank'); } else { alert(res.hata || "Impersonate başarısız"); }}} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: "rgba(168,89,12,.06)", textAlign: "left" }}>

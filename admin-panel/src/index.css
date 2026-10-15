@@ -1232,3 +1232,14 @@ input.anahtar:focus-visible { outline: 2px solid #1f6f4a; outline-offset: 2px; }
 @media (max-width: 768px) {
   .main-panel { padding: 72px 16px 24px; }
 }
+
+/* Süper admin menü grupları ve arama (2026-10-15) */
+.nav-arama { width: calc(100% - 8px); margin: 2px 4px 8px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
+.nav-arama:focus { outline: none; border-color: #1f6f4a; }
+.nav-arama-bos { padding: 8px 12px; font-size: 12px; color: var(--dim); }
+.nav-grup + .nav-grup { margin-top: 6px; }
+.nav-grup-baslik { display: flex; align-items: center; gap: 4px; padding: 8px 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--dim); cursor: pointer; user-select: none; border-radius: 6px; }
+.nav-grup-baslik:hover { color: var(--text); }
+.nav-grup-baslik .nav-badge { background: var(--red); color: #fff; border-radius: 99px; font-size: 10px; font-weight: 700; padding: 1px 7px; letter-spacing: 0; }

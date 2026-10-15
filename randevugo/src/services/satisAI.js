@@ -4,7 +4,7 @@ const AnthropicSDK = require('@anthropic-ai/sdk');
 const Anthropic = AnthropicSDK.default || AnthropicSDK;
 const { z } = require('zod');
 const { zodOutputFormat } = require('@anthropic-ai/sdk/helpers/zod');
-const { DENEME_GUN } = require('../config/deneme');
+const { denemeGun } = require('../config/deneme');
 
 const MODEL = process.env.SATIS_AI_MODEL || 'claude-opus-5-5';
 const EFOR = process.env.SATIS_AI_EFOR || 'low';   // sohbet: düşük efor yeterli, hızlı ve ucuz
@@ -22,9 +22,10 @@ const istemci = () => (process.env.ANTHROPIC_API_KEY ? (_istemci ||= new Anthrop
 const aktifMi = () => !!(process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS || process.env.DEEPSEEK_API_KEY);
 
 // Sabit kısım (önbelleğe alınır): kim olduğu, nasıl yazdığı, ürünün gerçekleri
-const SISTEM = `Sen SıraGO'nun WhatsApp satış temsilcisisin. Türkiye'deki berber, kuaför, güzellik salonu, klinik gibi
+// Fonksiyon: deneme süresi Platform Ayarları'ndan değişebilir (metin aynı kaldıkça önbellek bozulmaz)
+const SISTEM = () => `Sen SıraGO'nun WhatsApp satış temsilcisisin. Türkiye'deki berber, kuaför, güzellik salonu, klinik gibi
 randevuyla çalışan esnafla konuşuyorsun. Amacın: esnafın derdini anlamak, SıraGO'nun ona uyup uymadığını dürüstçe
-göstermek ve uyuyorsa ${DENEME_GUN} günlük ücretsiz denemeyi başlatmak.
+göstermek ve uyuyorsa ${denemeGun()} günlük ücretsiz denemeyi başlatmak.
 
 NASIL YAZARSIN (en önemli kısım)
 - Gerçek bir insan WhatsApp'ta nasıl yazıyorsa öyle: kısa, sıcak, doğal Türkçe. Resmi mektup dili, madde listesi,
@@ -50,7 +51,7 @@ NASIL YAZARSIN (en önemli kısım)
 - Randevudan önce müşteriye otomatik WhatsApp hatırlatması gider; gelmeme azalır (yüzde verme).
 - Esnaf randevuları telefondan panelde görür, onaylar; çalışan ve hizmet/fiyat ekler.
 - Kurulum: işletmenin kendi WhatsApp'ı QR ile bağlanır, birkaç dakika sürer; takılırsa ekibimiz yardım eder.
-- ${DENEME_GUN} gün ücretsiz, kart bilgisi istenmez. Kayıt için müşteri bu sohbette *kayıt* yazar, hesabı burada 1 dakikada açılır.
+- ${denemeGun()} gün ücretsiz, kart bilgisi istenmez. Kayıt için müşteri bu sohbette *kayıt* yazar, hesabı burada 1 dakikada açılır.
 - Bot dili: Türkçe, İngilizce, Arapça.
 - Fiyatlar aşağıdaki paket listesinde; listede olmayan fiyat söyleme.
 
@@ -196,8 +197,8 @@ async function cevapUret({ konusma, paketListesi, sonMesaj, demo }) {
   const sirali = (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek').split(',').map(x => x.trim());
   for (const ad of sirali) {
     const sonuc = ad === 'claude' ? await claudeCevap(baglam, messages)
-      : ad === 'gemini' ? await geminiCevap(SISTEM + '\n\n' + baglam, messages)
-      : ad === 'deepseek' ? await deepseekCevap(SISTEM + '\n\n' + baglam, messages) : null;
+      : ad === 'gemini' ? await geminiCevap(SISTEM() + '\n\n' + baglam, messages)
+      : ad === 'deepseek' ? await deepseekCevap(SISTEM() + '\n\n' + baglam, messages) : null;
     if (sonuc) return sonuc;
   }
   return null;
@@ -211,7 +212,7 @@ async function claudeCevap(baglam, messages) {
       model: MODEL,
       max_tokens: 2000,
       system: [
-        { type: 'text', text: SISTEM, cache_control: { type: 'ephemeral' } },   // sabit kısım önbellekte
+        { type: 'text', text: SISTEM(), cache_control: { type: 'ephemeral' } },   // sabit kısım önbellekte
         { type: 'text', text: baglam },
       ],
       messages,
@@ -232,7 +233,7 @@ async function claudeCevap(baglam, messages) {
 // Teşhis: her sağlayıcıya küçük bir deneme mesajı; anahtar var mı, cevap geliyor mu, hata ne
 async function tani() {
   const deneme = [{ role: 'user', content: 'Merhaba, fiyatlar ne kadar?' }];
-  const sistem = [SISTEM, 'İŞLETME: Deneme Berber (berber)', 'PAKETLER: (deneme)'].join(String.fromCharCode(10, 10));
+  const sistem = [SISTEM(), 'İŞLETME: Deneme Berber (berber)', 'PAKETLER: (deneme)'].join(String.fromCharCode(10, 10));
   const sonuc = {};
   for (const [ad, anahtar, fn] of [
     ['claude', 'ANTHROPIC_API_KEY', () => claudeCevap('İŞLETME: Deneme Berber', deneme)],

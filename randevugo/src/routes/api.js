@@ -172,18 +172,27 @@ router.post('/odeme/iyzico/baslat', authMiddleware, (req, res) => adminControlle
 router.post('/odeme/iyzico/callback', (req, res) => adminController.iyzicoCallback(req, res));
 router.get('/odeme/shopier/baslat', authMiddleware, (req, res) => adminController.shopierOdemeBaslat(req, res));
 // Panel: oturum anahtarını URL'ye koymadan ödeme linki al (eskiden ?token=<giriş anahtarı> açılıyordu)
-router.get('/odeme/link', authMiddleware, (req, res) => {
-  res.json({ url: require('../services/odemeOtomasyon').odemeLinki(req.kullanici.isletme_id, req.query.paket, req.query.sure) });
+router.get('/odeme/link', authMiddleware, async (req, res) => {
+  const kupon = String(req.query.kupon || '').trim();
+  if (kupon) {   // Kupon linke konmadan önce doğrulanır: hata mesajı panelde görünsün
+    try {
+      const f = await require('../services/shopierService').fiyatHesapla(req.kullanici.isletme_id, req.query.paket, req.query.sure);
+      if (!f) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      await require('../services/kupon').dogrula({ kod: kupon, isletmeId: f.merkezId, paket: f.paket, tutar: f.fiyat });
+    } catch (e) { return res.status(e.kullanici ? 400 : 500).json({ hata: e.kullanici ? e.message : 'Kupon kontrol edilemedi' }); }
+  }
+  res.json({ url: require('../services/odemeOtomasyon').odemeLinki(req.kullanici.isletme_id, req.query.paket, req.query.sure, kupon || null) });
 });
 // WhatsApp'taki kişisel ödeme linki: giriş gerektirmez, yalnız ödeme sayfası açar
 router.get('/odeme/ode/:anahtar', async (req, res) => {
   const v = require('../services/odemeOtomasyon').anahtarCoz(req.params.anahtar);
   if (!v) return res.status(410).type('html').send('<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">Bu ödeme linkinin süresi dolmuş. Panelinizden <b>Paket → Öde</b> ile ya da bize WhatsApp\'tan yazarak yeni link alabilirsiniz.</p>');
   try {
-    const url = await require('../services/shopierService').odemeBaslat(v.i, v.p, v.s);
+    const url = await require('../services/shopierService').odemeBaslat(v.i, v.p, v.s, v.k || null);
     if (!url) return res.status(404).send('İşletme bulunamadı');
     res.redirect(url);
   } catch (e) {
+    if (e.kullanici) return res.status(400).type('html').send(`<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">${String(e.message).replace(/[<>&]/g, '')}. Panelinizden kuponsuz ödeme yapabilir ya da bize yazabilirsiniz.</p>`);
     console.error('Ödeme linki hatası:', e.message);
     res.status(502).type('html').send('<meta charset="utf-8"><p style="font-family:sans-serif;padding:24px">Ödeme sayfası şu an açılamadı, birkaç dakika sonra tekrar deneyin.</p>');
   }
@@ -309,6 +318,28 @@ router.put('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req, re
 router.delete('/admin/paketler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketTanimiSil(req, res));
 router.put('/admin/paketler/:id/gorsel', authMiddleware, superAdminMiddleware, (req, res) => adminController.paketGorselKaydet(req, res));
 router.get('/paket-gorsel/:kod', (req, res) => adminController.paketGorsel(req, res));
+
+// ==================== PLATFORM YÖNETİMİ (2026-10-15) — yetkiler config/ekip.js ====================
+const platformController = require('../controllers/platformController');
+router.get('/admin/platform-ayarlari', authMiddleware, superAdminMiddleware, (req, res) => platformController.ayarlar(req, res));
+router.put('/admin/platform-ayarlari', authMiddleware, superAdminMiddleware, (req, res) => platformController.ayarKaydet(req, res));
+router.get('/admin/sistem-uyarilari', authMiddleware, superAdminMiddleware, (req, res) => platformController.uyarilar(req, res));
+router.get('/admin/sistem-uyarilari/sayi', authMiddleware, superAdminMiddleware, (req, res) => platformController.uyariSayisi(req, res));
+router.post('/admin/sistem-uyarilari/:id/coz', authMiddleware, superAdminMiddleware, (req, res) => platformController.uyariCoz(req, res));
+router.get('/admin/bot-mesajlari', authMiddleware, superAdminMiddleware, (req, res) => platformController.botMesajlari(req, res));
+router.put('/admin/bot-mesajlari/:anahtar/:dil', authMiddleware, superAdminMiddleware, (req, res) => platformController.botMesajKaydet(req, res));
+router.get('/admin/ozellikler', authMiddleware, superAdminMiddleware, (req, res) => platformController.ozellikler(req, res));
+router.post('/admin/ozellikler', authMiddleware, superAdminMiddleware, (req, res) => platformController.ozellikKaydet(req, res));
+router.put('/admin/ozellikler/:kod', authMiddleware, superAdminMiddleware, (req, res) => platformController.ozellikKaydet(req, res));
+router.delete('/admin/ozellikler/:kod', authMiddleware, superAdminMiddleware, (req, res) => platformController.ozellikSil(req, res));
+router.get('/admin/kuponlar', authMiddleware, superAdminMiddleware, (req, res) => platformController.kuponlar(req, res));
+router.post('/admin/kuponlar', authMiddleware, superAdminMiddleware, (req, res) => platformController.kuponKaydet(req, res));
+router.put('/admin/kuponlar/:id', authMiddleware, superAdminMiddleware, (req, res) => platformController.kuponKaydet(req, res));
+router.delete('/admin/kuponlar/:id', authMiddleware, superAdminMiddleware, (req, res) => platformController.kuponSil(req, res));
+router.get('/admin/kuponlar/:id/kullanimlar', authMiddleware, superAdminMiddleware, (req, res) => platformController.kuponKullanimlari(req, res));
+router.get('/admin/isletmeler/:id/disa-aktar', authMiddleware, superAdminMiddleware, (req, res) => platformController.disaAktarAdmin(req, res));
+router.get('/kupon/kontrol', authMiddleware, (req, res) => platformController.kuponKontrol(req, res));
+router.get('/veri/disa-aktar', authMiddleware, (req, res) => platformController.disaAktarEsnaf(req, res));
 
 // ==================== ZOMBİ MÜŞTERİ TAKİBİ ====================
 router.get('/admin/zombiler', authMiddleware, superAdminMiddleware, (req, res) => adminController.zombiMusteriler(req, res));
@@ -538,8 +569,8 @@ router.put('/kazanc/ayar', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ hata: 'Kaydedilemedi' }); }
 });
 
-// Destek WhatsApp numarası (Render: DESTEK_WP); yoksa null → butonlar gizlenir
-router.get('/iletisim', (req, res) => res.json({ whatsapp: require('../config/iletisim').DESTEK_WP }));
+// Destek WhatsApp numarası ve e-postası (Platform Ayarları); numara yoksa null → butonlar gizlenir
+router.get('/iletisim', (req, res) => { const i = require('../config/iletisim'); res.json({ whatsapp: i.DESTEK_WP, eposta: i.DESTEK_EPOSTA }); });
 
 // SıraGO Vitrini: kurucunun ilanları her pakette esnafa görünür (featureGuard yok)
 const vitrinController = require('../controllers/vitrinController');

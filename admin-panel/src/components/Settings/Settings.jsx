@@ -3,6 +3,7 @@ import { pushIzinDurumu, pushAc, pushKapat, pushTest, pushDesteklenir } from '..
 import { ayarOku as bildirimAyarOku, ayarYaz as bildirimAyarYaz, sesListesi, bildirimCal, sesKilidiAc } from '../../lib/bildirim';
 import GoogleCalendar from './GoogleCalendar';
 import { bookingUrl, BOOKING_BASE } from '../../lib/config';
+import { dosyaIndir } from '../Platform/ortak';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -757,6 +758,18 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
 
         <div style={{ fontSize: 11, color: "var(--muted)", padding: "10px 12px", background: "rgba(47,86,198,.08)", borderRadius: 10, marginTop: 14, lineHeight: 1.5 }}>
           💡 <strong>OTP Kaynağı:</strong> Esnaf WhatsApp'ınız bağlıysa doğrulama kodları oradan gider (müşteri "siz" olarak görür). Bağlı değilken otomatik olarak SıraGO Merkez OTP Servisi devreye girer — müşteri yine kod alır, bu sayede her randevu doğrulanmış olur.
+        </div>
+      </div>
+
+      {/* ═══════════════  Verilerim (KVKK md. 11, 2026-10-15)  ═══════════════ */}
+      <div style={{ ...S.card, marginTop: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>Verilerimi indir</div>
+            <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 2 }}>Randevular, müşteriler, hizmetler ve ayarların tek dosyada (şifreler hariç).</div>
+          </div>
+          <button onClick={async () => { try { await dosyaIndir('/veri/disa-aktar', 'sirago-verilerim.json'); } catch (e) { alert(e.message); } }}
+            style={{ padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>⬇️ İndir</button>
         </div>
       </div>
 

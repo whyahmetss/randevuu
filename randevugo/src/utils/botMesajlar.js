@@ -575,6 +575,34 @@ ar.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*لم تحضر لموعد
 
 const DILLER = { tr, en, ar };
 
+// ═══ PANELDEN DÜZENLENEN ŞABLONLAR (2026-10-15) ═══
+// Süper admin → Bot Mesajları'nda yazılan metin koddaki metnin yerine geçer. {param} yer tutucuları
+// çağrıdaki parametrelerle doldurulur. Liste içeren mesajlar (ör. hizmet listesi) düzenlenemez.
+let sablonlar = new Map();   // `${anahtar}:${dil}` → metin
+async function sablonlariYukle() {
+  try {
+    const r = await require('../config/db').query('SELECT anahtar, dil, metin FROM bot_mesaj_sablonlari');
+    sablonlar = new Map(r.rows.map(x => [`${x.anahtar}:${x.dil}`, x.metin]));
+  } catch (e) { /* tablo yoksa koddaki metinler */ }
+}
+function sablonDoldur(metin, params) {
+  return metin.replace(/\{(\w+)\}/g, (m, k) => {
+    const v = params?.[k];
+    return v === undefined || v === null || typeof v === 'object' ? '' : String(v);
+  });
+}
+// Varsayılan metnin {param}'lı hâli — panelde önizleme; liste kullanan (çağrıda patlayan) mesaj → null
+function varsayilanSablon(key, dil = 'tr', stilKey = 'samimi') {
+  const fn = (DILLER[dil] || DILLER.tr)[key];
+  if (!fn) return null;
+  const yer = new Proxy({}, { get: (t, k) => (typeof k === 'string' ? `{${k}}` : undefined) });
+  try {
+    const metin = fn(STILLER[stilKey] || STILLER.samimi, yer);
+    return typeof metin === 'string' && !metin.includes('[object') ? metin : null;
+  } catch (e) { return null; }
+}
+const anahtarlar = () => Object.keys(DILLER.tr);
+
 // Otomatik sistem bildirimi niteliğindeki mesaj anahtarları — altına SıraGO imzası eklenir.
 // İnteraktif bot diyalog mesajları (hizmetListesi, anaMenu vb.) imzasız kalır.
 const IMZA_ANAHTARLARI = new Set([
@@ -667,7 +695,9 @@ function get(isletme, key, params = {}, musteriMesaj = null, kaydedilenDil = nul
 
   const dilMesajlar = DILLER[dil] || DILLER.tr;
   const fn = dilMesajlar[key];
-  const metin = fn ? fn(stil, params) : (DILLER.tr[key] ? DILLER.tr[key](stil, params) : '');
+  const ozel = sablonlar.get(`${key}:${dil}`);
+  const metin = ozel != null ? sablonDoldur(ozel, params)
+    : fn ? fn(stil, params) : (DILLER.tr[key] ? DILLER.tr[key](stil, params) : '');
   if (IMZA_ANAHTARLARI.has(key)) {
     const imzaDil = (dil === 'en' || dil === 'ar') ? dil : 'tr';
     return metin + imzaSatiri(isletme, imzaDil);
@@ -675,4 +705,9 @@ function get(isletme, key, params = {}, musteriMesaj = null, kaydedilenDil = nul
   return metin;
 }
 
-module.exports = { get, dilAlgila, varsayilanDil, STILLER };
+function sablonBaslat() {
+  sablonlariYukle();
+  setInterval(sablonlariYukle, 60_000).unref?.();
+}
+
+module.exports = { get, dilAlgila, varsayilanDil, STILLER, sablonlariYukle, sablonBaslat, varsayilanSablon, anahtarlar, sablonDoldur };
