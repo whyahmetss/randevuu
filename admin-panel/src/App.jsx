@@ -1720,6 +1720,8 @@ function Dashboard({ kullanici }) {
       { id: "randevular", icon: SVG.randevular, label: "Randevular" },
       { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler & Fiyatlar" },
       { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+      // 2026-10-17: Mağaza Lite'ta yoktu; esnaf eklenen ürünleri göremiyordu (paket kapsamıyorsa kilitli görünür)
+      { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
     ]},
     { type: 'flat', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
@@ -3984,6 +3986,7 @@ function SuperAdminPanel({ kullanici }) {
   // Dinamik Paketler
   const [paketTanimlar, setPaketTanimlar] = useState([]);
   const [paketFormAcik, setPaketFormAcik] = useState(false);
+  const [paketBayrak, setPaketBayrak] = useState({ bayraklar: {}, sayilar: {} });   // Paket Yönetimi: tüm özellikler (2026-10-17)
   const [yeniPaket, setYeniPaket] = useState({ kod:"", isim:"", fiyat:"", calisan_limit:1, hizmet_limit:5, aylik_randevu_limit:100, bot_aktif:true, hatirlatma:false, istatistik:false, export_aktif:false, ozellikler:"", sira:0 });
   const [duzenlePaket, setDuzenlePaket] = useState(null);
   // Zombi Müşteriler
@@ -4321,7 +4324,7 @@ function SuperAdminPanel({ kullanici }) {
     try { const d = await api.get(`/admin/destek?durum=${destekFiltre}`); setDestekTalepler(d.talepler || []); } catch(e) {}
   };
   const paketleriYukle = async () => {
-    try { const d = await api.get("/admin/paketler"); setPaketTanimlar(d.paketler || []); } catch(e) {}
+    try { const d = await api.get("/admin/paketler"); setPaketTanimlar(d.paketler || []); if (d.bayraklar) setPaketBayrak({ bayraklar: d.bayraklar, sayilar: d.sayilar || {} }); } catch(e) {}
   };
   const zombileriYukle = async () => {
     try { const d = await api.get("/admin/zombiler"); setZombiler(d.zombiler || []); } catch(e) {}
@@ -5916,6 +5919,27 @@ function SuperAdminPanel({ kullanici }) {
                             </label>
                           ))}
                         </div>
+                        {Object.keys(paketBayrak.bayraklar).length > 0 && (
+                          <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "var(--bg)" }}>
+                            <div style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, marginBottom: 8 }}>ÖZELLİKLER (esnaf panelinde açık/kilitli)</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 8 }}>
+                              {Object.entries(paketBayrak.bayraklar).map(([k, l]) => (
+                                <label key={k} className="row gap-6" style={{ fontSize: 12, cursor: "pointer" }}>
+                                  <input type="checkbox" checked={!!duzenlePaket[k]} onChange={e => setDuzenlePaket({...duzenlePaket, [k]: e.target.checked})} />
+                                  <span style={{ color: "var(--text)" }}>{l}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="row row-wrap gap-12" style={{ marginTop: 10 }}>
+                              {Object.entries(paketBayrak.sayilar).map(([k, l]) => (
+                                <label key={k} className="row gap-6" style={{ fontSize: 12 }}>
+                                  <span style={{ color: "var(--dim)" }}>{l}</span>
+                                  <input type="number" min="0" value={duzenlePaket[k] ?? ""} onChange={e => setDuzenlePaket({...duzenlePaket, [k]: e.target.value === "" ? null : parseInt(e.target.value) || 0})} className="input" style={{ width: 80, fontSize: 12 }} />
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <div><label style={{ fontSize: 10, color: "var(--dim)", fontWeight: 600, display: "block", marginBottom: 4 }}>Özellikler (her satır bir madde)</label><textarea value={duzenlePaket.ozellikler || ""} onChange={e => setDuzenlePaket({...duzenlePaket, ozellikler: e.target.value})} className="input" rows={3} style={{ resize: "vertical", fontSize: 12 }} /></div>
                       </form>
                     ) : (
@@ -5930,7 +5954,7 @@ function SuperAdminPanel({ kullanici }) {
                             {!p.aktif && <span className="tag" style={{ background: "rgba(180,35,24,.12)", color: "#b42318", fontWeight: 600, fontSize: 11 }}>Pasif</span>}
                           </div>
                           <div className="row gap-6">
-                            <button onClick={() => setDuzenlePaket({ id: p.id, kod: p.kod, isim: p.isim, fiyat: p.fiyat, calisan_limit: p.calisan_limit, hizmet_limit: p.hizmet_limit, aylik_randevu_limit: p.aylik_randevu_limit, bot_aktif: p.bot_aktif, hatirlatma: p.hatirlatma, istatistik: p.istatistik, export_aktif: p.export_aktif, ozellikler: p.ozellikler || "", sira: p.sira || 0 })} className="btn btn-sm" style={{ background: "rgba(47,86,198,.1)", color: "#2f56c6", border: "none", fontWeight: 600 }}>✏️ Düzenle</button>
+                            <button onClick={() => setDuzenlePaket({ id: p.id, kod: p.kod, isim: p.isim, fiyat: p.fiyat, calisan_limit: p.calisan_limit, hizmet_limit: p.hizmet_limit, aylik_randevu_limit: p.aylik_randevu_limit, bot_aktif: p.bot_aktif, hatirlatma: p.hatirlatma, istatistik: p.istatistik, export_aktif: p.export_aktif, ozellikler: p.ozellikler || "", sira: p.sira || 0, ...Object.fromEntries([...Object.keys(paketBayrak.bayraklar), ...Object.keys(paketBayrak.sayilar)].map(k => [k, p.etkin?.[k] === false ? (k in paketBayrak.sayilar ? 0 : false) : (p.etkin?.[k] ?? null)])) })} className="btn btn-sm" style={{ background: "rgba(47,86,198,.1)", color: "#2f56c6", border: "none", fontWeight: 600 }}>✏️ Düzenle</button>
                             <button onClick={async () => { if(confirm(`"${p.isim}" paketini silmek istediğine emin misin?`)) { await api.del(`/admin/paketler/${p.id}`); paketleriYukle(); } }} className="btn btn-sm" style={{ background: "var(--red-s)", color: "var(--red)", border: "none" }}>Sil</button>
                           </div>
                         </div>
@@ -5942,6 +5966,7 @@ function SuperAdminPanel({ kullanici }) {
                           {p.hatirlatma && <span style={{ color: "#2f56c6" }}>🔔 Hatırlatma</span>}
                           {p.istatistik && <span style={{ color: "#5d4bb5" }}>📊 İstatistik</span>}
                           {p.export_aktif && <span style={{ color: "#a8590c" }}>📥 Export</span>}
+                          {Object.entries(paketBayrak.bayraklar).filter(([k]) => p.etkin?.[k]).map(([k, l]) => <span key={k} style={{ color: "#1f6f4a" }}>✓ {l}</span>)}
                         </div>
                         {p.ozellikler && <div style={{ fontSize: 12, color: "var(--dim)" }}>{p.ozellikler}</div>}
                       </div>

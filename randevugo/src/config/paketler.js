@@ -180,6 +180,39 @@ const FALLBACK_PAKETLER = {
   }
 };
 
+// Paket Yönetimi'nden açılıp kapanan özellik bayrakları (2026-10-17: hepsi panelden yönetilir; önce yalnız 4 tanesi vardı).
+// Veritabanında NULL → koddaki varsayılan (FALLBACK_PAKETLER) geçerli.
+const BAYRAKLAR = {
+  kasa: 'Kasa takibi', prim: 'Prim raporu', magaza: 'Mağaza (ürün önerisi)', sadakat: 'Sadakat puanı', winback: 'Kayıp müşteri',
+  yorum_avcisi: 'Yorum avcısı', gece_raporu: 'Gece raporu', sms_hatirlatma: 'SMS hatırlatma', kapora: 'Kapora / ön ödeme',
+  telegram: 'Telegram botu', dogum_gunu: 'Doğum günü mesajı', oncelikli_destek: 'Öncelikli destek', api_erisimi: 'API erişimi',
+  sube_yonetimi: 'Şube yönetimi',
+};
+const SAYILAR = { coklu_dil: 'Bot dil sayısı (0 = yalnız Türkçe)', sube_limit: 'Şube limiti' };
+
+// paket_tanimlari satırı → paket nesnesi (bayrak NULL ise koddaki varsayılan)
+function satirdanPaket(row) {
+  const fb = FALLBACK_PAKETLER[row.kod] || {};
+  const bayrak = (k, vars = false) => (row[k] != null ? !!row[k] : (fb[k] !== undefined ? !!fb[k] : vars));
+  const p = {
+    isim: row.isim,
+    fiyat: parseFloat(row.fiyat) || 0,
+    calisan_limit: row.calisan_limit || 1,
+    hizmet_limit: row.hizmet_limit || 5,
+    aylik_randevu_limit: row.aylik_randevu_limit || 100,
+    bot_aktif: row.bot_aktif !== false,
+    hatirlatma: !!row.hatirlatma,
+    istatistik: !!row.istatistik,
+    export_aktif: !!row.export_aktif,
+    coklu_dil: row.coklu_dil != null ? row.coklu_dil : (fb.coklu_dil || false),
+    sube_limit: row.sube_limit != null ? row.sube_limit : (fb.sube_limit || 1),
+    ozellikler: row.ozellikler ? row.ozellikler.split('\n').filter(Boolean) : [],
+  };
+  // Kapora, Telegram, doğum günü: kodda tanımı olmayan pakette eskisi gibi açık
+  for (const k of Object.keys(BAYRAKLAR)) p[k] = bayrak(k, ['kapora', 'telegram', 'dogum_gunu'].includes(k));
+  return p;
+}
+
 // Cache — 5 dk boyunca DB'den tekrar sormaz
 let _cache = null;
 let _cacheTime = 0;
@@ -198,38 +231,7 @@ async function paketleriYukle() {
     const result = await pool.query("SELECT * FROM paket_tanimlari WHERE aktif = true ORDER BY sira, id");
     if (result.rows.length > 0) {
       const map = {};
-      for (const row of result.rows) {
-        const fallback = FALLBACK_PAKETLER[row.kod] || {};
-        map[row.kod] = {
-          isim: row.isim,
-          fiyat: parseFloat(row.fiyat) || 0,
-          calisan_limit: row.calisan_limit || 1,
-          hizmet_limit: row.hizmet_limit || 5,
-          aylik_randevu_limit: row.aylik_randevu_limit || 100,
-          bot_aktif: row.bot_aktif !== false,
-          hatirlatma: !!row.hatirlatma,
-          istatistik: !!row.istatistik,
-          export_aktif: !!row.export_aktif,
-          coklu_dil: row.coklu_dil !== undefined ? row.coklu_dil : (fallback.coklu_dil || false),
-          kasa: row.kasa !== undefined ? !!row.kasa : (fallback.kasa || false),
-          magaza: row.magaza !== undefined ? !!row.magaza : (fallback.magaza || false),
-          prim: row.prim !== undefined ? !!row.prim : (fallback.prim || false),
-          sadakat: row.sadakat !== undefined ? !!row.sadakat : (fallback.sadakat || false),
-          winback: row.winback !== undefined ? !!row.winback : (fallback.winback || false),
-          yorum_avcisi: row.yorum_avcisi !== undefined ? !!row.yorum_avcisi : (fallback.yorum_avcisi || false),
-          gece_raporu: row.gece_raporu !== undefined ? !!row.gece_raporu : (fallback.gece_raporu || false),
-          sms_hatirlatma: row.sms_hatirlatma !== undefined ? !!row.sms_hatirlatma : (fallback.sms_hatirlatma || false),
-          oncelikli_destek: row.oncelikli_destek !== undefined ? !!row.oncelikli_destek : (fallback.oncelikli_destek || false),
-          api_erisimi: row.api_erisimi !== undefined ? !!row.api_erisimi : (fallback.api_erisimi || false),
-          sube_yonetimi: row.sube_yonetimi !== undefined ? !!row.sube_yonetimi : (fallback.sube_yonetimi || false),
-          // Veritabanında kolonu olmayan yeni bayraklar koddaki tanımdan gelir
-          kapora: row.kapora !== undefined ? !!row.kapora : (fallback.kapora !== undefined ? fallback.kapora : true),
-          telegram: row.telegram !== undefined ? !!row.telegram : (fallback.telegram !== undefined ? fallback.telegram : true),
-          dogum_gunu: row.dogum_gunu !== undefined ? !!row.dogum_gunu : (fallback.dogum_gunu !== undefined ? fallback.dogum_gunu : true),
-          sube_limit: row.sube_limit !== undefined ? row.sube_limit : (fallback.sube_limit || 1),
-          ozellikler: row.ozellikler ? row.ozellikler.split('\n').filter(Boolean) : [],
-        };
-      }
+      for (const row of result.rows) map[row.kod] = satirdanPaket(row);
       _cache = map;
       _cacheTime = now;
       return map;
@@ -266,5 +268,8 @@ module.exports.FALLBACK_PAKETLER = FALLBACK_PAKETLER;
 module.exports.paketGetir = paketGetir;
 module.exports.paketleriYukle = paketleriYukle;
 module.exports.paketCacheTemizle = paketCacheTemizle;
+module.exports.BAYRAKLAR = BAYRAKLAR;
+module.exports.SAYILAR = SAYILAR;
+module.exports.satirdanPaket = satirdanPaket;
 // Yıllık ödeme (2026-10-14): 12 ay kullanım için 9 aylık ücret alınır
 module.exports.YILLIK_ODENEN_AY = 9;
