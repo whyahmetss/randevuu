@@ -1720,6 +1720,8 @@ function Dashboard({ kullanici }) {
       { id: "randevular", icon: SVG.randevular, label: "Randevular" },
       { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler & Fiyatlar" },
       { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
+      // 2026-10-17: Mağaza Lite'ta yoktu; esnaf eklenen ürünleri göremiyordu (paket kapsamıyorsa kilitli görünür)
+      { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
     ]},
     { type: 'flat', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
