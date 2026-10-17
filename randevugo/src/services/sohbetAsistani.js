@@ -78,7 +78,8 @@ const M = {
 
 const EVET = /^(evet|e|olur|tamam|tmm|ok|okay|yes|yep|uygun|onayla|onayliyorum|onay|kabul|super|harika|aynen|👍|✅|نعم|اكيد|موافق|1)\b/;
 const HAYIR = /^(hayir|yok|olmaz|istemiyorum|vazgec|no|nope|baska|degil|uymaz|لا|2)\b/;
-const EN_ERKEN = /\b(en erken|en yakin|ilk bos|hemen|simdi|asap|earliest|soonest)\b/;
+// "şimdi/hemen" yok: "uyumuştum şimdi yine uyuyom" randevu sanılıyordu
+const EN_ERKEN = /\b(en erken|en yakin|ilk bos|asap|earliest|soonest)\b/;
 const FARK_ETMEZ = /\b(fark etmez|farketmez|kim olursa|herhangi|any|anyone|doesn'?t matter|farketmiyor|أي أحد)\b/;
 // Eski akışın kendi yakaladığı konular: iptal, randevularım, puan, referans, sıra
 const DEVRET = /\b(iptal|randevularim|randevum var mi|puan|sadakat|referans|davet|siram|sirada|cancel|my appointments|الغاء)\b/;
