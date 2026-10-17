@@ -25,6 +25,8 @@ const M = {
     usta: (liste) => `Tercih ettiğiniz bir usta var mı? ${liste}\nFark etmezse "fark etmez" yazabilirsiniz.`,
     gun: () => `Tabii! Hangi gün gelmek istersiniz?`,
     saatler: (g, l) => `${g} için boş saatler: ${l}.\nSize hangisi uygun?`,
+    saatSor: () => `Hangi saati istediğinizi yazar mısınız? (ör. "14:30" ya da "en erken")`,
+    bugunBitti: (g2, l) => `Bugün için boş saatimiz kalmadı 😔 En yakın boş gün ${g2}: ${l}.\nSize hangisi uygun?`,
     dilimYok: (g, l) => `${g} o saatlerde boş yerimiz yok. Boş saatler: ${l}.\nSize hangisi uygun?`,
     dolu: (s, o) => `Maalesef ${s} dolu. ${o} uygun mu?`,
     gunDolu: (g, g2, l) => `Maalesef ${g} dolu 😔 En yakın boş gün ${g2}: ${l}.\nSize hangisi uygun?`,
@@ -41,6 +43,7 @@ const M = {
     hizmet: (liste) => `Sure! Which service would you like to book?\n${liste}`,
     usta: (liste) => `Do you have a preferred staff member? ${liste}\nIf not, just write "any".`,
     gun: () => `Sure! Which day would you like to come?`,
+    saatSor: () => `Which time would you like? (e.g. "14:30" or "earliest")`,
     saatler: (g, l) => `Available times on ${g}: ${l}.\nWhich one suits you?`,
     dilimYok: (g, l) => `We're full at that time on ${g}. Available times: ${l}.\nWhich one suits you?`,
     dolu: (s, o) => `Sorry, ${s} is taken. Is ${o} OK?`,
@@ -66,6 +69,7 @@ const M = {
     kapali: (g) => `نحن مغلقون يوم ${g}. هل يناسبك يوم آخر؟`,
     onay: (ozet) => `${ozet}\n\nهل أؤكد الحجز؟ (اكتب "نعم")`,
     tekrar: () => `حسنًا، أي يوم ووقت يناسبك؟`,
+    saatSor: () => `ما الوقت الذي تريده؟ (مثلاً "14:30")`,
     oneriYok: (s) => `عذرًا، لم أجد وقتًا متاحًا قريبًا من ${s}. هل يمكنك اقتراح وقت آخر؟`,
     ipucu: () => `للحجز اكتب اليوم والوقت فقط 😊`,
     erken: (s) => `(الساعة ${s} متاحة أيضًا إن أردت أبكر.)`,
@@ -74,6 +78,7 @@ const M = {
 
 const EVET = /^(evet|e|olur|tamam|tmm|ok|okay|yes|yep|uygun|onayla|onayliyorum|onay|kabul|super|harika|aynen|👍|✅|نعم|اكيد|موافق|1)\b/;
 const HAYIR = /^(hayir|yok|olmaz|istemiyorum|vazgec|no|nope|baska|degil|uymaz|لا|2)\b/;
+const EN_ERKEN = /\b(en erken|en yakin|ilk bos|hemen|simdi|asap|earliest|soonest)\b/;
 const FARK_ETMEZ = /\b(fark etmez|farketmez|kim olursa|herhangi|any|anyone|doesn'?t matter|farketmiyor|أي أحد)\b/;
 // Eski akışın kendi yakaladığı konular: iptal, randevularım, puan, referans, sıra
 const DEVRET = /\b(iptal|randevularim|randevum var mi|puan|sadakat|referans|davet|siram|sirada|cancel|my appointments|الغاء)\b/;
@@ -93,11 +98,21 @@ function gunYazi(tarih, dil) {
   return new Date(Date.UTC(y, a - 1, g)).toLocaleDateString(dil === 'ar' ? 'ar' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 }
 
-// Boş saatlerden okunabilir bir seçki: en fazla 6 saat, gün içine yayılmış
-function saatSecki(saatler, n = 6) {
-  if (saatler.length <= n) return saatler.map(s5);
-  const adim = (saatler.length - 1) / (n - 1);
-  return [...new Set(Array.from({ length: n }, (_, i) => s5(saatler[Math.round(i * adim)])))];
+// Boş saatlerin okunur metni (2026-10-17): eski "6 saat seç" yöntemi 10:00 boşken 09:00, 11:30… gösteriyordu, müşteri
+// istediği saat yok sanıyordu. Artık hiçbir boş saat gizlenmez: ardışık saatler aralık olur ("09:00–12:00 arası, 15:50").
+function saatSecki(saatler, dil = 'tr') {
+  const l = [...new Set(saatler.map(s5))].sort();
+  if (l.length <= 6) return l.join(', ');
+  let adim = Infinity;
+  for (let i = 1; i < l.length; i++) adim = Math.min(adim, dk(l[i]) - dk(l[i - 1]));
+  const esik = Math.max(adim, 30);
+  const diziler = [];
+  for (const x of l) {
+    const son = diziler[diziler.length - 1];
+    if (son && dk(x) - dk(son[son.length - 1]) <= esik) son.push(x); else diziler.push([x]);
+  }
+  const arasi = { tr: ' arası', en: '', ar: '' }[dil] ?? '';
+  return diziler.map(d => d.length >= 3 ? `${d[0]}–${d[d.length - 1]}${arasi}` : d.join(', ')).join(', ');
 }
 const dilimSuz = (saatler, dilim) => !dilim ? saatler : saatler.filter(s => dilim === 'sabah' ? dk(s) < 720 : dilim === 'ogle' ? dk(s) >= 720 && dk(s) < 1020 : dk(s) >= 1020);
 
@@ -139,7 +154,16 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
   const s = ' ' + sade(metin).replace(/[!?,;]+/g, ' ').replace(/\.(?!\d)/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
   const sonuc = { niyet: null, hizmetId: null, calisanId: null, farkEtmez: FARK_ETMEZ.test(s), tarih: null, saat: null, dilim: DILIM(s) };
   const t = tarihBul(s, bugun); if (t.kelime) sonuc.tarih = t.tarih;
-  const st = saatBul(s.replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/, ' ')); if (st) sonuc.saat = st.saat;
+  // Yalnız gerçekten tarih olarak okunan "19.10" silinir; "19 ekim 13.00"daki 13.00 saattir (önceden siliniyordu)
+  const st = saatBul(t.metin ? s.replace(t.metin, ' ') : s); if (st) sonuc.saat = st.saat;
+  // Çıplak sayı ("yarın 10", saat sorulmuşken "17", "yok 11 olsun") saattir; hizmet/usta sorulurken rakam seçimdir
+  if (!sonuc.saat && !['hizmet', 'usta'].includes(durum?.sohbet_bekleyen) && (t.kelime || ['saat', 'onay'].includes(durum?.sohbet_bekleyen))) {
+    const yalin = (t.metin ? s.replace(t.metin, ' ') : s).replace(/\b\d{1,2} (ocak|subat|mart|nisan|mayis|haziran|temmuz|agustos|eylul|ekim|kasim|aralik)\b/, ' ');
+    const sayilar = yalin.match(/(?:^| )\d{1,2}(?= |$)/g) || [];
+    const h = sayilar.length === 1 ? Number(sayilar[0]) : NaN;
+    if (h >= 1 && h <= 23) sonuc.saat = `${String(h >= 1 && h <= 7 ? h + 12 : h).padStart(2, '0')}:00`;
+  }
+  if (EN_ERKEN.test(s)) sonuc.enErken = true;
   const hz = hizmetBul(s, hizmetler); if (hz.ad) sonuc.hizmetId = hz.hizmet.id;
   const usta = calisanlar.find(c => new RegExp(`\\b${sade(c.isim).split(' ')[0]}\\b`).test(s)); if (usta) sonuc.calisanId = usta.id;
   const trimli = s.trim();
@@ -147,7 +171,7 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
   else if (EVET.test(trimli) && trimli.split(' ').length <= 4) sonuc.niyet = 'onay';
   else if (HAYIR.test(trimli) && trimli.split(' ').length <= 4 && !sonuc.tarih && !sonuc.saat) sonuc.niyet = 'red';
   else if (BILGI.test(s) && !sonuc.tarih && !sonuc.saat) sonuc.niyet = 'bilgi';
-  else if (RANDEVU.test(s) || sonuc.tarih || sonuc.saat || sonuc.hizmetId) sonuc.niyet = 'randevu';
+  else if (RANDEVU.test(s) || sonuc.tarih || sonuc.saat || sonuc.hizmetId || sonuc.enErken) sonuc.niyet = 'randevu';
 
   // Kısa ve net mesajlarda yapay zekâya gerek yok ("evet", "15:40", "yarın"); diğerlerinde eksikleri tamamla
   const kisaNet = sonuc.niyet && trimli.split(' ').length <= 3;
@@ -237,16 +261,23 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   if (a.farkEtmez) d._fark_etmez = true;
   if (a.tarih && a.tarih !== d.secilen_tarih) { d.secilen_tarih = a.tarih; d.secilen_saat = null; }
   if (a.saat) d.secilen_saat = a.saat;
-  else if (a.dilim) d.secilen_saat = null;                              // onay beklerken "öğleden sonra olsun" → o dilimin saatleri
-  d._dilim = a.dilim;
+  else if (a.dilim || a.enErken) d.secilen_saat = null;                 // onay beklerken "öğleden sonra olsun" → o dilimin saatleri
+  // Dilim ("yarın akşam") hizmet/usta sorulduktan sonra da geçerli; yeni gün ya da saat gelince sıfırlanır
+  // sohbet_dilim 'erken' = "en erken" dendi (hizmet sorulduktan sonra da geçerli)
+  const eski = a.tarih || a.saat ? '' : (d.sohbet_dilim || '');
+  d._dilim = a.dilim || (eski === 'erken' ? '' : eski);
+  d._enErken = !!a.enErken || (!a.dilim && eski === 'erken');
+  if (a.enErken && !d.secilen_tarih) d.secilen_tarih = bugunTarih();
   if (!surecte && a.niyet !== 'randevu' && !a.tarih && !a.saat && !a.hizmetId && !d._adaylar) return null;
+  // Saat beklerken "evet/tamam/olur" ya da anlaşılmayan cevap: aynı listeyi tekrar etmek yerine net sor
+  d._saatAnlasilmadi = d.sohbet_bekleyen === 'saat' && !a.saat && !a.tarih && !a.dilim && !a.enErken && !a.hizmetId;
   return await sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId });
 }
 
 async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId }) {
   // secilen_calisan_id = 0 → müşteri "fark etmez" dedi (saat seçilince o saatte boş usta atanır)
   const alan = { secilen_hizmet_id: d.secilen_hizmet_id || null, secilen_tarih: d.secilen_tarih || null,
-    secilen_saat: d.secilen_saat || null, secilen_calisan_id: d.secilen_calisan_id ?? null };
+    secilen_saat: d.secilen_saat || null, secilen_calisan_id: d.secilen_calisan_id ?? null, sohbet_dilim: d._enErken ? 'erken' : (d._dilim || null) };
 
   // 1) Hizmet
   if (!alan.secilen_hizmet_id) {
@@ -299,44 +330,53 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
     for (let i = 1; i <= 14; i++) {
       const t2 = gunEkle(alan.secilen_tarih, i);
       const h2 = await ustaSaat(t2);
+      if (h2.size && d._enErken) {                                        // "en erken" → o günün ilk boş saati, doğrudan onaya
+        const ilk = (dilimSuz([...h2.keys()].sort(), d._dilim)[0]) || [...h2.keys()].sort()[0];
+        return await sonrakiAdim({ wa, d: { ...d, ...alan, secilen_tarih: t2, secilen_saat: ilk, _enErken: false }, a, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId });
+      }
       if (h2.size) {
         alan.secilen_tarih = t2; alan.secilen_saat = null;
         await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'saat' });
-        const liste = saatSecki([...h2.keys()].sort()).join(', ');
-        return kapali ? `${T.kapali(gunY)}\n${T.saatler(gunYazi(t2, dil), liste)}` : T.gunDolu(gunY, gunYazi(t2, dil), liste);
+        const liste = saatSecki(dilimSuz([...h2.keys()].sort(), d._dilim).length ? dilimSuz([...h2.keys()].sort(), d._dilim) : [...h2.keys()].sort(), dil);
+        if (kapali) return `${T.kapali(gunY)}\n${T.saatler(gunYazi(t2, dil), liste)}`;
+        return gunEkle(t2, -i) === bugunTarih() && T.bugunBitti ? T.bugunBitti(gunYazi(t2, dil), liste) : T.gunDolu(gunY, gunYazi(t2, dil), liste);
       }
     }
     await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, secilen_tarih: null, sohbet_bekleyen: 'tarih' });
     return T.hepDolu(gunY);
   }
 
+  if (!alan.secilen_saat && d._enErken) alan.secilen_saat = dilimSuz(saatler, d._dilim)[0] || saatler[0];
   if (!alan.secilen_saat) {
     const dilimli = dilimSuz(saatler, d._dilim);
     await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'saat' });
-    if (d._dilim && !dilimli.length) return T.dilimYok(gunY, saatSecki(saatler).join(', '));
-    return T.saatler(gunY, saatSecki(dilimli.length ? dilimli : saatler).join(', '));
+    if (d._dilim && !dilimli.length) return T.dilimYok(gunY, saatSecki(saatler, dil));
+    const liste = T.saatler(gunY, saatSecki(dilimli.length ? dilimli : saatler, dil));
+    return d._saatAnlasilmadi ? `${T.saatSor()}\n${liste}` : liste;
   }
 
   // İstenen saat dolu → en yakın boş saat önerilir (onaylanırsa o saat)
   let saat = alan.secilen_saat;
   let oneriMetni = null;
+  if (!harita.has(saat) && dk(saat) < 12 * 60 && harita.has(s5(`${String(Number(saat.slice(0, 2)) + 12).padStart(2, '0')}:${saat.slice(3, 5)}`)) &&
+      dk(saat) < dk(saatler[0])) saat = `${String(Number(saat.slice(0, 2)) + 12).padStart(2, '0')}:${saat.slice(3, 5)}`;
   if (!harita.has(saat)) {
     const sonra = saatler.find(x => dk(x) > dk(saat) && dk(x) - dk(saat) <= 180);
     const once = [...saatler].reverse().find(x => dk(x) < dk(saat) && dk(saat) - dk(x) <= 180);
     const oneri = sonra || once;
     if (!oneri) {
       await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, secilen_saat: null, sohbet_bekleyen: 'saat' });
-      return `${T.oneriYok(saat)}\n${T.saatler(gunY, saatSecki(saatler).join(', '))}`;
+      return `${T.oneriYok(saat)}\n${T.saatler(gunY, saatSecki(saatler, dil))}`;
     }
     oneriMetni = T.dolu(saat, oneri) + (sonra && once ? ` ${T.erken(once)}` : '');
     saat = oneri;
   }
   alan.secilen_saat = saat;
   if (!ustaBelli) alan.secilen_calisan_id = harita.get(saat) || null;
-  await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'onay' });
+  await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_dilim: null, sohbet_bekleyen: 'onay' });
   if (oneriMetni) return oneriMetni;
   const usta = alan.secilen_calisan_id ? (uygun.find(c => c.id === alan.secilen_calisan_id) || calisanlar.find(c => c.id === alan.secilen_calisan_id)) : null;
-  const ozet = `📅 ${gunY} · 🕐 ${saat}\n✂️ ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
+  const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n✂️ ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
   return T.onay(ozet);
 }
 
@@ -366,7 +406,13 @@ function fiyatCevap(s, hizmetler, d, dil) {
 }
 async function kaydet(wa, tel, isletmeId, asama, alanlar) {
   const temiz = Object.fromEntries(Object.entries(alanlar).filter(([k]) => !k.startsWith('_')));
-  await wa.durumGuncelle(tel, isletmeId, asama, temiz);
+  try { await wa.durumGuncelle(tel, isletmeId, asama, temiz); }
+  catch (e) {
+    // sohbet_dilim kolonu henüz yoksa (geçiş tamamlanmadan) randevu akışı durmasın
+    if (!/sohbet_dilim/.test(e.message)) throw e;
+    delete temiz.sohbet_dilim;
+    await wa.durumGuncelle(tel, isletmeId, asama, temiz);
+  }
 }
 
 module.exports = { isle, anla, saatSecki, M };

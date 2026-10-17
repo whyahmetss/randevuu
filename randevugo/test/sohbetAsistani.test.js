@@ -94,7 +94,7 @@ test('sohbet: tek mesajda her şey, hayır deyince yeni saat, soru sorunca cevap
   assert.match(await yaz('hayır'), /hangi gün ve saat/);
   const soru = await yaz('fiyatı ne kadar');
   assert.match(soru, /150₺[\s\S]*boş saatler/, soru);
-  assert.match(await yaz('öğleden sonra'), /boş saatler: (1[2-6]:\d\d(, )?)+\./);
+  assert.match(await yaz('öğleden sonra'), /boş saatler: 12:00–16:30 arası\./);
   assert.match(await yaz('14:30'), /oluşturayım mı/);
   assert.match(await yaz('tamam'), /14:30/);
 });
@@ -191,7 +191,7 @@ test('sohbet: "11\'de" / "3\'te", onay beklerken "öğleden sonra olsun", yapay 
   const ozet = await yaz("Yarın 11'de sakal tıraşı için yer var mı");
   assert.match(ozet, /11:00[\s\S]*Sakal Tıraşı[\s\S]*oluşturayım mı/, ozet);
   const dilim = await yaz('öğleden sonra olsun');
-  assert.match(dilim, /boş saatler: (1[2-6]:\d\d(, )?)+\./, dilim);
+  assert.match(dilim, /boş saatler: 12:00–16:30 arası\./, dilim);
   const fiyat = await yaz('fiyatı ne kadar');
   assert.match(fiyat, /Sakal Tıraşı: 150₺[\s\S]*boş saatler/, fiyat);
   assert.match(await yaz("yarın 3'te"), /15:00[\s\S]*oluşturayım mı/);
@@ -228,4 +228,60 @@ test('yapay zekâ şeması: Gemini boş enum değerini reddeder ("enum[0]: canno
   const bos = [];
   (function gez(o, yol) { if (!o || typeof o !== 'object') return; if (Array.isArray(o.enum) && o.enum.some(v => v === '')) bos.push(yol); for (const k in o) gez(o[k], `${yol}.${k}`); })(istek.generationConfig.responseSchema, 'şema');
   assert.deepEqual(bos, []);
+});
+
+// 2026-10-17 canlı hata: "19 ekim 13.00 e randevu" → 13.00 tarih sanılıp siliniyordu, bot saati unutup liste veriyordu
+test('ay adıyla tarih + noktalı saat: saat kaybolmaz; yalnız gerçek sayısal tarih silinir', async () => {
+  const { anla } = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  const hz = [{ id: 1, isim: 'Saç kesim', fiyat: 300 }];
+  const a = await anla({ metin: '19 ekim 13.00 e randevu almak istiyorum', isletme: { isim: 'x' }, hizmetler: hz, calisanlar: [], durum: {} });
+  assert.strictEqual(a.saat, '13:00');
+  assert.match(a.tarih, /-10-19$/);
+  const b = await anla({ metin: '20.10 da gelebilir miyim', isletme: { isim: 'x' }, hizmetler: hz, calisanlar: [], durum: {} });
+  assert.match(b.tarih, /-10-20$/);
+  assert.strictEqual(b.saat, null, '20.10 tarih olarak okundu, saat sayılmaz');
+});
+
+test('esnaf telefondan elle yazınca bot o kişiye susar; botun kendi mesajı saymaz', async (t) => {
+  const wa = require(path.join(SRC, 'services', 'whatsappWeb'));
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+  const jid = '905551112233@s.whatsapp.net';
+  const m = (id) => ({ key: { id, fromMe: true, remoteJid: jid }, message: { conversation: 'abi akşam çay içelim' }, messageTimestamp: Math.floor(Date.now() / 1000) });
+  wa._botGidenIsaretle('BOT1');
+  wa._elleYazdi(m('BOT1'), 77); t.mock.timers.tick(5000);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, 'bot mesajı devralma değil');
+  wa._elleYazdi(m('ELLE1'), 77); t.mock.timers.tick(5000);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), true);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 78), false, 'başka işletme etkilenmez');
+  t.mock.timers.tick(181 * 60 * 1000);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, '3 saat sonra bot geri döner');
+});
+
+// 2026-10-17 canlı sorunlar: çıplak saat ("yarın 10", "17", "yok 11 olsun") anlaşılmıyor, liste kilitleniyordu;
+// "akşam"/"en erken" hizmet sorulunca unutuluyordu; liste boş saatleri gizliyordu
+test('sohbet: çıplak saat, dilim ve "en erken" hatırlanır, liste hiçbir boş saati gizlemez', async () => {
+  const { db } = await hazirla(SEMA(1) + fs.readFileSync(path.join(SRC, 'migrations', '062_sohbet_dilim.sql'), 'utf8'));
+  ortam();
+  await db.query("UPDATE isletmeler SET calisma_bitis = '22:00'");
+  const { gunSonraTarih } = require(path.join(SRC, 'utils', 'tarih'));
+  await db.query(`INSERT INTO randevular (isletme_id, calisan_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum) VALUES (1, 1, 1, 1, $1, '12:30', '13:30', 'onaylandi')`, [gunSonraTarih(1)]);
+
+  const a = await konusma(db, '905550001001');
+  await a('randevu almak istiyorum'); await a('saç kesimi');
+  assert.match(await a('yarın'), /boş saatler: 09:00–12:00 arası, 13:40–21:30 arası\./);
+  assert.match(await a('evet'), /Hangi saati istediğinizi/);
+  assert.match(await a('17'), /17:00[\s\S]*oluşturayım mı/);
+  assert.match(await a('yok 11 olsun'), /11:00[\s\S]*oluşturayım mı/);
+
+  const b = await konusma(db, '905550001002');
+  await b('Selam abi yarın akşam müsait misin');
+  assert.match(await b('saç kesimi'), /boş saatler: 17:00–21:30 arası\./, 'akşam hatırlandı');
+
+  const c = await konusma(db, '905550001003');
+  await c('en erken ne zaman boşsunuz');
+  assert.match(await c('saç'), /🕐 \d\d:\d\d[\s\S]*oluşturayım mı/, 'en erken hatırlandı, doğrudan ilk boş saat');
+
+  const d = await konusma(db, '905550001004');
+  await d('randevu'); await d('saç kesimi');
+  assert.match(await d('yarın 8'), /🕐 20:00/, 'açılıştan önceki "8" akşam 8 demek');
 });

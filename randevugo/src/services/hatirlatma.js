@@ -86,11 +86,11 @@ class HatirlatmaService {
         const tarih = new Date(r.tarih);
         const gun = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][tarih.getDay()];
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `📅 *Yarınki Randevunuz*\n\nMerhaba ${r.musteri_isim || ''}! Yarın saat ${saat}'de randevunuz var.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}📅 Yarın (${gun}) saat ${saat}\n📍 ${r.isletme_adres || ''}\n\nGörüşmek üzere! 😊`;
+        const mesaj = `🗓️ *Yarınki Randevunuz*\n\nMerhaba ${r.musteri_isim || ''}! Yarın saat ${saat}'de randevunuz var.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ Yarın (${gun}) saat ${saat}\n📍 ${r.isletme_adres || ''}\n\nGörüşmek üzere! 😊`;
         await this.mesajGonder(r, mesaj);
         // hatirlatma_gonderildi true yaparak 24h mesajının tekrar gitmesini engelle
         await pool.query('UPDATE randevular SET hatirlatma_gonderildi = true WHERE id = $1', [r.id]);
-        console.log(`📅 24h hatırlatma: ${r.musteri_isim} - yarın ${saat}`);
+        console.log(`🗓️ 24h hatırlatma: ${r.musteri_isim} - yarın ${saat}`);
       }
     } catch (e) { console.error('❌ 24h hatırlatma hatası:', e.message); }
   }
@@ -282,7 +282,7 @@ class HatirlatmaService {
       for (const r of result.rows) {
         await pool.query("UPDATE randevular SET durum='iptal' WHERE id=$1", [r.id]);
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏳ *Randevunuz zaman aşımına uğradı*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}📅 ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\nİşletme belirtilen sürede onay vermediği için randevunuz iptal edildi.\n\n📅 Yeni randevu için *1* yazın.`;
+        const mesaj = `⏳ *Randevunuz zaman aşımına uğradı*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\nİşletme belirtilen sürede onay vermediği için randevunuz iptal edildi.\n\n🗓️ Yeni randevu için *1* yazın.`;
         await this.mesajGonder(r, mesaj);
         console.log(`⏳ Onay timeout: ${r.musteri_isim} - ${r.isletme_isim} - ${saat}`);
       }
@@ -307,7 +307,7 @@ class HatirlatmaService {
       for (const r of result.rows) {
         await pool.query("UPDATE randevular SET durum='iptal', kapora_durumu='iptal' WHERE id=$1", [r.id]);
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏳ *Kapora süresi doldu*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}📅 ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\n💳 Kapora ödemesi 5 dakika içinde tamamlanmadığı için randevunuz iptal edildi.\n\n📅 Yeni randevu için *1* yazın.`;
+        const mesaj = `⏳ *Kapora süresi doldu*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\n💳 Kapora ödemesi 5 dakika içinde tamamlanmadığı için randevunuz iptal edildi.\n\n🗓️ Yeni randevu için *1* yazın.`;
         await this.mesajGonder(r, mesaj);
         console.log(`💳⏳ Kapora timeout: ${r.musteri_isim} - ${r.isletme_isim} - ${saat}`);
         // Shopier ürününü sil
@@ -358,10 +358,10 @@ class HatirlatmaService {
           continue;
         }
 
-        const mesaj = `📅 *Tekrar Bekleriz!*\n\nMerhaba ${r.musteri_isim || ''}! ${r.isletme_isim} ziyaretinizden memnun kaldıysanız bir sonraki randevunuzu şimdi alabilirsiniz! 😊\n\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}Randevu almak için *1* yazın.`;
+        const mesaj = `🗓️ *Tekrar Bekleriz!*\n\nMerhaba ${r.musteri_isim || ''}! ${r.isletme_isim} ziyaretinizden memnun kaldıysanız bir sonraki randevunuzu şimdi alabilirsiniz! 😊\n\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}Randevu almak için *1* yazın.`;
         await this.mesajGonder(r, mesaj);
         await pool.query('UPDATE randevular SET rebook_gonderildi = true WHERE id = $1', [r.id]);
-        console.log(`📅 Rebook mesajı: ${r.musteri_isim} - ${r.isletme_isim}`);
+        console.log(`🗓️ Rebook mesajı: ${r.musteri_isim} - ${r.isletme_isim}`);
       }
     } catch (e) { console.error('❌ Rebook mesajı hatası:', e.message); }
   }

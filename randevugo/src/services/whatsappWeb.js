@@ -1,3 +1,4 @@
+const ELLE_SESSIZ_DK = 180;   // esnaf telefondan yazınca bot o kişiye 3 saat susar
 const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
@@ -144,6 +145,9 @@ class WhatsAppWebService extends EventEmitter {
       this.isletmeler[isletmeId].eslestirmeTel = secenek.eslestirmeTel || null;
       this.isletmeler[isletmeId].eslestirmeKodu = null;
       this.isletmeler[isletmeId].sock = sock;
+      // Botun gönderdiği her mesaj işaretlenir: işaretsiz giden mesaj = esnaf telefondan elle yazdı (aşağıda _elleYazdi)
+      const asilGonder = sock.sendMessage.bind(sock);
+      sock.sendMessage = async (...a) => { const g = await asilGonder(...a); if (g?.key?.id) this._botGidenIsaretle(g.key.id); return g; };
 
       // Credentials güncellendiğinde kaydet
       sock.ev.on('creds.update', saveCreds);
@@ -325,6 +329,7 @@ class WhatsAppWebService extends EventEmitter {
           if (upsert.type === 'append') {
             for (const msg of upsert.messages || []) {
               if (this._kendiSohbetiMi(msg, isletmeId)) await this.sekreterKendi(msg, isletmeId).catch(e => console.error('Sekreter:', e.message));
+              else if (msg.key?.fromMe) this._elleYazdi(msg, isletmeId);
             }
           }
           return;
@@ -335,6 +340,7 @@ class WhatsAppWebService extends EventEmitter {
           if (msg.key.fromMe) {
             // Esnafın kendi kendine yazdığı ("Kendime mesaj") → sekreter komutu olabilir; diğer giden mesajlar işlenmez
             if (this._kendiSohbetiMi(msg, isletmeId)) await this.sekreterKendi(msg, isletmeId).catch(e => console.error('Sekreter:', e.message));
+            else this._elleYazdi(msg, isletmeId);
             continue;
           }
           if (!msg.message) continue;
@@ -450,7 +456,7 @@ class WhatsAppWebService extends EventEmitter {
         return { metin: `${ozur}\n\n${botMesajlar.get(isletme, 'saatListesi', { tarihStr: this.tarihFormat(tarih), saatler })}`, butonlar: null };
       }
       await this.durumGuncelle(musteriTelefon, isletmeId, 'sohbet', { secilen_saat: null, secilen_calisan_id: null, sohbet_bekleyen: 'saat' });
-      const secki = require('./sohbetAsistani').saatSecki(saatler).join(', ');
+      const secki = require('./sohbetAsistani').saatSecki(saatler);
       return { metin: `${ozur}\n\n${this.tarihFormat(tarih)} için boş saatler: ${secki}.\nSize hangisi uygun?`, butonlar: null };
     }
     // O gün yer kalmadı: bekleme listesine ekle (biri iptal ederse ilk ona yazılır)
@@ -461,6 +467,36 @@ class WhatsAppWebService extends EventEmitter {
 
   // ═══ SEKRETER MODU (2026-10-14) ═══
   // Esnafın kendi numarasıyla açtığı "Kendime mesaj" sohbeti mi? Botun oraya yazdığı cevaplar tekrar işlenmez.
+  // ── Esnaf sohbete girdi (kullanıcı kararı 2026-10-17): müşteriyle telefondan elle yazışırken bot araya girmesin.
+  // Esnaf o kişiye elle yazınca bot ELLE_SESSIZ_DK boyunca o kişiye cevap vermez; her elle mesaj süreyi tazeler.
+  _botGidenIsaretle(id) {
+    if (!this._botGiden) this._botGiden = new Map();
+    this._botGiden.set(id, Date.now());
+    if (this._botGiden.size > 3000) for (const [k, t] of this._botGiden) if (Date.now() - t > 10 * 60 * 1000) this._botGiden.delete(k);
+  }
+
+  _elleAnahtar(isletmeId, jid) { return `${isletmeId}:${String(jid || '').replace(/[:@].*$/, '')}`; }
+
+  _elleYazdi(msg, isletmeId) {
+    const jid = msg?.key?.remoteJid || '';
+    if (!msg?.message || !this._getMsgText(msg) || !/@(s\.whatsapp\.net|lid)$/.test(jid)) return;
+    const ts = Number(msg.messageTimestamp?.low ?? msg.messageTimestamp ?? 0) * 1000;
+    if (ts && Date.now() - ts > 2 * 60 * 1000) return;                 // yeniden bağlanınca gelen eski mesajlar sayılmaz
+    // Gönderimde olay, sendMessage dönmeden gelebilir: kısa bekleyip botun mesajı mı bakılır
+    setTimeout(() => {
+      if (this._botGiden?.has(msg.key.id) || this._sekreterGiden?.has(msg.key.id)) return;
+      if (!this._elleSessiz) this._elleSessiz = new Map();
+      const bitis = Date.now() + ELLE_SESSIZ_DK * 60 * 1000;
+      for (const j of [jid, msg.key.remoteJidAlt]) if (j) this._elleSessiz.set(this._elleAnahtar(isletmeId, j), bitis);
+      console.log(`👤 [${isletmeId}] esnaf sohbete girdi — bot bu kişiye ${ELLE_SESSIZ_DK} dk cevap vermeyecek`);
+    }, 4000);
+  }
+
+  _elleSessizMi(msg, isletmeId) {
+    if (!this._elleSessiz?.size) return false;
+    return [msg.key.remoteJid, msg.key.remoteJidAlt].some(j => j && (this._elleSessiz.get(this._elleAnahtar(isletmeId, j)) || 0) > Date.now());
+  }
+
   _kendiSohbetiMi(msg, isletmeId) {
     const sock = this.isletmeler[isletmeId]?.sock;
     if (!sock?.user || !msg?.key?.fromMe || !msg.message) return false;
@@ -604,6 +640,8 @@ class WhatsAppWebService extends EventEmitter {
       sus('anti-spam');
       return;
     }
+
+    if (this._elleSessizMi(msg, isletmeId)) { sus('esnaf bu sohbette elle yazıyor'); return; }
 
     // @lid veya @s.whatsapp.net — telefon numarasını çıkar
     let musteriTelefon;
@@ -1394,7 +1432,7 @@ class WhatsAppWebService extends EventEmitter {
               kaporaMesaj += `🏥 ${isletme.isim}\n`;
               if (sonuc.hizmet) kaporaMesaj += `✂️ ${sonuc.hizmet.isim}\n`;
               if (clOnay) kaporaMesaj += `👤 ${clOnay.isim}\n`;
-              kaporaMesaj += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+              kaporaMesaj += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
               kaporaMesaj += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
               kaporaMesaj += `\n💳 *Kapora: ${sonuc.kapora.tutar} ₺* (%${sonuc.kapora.yuzde})\n`;
               kaporaMesaj += `\n⚠️ Randevunuz, kapora ödemeniz onaylandıktan sonra kesinleşecektir.\n`;
@@ -1415,7 +1453,7 @@ class WhatsAppWebService extends EventEmitter {
             bekle += `🏥 ${isletme.isim}\n`;
             if (sonuc.hizmet) bekle += `✂️ ${sonuc.hizmet.isim}\n`;
             if (clOnay) bekle += `👤 ${clOnay.isim}\n`;
-            bekle += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+            bekle += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
             bekle += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
             bekle += `\n⏳ İşletme randevunuzu *${isletme.onay_timeout_dk || 30} dakika* içinde onaylayacak.`;
             bekle += `\nOnay verilmezse randevunuz otomatik iptal edilir.`;
@@ -1484,7 +1522,7 @@ class WhatsAppWebService extends EventEmitter {
               const kalanSaat = (randevuZamani - Date.now()) / 3600000;
               if (kalanSaat < iptalSinir) {
                 await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
-                return { metin: `❌ *Bu randevu artık iptal edilemez.*\n\nRandevuya ${iptalSinir} saatten az kaldığı için iptal yapılamaz.\n\n📅 Ana menü için *0* yazın.`, butonlar: null };
+                return { metin: `❌ *Bu randevu artık iptal edilemez.*\n\nRandevuya ${iptalSinir} saatten az kaldığı için iptal yapılamaz.\n\n🗓️ Ana menü için *0* yazın.`, butonlar: null };
               }
             } catch (e) { /* tarih parse hatası — devam et */ }
           }
@@ -1707,7 +1745,7 @@ class WhatsAppWebService extends EventEmitter {
     const dilimAdiMap = { sabah: '🌅 Sabah', ogle: '☀️ Öğle', aksam: '🌙 Akşam' };
     const txt = isletme ? botMesajlar.get(isletme, 'zamanDilimiListele', {
       tarihStr, dilimAdi: dilimAdiMap[dilim] || null, saatler: filtreli, bos: !filtreli.length
-    }) : `📅 *${tarihStr}*\n\n`;
+    }) : `🗓️ *${tarihStr}*\n\n`;
     return { metin: txt, butonlar: null, filtreli };
   }
 
@@ -1851,11 +1889,11 @@ class WhatsAppWebService extends EventEmitter {
           } catch (e) { console.error('Memnuniyet (otomatik anket):', e.message); }
 
           if (puan >= 4) {
-            return `${yildizlar}\n\n*Teşekkür ederiz!* Memnuniyetiniz bizim için çok değerli. 🙏\n\nTekrar görüşmek üzere!\n\n📅 Yeni randevu için *1* yazın.`;
+            return `${yildizlar}\n\n*Teşekkür ederiz!* Memnuniyetiniz bizim için çok değerli. 🙏\n\nTekrar görüşmek üzere!\n\n🗓️ Yeni randevu için *1* yazın.`;
           } else if (puan >= 2) {
-            return `${yildizlar}\n\n*Geri bildiriminiz için teşekkürler.* Kendimizi geliştirmek için değerlendireceğiz.\n\n📅 Yeni randevu için *1* yazın.`;
+            return `${yildizlar}\n\n*Geri bildiriminiz için teşekkürler.* Kendimizi geliştirmek için değerlendireceğiz.\n\n🗓️ Yeni randevu için *1* yazın.`;
           } else {
-            return `${yildizlar}\n\n*Üzgünüz, beklentinizi karşılayamadık.* Geri bildiriminiz bizim için çok önemli.\n\n📅 Yeni randevu için *1* yazın.`;
+            return `${yildizlar}\n\n*Üzgünüz, beklentinizi karşılayamadık.* Geri bildiriminiz bizim için çok önemli.\n\n🗓️ Yeni randevu için *1* yazın.`;
           }
         }
       } catch (e) { console.error('Anket puan kontrol hatası:', e.message); }

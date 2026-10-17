@@ -18,11 +18,11 @@ const tr = {
     // Randevu linki varsa önce tek dokunuşla randevu; numaralı menü yazışmayı seven için kalır
     if (p.link) {
       const giris = s.kisa ? `Merhaba${selam}!\n*${p.isletmeAd}*` : `Merhaba${selam}!${s.emoji ? ' 👋' : ''}\n*${p.isletmeAd}*'e hoş geldiniz.`;
-      return `${giris}\n\n${s.emoji ? '📅 ' : ''}*Hemen randevu alın (tek dokunuş):*\n${p.link}\n\nYa da yazarak seçin:\n*1.* Randevu Al\n*2.* Randevularım\n*3.* Randevu İptal`;
+      return `${giris}\n\n${s.emoji ? '🗓️ ' : ''}*Hemen randevu alın (tek dokunuş):*\n${p.link}\n\nYa da yazarak seçin:\n*1.* Randevu Al\n*2.* Randevularım\n*3.* Randevu İptal`;
     }
     if (s.kisa) return `Merhaba${selam}!\n*${p.isletmeAd}*\n\n*1.* Randevu Al\n*2.* Randevularım\n*3.* İptal`;
     if (!s.emoji) return `Merhaba${selam}, *${p.isletmeAd}*'e hoş geldiniz.\n\nSize nasıl yardımcı olabiliriz?\n\n*1.* Randevu Al\n*2.* Randevularım\n*3.* Randevu İptal\n\nNumara yazarak seçiniz.`;
-    return `Merhaba${selam}! 👋\n*${p.isletmeAd}*'e hoş geldiniz.\n\nSize nasıl yardımcı olabilirim?\n\n*1.* 📅 Randevu Al\n*2.* 📋 Randevularım\n*3.* ❌ Randevu İptal\n\nNumara yazarak seçin:`;
+    return `Merhaba${selam}! 👋\n*${p.isletmeAd}*'e hoş geldiniz.\n\nSize nasıl yardımcı olabilirim?\n\n*1.* 🗓️ Randevu Al\n*2.* 📋 Randevularım\n*3.* ❌ Randevu İptal\n\nNumara yazarak seçin:`;
   },
 
   hizmetListesi: (s, p) => {
@@ -45,7 +45,7 @@ const tr = {
       txt += `${s.emoji ? '💰' : '•'} Ücret: ${p.fiyat} TL\n`;
     }
     if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} Çalışan: ${p.calisanAd}\n`;
-    txt += `\n${s.emoji ? '📅' : ''} Hangi gün ister${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`;
+    txt += `\n${s.emoji ? '🗓️' : ''} Hangi gün ister${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`;
     return txt;
   },
 
@@ -62,19 +62,19 @@ const tr = {
   },
 
   tarihSec: (s) => {
-    const icon = s.emoji ? '📅 ' : '';
+    const icon = s.emoji ? '🗓️ ' : '';
     return `${icon}Hangi gün ister${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`;
   },
 
   gunSec: (s, p) => {
-    let cevap = `${s.emoji ? '📅 ' : ''}*Gün Seçin:*\n\n`;
+    let cevap = `${s.emoji ? '🗓️ ' : ''}*Gün Seçin:*\n\n`;
     p.gunler.forEach((g, i) => { cevap += `*${i + 1}.* ${g}\n`; });
     cevap += s.kisa ? '\nSeçin:' : '\nNumara yazarak seçin:';
     return cevap;
   },
 
   saatListesi: (s, p) => {
-    let r = `${s.emoji ? '📅 ' : ''}*${p.tarihStr}* müsait saatler:\n\n`;
+    let r = `${s.emoji ? '🗓️ ' : ''}*${p.tarihStr}* müsait saatler:\n\n`;
     p.saatler.forEach((saat, i) => { r += `*${i + 1}.* ${saat}\n`; });
     r += s.kisa ? '\nSeçin:' : '\nNumara yazarak seçin:';
     return r;
@@ -90,7 +90,7 @@ const tr = {
     ozet += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
     if (p.hizmetAd) ozet += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
-    ozet += `${icon ? '📅 ' : ''}${p.tarihStr}\n`;
+    ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n`;
     ozet += `${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
     ozet += `\nHer şey doğru mu?\n\n*1.* ${icon ? '✅ ' : ''}Onayla\n*2.* ${icon ? '❌ ' : ''}İptal`;
@@ -103,7 +103,7 @@ const tr = {
     txt += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
     if (p.hizmetAd) txt += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) txt += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
-    txt += `${icon ? '📅 ' : ''}${p.tarihStr}\n`;
+    txt += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n`;
     txt += `${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}Randevu${s.hitap === 'siz' ? 'nuz' : 'n'}dan 1 saat önce hatırlatma alacaksınız.\n`;
     txt += `\n${icon ? '' : ''}Görüşmek üzere${icon ? '! 😊' : '.'}`;
@@ -117,27 +117,27 @@ const tr = {
   iptalListesi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}*Randevu İptali*\n\nHangi randevuyu iptal etmek ister${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n`;
     p.randevular.forEach((r, i) => {
-      txt += `*${i + 1}.* ${r.hizmet_isim || 'Randevu'}\n     ${s.emoji ? '📅 ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`;
+      txt += `*${i + 1}.* ${r.hizmet_isim || 'Randevu'}\n     ${s.emoji ? '🗓️ ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`;
     });
     txt += `*0.* Vazgeç`;
     return txt;
   },
 
   randevuYok: (s) => {
-    return `Aktif randevu${s.hitap === 'siz' ? 'nuz' : 'n'} bulunmuyor.\n\n${s.emoji ? '📅 ' : ''}Randevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
+    return `Aktif randevu${s.hitap === 'siz' ? 'nuz' : 'n'} bulunmuyor.\n\n${s.emoji ? '🗓️ ' : ''}Randevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
   },
 
   randevularim: (s, p) => {
     let metin = `${s.emoji ? '📋 ' : ''}*Randevularınız*\n\n`;
     p.randevular.forEach((r, i) => {
-      metin += `*${i + 1}.* ${r.hizmet_isim || 'Hizmet'}\n     ${s.emoji ? '📅 ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`;
+      metin += `*${i + 1}.* ${r.hizmet_isim || 'Hizmet'}\n     ${s.emoji ? '🗓️ ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`;
     });
     metin += `*0.* Ana Menü`;
     return metin;
   },
 
   iptalOnay: (s, p) => {
-    return `${s.emoji ? '⚠️ ' : ''}*${p.hizmetAd}* randevusu${s.hitap === 'siz' ? 'nuz' : 'n'}\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nİptal etmek istediğin${s.hitap === 'siz' ? 'ize' : 'e'} emin mi${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n*1.* ${s.emoji ? '✅ ' : ''}Evet, iptal et\n*2.* ${s.emoji ? '❌ ' : ''}Hayır, vazgeç`;
+    return `${s.emoji ? '⚠️ ' : ''}*${p.hizmetAd}* randevusu${s.hitap === 'siz' ? 'nuz' : 'n'}\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nİptal etmek istediğin${s.hitap === 'siz' ? 'ize' : 'e'} emin mi${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n*1.* ${s.emoji ? '✅ ' : ''}Evet, iptal et\n*2.* ${s.emoji ? '❌ ' : ''}Hayır, vazgeç`;
   },
 
   iptalBasarili: (s, p) => {
@@ -181,7 +181,7 @@ const tr = {
   randevuAlIcin: (s) => `Randevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`,
 
   zamanDilimiSor: (s, p) => {
-    let txt = `📅 *${p.tarihStr}* — ${p.toplamSaat} müsait saat var.\n\nHangi zaman dilimini tercih edersiniz?\n\n`;
+    let txt = `🗓️ *${p.tarihStr}* — ${p.toplamSaat} müsait saat var.\n\nHangi zaman dilimini tercih edersiniz?\n\n`;
     if (p.sabah) txt += `*1.* 🌅 Sabah _(${p.sabah})_ — ${p.sabahSayi} saat\n`;
     if (p.ogle) txt += `*2.* ☀️ Öğle _(${p.ogle})_ — ${p.ogleSayi} saat\n`;
     if (p.aksam) txt += `*3.* 🌙 Akşam _(${p.aksam})_ — ${p.aksamSayi} saat\n`;
@@ -191,7 +191,7 @@ const tr = {
   },
 
   zamanDilimiListele: (s, p) => {
-    let txt = `📅 *${p.tarihStr}*`;
+    let txt = `🗓️ *${p.tarihStr}*`;
     if (p.dilimAdi) txt += ` — ${p.dilimAdi}`;
     txt += `\n\n`;
     if (p.saatler) p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
@@ -222,11 +222,11 @@ const en = {
   anaMenu: (s, p) => {
     const selam = p.musteriAd ? ` ${p.musteriAd}` : '';
     if (p.link) {
-      return `Hi${selam}!${s.emoji ? ' 👋' : ''}\nWelcome to *${p.isletmeAd}*.\n\n${s.emoji ? '📅 ' : ''}*Book instantly (one tap):*\n${p.link}\n\nOr type a number:\n*1.* Book Appointment\n*2.* My Appointments\n*3.* Cancel Appointment`;
+      return `Hi${selam}!${s.emoji ? ' 👋' : ''}\nWelcome to *${p.isletmeAd}*.\n\n${s.emoji ? '🗓️ ' : ''}*Book instantly (one tap):*\n${p.link}\n\nOr type a number:\n*1.* Book Appointment\n*2.* My Appointments\n*3.* Cancel Appointment`;
     }
     if (s.kisa) return `Hi${selam}!\n*${p.isletmeAd}*\n\n*1.* Book\n*2.* My Appointments\n*3.* Cancel`;
     if (!s.emoji) return `Hello${selam}, welcome to *${p.isletmeAd}*.\n\nHow can we help you?\n\n*1.* Book Appointment\n*2.* My Appointments\n*3.* Cancel Appointment\n\nPlease type a number.`;
-    return `Hi${selam}! 👋\nWelcome to *${p.isletmeAd}*.\n\nHow can I help you?\n\n*1.* 📅 Book Appointment\n*2.* 📋 My Appointments\n*3.* ❌ Cancel Appointment\n\nType a number:`;
+    return `Hi${selam}! 👋\nWelcome to *${p.isletmeAd}*.\n\nHow can I help you?\n\n*1.* 🗓️ Book Appointment\n*2.* 📋 My Appointments\n*3.* ❌ Cancel Appointment\n\nType a number:`;
   },
 
   hizmetListesi: (s, p) => {
@@ -243,7 +243,7 @@ const en = {
     if (!s.kisa && p.sureDk) txt += `${s.emoji ? '⏱' : '•'} Duration: ${p.sureDk} min\n`;
     if (!s.kisa && p.fiyat) txt += `${s.emoji ? '💰' : '•'} Price: ${p.fiyat} TL\n`;
     if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} Staff: ${p.calisanAd}\n`;
-    txt += `\n${s.emoji ? '📅 ' : ''}Which day?\n\n*1.* Today\n*2.* Tomorrow\n*3.* This Week`;
+    txt += `\n${s.emoji ? '🗓️ ' : ''}Which day?\n\n*1.* Today\n*2.* Tomorrow\n*3.* This Week`;
     return txt;
   },
 
@@ -255,17 +255,17 @@ const en = {
     return txt;
   },
 
-  tarihSec: (s) => `${s.emoji ? '📅 ' : ''}Which day?\n\n*1.* Today\n*2.* Tomorrow\n*3.* This Week`,
+  tarihSec: (s) => `${s.emoji ? '🗓️ ' : ''}Which day?\n\n*1.* Today\n*2.* Tomorrow\n*3.* This Week`,
 
   gunSec: (s, p) => {
-    let cevap = `${s.emoji ? '📅 ' : ''}*Choose a day:*\n\n`;
+    let cevap = `${s.emoji ? '🗓️ ' : ''}*Choose a day:*\n\n`;
     p.gunler.forEach((g, i) => { cevap += `*${i + 1}.* ${g}\n`; });
     cevap += s.kisa ? '\nChoose:' : '\nType a number to select:';
     return cevap;
   },
 
   saatListesi: (s, p) => {
-    let r = `${s.emoji ? '📅 ' : ''}*${p.tarihStr}* available times:\n\n`;
+    let r = `${s.emoji ? '🗓️ ' : ''}*${p.tarihStr}* available times:\n\n`;
     p.saatler.forEach((saat, i) => { r += `*${i + 1}.* ${saat}\n`; });
     r += s.kisa ? '\nChoose:' : '\nType a number to select:';
     return r;
@@ -279,7 +279,7 @@ const en = {
     ozet += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
     if (p.hizmetAd) ozet += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
-    ozet += `${icon ? '📅 ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
+    ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
     ozet += `\nEverything correct?\n\n*1.* ${icon ? '✅ ' : ''}Confirm\n*2.* ${icon ? '❌ ' : ''}Cancel`;
     return ozet;
@@ -291,7 +291,7 @@ const en = {
     txt += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
     if (p.hizmetAd) txt += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) txt += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
-    txt += `${icon ? '📅 ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
+    txt += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}You will receive a reminder 1 hour before.\n`;
     txt += `\nSee you${icon ? '! 😊' : '.'}`;
     return txt;
@@ -301,21 +301,21 @@ const en = {
 
   iptalListesi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}*Cancel Appointment*\n\nWhich appointment would you like to cancel?\n\n`;
-    p.randevular.forEach((r, i) => { txt += `*${i + 1}.* ${r.hizmet_isim || 'Appointment'}\n     ${s.emoji ? '📅 ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
+    p.randevular.forEach((r, i) => { txt += `*${i + 1}.* ${r.hizmet_isim || 'Appointment'}\n     ${s.emoji ? '🗓️ ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
     txt += `*0.* Go back`;
     return txt;
   },
 
-  randevuYok: (s) => `You have no active appointments.\n\n${s.emoji ? '📅 ' : ''}Type *1* to book.`,
+  randevuYok: (s) => `You have no active appointments.\n\n${s.emoji ? '🗓️ ' : ''}Type *1* to book.`,
 
   randevularim: (s, p) => {
     let metin = `${s.emoji ? '📋 ' : ''}*Your Appointments*\n\n`;
-    p.randevular.forEach((r, i) => { metin += `*${i + 1}.* ${r.hizmet_isim || 'Service'}\n     ${s.emoji ? '📅 ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
+    p.randevular.forEach((r, i) => { metin += `*${i + 1}.* ${r.hizmet_isim || 'Service'}\n     ${s.emoji ? '🗓️ ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
     metin += `*0.* Main Menu`;
     return metin;
   },
 
-  iptalOnay: (s, p) => `${s.emoji ? '⚠️ ' : ''}*${p.hizmetAd}*\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nAre you sure you want to cancel?\n\n*1.* ${s.emoji ? '✅ ' : ''}Yes, cancel\n*2.* ${s.emoji ? '❌ ' : ''}No, go back`,
+  iptalOnay: (s, p) => `${s.emoji ? '⚠️ ' : ''}*${p.hizmetAd}*\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nAre you sure you want to cancel?\n\n*1.* ${s.emoji ? '✅ ' : ''}Yes, cancel\n*2.* ${s.emoji ? '❌ ' : ''}No, go back`,
 
   iptalBasarili: (s, p) => `${s.emoji ? '✅ ' : ''}*${p.hizmetAd}* appointment cancelled.\n\nType *1* to book a new appointment.`,
 
@@ -354,7 +354,7 @@ const en = {
   randevuAlIcin: (s) => `Type *1* to book.`,
 
   zamanDilimiSor: (s, p) => {
-    let txt = `📅 *${p.tarihStr}* — ${p.toplamSaat} available slots.\n\nWhich time period do you prefer?\n\n`;
+    let txt = `🗓️ *${p.tarihStr}* — ${p.toplamSaat} available slots.\n\nWhich time period do you prefer?\n\n`;
     if (p.sabah) txt += `*1.* 🌅 Morning _(${p.sabah})_ — ${p.sabahSayi} slots\n`;
     if (p.ogle) txt += `*2.* ☀️ Afternoon _(${p.ogle})_ — ${p.ogleSayi} slots\n`;
     if (p.aksam) txt += `*3.* 🌙 Evening _(${p.aksam})_ — ${p.aksamSayi} slots\n`;
@@ -364,7 +364,7 @@ const en = {
   },
 
   zamanDilimiListele: (s, p) => {
-    let txt = `📅 *${p.tarihStr}*`;
+    let txt = `🗓️ *${p.tarihStr}*`;
     if (p.dilimAdi) txt += ` — ${p.dilimAdi}`;
     txt += `\n\n`;
     if (p.saatler) p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
@@ -395,10 +395,10 @@ const ar = {
   anaMenu: (s, p) => {
     const selam = p.musteriAd ? ` ${p.musteriAd}` : '';
     if (p.link) {
-      return `مرحباً${selam}${s.emoji ? '! 👋' : ','}\nأهلاً بك في *${p.isletmeAd}*.\n\n${s.emoji ? '📅 ' : ''}*احجز فوراً (بلمسة واحدة):*\n${p.link}\n\nأو اكتب رقماً:\n*1.* حجز موعد\n*2.* مواعيدي\n*3.* إلغاء موعد`;
+      return `مرحباً${selam}${s.emoji ? '! 👋' : ','}\nأهلاً بك في *${p.isletmeAd}*.\n\n${s.emoji ? '🗓️ ' : ''}*احجز فوراً (بلمسة واحدة):*\n${p.link}\n\nأو اكتب رقماً:\n*1.* حجز موعد\n*2.* مواعيدي\n*3.* إلغاء موعد`;
     }
     if (s.kisa) return `مرحباً${selam}!\n*${p.isletmeAd}*\n\n*1.* حجز موعد\n*2.* مواعيدي\n*3.* إلغاء`;
-    return `مرحباً${selam}${s.emoji ? '! 👋' : ','}\nأهلاً بك في *${p.isletmeAd}*.\n\nكيف يمكنني مساعدتك؟\n\n*1.* ${s.emoji ? '📅 ' : ''}حجز موعد\n*2.* ${s.emoji ? '📋 ' : ''}مواعيدي\n*3.* ${s.emoji ? '❌ ' : ''}إلغاء موعد\n\nاكتب رقماً:`;
+    return `مرحباً${selam}${s.emoji ? '! 👋' : ','}\nأهلاً بك في *${p.isletmeAd}*.\n\nكيف يمكنني مساعدتك؟\n\n*1.* ${s.emoji ? '🗓️ ' : ''}حجز موعد\n*2.* ${s.emoji ? '📋 ' : ''}مواعيدي\n*3.* ${s.emoji ? '❌ ' : ''}إلغاء موعد\n\nاكتب رقماً:`;
   },
 
   hizmetListesi: (s, p) => {
@@ -413,7 +413,7 @@ const ar = {
     if (!s.kisa && p.sureDk) txt += `${s.emoji ? '⏱ ' : ''}المدة: ${p.sureDk} دقيقة\n`;
     if (!s.kisa && p.fiyat) txt += `${s.emoji ? '💰 ' : ''}السعر: ${p.fiyat} TL\n`;
     if (p.calisanAd) txt += `${s.emoji ? '👤 ' : ''}الموظف: ${p.calisanAd}\n`;
-    txt += `\n${s.emoji ? '📅 ' : ''}أي يوم تريد؟\n\n*1.* اليوم\n*2.* غداً\n*3.* هذا الأسبوع`;
+    txt += `\n${s.emoji ? '🗓️ ' : ''}أي يوم تريد؟\n\n*1.* اليوم\n*2.* غداً\n*3.* هذا الأسبوع`;
     return txt;
   },
 
@@ -424,17 +424,17 @@ const ar = {
     return txt;
   },
 
-  tarihSec: (s) => `${s.emoji ? '📅 ' : ''}أي يوم تريد؟\n\n*1.* اليوم\n*2.* غداً\n*3.* هذا الأسبوع`,
+  tarihSec: (s) => `${s.emoji ? '🗓️ ' : ''}أي يوم تريد؟\n\n*1.* اليوم\n*2.* غداً\n*3.* هذا الأسبوع`,
 
   gunSec: (s, p) => {
-    let cevap = `${s.emoji ? '📅 ' : ''}*اختر يوماً:*\n\n`;
+    let cevap = `${s.emoji ? '🗓️ ' : ''}*اختر يوماً:*\n\n`;
     p.gunler.forEach((g, i) => { cevap += `*${i + 1}.* ${g}\n`; });
     cevap += '\nاكتب رقماً:';
     return cevap;
   },
 
   saatListesi: (s, p) => {
-    let r = `${s.emoji ? '📅 ' : ''}*${p.tarihStr}* الأوقات المتاحة:\n\n`;
+    let r = `${s.emoji ? '🗓️ ' : ''}*${p.tarihStr}* الأوقات المتاحة:\n\n`;
     p.saatler.forEach((saat, i) => { r += `*${i + 1}.* ${saat}\n`; });
     r += '\nاكتب رقماً:';
     return r;
@@ -448,7 +448,7 @@ const ar = {
     ozet += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
     if (p.hizmetAd) ozet += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
-    ozet += `${icon ? '📅 ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
+    ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
     ozet += `\nهل كل شيء صحيح؟\n\n*1.* ${icon ? '✅ ' : ''}تأكيد\n*2.* ${icon ? '❌ ' : ''}إلغاء`;
     return ozet;
@@ -458,7 +458,7 @@ const ar = {
     const icon = s.emoji;
     let txt = `${icon ? '✅ ' : ''}*تم تأكيد الموعد!*\n\n${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
     if (p.hizmetAd) txt += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
-    txt += `${icon ? '📅 ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
+    txt += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}سيتم تذكيرك قبل ساعة.\n`;
     txt += `\nنراكم${icon ? '! 😊' : '.'}`;
     return txt;
@@ -468,21 +468,21 @@ const ar = {
 
   iptalListesi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}*إلغاء موعد*\n\nأي موعد تريد إلغاءه؟\n\n`;
-    p.randevular.forEach((r, i) => { txt += `*${i + 1}.* ${r.hizmet_isim || 'موعد'}\n     ${s.emoji ? '📅 ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
+    p.randevular.forEach((r, i) => { txt += `*${i + 1}.* ${r.hizmet_isim || 'موعد'}\n     ${s.emoji ? '🗓️ ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
     txt += `*0.* رجوع`;
     return txt;
   },
 
-  randevuYok: (s) => `لا توجد مواعيد حالية.\n\n${s.emoji ? '📅 ' : ''}اكتب *1* للحجز.`,
+  randevuYok: (s) => `لا توجد مواعيد حالية.\n\n${s.emoji ? '🗓️ ' : ''}اكتب *1* للحجز.`,
 
   randevularim: (s, p) => {
     let metin = `${s.emoji ? '📋 ' : ''}*مواعيدك*\n\n`;
-    p.randevular.forEach((r, i) => { metin += `*${i + 1}.* ${r.hizmet_isim || 'خدمة'}\n     ${s.emoji ? '📅 ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
+    p.randevular.forEach((r, i) => { metin += `*${i + 1}.* ${r.hizmet_isim || 'خدمة'}\n     ${s.emoji ? '🗓️ ' : ''}${r.tarihStr} - ${s.emoji ? '🕐 ' : ''}${r.saatStr}\n\n`; });
     metin += `*0.* القائمة الرئيسية`;
     return metin;
   },
 
-  iptalOnay: (s, p) => `${s.emoji ? '⚠️ ' : ''}*${p.hizmetAd}*\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nهل أنت متأكد من الإلغاء؟\n\n*1.* ${s.emoji ? '✅ ' : ''}نعم\n*2.* ${s.emoji ? '❌ ' : ''}لا`,
+  iptalOnay: (s, p) => `${s.emoji ? '⚠️ ' : ''}*${p.hizmetAd}*\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nهل أنت متأكد من الإلغاء؟\n\n*1.* ${s.emoji ? '✅ ' : ''}نعم\n*2.* ${s.emoji ? '❌ ' : ''}لا`,
 
   iptalBasarili: (s, p) => `${s.emoji ? '✅ ' : ''}تم إلغاء موعد *${p.hizmetAd}*.\n\nاكتب *1* لحجز موعد جديد.`,
 
@@ -517,7 +517,7 @@ const ar = {
   randevuAlIcin: (s) => `اكتب *1* للحجز.`,
 
   zamanDilimiSor: (s, p) => {
-    let txt = `📅 *${p.tarihStr}* — ${p.toplamSaat} مواعيد متاحة.\n\nأي فترة تفضل؟\n\n`;
+    let txt = `🗓️ *${p.tarihStr}* — ${p.toplamSaat} مواعيد متاحة.\n\nأي فترة تفضل؟\n\n`;
     if (p.sabah) txt += `*1.* 🌅 صباح _(${p.sabah})_ — ${p.sabahSayi}\n`;
     if (p.ogle) txt += `*2.* ☀️ ظهر _(${p.ogle})_ — ${p.ogleSayi}\n`;
     if (p.aksam) txt += `*3.* 🌙 مساء _(${p.aksam})_ — ${p.aksamSayi}\n`;
@@ -527,7 +527,7 @@ const ar = {
   },
 
   zamanDilimiListele: (s, p) => {
-    let txt = `📅 *${p.tarihStr}*`;
+    let txt = `🗓️ *${p.tarihStr}*`;
     if (p.dilimAdi) txt += ` — ${p.dilimAdi}`;
     txt += `\n\n`;
     if (p.saatler) p.saatler.forEach((saat, i) => { txt += `*${i+1}.* ${saat}\n`; });
@@ -554,24 +554,24 @@ const ar = {
 // ═══ Ek mesajlar (3 dil) — beklemeListesi, siraTakibi, rebookTeklif, akilliSaat, noShow ═══
 tr.beklemeListesiSor = (s, p) => `${s.emoji ? '📋 ' : ''}Bu saat dolu. Bekleme listesine ekleyelim mi? İptal olursa size haber veririz.\n\n*1.* ${s.emoji ? '✅ ' : ''}Evet, ekle\n*2.* ${s.emoji ? '❌ ' : ''}Hayır`;
 tr.beklemeListesiEklendi = (s, p) => `${s.emoji ? '✅ ' : ''}Bekleme listesine eklendi${s.hitap === 'siz' ? 'niz' : 'n'}! ${p.tarihStr} tarihinde yer açılırsa size haber vereceğiz.\n\n*0.* Ana Menü`;
-tr.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*Müjde!* İstediğiniz saat müsait oldu!\n\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.hizmetAd ? (s.emoji ? '✂️ ' : '') + p.hizmetAd + '\n' : ''}\nRandevunuzu onaylayalım mı?\n\n*1.* ${s.emoji ? '✅ ' : ''}Evet, onayla\n*2.* ${s.emoji ? '❌ ' : ''}Hayır`;
+tr.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*Müjde!* İstediğiniz saat müsait oldu!\n\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.hizmetAd ? (s.emoji ? '✂️ ' : '') + p.hizmetAd + '\n' : ''}\nRandevunuzu onaylayalım mı?\n\n*1.* ${s.emoji ? '✅ ' : ''}Evet, onayla\n*2.* ${s.emoji ? '❌ ' : ''}Hayır`;
 tr.siraTakibi = (s, p) => `${s.emoji ? '📊 ' : ''}*Sıra Durumunuz*\n\n${s.emoji ? '👥 ' : ''}Sizden önce *${p.oncekiSayi}* kişi var.\n${s.emoji ? '⏱ ' : ''}Tahmini bekleme süresi: *${p.tahminiSure} dakika*\n\n${s.emoji ? '🕐 ' : ''}Randevu saatiniz: ${p.saatStr}`;
-tr.siraTakibiYok = (s) => `Bugün aktif randevunuz bulunmuyor.\n\n${s.emoji ? '📅 ' : ''}Randevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
-tr.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*Randevunuza gelmediniz.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.kaporaTutar ? '\n💳 Kapora tutarı (' + p.kaporaTutar + '₺) iade edilmeyecektir.\n' : ''}\n📅 Yeni randevu için *1* yazın.`;
+tr.siraTakibiYok = (s) => `Bugün aktif randevunuz bulunmuyor.\n\n${s.emoji ? '🗓️ ' : ''}Randevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
+tr.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*Randevunuza gelmediniz.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.kaporaTutar ? '\n💳 Kapora tutarı (' + p.kaporaTutar + '₺) iade edilmeyecektir.\n' : ''}\n🗓️ Yeni randevu için *1* yazın.`;
 
 en.beklemeListesiSor = (s, p) => `${s.emoji ? '📋 ' : ''}This time slot is full. Would you like to join the waiting list? We'll notify you if a spot opens.\n\n*1.* ${s.emoji ? '✅ ' : ''}Yes\n*2.* ${s.emoji ? '❌ ' : ''}No`;
 en.beklemeListesiEklendi = (s, p) => `${s.emoji ? '✅ ' : ''}Added to waiting list! We'll let you know if a spot opens on ${p.tarihStr}.\n\n*0.* Main Menu`;
-en.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*Great news!* Your requested time is now available!\n\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.hizmetAd ? (s.emoji ? '✂️ ' : '') + p.hizmetAd + '\n' : ''}\nShall we confirm your appointment?\n\n*1.* ${s.emoji ? '✅ ' : ''}Yes, confirm\n*2.* ${s.emoji ? '❌ ' : ''}No`;
+en.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*Great news!* Your requested time is now available!\n\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.hizmetAd ? (s.emoji ? '✂️ ' : '') + p.hizmetAd + '\n' : ''}\nShall we confirm your appointment?\n\n*1.* ${s.emoji ? '✅ ' : ''}Yes, confirm\n*2.* ${s.emoji ? '❌ ' : ''}No`;
 en.siraTakibi = (s, p) => `${s.emoji ? '📊 ' : ''}*Your Queue Status*\n\n${s.emoji ? '👥 ' : ''}*${p.oncekiSayi}* people ahead of you.\n${s.emoji ? '⏱ ' : ''}Estimated wait: *${p.tahminiSure} minutes*\n\n${s.emoji ? '🕐 ' : ''}Your appointment: ${p.saatStr}`;
-en.siraTakibiYok = (s) => `You have no active appointments today.\n\n${s.emoji ? '📅 ' : ''}Type *1* to book.`;
-en.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*You missed your appointment.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.kaporaTutar ? '\n💳 Deposit (' + p.kaporaTutar + '₺) will not be refunded.\n' : ''}\nType *1* to book a new appointment.`;
+en.siraTakibiYok = (s) => `You have no active appointments today.\n\n${s.emoji ? '🗓️ ' : ''}Type *1* to book.`;
+en.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*You missed your appointment.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n${p.kaporaTutar ? '\n💳 Deposit (' + p.kaporaTutar + '₺) will not be refunded.\n' : ''}\nType *1* to book a new appointment.`;
 
 ar.beklemeListesiSor = (s, p) => `${s.emoji ? '📋 ' : ''}هذا الوقت محجوز. هل تريد الانضمام لقائمة الانتظار؟\n\n*1.* ${s.emoji ? '✅ ' : ''}نعم\n*2.* ${s.emoji ? '❌ ' : ''}لا`;
 ar.beklemeListesiEklendi = (s, p) => `${s.emoji ? '✅ ' : ''}تمت إضافتك لقائمة الانتظار! سنخبرك إذا توفر مكان في ${p.tarihStr}.\n\n*0.* القائمة الرئيسية`;
-ar.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*بشرى!* الوقت المطلوب أصبح متاحاً!\n\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nهل نؤكد موعدك؟\n\n*1.* ${s.emoji ? '✅ ' : ''}نعم\n*2.* ${s.emoji ? '❌ ' : ''}لا`;
+ar.beklemeListesiMusait = (s, p) => `${s.emoji ? '🔔 ' : ''}*بشرى!* الوقت المطلوب أصبح متاحاً!\n\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nهل نؤكد موعدك؟\n\n*1.* ${s.emoji ? '✅ ' : ''}نعم\n*2.* ${s.emoji ? '❌ ' : ''}لا`;
 ar.siraTakibi = (s, p) => `${s.emoji ? '📊 ' : ''}*حالة الطابور*\n\n${s.emoji ? '👥 ' : ''}أمامك *${p.oncekiSayi}* أشخاص.\n${s.emoji ? '⏱ ' : ''}الانتظار المتوقع: *${p.tahminiSure} دقيقة*\n\n${s.emoji ? '🕐 ' : ''}موعدك: ${p.saatStr}`;
-ar.siraTakibiYok = (s) => `لا توجد مواعيد اليوم.\n\n${s.emoji ? '📅 ' : ''}اكتب *1* للحجز.`;
-ar.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*لم تحضر لموعدك.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '📅 ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nاكتب *1* لحجز موعد جديد.`;
+ar.siraTakibiYok = (s) => `لا توجد مواعيد اليوم.\n\n${s.emoji ? '🗓️ ' : ''}اكتب *1* للحجز.`;
+ar.noShowMesaj = (s, p) => `${s.emoji ? '⚠️ ' : ''}*لم تحضر لموعدك.*\n\n${s.emoji ? '🏥 ' : ''}${p.isletmeAd}\n${s.emoji ? '🗓️ ' : ''}${p.tarihStr} - ${s.emoji ? '🕐 ' : ''}${p.saatStr}\n\nاكتب *1* لحجز موعد جديد.`;
 
 const DILLER = { tr, en, ar };
 
