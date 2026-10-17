@@ -121,6 +121,22 @@ function yalnizNezaket(metin) {
   return parcalar.every(x => x.split(/ ve | /).length <= 5 && x.split(/ ve /).every(y => NEZAKET.test(y.trim())));
 }
 
+// WhatsApp Business otomatik karşılama / mesai dışı mesajı (2026-10-17): insan cevabı değildir. Bot buna cevap verirse
+// esnaf "kafayı yedi" sanıyor (önce otomatiğe, sonra kendi "merhaba"sına iki kez cevap). Kayda geçer, cevaplanmaz.
+const OTOMATIK_YANIT = [/iletişime geçtiğiniz için/i, /iletisime gectiginiz icin/i, /bize ulaştığınız için/i, /bize yazdığınız için/i,
+  /mesajınız (için teşekkür|alındı|bize ulaştı)/i, /en kısa sürede (size )?(dönüş|geri dön|cevap|yanıt)/i, /(çalışma|mesai) saatlerimiz/i,
+  /şu an(da)? (müsait|hizmet ver|cevap ver|yanıt ver)/i, /otomatik (yanıt|mesaj|cevap)/i, /işletme hesabıdır/i,
+  /(mesai|çalışma) saatleri(miz)? (dışında|içinde)/i, /size nasıl yardımcı olabiliriz\?.{0,40}(çalışma|mesai|saat)/is];
+function otomatikYanit(metin) {
+  const t = String(metin || '');
+  return t.length >= 25 && OTOMATIK_YANIT.some(r => r.test(t));
+}
+// Yalnız selam ("Merhabalar", "slm", "buyrun"): botun mesajıyla çapraz düştüyse yeniden selam/tanıtım yapılmaz
+function yalnizSelam(metin) {
+  const t = String(metin || '').toLocaleLowerCase('tr-TR').replace(/[\p{Extended_Pictographic}\uFE0F\u200d.,!?;:'"()\-]/gu, ' ').replace(/\s+/g, ' ').trim();
+  return /^((merhaba|merhabalar|mrb|mrhb|selam|selamlar|slm|selamün aleyküm|selamun aleykum|sa|as|aleyküm selam|iyi günler|iyi gunler|günaydın|gunaydin|iyi akşamlar|iyi aksamlar|buyrun|buyurun|buyrunuz|efendim|evet buyrun) ?)+$/.test(t);
+}
+
 const EVET = ['evet', 'tamam', 'olur', 'doğru', 'dogru', 'aynen', 'kalsın', 'kalsin', 'e', 'he', 'evt'];
 
 // Satış konuşmasındaki sektör adı → işletme kategori kodu
@@ -1758,6 +1774,13 @@ class SatisBot extends EventEmitter {
     const anahtar = msg.key.remoteJid;
     const alt = msg.key.remoteJidAlt || '';
     const telefon = (anahtar.endsWith('@lid') && alt.includes('@s.whatsapp.net') ? alt : anahtar).replace(/@.*$/, '');
+    if (!this.konusmalar[telefon]?.kayit && otomatikYanit(metin)) {
+      console.log(`🤖 …${String(telefon).slice(-4)} WhatsApp Business otomatik mesajı — cevap verilmedi`);
+      await pool.query(`UPDATE satis_konusmalar SET otomatik_yanit = $1
+        WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $2 OR telefon = '+' || $2 OR telefon LIKE '%' || right($2, 10)
+                    ORDER BY (telefon = $2) DESC, olusturma_tarihi DESC LIMIT 1)`, [String(metin).slice(0, 1000), telefon]).catch(() => {});
+      return;
+    }
     const kayitIstegi = /^\s*kay[ıi]t\s*$/i.test(metin);
     if (this.konusmalar[telefon]?.kayit || kayitIstegi || this.ayarlar.mesajBirlestir === false) return this._mesajIsle(msg, numaraId, metin);
 
@@ -1923,6 +1946,12 @@ class SatisBot extends EventEmitter {
       return;
     }
 
+    // Bot az önce cevap verdiyse ve kişi yalnız "Merhabalar" yazdıysa mesajlar çapraz düşmüştür: ikinci kez selam/tanıtım yok
+    if (!ilkCevap && yalnizSelam(metin) && Date.now() - (this._sonBotCevap?.[telefon] || 0) < 5 * 60 * 1000) {
+      console.log(`🤝 …${String(telefon).slice(-4)} yalnız selam yazdı, bot az önce cevap vermişti — bekleniyor`);
+      return;
+    }
+
     if (this.ayarlar.mod === 'sadece_kayit' || this.ayarlar.mod === 'sadece_satis' || !this.ayarlar.gelenMesajCevap) {
       console.log(`⏸️ Mod: ${this.ayarlar.mod} / cevap ${this.ayarlar.gelenMesajCevap ? 'açık' : 'kapalı'} — mesaj loglandı`);
       return;
@@ -1956,6 +1985,7 @@ class SatisBot extends EventEmitter {
       console.error(`❌ Cevap gönderilemedi: …${String(telefon).slice(-4)} → ${sendErr.message}`);
       if (!gidenler.length) return;
     }
+    this._sonBotCevap = { ...(this._sonBotCevap || {}), [telefon]: Date.now() };
     // Kişiye özel demo: ilk ilgide onun adına açılmış randevu sayfası (konuşma başına bir kez)
     if (cevap.demo && gidenler.length) {
       try {
@@ -2187,4 +2217,4 @@ Yalnızca JSON döndür: {"mesaj": "...", "durum": "olumlu" | "olumsuz" | "bekli
 }
 
 module.exports = new SatisBot();
-module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, yalnizNezaket, sablonDoldur };
+module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, yalnizNezaket, sablonDoldur, otomatikYanit, yalnizSelam };

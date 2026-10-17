@@ -25,3 +25,28 @@ test('vitrin ilanı Mağaza öneri listesinde yok, önerilemez; vitrinde görün
   r = res(); await v.vitrin(req(), r);
   assert.deepStrictEqual(r.v.urunler.map(u => u.isim), ['Kilitli Tablet Standı']);
 });
+
+test('vitrin yönetimi: sipariş kargo/ödeme güncellenir, aylık özet demoyu saymaz, siparişli ilan silinmez yayından kalkar', async () => {
+  const fs = require('fs');
+  const pool = require(SRC + '/config/db');
+  await pool.query(`ALTER TABLE isletmeler ADD COLUMN demo BOOLEAN DEFAULT false, ADD COLUMN telefon TEXT, ADD COLUMN ilce TEXT`);
+  await pool.query(`CREATE TABLE magaza_siparisler (id SERIAL PRIMARY KEY, isletme_id INT NOT NULL, urun_id INT NOT NULL, adet INT NOT NULL DEFAULT 1,
+    tutar NUMERIC(10,2), notu TEXT, durum VARCHAR(20) NOT NULL DEFAULT 'yeni', olusturma TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
+  for (const q of fs.readFileSync(SRC + '/migrations/060_vitrin_siparis.sql', 'utf8').split(';').filter(x => x.trim() && !x.trim().startsWith('--') || x.includes('ALTER'))) await pool.query(q);
+  await pool.query(`INSERT INTO isletmeler (isim, demo) VALUES ('SıraGO Demo Berber', true)`);
+  await pool.query(`INSERT INTO magaza_siparisler (isletme_id, urun_id, adet, tutar) VALUES (1, 1, 2, 33800), (2, 1, 1, 16900)`);
+  const res = () => { const r = {}; r.json = (v) => { r.v = v; return r; }; r.status = (k) => { r.kod = k; return r; }; return r; };
+  const v = require(SRC + '/controllers/vitrinController');
+  let r = res(); await v.siparisGuncelle({ params: { id: 1 }, body: { odeme_durumu: 'odendi', kargo_firma: 'Yurtiçi', kargo_takip: 'YT123' } }, r);
+  assert.deepStrictEqual([r.v.siparis.odeme_durumu, r.v.siparis.kargo_takip], ['odendi', 'YT123']);
+  r = res(); await v.siparisGuncelle({ params: { id: 1 }, body: { durum: 'uçtu' } }, r);
+  assert.strictEqual(r.kod, 400);
+  r = res(); await v.ozet({ query: {} }, r);
+  assert.deepStrictEqual([r.v.toplam.siparis, r.v.toplam.adet, r.v.toplam.ciro, r.v.toplam.tahsil], [1, 2, 33800, 33800], 'demo siparişi sayılmadı');
+  assert.deepStrictEqual(r.v.urunler.map(u => [u.isim, u.adet]), [['Kilitli Tablet Standı', 2]]);
+  r = res(); await v.ilanlar({}, r);
+  assert.strictEqual(r.v.ilanlar[0].satilan, 2);
+  r = res(); await v.ilanSil({ params: { id: 1 } }, r);
+  assert.strictEqual(r.v.pasif, true);
+  assert.strictEqual((await pool.query('SELECT aktif FROM magaza_urunler WHERE id = 1')).rows[0].aktif, false);
+});

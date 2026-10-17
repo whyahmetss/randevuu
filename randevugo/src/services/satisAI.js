@@ -42,6 +42,7 @@ NASIL YAZARSIN (en önemli kısım)
   · Hemen bir şey sorduysa (ne satıyorsun, fiyat, nasıl çalışıyor): önce onu cevapla, sonra derdini sor.
   · Cevabını dinle ve onun söylediğine göre devam et; ezber metin okuma. Telefonla/defterle alıyorsa işlem sırasında
     açılamayan telefonu, WhatsApp'tan alıyorsa tek tek yazışmayı konuş; sonra kişiye özel demoyu göster.
+- Kendini bir kez tanıttıysan bir daha selam verme, tekrar tanıtma ("Merhabalar, kolay gelsin" ikinci kez yazılmaz).
 - Önceki konuşmayı hatırla: aynı cümleyi tekrarlama, verdiğin linki tekrar verme, sorduğu şeyi tekrar sorma.
 - Yazım hatalı, kısaltmalı, sesli harfsiz yazılanları anla ("nbr", "fiyt", "slm", "tmm", "randvu").
 - Her mesajda en fazla bir soru sor. Satış baskısı yapma; dinle, anla, tek bir faydayı onun derdine bağla.
@@ -194,11 +195,12 @@ async function cevapUret({ konusma, paketListesi, sonMesaj, demo }) {
     konusma.gonderilen_mesaj && konusma.gonderilen_mesaj !== 'Müşteri kendisi yazdı'
       ? `BİZİM İLK MESAJIMIZ: ${String(konusma.gonderilen_mesaj).slice(0, 600)}`
       : 'Bu kişi bize kendisi yazdı (biz önce yazmadık).',
+    konusma.otomatik_yanit ? `İŞLETMENİN WHATSAPP OTOMATİK KARŞILAMA MESAJI (insan yazmadı, cevaplama; yalnız bilgi): ${String(konusma.otomatik_yanit).slice(0, 400)}` : null,
     `PAKETLER:\n${paketListesi || '(fiyat bilgisi yok — fiyat sorulursa sitede yazdığını söyle)'}`,
     !demo ? 'DEMO: bu kişi için demo açılamıyor (demo_gonder=false bırak).'
       : demo.gonderildi ? `DEMO: gönderildi (${demo.link}). Sayfadaki hizmetler: ${demo.hizmetler || '-'}`
         : 'DEMO: henüz gönderilmedi.',
-  ].join('\n\n');
+  ].filter(Boolean).join('\n\n');
   const sirali = (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek').split(',').map(x => x.trim());
   for (const ad of sirali) {
     const sonuc = ad === 'claude' ? await claudeCevap(baglam, messages)

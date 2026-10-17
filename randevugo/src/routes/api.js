@@ -585,7 +585,9 @@ router.get('/admin/magaza/ilanlar', ...saMw, (req, res) => vitrinController.ilan
 router.post('/admin/magaza/ilan', ...saMw, (req, res) => vitrinController.ilanKaydet(req, res));
 router.put('/admin/magaza/ilan/:id', ...saMw, (req, res) => vitrinController.ilanKaydet(req, res));
 router.get('/admin/magaza/siparisler', ...saMw, (req, res) => vitrinController.siparisler(req, res));
-router.put('/admin/magaza/siparisler/:id', ...saMw, (req, res) => vitrinController.siparisDurum(req, res));
+router.put('/admin/magaza/siparisler/:id', ...saMw, (req, res) => vitrinController.siparisGuncelle(req, res));
+router.get('/admin/magaza/vitrin-ozet', ...saMw, (req, res) => vitrinController.ozet(req, res));
+router.delete('/admin/magaza/ilan/:id', ...saMw, (req, res) => vitrinController.ilanSil(req, res));
 router.get('/admin/magaza/siparisler/:id/baski', ...saMw, (req, res) => vitrinController.baski(req, res));
 
 // ==================== SATIŞ MASASI (config/ekip.js: 'masa' → satis; hedef/itiraz düzenleme → patron) ====================

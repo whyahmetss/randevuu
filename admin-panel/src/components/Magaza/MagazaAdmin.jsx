@@ -17,6 +17,7 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
   const [urunler, setUrunler] = useState([]);
   const [kodlar, setKodlar] = useState([]);
   const [ozet, setOzet] = useState(null);
+  const [vitrinOzet, setVitrinOzet] = useState(null);
   const [donem, setDonem] = useState(buAy());
   const [form, setForm] = useState(null);         // { tur: 'ted'|'urun', veri }
   const [kodForm, setKodForm] = useState({ isletme_id: '', tedarikci_id: '', indirim_kodu: '' });
@@ -30,7 +31,10 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
     api.get('/admin/magaza/kodlar').then(d => setKodlar(d?.kodlar || []));
   };
   useEffect(yukle, []);
-  useEffect(() => { api.get(`/admin/magaza/ozet?donem=${donem}`).then(d => setOzet(d?.hata ? null : d)); }, [donem]);
+  useEffect(() => {
+    api.get(`/admin/magaza/ozet?donem=${donem}`).then(d => setOzet(d?.hata ? null : d));
+    api.get(`/admin/magaza/vitrin-ozet?donem=${donem}`).then(d => setVitrinOzet(d?.hata ? null : d));
+  }, [donem]);
 
   const bildir = (d, basari) => { setMesaj(d?.hata ? { tip: 'error', metin: d.hata } : { tip: 'success', metin: basari }); setTimeout(() => setMesaj(null), 4000); };
 
@@ -83,8 +87,34 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
             <span style={{ fontSize: 13, color: 'var(--dim)' }}>Dönem</span>
             <input type="month" className="input" style={{ width: 170 }} value={donem} onChange={e => setDonem(e.target.value || buAy())} />
           </div>
-          {ozet && (
+          {vitrinOzet?.toplam && (
             <>
+              <div style={{ fontSize: 15, fontWeight: 800, margin: '0 0 10px' }}>🛒 SıraGO Vitrini (esnafa sattıkların)</div>
+              <div className="stats-grid" style={{ marginBottom: 14 }}>
+                {[['Sipariş', vitrinOzet.toplam.siparis], ['Satılan adet', vitrinOzet.toplam.adet], ['Ciro', tl(vitrinOzet.toplam.ciro)], ['Tahsil edilen', tl(vitrinOzet.toplam.tahsil)], ['İptal', vitrinOzet.toplam.iptal]].map(([l, v]) => (
+                  <div key={l} className="stat-card"><div className="sc-label">{l}</div><div className="sc-val" style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</div></div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 24 }}>
+                <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                  <table className="table"><thead><tr><th>Ürün</th><th>Adet</th><th>Ciro</th></tr></thead><tbody>
+                    {vitrinOzet.urunler.length === 0 && <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--dim)', padding: 18 }}>Bu dönemde satış yok</td></tr>}
+                    {vitrinOzet.urunler.map(u => <tr key={u.id}><td>{u.isim}</td><td>{u.adet}</td><td style={{ fontWeight: 600 }}>{tl(u.ciro)}</td></tr>)}
+                  </tbody></table>
+                </div>
+                <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                  <table className="table"><thead><tr><th>İşletme</th><th>Sipariş</th><th>Ciro</th></tr></thead><tbody>
+                    {vitrinOzet.isletmeler.length === 0 && <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--dim)', padding: 18 }}>—</td></tr>}
+                    {vitrinOzet.isletmeler.map(i => <tr key={i.id}><td>{i.isim}</td><td>{i.siparis}</td><td style={{ fontWeight: 600 }}>{tl(i.ciro)}</td></tr>)}
+                  </tbody></table>
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--dim)', margin: '-14px 0 18px' }}>Demo dükkânların deneme siparişleri sayılmaz.</div>
+            </>
+          )}
+          {ozet?.toplam && (
+            <>
+              <div style={{ fontSize: 15, fontWeight: 800, margin: '0 0 10px' }}>🤝 Tedarikçi ürünleri (esnafın müşterisine önerdikleri)</div>
               <div className="stats-grid" style={{ marginBottom: 20 }}>
                 {[['Ciro (onaylı)', tl(ozet.toplam.ciro)], ['İşletmelere ödenecek', tl(ozet.toplam.berber_komisyon)],
                   ['SıraGO komisyonu', tl(ozet.toplam.sirago_komisyon)], ['Kodu eşleşmeyen satış', ozet.toplam.eslesmeyen]].map(([l, v]) => (
