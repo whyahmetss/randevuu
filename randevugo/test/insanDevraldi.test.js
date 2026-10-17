@@ -69,3 +69,22 @@ test('elle yazılan yeni kişi: konuşma açılır, bot ne cevap verir ne soğuk
   assert.deepStrictEqual(await mesaj(tel, 'Merhaba buradan alıyorsun'), []);
   assert.strictEqual(await bot.insanDevraldi('abc'), null, 'geçersiz numara yok sayılır');
 });
+
+test('otomatik karşılamaya cevap yok; ardından gelen "Merhabalar"a tek tanıtım; çapraz ikinci selama cevap yok', async () => {
+  const { db } = await ortam;
+  await db.exec(fs.readFileSync(SRC + '/migrations/061_otomatik_yanit.sql', 'utf8'));
+  const { bot } = await botHazirla();
+  const tel = '905056819811';
+  await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj) VALUES ($1, 'Ersoy Güzellik', 'bekliyor', 'Merhaba, kolay gelsin')", [tel]);
+  bot.ayarlar.mesajBirlestir = false;
+  const giden = [];
+  bot._yaz = async (s, j, t) => { giden.push(t); return t; };
+  await bot.gelenMesajIsle({ key: { remoteJid: `${tel}@s.whatsapp.net` }, message: { conversation: 'Ersoy Güzellik Merkezi ile iletişime geçtiğiniz için teşekkürler! Size nasıl yardımcı olabiliriz? Çalışma saatlerimiz sabah 10.00 akşam 20.00dır.' } });
+  assert.strictEqual(giden.length, 0, 'otomatik mesaja cevap yok');
+  assert.match((await db.query('SELECT otomatik_yanit FROM satis_konusmalar WHERE telefon = $1', [tel])).rows[0].otomatik_yanit, /Çalışma saatlerimiz/);
+  await bot.gelenMesajIsle({ key: { remoteJid: `${tel}@s.whatsapp.net` }, message: { conversation: 'Merhabalar' } });
+  assert.strictEqual(giden.length, 1, 'ilk gerçek cevaba tek tanıtım');
+  assert.match(giden[0], /SıraGO'dan yazıyorum/);
+  await bot.gelenMesajIsle({ key: { remoteJid: `${tel}@s.whatsapp.net` }, message: { conversation: 'Merhaba' } });
+  assert.strictEqual(giden.length, 1, 'çapraz düşen ikinci selama cevap yok');
+});
