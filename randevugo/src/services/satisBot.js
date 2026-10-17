@@ -890,10 +890,16 @@ class SatisBot extends EventEmitter {
     let r = {};
     try {
     r = (await pool.query(`
+      -- Oran aynı grup üzerinden (2026-10-17): bugün botun ilk mesajı attığı konuşmalardan kaçı ret verdi.
+      -- Eskiden önceki günlerin konuşmalarından bugün gelen retler bugünkü gönderim sayısına bölünüyor, fren yanlış çekiliyordu
+      -- (18 gönderim, 15 "olumsuz"). Kendisi yazan ve telefondan elle yazılan konuşmalar bota sayılmaz. Sert ret her durumda sayılır.
+      WITH bugun AS (SELECT (NOW() AT TIME ZONE 'Europe/Istanbul')::date AS g)
       SELECT
-        COUNT(*) FILTER (WHERE durum = 'olumsuz' AND son_mesaj_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date)::int AS olumsuz,
-        COUNT(*) FILTER (WHERE durum = 'olumsuz' AND red_tipi = 'sert' AND son_mesaj_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date)::int AS sert,
-        COUNT(*) FILTER (WHERE olusturma_tarihi::date = (NOW() AT TIME ZONE 'Europe/Istanbul')::date AND gonderilen_mesaj <> 'Müşteri kendisi yazdı')::int AS gonderilen
+        COUNT(*) FILTER (WHERE durum = 'olumsuz' AND olusturma_tarihi::date = (SELECT g FROM bugun)
+          AND COALESCE(gonderilen_mesaj, '') NOT IN ('Müşteri kendisi yazdı', 'Elle yazıldı'))::int AS olumsuz,
+        COUNT(*) FILTER (WHERE durum = 'olumsuz' AND red_tipi = 'sert' AND son_mesaj_tarihi::date = (SELECT g FROM bugun))::int AS sert,
+        COUNT(*) FILTER (WHERE olusturma_tarihi::date = (SELECT g FROM bugun)
+          AND COALESCE(gonderilen_mesaj, '') NOT IN ('Müşteri kendisi yazdı', 'Elle yazıldı'))::int AS gonderilen
       FROM satis_konusmalar`)).rows[0] || {};
     } catch (e) { console.log('⚠️ Ret sayımı okunamadı (fren bu tur atlandı):', e.message); }
     return { olumsuz: r.olumsuz || 0, sert: r.sert || 0, gonderilen: r.gonderilen || 0 };
