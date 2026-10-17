@@ -15,10 +15,12 @@ async function hesapla(isletmeId, ay = buAy()) {
   if (!/^\d{4}-\d{2}$/.test(ay)) ay = buAy();
   const bas = `${ay}-01`;
   const r = (await pool.query(`
-    WITH i AS (SELECT COALESCE(calisma_baslangic, '09:00')::time AS b, COALESCE(calisma_bitis, '20:00')::time AS s FROM isletmeler WHERE id = $1),
+    WITH i AS (SELECT COALESCE(calisma_baslangic, '09:00')::time AS b, COALESCE(calisma_bitis, '20:00')::time AS s,
+                 string_to_array(replace(COALESCE(kapali_gunler, ''), ' ', ''), ',') AS kapali FROM isletmeler WHERE id = $1),
     ay AS (
-      SELECT r.*, COALESCE(h.fiyat, 0)::numeric AS fiyat,
-        (r.olusturma_tarihi AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Istanbul') AS olusma
+      -- olusturma_tarihi zaten İstanbul saati (TIMESTAMP DEFAULT NOW(), oturum saat dilimi Europe/Istanbul — config/db).
+      -- Eskiden UTC sanılıp +3 saat ekleniyordu: 18:00'de alınan randevu "dükkân kapalıyken" sayılıyordu (2026-10-17).
+      SELECT r.*, COALESCE(h.fiyat, 0)::numeric AS fiyat, r.olusturma_tarihi AS olusma
       FROM randevular r LEFT JOIN hizmetler h ON h.id = r.hizmet_id
       WHERE r.isletme_id = $1 AND r.tarih >= $2::date AND r.tarih < ($2::date + INTERVAL '1 month')
     )
@@ -26,12 +28,15 @@ async function hesapla(isletmeId, ay = buAy()) {
       COUNT(*) FILTER (WHERE COALESCE(kaynak, 'bot') <> 'manuel' AND durum <> 'iptal')::int AS otomatik,
       COALESCE(SUM(fiyat) FILTER (WHERE COALESCE(kaynak, 'bot') <> 'manuel' AND durum NOT IN ('iptal', 'gelmedi')), 0)::float AS otomatik_tutar,
       COUNT(*) FILTER (WHERE COALESCE(kaynak, 'bot') <> 'manuel' AND durum <> 'iptal'
-        AND (olusma::time < (SELECT b FROM i) OR olusma::time >= (SELECT s FROM i)))::int AS mesai_disi,
+        AND (EXTRACT(DOW FROM olusma)::int::text = ANY(i.kapali)      -- kapalı gün (0 = Pazar)
+          OR CASE WHEN i.s > i.b
+                  THEN olusma::time < i.b OR olusma::time >= i.s
+                  ELSE olusma::time >= i.s AND olusma::time < i.b END))::int AS mesai_disi,   -- gece yarısını geçen mesai
       COUNT(*) FILTER (WHERE hatirlatma_gonderildi = true)::int AS hatirlatilan,
       COUNT(*) FILTER (WHERE hatirlatma_gonderildi = true AND durum = 'tamamlandi')::int AS hatirlatilan_gelen,
       COUNT(*) FILTER (WHERE durum = 'gelmedi')::int AS gelmeyen,
       COUNT(*) FILTER (WHERE durum <> 'iptal')::int AS toplam
-    FROM ay`, [isletmeId, bas])).rows[0];
+    FROM ay CROSS JOIN i`, [isletmeId, bas])).rows[0];
   const [y, m] = ay.split('-').map(Number);
   return { ay, ay_adi: `${AYLAR[m - 1]} ${y}`, ...r };
 }
