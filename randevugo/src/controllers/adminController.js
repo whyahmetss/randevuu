@@ -4,7 +4,20 @@ const platformAyar = require('../utils/platformAyar');
 const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
-const { paketGetir, paketleriYukle, paketCacheTemizle } = require('../config/paketler');
+const { paketGetir, paketleriYukle, paketCacheTemizle, BAYRAKLAR, SAYILAR, satirdanPaket } = require('../config/paketler');
+
+// Paket Yönetimi: gövdedeki özellik bayrakları ve sayılar (yalnız gönderilenler) → UPDATE parçası
+async function paketBayraklariYaz(id, govde) {
+  const alan = [], deger = [];
+  for (const k of Object.keys(BAYRAKLAR)) if (govde[k] !== undefined) { deger.push(govde[k] === null ? null : !!govde[k]); alan.push(`${k} = $${deger.length}`); }
+  for (const k of Object.keys(SAYILAR)) if (govde[k] !== undefined) {
+    const n = govde[k] === null || govde[k] === '' ? null : Math.max(0, parseInt(govde[k]) || 0);
+    deger.push(n); alan.push(`${k} = $${deger.length}`);
+  }
+  if (!alan.length) return;
+  deger.push(id);
+  await pool.query(`UPDATE paket_tanimlari SET ${alan.join(', ')} WHERE id = $${deger.length}`, deger);
+}
 // Şablonun gideceği en düşük Google puanı (boş = herkese)
 const minPuan = (v) => { const n = parseFloat(String(v ?? '').replace(',', '.')); return n > 0 && n <= 5 ? n : null; };
 const avciBot = require('../services/avciBot');
@@ -2950,9 +2963,11 @@ class AdminController {
     try {
       const result = await pool.query("SELECT * FROM paket_tanimlari ORDER BY sira, id");
       // Görsel verisi listede gönderilmez (büyük); panel /api/paket-gorsel/:kod?v= adresinden gösterir
+      // etkin: NULL bayraklar koddaki varsayılanla doldurulmuş hâli (panel bunu gösterir/düzenler)
       res.json({ paketler: result.rows.map(({ gorsel, ...p }) => ({
         ...p, gorsel_var: !!gorsel, gorsel_v: p.gorsel_guncelleme ? new Date(p.gorsel_guncelleme).getTime() : 0,
-      })) });
+        etkin: satirdanPaket(p),
+      })), bayraklar: BAYRAKLAR, sayilar: SAYILAR });
     } catch (error) {
       // Tablo yoksa veya boşsa config'den dön
       res.json({ paketler: [] });
@@ -2967,6 +2982,7 @@ class AdminController {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
         [kod, isim, fiyat, calisan_limit||1, hizmet_limit||5, aylik_randevu_limit||100, bot_aktif!==false, !!hatirlatma, !!istatistik, !!export_aktif, ozellikler||'', sira||0]
       );
+      await paketBayraklariYaz(result.rows[0].id, req.body);
       paketCacheTemizle();
       await this.auditLogYaz(req.kullanici, 'paket_eklendi', `${isim} (${fiyat}₺)`, 'paket_tanimlari', result.rows[0].id);
       res.json({ paket: result.rows[0] });
@@ -2983,7 +2999,9 @@ class AdminController {
          bot_aktif=$6, hatirlatma=$7, istatistik=$8, export_aktif=$9, ozellikler=$10, aktif=$11, sira=$12 WHERE id=$13`,
         [isim, fiyat, calisan_limit, hizmet_limit, aylik_randevu_limit, bot_aktif, hatirlatma, istatistik, export_aktif, ozellikler||'', aktif!==false, sira||0, req.params.id]
       );
+      await paketBayraklariYaz(req.params.id, req.body);
       paketCacheTemizle();
+      await this.auditLogYaz(req.kullanici, 'paket_guncellendi', `${isim} (${fiyat}₺)`, 'paket_tanimlari', Number(req.params.id));
       res.json({ mesaj: 'Güncellendi' });
     } catch (error) {
       res.status(500).json({ hata: error.message });
