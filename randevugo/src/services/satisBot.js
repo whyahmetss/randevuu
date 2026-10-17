@@ -131,47 +131,14 @@ const KATEGORI_KOD = { berber: 'berber', 'kuaför': 'kuafor', kuafor: 'kuafor', 
 // İlk mesaj şablonları (DB'de şablon yoksa). l = { ad, k } — k: kişisel cümle (boş olabilir)
 // Doğrulanamayan iddia ("%80 azalır", "rakipleriniz geçti") YOK; sonunda tek soru: video.
 // ═══════════════════════════════════════════════════
-// İlk mesaj KISA ve insanca: gerçek bir temsilci önce selam verip doğru kişiye ulaştığını sorar.
-// Tanıtımı, kişi cevap verince satış temsilcisi (satisAI) konuşarak yapar. l.k (kişisel satır) burada
-// kullanılmaz; uzun ilk mesaj toplu reklam gibi görünür.
+// İlk mesaj yalnız selam (kullanıcı kararı 2026-10-17): "Merhaba, kolay gelsin". Ad sormak, kendini tanıtmak,
+// soru sormak yok; gerçek bir temsilci gibi karşının cevabına göre satisAI ilerletir. l kullanılmaz.
 const ACILIS_GENEL = [
-  (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
-  (l) => `Merhabalar, ${l.ad} işletme sahibine ulaştım mı acaba?`,
-  (l) => `İyi günler, ${l.ad} için yazıyorum. Randevuları siz mi takip ediyorsunuz?`,
-  (l) => `Merhaba 🙂 ${l.ad} randevuları telefondan mı alıyor, yoksa bir sistem kullanıyor musunuz?`,
+  () => 'Merhaba, kolay gelsin',
+  () => 'Merhabalar, kolay gelsin',
+  () => 'Merhaba, kolay gelsin 🙂',
 ];
-const MESAJ_SABLONLARI = {
-  berber: [
-    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
-    (l) => `Selamlar, ${l.ad} için yazıyorum. Müşteri koltuktayken gelen randevu telefonlarına nasıl yetişiyorsunuz?`,
-    (l) => `Merhaba ustam, ${l.ad} randevuları telefondan mı alıyor?`,
-  ],
-  'kuaför': [
-    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
-    (l) => `Merhabalar, ${l.ad} için yazıyorum. Boya ya da fön yaparken gelen randevu mesajlarına kim bakıyor?`,
-    (l) => `İyi günler, ${l.ad} randevuları WhatsApp'tan mı alıyor?`,
-  ],
-  'güzellik salonu': [
-    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
-    (l) => `Merhabalar, ${l.ad} için yazıyorum. Randevuları siz mi ayarlıyorsunuz, yoksa bir sekreteriniz mi var?`,
-    (l) => `İyi günler, ${l.ad} randevuları telefondan mı alıyor?`,
-  ],
-  'diş kliniği': [
-    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
-    (l) => `İyi günler, ${l.ad} için yazıyorum. Hasta randevularını kim takip ediyor, sizinle mi görüşmem gerekir?`,
-    (l) => `Merhabalar, ${l.ad} online randevu alıyor mu?`,
-  ],
-  'veteriner': [
-    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
-    (l) => `İyi günler, ${l.ad} için yazıyorum. Muayene ve aşı randevularını telefondan mı alıyorsunuz?`,
-  ],
-  'diyetisyen': [
-    (l) => `Merhaba, ${l.ad} ile mi görüşüyorum?`,
-    (l) => `İyi günler, danışan randevularınızı WhatsApp'tan mı ayarlıyorsunuz?`,
-  ],
-  default: ACILIS_GENEL,
-};
-for (const k of ['dövme', 'spa', 'tırnak salonu']) MESAJ_SABLONLARI[k] = ACILIS_GENEL;
+const MESAJ_SABLONLARI = { default: ACILIS_GENEL };
 const TAKIP_SABLONLARI = {
   1: [
     (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${denemeGun()} gün ücretsiz, merak ederseniz yazın, ilgilenmiyorsanız söylemeniz yeterli.`,
@@ -1857,7 +1824,8 @@ class SatisBot extends EventEmitter {
       return;
     }
 
-    if (yalnizNezaket(metin)) {
+    // "Kolay gelsin"e "sağolun, size de" ilk cevaptır: sohbet buradan başlar, susulmaz
+    if (!ilkCevap && yalnizNezaket(metin)) {
       console.log(`🤝 …${String(telefon).slice(-4)} yalnız teşekkür/kapanış yazdı — cevap verilmedi`);
       return;
     }
@@ -1953,8 +1921,8 @@ class SatisBot extends EventEmitter {
       return { mesaj: `Müşterileriniz WhatsApp'tan ya da size özel linkten 7/24 randevu alır, randevudan önce hatırlatma otomatik gider. ${kayit}`, durum: 'sicak' };
     if (ifadeVar(sade, ['tamam', 'olur', 'evet', 'ilgileniyorum', 'denerim', 'süper', 'harika', 'güzel', 'guzel', 'at', 'atın', 'gönder']))
       return { mesaj: `Güzel. ${kayit}`, durum: 'sicak' };
-    if (ifadeVar(sade, ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'günaydın', 'gunaydin', 'kimsiniz', 'kim']))
-      return { mesaj: `Merhaba, ben SıraGO'nun dijital asistanıyım. ${konusma.isletme_adi || 'İşletmeniz'} için WhatsApp'tan otomatik randevu sistemi hakkında yazmıştım; ${denemeGun()} gün ücretsiz. Randevuları şu an nasıl alıyorsunuz?`, durum: 'bekliyor' };
+    if (!konusma.gelen_mesajlar || yalnizNezaket(musteriMesaj) || ifadeVar(sade, ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'günaydın', 'gunaydin', 'kimsiniz', 'kim', 'buyrun', 'buyrunuz', 'tanıyamadım', 'tanıyamadim']))
+      return { mesaj: `Size de kolay gelsin. Ben SıraGO'dan yazıyorum; randevuları WhatsApp'tan sizin yerinize alan bir sistemimiz var. Siz randevuları şu an nasıl alıyorsunuz?`, durum: 'bekliyor' };
     return { mesaj: `Merak ettiğiniz bir şey olursa buradan sorabilirsiniz; denemek isterseniz *kayıt* yazmanız yeterli.`, durum: 'bekliyor' };
   }
 
