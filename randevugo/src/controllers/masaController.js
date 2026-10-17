@@ -6,9 +6,7 @@ const { patronMu } = require('../config/ekip');
 const { denemeGun } = require('../config/deneme');
 const { telefonNormalize } = require('../utils/telefon');
 
-// QR kart linki: randevu sayfasıyla aynı sunucu (/k/S12 → o an bağlı Satış Bot numarasına WhatsApp)
-const KART_TABAN = (process.env.KART_LINK_TABAN || 'https://randevu.xn--srago-n4a.com').replace(/\/$/, '');
-const kartMetni = (kod) => `Merhaba, SıraGO'yu denemek istiyorum (kart: ${kod})`;
+const { kartLinki, kartMetni } = require('../utils/sahaKodu');
 
 // Satış ekibinin "işletme olarak giriş" yetkisi yok: yalnız kendi açtığı hesabın paneline buradan girer (2 saat)
 function panelAnahtari(kullanici, ekipUyesi) {
@@ -352,7 +350,7 @@ class MasaController {
   async qrKart(req, res) {
     try {
       const kod = `S${req.kullanici.id}`;
-      const link = `${KART_TABAN}/k/${kod}`;
+      const link = kartLinki(kod);
       const qr = await require('qrcode').toDataURL(link, { margin: 1, width: 640, errorCorrectionLevel: 'M' });
       const isim = (await pool.query('SELECT isim FROM admin_kullanicilar WHERE id = $1', [req.kullanici.id])).rows[0]?.isim || '';
       let numaralar = [];
@@ -361,10 +359,10 @@ class MasaController {
     } catch (e) { console.error('qr kart:', e.message); hata(res, 'QR kart hazırlanamadı', 500); }
   }
 
-  // Herkese açık: /k/S12 → o an bağlı Satış Bot numarasına hazır mesajlı WhatsApp (numara yoksa tanıtım sitesi)
+  // Herkese açık: /k/S12 (ekip) ya da /k/B12 (bayi) → o an bağlı Satış Bot numarasına hazır mesajlı WhatsApp (numara yoksa web kaydı)
   async kartYonlendir(req, res) {
     const kod = String(req.params.kod || '').toUpperCase();
-    if (!/^S\d{1,6}$/.test(kod)) return res.status(404).send('Bulunamadı');
+    if (!/^[SB]\d{1,6}$/.test(kod)) return res.status(404).send('Bulunamadı');
     let numara = null;
     try { numara = require('../services/satisBot').bagliNumaralar()[0] || null; } catch (e) { /* yok */ }
     // Bot bağlı değilse web kaydı; kod taşınır, kayıt yine bu üyeye yazılır (authController.botKayit)

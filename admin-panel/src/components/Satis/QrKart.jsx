@@ -4,7 +4,7 @@ import { kart, dugme, RENK } from './ortak';
 // Satışçı kodlu QR kart (kullanıcı kararı 2026-10-15): dükkâna bırakılan kart. Esnaf okutunca Satış Bot'a
 // "kart: S12" yazılı hazır mesaj gider, bot hesabı WhatsApp'ta açar ve kurulumu yaptırır; kayıt bu üyeye yazılır.
 // Link numaradan bağımsız (/k/S12): Satış Bot numarası değişse de basılı kart çalışır.
-function Kart({ v }) {
+export function Kart({ v }) {
   return (
     <div className="qr-kart-tek" style={{ width: '85mm', height: '55mm', boxSizing: 'border-box', border: '1px solid #ddd', borderRadius: '3mm', padding: '4mm',
       display: 'flex', gap: '3mm', alignItems: 'center', background: '#fff', color: '#1d1b16', fontFamily: 'inherit', breakInside: 'avoid' }}>

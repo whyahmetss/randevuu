@@ -32,6 +32,8 @@ const ONEK = {
   // Saha demosu satışın aracı (2026-10-15: satış ekibi 403 alıyordu). Yalnız demo dükkâna girer, gerçek işletmeye değil
   'saha-demo': 'satis',
   odemeler: 'odemeler', hakedis: 'odemeler',
+  // Bayi / toptancı ağı (2026-10-17): komisyon ve bayiye ödeme para işi
+  bayiler: 'odemeler',
   paketler: 'paketler',
   magaza: 'magaza',
   'sistem-durumu': 'sistem', 'api-dashboard': 'sistem', 'merkez-otp': 'sistem',
