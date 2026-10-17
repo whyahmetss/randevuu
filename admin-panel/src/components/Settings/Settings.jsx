@@ -435,7 +435,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                   {karaListe.map(k => (
                     <tr key={k.id} style={{ borderTop: '1px solid var(--border)' }}>
                       <td style={{ padding: '8px 12px', fontWeight: 600 }}>{k.telefon}</td>
-                      <td style={{ padding: '8px 12px' }}><span style={{ background: 'rgba(180,35,24,.08)', color: '#b42318', padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{k.sebep}</span></td>
+                      <td style={{ padding: '8px 12px' }}><span style={{ background: 'rgba(180,35,24,.08)', color: '#b42318', padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{{ tanidik: '🤝 Tanıdık', tanidik_acildi: 'Tanıdık (bot açık)' }[k.sebep] || k.sebep}</span></td>
                       <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                         <button onClick={() => karaSil(k.id)} style={{ background: 'none', border: 'none', color: '#b42318', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>✕</button>
                       </td>

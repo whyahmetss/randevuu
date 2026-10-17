@@ -979,6 +979,7 @@ const PORT = process.env.PORT || 3000;
     `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS insan_devraldi TIMESTAMP`,
     `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS otomatik_yanit TEXT`,
     `ALTER TABLE bot_durum ADD COLUMN IF NOT EXISTS sohbet_dilim VARCHAR(6)`,
+    `CREATE TABLE IF NOT EXISTS elle_yazisma (isletme_id INT NOT NULL, telefon VARCHAR(40) NOT NULL, gun DATE NOT NULL, PRIMARY KEY (isletme_id, telefon, gun))`,
     `CREATE TABLE IF NOT EXISTS elle_sessiz (isletme_id INT NOT NULL, jid VARCHAR(40) NOT NULL, bitis TIMESTAMP NOT NULL, PRIMARY KEY (isletme_id, jid))`,
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bayi_id INT`,
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS son_giris TIMESTAMP`,

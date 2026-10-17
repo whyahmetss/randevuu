@@ -1,4 +1,6 @@
-const ELLE_SESSIZ_DK = 180;   // esnaf telefondan yazınca bot o kişiye 3 saat susar
+const ELLE_SESSIZ_DK = 180;
+// Tanıdık sayılmayı engelleyen dükkân sözleri (sade yazımla): bunlardan biri geçtiyse kişi müşteri olabilir
+const DUKKAN_SOZU = /\b(randevu|sira|musait|yer var|bos|fiyat|ucret|kac para|ne kadar|tras|sac|sakal|kesim|bakim|boya|fon|manikur|kas|cilt|kapora|adres|kacta|acik mi|kapali mi|gelebilir miyim|gelcem|gelecegim)/;   // esnaf telefondan yazınca bot o kişiye 3 saat susar
 const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
@@ -495,7 +497,66 @@ class WhatsAppWebService extends EventEmitter {
           ON CONFLICT (isletme_id, jid) DO UPDATE SET bitis = EXCLUDED.bitis`, [isletmeId, this._elleAnahtar(isletmeId, j).split(':')[1], bitis]).catch(() => {});
       }
       console.log(`👤 [${isletmeId}] esnaf sohbete girdi — bot bu kişiye ${ELLE_SESSIZ_DK} dk cevap vermeyecek`);
+      const alt = msg.key.remoteJidAlt || '';
+      const tel = (jid.endsWith('@lid') && alt.endsWith('@s.whatsapp.net') ? alt : jid).replace(/[:@].*$/, '');
+      this._tanidikKontrol(isletmeId, tel).catch(e => console.error('Tanıdık kontrolü:', e.message));
     }, 4000);
+  }
+
+  // Tanıdık (kullanıcı kararı 2026-10-17): esnaf bir kişiye EN AZ 2 FARKLI GÜN elle yazdıysa, o kişi bu dükkândan hiç
+  // randevu almadıysa ve son 50 mesajında randevu/fiyat gibi dükkân sözü geçmiyorsa → kara listeye "tanidik" olarak
+  // girer, bot o sohbete hiç bakmaz. Mesaj içeriği yapay zekâya gönderilmez (yalnız yerel kelime kontrolü).
+  // Esnafa Fiko'dan haber gider; "aç <numara/isim>" ile geri alınır ve o kişi bir daha otomatik eklenmez.
+  async _tanidikKontrol(isletmeId, tel) {
+    if (!/^\d{8,15}$/.test(tel)) return;
+    await pool.query('INSERT INTO elle_yazisma (isletme_id, telefon, gun) VALUES ($1, $2, CURRENT_DATE) ON CONFLICT DO NOTHING', [isletmeId, tel]);
+    const r = (await pool.query(
+      `SELECT (SELECT COUNT(*) FROM elle_yazisma WHERE isletme_id = $1 AND telefon = $2)::int AS gun,
+              EXISTS (SELECT 1 FROM randevular r JOIN musteriler m ON m.id = r.musteri_id WHERE r.isletme_id = $1 AND m.telefon = $2) AS musteri,
+              EXISTS (SELECT 1 FROM kara_liste WHERE isletme_id = $1 AND telefon = $2) AS listede,
+              (SELECT isim FROM musteriler WHERE telefon = $2) AS isim`, [isletmeId, tel])).rows[0];
+    if (r.gun < 2 || r.musteri || r.listede) return;
+    const mesajlar = (await pool.query(
+      "SELECT mesaj FROM sohbet_gecmisi WHERE isletme_id = $1 AND musteri_telefon = $2 AND yon = 'gelen' ORDER BY id DESC LIMIT 50", [isletmeId, tel])).rows;
+    const { sade } = require('../utils/sekreterKomut');
+    if (mesajlar.some(m => DUKKAN_SOZU.test(sade(m.mesaj)))) return;
+    await pool.query(`INSERT INTO kara_liste (isletme_id, telefon, sebep, aktif) VALUES ($1, $2, 'tanidik', true) ON CONFLICT (isletme_id, telefon) DO NOTHING`, [isletmeId, tel]);
+    const ad = r.isim && r.isim !== tel ? `${r.isim} (+${tel})` : `+${tel}`;
+    console.log(`🤝 [${isletmeId}] …${tel.slice(-4)} tanıdık sayıldı — bot karışmayacak`);
+    await this._sahibeYaz(isletmeId, `🤝 ${ad} kişisini tanıdık saydım, bot bu sohbete artık hiç karışmayacak.\nYanlışsa bana *aç ${tel.slice(-10)}* yaz.`);
+  }
+
+  // Esnafın "Kendime mesaj" sohbetine Fiko'dan not (komut sayılmasın diye işaretlenir)
+  async _sahibeYaz(isletmeId, metin) {
+    const sock = this.isletmeler[isletmeId]?.sock;
+    if (!sock?.user?.id) return;
+    const g = await sock.sendMessage(sock.user.id.replace(/:\d+(?=@)/, ''), { text: metin }).catch(() => null);
+    if (!this._sekreterGiden) this._sekreterGiden = new Set();
+    if (g?.key?.id) this._sekreterGiden.add(g.key.id);
+  }
+
+  // "karışma 0532…" / "aç 0532…" (ya da isim): tanıdık listesini esnaf kendisi yönetir
+  async _tanidikKomut(isletmeId, metin) {
+    const m = require('../utils/sekreterKomut').sade(metin).trim().match(/^(?:fiko[\s,]*)?(karisma|tanidik|ac)\s+(.+)$/);
+    if (!m) return null;
+    const hedef = m[2].trim();
+    const rakam = hedef.replace(/\D/g, '');
+    let tel = rakam.length >= 10 ? '90' + rakam.slice(-10) : null;
+    if (!tel) {
+      const k = (await pool.query(
+        `SELECT DISTINCT m.telefon FROM musteriler m WHERE m.isim ILIKE $1 AND m.son_gelinen_isletme_id = $2 LIMIT 2`, [`%${hedef}%`, isletmeId])).rows;
+      if (k.length !== 1) return k.length ? `"${hedef}" birden fazla kişiyle eşleşti, numarayı yazar mısın?` : `"${hedef}" adında kimseyi bulamadım, numarayı yazar mısın?`;
+      tel = k[0].telefon;
+    }
+    if (m[1] === 'ac') {
+      // Satır silinmez, pasif kalır: otomatik tanıdık bir daha eklemesin
+      const r = await pool.query(`UPDATE kara_liste SET aktif = false, sebep = 'tanidik_acildi', bloke_bitis = NULL WHERE isletme_id = $1 AND telefon = $2 RETURNING id`, [isletmeId, tel]);
+      if (!r.rows.length) await pool.query(`INSERT INTO kara_liste (isletme_id, telefon, sebep, aktif) VALUES ($1, $2, 'tanidik_acildi', false) ON CONFLICT DO NOTHING`, [isletmeId, tel]);
+      return `✅ +${tel} için bot yeniden açık, randevu sorarsa cevap verecek.`;
+    }
+    await pool.query(`INSERT INTO kara_liste (isletme_id, telefon, sebep, aktif) VALUES ($1, $2, 'tanidik', true)
+      ON CONFLICT (isletme_id, telefon) DO UPDATE SET aktif = true, sebep = 'tanidik'`, [isletmeId, tel]);
+    return `🤝 Tamam, +${tel} sohbetine bot karışmayacak. Geri açmak için *aç ${tel.slice(-10)}* yaz.`;
   }
 
   async _elleSessizMi(msg, isletmeId) {
@@ -537,7 +598,8 @@ class WhatsAppWebService extends EventEmitter {
       if (!s?.metin) return;
       metin = s.metin; onEk = sm.onEk(metin);
     }
-    const cevap = await require('./sekreter').isle({ isletmeId, metin, kanal: 'kendi' });
+    const tanidikCevap = await this._tanidikKomut(isletmeId, metin).catch(e => { console.error('Tanıdık komutu:', e.message); return null; });
+    const cevap = tanidikCevap || await require('./sekreter').isle({ isletmeId, metin, kanal: 'kendi' });
     if (!cevap) return;
     const sock = this.isletmeler[isletmeId]?.sock;
     if (!sock) return;
@@ -842,6 +904,7 @@ class WhatsAppWebService extends EventEmitter {
     try {
       iz.adim = 'sohbet asistanı';
       cevap = await require('./sohbetAsistani').isle({ wa: this, metin, botDurum, isletme, hizmetler, musteriTelefon, isletmeId });
+      if (cevap?.sus) { sus(cevap.sus); return; }
     } catch (e) {
       if (e.code === 'SLOT_DOLU') cevap = await this._saatKacti(isletme, musteriTelefon, isletmeId);
       else { console.error('Sohbet asistanı:', e.message); cevap = null; }
