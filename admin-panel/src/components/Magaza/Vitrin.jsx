@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// SıraGO Vitrini (esnaf): SıraGO'nun dükkâna sattığı ürünler (tablet, stant, toptan şampuan…).
+// Mağaza (esnaf; kullanıcı kararı 2026-10-17 ile adı "SıraGO Vitrini"nden Mağaza oldu, sayfa kimliği yine 'vitrin'): SıraGO'nun dükkâna sattığı ürünler (tablet, stant, toptan şampuan…).
 // Shopier sayfası gibi: fotoğraflı kart → detay → adet → sipariş. Ödeme linki varsa oraya gider.
 const tl = (x) => `${Number(x).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ₺`;
 const DURUM = { yeni: 'Alındı', hazirlaniyor: 'Hazırlanıyor', kargoda: 'Kargoda', teslim: 'Teslim edildi', iptal: 'İptal' };
@@ -56,12 +56,12 @@ export default function Vitrin({ api }) {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 20, fontWeight: 800 }}>SıraGO Vitrini</div>
+        <div style={{ fontSize: 20, fontWeight: 800 }}>Mağaza</div>
         <div style={{ fontSize: 14, color: 'var(--dim)' }}>Dükkânın için tablet, stant ve malzeme — SıraGO'dan.</div>
       </div>
 
       {urunler === null ? <div style={{ color: 'var(--dim)' }}>Yükleniyor…</div>
-        : urunler.length === 0 ? <div style={{ padding: 30, textAlign: 'center', color: 'var(--dim)', border: '1px dashed var(--border)', borderRadius: 16 }}>Vitrin yakında dolacak.</div>
+        : urunler.length === 0 ? <div style={{ padding: 30, textAlign: 'center', color: 'var(--dim)', border: '1px dashed var(--border)', borderRadius: 16 }}>Mağaza yakında dolacak.</div>
         : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
             {urunler.map(u => <UrunKart key={u.id} u={u} onClick={() => sec(u)} />)}
           </div>}

@@ -72,7 +72,7 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
   return (
     <div style={{ maxWidth: 1100 }}>
       <div className="tab-bar" style={{ marginBottom: 20, maxWidth: '100%', overflowX: 'auto' }}>
-        {[['vitrin', 'SıraGO Vitrini (ilan ver)'], ['ozet', 'Aylık özet'], ['tedarikciler', 'Tedarikçiler'], ['urunler', 'Ürünler'], ['kodlar', 'İndirim kodları'], ['satis', 'Satış raporu']].map(([id, l]) => (
+        {[['vitrin', 'Mağaza (SıraGO ürünleri)'], ['ozet', 'Aylık özet'], ['tedarikciler', 'Vitrin: tedarikçiler'], ['urunler', 'Vitrin: ürünler'], ['kodlar', 'İndirim kodları'], ['satis', 'Satış raporu']].map(([id, l]) => (
           <button key={id} onClick={() => setTab(id)} className={`tab-btn${tab === id ? ' active' : ''}`}>{l}</button>
         ))}
       </div>
@@ -89,7 +89,7 @@ export default function MagazaAdmin({ api, isletmeler = [] }) {
           </div>
           {vitrinOzet?.toplam && (
             <>
-              <div style={{ fontSize: 15, fontWeight: 800, margin: '0 0 10px' }}>🛒 SıraGO Vitrini (esnafa sattıkların)</div>
+              <div style={{ fontSize: 15, fontWeight: 800, margin: '0 0 10px' }}>🛒 Mağaza (esnafa sattıkların)</div>
               <div className="stats-grid" style={{ marginBottom: 14 }}>
                 {[['Sipariş', vitrinOzet.toplam.siparis], ['Satılan adet', vitrinOzet.toplam.adet], ['Ciro', tl(vitrinOzet.toplam.ciro)], ['Tahsil edilen', tl(vitrinOzet.toplam.tahsil)], ['İptal', vitrinOzet.toplam.iptal]].map(([l, v]) => (
                   <div key={l} className="stat-card"><div className="sc-label">{l}</div><div className="sc-val" style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</div></div>

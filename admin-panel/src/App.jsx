@@ -21,7 +21,7 @@ import IslemNotu from "./components/Randevu/IslemNotu";   // hafıza kartı + se
 import SekreterKarti from "./components/Settings/SekreterKarti";   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
 const RandevuSayfam = lazy(() => import("./components/Mobil/RandevuSayfam"));   // randevu sayfası teması, kapak, logo
 const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
-const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // SıraGO Vitrini (esnaf)
+const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // Mağaza (esnaf; SıraGO ürünleri)
 const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
 const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
 import AiTeshis from "./components/SatisBot/AiTeshis";
@@ -50,6 +50,7 @@ import Ozellikler from './components/Platform/Ozellikler';
 import Kuponlar from './components/Platform/Kuponlar';
 import MerkezOtp from './components/Platform/MerkezOtp';
 import BotAyarlari from './components/SatisBot/BotAyarlari';
+import Konusmalar from './components/SatisBot/Konusmalar';
 import BayiYonetimi from './components/Bayi/BayiYonetimi';
 import BackendHealth from './components/BackendHealth';
 import SifreBelirle, { SifreFormu } from './components/SifreDegistir';
@@ -1640,7 +1641,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu", vitrin: "SıraGO Vitrini", googleharita: "Google Haritalar", randevusayfam: "Randevu sayfam" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Vitrin", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu", vitrin: "Mağaza", googleharita: "Google Haritalar", randevusayfam: "Randevu sayfam" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1692,8 +1693,9 @@ function Dashboard({ kullanici }) {
       { id: "sadakat", icon: ICON.sadakat, label: "Sadakat", featureKey: "sadakat" },
       { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
       { id: "yorumavcisi", icon: ICON.yorum, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
-      { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
-      { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
+      // 2026-10-17 isim değişimi: SıraGO ürünleri (tablet, tabela…) = "Mağaza" (id vitrin), müşteriye ürün önerisi = "Vitrin" (id magaza)
+      { id: "vitrin", icon: ICON.magaza, label: "Mağaza" },
+      { id: "magaza", icon: ICON.magaza, label: "Vitrin", featureKey: "magaza" },
       { id: "googleharita", icon: ICON.getir, label: "Google Haritalar" },
       { id: "randevusayfam", icon: ICON.getir, label: "Randevu sayfam" },
     ]},
@@ -1721,10 +1723,9 @@ function Dashboard({ kullanici }) {
       { id: "randevular", icon: SVG.randevular, label: "Randevular" },
       { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler & Fiyatlar" },
       { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
-      // 2026-10-17: Mağaza Lite'ta yoktu; esnaf eklenen ürünleri göremiyordu (paket kapsamıyorsa kilitli görünür)
-      { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
-      // SıraGO'nun dükkâna sattığı ürünler (tablet, stant…): her pakette açık, Lite'ta da görünmeli
-      { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
+      // Mağaza = SıraGO'nun dükkâna sattığı ürünler (tablet, stant, tabela…): her pakette açık, Lite'ta da görünmeli.
+      // Ürün önerisi sayfası (Vitrin, id magaza) Lite'ta yok (kullanıcı kararı 2026-10-17: önemli olan Mağaza); tam menüde duruyor.
+      { id: "vitrin", icon: ICON.magaza, label: "Mağaza" },
     ]},
     { type: 'flat', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
@@ -3421,12 +3422,12 @@ function Dashboard({ kullanici }) {
             <Kasa api={api} />
           )}
 
-          {/* ── MAĞAZA (ürün önerisi) ── */}
+          {/* ── VİTRİN (ürün önerisi; id magaza) ── */}
           {sayfa === "magaza" && (
             <Magaza api={api} randevuId={magazaRandevu} />
           )}
 
-          {/* ── SIRAGO VİTRİNİ (tablet, stant, malzeme — her pakette) ── */}
+          {/* ── MAĞAZA (SıraGO ürünleri: tablet, stant, tabela — her pakette; id vitrin) ── */}
           {sayfa === "vitrin" && (
             <Vitrin api={api} />
           )}
@@ -4558,7 +4559,7 @@ function SuperAdminPanel({ kullanici }) {
       { id: "paketler", icon: SVGA.paketler, label: "Paketler" },
       { id: "kuponlar", icon: SVGA.odemeler, label: "Kuponlar" },
       { id: "bayiler", icon: SVGA.referanslar, label: "Bayiler / Toptancı" },
-      { id: "magaza", icon: SVGA.magaza, label: "Mağaza" },
+      { id: "magaza", icon: SVGA.magaza, label: "Mağaza & Vitrin" },
     ]},
     { id: "analiz", label: "Analiz", items: [
       { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
@@ -7704,42 +7705,8 @@ function SuperAdminPanel({ kullanici }) {
             </>}
 
             {satisAnaTab === "konusmalar" && <>
-            {/* Son Konuşmalar — Kompakt WhatsApp Tarzı */}
-            <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
-              <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
-                
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>Son Konuşmalar</div>
-                  <div style={{ fontSize: 11, color: "var(--dim)" }}>{satisBotKonusmalar.length} konuşma</div>
-                </div>
-              </div>
-              {satisBotKonusmalar.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "30px 0", color: "var(--dim)" }}><p style={{ fontSize: 13 }}>Henüz konuşma yok. Botu başlat!</p></div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {satisBotKonusmalar.map(k => {
-                    const dRenk = { bekliyor: "#a8590c", sicak: "#a8590c", olumlu: "#1f6f4a", olumsuz: "#b42318", ai_devrede: "#5d4bb5" };
-                    const dIcon = { bekliyor: "⏳", sicak: "🔥", olumlu: "✅", olumsuz: "❌", ai_devrede: "🤖" };
-                    return (
-                      <div key={k.id} className="row gap-12" style={{ padding: "12px 14px", borderRadius: 12, background: "var(--bg)", alignItems: "center", cursor: "pointer", transition: "all .15s" }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 20, background: `${dRenk[k.durum] || "#6f6a62"}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{dIcon[k.durum] || "💬"}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="row row-between gap-8">
-                            <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.isletme_adi}</span>
-                            <span style={{ fontSize: 10, color: "var(--dim)", whiteSpace: "nowrap", flexShrink: 0 }}>{k.olusturma_tarihi ? new Date(k.olusturma_tarihi).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                          </div>
-                          <div style={{ fontSize: 12, color: "var(--dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.gelen_mesajlar ? `💬 ${k.gelen_mesajlar.slice(0, 60)}...` : `📤 ${(k.gonderilen_mesaj || '').slice(0, 60)}...`}</div>
-                        </div>
-                        <div className="row gap-4" style={{ flexShrink: 0 }}>
-                          {k.kategori && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontSize: 10, fontWeight: 600 }}>{etiket(k.kategori)}</span>}
-                          <a href={`https://wa.me/${k.telefon}`} target="_blank" rel="noreferrer" style={{ padding: "6px 12px", borderRadius: 8, background: "#25d366", color: "#fff", fontWeight: 600, fontSize: 11, textDecoration: "none", display: "flex", alignItems: "center", gap: 4, boxShadow: "none" }}>💬 WA</a>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {/* Konuşmalar: listeden birine tıkla, sohbet geçmişinin tamamı açılır */}
+            <Konusmalar api={api} konusmalar={satisBotKonusmalar} etiket={etiket} sessizSaat={Number(satisBotDurum?.ayarlar?.insanSessizSaat ?? 24)} yenile={satisBotYukle} />
 
             {/* WP Yok — Manuel Ara */}
             {wpYokListe.length > 0 && (

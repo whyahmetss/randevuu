@@ -273,18 +273,22 @@ class SatisBot extends EventEmitter {
       if (this._botIdleri?.has(msg.key.id) || this.msgStore?.has?.(msg.key.id)) return;
       const alt = msg.key.remoteJidAlt || '';
       const telefon = (jid.endsWith('@lid') && alt.includes('@s.whatsapp.net') ? alt : jid).replace(/@.*$/, '');
-      this.insanDevraldi(telefon).catch(e => console.error('İnsan devraldı yazılamadı:', e.message));
+      this.insanDevraldi(telefon, this._getMsgText(msg)).catch(e => console.error('İnsan devraldı yazılamadı:', e.message));
     }, 4000);
   }
 
   // Sohbeti insan aldı: bot insanSessizSaat boyunca bu kişiye cevap/takip yazmaz. Konuşma yoksa açılır
   // (elle yazılan esnafa bot soğuk mesaj da atmaz).
-  async insanDevraldi(telefon) {
+  // Elle yazılan metin sohbet geçmişine "Elle:" satırı olarak düşer (panelde kim ne yazdı görünsün). Müşteri henüz
+  // cevap vermediyse yazılmaz: boş gelen_mesajlar "cevap gelmedi" demek (takip, istatistik buna bakıyor).
+  async insanDevraldi(telefon, metin) {
     if (!/^\d{8,15}$/.test(String(telefon || ''))) return null;
+    const satir = metin ? `\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Elle: ${String(metin).slice(0, 2000)}` : '';
     const r = await pool.query(
-      `UPDATE satis_konusmalar SET insan_devraldi = NOW()
+      `UPDATE satis_konusmalar SET insan_devraldi = NOW(),
+         gelen_mesajlar = CASE WHEN COALESCE(gelen_mesajlar, '') <> '' THEN gelen_mesajlar || $2 ELSE gelen_mesajlar END
        WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $1 OR telefon = '+' || $1 OR telefon LIKE '%' || right($1, 10)
-                   ORDER BY (telefon = $1) DESC, olusturma_tarihi DESC LIMIT 1) RETURNING id`, [telefon]);
+                   ORDER BY (telefon = $1) DESC, olusturma_tarihi DESC LIMIT 1) RETURNING id`, [telefon, satir]);
     if (r.rows.length) return r.rows[0].id;
     const y = await pool.query(
       `INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, gonderilen_mesaj, durum, insan_devraldi)
@@ -2235,11 +2239,14 @@ Yalnızca JSON döndür: {"mesaj": "...", "durum": "olumlu" | "olumsuz" | "bekli
     }
   }
 
-  async konusmalarGetir(limit = 20) {
+  async konusmalarGetir(limit = 20, q = '') {
     try {
+      const ara = q ? `%${q.replace(/[%_\\]/g, '\\$&')}%` : null;
       const result = await pool.query(
-        "SELECT * FROM satis_konusmalar ORDER BY son_mesaj_tarihi DESC NULLS LAST, olusturma_tarihi DESC LIMIT $1",
-        [limit]
+        `SELECT * FROM satis_konusmalar
+         WHERE $2::text IS NULL OR isletme_adi ILIKE $2 OR telefon LIKE $3 OR gelen_mesajlar ILIKE $2 OR gonderilen_mesaj ILIKE $2
+         ORDER BY son_mesaj_tarihi DESC NULLS LAST, olusturma_tarihi DESC LIMIT $1`,
+        [limit, ara, ara && `%${q.replace(/\D/g, '').slice(-10) || '-'}%`]
       );
       return result.rows;
     } catch (err) {

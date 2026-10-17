@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { UrunKart } from './Vitrin';
 
-// Kurucu: SıraGO Vitrini'ne ilan ver (Shopier gibi). Fotoğraf tarayıcıda küçültülür (~1000px JPEG).
+// Kurucu: SıraGO Mağazası'na ilan ver (Shopier gibi). Fotoğraf tarayıcıda küçültülür (~1000px JPEG).
 const BOS = { isim: '', fiyat: '', eski_fiyat: '', aciklama: '', kategori: '', stok: '', odeme_linki: '', aktif: true, sira: 0, gorsel: null, kisisel_qr: false };
 const DURUMLAR = [['yeni', 'Yeni'], ['hazirlaniyor', 'Hazırlanıyor'], ['kargoda', 'Kargoda'], ['teslim', 'Teslim'], ['iptal', 'İptal']];
 const ODEME = [['bekliyor', 'Ödeme bekliyor'], ['odendi', 'Ödendi'], ['iade', 'İade edildi']];
@@ -146,7 +146,7 @@ export default function IlanVer({ api }) {
     const d = f.id ? await api.put(`/admin/magaza/ilan/${f.id}`, f) : await api.post('/admin/magaza/ilan', f);
     setBekle(false);
     if (d?.hata) return setMesaj({ tip: 'error', metin: d.hata });
-    setMesaj({ tip: 'success', metin: f.id ? 'İlan güncellendi' : 'İlan yayında — tüm esnafın vitrinine düştü' });
+    setMesaj({ tip: 'success', metin: f.id ? 'İlan güncellendi' : 'İlan yayında — tüm esnafın Mağaza sayfasına düştü' });
     setF(BOS); setOnizleme(null); yukle();
     setTimeout(() => setMesaj(null), 4000);
   };
