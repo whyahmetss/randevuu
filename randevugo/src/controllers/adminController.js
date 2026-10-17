@@ -782,12 +782,16 @@ class AdminController {
 
   async tumIsletmeler(req, res) {
     try {
+      // Getiren (ekip üyesi / bayi) ve hesap e-postası: listede "kim açtı, esnaf girdi mi" görünsün (2026-10-17)
       const result = await pool.query(`
-        SELECT i.*, COUNT(r.id) as toplam_randevu
+        SELECT i.*, COUNT(r.id) as toplam_randevu,
+          (SELECT u.isim FROM admin_kullanicilar u WHERE u.id = i.getiren_id) AS getiren_isim,
+          (SELECT COALESCE(b.firma, b.isim) FROM bayiler b WHERE b.id = i.bayi_id) AS bayi_isim
         FROM isletmeler i
         LEFT JOIN randevular r ON r.isletme_id = i.id
         GROUP BY i.id ORDER BY i.id
-      `);
+      `).catch(() => pool.query(`
+        SELECT i.*, COUNT(r.id) as toplam_randevu FROM isletmeler i LEFT JOIN randevular r ON r.isletme_id = i.id GROUP BY i.id ORDER BY i.id`));
       res.json({ isletmeler: result.rows });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -2182,7 +2186,7 @@ class AdminController {
       const ikiAyOnce = ikiAyOnceDate.toISOString().slice(0, 7);
 
       // Aktif işletme sayısı
-      const aktifIsletme = (await pool.query("SELECT COUNT(*) as sayi FROM isletmeler WHERE aktif = true")).rows[0];
+      const aktifIsletme = (await pool.query("SELECT COUNT(*) as sayi FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE")).rows[0];
 
       // Aktif Aboneler = ödeme yapmış (odendi) VEYA deneme süresinde (son 14 gün kayıt, hiç ödeme yok)
       const odemisIsletmeler = (await pool.query(
@@ -2190,7 +2194,7 @@ class AdminController {
       )).rows.map(r => r.isletme_id);
 
       const denemeIsletmeleri = (await pool.query(`
-        SELECT id FROM isletmeler WHERE aktif = true
+        SELECT id FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE
           AND olusturma_tarihi >= (CURRENT_DATE - interval '14 day')
           AND id NOT IN (SELECT DISTINCT isletme_id FROM odemeler WHERE durum = 'odendi' AND isletme_id IS NOT NULL)
       `)).rows.map(r => r.id);
@@ -2208,7 +2212,7 @@ class AdminController {
       try {
         const tumPaketler = await paketleriYukle();
         const aktifIsletmePaketler = (await pool.query(
-          "SELECT paket FROM isletmeler WHERE aktif = true"
+          "SELECT paket FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE"
         )).rows;
         for (const a of aktifIsletmePaketler) {
           const p = tumPaketler[a.paket] || tumPaketler['baslangic'];
@@ -2245,13 +2249,13 @@ class AdminController {
 
       // Yeni müşteriler: Bu ay kayıt olan işletmeler
       const yeniMusteriResult = (await pool.query(
-        "SELECT COUNT(*) as c FROM isletmeler WHERE aktif = true AND olusturma_tarihi >= date_trunc('month', CURRENT_DATE)"
+        "SELECT COUNT(*) as c FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE AND olusturma_tarihi >= date_trunc('month', CURRENT_DATE)"
       )).rows[0];
       const yeniMusteri = parseInt(yeniMusteriResult.c) || 0;
 
       // Paket dağılımı
       const paketDagilimi = (await pool.query(
-        "SELECT paket, COUNT(*) as sayi FROM isletmeler WHERE aktif = true GROUP BY paket ORDER BY sayi DESC"
+        "SELECT paket, COUNT(*) as sayi FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE GROUP BY paket ORDER BY sayi DESC"
       )).rows;
 
       // Son 6 ay gelir trendi
@@ -2273,7 +2277,7 @@ class AdminController {
 
       // Kategori dağılımı
       const kategoriDagilimi = (await pool.query(
-        "SELECT kategori, COUNT(*) as sayi FROM isletmeler WHERE aktif = true GROUP BY kategori ORDER BY sayi DESC"
+        "SELECT kategori, COUNT(*) as sayi FROM isletmeler WHERE aktif = true AND demo IS NOT TRUE GROUP BY kategori ORDER BY sayi DESC"
       )).rows;
 
       // Bu ay toplam randevu
@@ -2325,7 +2329,7 @@ class AdminController {
           `SELECT id, isim, telefon, olusturma_tarihi,
             (olusturma_tarihi + interval '7 day')::date as bitis_tarihi
           FROM isletmeler 
-          WHERE aktif = true 
+          WHERE aktif = true AND demo IS NOT TRUE 
             AND olusturma_tarihi IS NOT NULL
             AND (olusturma_tarihi + interval '7 day')::date BETWEEN CURRENT_DATE AND (CURRENT_DATE + interval '7 day')
             AND id NOT IN (SELECT DISTINCT isletme_id FROM odemeler WHERE durum = 'odendi')

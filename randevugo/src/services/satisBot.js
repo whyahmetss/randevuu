@@ -202,6 +202,7 @@ class SatisBot extends EventEmitter {
       frenOlumsuzMin: 8,     // ya da günde en az bu kadar olumsuz VE
       frenOlumsuzOran: 0.25, // bugün gönderilenlerin bu oranından fazlası olumsuzsa durur
       frenAyniHata: 3,       // aynı gönderim hatası art arda bu kadar tekrar ederse gönderim durur
+      insanSessizSaat: 24,   // telefondan elle yazılan sohbette bot bu kadar saat susar (0 = kapalı)
     };
   }
 
@@ -227,6 +228,48 @@ class SatisBot extends EventEmitter {
 
   // Şablon freni (2026-10-16): en az 30 gönderimde reddedenler gönderilenin %25'ini geçerse şablon kendiliğinden
   // pasife düşer (çok ret = şikâyet = numara banı). Sebep panelde ve Sistem Uyarıları'nda görünür.
+  // ── İnsan devraldı (kullanıcı kararı 2026-10-17): Satış Bot numarasından telefonla elle yazılınca bot o sohbette susar ──
+  _botMesajiIsaretle(id) {
+    if (!id) return;
+    this._botIdleri = this._botIdleri || new Map();
+    this._botIdleri.set(id, Date.now());
+    if (this._botIdleri.size > 2000) for (const [k, t] of this._botIdleri) if (Date.now() - t > 10 * 60 * 1000) this._botIdleri.delete(k);
+  }
+
+  // Kendi numaramızdan giden mesaj: bot göndermediyse insan yazmıştır. Gönderim sırasında olay sözden önce gelebildiği
+  // için kısa bekleyip bakılır. Silme, tepki gibi metinsiz olaylar sayılmaz.
+  _insanYazdiMi(msg) {
+    const jid = msg?.key?.remoteJid || '';
+    if (!msg?.message || !this._getMsgText(msg) || jid.endsWith('@g.us') || jid === 'status@broadcast') return;
+    setTimeout(() => {
+      if (this._botIdleri?.has(msg.key.id) || this.msgStore?.has?.(msg.key.id)) return;
+      const alt = msg.key.remoteJidAlt || '';
+      const telefon = (jid.endsWith('@lid') && alt.includes('@s.whatsapp.net') ? alt : jid).replace(/@.*$/, '');
+      this.insanDevraldi(telefon).catch(e => console.error('İnsan devraldı yazılamadı:', e.message));
+    }, 4000);
+  }
+
+  // Sohbeti insan aldı: bot insanSessizSaat boyunca bu kişiye cevap/takip yazmaz. Konuşma yoksa açılır
+  // (elle yazılan esnafa bot soğuk mesaj da atmaz).
+  async insanDevraldi(telefon) {
+    if (!/^\d{8,15}$/.test(String(telefon || ''))) return null;
+    const r = await pool.query(
+      `UPDATE satis_konusmalar SET insan_devraldi = NOW()
+       WHERE id = (SELECT id FROM satis_konusmalar WHERE telefon = $1 OR telefon = '+' || $1 OR telefon LIKE '%' || right($1, 10)
+                   ORDER BY (telefon = $1) DESC, olusturma_tarihi DESC LIMIT 1) RETURNING id`, [telefon]);
+    if (r.rows.length) return r.rows[0].id;
+    const y = await pool.query(
+      `INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, gonderilen_mesaj, durum, insan_devraldi)
+       VALUES ($1, NULL, 'genel', 'Elle yazıldı', 'elle', NOW()) RETURNING id`, [telefon]);
+    console.log(`👤 …${String(telefon).slice(-4)} sohbetini insan devraldı — bot susuyor`);
+    return y.rows[0].id;
+  }
+
+  _insanSessiz(konusma) {
+    const saat = Number(this.ayarlar.insanSessizSaat ?? 24);
+    return !!(konusma?.insan_devraldi && saat > 0 && Date.now() - new Date(konusma.insan_devraldi).getTime() < saat * 3600 * 1000);
+  }
+
   async _sablonFreni(sablonId) {
     const r = (await pool.query(
       `UPDATE satis_bot_sablonlar SET aktif = false,
@@ -378,6 +421,10 @@ class SatisBot extends EventEmitter {
       });
 
       // Gelen mesajları dinle
+      // Botun gönderdiği her mesajın kimliği tutulur: telefondan elle yazılanı ayırmak için (insan devraldı, 2026-10-17)
+      const orjGonder = ns.sock.sendMessage.bind(ns.sock);
+      ns.sock.sendMessage = async (...a) => { const sent = await orjGonder(...a); this._botMesajiIsaretle(sent?.key?.id); return sent; };
+
       ns.sock.ev.on('messages.upsert', async (data) => {
         try {
           const messages = data?.messages || (Array.isArray(data) ? data : []);
@@ -385,7 +432,7 @@ class SatisBot extends EventEmitter {
             if (!msg?.key) continue;
             const jid = msg.key.remoteJid || '';
             const fromMe = msg.key.fromMe;
-            if (fromMe) continue;
+            if (fromMe) { if (data?.type === 'notify' || !data?.type) this._insanYazdiMi(msg); continue; }
             if (!msg.message) continue;
             if (jid.endsWith('@g.us')) continue;
             if (jid === 'status@broadcast') continue;
@@ -676,7 +723,7 @@ class SatisBot extends EventEmitter {
       // takipSaati saat+ cevap vermeyen, takip_sayisi < maxTakip, durum = 'bekliyor'
       const bekleyenler = (await pool.query(`
         SELECT * FROM satis_konusmalar 
-        WHERE durum = 'bekliyor'
+        WHERE durum = 'bekliyor' AND insan_devraldi IS NULL
           AND (gelen_mesajlar IS NULL OR gelen_mesajlar = '')
           AND COALESCE(takip_sayisi, 0) < $1
           AND (
@@ -1730,6 +1777,20 @@ class SatisBot extends EventEmitter {
     console.log(`📩 [#${numaraId || 'tek'}] Satış Bot cevap aldı: …${String(telefon).slice(-4)} (uzunluk=${(metin || '').length})`);
 
     if (this.ayarlar.mod === 'kapali') return;
+
+    // ─── İnsan devraldıysa bot susar: mesaj yalnız kayda geçer (kayıt, kurulum, AI hiçbiri cevap vermez) ───
+    try {
+      const k = (await pool.query(
+        `SELECT id, insan_devraldi FROM satis_konusmalar WHERE telefon = $1 OR telefon = $2 OR telefon LIKE $3
+         ORDER BY (telefon = $1) DESC, olusturma_tarihi DESC LIMIT 1`, [telefon, '+' + telefon, '%' + telefon.slice(-10)])).rows[0];
+      if (this._insanSessiz(k)) {
+        await pool.query(
+          "UPDATE satis_konusmalar SET gelen_mesajlar = COALESCE(gelen_mesajlar, '') || $1, son_mesaj_tarihi = (NOW() AT TIME ZONE 'Europe/Istanbul') WHERE id = $2",
+          [`\n[${turkiyeSaati().toLocaleTimeString('tr-TR')}] Müşteri: ${metin}`, k.id]);
+        console.log(`🤫 …${String(telefon).slice(-4)} sohbeti insanda — bot cevap vermedi`);
+        return;
+      }
+    } catch (e) { /* kolon yoksa eski davranış */ }
 
     // ─── Kayıt akışı devam ediyorsa (bellekte ya da DB'de) ───
     if (!this.konusmalar[telefon]) this.konusmalar[telefon] = {};

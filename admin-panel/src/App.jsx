@@ -113,6 +113,16 @@ function odemeSayfasiAc(paket, sure, kupon) {
 // Satış kapısı ortak parçaları (Avcı + Satış Bot)
 const waTel = (t) => { let d = String(t || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "9" + d; if (d.length === 10) d = "90" + d; return d; };
 const ilkMesaj = () => 'Merhaba, kolay gelsin';
+// İşletmeler listesi: kayıt nereden geldi (isletmeler.kayit_kanali)
+const KANAL_AD = { bot: "WhatsApp bot", whatsapp: "WhatsApp bot", web: "Web kayıt", saha: "Sahada açıldı", qr_kart: "QR kart", bayi: "Bayi kartı", davet: "Davet", randevu_sayfasi: "Randevu sayfası" };
+const zamanOnce = (t) => {
+  if (!t) return "—";
+  const dk = Math.round((Date.now() - new Date(t).getTime()) / 60000);
+  if (dk < 1) return "şimdi";
+  if (dk < 60) return `${dk} dk önce`;
+  if (dk < 60 * 24) return `${Math.round(dk / 60)} sa önce`;
+  return `${Math.round(dk / 1440)} gün önce`;
+};
 const kopyala = (metin) => navigator.clipboard?.writeText(metin).catch(() => {});
 const SG = { yesil: "#1f6f4a", mor: "#5d4bb5", amber: "#a8590c", kirmizi: "#b42318", mavi: "#2f56c6", gri: "#6f6a62" };
 const sgBtn = (renk, dolu) => ({ padding: "7px 12px", borderRadius: 9, border: dolu ? "none" : "1px solid var(--border)", cursor: "pointer",
@@ -3933,6 +3943,7 @@ function SuperAdminPanel({ kullanici }) {
   const [yeniIsletme, setYeniIsletme] = useState({ isim: "", telefon: "", adres: "", ilce: "", kategori: "berber", email: "", sifre: "" });
   const [formAcik, setFormAcik] = useState(false);
   const [isletmeFiltre, setIsletmeFiltre] = useState("hepsi");
+  const [demoGoster, setDemoGoster] = useState(false);   // demo dükkânlar gerçek kayıtla karışmasın (2026-10-17)
   const [isletmeArama, setIsletmeArama] = useState("");
   const [isletmeKategoriFiltre, setIsletmeKategoriFiltre] = useState("hepsi");
   const [isletmeGorunum, setIsletmeGorunum] = useState("kategori");
@@ -4602,6 +4613,7 @@ function SuperAdminPanel({ kullanici }) {
   };
 
   const filtreliIsletmeler = isletmeler.filter(i => {
+    if (!!i.demo !== demoGoster) return false;
     if (isletmeFiltre === "aktif") return i.aktif;
     if (isletmeFiltre === "pasif") return !i.aktif;
     return true;
@@ -4955,8 +4967,11 @@ function SuperAdminPanel({ kullanici }) {
 
         {/* İŞLETMELER */}
         {sayfa === "isletmeler" && (() => {
-          const aktifSayi = isletmeler.filter(i => i.aktif).length;
-          const pasifSayi = isletmeler.filter(i => !i.aktif).length;
+          const gercekler = isletmeler.filter(i => !i.demo);
+          const demoSayi = isletmeler.length - gercekler.length;
+          const gorunen = demoGoster ? isletmeler.filter(i => i.demo) : gercekler;
+          const aktifSayi = gorunen.filter(i => i.aktif).length;
+          const pasifSayi = gorunen.filter(i => !i.aktif).length;
           const aramaFiltreli = filtreliIsletmeler.filter(i => {
             if (isletmeKategoriFiltre !== "hepsi" && (i.kategori || "genel") !== isletmeKategoriFiltre) return false;
             if (!isletmeArama) return true;
@@ -4972,7 +4987,7 @@ function SuperAdminPanel({ kullanici }) {
           });
           const kategoriSirali = Object.keys(kategoriler).sort((a, b) => kategoriler[b].length - kategoriler[a].length);
           // Mevcut kategorileri bul (filtre chip'leri için)
-          const mevcutKategoriler = [...new Set(isletmeler.map(i => i.kategori || "genel"))].sort();
+          const mevcutKategoriler = [...new Set(gorunen.map(i => i.kategori || "genel"))].sort();
 
           const IsletmeKart = ({ i }) => {
             const kRenk = kategoriRenk[i.kategori] || "#6f6a62";
@@ -4994,11 +5009,21 @@ function SuperAdminPanel({ kullanici }) {
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                         <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}12`, color: kRenk, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{etiket(i.kategori || "genel")}</span>
                         <span style={{ padding: "2px 8px", borderRadius: 6, background: `${pRenk}12`, color: pRenk, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{i.paket || "—"}</span>
+                        {i.demo && <span title="Satış için açılmış örnek sayfa; esnafın gerçek hesabı değil" style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.12)", color: "#5d4bb5", fontSize: 10, fontWeight: 700 }}>DEMO</span>}
+                        {!i.demo && KANAL_AD[i.kayit_kanali] && <span style={{ padding: "2px 8px", borderRadius: 6, background: "var(--bg)", color: "var(--dim)", fontSize: 10, fontWeight: 600 }}>{KANAL_AD[i.kayit_kanali]}</span>}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 12, color: "var(--dim)" }}>
                         {i.telefon && <span>📞 {i.telefon}</span>}
                         {i.ilce && <span>📍 {i.ilce}</span>}
                         <span>📅 {i.toplam_randevu || 0} randevu</span>
+                        {i.demo
+                          ? <span style={{ color: i.demo_goruntulenme ? "#5d4bb5" : "var(--dim)", fontWeight: i.demo_goruntulenme ? 600 : 400 }}>
+                              👁 {i.demo_goruntulenme ? `Esnaf demoyu ${i.demo_goruntulenme} kez açtı · son ${zamanOnce(i.demo_son_goruntulenme)}` : "Demo henüz açılmadı"}
+                            </span>
+                          : (() => { const son = [i.son_panel, i.son_giris].filter(Boolean).sort().pop();
+                              return <span style={{ color: son ? "#1f6f4a" : "#a8590c", fontWeight: 600 }}>🔑 {son ? `Son görülme: ${zamanOnce(son)}` : "Panele hiç girmedi"}</span>; })()}
+                        {!i.demo && (i.getiren_isim || i.bayi_isim) && <span>🤝 {[i.getiren_isim, i.bayi_isim && `Bayi: ${i.bayi_isim}`].filter(Boolean).join(" · ")}</span>}
+                        {!i.demo && i.olusturma_tarihi && <span>🗓 Kayıt: {zamanOnce(i.olusturma_tarihi)}</span>}
                       </div>
                     </div>
                   </div>
@@ -5025,8 +5050,10 @@ function SuperAdminPanel({ kullanici }) {
           return (
           <>
             <div className="page-header">
-              <h1>İşletmeler</h1>
-              <p>{isletmeler.length} işletme kayıtlı · {aktifSayi} aktif · {pasifSayi} pasif · {mevcutKategoriler.length} kategori</p>
+              <h1>{demoGoster ? "Demo dükkânlar" : "İşletmeler"}</h1>
+              <p>{demoGoster
+                ? `${demoSayi} demo · satış için açılmış örnek sayfalar, esnafın gerçek hesabı değil. Esnaf aynı numarayla kayıt olursa gerçek işletmeye döner.`
+                : `${gercekler.length} işletme kayıtlı · ${aktifSayi} aktif · ${pasifSayi} pasif · ${mevcutKategoriler.length} kategori`}</p>
             </div>
 
             {/* Arama + Durum Filtre + Yeni İşletme */}
@@ -5038,7 +5065,7 @@ function SuperAdminPanel({ kullanici }) {
                 
               </div>
               <div style={{ display: "flex", gap: 4 }}>
-                {[["hepsi", `Hepsi (${isletmeler.length})`], ["aktif", `Aktif (${aktifSayi})`], ["pasif", `Pasif (${pasifSayi})`]].map(([v, l]) => (
+                {[["hepsi", `Hepsi (${gorunen.length})`], ["aktif", `Aktif (${aktifSayi})`], ["pasif", `Pasif (${pasifSayi})`]].map(([v, l]) => (
                   <button key={v} onClick={() => setIsletmeFiltre(v)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: isletmeFiltre === v ? "var(--primary)" : "var(--bg)", color: isletmeFiltre === v ? "#fff" : "var(--dim)", transition: "all .15s" }}>{l}</button>
                 ))}
               </div>
@@ -5046,6 +5073,10 @@ function SuperAdminPanel({ kullanici }) {
                 <button onClick={() => setIsletmeGorunum("kategori")} title="Kategori Görünümü" style={{ padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: isletmeGorunum === "kategori" ? "rgba(47,86,198,.12)" : "var(--bg)", color: isletmeGorunum === "kategori" ? "#2f56c6" : "var(--dim)", fontSize: 14 }}>▦</button>
                 <button onClick={() => setIsletmeGorunum("liste")} title="Liste Görünümü" style={{ padding: "8px 12px", borderRadius: 8, border: "none", cursor: "pointer", background: isletmeGorunum === "liste" ? "rgba(47,86,198,.12)" : "var(--bg)", color: isletmeGorunum === "liste" ? "#2f56c6" : "var(--dim)", fontSize: 14 }}>☰</button>
               </div>
+              <button onClick={() => setDemoGoster(!demoGoster)} title="Satış Masası'ndan / Instagram'dan açılan örnek sayfalar"
+                style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600, background: demoGoster ? "#5d4bb5" : "rgba(93,75,181,.08)", color: demoGoster ? "#fff" : "#5d4bb5" }}>
+                {demoGoster ? "← Gerçek işletmeler" : `🧪 Demolar (${demoSayi})`}
+              </button>
               <button onClick={() => setFormAcik(!formAcik)} style={{ padding: "10px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "#a8590c", color: "#fff", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" }}>+ Yeni İşletme</button>
             </div>
 
@@ -5059,7 +5090,7 @@ function SuperAdminPanel({ kullanici }) {
               </button>
               {mevcutKategoriler.map(k => {
                 const renk = kategoriRenk[k] || "#6f6a62";
-                const sayi = isletmeler.filter(i => (i.kategori || "genel") === k).length;
+                const sayi = gorunen.filter(i => (i.kategori || "genel") === k).length;
                 return (
                   <button key={k} onClick={() => setIsletmeKategoriFiltre(isletmeKategoriFiltre === k ? "hepsi" : k)}
                     style={{ padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontWeight: 600, transition: "all .15s", display: "flex", alignItems: "center", gap: 6,

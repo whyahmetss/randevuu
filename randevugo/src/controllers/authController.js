@@ -42,6 +42,8 @@ class AuthController {
       } catch(e) { /* audit log opsiyonel */ }
 
       if (kullanici.rol === 'superadmin') pool.query('UPDATE admin_kullanicilar SET son_giris = NOW() WHERE id = $1', [kullanici.id]).catch(() => {});
+      // Esnaf panele girdi mi (İşletmeler listesinde "son giriş")
+      else if (kullanici.isletme_id) pool.query('UPDATE isletmeler SET son_giris = NOW(), son_panel = NOW() WHERE id = $1', [kullanici.isletme_id]).catch(() => {});
       res.json(oturumCevabi(kullanici));
     } catch (error) {
       console.error('❌ Giriş hatası:', error.message, error.stack);

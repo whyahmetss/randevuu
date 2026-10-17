@@ -8,6 +8,18 @@ if (!JWT_SECRET) console.warn('⚠️ CRITICAL: JWT_SECRET env variable tanıml�
 // açılışta rastgele anahtar: oturumlar yeniden başlatmada düşer ama sahte token üretilemez.
 const jwtSecret = JWT_SECRET || require('crypto').randomBytes(48).toString('hex');
 
+// Esnafın panelde son görüldüğü an (2026-10-17): oturum açık kalıp her gün giren esnaf da "aktif" görünsün.
+// İşletme başına 5 dakikada en fazla bir yazma; "işletme olarak giriş" (ekip) sayılmaz.
+const _sonPanel = new Map();
+function panelGoruldu(k) {
+  const id = k?.isletme_id;
+  if (!id || k.rol === 'superadmin' || k.impersonated) return;
+  const simdi = Date.now();
+  if (simdi - (_sonPanel.get(id) || 0) < 5 * 60 * 1000) return;
+  _sonPanel.set(id, simdi);
+  pool.query('UPDATE isletmeler SET son_panel = NOW() WHERE id = $1', [id]).catch(() => {});
+}
+
 const authMiddleware = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1] || req.query.token;
   if (!token) return res.status(401).json({ hata: 'Token bulunamadı' });
@@ -75,6 +87,7 @@ const authMiddleware = async (req, res, next) => {
       } catch (e) { /* DB hatası durumunda engelleme */ }
     }
 
+    panelGoruldu(req.kullanici);
     next();
   } catch (err) {
     return res.status(401).json({ hata: 'Geçersiz token' });
