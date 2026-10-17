@@ -83,9 +83,15 @@ const EN_ERKEN = /\b(en erken|en yakin|ilk bos|asap|earliest|soonest)\b/;
 const FARK_ETMEZ = /\b(fark etmez|farketmez|kim olursa|herhangi|any|anyone|doesn'?t matter|farketmiyor|أي أحد)\b/;
 // Eski akışın kendi yakaladığı konular: iptal, randevularım, puan, referans, sıra
 const DEVRET = /\b(iptal|randevularim|randevum var mi|puan|sadakat|referans|davet|siram|sirada|cancel|my appointments|الغاء)\b/;
-const SELAM = /^(merhaba|mrb|meraba|selam|slm|selamlar|sa|selamun aleykum|selamın aleyküm|iyi gunler|iyi aksamlar|gunaydin|hello|hi|hey|السلام عليكم|مرحبا)[\s!.,]*$/;
+// Selam (2026-10-17): "selamün aleyküm abi kolay gelsin" de selamdır; selam + dolgu kelimeleri dışında bir şey yoksa
+const SELAM_KELIME = /\b(merhaba(lar)?|mrb|meraba|selam(lar)?|slm|sa|as|s\.?a|selamun ?aleykum|aleykum ?selam|selamunaleykum|iyi gunler|iyi aksamlar|iyi sabahlar|hayirli (gunler|aksamlar|isler|sabahlar)|gunaydin|kolay gelsin|hello|hi|hey|السلام عليكم|مرحبا)\b/g;
+const SELAM_DOLGU = /\b(abi|abim|abey|kardes|kardesim|hocam|usta|ustam|kral|reis|bey|hanim|efendim|nasilsiniz|iyisiniz|insallah|ve)\b/g;
+const selamMi = (t) => { const sade1 = t.replace(/[!.,?🙏😊👋🏻]/g, ' '); SELAM_KELIME.lastIndex = 0;
+  return SELAM_KELIME.test(sade1) && !sade1.replace(SELAM_KELIME, ' ').replace(SELAM_DOLGU, ' ').trim(); };
+const SELAM = { test: (t) => selamMi(t) };
 // Bilgi sorusu (fiyat, adres, saatler…): yapay zekâ yoksa da tanınsın
 const BILGI = /\b(fiyat|ucret|kac para|ne kadar|kac tl|adres|nerede|neredesiniz|konum|yol tarifi|kacta acil|kacta kapan|calisma saat|acik misiniz|park|price|how much|cost|address|where|opening hours|سعر|كم|عنوان|أين)/;
+const DUKKAN_SORU = /\b(hizmet|kampanya|indirim|odeme|kart|nakit|iban|kac dakika|ne kadar surer|bekleme|sira|acik mi|acik misin|calisiyor mu|bugun acik|yarin acik|pazar acik|rezervasyon|kac kisi)/;
 const RANDEVU = /\b(randevu|sira al|yer var|musait|bos yer|bos saat|gelebilir miyim|gelmek istiyorum|appointment|book|booking|موعد|حجز)/;
 const DILIM = (s) => /\bsabah|morning|صباح/.test(s) ? 'sabah' : /\b(ogle|ogleden sonra|ogleden|afternoon|بعد الظهر)/.test(s) ? 'ogle' : /\b(aksam|aksamustu|evening|مساء)/.test(s) ? 'aksam' : '';
 
@@ -180,6 +186,8 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
     const yz = await yapayZekaAnla({ metin, isletme, hizmetler, calisanlar, durum, bugun });
     if (yz) {
       if (!sonuc.niyet || (sonuc.niyet === 'randevu' && ['bilgi', 'iptal'].includes(yz.niyet))) sonuc.niyet = yz.niyet;
+      // Sohbet ("ne yapıyorsun", "akşam gel") yapay zekâya göre "bilgi" olsa bile dükkân sorusu değilse cevaplanmaz
+      if (sonuc.niyet === 'bilgi' && !BILGI.test(s) && !DUKKAN_SORU.test(s)) sonuc.niyet = 'diger';
       if (!sonuc.tarih && /^\d{4}-\d{2}-\d{2}$/.test(yz.tarih || '') && yz.tarih >= bugun && yz.tarih <= gunEkle(bugun, 90)) sonuc.tarih = yz.tarih;
       if (!sonuc.saat && /^\d{2}:\d{2}$/.test(yz.saat || '')) sonuc.saat = yz.saat;
       if (!sonuc.hizmetId && hizmetler.some(h => h.id === yz.hizmet_id)) sonuc.hizmetId = yz.hizmet_id;
@@ -211,7 +219,11 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   const surecte = d.asama === 'sohbet';
   const a = await anla({ metin, isletme, hizmetler, calisanlar, durum: d });
 
+  // Randevu/dükkân dışı konuşma (kullanıcı kararı 2026-10-17): bot karışmaz, esnaf kendisi bakar
+  if (!surecte && (!a.niyet || a.niyet === 'diger')) return { sus: 'randevu/dükkân dışı sohbet' };
   if (a.niyet === 'selam' && !surecte) {
+    // Yalnız selam: müşteriyse ya da esnafın elle konuştuğu biri değilse karşılanır; esnafın tanıdığına bot girmez
+    if (!(await selamaCevapVer(isletmeId, musteriTelefon))) return { sus: 'selam — esnafın elle konuştuğu kişi' };
     await kaydet(wa, musteriTelefon, isletmeId, 'ana_menu', {});
     // Randevu linki WhatsApp'ta önizleme kartıyla açılır (düğme yerine)
     let link = null; try { link = await require('../utils/randevuLinki').randevuLinki(isletme); } catch (e) { /* link olmadan */ }
@@ -405,6 +417,15 @@ function fiyatCevap(s, hizmetler, d, dil) {
   if (!fiyatli.length) return dil === 'tr' ? 'Fiyatı dükkânda öğrenebilirsiniz.' : null;
   return fiyatli.slice(0, 10).map(x => `• ${tl(x)}`).join('\n');
 }
+async function selamaCevapVer(isletmeId, tel) {
+  try {
+    const r = (await pool.query(
+      `SELECT EXISTS (SELECT 1 FROM randevular r JOIN musteriler m ON m.id = r.musteri_id WHERE r.isletme_id = $1 AND m.telefon = $2) AS musteri,
+              EXISTS (SELECT 1 FROM elle_sessiz WHERE isletme_id = $1 AND jid = $2) AS elle`, [isletmeId, tel])).rows[0];
+    return r.musteri || !r.elle;
+  } catch (e) { return true; }   // tablo yoksa eski davranış
+}
+
 async function kaydet(wa, tel, isletmeId, asama, alanlar) {
   const temiz = Object.fromEntries(Object.entries(alanlar).filter(([k]) => !k.startsWith('_')));
   try { await wa.durumGuncelle(tel, isletmeId, asama, temiz); }

@@ -291,3 +291,55 @@ test('sohbet: randevuyla ilgisiz sohbet ("uyumuştum şimdi yine uyuyom") randev
   const a = await anla({ metin: 'uyumustum simdi yine uyuyom', isletme: { isim: 'x' }, hizmetler: [{ id: 1, isim: 'Saç kesim' }], calisanlar: [], durum: {} });
   assert.notStrictEqual(a.niyet, 'randevu');
 });
+
+// 2026-10-17: bot yalnız randevu/dükkân konusuna girer; selama kime cevap verileceği; tanıdık listesi
+test('sohbet: ilgisiz sohbete susar; "selamün aleyküm abi" selamdır ama esnafın elle konuştuğu tanıdığa cevap yok', async () => {
+  const { db } = await hazirla(SEMA(1) + `
+    CREATE TABLE elle_sessiz (isletme_id INT, jid VARCHAR(40), bitis TIMESTAMP, PRIMARY KEY (isletme_id, jid));`);
+  ortam();
+  const sohbet = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  const wa = require(path.join(SRC, 'services', 'whatsappWeb'));
+  const isletme = (await db.query('SELECT * FROM isletmeler WHERE id = 1')).rows[0];
+  const hizmetler = (await db.query('SELECT * FROM hizmetler WHERE isletme_id = 1 ORDER BY id')).rows;
+  const sor = (tel, metin) => sohbet.isle({ wa, metin, botDurum: { asama: 'baslangic' }, isletme, hizmetler, musteriTelefon: tel, isletmeId: 1 });
+  await db.query(`INSERT INTO bot_durum (musteri_telefon, isletme_id, asama) VALUES ('905550000001', 1, 'baslangic'), ('905550000002', 1, 'baslangic'), ('905550000099', 1, 'baslangic')`);
+
+  assert.ok((await sor('905550000001', 'Ne yapıyorsun')).sus, 'sohbet: susar');
+  assert.ok((await sor('905550000001', 'uyumustum simdi yine uyuyom')).sus);
+  assert.match(String(await sor('905550000001', 'Selamün aleyküm abi')), /asistanıyım/, 'yeni kişi: selam karşılanır');
+  assert.match(String(await sor('905550000001', 'yarın saç kestirmek istiyorum')), /Yarın|saat/, 'randevu: cevap');
+
+  await db.query(`INSERT INTO elle_sessiz VALUES (1, '905550000002', NOW() - INTERVAL '5 hours')`);
+  assert.ok((await sor('905550000002', 'Selamün aleyküm')).sus, 'esnafın elle konuştuğu kişi: selama bot girmez');
+  await db.query(`INSERT INTO elle_sessiz VALUES (1, '905550000099', NOW() - INTERVAL '5 hours')`);
+  await db.query(`INSERT INTO randevular (isletme_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum) VALUES (1, 1, 1, CURRENT_DATE, '10:00', '10:30', 'tamamlandi')`);
+  assert.match(String(await sor('905550000099', 'selam')), /asistanıyım/, 'müşteriyse elle konuşulsa da selam karşılanır');
+});
+
+test('tanıdık: 2 farklı gün elle yazılan, randevusu ve dükkân sözü olmayan kişi kara listeye; "aç" ile geri alınır, tekrar eklenmez', async () => {
+  const { db } = await hazirla(SEMA(1) + `
+    CREATE TABLE kara_liste (id SERIAL PRIMARY KEY, isletme_id INT, telefon VARCHAR(50), sebep VARCHAR(50), aktif BOOLEAN DEFAULT true, bloke_bitis TIMESTAMP,
+      olusturma_tarihi TIMESTAMP DEFAULT NOW(), UNIQUE (isletme_id, telefon));
+    CREATE TABLE sohbet_gecmisi (id SERIAL PRIMARY KEY, musteri_telefon VARCHAR(50), isletme_id INT, yon TEXT, mesaj TEXT);
+    ${fs.readFileSync(path.join(SRC, 'migrations', '064_elle_yazisma.sql'), 'utf8')}`);
+  ortam();
+  const wa = require(path.join(SRC, 'services', 'whatsappWeb'));
+  const notlar = []; wa._sahibeYaz = async (i, m) => { notlar.push(m); };
+  const kiz = '905321112233', musteri = '905324445566';
+  await db.query(`INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, 1, 'gelen', 'uyumustum simdi yine uyuyom'), ($2, 1, 'gelen', 'abi yarın sakal için yer var mı')`, [kiz, musteri]);
+
+  await wa._tanidikKontrol(1, kiz);
+  assert.strictEqual((await db.query('SELECT * FROM kara_liste')).rows.length, 0, 'tek gün yetmez');
+  await db.query(`INSERT INTO elle_yazisma VALUES (1, $1, CURRENT_DATE - 1), (1, $2, CURRENT_DATE - 1)`, [kiz, musteri]);
+  await wa._tanidikKontrol(1, kiz); await wa._tanidikKontrol(1, musteri);
+  const k = (await db.query('SELECT telefon, sebep, aktif FROM kara_liste')).rows;
+  assert.deepStrictEqual(k, [{ telefon: kiz, sebep: 'tanidik', aktif: true }], 'dükkân sözü geçen müşteri eklenmez');
+  assert.match(notlar[0], /tanıdık saydım[\s\S]*aç 5321112233/);
+
+  assert.match(await wa._tanidikKomut(1, 'aç 0532 111 22 33'), /yeniden açık/);
+  await wa._tanidikKontrol(1, kiz);
+  assert.strictEqual((await db.query('SELECT aktif FROM kara_liste WHERE telefon = $1', [kiz])).rows[0].aktif, false, 'açılan bir daha otomatik eklenmez');
+  assert.match(await wa._tanidikKomut(1, 'Fiko karışma 05324445566'), /karışmayacak/);
+  assert.strictEqual((await db.query('SELECT aktif FROM kara_liste WHERE telefon = $1', [musteri])).rows[0].aktif, true);
+  assert.strictEqual(await wa._tanidikKomut(1, 'yarın 3te Ahmet saç'), null, 'diğer komutlar sekretere gider');
+});
