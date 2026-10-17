@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { kart, dugme, sekmeStil, RENK, waTel, ilkMesaj, SONUC, saatTarih } from './ortak';
+import { kart, dugme, sekmeStil, RENK, waTel, ilkMesaj, igAd, SONUC, saatTarih } from './ortak';
 import ItirazBankasi from './ItirazBankasi';
 import HesapAc, { panelAc } from './HesapAc';
 import QrKart from './QrKart';
@@ -39,6 +39,20 @@ function AdayKarti({ a, api, yenile, onDemo, waSay, onHesapAc }) {
     if (r?.link) { setDemo(r.link); window.open(r.link, '_blank'); onDemo?.(); }
     else alert(r?.hata || 'Demo açılamadı');
   };
+  // Instagram DM (kullanıcı kararı 2026-10-17): kişiye özel demo hazırlanır, mesaj panoya kopyalanır, DM penceresi açılır.
+  // Konuşmak gerekmez; esnaf tanımadığı numaradan çok, Instagram'daki işletme hesabından gelen mesajı okur.
+  const igYaz = async () => {
+    const ad = igAd(a.instagram);
+    const w = window.open('about:blank', '_blank');          // tıklama anında aç ki engellenmesin
+    const r = await api.post(`/admin/avci/${a.id}/demo`, {});
+    if (!r?.link) { w?.close(); return alert(r?.hata || 'Demo açılamadı'); }
+    setDemo(r.link); onDemo?.();
+    let kopyalandi = false;
+    try { await navigator.clipboard.writeText(r.mesaj); kopyalandi = true; } catch (e) { /* izin yoksa elle kopyalanır */ }
+    if (w) w.location.href = `https://ig.me/m/${encodeURIComponent(ad)}`;
+    if (kopyalandi) alert('Mesaj kopyalandı. Açılan Instagram DM\'ine yapıştırıp gönder, sonra "Demo gönderdim"e bas.');
+    else prompt('Bu mesajı kopyalayıp Instagram DM\'ine yapıştır:', r.mesaj);
+  };
   const birak = async () => { if (!confirm(`${a.isletme_adi} listenden çıkarılsın mı? (başkası arayabilir)`)) return; await api.post(`/admin/masa/lead/${a.id}/birak`, {}); yenile(); };
   const son = a.son_sonuc ? SONUC[a.son_sonuc] : null;
   const geriAraGecti = a.sonraki_arama && new Date(a.sonraki_arama) <= new Date();
@@ -59,7 +73,8 @@ function AdayKarti({ a, api, yenile, onDemo, waSay, onHesapAc }) {
             {a.sonraki_arama && <span style={{ fontSize: 11, color: geriAraGecti ? RENK.amber : 'var(--dim)', fontWeight: 600 }}>⏰ {geriAraGecti ? 'geri arama zamanı' : saatTarih(a.sonraki_arama)}</span>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, fontSize: 12, color: 'var(--dim)', margin: '4px 0 8px' }}>
-            <span style={{ color: 'var(--text)', fontWeight: 600 }}>📞 {a.telefon}</span>
+            {a.telefon && <span style={{ color: 'var(--text)', fontWeight: 600 }}>📞 {a.telefon}</span>}
+            {a.instagram && <span style={{ color: '#d6249f', fontWeight: 600 }}>📸 @{igAd(a.instagram)}</span>}
             {a.puan && <span>⭐ {a.puan} · {a.yorum_sayisi} yorum</span>}
             {!a.web_sitesi && <span style={{ color: RENK.yesil }}>web sitesi yok</span>}
             {a.google_maps_url && <a href={a.google_maps_url} target="_blank" rel="noreferrer" style={{ color: RENK.mavi, textDecoration: 'none' }}>Harita ↗</a>}
@@ -73,13 +88,14 @@ function AdayKarti({ a, api, yenile, onDemo, waSay, onHesapAc }) {
 
           {/* 1) Ulaş */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            <a href={`tel:${a.telefon}`} style={dugme(RENK.mavi, true)}>📞 Ara</a>
-            <a href={`https://wa.me/${waTel(a.telefon)}?text=${encodeURIComponent(ilkMesaj(a.isletme_adi))}`} target="_blank" rel="noreferrer" style={dugme(RENK.wa, true)}
+            {a.instagram && <button onClick={igYaz} title="Demo hazırlanır, mesaj kopyalanır, DM açılır" style={dugme('#d6249f', true)}>📸 Instagram'dan yaz</button>}
+            {a.telefon && <a href={`tel:${a.telefon}`} style={dugme(RENK.mavi, true)}>📞 Ara</a>}
+            {a.telefon && <a href={`https://wa.me/${waTel(a.telefon)}?text=${encodeURIComponent(ilkMesaj(a.isletme_adi))}`} target="_blank" rel="noreferrer" style={dugme(RENK.wa, true)}
               onClick={e => {
                 // Kişisel numara koruması: günde WA sınırını geçince uyar (tanımadığına toplu mesaj = ban)
                 if (waSay && waSay.n >= waSay.sinir && !confirm(`Bugün ${waSay.n} işletmeye WhatsApp'tan yazdın. Daha fazlası numaranı yakabilir — aramayı dene. Yine de açılsın mı?`)) { e.preventDefault(); return; }
                 api.post(`/admin/masa/lead/${a.id}/wa`, {}).then(d => d && !d.hata && waSay?.guncelle(d.wa_bugun)).catch(() => {});
-              }}>💬 WhatsApp</a>
+              }}>💬 WhatsApp</a>}
             <button onClick={demoAc} style={dugme(RENK.mor)}>{demo || a.demo_isletme_id ? '👁 Demoyu aç' : '✨ Demo hazırla'}</button>
             {demo && <button onClick={() => navigator.clipboard?.writeText(demo)} style={dugme()}>🔗 Linki kopyala</button>}
             <span style={{ flex: 1 }} />
@@ -127,7 +143,7 @@ export default function SatisMasasi({ api, kullanici }) {
   const [aktiviteler, setAktiviteler] = useState([]);
   const [sekme, setSekme] = useState('bugun');
   const [lider, setLider] = useState('bugun');
-  const [cek, setCek] = useState({ adet: 10, ilce: '', kategori: '' });
+  const [cek, setCek] = useState({ adet: 10, ilce: '', kategori: '', kanal: '' });
   const [cekiliyor, setCekiliyor] = useState(false);
   const [kopya, setKopya] = useState(false);
   const [hesapAday, setHesapAday] = useState(null);   // {} = adaysız (listede olmayan dükkân) | aday satırı
@@ -152,7 +168,7 @@ export default function SatisMasasi({ api, kullanici }) {
 
   const adayCek = async () => {
     setCekiliyor(true);
-    const r = await api.post('/admin/masa/cek', { adet: cek.adet, ilce: cek.ilce.trim() || undefined, kategori: cek.kategori || undefined });
+    const r = await api.post('/admin/masa/cek', { adet: cek.adet, ilce: cek.ilce.trim() || undefined, kategori: cek.kategori || undefined, kanal: cek.kanal || undefined });
     setCekiliyor(false);
     if (r?.hata) return alert(r.hata);
     if (!r.cekilen) alert('Havuzda bu filtreye uyan aday kalmadı. Filtreyi boşaltın ya da Avcı\'dan yeni tarama yap.');
@@ -258,6 +274,10 @@ export default function SatisMasasi({ api, kullanici }) {
                 <select value={cek.kategori} onChange={e => setCek({ ...cek, kategori: e.target.value })} className="input" style={{ width: 150, borderRadius: 9, fontSize: 13 }}>
                   <option value="">Tüm kategoriler</option>
                   {['berber', 'kuaför', 'güzellik salonu', 'tırnak salonu', 'diş kliniği', 'veteriner', 'spa', 'dövme', 'diyetisyen'].map(k => <option key={k} value={k}>{k}</option>)}
+                </select>
+                <select value={cek.kanal} onChange={e => setCek({ ...cek, kanal: e.target.value })} className="input" style={{ width: 170, borderRadius: 9, fontSize: 13 }}>
+                  <option value="">Telefonu olanlar</option>
+                  <option value="instagram">Instagram'ı olanlar</option>
                 </select>
                 <button onClick={adayCek} disabled={cekiliyor} style={dugme(RENK.yesil, true)}>{cekiliyor ? 'Çekiliyor…' : '＋ Çek'}</button>
                 <span style={{ fontSize: 11, color: 'var(--dim)' }}>En sıcak adaylar gelir; çektiğin aday sadece senin listende görünür.</span>

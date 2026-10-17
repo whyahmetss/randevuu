@@ -106,7 +106,7 @@ class MasaController {
     try {
       const r = await pool.query(`
         SELECT p.id, p.isletme_adi, p.telefon, p.kategori, p.ilce, p.sehir, p.puan, p.yorum_sayisi, p.web_sitesi,
-               p.google_maps_url, p.skor, p.durum, p.notlar, p.sonraki_arama, p.son_temas, p.demo_isletme_id,
+               p.google_maps_url, p.skor, p.durum, p.notlar, p.sonraki_arama, p.son_temas, p.demo_isletme_id, p.instagram,
                (SELECT a.tip FROM satis_aktivite a WHERE a.lead_id = p.id AND a.tip <> 'wa_mesaj' ORDER BY a.id DESC LIMIT 1) AS son_sonuc,
                -- Aynı ilçede SıraGO'yu gerçekten kullanan (randevusu olan) işletmeler: "Moda'da X kullanıyor"
                (SELECT json_agg(y) FROM (
@@ -131,7 +131,7 @@ class MasaController {
   async cek(req, res) {
     try {
       const adet = Math.min(Math.max(parseInt(req.body.adet) || 10, 1), 30);
-      const { ilce, kategori, sehir } = req.body;
+      const { ilce, kategori, sehir, kanal } = req.body;
       const kosul = [];
       const params = [req.kullanici.id, adet];
       if (sehir) { params.push(sehir); kosul.push(`sehir = $${params.length}`); }
@@ -141,8 +141,11 @@ class MasaController {
         UPDATE potansiyel_musteriler SET atanan_id = $1, atanma_tarihi = NOW()
         WHERE id IN (
           SELECT id FROM potansiyel_musteriler
-          WHERE atanan_id IS NULL AND durum = 'yeni' AND telefon IS NOT NULL AND telefon <> ''
-            AND (wp_mesaj_durumu IS NULL OR wp_mesaj_durumu = '')
+          WHERE atanan_id IS NULL AND durum = 'yeni'
+            AND ${kanal === 'instagram'
+              // Instagram'dan yazılacaklar (kullanıcı kararı 2026-10-17): telefonu olmasa da olur, bot WhatsApp'tan yazdıysa da DM atılabilir
+              ? "instagram IS NOT NULL AND instagram <> ''"
+              : "telefon IS NOT NULL AND telefon <> '' AND (wp_mesaj_durumu IS NULL OR wp_mesaj_durumu = '')"}
             ${kosul.length ? 'AND ' + kosul.join(' AND ') : ''}
           ORDER BY skor DESC NULLS LAST, yorum_sayisi DESC NULLS LAST
           LIMIT $2 FOR UPDATE SKIP LOCKED)
