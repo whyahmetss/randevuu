@@ -50,7 +50,7 @@ class VitrinController {
         [isletmeId, urunId, adet, tutar, String(req.body.notu || '').slice(0, 500) || null])).rows[0];
       try {
         const i = (await pool.query('SELECT isim, telefon FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
-        await require('../utils/alarm').alarm(`🛒 Vitrin siparişi #${s.id}`,
+        await require('../utils/alarm').alarm(`🛒 Mağaza siparişi #${s.id}`,
           `${i?.isim || 'İşletme'} (${i?.telefon || '-'}) · ${u.isim} × ${adet}${tutar ? ` · ${tutar}₺` : ''}${u.urun_url ? ' · Shopier linkine yönlendirildi' : ' · arayıp teyit edin'}${s.notu ? `\nNot: ${s.notu}` : ''}`);
       } catch (e) { /* bildirim önemsiz */ }
       res.json({ siparis: s, odeme_linki: u.urun_url || null });

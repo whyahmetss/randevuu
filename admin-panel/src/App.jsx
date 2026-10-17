@@ -21,7 +21,7 @@ import IslemNotu from "./components/Randevu/IslemNotu";   // hafıza kartı + se
 import SekreterKarti from "./components/Settings/SekreterKarti";   // "Bu ay kazandırdığımız" (ana sayfada; lazy olursa açılışta tüm ekran beklerdi)
 const RandevuSayfam = lazy(() => import("./components/Mobil/RandevuSayfam"));   // randevu sayfası teması, kapak, logo
 const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
-const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // SıraGO Vitrini (esnaf)
+const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // Mağaza (esnaf; SıraGO ürünleri)
 const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
 const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
 import AiTeshis from "./components/SatisBot/AiTeshis";
@@ -49,6 +49,8 @@ import BotMesajlari from './components/Platform/BotMesajlari';
 import Ozellikler from './components/Platform/Ozellikler';
 import Kuponlar from './components/Platform/Kuponlar';
 import MerkezOtp from './components/Platform/MerkezOtp';
+import BotAyarlari from './components/SatisBot/BotAyarlari';
+import Konusmalar from './components/SatisBot/Konusmalar';
 import BayiYonetimi from './components/Bayi/BayiYonetimi';
 import BackendHealth from './components/BackendHealth';
 import SifreBelirle, { SifreFormu } from './components/SifreDegistir';
@@ -1639,7 +1641,7 @@ function Dashboard({ kullanici }) {
     setQrYukleniyor(false);
   };
 
-  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Mağaza", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu", vitrin: "SıraGO Vitrini", googleharita: "Google Haritalar", randevusayfam: "Randevu sayfam" };
+  const sayfaBaslik = { anasayfa: "Dashboard", randevular: "Randevular", hizmetler: "Hizmetler", calisanlar: "Çalışanlar", musteriler: "Müşteriler", kasa: "Kasa", magaza: "Vitrin", sms: "SMS Hatırlatma", geceraporu: "Gece Raporu", yorumavcisi: "Yorum Avcısı", winback: "Kayıp Müşteriler", sadakat: "Sadakat Puan", referans: "Referans Ağı", finans: "Finans & Kapora", botbaglanti: "Bot Bağlantısı", bottest: "Bot Test", qrkod: "QR Kod", bildirimler: "Bildirimler", destek: "Destek", esnafgetir: "Esnaf Getir", ayarlar: "Ayarlar", dukkanim: "Dükkanım", tablet: "Tablet modu", vitrin: "Mağaza", googleharita: "Google Haritalar", randevusayfam: "Randevu sayfam" };
 
   const SVG = {
     dashboard: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -1691,8 +1693,9 @@ function Dashboard({ kullanici }) {
       { id: "sadakat", icon: ICON.sadakat, label: "Sadakat", featureKey: "sadakat" },
       { id: "winback", icon: SVG.winback, label: "Kayıp Müşteri", featureKey: "winback" },
       { id: "yorumavcisi", icon: ICON.yorum, label: "Yorum Avcısı", featureKey: "yorum_avcisi" },
-      { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
-      { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
+      // 2026-10-17 isim değişimi: SıraGO ürünleri (tablet, tabela…) = "Mağaza" (id vitrin), müşteriye ürün önerisi = "Vitrin" (id magaza)
+      { id: "vitrin", icon: ICON.magaza, label: "Mağaza" },
+      { id: "magaza", icon: ICON.magaza, label: "Vitrin", featureKey: "magaza" },
       { id: "googleharita", icon: ICON.getir, label: "Google Haritalar" },
       { id: "randevusayfam", icon: ICON.getir, label: "Randevu sayfam" },
     ]},
@@ -1720,10 +1723,9 @@ function Dashboard({ kullanici }) {
       { id: "randevular", icon: SVG.randevular, label: "Randevular" },
       { id: "hizmetler", icon: SVG.hizmetler, label: "Hizmetler & Fiyatlar" },
       { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
-      // 2026-10-17: Mağaza Lite'ta yoktu; esnaf eklenen ürünleri göremiyordu (paket kapsamıyorsa kilitli görünür)
-      { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
-      // SıraGO'nun dükkâna sattığı ürünler (tablet, stant…): her pakette açık, Lite'ta da görünmeli
-      { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
+      // Mağaza = SıraGO'nun dükkâna sattığı ürünler (tablet, stant, tabela…): her pakette açık, Lite'ta da görünmeli.
+      // Ürün önerisi sayfası (Vitrin, id magaza) Lite'ta yok (kullanıcı kararı 2026-10-17: önemli olan Mağaza); tam menüde duruyor.
+      { id: "vitrin", icon: ICON.magaza, label: "Mağaza" },
     ]},
     { type: 'flat', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
@@ -3420,12 +3422,12 @@ function Dashboard({ kullanici }) {
             <Kasa api={api} />
           )}
 
-          {/* ── MAĞAZA (ürün önerisi) ── */}
+          {/* ── VİTRİN (ürün önerisi; id magaza) ── */}
           {sayfa === "magaza" && (
             <Magaza api={api} randevuId={magazaRandevu} />
           )}
 
-          {/* ── SIRAGO VİTRİNİ (tablet, stant, malzeme — her pakette) ── */}
+          {/* ── MAĞAZA (SıraGO ürünleri: tablet, stant, tabela — her pakette; id vitrin) ── */}
           {sayfa === "vitrin" && (
             <Vitrin api={api} />
           )}
@@ -4557,7 +4559,7 @@ function SuperAdminPanel({ kullanici }) {
       { id: "paketler", icon: SVGA.paketler, label: "Paketler" },
       { id: "kuponlar", icon: SVGA.odemeler, label: "Kuponlar" },
       { id: "bayiler", icon: SVGA.referanslar, label: "Bayiler / Toptancı" },
-      { id: "magaza", icon: SVGA.magaza, label: "Mağaza" },
+      { id: "magaza", icon: SVGA.magaza, label: "Mağaza & Vitrin" },
     ]},
     { id: "analiz", label: "Analiz", items: [
       { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
@@ -7697,173 +7699,14 @@ function SuperAdminPanel({ kullanici }) {
 
             {satisAnaTab === "ayarlar" && <>
             <AiTeshis api={api} />
-            {/* ═══ KAPSAMLI BOT AYARLARI PANELİ ═══ */}
-            {satisBotDurum?.ayarlar && (() => {
-              const ay = satisBotDurum.ayarlar;
-              const ayarGuncelle = async (obj) => { await api.put("/admin/satis-bot/ayarlar", obj); satisBotYukle(); };
-              const toggleStyle = (aktif) => ({ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", background: aktif ? "rgba(31,111,74,.12)" : "rgba(180,35,24,.08)", color: aktif ? "#1f6f4a" : "#b42318", fontWeight: 600, fontSize: 11, transition: "all .2s" });
-              const labelStyle = { fontSize: 10, color: "var(--dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 6 };
-              const cellStyle = { background: "var(--bg)", borderRadius: 12, padding: 14 };
-              const selStyle = { width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, fontWeight: 600 };
-              const modRenk = { hepsi: "#1f6f4a", sadece_kayit: "#2f56c6", sadece_satis: "#a8590c", sadece_ai: "#5d4bb5", kapali: "#b42318" };
-              const modIcon = { hepsi: "🚀", sadece_kayit: "📝", sadece_satis: "📤", sadece_ai: "🤖", kapali: "⏸️" };
-              const modAciklama = { hepsi: "Tüm özellikler aktif", sadece_kayit: "Sadece WhatsApp kayıt sistemi", sadece_satis: "Sadece giden mesaj (AI cevap yok)", sadece_ai: "Gelen mesajlara AI cevap (giden yok)", kapali: "Bot bağlı ama hiçbir şey yapmıyor" };
-              return (
-                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
-                  {/* Başlık */}
-                  <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
-                    
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>Bot Ayarları</div>
-                      <div style={{ fontSize: 11, color: "var(--dim)" }}>A'dan Z'ye tüm bot davranışlarını kontrol et</div>
-                    </div>
-                    <button onClick={() => ayarGuncelle({ tatil: !ay.tatil })} style={{ ...toggleStyle(!ay.tatil), marginLeft: "auto" }}>{ay.tatil ? "🏖️ TATİL" : "✅ Mesai"}</button>
-                  </div>
-
-                  {/* ── MOD SEÇİCİ ── */}
-                  <div style={{ background: "var(--bg)", borderRadius: 14, padding: "16px", marginBottom: 16 }}>
-                    <div style={{ ...labelStyle, marginBottom: 10, fontSize: 11 }}>🎮 ÇALIŞMA MODU</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
-                      {[["hepsi","Tam Mod"],["sadece_kayit","Sadece Kayıt"],["sadece_satis","Sadece Satış"],["sadece_ai","Sadece AI"],["kapali","Kapalı"]].map(([k,l]) => (
-                        <button key={k} onClick={() => ayarGuncelle({ mod: k })} style={{ padding: "12px 8px", borderRadius: 12, border: (ay.mod || 'hepsi') === k ? `2px solid ${modRenk[k]}` : "2px solid transparent", background: (ay.mod || 'hepsi') === k ? `${modRenk[k]}12` : "var(--surface)", cursor: "pointer", textAlign: "center", transition: "all .2s" }}>
-                          <div style={{ fontSize: 22, marginBottom: 4 }}>{modIcon[k]}</div>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: (ay.mod || 'hepsi') === k ? modRenk[k] : "var(--dim)" }}>{l}</div>
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: `${modRenk[ay.mod || 'hepsi']}08`, fontSize: 11, color: modRenk[ay.mod || 'hepsi'], fontWeight: 600 }}>
-                      {modIcon[ay.mod || 'hepsi']} {modAciklama[ay.mod || 'hepsi']}
-                    </div>
-                  </div>
-
-                  {/* ── TOGGLE BUTONLARI ── */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-                    {[
-                      ["kayitAktif", "📝 WhatsApp Kayıt", "Bot üzerinden hesap açma"],
-                      ["otopilotKurulum", "🧭 Otopilot Kurulum", "Kayıttan sonra hizmet, çalışan ve WhatsApp bağlantısını sohbette kurar"],
-                      ["aiCevapAktif", "🤖 AI Cevap", "Gemini / DeepSeek ile temsilci gibi cevap"],
-                      ["takipAktif", "🔔 Takip Mesajı", "Cevap vermeyenlere hatırlatma"],
-                      ["gelenMesajCevap", "💬 Gelen Mesaj Cevap", "Gelen mesajlara otomatik cevap"],
-                      ["typingIndicator", "✍️ Yazıyor Göster", "Anti-ban: typing indicator"],
-                      ["tatil", "🏖️ Tatil Modu", "Bugün gönderim yapma"],
-                    ].map(([key, title, desc]) => (
-                      <div key={key} onClick={() => ayarGuncelle({ [key]: !ay[key] })} style={{ ...cellStyle, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, transition: "all .2s", border: ay[key] ? "1px solid rgba(31,111,74,.2)" : "1px solid transparent" }}>
-                        <div style={{ width: 38, height: 22, borderRadius: 11, background: ay[key] ? "#1f6f4a" : "rgba(111,106,98,.2)", position: "relative", transition: "all .2s", flexShrink: 0 }}>
-                          <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 2, left: ay[key] ? 18 : 2, transition: "all .2s", boxShadow: "0 1px 3px rgba(0,0,0,.15)" }} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{title}</div>
-                          <div style={{ fontSize: 10, color: "var(--dim)" }}>{desc}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ── MESAI AYARLARI ── */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>Mesai Başlangıç</label>
-                      <select value={ay.mesaiBaslangic} onChange={(e) => ayarGuncelle({ mesaiBaslangic: parseInt(e.target.value) })} style={selStyle}>
-                        {[0,1,2,3,4,5,6,7,8,9,10,11,12].map(s => <option key={s} value={s}>{String(s).padStart(2,'0')}:00</option>)}
-                      </select>
-                    </div>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>Mesai Bitiş</label>
-                      <select value={ay.mesaiBitis} onChange={(e) => ayarGuncelle({ mesaiBitis: parseInt(e.target.value) })} style={selStyle}>
-                        {[12,13,14,15,16,17,18,19,20,21,22,23,24].map(s => <option key={s} value={s}>{s === 24 ? "00:00 (gece)" : `${String(s).padStart(2,'0')}:00`}</option>)}
-                      </select>
-                    </div>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>Günlük Limit</label>
-                      <select value={ay.gunlukLimit} onChange={(e) => ayarGuncelle({ gunlukLimit: parseInt(e.target.value) })} style={selStyle}>
-                        {[5,10,15,20,30,40,50].map(s => <option key={s} value={s}>{s} mesaj</option>)}
-                      </select>
-                    </div>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>Mesaj Aralığı (dk)</label>
-                      <div className="row gap-4">
-                        <select value={ay.minBekleme} onChange={(e) => ayarGuncelle({ minBekleme: parseInt(e.target.value) })} style={{ ...selStyle, flex: 1, fontSize: 13 }}>
-                          {[1,2,3,5,8,10,15,20].map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                        <span style={{ color: "var(--dim)", fontSize: 11, alignSelf: "center" }}>—</span>
-                        <select value={ay.maxBekleme} onChange={(e) => ayarGuncelle({ maxBekleme: parseInt(e.target.value) })} style={{ ...selStyle, flex: 1, fontSize: 13 }}>
-                          {[5,8,10,15,20,25,30,45,60].map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── TAKİP AYARLARI ── */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>🔔 Takip Süresi (saat)</label>
-                      <select value={ay.takipSaati || 12} onChange={(e) => ayarGuncelle({ takipSaati: parseInt(e.target.value) })} style={selStyle}>
-                        {[1,2,3,4,6,8,10,12,18,24,36,48].map(s => <option key={s} value={s}>{s} saat sonra</option>)}
-                      </select>
-                    </div>
-                    <div style={cellStyle}>
-                      <label style={labelStyle}>🔄 Max Takip Sayısı</label>
-                      <select value={ay.maxTakipSayisi || 2} onChange={(e) => ayarGuncelle({ maxTakipSayisi: parseInt(e.target.value) })} style={selStyle}>
-                        {[0,1,2,3,4,5].map(s => <option key={s} value={s}>{s === 0 ? "Takip yok" : `${s} kez`}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* ── HEDEF KATEGORİ ── */}
-                  <div style={{ ...cellStyle, marginBottom: 16 }}>
-                    <label style={labelStyle}>🎯 Hedef Kategori</label>
-                    <div className="row gap-8" style={{ alignItems: "center" }}>
-                      <select value={ay.hedefKategori || ''} onChange={(e) => ayarGuncelle({ hedefKategori: e.target.value })} style={{ ...selStyle, fontSize: 13 }}>
-                        <option value="">Tüm Kategoriler</option>
-                        {["berber","kuaför","güzellik salonu","dövme","tırnak salonu","cilt bakım","spa","diş kliniği","veteriner","diyetisyen","psikolog","fizyoterapi","pilates","oto yıkama"].map(k => <option key={k} value={k}>{k.charAt(0).toUpperCase() + k.slice(1)}</option>)}
-                      </select>
-                      {ay.hedefKategori && <span style={{ padding: "4px 12px", borderRadius: 20, background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>🎯 {ay.hedefKategori}</span>}
-                    </div>
-                  </div>
-
-                </div>
-              );
-            })()}
+            {/* ═══ BOT AYARLARI (taslak + tek Kaydet, 2026-10-17) ═══ */}
+            {satisBotDurum?.ayarlar && <BotAyarlari api={api} ayarlar={satisBotDurum.ayarlar} onKaydedildi={satisBotYukle} />}
 
             </>}
 
             {satisAnaTab === "konusmalar" && <>
-            {/* Son Konuşmalar — Kompakt WhatsApp Tarzı */}
-            <div style={{ background: "var(--surface)", borderRadius: 16, padding: "24px", border: "1px solid var(--border)", marginBottom: 24 }}>
-              <div className="row gap-8 mb-16" style={{ alignItems: "center" }}>
-                
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)" }}>Son Konuşmalar</div>
-                  <div style={{ fontSize: 11, color: "var(--dim)" }}>{satisBotKonusmalar.length} konuşma</div>
-                </div>
-              </div>
-              {satisBotKonusmalar.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "30px 0", color: "var(--dim)" }}><p style={{ fontSize: 13 }}>Henüz konuşma yok. Botu başlat!</p></div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {satisBotKonusmalar.map(k => {
-                    const dRenk = { bekliyor: "#a8590c", sicak: "#a8590c", olumlu: "#1f6f4a", olumsuz: "#b42318", ai_devrede: "#5d4bb5" };
-                    const dIcon = { bekliyor: "⏳", sicak: "🔥", olumlu: "✅", olumsuz: "❌", ai_devrede: "🤖" };
-                    return (
-                      <div key={k.id} className="row gap-12" style={{ padding: "12px 14px", borderRadius: 12, background: "var(--bg)", alignItems: "center", cursor: "pointer", transition: "all .15s" }}>
-                        <div style={{ width: 40, height: 40, borderRadius: 20, background: `${dRenk[k.durum] || "#6f6a62"}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{dIcon[k.durum] || "💬"}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="row row-between gap-8">
-                            <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.isletme_adi}</span>
-                            <span style={{ fontSize: 10, color: "var(--dim)", whiteSpace: "nowrap", flexShrink: 0 }}>{k.olusturma_tarihi ? new Date(k.olusturma_tarihi).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                          </div>
-                          <div style={{ fontSize: 12, color: "var(--dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.gelen_mesajlar ? `💬 ${k.gelen_mesajlar.slice(0, 60)}...` : `📤 ${(k.gonderilen_mesaj || '').slice(0, 60)}...`}</div>
-                        </div>
-                        <div className="row gap-4" style={{ flexShrink: 0 }}>
-                          {k.kategori && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontSize: 10, fontWeight: 600 }}>{etiket(k.kategori)}</span>}
-                          <a href={`https://wa.me/${k.telefon}`} target="_blank" rel="noreferrer" style={{ padding: "6px 12px", borderRadius: 8, background: "#25d366", color: "#fff", fontWeight: 600, fontSize: 11, textDecoration: "none", display: "flex", alignItems: "center", gap: 4, boxShadow: "none" }}>💬 WA</a>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {/* Konuşmalar: listeden birine tıkla, sohbet geçmişinin tamamı açılır */}
+            <Konusmalar api={api} konusmalar={satisBotKonusmalar} etiket={etiket} sessizSaat={Number(satisBotDurum?.ayarlar?.insanSessizSaat ?? 24)} yenile={satisBotYukle} />
 
             {/* WP Yok — Manuel Ara */}
             {wpYokListe.length > 0 && (

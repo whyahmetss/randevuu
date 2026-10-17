@@ -18,10 +18,12 @@ const pool = new Pool({
   max: 10, // Neon Free plan: 10 eşzamanlı connection üst sınırı
 });
 
+let ilkBaglanti = false;
 pool.on('connect', (client) => {
   // Oturum saat dilimi: CURRENT_DATE / NOW()::time İstanbul'a göre çalışsın (hatırlatma, no-show).
   client.query("SET TIME ZONE 'Europe/Istanbul'").catch(() => {});
-  console.log('📦 PostgreSQL bağlantısı kuruldu');
+  // Havuz her yeni bağlantıda burayı çağırır; log yalnız ilk seferde (Render loglarını boğuyordu).
+  if (!ilkBaglanti) { ilkBaglanti = true; console.log('📦 PostgreSQL bağlantısı kuruldu'); }
 });
 
 pool.on('error', (err) => {

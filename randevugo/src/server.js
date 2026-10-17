@@ -1,6 +1,15 @@
 process.env.TZ = 'Europe/Istanbul';
 
-// stdout filtresi GEÇİCİ OLARAK KAPALI — tüm logları görelim
+// libsignal (Baileys) her mesajda "Closing session: SessionEntry {...}" diye oturum anahtarlarını
+// basıyor: logları boğuyor ve anahtar dökümü loga düşmemeli. Yalnız bu gürültü susturulur.
+const SIGNAL_GURULTU = /^(Closing session|Closing open session|Opening session|Removing old closed session|Session already (closed|open)|Migrating session to|Decrypted message with closed session)/;
+for (const ad of ['log', 'info', 'warn']) {
+  const asil = console[ad].bind(console);
+  console[ad] = (ilk, ...kalan) => {
+    if (typeof ilk === 'string' && SIGNAL_GURULTU.test(ilk)) return;
+    asil(ilk, ...kalan);
+  };
+}
 
 const express = require('express');
 const http = require('http');

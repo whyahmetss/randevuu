@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-// İşletme paneli — Mağaza: müşteriye ürün öner, linki kendi WhatsApp'ından paylaş, komisyonu takip et.
+// İşletme paneli — Vitrin (2026-10-17'ye kadar adı Mağaza'ydı; sayfa kimliği yine 'magaza'): müşteriye ürün öner, linki kendi WhatsApp'ından paylaş, komisyonu takip et.
 // SıraGO ödeme almaz; satış tedarikçinin sitesinde, işletmeye özel indirim koduyla olur.
 const tl = (x) => { const n = Number(x || 0); return `${n.toLocaleString('tr-TR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} ₺`; };
 

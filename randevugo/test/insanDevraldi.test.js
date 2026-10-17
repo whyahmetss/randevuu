@@ -48,7 +48,10 @@ test('telefondan elle yazılınca bot o sohbette susar; mesaj yine kayda geçer;
   t.mock.timers.tick(5000);
   t.mock.timers.reset();
   for (let i = 0; i < 20; i++) await new Promise(r => setImmediate(r));
-  assert.ok((await db.query('SELECT insan_devraldi FROM satis_konusmalar WHERE telefon = $1', [tel])).rows[0].insan_devraldi, 'devralındı');
+  const kayit = (await db.query('SELECT insan_devraldi, gelen_mesajlar FROM satis_konusmalar WHERE telefon = $1', [tel])).rows[0];
+  assert.ok(kayit.insan_devraldi, 'devralındı');
+  assert.match(kayit.gelen_mesajlar, /\] Elle: şifreniz yine tayfun1976/, 'elle yazılan sohbet geçmişinde');
+  assert.doesNotMatch(kayit.gelen_mesajlar, /otomatik/, 'botun kendi mesajı Elle diye yazılmaz');
 
   bot._destekCevap = {};
   assert.deepStrictEqual(await mesaj(tel, 'Şimdi fiyatlarımı belirliycem burada'), [], 'bot sustu');
@@ -62,9 +65,10 @@ test('elle yazılan yeni kişi: konuşma açılır, bot ne cevap verir ne soğuk
   const { db } = await ortam;
   const { bot, mesaj } = await botHazirla();
   const tel = '905304012096';
-  const id = await bot.insanDevraldi(tel);
-  const k = (await db.query('SELECT durum, insan_devraldi FROM satis_konusmalar WHERE id = $1', [id])).rows[0];
+  const id = await bot.insanDevraldi(tel, 'Merhaba abi');
+  const k = (await db.query('SELECT durum, insan_devraldi, gelen_mesajlar FROM satis_konusmalar WHERE id = $1', [id])).rows[0];
   assert.strictEqual(k.durum, 'elle');
+  assert.strictEqual(k.gelen_mesajlar, null, 'müşteri cevap vermeden gelen_mesajlar boş kalır (cevap gelmedi sayılır)');
   assert.ok(k.insan_devraldi);
   assert.deepStrictEqual(await mesaj(tel, 'Merhaba buradan alıyorsun'), []);
   assert.strictEqual(await bot.insanDevraldi('abc'), null, 'geçersiz numara yok sayılır');

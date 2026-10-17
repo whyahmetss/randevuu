@@ -45,6 +45,17 @@ export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
         </div>
       )}
 
+      {/* Mağaza göze çarpan yerde (kullanıcı kararı 2026-10-17): "Daha fazla"nın altında kaybolmasın */}
+      <button onClick={() => ac('vitrin')} style={{ ...kart, width: '100%', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, border: '1px solid rgba(31,111,74,.35)',
+        background: 'linear-gradient(135deg, rgba(31,111,74,.12), rgba(37,211,102,.06))', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+        <span aria-hidden="true" style={{ width: 48, height: 48, borderRadius: 14, background: '#1f6f4a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🛒</span>
+        <span style={{ flex: 1 }}>
+          <span style={{ display: 'block', fontSize: 18, fontWeight: 800, color: '#1f6f4a' }}>Mağaza</span>
+          <span style={{ fontSize: 14, color: 'var(--dim)' }}>Tablet, stant, neon tabela — dükkânın için</span>
+        </span>
+        {ok}
+      </button>
+
       <button onClick={() => ac('esnafgetir')} style={{ ...kart, width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, border: '1px solid rgba(168,89,12,.3)', background: 'rgba(168,89,12,.07)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
         <span style={{ flex: 1 }}>
           <span style={{ display: 'block', fontSize: 16, fontWeight: 800, color: '#a8590c' }}>Komşunu getir, 1 ay bedava</span>
@@ -64,7 +75,6 @@ export default function Dukkanim({ ayarlar, wpBagli, digerleri, ac }) {
       <div style={kart}>
         <Satir baslik="Randevu sayfam" alt="Kapak fotoğrafı, logo, tema — müşterinin gördüğü sayfa" onClick={() => ac('randevusayfam')} />
         <Satir baslik="Google Haritalar'da randevu butonu" alt="Müşteri seni Google'da bulunca kendi saatini seçsin" onClick={() => ac('googleharita')} />
-        <Satir baslik="SıraGO Vitrini" alt="Tablet, stant, malzeme — dükkânın için" onClick={() => ac('vitrin')} />
       </div>
       <div style={grupBaslik}>Cihazlar ve bağlantı</div>
       <div style={kart}>

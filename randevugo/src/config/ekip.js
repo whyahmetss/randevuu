@@ -9,7 +9,7 @@ const YETKILER = {
   satis: 'Satış: Avcı Bot, Satış Bot, Müşteri CRM, referanslar, QR kod',
   odemeler: 'Ödemeler ve hakediş',
   paketler: 'Paket fiyat ve özelliklerini değiştirme',
-  magaza: 'Mağaza: tedarikçiler, ürünler, satış raporu',
+  magaza: 'Mağaza ve Vitrin: SıraGO ürünleri, tedarikçiler, satış raporu',
   sistem: 'Sistem durumu, API dashboard, merkez OTP numaraları',
 };
 // Yetki alanı dışı seviyeler: 'kurucu' (ekip_yetkileri NULL) ve 'patron' (2026-10-10: kurucuların da

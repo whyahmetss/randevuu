@@ -2153,10 +2153,25 @@ class AdminController {
     }
   }
 
+  // Sohbet geçmişi ekranından: bot bu sohbette sussun (insan devraldı) ya da yeniden cevap versin
+  async satisBotKonusmaBot(req, res) {
+    try {
+      const r = await pool.query(
+        'UPDATE satis_konusmalar SET insan_devraldi = CASE WHEN $1 THEN NULL ELSE NOW() END WHERE id = $2 RETURNING id, insan_devraldi',
+        [req.body?.acik === true, parseInt(req.params.id)]);
+      if (!r.rows.length) return res.status(404).json({ hata: 'Konuşma bulunamadı' });
+      res.json(r.rows[0]);
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
   async satisBotKonusmalar(req, res) {
     try {
       const satisBot = require('../services/satisBot');
-      const konusmalar = await satisBot.konusmalarGetir(50);
+      // ?q= isim/telefon/mesaj içinde arar (sohbet geçmişi ekranı)
+      const q = String(req.query.q || '').trim().slice(0, 60);
+      const konusmalar = await satisBot.konusmalarGetir(q ? 100 : 50, q);
       res.json({ konusmalar });
     } catch (error) {
       res.status(500).json({ hata: error.message });

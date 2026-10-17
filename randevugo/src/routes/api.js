@@ -239,6 +239,7 @@ router.get('/admin/satis-bot/huni', authMiddleware, superAdminMiddleware, (req, 
 router.post('/admin/satis-bot/gonderim-baslat', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotGonderimBaslat(req, res));
 router.post('/admin/satis-bot/gonderim-durdur', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotGonderimDurdur(req, res));
 router.get('/admin/satis-bot/konusmalar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotKonusmalar(req, res));
+router.put('/admin/satis-bot/konusmalar/:id/bot', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotKonusmaBot(req, res));
 router.put('/admin/satis-bot/ayarlar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotAyarGuncelle(req, res));
 router.get('/admin/satis-bot/wp-yok', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotWpYok(req, res));
 router.get('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaralar(req, res));

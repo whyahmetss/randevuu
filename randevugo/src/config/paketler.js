@@ -183,7 +183,7 @@ const FALLBACK_PAKETLER = {
 // Paket Yönetimi'nden açılıp kapanan özellik bayrakları (2026-10-17: hepsi panelden yönetilir; önce yalnız 4 tanesi vardı).
 // Veritabanında NULL → koddaki varsayılan (FALLBACK_PAKETLER) geçerli.
 const BAYRAKLAR = {
-  kasa: 'Kasa takibi', prim: 'Prim raporu', magaza: 'Mağaza (ürün önerisi)', sadakat: 'Sadakat puanı', winback: 'Kayıp müşteri',
+  kasa: 'Kasa takibi', prim: 'Prim raporu', magaza: 'Vitrin (ürün önerisi)', sadakat: 'Sadakat puanı', winback: 'Kayıp müşteri',
   yorum_avcisi: 'Yorum avcısı', gece_raporu: 'Gece raporu', sms_hatirlatma: 'SMS hatırlatma', kapora: 'Kapora / ön ödeme',
   telegram: 'Telegram botu', dogum_gunu: 'Doğum günü mesajı', oncelikli_destek: 'Öncelikli destek', api_erisimi: 'API erişimi',
   sube_yonetimi: 'Şube yönetimi',

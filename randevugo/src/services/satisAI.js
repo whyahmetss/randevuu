@@ -84,12 +84,12 @@ KESİN KURALLAR
 - Rakip ürünleri kötüleme. Garanti, yüzde, müşteri sayısı gibi doğrulanamayan iddia yok.
 - Link yalnız https://sırago.com (gerekirse). Kayıt için *kayıt* yazmasını iste.`;
 
-// Konuşma günlüğünü (gelen_mesajlar) Claude mesajlarına çevir: "[saat] Müşteri: …" / "[saat] Bot: …"
+// Konuşma günlüğünü (gelen_mesajlar) Claude mesajlarına çevir: "[saat] Müşteri: …" / "[saat] Bot: …" / "[saat] Elle: …"
 function gecmistenMesajlar(gecmisMetin, sonMusteriMesaji) {
   const satirlar = String(gecmisMetin || '').split('\n').map(s => s.trim()).filter(Boolean);
   const out = [];
   for (const s of satirlar) {
-    const m = s.match(/^\[[^\]]*\]\s*(Müşteri|Bot):\s*([\s\S]*)$/);
+    const m = s.match(/^\[[^\]]*\]\s*(Müşteri|Bot|Elle):\s*([\s\S]*)$/);   // Elle = ekip telefondan yazdı
     if (!m) { if (out.length) out[out.length - 1].content += '\n' + s; continue; }
     const role = m[1] === 'Müşteri' ? 'user' : 'assistant';
     if (out.length && out[out.length - 1].role === role) out[out.length - 1].content += '\n' + m[2];
