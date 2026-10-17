@@ -219,7 +219,8 @@ class MagazaController {
         FROM magaza_urunler u
         JOIN magaza_tedarikciler t ON t.id = u.tedarikci_id AND t.aktif = true
         LEFT JOIN magaza_isletme_kodlari k ON k.tedarikci_id = t.id AND k.isletme_id = $1
-        WHERE u.aktif = true ORDER BY u.kategori NULLS LAST, u.isim`, [isletmeId]);
+        WHERE u.aktif = true AND COALESCE(u.hedef, 'musteri') <> 'esnaf'   -- Vitrin ilanı (esnafa satılan) müşteriye önerilmez
+        ORDER BY u.kategori NULLS LAST, u.isim`, [isletmeId]);
       res.json({ urunler: r.rows });
     } catch (e) { hata(res, e); }
   }
@@ -234,7 +235,7 @@ class MagazaController {
         JOIN magaza_tedarikciler t ON t.id = u.tedarikci_id AND t.aktif = true
         JOIN isletmeler i ON i.id = $2
         LEFT JOIN magaza_isletme_kodlari k ON k.tedarikci_id = t.id AND k.isletme_id = $2
-        WHERE u.id = $1 AND u.aktif = true`, [urunId, isletmeId])).rows[0];
+        WHERE u.id = $1 AND u.aktif = true AND COALESCE(u.hedef, 'musteri') <> 'esnaf'`, [urunId, isletmeId])).rows[0];
       if (!u) return hata(res, 'Ürün bulunamadı', 404);
       if (!u.indirim_kodu) return hata(res, 'Bu tedarikçi için işletmenize henüz indirim kodu tanımlanmadı. SıraGO destek ile iletişime geçin.', 400);
       // Randevu verildiyse bu işletmeye ait olmalı

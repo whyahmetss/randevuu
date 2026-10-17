@@ -1722,6 +1722,8 @@ function Dashboard({ kullanici }) {
       { id: "musteriler", icon: SVG.musteriler, label: "Müşteriler" },
       // 2026-10-17: Mağaza Lite'ta yoktu; esnaf eklenen ürünleri göremiyordu (paket kapsamıyorsa kilitli görünür)
       { id: "magaza", icon: ICON.magaza, label: "Mağaza", featureKey: "magaza" },
+      // SıraGO'nun dükkâna sattığı ürünler (tablet, stant…): her pakette açık, Lite'ta da görünmeli
+      { id: "vitrin", icon: ICON.magaza, label: "SıraGO Vitrini" },
     ]},
     { type: 'flat', items: [
       { id: "botbaglanti", icon: SVG.botbaglanti, label: "WhatsApp Bağlantısı" },
