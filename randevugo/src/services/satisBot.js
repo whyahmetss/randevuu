@@ -885,6 +885,13 @@ class SatisBot extends EventEmitter {
     try { await this._telegramBildirimGonder(`🛑 *Satış botu durdu (otomatik fren)*\n\n${mesaj}\n\nKontrol edip panelden yeniden başlatın.`); } catch (e) {}
   }
 
+  // Elle yeniden başlatıldıysa bugünkü sayılardan taban düşülür (yalnız başlatmadan sonra olanlar sayılır)
+  _frenSonrasi(red) {
+    const t = this._frenTaban;
+    if (!t || t.gun !== turkiyeSaati().toDateString()) return red;
+    return { olumsuz: Math.max(0, red.olumsuz - t.olumsuz), sert: Math.max(0, red.sert - t.sert), gonderilen: Math.max(0, red.gonderilen - t.gonderilen) };
+  }
+
   // Bugünkü ret sayıları ve bugün açılan (bizim yazdığımız) konuşma sayısı
   async _redBugun() {
     let r = {};
@@ -909,6 +916,11 @@ class SatisBot extends EventEmitter {
     if (this.durum !== 'bagli') return { hata: 'WhatsApp bağlı değil' };
     if (this.aktif) return { hata: 'Zaten çalışıyor' };
 
+    // Fren sonrası elle başlatma (2026-10-17): kullanıcı durumu gördü ve devam dedi. Bugünkü sayılar taban olur,
+    // fren bundan sonra gelen retlere bakar; yoksa aynı sayılarla hemen yeniden duruyordu. Gün değişince taban sıfırlanır.
+    if (this.fren) {
+      try { this._frenTaban = { gun: turkiyeSaati().toDateString(), ...(await this._redBugun()) }; } catch (e) { /* sayım yoksa taban yok */ }
+    }
     this.fren = null;
     this._sonHata = { mesaj: null, sayi: 0 };
     this.aktif = true;
@@ -1008,7 +1020,7 @@ class SatisBot extends EventEmitter {
 
     try {
       // Fren: sert ret (şikâyet/spam) ban sinyalidir; olumsuz oranı çok yükselirse mesaj/hedef kitle sorunludur
-      const red = await this._redBugun();
+      const red = this._frenSonrasi(await this._redBugun());
       const sertLimit = this.ayarlar.frenSertRedLimit ?? 3;
       const oranAsildi = red.olumsuz >= (this.ayarlar.frenOlumsuzMin ?? 8)
         && red.olumsuz > red.gonderilen * (this.ayarlar.frenOlumsuzOran ?? 0.25);

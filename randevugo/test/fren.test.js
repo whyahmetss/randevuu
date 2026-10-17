@@ -21,3 +21,20 @@ test('fren: önceki günlerin retleri bugünkü orana girmez; sert ret yine say�
   await db.exec(`UPDATE satis_konusmalar SET red_tipi = 'sert' WHERE id IN (SELECT id FROM satis_konusmalar WHERE olusturma_tarihi < ${simdi} - INTERVAL '1 day' LIMIT 2)`);
   assert.strictEqual((await bot._redBugun()).sert, 2, 'eski konuşmadan gelen "yazmayın" yine ban sinyali');
 });
+
+test('fren sonrası elle başlatma: o ana kadarki retler taban olur, yalnız sonrakiler sayılır', async () => {
+  const bot = require(SRC + '/services/satisBot');
+  const pool = require(SRC + '/config/db');
+  bot.durum = 'bagli'; bot.aktif = false;
+  bot.fren = { sebep: 'olumsuz_oran', mesaj: 'x' };
+  bot._bagliSocklar = () => [];
+  const once = await bot._redBugun();
+  assert.ok(once.olumsuz > 0);
+  await bot.gonderimBaslat();
+  assert.strictEqual(bot.fren, null);
+  assert.deepStrictEqual(bot._frenSonrasi(await bot._redBugun()), { olumsuz: 0, sert: 0, gonderilen: 0 });
+  await pool.query(`INSERT INTO satis_konusmalar (gonderilen_mesaj, durum, son_mesaj_tarihi, olusturma_tarihi)
+    VALUES ('Merhaba, kolay gelsin', 'olumsuz', NOW() AT TIME ZONE 'Europe/Istanbul', NOW() AT TIME ZONE 'Europe/Istanbul')`);
+  assert.deepStrictEqual(bot._frenSonrasi(await bot._redBugun()), { olumsuz: 1, sert: 0, gonderilen: 1 });
+  bot.gonderimDurdur?.();
+});
