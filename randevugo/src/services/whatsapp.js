@@ -42,7 +42,7 @@ class WhatsAppService {
 
   async hatirlatmaGonder(hedefNumara, randevuBilgi) {
     const mesaj = `⏰ Randevu Hatırlatması!\n\n` +
-      `📅 ${randevuBilgi.tarih}\n` +
+      `🗓️ ${randevuBilgi.tarih}\n` +
       `🕐 ${randevuBilgi.saat}\n` +
       `✂️ ${randevuBilgi.hizmet}\n` +
       `📍 ${randevuBilgi.isletme_isim}\n\n` +

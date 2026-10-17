@@ -214,7 +214,7 @@ class RandevuService {
     const musaitSaatler = [];
     const adaylar = Array.from(adaySet).sort((a, b) => a - b);
 
-    // 📅 Google Calendar freebusy — bağlı ise o günün meşgul aralıklarını da blokla
+    // 🗓️ Google Calendar freebusy — bağlı ise o günün meşgul aralıklarını da blokla
     let googleBusy = [];
     try {
       googleBusy = await googleCalendar.freebusyAraliklari(isletmeId, tarih);
@@ -544,7 +544,7 @@ class RandevuService {
       );
     } catch (e) { /* bildirim hatası randevuyu engellemesin */ }
 
-    // ─── 📅 GOOGLE CALENDAR SYNC (fire-and-forget) ───
+    // ─── 🗓️ GOOGLE CALENDAR SYNC (fire-and-forget) ───
     try {
       googleCalendar.freebusyCacheTemizle(isletmeId);
       if (durum === 'onaylandi' || durum === 'onay_bekliyor') {
@@ -582,7 +582,7 @@ class RandevuService {
       }
     } catch (e) {}
 
-    // 📅 Google Calendar — event sil (fire-and-forget)
+    // 🗓️ Google Calendar — event sil (fire-and-forget)
     try {
       if (result.rows[0]) {
         googleCalendar.freebusyCacheTemizle(result.rows[0].isletme_id);

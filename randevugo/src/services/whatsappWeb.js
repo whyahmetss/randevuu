@@ -456,7 +456,7 @@ class WhatsAppWebService extends EventEmitter {
         return { metin: `${ozur}\n\n${botMesajlar.get(isletme, 'saatListesi', { tarihStr: this.tarihFormat(tarih), saatler })}`, butonlar: null };
       }
       await this.durumGuncelle(musteriTelefon, isletmeId, 'sohbet', { secilen_saat: null, secilen_calisan_id: null, sohbet_bekleyen: 'saat' });
-      const secki = require('./sohbetAsistani').saatSecki(saatler).join(', ');
+      const secki = require('./sohbetAsistani').saatSecki(saatler);
       return { metin: `${ozur}\n\n${this.tarihFormat(tarih)} için boş saatler: ${secki}.\nSize hangisi uygun?`, butonlar: null };
     }
     // O gün yer kalmadı: bekleme listesine ekle (biri iptal ederse ilk ona yazılır)
@@ -1432,7 +1432,7 @@ class WhatsAppWebService extends EventEmitter {
               kaporaMesaj += `🏥 ${isletme.isim}\n`;
               if (sonuc.hizmet) kaporaMesaj += `✂️ ${sonuc.hizmet.isim}\n`;
               if (clOnay) kaporaMesaj += `👤 ${clOnay.isim}\n`;
-              kaporaMesaj += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+              kaporaMesaj += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
               kaporaMesaj += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
               kaporaMesaj += `\n💳 *Kapora: ${sonuc.kapora.tutar} ₺* (%${sonuc.kapora.yuzde})\n`;
               kaporaMesaj += `\n⚠️ Randevunuz, kapora ödemeniz onaylandıktan sonra kesinleşecektir.\n`;
@@ -1453,7 +1453,7 @@ class WhatsAppWebService extends EventEmitter {
             bekle += `🏥 ${isletme.isim}\n`;
             if (sonuc.hizmet) bekle += `✂️ ${sonuc.hizmet.isim}\n`;
             if (clOnay) bekle += `👤 ${clOnay.isim}\n`;
-            bekle += `📅 ${this.tarihFormat(sd.secilen_tarih)}\n`;
+            bekle += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
             bekle += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
             bekle += `\n⏳ İşletme randevunuzu *${isletme.onay_timeout_dk || 30} dakika* içinde onaylayacak.`;
             bekle += `\nOnay verilmezse randevunuz otomatik iptal edilir.`;
@@ -1522,7 +1522,7 @@ class WhatsAppWebService extends EventEmitter {
               const kalanSaat = (randevuZamani - Date.now()) / 3600000;
               if (kalanSaat < iptalSinir) {
                 await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { iptal_randevu_id: null });
-                return { metin: `❌ *Bu randevu artık iptal edilemez.*\n\nRandevuya ${iptalSinir} saatten az kaldığı için iptal yapılamaz.\n\n📅 Ana menü için *0* yazın.`, butonlar: null };
+                return { metin: `❌ *Bu randevu artık iptal edilemez.*\n\nRandevuya ${iptalSinir} saatten az kaldığı için iptal yapılamaz.\n\n🗓️ Ana menü için *0* yazın.`, butonlar: null };
               }
             } catch (e) { /* tarih parse hatası — devam et */ }
           }
@@ -1745,7 +1745,7 @@ class WhatsAppWebService extends EventEmitter {
     const dilimAdiMap = { sabah: '🌅 Sabah', ogle: '☀️ Öğle', aksam: '🌙 Akşam' };
     const txt = isletme ? botMesajlar.get(isletme, 'zamanDilimiListele', {
       tarihStr, dilimAdi: dilimAdiMap[dilim] || null, saatler: filtreli, bos: !filtreli.length
-    }) : `📅 *${tarihStr}*\n\n`;
+    }) : `🗓️ *${tarihStr}*\n\n`;
     return { metin: txt, butonlar: null, filtreli };
   }
 
@@ -1889,11 +1889,11 @@ class WhatsAppWebService extends EventEmitter {
           } catch (e) { console.error('Memnuniyet (otomatik anket):', e.message); }
 
           if (puan >= 4) {
-            return `${yildizlar}\n\n*Teşekkür ederiz!* Memnuniyetiniz bizim için çok değerli. 🙏\n\nTekrar görüşmek üzere!\n\n📅 Yeni randevu için *1* yazın.`;
+            return `${yildizlar}\n\n*Teşekkür ederiz!* Memnuniyetiniz bizim için çok değerli. 🙏\n\nTekrar görüşmek üzere!\n\n🗓️ Yeni randevu için *1* yazın.`;
           } else if (puan >= 2) {
-            return `${yildizlar}\n\n*Geri bildiriminiz için teşekkürler.* Kendimizi geliştirmek için değerlendireceğiz.\n\n📅 Yeni randevu için *1* yazın.`;
+            return `${yildizlar}\n\n*Geri bildiriminiz için teşekkürler.* Kendimizi geliştirmek için değerlendireceğiz.\n\n🗓️ Yeni randevu için *1* yazın.`;
           } else {
-            return `${yildizlar}\n\n*Üzgünüz, beklentinizi karşılayamadık.* Geri bildiriminiz bizim için çok önemli.\n\n📅 Yeni randevu için *1* yazın.`;
+            return `${yildizlar}\n\n*Üzgünüz, beklentinizi karşılayamadık.* Geri bildiriminiz bizim için çok önemli.\n\n🗓️ Yeni randevu için *1* yazın.`;
           }
         }
       } catch (e) { console.error('Anket puan kontrol hatası:', e.message); }
