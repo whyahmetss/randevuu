@@ -968,6 +968,8 @@ const PORT = process.env.PORT || 3000;
     `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS devir_ertele TIMESTAMP`,
     `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS bayi_id INT`,
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bayi_id INT`,
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS son_giris TIMESTAMP`,
+    `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS son_panel TIMESTAMP`,
     // Bağlantı havuzu (Neon pooler) oturum ayarını korumayabilir; veritabanı varsayılanı da İstanbul olsun
     `DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone TO %L', current_database(), 'Europe/Istanbul'); END $$`,
   ];
