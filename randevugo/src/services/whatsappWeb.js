@@ -487,14 +487,25 @@ class WhatsAppWebService extends EventEmitter {
       if (this._botGiden?.has(msg.key.id) || this._sekreterGiden?.has(msg.key.id)) return;
       if (!this._elleSessiz) this._elleSessiz = new Map();
       const bitis = Date.now() + ELLE_SESSIZ_DK * 60 * 1000;
-      for (const j of [jid, msg.key.remoteJidAlt]) if (j) this._elleSessiz.set(this._elleAnahtar(isletmeId, j), bitis);
+      for (const j of [jid, msg.key.remoteJidAlt]) {
+        if (!j) continue;
+        this._elleSessiz.set(this._elleAnahtar(isletmeId, j), bitis);
+        // Kalıcı kayıt: sunucu yeniden başlasa da (her güncellemede) susma sürer
+        pool.query(`INSERT INTO elle_sessiz (isletme_id, jid, bitis) VALUES ($1, $2, to_timestamp($3 / 1000.0) AT TIME ZONE 'Europe/Istanbul')
+          ON CONFLICT (isletme_id, jid) DO UPDATE SET bitis = EXCLUDED.bitis`, [isletmeId, this._elleAnahtar(isletmeId, j).split(':')[1], bitis]).catch(() => {});
+      }
       console.log(`👤 [${isletmeId}] esnaf sohbete girdi — bot bu kişiye ${ELLE_SESSIZ_DK} dk cevap vermeyecek`);
     }, 4000);
   }
 
-  _elleSessizMi(msg, isletmeId) {
-    if (!this._elleSessiz?.size) return false;
-    return [msg.key.remoteJid, msg.key.remoteJidAlt].some(j => j && (this._elleSessiz.get(this._elleAnahtar(isletmeId, j)) || 0) > Date.now());
+  async _elleSessizMi(msg, isletmeId) {
+    const jidler = [msg.key.remoteJid, msg.key.remoteJidAlt].filter(Boolean);
+    if (jidler.some(j => (this._elleSessiz?.get(this._elleAnahtar(isletmeId, j)) || 0) > Date.now())) return true;
+    try {   // bellekte yoksa (yeniden başlatma sonrası) kalıcı kayda bak
+      const r = await pool.query('SELECT 1 FROM elle_sessiz WHERE isletme_id = $1 AND jid = ANY($2) AND bitis > NOW() LIMIT 1',
+        [isletmeId, jidler.map(j => this._elleAnahtar(isletmeId, j).split(':')[1])]);
+      return r.rows.length > 0;
+    } catch (e) { return false; }
   }
 
   _kendiSohbetiMi(msg, isletmeId) {
@@ -641,7 +652,7 @@ class WhatsAppWebService extends EventEmitter {
       return;
     }
 
-    if (this._elleSessizMi(msg, isletmeId)) { sus('esnaf bu sohbette elle yazıyor'); return; }
+    if (await this._elleSessizMi(msg, isletmeId)) { sus('esnaf bu sohbette elle yazıyor'); return; }
 
     // @lid veya @s.whatsapp.net — telefon numarasını çıkar
     let musteriTelefon;

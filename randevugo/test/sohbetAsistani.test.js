@@ -249,12 +249,12 @@ test('esnaf telefondan elle yazınca bot o kişiye susar; botun kendi mesajı sa
   const m = (id) => ({ key: { id, fromMe: true, remoteJid: jid }, message: { conversation: 'abi akşam çay içelim' }, messageTimestamp: Math.floor(Date.now() / 1000) });
   wa._botGidenIsaretle('BOT1');
   wa._elleYazdi(m('BOT1'), 77); t.mock.timers.tick(5000);
-  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, 'bot mesajı devralma değil');
+  assert.strictEqual(await wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, 'bot mesajı devralma değil');
   wa._elleYazdi(m('ELLE1'), 77); t.mock.timers.tick(5000);
-  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), true);
-  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 78), false, 'başka işletme etkilenmez');
+  assert.strictEqual(await wa._elleSessizMi({ key: { remoteJid: jid } }, 77), true);
+  assert.strictEqual(await wa._elleSessizMi({ key: { remoteJid: jid } }, 78), false, 'başka işletme etkilenmez');
   t.mock.timers.tick(181 * 60 * 1000);
-  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, '3 saat sonra bot geri döner');
+  assert.strictEqual(await wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, '3 saat sonra bot geri döner');
 });
 
 // 2026-10-17 canlı sorunlar: çıplak saat ("yarın 10", "17", "yok 11 olsun") anlaşılmıyor, liste kilitleniyordu;
@@ -284,4 +284,10 @@ test('sohbet: çıplak saat, dilim ve "en erken" hatırlanır, liste hiçbir bo�
   const d = await konusma(db, '905550001004');
   await d('randevu'); await d('saç kesimi');
   assert.match(await d('yarın 8'), /🕐 20:00/, 'açılıştan önceki "8" akşam 8 demek');
+});
+
+test('sohbet: randevuyla ilgisiz sohbet ("uyumuştum şimdi yine uyuyom") randevu sanılmaz', async () => {
+  const { anla } = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  const a = await anla({ metin: 'uyumustum simdi yine uyuyom', isletme: { isim: 'x' }, hizmetler: [{ id: 1, isim: 'Saç kesim' }], calisanlar: [], durum: {} });
+  assert.notStrictEqual(a.niyet, 'randevu');
 });
