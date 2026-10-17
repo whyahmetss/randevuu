@@ -3,6 +3,11 @@
 // yazılır (getiren_id) ve Satış Masası'nda otomatik "Bağladım" sayılır.
 const pool = require('../config/db');
 
+// QR kart linki: randevu sayfasıyla aynı sunucu (/k/S12, bayi için /k/B12 → o an bağlı Satış Bot numarasına WhatsApp)
+const KART_TABAN = (process.env.KART_LINK_TABAN || 'https://randevu.xn--srago-n4a.com').replace(/\/$/, '');
+const kartLinki = (kod) => `${KART_TABAN}/k/${kod}`;
+const kartMetni = (kod) => `Merhaba, SıraGO'yu denemek istiyorum (kart: ${kod})`;
+
 const MESAJ_KODU = /\bkart[:\s]+S(\d{1,6})\b/i;
 const kodYakala = (metin) => { const m = String(metin || '').match(MESAJ_KODU); return m ? parseInt(m[1]) : null; };
 const linkKodu = (kod) => { const m = String(kod || '').trim().match(/^S(\d{1,6})$/i); return m ? parseInt(m[1]) : null; };
@@ -26,4 +31,4 @@ async function kayittaUygula(uyeId, isletmeId, { kanal = 'qr_kart', notu = 'QR k
   return u;
 }
 
-module.exports = { kodYakala, linkKodu, uyeBul, kayittaUygula };
+module.exports = { kodYakala, linkKodu, uyeBul, kayittaUygula, kartLinki, kartMetni };

@@ -122,6 +122,12 @@ class AuthController {
         try { await require('../utils/sahaKodu').kayittaUygula(sahaUye, isletme.id, { notu: 'QR karttan web ile kayıt oldu' }); }
         catch (e) { console.error('QR kart kaydı bağlanamadı:', e.message); }
       }
+      // Bayi kartı: ?saha=B12 → işletme bayiye yazılır
+      const sahaBayi = require('../services/bayi').linkKodu(req.body.saha_kodu);
+      if (sahaBayi) {
+        try { await require('../services/bayi').kayittaUygula(sahaBayi, isletme.id); }
+        catch (e) { console.error('Bayi kaydı bağlanamadı:', e.message); }
+      }
 
       console.log(`✅ Bot kayıt: ${isletmeAdi} (${email}) - kanal: ${kayitKanal || 'bilinmiyor'} - isletme_id: ${isletme.id}${referansMesaj}`);
 

@@ -49,6 +49,7 @@ import BotMesajlari from './components/Platform/BotMesajlari';
 import Ozellikler from './components/Platform/Ozellikler';
 import Kuponlar from './components/Platform/Kuponlar';
 import MerkezOtp from './components/Platform/MerkezOtp';
+import BayiYonetimi from './components/Bayi/BayiYonetimi';
 import BackendHealth from './components/BackendHealth';
 import SifreBelirle, { SifreFormu } from './components/SifreDegistir';
 import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
@@ -315,7 +316,7 @@ function Login({ onLogin }) {
   // Davet linki: ?davet=KOD (&k=randevu_sayfasi) → doğrudan kayıt ekranı, kod otomatik
   const davetParam = (() => { try { const q = new URLSearchParams(window.location.search); return { kod: q.get("davet") || "", kanal: q.get("k") === "randevu_sayfasi" ? "randevu_sayfasi" : "davet" }; } catch { return { kod: "", kanal: "web" }; } })();
   // QR kart (Satış Bot bağlı değilken buraya düşer): ?saha=S12 → kayıt o ekip üyesine yazılır
-  const sahaKodu = (() => { try { const k = new URLSearchParams(window.location.search).get("saha") || ""; return /^S\d{1,6}$/i.test(k) ? k.toUpperCase() : undefined; } catch { return undefined; } })();
+  const sahaKodu = (() => { try { const k = new URLSearchParams(window.location.search).get("saha") || ""; return /^[SB]\d{1,6}$/i.test(k) ? k.toUpperCase() : undefined; } catch { return undefined; } })();
   // ?kayit=1 (tanıtım sitesindeki "Ücretsiz Dene") ya da davet linki → doğrudan kayıt ekranı
   const [ekran, setEkran] = useState(davetParam.kod || /[?&]kayit=1/.test(window.location.search) ? "kayit" : "giris"); // giris | kayit
   const [kayitForm, setKayitForm] = useState({ isletmeAdi: "", email: "", sifre: "", sifreTekrar: "", davet: davetParam.kod });
@@ -4503,7 +4504,7 @@ function SuperAdminPanel({ kullanici }) {
     isletmeler: 'genel', zombiler: 'isletmeler', onboarding: 'isletmeler',
     destek: 'destek', duyurular: 'destek', iletisim: 'destek',
     avci: 'satis', satisBot: 'satis', musteriCRM: 'satis', referanslar: 'satis', qrKod: 'satis',
-    odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza', kuponlar: 'odemeler',
+    odemeler: 'odemeler', paketler: 'paketler', magaza: 'magaza', kuponlar: 'odemeler', bayiler: 'odemeler',
     apiDash: 'sistem', sistemDurum: 'sistem', sistemUyarilari: 'sistem', merkezOtp: 'sistem', auditLog: 'patron', ekip: 'patron',
     masa: 'satis', rehber: 'genel', ekipTakip: 'patron',
     // Tüm işletmeleri etkiler: yalnız kurucu (sunucu da aynı kuralı uygular, config/ekip.js)
@@ -4539,6 +4540,7 @@ function SuperAdminPanel({ kullanici }) {
       { id: "odemeler", icon: SVGA.odemeler, label: "Ödemeler" },
       { id: "paketler", icon: SVGA.paketler, label: "Paketler" },
       { id: "kuponlar", icon: SVGA.odemeler, label: "Kuponlar" },
+      { id: "bayiler", icon: SVGA.referanslar, label: "Bayiler / Toptancı" },
       { id: "magaza", icon: SVGA.magaza, label: "Mağaza" },
     ]},
     { id: "analiz", label: "Analiz", items: [
@@ -5473,6 +5475,7 @@ function SuperAdminPanel({ kullanici }) {
         {/* SATIŞ MASASI · REHBER · EKİP TAKİP (patron) */}
         {sayfa === "masa" && izinli('satis') && <SatisMasasi api={api} kullanici={kullanici} />}
         {sayfa === "merkezOtp" && izinli('sistem') && <MerkezOtp api={api} />}
+        {sayfa === "bayiler" && izinli('odemeler') && <BayiYonetimi api={api} />}
         {sayfa === "rehber" && <SatisRehberi api={api} patron={patron} />}
         {sayfa === "ekipTakip" && patron && <EkipTakip api={api} />}
 

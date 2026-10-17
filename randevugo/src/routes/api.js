@@ -609,6 +609,14 @@ router.post('/admin/masa/hesap/:id/panel', ...saMw, (req, res) => masaController
 router.get('/admin/masa/qr-kart', ...saMw, (req, res) => masaController.qrKart(req, res));
 // Tek kişi düzeni (2026-10-16): bot sıcak adayı devreder; sabah özeti
 router.get('/admin/masa/sicak', ...saMw, (req, res) => masaController.sicakAdaylar(req, res));
+// Bayi / toptancı ağı (2026-10-17): yönetim (yetki: odemeler) + bayinin şifresiz paneli (gizli link)
+const bayiController = require('../controllers/bayiController');
+router.get('/admin/bayiler', ...saMw, (req, res) => bayiController.liste(req, res));
+router.post('/admin/bayiler', ...saMw, (req, res) => bayiController.ekle(req, res));
+router.put('/admin/bayiler/:id', ...saMw, (req, res) => bayiController.guncelle(req, res));
+router.get('/admin/bayiler/:id', ...saMw, (req, res) => bayiController.detay(req, res));
+router.post('/admin/bayiler/:id/odeme', ...saMw, (req, res) => bayiController.odemeEkle(req, res));
+router.get('/bayi/:token', noCache, (req, res) => bayiController.panel(req, res));
 router.post('/admin/masa/sicak/:id/kapat', ...saMw, (req, res) => masaController.sicakKapat(req, res));
 router.get('/admin/masa/sabah-ozeti', ...saMw, (req, res) => masaController.sabahOzeti(req, res));
 router.post('/admin/masa/sabah-ozeti', ...saMw, (req, res) => masaController.sabahOzeti(req, res));

@@ -1628,6 +1628,14 @@ class SatisBot extends EventEmitter {
           [telefon])).rows[0]?.ref_kullanici_id;
         if (ref) kartSahibi = await require('../utils/sahaKodu').kayittaUygula(ref, isletme.id, { notu: 'QR karttan WhatsApp ile kayıt oldu' });
       } catch (e) { /* kolon yoksa geç */ }
+      let kartBayi = null;
+      try {
+        const bayiId = (await pool.query(
+          `SELECT bayi_id FROM satis_konusmalar WHERE (telefon = $1 OR telefon = '+' || $1 OR telefon LIKE '%' || right($1, 10))
+             AND bayi_id IS NOT NULL ORDER BY olusturma_tarihi DESC LIMIT 1`,
+          [telefon])).rows[0]?.bayi_id;
+        if (bayiId) kartBayi = await require('./bayi').kayittaUygula(bayiId, isletme.id);
+      } catch (e) { /* kolon yoksa geç */ }
       if (d.davet) {
         try { await require('../utils/davet').kayittaUygula(d.davet, isletme.id); } catch (e) { console.error('Davet bağlanamadı:', e.message); }
       }
@@ -1653,7 +1661,7 @@ class SatisBot extends EventEmitter {
       try {
         await this._telegramBildirimGonder(
           `🎉 *WhatsApp'tan yeni kayıt*\n\n🏪 ${this._mdKacis(d.isletmeAdi)}\n🏷️ ${this._mdKacis(kategori)}\n📞 +${this._mdKacis(tel)}\n📧 ${this._mdKacis(d.email)}` +
-          `${kartSahibi ? `\n🎴 QR kart: ${this._mdKacis(kartSahibi.isim)}` : ''}\n\n👉 ${otopilotta ? 'Kurulumu bot WhatsApp\'ta yaptırıyor; takılırsa Sistem Uyarıları\'na düşer.' : 'İlk 24 saatte arayıp kurulumu birlikte yapın.'}`);
+          `${kartSahibi ? `\n🎴 QR kart: ${this._mdKacis(kartSahibi.isim)}` : ''}${kartBayi ? `\n🏪 Bayi: ${this._mdKacis(kartBayi.firma || kartBayi.isim)}` : ''}\n\n👉 ${otopilotta ? 'Kurulumu bot WhatsApp\'ta yaptırıyor; takılırsa Sistem Uyarıları\'na düşer.' : 'İlk 24 saatte arayıp kurulumu birlikte yapın.'}`);
       } catch (e) { /* bildirim önemsiz */ }
       return true;
     } catch (err) {
@@ -1756,6 +1764,12 @@ class SatisBot extends EventEmitter {
     if (kartUye && !konusma.ref_kullanici_id) {
       konusma.ref_kullanici_id = kartUye;
       pool.query('UPDATE satis_konusmalar SET ref_kullanici_id = $1 WHERE id = $2', [kartUye, konusma.id]).catch(() => {});
+    }
+    // Bayi kartı: "kart: B12" → kayıt olursa işletme bayi 12'ye yazılır (services/bayi)
+    const kartBayi = require('./bayi').kodYakala(metin);
+    if (kartBayi && !konusma.bayi_id) {
+      konusma.bayi_id = kartBayi;
+      pool.query('UPDATE satis_konusmalar SET bayi_id = $1 WHERE id = $2', [kartBayi, konusma.id]).catch(() => {});
     }
 
     // Gelen mesajı kaydet; cevap geldi → takip sekansı durur
