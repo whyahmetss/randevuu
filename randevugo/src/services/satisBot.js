@@ -167,6 +167,18 @@ const TAKIP_SABLONLARI = {
   ]
 };
 
+// Ayar anahtarı → kural: 'bool' | 'metin' | izinli değerler dizisi | [min, max, ondalıkMı]
+const AYAR_KURALI = {
+  mod: ['hepsi', 'sadece_kayit', 'sadece_satis', 'sadece_ai', 'kapali'],
+  tatil: 'bool', kayitAktif: 'bool', otopilotKurulum: 'bool', aiCevapAktif: 'bool', takipAktif: 'bool', gelenMesajCevap: 'bool',
+  typingIndicator: 'bool', mesajBirlestir: 'bool',
+  hedefKategori: 'metin',
+  mesaiBaslangic: [0, 23], mesaiBitis: [1, 24], gunlukLimit: [1, 500], minBekleme: [1, 120], maxBekleme: [1, 240],
+  takipSaati: [1, 168], maxTakipSayisi: [0, 5], typingMinMs: [500, 30000], typingMaxMs: [500, 60000],
+  mesajBekleMs: [0, 60000], insanSessizSaat: [0, 720],
+  frenSertRedLimit: [1, 50], frenOlumsuzMin: [1, 200], frenOlumsuzOran: [0.05, 1, true], frenAyniHata: [1, 20],
+};
+
 class SatisBot extends EventEmitter {
   constructor() {
     super();
@@ -320,8 +332,26 @@ class SatisBot extends EventEmitter {
     return 'kapali';
   }
 
+  // Panelden gelen ayarlar (2026-10-17): yalnız bilinen anahtarlar, tür ve sınır kontrolüyle (yanlış değer botu bozmasın)
   ayarGuncelle(yeniAyarlar) {
-    this.ayarlar = { ...this.ayarlar, ...yeniAyarlar };
+    const temiz = {};
+    for (const [k, v] of Object.entries(yeniAyarlar || {})) {
+      const kural = AYAR_KURALI[k];
+      if (!kural) continue;
+      if (kural === 'bool') temiz[k] = !!v;
+      else if (typeof kural[0] === 'string') { if (kural.includes(v)) temiz[k] = v; }   // seçenek listesi
+      else if (kural === 'metin') temiz[k] = String(v ?? '').trim().slice(0, 60);
+      else { const n = Number(v); if (Number.isFinite(n)) temiz[k] = Math.min(kural[1], Math.max(kural[0], kural[2] ? n : Math.round(n))); }
+    }
+    if (temiz.minBekleme !== undefined || temiz.maxBekleme !== undefined) {
+      const mn = temiz.minBekleme ?? this.ayarlar.minBekleme, mx = temiz.maxBekleme ?? this.ayarlar.maxBekleme;
+      if (mx < mn) temiz.maxBekleme = mn;
+    }
+    if (temiz.typingMinMs !== undefined || temiz.typingMaxMs !== undefined) {
+      const mn = temiz.typingMinMs ?? this.ayarlar.typingMinMs, mx = temiz.typingMaxMs ?? this.ayarlar.typingMaxMs;
+      if (mx < mn) temiz.typingMaxMs = mn;
+    }
+    this.ayarlar = { ...this.ayarlar, ...temiz };
     console.log('⚙️ Satış Bot ayarları güncellendi:', this.ayarlar);
     this._ayarlariKaydet();
     return this.ayarlar;
@@ -733,7 +763,9 @@ class SatisBot extends EventEmitter {
     if (saat < this.ayarlar.mesaiBaslangic || saat >= this.ayarlar.mesaiBitis) return;
 
     const takipSaati = this.ayarlar.takipSaati || 12;
-    const maxTakip = this.ayarlar.maxTakipSayisi || 2;
+    // 0 = takip yok (eskiden "|| 2" yüzünden 0 seçilse de 2 takip gidiyordu)
+    const maxTakip = this.ayarlar.maxTakipSayisi ?? 2;
+    if (maxTakip <= 0) return;
 
     try {
       // takipSaati saat+ cevap vermeyen, takip_sayisi < maxTakip, durum = 'bekliyor'
@@ -824,7 +856,7 @@ class SatisBot extends EventEmitter {
       );
 
       // 2. takip sonrası hâlâ cevap yoksa durumu 'takip_tamamlandi' yap
-      if (takipNo >= 2) {
+      if (takipNo >= (this.ayarlar.maxTakipSayisi ?? 2)) {
         await pool.query(
           "UPDATE satis_konusmalar SET durum = 'takip_tamamlandi' WHERE id = $1",
           [konusma.id]
@@ -1029,7 +1061,8 @@ class SatisBot extends EventEmitter {
 
     // Gece kontrolü
     const saat = simdi.getHours();
-    if (saat < 8 || saat >= 20) {
+    // Panelden ayarlanan mesai (eskiden 08-20 sabitti, ayar yalnız takip mesajına uyuyordu)
+    if (saat < (this.ayarlar.mesaiBaslangic ?? 9) || saat >= (this.ayarlar.mesaiBitis ?? 20)) {
       this.numaraTimers.set(numaraId, setTimeout(() => this._numaraGonderim(numaraId), 30 * 60 * 1000));
       return;
     }

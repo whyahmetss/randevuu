@@ -38,3 +38,19 @@ test('fren sonrası elle başlatma: o ana kadarki retler taban olur, yalnız son
   assert.deepStrictEqual(bot._frenSonrasi(await bot._redBugun()), { olumsuz: 1, sert: 0, gonderilen: 1 });
   bot.gonderimDurdur?.();
 });
+
+test('bot ayarları: yalnız bilinen anahtarlar, sınırlar; "takip yok" gerçekten takip atmaz', async () => {
+  const bot = require(SRC + '/services/satisBot');
+  bot._ayarlariKaydet = async () => {};
+  const a = bot.ayarGuncelle({ gunlukLimit: 200, maxTakipSayisi: 0, minBekleme: 10, maxBekleme: 5, frenOlumsuzOran: 0.4, mod: 'uydurma', bilinmeyen: 1, tatil: 'evet', mesaiBitis: 99 });
+  assert.deepStrictEqual([a.gunlukLimit, a.maxTakipSayisi, a.minBekleme, a.maxBekleme, a.frenOlumsuzOran, a.mesaiBitis, a.tatil], [200, 0, 10, 10, 0.4, 24, true]);
+  assert.notStrictEqual(a.mod, 'uydurma');
+  assert.strictEqual(a.bilinmeyen, undefined);
+  bot.ayarlar.takipAktif = true; bot.ayarlar.mesaiBaslangic = 0; bot.ayarlar.mesaiBitis = 24;
+  let sorgu = 0; const pool = require(SRC + '/config/db'); const eski = pool.query;
+  pool.query = async (...x) => { sorgu++; return eski(...x); };
+  await bot.takipKontrol();
+  pool.query = eski;
+  assert.strictEqual(sorgu, 0, 'takip yok seçiliyken takip adayı bile aranmaz');
+  bot.ayarGuncelle({ tatil: false });
+});
