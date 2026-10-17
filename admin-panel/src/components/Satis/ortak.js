@@ -16,7 +16,9 @@ export const sekmeStil = (aktif) => ({
 });
 
 export const waTel = (t) => { let d = String(t || '').replace(/\D/g, ''); if (d.startsWith('0')) d = '9' + d; if (d.length === 10) d = '90' + d; return d; };
-export const ilkMesaj = (ad) => `Merhaba, ${ad} ile mi görüşüyorum?`;
+export const ilkMesaj = () => 'Merhaba, kolay gelsin';
+// Instagram kullanıcı adı: "@makas.berber" / "instagram.com/makas.berber/" → "makas.berber"
+export const igAd = (x) => String(x || '').trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').split(/[/?#]/)[0];
 
 export const SONUC = {
   arama_yok: { ad: 'Ulaşılamadı', renk: RENK.gri },

@@ -111,7 +111,7 @@ function odemeSayfasiAc(paket, sure, kupon) {
 
 // Satış kapısı ortak parçaları (Avcı + Satış Bot)
 const waTel = (t) => { let d = String(t || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "9" + d; if (d.length === 10) d = "90" + d; return d; };
-const ilkMesaj = (ad) => `Merhaba, ${ad} ile mi görüşüyorum?`;
+const ilkMesaj = () => 'Merhaba, kolay gelsin';
 const kopyala = (metin) => navigator.clipboard?.writeText(metin).catch(() => {});
 const SG = { yesil: "#1f6f4a", mor: "#5d4bb5", amber: "#a8590c", kirmizi: "#b42318", mavi: "#2f56c6", gri: "#6f6a62" };
 const sgBtn = (renk, dolu) => ({ padding: "7px 12px", borderRadius: 9, border: dolu ? "none" : "1px solid var(--border)", cursor: "pointer",

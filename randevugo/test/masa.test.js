@@ -114,3 +114,17 @@ test('hedefleme: Instagram\'ı olan yoğun salon, defterli küçük dükkandan y
   const kart = r.v.bugun.find(x => x.id === id);
   assert.deepStrictEqual(kart.yakindakiler.map(y => y.isim), ['Style Hair'], 'yalnız gerçekten kullanan (randevusu olan) gösterilir');
 });
+
+test('Instagram kanalı: telefonu olmasa da Instagram\'ı olan aday çekilir; telefon kanalı onu almaz', async () => {
+  const { db } = await ortam;
+  const m = require(SRC + '/controllers/masaController');
+  await db.query(`INSERT INTO potansiyel_musteriler (isletme_adi, telefon, instagram, skor, wp_mesaj_durumu) VALUES
+    ('Insta Kuaför', NULL, 'insta.kuafor', 50, NULL), ('Bot yazdı insta', '0544', 'bot.insta', 40, 'gonderildi')`);
+  let r = res(); await m.cek(req(3, { body: { adet: 30 } }), r);
+  assert.strictEqual((await db.query("SELECT atanan_id FROM potansiyel_musteriler WHERE isletme_adi = 'Insta Kuaför'")).rows[0].atanan_id, null);
+  r = res(); await m.cek(req(3, { body: { adet: 5, kanal: 'instagram' } }), r);
+  const al = (await db.query("SELECT isletme_adi FROM potansiyel_musteriler WHERE atanan_id = 3 AND instagram IS NOT NULL ORDER BY isletme_adi")).rows.map(x => x.isletme_adi);
+  assert.deepStrictEqual(al, ['Bot yazdı insta', 'Insta Kuaför']);
+  const l = res(); await m.listem(req(3), l);
+  assert.ok(l.v.bugun.find(x => x.instagram === 'insta.kuafor'), 'listede Instagram adı var');
+});

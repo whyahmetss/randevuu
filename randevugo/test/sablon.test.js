@@ -57,3 +57,19 @@ test('övgü içeren şablon yalnız 4,5+ puanlı dükkâna gider', async () => 
   assert.deepStrictEqual(await sec(3.9), ['Kendini Tanıtan']);
   assert.deepStrictEqual(await sec(4.7), ['Kendini Tanıtan', 'Soru Soran']);
 });
+
+test('açılış yalnız "Merhaba, kolay gelsin"; "sağolun, size de" ilk cevabı sessiz kalmaz', async () => {
+  const { db } = await ortam;
+  const sql = fs.readFileSync(SRC + '/migrations/055_kolay_gelsin.sql', 'utf8');
+  await db.exec(sql);
+  await db.exec(sql);   // ikinci çalıştırma kopya eklemez
+  const aktif = (await db.query('SELECT isim, mesaj FROM satis_bot_sablonlar WHERE aktif = true')).rows;
+  assert.deepStrictEqual(aktif, [{ isim: 'Kolay Gelsin', mesaj: 'Merhaba, kolay gelsin' }]);
+  assert.match((await db.query("SELECT durdurma_notu FROM satis_bot_sablonlar WHERE isim = 'Kendini Tanıtan'")).rows[0].durdurma_notu, /kolay gelsin/);
+
+  const bot = require(SRC + '/services/satisBot');
+  const ilk = await bot.fallbackCevapUret('Sağolun, size de', { gelen_mesajlar: null, isletme_adi: 'Makas' });
+  assert.match(ilk.mesaj, /^Size de kolay gelsin\. Ben SıraGO'dan yazıyorum/);
+  assert.match(ilk.mesaj, /nasıl alıyorsunuz\?$/);
+  assert.match((await bot.fallbackCevapUret('buyrun', { gelen_mesajlar: '[10:00] Müşteri: x' })).mesaj, /SıraGO'dan yazıyorum/);
+});

@@ -29,7 +29,7 @@ function hizmetSablonu(kategori) {
 }
 
 function mesajUret(isletmeAdi, link) {
-  return `Merhaba, ${isletmeAdi} için 2 dakikada online randevu sayfanızı hazırladım: ${link}\n\n` +
+  return `Merhaba, kolay gelsin. ${isletmeAdi} için online randevu sayfanızı hazırladım: ${link}\n\n` +
     `Müşterileriniz telefon açmadan saat seçebilir. Bir göz atın, beğenirseniz ${denemeGun()} gün ücretsiz kullanın; ` +
     `hizmet ve fiyatları birlikte düzenleriz.`;
 }
