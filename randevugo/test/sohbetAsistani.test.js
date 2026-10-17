@@ -229,3 +229,30 @@ test('yapay zekâ şeması: Gemini boş enum değerini reddeder ("enum[0]: canno
   (function gez(o, yol) { if (!o || typeof o !== 'object') return; if (Array.isArray(o.enum) && o.enum.some(v => v === '')) bos.push(yol); for (const k in o) gez(o[k], `${yol}.${k}`); })(istek.generationConfig.responseSchema, 'şema');
   assert.deepEqual(bos, []);
 });
+
+// 2026-10-17 canlı hata: "19 ekim 13.00 e randevu" → 13.00 tarih sanılıp siliniyordu, bot saati unutup liste veriyordu
+test('ay adıyla tarih + noktalı saat: saat kaybolmaz; yalnız gerçek sayısal tarih silinir', async () => {
+  const { anla } = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  const hz = [{ id: 1, isim: 'Saç kesim', fiyat: 300 }];
+  const a = await anla({ metin: '19 ekim 13.00 e randevu almak istiyorum', isletme: { isim: 'x' }, hizmetler: hz, calisanlar: [], durum: {} });
+  assert.strictEqual(a.saat, '13:00');
+  assert.match(a.tarih, /-10-19$/);
+  const b = await anla({ metin: '20.10 da gelebilir miyim', isletme: { isim: 'x' }, hizmetler: hz, calisanlar: [], durum: {} });
+  assert.match(b.tarih, /-10-20$/);
+  assert.strictEqual(b.saat, null, '20.10 tarih olarak okundu, saat sayılmaz');
+});
+
+test('esnaf telefondan elle yazınca bot o kişiye susar; botun kendi mesajı saymaz', async (t) => {
+  const wa = require(path.join(SRC, 'services', 'whatsappWeb'));
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() });
+  const jid = '905551112233@s.whatsapp.net';
+  const m = (id) => ({ key: { id, fromMe: true, remoteJid: jid }, message: { conversation: 'abi akşam çay içelim' }, messageTimestamp: Math.floor(Date.now() / 1000) });
+  wa._botGidenIsaretle('BOT1');
+  wa._elleYazdi(m('BOT1'), 77); t.mock.timers.tick(5000);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, 'bot mesajı devralma değil');
+  wa._elleYazdi(m('ELLE1'), 77); t.mock.timers.tick(5000);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), true);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 78), false, 'başka işletme etkilenmez');
+  t.mock.timers.tick(181 * 60 * 1000);
+  assert.strictEqual(wa._elleSessizMi({ key: { remoteJid: jid } }, 77), false, '3 saat sonra bot geri döner');
+});

@@ -1,3 +1,4 @@
+const ELLE_SESSIZ_DK = 180;   // esnaf telefondan yazınca bot o kişiye 3 saat susar
 const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
@@ -144,6 +145,9 @@ class WhatsAppWebService extends EventEmitter {
       this.isletmeler[isletmeId].eslestirmeTel = secenek.eslestirmeTel || null;
       this.isletmeler[isletmeId].eslestirmeKodu = null;
       this.isletmeler[isletmeId].sock = sock;
+      // Botun gönderdiği her mesaj işaretlenir: işaretsiz giden mesaj = esnaf telefondan elle yazdı (aşağıda _elleYazdi)
+      const asilGonder = sock.sendMessage.bind(sock);
+      sock.sendMessage = async (...a) => { const g = await asilGonder(...a); if (g?.key?.id) this._botGidenIsaretle(g.key.id); return g; };
 
       // Credentials güncellendiğinde kaydet
       sock.ev.on('creds.update', saveCreds);
@@ -325,6 +329,7 @@ class WhatsAppWebService extends EventEmitter {
           if (upsert.type === 'append') {
             for (const msg of upsert.messages || []) {
               if (this._kendiSohbetiMi(msg, isletmeId)) await this.sekreterKendi(msg, isletmeId).catch(e => console.error('Sekreter:', e.message));
+              else if (msg.key?.fromMe) this._elleYazdi(msg, isletmeId);
             }
           }
           return;
@@ -335,6 +340,7 @@ class WhatsAppWebService extends EventEmitter {
           if (msg.key.fromMe) {
             // Esnafın kendi kendine yazdığı ("Kendime mesaj") → sekreter komutu olabilir; diğer giden mesajlar işlenmez
             if (this._kendiSohbetiMi(msg, isletmeId)) await this.sekreterKendi(msg, isletmeId).catch(e => console.error('Sekreter:', e.message));
+            else this._elleYazdi(msg, isletmeId);
             continue;
           }
           if (!msg.message) continue;
@@ -461,6 +467,36 @@ class WhatsAppWebService extends EventEmitter {
 
   // ═══ SEKRETER MODU (2026-10-14) ═══
   // Esnafın kendi numarasıyla açtığı "Kendime mesaj" sohbeti mi? Botun oraya yazdığı cevaplar tekrar işlenmez.
+  // ── Esnaf sohbete girdi (kullanıcı kararı 2026-10-17): müşteriyle telefondan elle yazışırken bot araya girmesin.
+  // Esnaf o kişiye elle yazınca bot ELLE_SESSIZ_DK boyunca o kişiye cevap vermez; her elle mesaj süreyi tazeler.
+  _botGidenIsaretle(id) {
+    if (!this._botGiden) this._botGiden = new Map();
+    this._botGiden.set(id, Date.now());
+    if (this._botGiden.size > 3000) for (const [k, t] of this._botGiden) if (Date.now() - t > 10 * 60 * 1000) this._botGiden.delete(k);
+  }
+
+  _elleAnahtar(isletmeId, jid) { return `${isletmeId}:${String(jid || '').replace(/[:@].*$/, '')}`; }
+
+  _elleYazdi(msg, isletmeId) {
+    const jid = msg?.key?.remoteJid || '';
+    if (!msg?.message || !this._getMsgText(msg) || !/@(s\.whatsapp\.net|lid)$/.test(jid)) return;
+    const ts = Number(msg.messageTimestamp?.low ?? msg.messageTimestamp ?? 0) * 1000;
+    if (ts && Date.now() - ts > 2 * 60 * 1000) return;                 // yeniden bağlanınca gelen eski mesajlar sayılmaz
+    // Gönderimde olay, sendMessage dönmeden gelebilir: kısa bekleyip botun mesajı mı bakılır
+    setTimeout(() => {
+      if (this._botGiden?.has(msg.key.id) || this._sekreterGiden?.has(msg.key.id)) return;
+      if (!this._elleSessiz) this._elleSessiz = new Map();
+      const bitis = Date.now() + ELLE_SESSIZ_DK * 60 * 1000;
+      for (const j of [jid, msg.key.remoteJidAlt]) if (j) this._elleSessiz.set(this._elleAnahtar(isletmeId, j), bitis);
+      console.log(`👤 [${isletmeId}] esnaf sohbete girdi — bot bu kişiye ${ELLE_SESSIZ_DK} dk cevap vermeyecek`);
+    }, 4000);
+  }
+
+  _elleSessizMi(msg, isletmeId) {
+    if (!this._elleSessiz?.size) return false;
+    return [msg.key.remoteJid, msg.key.remoteJidAlt].some(j => j && (this._elleSessiz.get(this._elleAnahtar(isletmeId, j)) || 0) > Date.now());
+  }
+
   _kendiSohbetiMi(msg, isletmeId) {
     const sock = this.isletmeler[isletmeId]?.sock;
     if (!sock?.user || !msg?.key?.fromMe || !msg.message) return false;
@@ -604,6 +640,8 @@ class WhatsAppWebService extends EventEmitter {
       sus('anti-spam');
       return;
     }
+
+    if (this._elleSessizMi(msg, isletmeId)) { sus('esnaf bu sohbette elle yazıyor'); return; }
 
     // @lid veya @s.whatsapp.net — telefon numarasını çıkar
     let musteriTelefon;

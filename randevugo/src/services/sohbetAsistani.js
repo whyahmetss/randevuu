@@ -139,7 +139,8 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
   const s = ' ' + sade(metin).replace(/[!?,;]+/g, ' ').replace(/\.(?!\d)/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
   const sonuc = { niyet: null, hizmetId: null, calisanId: null, farkEtmez: FARK_ETMEZ.test(s), tarih: null, saat: null, dilim: DILIM(s) };
   const t = tarihBul(s, bugun); if (t.kelime) sonuc.tarih = t.tarih;
-  const st = saatBul(s.replace(/\b\d{1,2}[./]\d{1,2}(?:[./]\d{2,4})?\b/, ' ')); if (st) sonuc.saat = st.saat;
+  // Yalnız gerçekten tarih olarak okunan "19.10" silinir; "19 ekim 13.00"daki 13.00 saattir (önceden siliniyordu)
+  const st = saatBul(t.metin ? s.replace(t.metin, ' ') : s); if (st) sonuc.saat = st.saat;
   const hz = hizmetBul(s, hizmetler); if (hz.ad) sonuc.hizmetId = hz.hizmet.id;
   const usta = calisanlar.find(c => new RegExp(`\\b${sade(c.isim).split(' ')[0]}\\b`).test(s)); if (usta) sonuc.calisanId = usta.id;
   const trimli = s.trim();
@@ -336,7 +337,7 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
   await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'onay' });
   if (oneriMetni) return oneriMetni;
   const usta = alan.secilen_calisan_id ? (uygun.find(c => c.id === alan.secilen_calisan_id) || calisanlar.find(c => c.id === alan.secilen_calisan_id)) : null;
-  const ozet = `📅 ${gunY} · 🕐 ${saat}\n✂️ ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
+  const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n✂️ ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
   return T.onay(ozet);
 }
 
