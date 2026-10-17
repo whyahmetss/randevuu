@@ -9,6 +9,10 @@ const hata = (res, mesaj, kod = 400) => res.status(kod).json({ hata: mesaj });
 const sayi = (x) => (x === undefined || x === null || x === '' ? null : Number(x));
 const httpMi = (u) => { try { return ['http:', 'https:'].includes(new URL(u).protocol); } catch { return false; } };
 const DURUMLAR = ['yeni', 'hazirlaniyor', 'kargoda', 'teslim', 'iptal'];
+const ODEMELER = ['bekliyor', 'odendi', 'iade'];
+const kisa = (x, n) => (x === undefined ? undefined : (String(x || '').trim().slice(0, n) || null));
+// Demo dükkânın (satış için açılan örnek) siparişi deneme amaçlıdır: rapora girmez
+const GERCEK = 'i.demo IS NOT TRUE';
 
 async function siragoTedarikci() {
   const r = (await pool.query("SELECT id FROM magaza_tedarikciler WHERE isim = 'SıraGO' ORDER BY id LIMIT 1")).rows[0];
@@ -75,8 +79,13 @@ class VitrinController {
   // ── Kurucu: ilan ver / düzenle ──
   async ilanlar(req, res) {
     try {
-      const r = await pool.query(`SELECT * FROM magaza_urunler WHERE hedef = 'esnaf' ORDER BY aktif DESC, sira, id DESC`);
-      res.json({ ilanlar: r.rows.map(disari) });
+      const r = await pool.query(`SELECT u.*,
+          (SELECT COALESCE(SUM(s.adet), 0)::int FROM magaza_siparisler s JOIN isletmeler i ON i.id = s.isletme_id
+            WHERE s.urun_id = u.id AND s.durum <> 'iptal' AND ${GERCEK}) AS satilan,
+          (SELECT COALESCE(SUM(s.tutar), 0)::float FROM magaza_siparisler s JOIN isletmeler i ON i.id = s.isletme_id
+            WHERE s.urun_id = u.id AND s.durum <> 'iptal' AND ${GERCEK}) AS ciro
+        FROM magaza_urunler u WHERE u.hedef = 'esnaf' ORDER BY u.aktif DESC, u.sira, u.id DESC`);
+      res.json({ ilanlar: r.rows.map(u => ({ ...disari(u), satilan: u.satilan, ciro: u.ciro })) });
     } catch (e) { hata(res, 'İlanlar alınamadı', 500); }
   }
 
@@ -114,9 +123,10 @@ class VitrinController {
 
   async siparisler(req, res) {
     try {
-      const r = await pool.query(`SELECT s.*, u.isim AS urun_isim, u.kisisel_qr, i.isim AS isletme_isim, i.telefon AS isletme_telefon
+      const r = await pool.query(`SELECT s.*, u.isim AS urun_isim, u.kisisel_qr, i.isim AS isletme_isim, i.telefon AS isletme_telefon,
+          i.ilce AS isletme_ilce, (i.demo IS TRUE) AS demo
         FROM magaza_siparisler s JOIN magaza_urunler u ON u.id = s.urun_id LEFT JOIN isletmeler i ON i.id = s.isletme_id
-        ORDER BY (s.durum IN ('teslim','iptal')), s.id DESC LIMIT 200`);
+        ORDER BY (s.durum IN ('teslim','iptal')), s.id DESC LIMIT 500`);
       res.json({ siparisler: r.rows });
     } catch (e) { hata(res, 'Siparişler alınamadı', 500); }
   }
@@ -133,16 +143,87 @@ class VitrinController {
     } catch (e) { hata(res, 'Baskı dosyası hazırlanamadı', 500); }
   }
 
-  async siparisDurum(req, res) {
+  // Sipariş güncelle: durum, ödeme, kargo, iç not (yalnız gönderilen alanlar). Kargoya verilince esnafa WhatsApp gider.
+  async siparisGuncelle(req, res) {
     try {
-      if (!DURUMLAR.includes(req.body.durum)) return hata(res, 'Geçersiz durum');
       const id = parseInt(req.params.id);
-      const eski = (await pool.query('SELECT durum FROM magaza_siparisler WHERE id = $1', [id])).rows[0];
-      const s = (await pool.query('UPDATE magaza_siparisler SET durum = $1 WHERE id = $2 RETURNING *', [req.body.durum, id])).rows[0];
+      const b = req.body || {};
+      if (b.durum !== undefined && !DURUMLAR.includes(b.durum)) return hata(res, 'Geçersiz durum');
+      if (b.odeme_durumu !== undefined && !ODEMELER.includes(b.odeme_durumu)) return hata(res, 'Geçersiz ödeme durumu');
+      const eski = (await pool.query('SELECT * FROM magaza_siparisler WHERE id = $1', [id])).rows[0];
+      if (!eski) return hata(res, 'Sipariş bulunamadı', 404);
+      const alan = { durum: b.durum, odeme_durumu: b.odeme_durumu, kargo_firma: kisa(b.kargo_firma, 60), kargo_takip: kisa(b.kargo_takip, 80), admin_notu: kisa(b.admin_notu, 1000) };
+      const set = [], deger = [];
+      for (const [k, v] of Object.entries(alan)) if (v !== undefined) { deger.push(v); set.push(`${k} = $${deger.length}`); }
+      if (!set.length) return hata(res, 'Değişiklik yok');
+      deger.push(id);
+      const s = (await pool.query(`UPDATE magaza_siparisler SET ${set.join(', ')}, guncelleme = NOW() WHERE id = $${deger.length} RETURNING *`, deger)).rows[0];
       // Teslim edilen siparişin stoğu bir kez düşülür (stok takibi açıksa)
-      if (s && req.body.durum === 'teslim' && eski?.durum !== 'teslim') await pool.query('UPDATE magaza_urunler SET stok = GREATEST(stok - $1, 0) WHERE id = $2 AND stok IS NOT NULL', [s.adet, s.urun_id]);
-      res.json({ siparis: s });
-    } catch (e) { hata(res, 'Güncellenemedi', 500); }
+      if (b.durum === 'teslim' && eski.durum !== 'teslim') await pool.query('UPDATE magaza_urunler SET stok = GREATEST(stok - $1, 0) WHERE id = $2 AND stok IS NOT NULL', [s.adet, s.urun_id]);
+      let bildirildi = false;
+      if (b.durum && b.durum !== eski.durum && ['kargoda', 'teslim', 'iptal'].includes(b.durum)) bildirildi = await this._esnafaHaber(s);
+      res.json({ siparis: s, bildirildi });
+    } catch (e) { console.error('sipariş güncelle:', e.message); hata(res, 'Güncellenemedi', 500); }
+  }
+
+  // Esnafa sipariş durumu (Merkez OTP numarasından); bağlı değilse sessizce geçer
+  async _esnafaHaber(s) {
+    try {
+      const r = (await pool.query(`SELECT i.isim, i.telefon, i.demo, u.isim AS urun FROM isletmeler i, magaza_urunler u WHERE i.id = $1 AND u.id = $2`, [s.isletme_id, s.urun_id])).rows[0];
+      const tel = require('../utils/telefon').telefonNormalize(r?.telefon);
+      if (!r || r.demo || !/^905\d{9}$/.test(String(tel))) return false;
+      const metin = {
+        kargoda: `📦 ${r.isim}, SıraGO siparişiniz (${r.urun} × ${s.adet}) kargoya verildi.${s.kargo_firma ? `\nKargo: ${s.kargo_firma}` : ''}${s.kargo_takip ? `\nTakip no: ${s.kargo_takip}` : ''}`,
+        teslim: `✅ ${r.isim}, SıraGO siparişiniz (${r.urun}) teslim edildi olarak işaretlendi. İyi kullanımlar!`,
+        iptal: `ℹ️ ${r.isim}, SıraGO siparişiniz (${r.urun}) iptal edildi. Sorunuz varsa panelinizdeki Destek'ten yazabilirsiniz.`,
+      }[s.durum];
+      await require('../services/merkezOtpBot').mesajGonder(tel, metin);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // Aylık özet: sipariş, ciro, tahsil edilen, bekleyen; ürün ve işletme bazında (demo dükkân hariç)
+  async ozet(req, res) {
+    try {
+      const donem = /^\d{4}-\d{2}$/.test(req.query.donem || '') ? req.query.donem : new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
+      const ay = `to_char(s.olusturma AT TIME ZONE 'Europe/Istanbul', 'YYYY-MM') = $1`;
+      const toplam = (await pool.query(`
+        SELECT COUNT(*) FILTER (WHERE s.durum <> 'iptal')::int AS siparis,
+          COALESCE(SUM(s.adet) FILTER (WHERE s.durum <> 'iptal'), 0)::int AS adet,
+          COALESCE(SUM(s.tutar) FILTER (WHERE s.durum <> 'iptal'), 0)::float AS ciro,
+          COALESCE(SUM(s.tutar) FILTER (WHERE s.odeme_durumu = 'odendi' AND s.durum <> 'iptal'), 0)::float AS tahsil,
+          COUNT(*) FILTER (WHERE s.durum = 'iptal')::int AS iptal
+        FROM magaza_siparisler s JOIN isletmeler i ON i.id = s.isletme_id WHERE ${GERCEK} AND ${ay}`, [donem])).rows[0];
+      const acik = (await pool.query(`
+        SELECT COUNT(*) FILTER (WHERE s.durum IN ('yeni', 'hazirlaniyor'))::int AS bekleyen,
+          COUNT(*) FILTER (WHERE s.durum = 'kargoda')::int AS kargoda,
+          COUNT(*) FILTER (WHERE s.durum <> 'iptal' AND s.odeme_durumu = 'bekliyor')::int AS odenmemis
+        FROM magaza_siparisler s JOIN isletmeler i ON i.id = s.isletme_id WHERE ${GERCEK}`)).rows[0];
+      const urunler = (await pool.query(`
+        SELECT u.id, u.isim, COALESCE(SUM(s.adet), 0)::int AS adet, COALESCE(SUM(s.tutar), 0)::float AS ciro
+        FROM magaza_siparisler s JOIN magaza_urunler u ON u.id = s.urun_id JOIN isletmeler i ON i.id = s.isletme_id
+        WHERE ${GERCEK} AND s.durum <> 'iptal' AND ${ay} GROUP BY u.id, u.isim ORDER BY ciro DESC, adet DESC`, [donem])).rows;
+      const isletmeler = (await pool.query(`
+        SELECT i.id, i.isim, COUNT(*)::int AS siparis, COALESCE(SUM(s.tutar), 0)::float AS ciro
+        FROM magaza_siparisler s JOIN isletmeler i ON i.id = s.isletme_id
+        WHERE ${GERCEK} AND s.durum <> 'iptal' AND ${ay} GROUP BY i.id, i.isim ORDER BY ciro DESC LIMIT 50`, [donem])).rows;
+      res.json({ donem, toplam: { ...toplam, ...acik }, urunler, isletmeler });
+    } catch (e) { console.error('vitrin özet:', e.message); hata(res, 'Özet alınamadı', 500); }
+  }
+
+  // İlan sil: siparişi olan ilan silinmez, yayından kalkar (sipariş geçmişi bozulmasın)
+  async ilanSil(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      const var_ = (await pool.query('SELECT 1 FROM magaza_siparisler WHERE urun_id = $1 LIMIT 1', [id])).rows.length;
+      if (var_) {
+        await pool.query("UPDATE magaza_urunler SET aktif = false, guncelleme = NOW() WHERE id = $1 AND hedef = 'esnaf'", [id]);
+        return res.json({ ok: true, pasif: true });
+      }
+      const r = await pool.query("DELETE FROM magaza_urunler WHERE id = $1 AND hedef = 'esnaf' RETURNING id", [id]);
+      if (!r.rows.length) return hata(res, 'İlan bulunamadı', 404);
+      res.json({ ok: true });
+    } catch (e) { hata(res, 'İlan silinemedi', 500); }
   }
 }
 

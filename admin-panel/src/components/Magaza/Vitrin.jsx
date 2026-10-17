@@ -70,10 +70,11 @@ export default function Vitrin({ api }) {
         <div style={{ marginTop: 24 }}>
           <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>Siparişlerim</div>
           {siparisler.map(s => (
-            <div key={s.id} style={{ display: 'flex', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
+            <div key={s.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
               <span style={{ flex: 1 }}>{s.urun_isim} × {s.adet}</span>
               {s.tutar && <span style={{ fontWeight: 700 }}>{tl(s.tutar)}</span>}
               <span style={{ color: s.durum === 'iptal' ? '#b42318' : '#1f6f4a', fontWeight: 700 }}>{DURUM[s.durum] || s.durum}</span>
+              {s.kargo_takip && <span style={{ flexBasis: '100%', fontSize: 12, color: 'var(--dim)' }}>📦 {s.kargo_firma || 'Kargo'} · takip no: <b style={{ color: 'var(--text)' }}>{s.kargo_takip}</b></span>}
             </div>
           ))}
         </div>
