@@ -1192,6 +1192,7 @@ class AdminController {
         SELECT o.*, i.isim as isletme_isim
         FROM odemeler o
         JOIN isletmeler i ON o.isletme_id = i.id
+        WHERE i.demo IS NOT TRUE   -- demo dükkânın ödemesi olmaz (2026-10-17)
         ORDER BY o.olusturma_tarihi DESC
       `);
       res.json({ odemeler: result.rows });
@@ -3795,45 +3796,46 @@ class AdminController {
       const bugun = new Date().toISOString().slice(0, 10);
       const bildirimler = [];
 
+      // Demo dükkânlar (satış için açılan örnek sayfalar) bildirim üretmez (2026-10-17). Kurallar SaaS metrikleriyle aynı:
+      // denemesi ya da ödenmiş dönemi süren işletme "ödeme yapmadı" sayılmaz; şubelerde yalnız merkez.
       // 1. Ödeme gecikmeleri
       const odemeyenler = (await pool.query(`
-        SELECT i.id, i.isim, i.paket, i.olusturma_tarihi
+        SELECT i.id, i.isim, i.paket, GREATEST(i.deneme_bitis_tarihi, i.paket_bitis_tarihi) AS bitis
         FROM isletmeler i
-        WHERE i.aktif = true
+        WHERE i.aktif = true AND i.demo IS NOT TRUE
+          AND GREATEST(COALESCE(i.deneme_bitis_tarihi, 'epoch'), COALESCE(i.paket_bitis_tarihi, 'epoch')) < NOW()
+          AND (i.grup_id IS NULL OR i.id = (SELECT MIN(m.id) FROM isletmeler m WHERE m.grup_id = i.grup_id))
           AND NOT EXISTS (SELECT 1 FROM odemeler o WHERE o.isletme_id = i.id AND o.donem = $1 AND o.durum = 'odendi')
       `, [buAy])).rows;
 
       for (const i of odemeyenler) {
-        const gunFark = Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000);
-        if (gunFark > 7) {
-          bildirimler.push({
-            tip: 'odeme_gecikme',
-            oncelik: 'yuksek',
-            baslik: `${i.isim} ödeme yapmadı`,
-            mesaj: `${buAy} dönemi için ödeme yapılmadı. Paket: ${i.paket}`,
-            tarih: new Date().toISOString(),
-            isletme_id: i.id,
-            ikon: '💰'
-          });
-        }
+        bildirimler.push({
+          tip: 'odeme_gecikme',
+          oncelik: 'yuksek',
+          baslik: `${i.isim} ödeme yapmadı`,
+          mesaj: `${buAy} dönemi için ödeme yapılmadı${i.bitis ? ` (süresi ${new Date(i.bitis).toLocaleDateString('tr-TR')} bitti)` : ''}. Paket: ${i.paket}`,
+          tarih: new Date().toISOString(),
+          isletme_id: i.id,
+          ikon: '💰'
+        });
       }
 
-      // 2. Deneme süresi dolacak işletmeler (kalan <= 2 gün)
+      // 2. Deneme süresi dolacak işletmeler (kalan <= 2 gün, ödenmiş dönemi olmayan)
       const denemeSuresiDolanlar = (await pool.query(`
-        SELECT id, isim, olusturma_tarihi FROM isletmeler WHERE aktif = true
-      `)).rows.filter(i => {
-        const gun = Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000);
-        return gun >= 5 && gun <= 7;
-      });
+        SELECT id, isim, deneme_bitis_tarihi FROM isletmeler
+        WHERE aktif = true AND demo IS NOT TRUE
+          AND deneme_bitis_tarihi BETWEEN NOW() AND NOW() + INTERVAL '2 days'
+          AND (paket_bitis_tarihi IS NULL OR paket_bitis_tarihi < deneme_bitis_tarihi)
+      `)).rows;
 
       for (const i of denemeSuresiDolanlar) {
-        const kalan = 7 - Math.floor((new Date() - new Date(i.olusturma_tarihi)) / 86400000);
+        const kalan = Math.max(0, Math.ceil((new Date(i.deneme_bitis_tarihi) - new Date()) / 86400000));
         bildirimler.push({
           tip: 'deneme_bitiyor',
           oncelik: 'orta',
           baslik: `${i.isim} deneme süresi bitiyor`,
           mesaj: `${kalan} gün kaldı. Ödeme yapılmazsa erişim kısıtlanacak.`,
-          tarih: i.olusturma_tarihi,
+          tarih: i.deneme_bitis_tarihi,
           isletme_id: i.id,
           ikon: '⏰'
         });
@@ -3841,8 +3843,8 @@ class AdminController {
 
       // 3. Yeni kayıtlar (son 7 gün)
       const yeniKayitlar = (await pool.query(`
-        SELECT id, isim, kategori, olusturma_tarihi FROM isletmeler 
-        WHERE olusturma_tarihi >= NOW() - INTERVAL '7 days' ORDER BY olusturma_tarihi DESC
+        SELECT id, isim, kategori, olusturma_tarihi FROM isletmeler
+        WHERE olusturma_tarihi >= NOW() - INTERVAL '7 days' AND demo IS NOT TRUE ORDER BY olusturma_tarihi DESC
       `)).rows;
 
       for (const i of yeniKayitlar) {
@@ -3900,7 +3902,7 @@ class AdminController {
 
       // 6. Pasif işletmeler (bu ay 0 randevu)
       const pasifler = (await pool.query(`
-        SELECT i.id, i.isim FROM isletmeler i WHERE i.aktif = true
+        SELECT i.id, i.isim FROM isletmeler i WHERE i.aktif = true AND i.demo IS NOT TRUE
           AND NOT EXISTS (SELECT 1 FROM randevular r WHERE r.isletme_id = i.id AND r.tarih >= date_trunc('month', CURRENT_DATE))
           AND i.olusturma_tarihi < NOW() - INTERVAL '7 days'
       `)).rows;
