@@ -343,3 +343,27 @@ test('tanıdık: 2 farklı gün elle yazılan, randevusu ve dükkân sözü olma
   assert.strictEqual((await db.query('SELECT aktif FROM kara_liste WHERE telefon = $1', [musteri])).rows[0].aktif, true);
   assert.strictEqual(await wa._tanidikKomut(1, 'yarın 3te Ahmet saç'), null, 'diğer komutlar sekretere gider');
 });
+
+// 2026-10-18 canlı: anlaşılmayan hizmet cevabına aynı liste 4 kez gitti; 428 kopmasından sonra bot 22 saat ölü kaldı
+test('hizmet: liste numaralı, tekrar sorarken nasıl seçileceği söylenir; "traş" = "Tıraşı"', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  const yaz = await konusma(db, '905550002001');
+  const ilk = await yaz('randevu almak istiyorum');
+  assert.match(ilk, /1\. Saç Kesimi · 300₺\n2\. Sakal Tıraşı · 150₺/, ilk);
+  assert.match(await yaz('abi şöyle bişey'), /anlayamadım[\s\S]*numarasını yazmanız yeterli/);
+  assert.match(await yaz('sakal traşı'), /Hangi gün/);
+});
+
+test('ölü bağlantı: "bağlı" görünen ama soketi kapanmış oturum yeniden başlatılır', async () => {
+  ortam();
+  const wa = require(path.join(SRC, 'services', 'whatsappWeb'));
+  const cagri = [];
+  wa.isletmeBaslat = async (...a) => { cagri.push(a); };
+  wa.isletmeler[901] = { durum: 'bagli', isim: 'Elit', sock: { ws: { isClosed: true }, end() {} } };
+  wa._oluBaglanti(901, 'test');
+  assert.deepStrictEqual(cagri, [[901, 'Elit', false]]);
+  assert.strictEqual(wa.isletmeler[901].durum, 'baslatiyor');
+  wa._oluBaglanti(901, 'test');
+  assert.strictEqual(cagri.length, 1, 'aynı anda ikinci tamir başlamaz');
+});

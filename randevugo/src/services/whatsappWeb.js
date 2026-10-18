@@ -70,6 +70,7 @@ class WhatsAppWebService extends EventEmitter {
         }
       }
       console.log(`📱 ${result.rows.length} işletme için WP servisi başlatıldı (Baileys)`);
+      this.bekciBaslat();
     } catch (err) {
       console.error('❌ WP servisleri başlatılamadı:', err.message);
     }
@@ -112,7 +113,7 @@ class WhatsAppWebService extends EventEmitter {
     // State'i koru (reconnect durumlarında) — kullanıcı yeniBaslat derse sayaçları sıfırla
     const onceki = this.isletmeler[isletmeId];
     this.isletmeler[isletmeId] = {
-      sock: null, durum: 'baslatiyor', qr: null, qrBase64: null,
+      sock: null, durum: 'baslatiyor', qr: null, qrBase64: null, isim: isletmeIsim,
       _baslatiliyor: true,
       qrAttempts: yeniBaslat ? 0 : (onceki?.qrAttempts || 0),
       basariliOturumVardi: yeniBaslat ? false : (onceki?.basariliOturumVardi || false),
@@ -298,9 +299,12 @@ class WhatsAppWebService extends EventEmitter {
             } else {
               const bekleme = Math.min(3000 * ra, 15000);
               console.log(`🔄 Yeniden bağlanılıyor: ${isletmeIsim} (${ra}/5, ${bekleme/1000}sn)`);
-              this.isletmeler[isletmeId].reconnectAttempts = ra;
+              // Canlı hata (2026-10-18): durum 'bagli' kalıyordu → isletmeBaslat "zaten bağlı" deyip dönüyor,
+              // bot saatlerce ölü kalıyordu (Elit Barber 428 sonrası 22 saat). Durum ve sock burada sıfırlanır.
+              const st = this.isletmeler[isletmeId];
+              st.reconnectAttempts = ra; st.durum = 'baslatiyor'; st.sock = null; st._baslatiliyor = false;
               setTimeout(() => {
-                this.isletmeBaslat(isletmeId, isletmeIsim, true);
+                this.isletmeBaslat(isletmeId, isletmeIsim, false);
               }, bekleme);
             }
           } else if (shouldReconnect && !this.isletmeler[isletmeId]?.basariliOturumVardi) {
@@ -609,6 +613,32 @@ class WhatsAppWebService extends EventEmitter {
     if (this._sekreterGiden.size > 500) this._sekreterGiden = new Set([...this._sekreterGiden].slice(-200));
   }
 
+  // Bağlı görünüp soketi kapanmış oturum: yeniden başlat (gönderim hatası ya da bekçi yakalar)
+  _oluBaglanti(isletmeId, nereden) {
+    const st = this.isletmeler[isletmeId];
+    if (!st || st._oluTamir) return;
+    st._oluTamir = true;
+    console.log(`🩺 [${isletmeId}] bağlantı ölü görünüyor (${nereden}) — yeniden bağlanılıyor`);
+    try { st.sock?.end?.(undefined); } catch (e) {}
+    st.sock = null; st.durum = 'baslatiyor'; st._baslatiliyor = false;
+    setTimeout(() => { if (this.isletmeler[isletmeId]) this.isletmeler[isletmeId]._oluTamir = false; }, 60000);
+    this.isletmeBaslat(isletmeId, st.isim || `#${isletmeId}`, false).catch(e => console.error('Ölü bağlantı tamiri:', e.message));
+  }
+
+  // Bekçi: 2 dk'da bir "bağlı" görünen oturumların soketi gerçekten açık mı bakılır
+  bekciBaslat() {
+    if (this._bekci) return;
+    this._bekci = setInterval(() => {
+      for (const [id, st] of Object.entries(this.isletmeler)) {
+        if (st?.durum !== 'bagli') continue;
+        const ws = st.sock?.ws;
+        const kapali = !st.sock || ws?.isClosed === true || ws?.isClosing === true || (ws && 'readyState' in ws && ws.readyState > 1);
+        if (kapali) this._oluBaglanti(Number(id), 'bekçi');
+      }
+    }, 2 * 60000);
+    this._bekci.unref?.();
+  }
+
   async mesajGonder(isletmeId, hedef, mesaj, butonlar = null) {
     const state = this.isletmeler[isletmeId];
     if (!state || state.durum !== 'bagli') return { success: false, hata: 'Bağlı değil' };
@@ -633,6 +663,7 @@ class WhatsAppWebService extends EventEmitter {
       return { success: true };
     } catch (err) {
       console.error(`❌ mesajGonder hata [${isletmeId}]:`, err.message);
+      if (/Connection Closed|Connection Terminated/i.test(err.message)) this._oluBaglanti(isletmeId, 'gönderim');
       return { success: false, hata: err.message };
     }
   }

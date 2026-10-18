@@ -56,7 +56,7 @@ class HatirlatmaService {
       `);
       for (const r of result.rows) {
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏰ *Randevu Teyidi*\n\nMerhaba ${r.musteri_isim || ''}! Randevunuza *1 saat* kaldı.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}\n📍 ${r.isletme_adres || ''}\n\nGelebilecek misiniz?\n\n*1.* ✅ Geliyorum\n*2.* ❌ İptal Et`;
+        const mesaj = `⏰ *Randevu Teyidi*\n\nMerhaba ${r.musteri_isim || ''}! Randevunuza *1 saat* kaldı.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nGelebilecek misiniz?\n\n*1.* ✅ Geliyorum\n*2.* ❌ İptal Et`;
         await this.mesajGonder(r, mesaj);
         await pool.query('UPDATE randevular SET teyit_gonderildi = true, hatirlatma_gonderildi = true WHERE id = $1', [r.id]);
         console.log(`📩 Teyit mesajı gönderildi: ${r.musteri_isim} - ${saat}`);
@@ -86,7 +86,7 @@ class HatirlatmaService {
         const tarih = new Date(r.tarih);
         const gun = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][tarih.getDay()];
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `🗓️ *Yarınki Randevunuz*\n\nMerhaba ${r.musteri_isim || ''}! Yarın saat ${saat}'de randevunuz var.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ Yarın (${gun}) saat ${saat}\n📍 ${r.isletme_adres || ''}\n\nGörüşmek üzere! 😊`;
+        const mesaj = `🗓️ *Yarınki Randevunuz*\n\nMerhaba ${r.musteri_isim || ''}! Yarın saat ${saat}'de randevunuz var.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ Yarın (${gun}) saat ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nGörüşmek üzere! 😊`;
         await this.mesajGonder(r, mesaj);
         // hatirlatma_gonderildi true yaparak 24h mesajının tekrar gitmesini engelle
         await pool.query('UPDATE randevular SET hatirlatma_gonderildi = true WHERE id = $1', [r.id]);
@@ -115,7 +115,7 @@ class HatirlatmaService {
       for (const r of result.rows) {
         if (r.hatirlatma_zinciri_aktif === false) continue;
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏰ *Randevunuza 15 dakika kaldı!*\n\nMerhaba ${r.musteri_isim || ''}!\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}\n� ${r.isletme_adres || ''}\n\nYola çıktınız mı? 🚗`;
+        const mesaj = `⏰ *Randevunuza 15 dakika kaldı!*\n\nMerhaba ${r.musteri_isim || ''}!\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nYola çıktınız mı? 🚗`;
         await this.mesajGonder(r, mesaj);
         await pool.query('UPDATE randevular SET onbes_dk_gonderildi = true WHERE id = $1', [r.id]);
         console.log(`⏰ 15dk hatırlatma: ${r.musteri_isim} - ${saat}`);
