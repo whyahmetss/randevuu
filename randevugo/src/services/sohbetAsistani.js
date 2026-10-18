@@ -22,6 +22,7 @@ const M = {
   tr: {
     selam: (i, l) => `Merhaba, ben ${i} asistanıyım 😊 Size nasıl yardımcı olabilirim?\n\nRandevu için gün ve saati yazmanız yeterli (ör. "yarın 3'te saç kesimi").` + (l ? `\nDilerseniz saatinizi buradan kendiniz de seçebilirsiniz:\n${l}` : ''),
     hizmet: (liste) => `Tabii! Hangi hizmet için randevu alalım?\n${liste}`,
+    hizmetTekrar: (liste) => `Hangi hizmeti istediğinizi anlayamadım 🙏 Listeden numarasını yazmanız yeterli (ör. *1*):\n${liste}`,
     usta: (liste) => `Tercih ettiğiniz bir usta var mı? ${liste}\nFark etmezse "fark etmez" yazabilirsiniz.`,
     gun: () => `Tabii! Hangi gün gelmek istersiniz?`,
     saatler: (g, l) => `${g} için boş saatler: ${l}.\nSize hangisi uygun?`,
@@ -297,7 +298,11 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
     if (hizmetler.length === 1) alan.secilen_hizmet_id = hizmetler[0].id;
     else {
       await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'hizmet' });
-      const liste = (d._adaylar || hizmetler).slice(0, 10).map(h => `• ${h.isim}${Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat).toLocaleString('tr-TR')}₺` : ''}`).join('\n');
+      // Tam liste numaralı ("2" yazmak yeter); adaylar madde işaretli (numaralar tam listeye göre)
+      const satir = (h, i) => `${d._adaylar ? '•' : `${i + 1}.`} ${h.isim}${Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat).toLocaleString('tr-TR')}₺` : ''}`;
+      const liste = (d._adaylar || hizmetler).slice(0, 15).map(satir).join('\n');
+      // Canlı hata (2026-10-17): anlaşılmayan cevaba aynı liste 4 kez gitti; tekrar sorarken nasıl seçileceği söylenir
+      if (d.sohbet_bekleyen === 'hizmet' && !d._adaylar && T.hizmetTekrar) return T.hizmetTekrar(liste);
       return T.hizmet(liste);
     }
   }
@@ -395,11 +400,12 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
 
 // Mesajdaki kelimelerle en çok örtüşen hizmet(ler). Kelime eşleşmesi ortak ön ek ile: "kesimi"~"kesim", "boyatmak"~"boyama"
 function hizmetAday(metin, hizmetler) {
-  const kel = sade(metin).split(/[^a-z0-9]+/).filter(w => w.length >= 3);
+  const yaz = (x) => sade(x).replace(/t[iı]?ras/g, 'tras');   // tıraş / traş / tiraş aynı
+  const kel = yaz(metin).split(/[^a-z0-9]+/).filter(w => w.length >= 3);
   const benzer = (k, p) => { let i = 0; while (i < k.length && k[i] === p[i]) i++; return i >= Math.min(4, k.length, p.length) && Math.min(k.length, p.length) >= 3; };
   let en = 0, adaylar = [];
   for (const h of hizmetler) {
-    const parca = sade(h.isim).split(/[^a-z0-9]+/).filter(p => p.length >= 3);   // "(Erkek)" sonrası boş parça her şeyle eşleşiyordu
+    const parca = yaz(h.isim).split(/[^a-z0-9]+/).filter(p => p.length >= 3);   // "(Erkek)" sonrası boş parça her şeyle eşleşiyordu
     const puan = kel.filter(k => parca.some(p => benzer(k, p))).length;
     if (puan > en) { en = puan; adaylar = [h]; } else if (puan && puan === en) adaylar.push(h);
   }
