@@ -349,6 +349,9 @@ class WhatsAppWebService extends EventEmitter {
             else this._elleYazdi(msg, isletmeId);
             continue;
           }
+          if (!this._sonGelen) this._sonGelen = new Map();
+          for (const j of [msg.key.remoteJid, msg.key.remoteJidAlt]) if (j) this._sonGelen.set(this._elleAnahtar(isletmeId, j), Date.now());
+          if (this._sonGelen.size > 3000) for (const [k, t] of this._sonGelen) if (Date.now() - t > 60 * 1000) this._sonGelen.delete(k);
           if (!msg.message) continue;
           try {
             await this.mesajIsle(msg, isletmeId);
@@ -488,6 +491,11 @@ class WhatsAppWebService extends EventEmitter {
     if (!msg?.message || !this._getMsgText(msg) || !/@(s\.whatsapp\.net|lid)$/.test(jid)) return;
     const ts = Number(msg.messageTimestamp?.low ?? msg.messageTimestamp ?? 0) * 1000;
     if (ts && Date.now() - ts > 2 * 60 * 1000) return;                 // yeniden bağlanınca gelen eski mesajlar sayılmaz
+    // WhatsApp Business karşılama/mesai dışı otomatik mesajı da fromMe gelir: esnaf yazmadı, susturma yok (2026-10-19)
+    if (require('./satisBot')._test.otomatikYanit(this._getMsgText(msg))) return;
+    // Müşterinin mesajından birkaç sn sonra giden mesajı insan yazamaz → WA Business otomatik cevabı
+    const gelen = this._sonGelen?.get(this._elleAnahtar(isletmeId, jid));
+    if (gelen && Date.now() - gelen < 3000) return;
     // Gönderimde olay, sendMessage dönmeden gelebilir: kısa bekleyip botun mesajı mı bakılır
     setTimeout(() => {
       if (this._botGiden?.has(msg.key.id) || this._sekreterGiden?.has(msg.key.id)) return;
