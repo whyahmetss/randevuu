@@ -151,6 +151,7 @@ router.put('/admin/isletmeler/:id', authMiddleware, superAdminMiddleware, (req, 
 router.delete('/admin/isletmeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeSil(req, res));
 router.get('/admin/saas-metrikleri', authMiddleware, superAdminMiddleware, (req, res) => adminController.saasMetrikleri(req, res));
 router.get('/admin/isletmeler/:id/detay', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeDetay(req, res));
+router.post('/admin/isletmeler/:id/randevu-elle', authMiddleware, superAdminMiddleware, (req, res) => adminController.randevuElleEkleAdmin(req, res));
 router.post('/admin/isletmeler/:id/deneme-uzat', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeDenemeUzat(req, res));
 router.put('/admin/isletmeler/:id/not', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeNotEkle(req, res));
 router.post('/admin/impersonate/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.impersonate(req, res));

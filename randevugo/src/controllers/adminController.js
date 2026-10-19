@@ -1097,9 +1097,14 @@ class AdminController {
   }
 
   // Esnafın elle eklediği randevu (kapıdan gelen müşteri, telefonla arayan, boş saate dokun) — 2026-10-13
-  async randevuElleEkle(req, res) {
+  // Patron (superadmin) İşletmeler > detay > Randevular sekmesinden müşteri adına elle randevu (OTP yok)
+  async randevuElleEkleAdmin(req, res) {
+    return this.randevuElleEkle(req, res, parseInt(req.params.id));
+  }
+
+  async randevuElleEkle(req, res, adminIsletmeId) {
     try {
-      const isletmeId = req.kullanici.isletme_id;
+      const isletmeId = adminIsletmeId || req.kullanici.isletme_id;
       const randevuService = require('../services/randevu');
       const hizmetId = parseInt(req.body.hizmet_id);
       if (!hizmetId) return res.status(400).json({ hata: 'Hizmet seçin' });

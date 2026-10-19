@@ -8376,6 +8376,7 @@ function SuperAdminPanel({ kullanici }) {
                 {/* ===== RANDEVULAR TAB ===== */}
                 {detayTab === "randevular" && (
                   <>
+                    <AdminRandevuEkle isletmeId={d.isletme?.id} hizmetler={d.hizmetler || []} calisanlar={d.calisanlar || []} eklendi={() => isletmeDetayYukle(d.isletme?.id)} />
                     <div style={{ fontWeight: 600, fontSize: 16, color: "var(--text)", marginBottom: 16 }}>📅 Randevu İstatistikleri</div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 20 }}>
                       {[
@@ -8644,4 +8645,46 @@ export default function App() {
     </>);
   }
   return <Dashboard kullanici={kullanici} />;
+}
+
+// Patron: işletme adına elle randevu (müşteri OTP'si olmadan)
+function AdminRandevuEkle({ isletmeId, hizmetler, calisanlar, eklendi }) {
+  const yarin = new Date(Date.now() + 864e5).toLocaleDateString("sv-SE");
+  const [f, setF] = useState({ musteri_isim: "", musteri_telefon: "", hizmet_id: "", calisan_id: "", tarih: yarin, saat: "" });
+  const [durum, setDurum] = useState(null);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const kaydet = async () => {
+    if (!f.hizmet_id || !f.saat || !f.musteri_telefon) return setDurum({ hata: "Telefon, hizmet ve saat zorunlu" });
+    setDurum({ yukleniyor: true });
+    const r = await api.post(`/admin/isletmeler/${isletmeId}/randevu-elle`, f);
+    if (r.hata) return setDurum({ hata: r.hata });
+    setDurum({ ok: `Randevu eklendi: ${f.tarih} ${f.saat}` });
+    setF({ ...f, musteri_isim: "", musteri_telefon: "", saat: "" });
+    eklendi?.();
+  };
+  const inp = { padding: "8px 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, minWidth: 0 };
+  return (
+    <div style={{ background: "var(--bg)", borderRadius: 14, padding: 16, marginBottom: 20 }}>
+      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", marginBottom: 10 }}>➕ Elle Randevu Ekle</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+        <input style={inp} placeholder="Müşteri adı" value={f.musteri_isim} onChange={set("musteri_isim")} />
+        <input style={inp} placeholder="Telefon (05xx...)" value={f.musteri_telefon} onChange={set("musteri_telefon")} />
+        <select style={inp} value={f.hizmet_id} onChange={set("hizmet_id")}>
+          <option value="">Hizmet seç</option>
+          {hizmetler.map(h => <option key={h.id} value={h.id}>{h.isim}{h.fiyat ? ` · ${h.fiyat}₺` : ""}</option>)}
+        </select>
+        <select style={inp} value={f.calisan_id} onChange={set("calisan_id")}>
+          <option value="">Usta: fark etmez</option>
+          {calisanlar.map(c => <option key={c.id} value={c.id}>{c.isim}</option>)}
+        </select>
+        <input style={inp} type="date" value={f.tarih} onChange={set("tarih")} />
+        <input style={inp} type="time" step="300" value={f.saat} onChange={set("saat")} />
+      </div>
+      <div className="row gap-10" style={{ marginTop: 10, alignItems: "center" }}>
+        <button className="btn btn-sm" disabled={durum?.yukleniyor} onClick={kaydet} style={{ background: "#1f6f4a", color: "#fff", border: "none" }}>{durum?.yukleniyor ? "Ekleniyor…" : "Randevu ekle"}</button>
+        {durum?.hata && <span style={{ fontSize: 12, color: "#b42318" }}>{durum.hata}</span>}
+        {durum?.ok && <span style={{ fontSize: 12, color: "#1f6f4a" }}>{durum.ok}</span>}
+      </div>
+    </div>
+  );
 }
