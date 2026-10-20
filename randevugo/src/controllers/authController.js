@@ -263,8 +263,35 @@ class AuthController {
           kullanici.sifre_degistirmeli = f?.sifre_degistirmeli === true;
         } catch (e) { kullanici.sifre_degistirmeli = false; }
         kullanici.impersonated = req.kullanici.impersonated === true;
+        try {
+          kullanici.profil_foto = (await pool.query('SELECT profil_foto FROM admin_kullanicilar WHERE id = $1', [kullanici.id])).rows[0]?.profil_foto || null;
+        } catch (e) { kullanici.profil_foto = null; }
       }
       res.json({ kullanici });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Profil fotoğrafı (2026-10-20): panel 256 px'e küçültüp gönderir; null → kaldır
+  async profilFoto(req, res) {
+    try {
+      const veri = req.body?.veri ?? null;
+      if (veri !== null && !(/^data:image\/(jpeg|png|webp);base64,/.test(String(veri)) && String(veri).length <= 400_000)) {
+        return res.status(400).json({ hata: 'Fotoğraf JPG, PNG ya da WEBP olmalı ve çok büyük olmamalı' });
+      }
+      const eski = (await pool.query('SELECT profil_foto FROM admin_kullanicilar WHERE id = $1', [req.kullanici.id])).rows[0]?.profil_foto || null;
+      await pool.query('UPDATE admin_kullanicilar SET profil_foto = $1 WHERE id = $2', [veri, req.kullanici.id]);
+      // Esnafın fotoğrafı müşterinin gördüğü randevu sayfasında da logo olur (kullanıcı kararı 2026-10-20).
+      // Kaldırınca logo yalnız bu fotoğrafsa silinir; Randevu Sayfam'dan ayrıca yüklenen logo korunur.
+      const isletmeId = req.kullanici.rol !== 'superadmin' ? req.kullanici.isletme_id : null;
+      if (isletmeId) {
+        if (veri) await pool.query(`INSERT INTO isletme_gorselleri (isletme_id, tur, veri) VALUES ($1, 'logo', $2)
+          ON CONFLICT (isletme_id, tur) DO UPDATE SET veri = EXCLUDED.veri, guncelleme = NOW()`, [isletmeId, veri]);
+        else if (eski) await pool.query(`DELETE FROM isletme_gorselleri WHERE isletme_id = $1 AND tur = 'logo' AND veri = $2`, [isletmeId, eski]);
+        await pool.query('UPDATE isletmeler SET sayfa_guncelleme = NOW() WHERE id = $1', [isletmeId]);   // sayfadaki ?v= önbelleği yenilensin
+      }
+      res.json({ profil_foto: veri });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

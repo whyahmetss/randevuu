@@ -33,6 +33,7 @@ router.post('/auth/google', (req, res) => authController.google(req, res));
 router.post('/auth/sifre-kod', (req, res) => authController.sifreKod(req, res));
 router.post('/auth/sifre-yenile', (req, res) => authController.sifreYenile(req, res));
 router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim(req, res));
+router.put('/auth/profil-foto', authMiddleware, (req, res) => authController.profilFoto(req, res));
 router.post('/auth/sifre-degistir', authMiddleware, (req, res) => authController.sifreDegistir(req, res));
 
 // ==================== İLETİŞİM (public) ====================
@@ -75,6 +76,7 @@ router.get('/grup/raporlar', authMiddleware, rolKontrol('grup_sahibi'), (req, re
 
 // ==================== ADMIN PANEL ====================
 router.get('/randevular', authMiddleware, odemeKontrol, (req, res) => adminController.randevulariGetir(req, res));
+router.get('/randevular/bos-saatler', authMiddleware, (req, res) => adminController.bosSaatler(req, res));
 router.post('/randevular/elle', authMiddleware, odemeKontrol, (req, res) => adminController.randevuElleEkle(req, res));
 router.get('/randevular/:id/islem', authMiddleware, (req, res) => adminController.randevuIslemGetir(req, res));
 router.put('/randevular/:id/islem', authMiddleware, (req, res) => adminController.randevuIslemKaydet(req, res));
@@ -247,6 +249,7 @@ router.get('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (
 router.post('/admin/satis-bot/numaralar', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraEkle(req, res));
 router.delete('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraSil(req, res));
 router.put('/admin/satis-bot/numaralar/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraDurumGuncelle(req, res));
+router.post('/admin/satis-bot/numaralar/:id/eslestir', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotNumaraEslestir(req, res));
 router.post('/admin/satis-bot/numaralar/:id/session-temizle', authMiddleware, superAdminMiddleware, (req, res) => adminController.satisBotSessionTemizle(req, res));
 
 // ==================== SıraGO MERKEZ OTP BOT (süper admin) ====================
@@ -269,6 +272,16 @@ router.get('/admin/segmentasyon', authMiddleware, superAdminMiddleware, (req, re
 router.get('/davet', authMiddleware, async (req, res) => {
   try { res.json(await require('../utils/davet').davetBilgi(req.kullanici.isletme_id)); }
   catch (e) { res.status(500).json({ hata: e.message }); }
+});
+// Öncü Esnaf (patron): sayaç + liste, rozet ver / geri al
+router.get('/admin/oncu', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { res.json(await require('../utils/oncu').oncuListe()); } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+router.post('/admin/oncu/:id', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { res.json({ oncu_no: await require('../utils/oncu').oncuVer(parseInt(req.params.id)) }); } catch (e) { res.status(400).json({ hata: e.message }); }
+});
+router.delete('/admin/oncu/:id', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { await require('../utils/oncu').oncuKaldir(parseInt(req.params.id)); res.json({ ok: true }); } catch (e) { res.status(400).json({ hata: e.message }); }
 });
 router.get('/oncu', authMiddleware, async (req, res) => {
   try { res.json(await require('../utils/oncu').oncuDurum(req.kullanici.isletme_id)); }

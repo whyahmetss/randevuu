@@ -94,6 +94,10 @@ const SELAM = { test: (t) => selamMi(t) };
 const BILGI = /\b(fiyat|ucret|kac para|ne kadar|kac tl|adres|nerede|neredesiniz|konum|yol tarifi|kacta acil|kacta kapan|calisma saat|acik misiniz|park|price|how much|cost|address|where|opening hours|سعر|كم|عنوان|أين)/;
 const DUKKAN_SORU = /\b(hizmet|kampanya|indirim|odeme|kart|nakit|iban|kac dakika|ne kadar surer|bekleme|sira|acik mi|acik misin|calisiyor mu|bugun acik|yarin acik|pazar acik|rezervasyon|kac kisi)/;
 const RANDEVU = /\b(randevu|sira al|yer var|musait|bos yer|bos saat|gelebilir miyim|gelmek istiyorum|appointment|book|booking|موعد|حجز)/;
+// Niteleyicisiz "tıraş" ("tıraş olmak istiyorum", "traşa gelsem") belirsiz: berberde çoğu zaman saç kesimi, sakal da
+// olabilir (canlı 2026-10-19: liste yalnız Sakal/Çocuk tıraşı gösterdi, saç kesimi yoktu). Tahmin edilmez, sorulur.
+const TIRAS_NITELEYICI = /\b(sakal|sac|cocuk|ense|kafa|bebek|damat|ustura|kirli|yuz|perma)/;
+const tirasBelirsiz = (s) => /\bt[iı]?ras/.test(s) && !TIRAS_NITELEYICI.test(s);
 const DILIM = (s) => /\bsabah|morning|صباح/.test(s) ? 'sabah' : /\b(ogle|ogleden sonra|ogleden|afternoon|بعد الظهر)/.test(s) ? 'ogle' : /\b(aksam|aksamustu|evening|مساء)/.test(s) ? 'aksam' : '';
 
 function gunYazi(tarih, dil) {
@@ -133,7 +137,7 @@ Bugün: ${bugun} (${GUNLER[haftaGunu(bugun)]}). İşletme: ${isletme.isim}. Çal
 Hizmetler (id: ad): ${hizmetler.map(h => `${h.id}: ${h.isim}`).join('; ')}
 Çalışanlar (id: ad): ${calisanlar.map(c => `${c.id}: ${c.isim}`).join('; ') || 'yok'}
 Bilinenler: hizmet=${durum.secilen_hizmet_id || 'yok'}, tarih=${durum.secilen_tarih || 'yok'}, saat=${durum.secilen_saat || 'yok'}. Asistanın son sorusu: ${durum.sohbet_bekleyen || 'yok'}.
-Kurallar: Tarihi YYYY-MM-DD ver ("yarın", "cuma", "haftaya salı" gibi ifadeleri bugüne göre çevir). Saati HH:MM ver; "3'te", "3 gibi" gibi saatler çalışma saatine göre öğleden sonradır (15:00). Belirsiz zaman ("öğleden sonra") için saat verme, dilim ver. Hizmet adı tam geçmese de en yakın hizmetin id'sini ver ("saç" → saç kesimi). Mesajda olmayan bilgiyi uydurma, boş bırak.`;
+Kurallar: Yalnız "tıraş/traş olmak" denip ne tıraşı olduğu söylenmediyse hizmet_id verme (saç kesimi de olabilir). Tarihi YYYY-MM-DD ver ("yarın", "cuma", "haftaya salı" gibi ifadeleri bugüne göre çevir). Saati HH:MM ver; "3'te", "3 gibi" gibi saatler çalışma saatine göre öğleden sonradır (15:00). Belirsiz zaman ("öğleden sonra") için saat verme, dilim ver. Hizmet adı tam geçmese de en yakın hizmetin id'sini ver ("saç" → saç kesimi). Mesajda olmayan bilgiyi uydurma, boş bırak.`;
   try {
     const j = await g.geminiIstek({
       systemInstruction: { parts: [{ text: sistem }] },
@@ -191,7 +195,7 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
       if (sonuc.niyet === 'bilgi' && !BILGI.test(s) && !DUKKAN_SORU.test(s)) sonuc.niyet = 'diger';
       if (!sonuc.tarih && /^\d{4}-\d{2}-\d{2}$/.test(yz.tarih || '') && yz.tarih >= bugun && yz.tarih <= gunEkle(bugun, 90)) sonuc.tarih = yz.tarih;
       if (!sonuc.saat && /^\d{2}:\d{2}$/.test(yz.saat || '')) sonuc.saat = yz.saat;
-      if (!sonuc.hizmetId && hizmetler.some(h => h.id === yz.hizmet_id)) sonuc.hizmetId = yz.hizmet_id;
+      if (!sonuc.hizmetId && hizmetler.some(h => h.id === yz.hizmet_id) && !tirasBelirsiz(s)) sonuc.hizmetId = yz.hizmet_id;
       if (!sonuc.calisanId && calisanlar.some(c => c.id === yz.calisan_id)) sonuc.calisanId = yz.calisan_id;
       if (yz.fark_etmez) sonuc.farkEtmez = true;
       if (!sonuc.dilim && yz.dilim) sonuc.dilim = yz.dilim;
@@ -409,6 +413,14 @@ function hizmetAday(metin, hizmetler) {
     const puan = kel.filter(k => parca.some(p => benzer(k, p))).length;
     if (puan > en) { en = puan; adaylar = [h]; } else if (puan && puan === en) adaylar.push(h);
   }
+  // Niteleyicisiz "tıraş": saç kesimi ve saç+sakal da adaylara girer (hizmet listesindeki sırayla)
+  if (tirasBelirsiz(' ' + sade(metin) + ' ')) {
+    for (const h of hizmetler) {
+      const ad = yaz(h.isim);
+      if ((/kesim/.test(ad) || (/\bsac\b/.test(ad) && /sakal/.test(ad))) && !adaylar.includes(h)) adaylar.push(h);
+    }
+    adaylar.sort((a, b) => hizmetler.indexOf(a) - hizmetler.indexOf(b));
+  }
   return adaylar;
 }
 
@@ -423,12 +435,15 @@ function fiyatCevap(s, hizmetler, d, dil) {
   if (!fiyatli.length) return dil === 'tr' ? 'Fiyatı dükkânda öğrenebilirsiniz.' : null;
   return fiyatli.slice(0, 10).map(x => `• ${tl(x)}`).join('\n');
 }
+// Esnafın elle konuştuğu kişi = en az 2 farklı gün elle yazdığı (tanıdık ölçüsüyle aynı). Eskiden tek bir elle_sessiz kaydı
+// yetiyordu; WhatsApp Business karşılama mesajı da "elle" sayıldığı için (2026-10-19'a kadar) gerçek müşterinin selamı
+// da kalıcı olarak cevapsız kalıyordu.
 async function selamaCevapVer(isletmeId, tel) {
   try {
     const r = (await pool.query(
       `SELECT EXISTS (SELECT 1 FROM randevular r JOIN musteriler m ON m.id = r.musteri_id WHERE r.isletme_id = $1 AND m.telefon = $2) AS musteri,
-              EXISTS (SELECT 1 FROM elle_sessiz WHERE isletme_id = $1 AND jid = $2) AS elle`, [isletmeId, tel])).rows[0];
-    return r.musteri || !r.elle;
+              (SELECT COUNT(*) FROM elle_yazisma WHERE isletme_id = $1 AND telefon = $2)::int AS elle_gun`, [isletmeId, tel])).rows[0];
+    return r.musteri || r.elle_gun < 2;
   } catch (e) { return true; }   // tablo yoksa eski davranış
 }
 

@@ -20,7 +20,7 @@ test('satış botu: ilgi gösterene kendi demo sayfası bir kez gider, yazdığ�
 
   assert.deepStrictEqual(await bot._demoDurum(konusma), { gonderildi: false });
   const m = await bot._demoGonder(konusma);
-  assert.match(m, /Ahmet Berber için randevu sayfanız:\n.*\/book\//);
+  assert.match(m, /Ahmet Berber için hazırladığım örnek randevu sayfası \(kayıt ya da ödeme yok, yalnız bakmak için\):\n.*\/book\//);
   assert.strictEqual(await bot._demoGonder(konusma), null, 'ikinci kez gönderilmez');
   assert.strictEqual((await db.query('SELECT demo_gonderildi FROM satis_konusmalar')).rows[0].demo_gonderildi, true);
 

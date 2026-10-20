@@ -54,6 +54,7 @@ import Konusmalar from './components/SatisBot/Konusmalar';
 import BayiYonetimi from './components/Bayi/BayiYonetimi';
 import BackendHealth from './components/BackendHealth';
 import SifreBelirle, { SifreFormu } from './components/SifreDegistir';
+import ProfilFoto, { profilFotoKaydet } from './components/ProfilFoto';
 import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
 import BildirimAktivasyon from './components/BildirimAktivasyon';
 import DukkanModuPopup from './components/DukkanModuPopup';
@@ -1296,6 +1297,7 @@ function Dashboard({ kullanici }) {
   const [yogunlukTahmini, setYogunlukTahmini] = useState(null);
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [profilPopover, setProfilPopover] = useState(false);
+  const [profilFoto, setProfilFoto] = useState(kullanici?.profil_foto || null);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
   const [kapaliDuyurular, setKapaliDuyurular] = useState(() => { try { return JSON.parse(localStorage.getItem("kapali_duyurular") || "[]"); } catch { return []; } });
@@ -2099,11 +2101,7 @@ function Dashboard({ kullanici }) {
                   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
                   cursor: "pointer"
                 }} onClick={() => setProfilPopover(!profilPopover)}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 10,
-                    background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 13, fontWeight: 600, color: "#fff"
-                  }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
+                  <ProfilFoto foto={profilFoto} isim={ayarlar.isim} boyut={32} radius={10} />
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", lineHeight: 1.2 }}>{ayarlar.isim}</div>
                     <div style={{ fontSize: 10, color: "var(--dim)" }}>{etiket(ayarlar.kategori) || "İşletme"}</div>
@@ -2119,14 +2117,13 @@ function Dashboard({ kullanici }) {
                       boxShadow: "0 8px 32px rgba(0,0,0,.15)"
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 12,
-                          background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 16, fontWeight: 600, color: "#fff"
-                        }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
+                        <ProfilFoto foto={profilFoto} isim={ayarlar.isim} boyut={48} radius={14} api={api} degisti={setProfilFoto} />
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{ayarlar.isim}</div>
                           <div style={{ fontSize: 11, color: "var(--dim)" }}>{etiket(ayarlar.kategori) || "İşletme"}</div>
+                          {profilFoto
+                            ? <button onClick={async () => { try { setProfilFoto(await profilFotoKaydet(api, null)); } catch (e) { alert(e.message); } }} style={{ marginTop: 4, padding: 0, border: "none", background: "none", color: "#b42318", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Fotoğrafı kaldır</button>
+                            : <div style={{ marginTop: 4, fontSize: 11, color: "var(--dim)" }}>📷 Fotoğraf eklemek için dokun</div>}
                         </div>
                       </div>
                       {paketDurum && (
@@ -3915,6 +3912,7 @@ function Dashboard({ kullanici }) {
 
 // ==================== SUPER ADMIN PANEL ====================
 function SuperAdminPanel({ kullanici }) {
+  const [profilFoto, setProfilFoto] = useState(kullanici?.profil_foto || null);
   // Ekip yetkisi (config/ekip.js ile aynı anahtarlar). ekip_yetkileri yoksa kurucu: her şey açık.
   // Asıl kontrol sunucuda; burada yalnız görmediği bölümü menüde göstermemek için.
   const ekipYetki = Array.isArray(kullanici?.ekip_yetkileri) ? kullanici.ekip_yetkileri : null;
@@ -4657,9 +4655,12 @@ function SuperAdminPanel({ kullanici }) {
             <div className="brand-sub">Süper Admin</div>
           </div>
         </div>
-        <div className="sidebar-user">
+        <div className="sidebar-user" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <ProfilFoto foto={profilFoto} isim={kullanici.isim || kullanici.email} boyut={40} radius={12} api={api} degisti={setProfilFoto} />
+          <div style={{ minWidth: 0 }}>
           <div className="u-email">{kullanici.email}</div>
           <span className="sidebar-badge gold">{patron ? '👑 PATRON' : ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
+          </div>
         </div>
         <nav className="sidebar-nav">
           <input className="nav-arama" value={menuArama} onChange={e => setMenuArama(e.target.value)} placeholder="Menüde ara…" aria-label="Menüde ara" />
@@ -5012,6 +5013,7 @@ function SuperAdminPanel({ kullanici }) {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.isim}</span>
                         <span style={{ width: 7, height: 7, borderRadius: "50%", background: i.aktif ? "#1f6f4a" : "#b42318", flexShrink: 0 }} />
+                        {i.oncu_no && <span title="Öncü Esnaf" style={{ padding: "1px 7px", borderRadius: 6, background: "rgba(168,89,12,.1)", color: "#a8590c", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>🏆 #{i.oncu_no}</span>}
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                         <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}12`, color: kRenk, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{etiket(i.kategori || "genel")}</span>
@@ -5061,6 +5063,7 @@ function SuperAdminPanel({ kullanici }) {
               <p>{demoGoster
                 ? `${demoSayi} demo · satış için açılmış örnek sayfalar, esnafın gerçek hesabı değil. Esnaf aynı numarayla kayıt olursa gerçek işletmeye döner.`
                 : `${gercekler.length} işletme kayıtlı · ${aktifSayi} aktif · ${pasifSayi} pasif · ${mevcutKategoriler.length} kategori`}</p>
+              {patron && <OncuSayac tetik={isletmeler} detayAc={isletmeDetayYukle} yenile={isletmeleriYukle} />}
             </div>
 
             {/* Arama + Durum Filtre + Yeni İşletme */}
@@ -7775,6 +7778,14 @@ function SuperAdminPanel({ kullanici }) {
                     const nd = (satisBotDurum?.numaraDurumlari || []).find(x => x.numaraId === n.id);
                     const wsBagli = nd?.durum === 'bagli';
                     const wsQr = nd?.durum === 'qr_bekleniyor';
+                    const wsKod = nd?.durum === 'kod_bekleniyor' && nd?.eslestirmeKodu;
+                    const kodIste = async () => {
+                      const tel = prompt("WhatsApp numarası (05xx xxx xx xx):", n.telefon || "");
+                      if (!tel) return;
+                      const r = await api.post(`/admin/satis-bot/numaralar/${n.id}/eslestir`, { telefon: tel });
+                      if (r.hata) return alert(r.hata);
+                      satisBotYukle();
+                    };
                     return (
                       <div key={n.id} style={{ padding: "14px 16px", borderRadius: 12, background: n.durum === 'banli' ? "rgba(180,35,24,.03)" : wsBagli ? "rgba(31,111,74,.03)" : "var(--bg)", border: `1px solid ${wsBagli ? "rgba(31,111,74,.15)" : n.durum === 'banli' ? "rgba(180,35,24,.12)" : "var(--border)"}` }}>
                         <div className="row gap-10" style={{ alignItems: "center" }}>
@@ -7783,7 +7794,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div className="row gap-6" style={{ alignItems: "center", flexWrap: "wrap" }}>
                               <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{n.isim}</span>
                               <span style={{ fontSize: 12, color: "var(--dim)" }}>{n.telefon || "—"}</span>
-                              <span style={{ padding: "2px 8px", borderRadius: 6, background: wsBagli ? "rgba(31,111,74,.1)" : `${nRenk[n.durum] || "#6f6a62"}15`, color: wsBagli ? "#1f6f4a" : nRenk[n.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{wsBagli ? "🟢 Bağlı" : wsQr ? "📱 QR Bekliyor" : nLabel[n.durum] || n.durum}</span>
+                              <span style={{ padding: "2px 8px", borderRadius: 6, background: wsBagli ? "rgba(31,111,74,.1)" : `${nRenk[n.durum] || "#6f6a62"}15`, color: wsBagli ? "#1f6f4a" : nRenk[n.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{wsBagli ? "🟢 Bağlı" : wsQr ? "📱 QR Bekliyor" : wsKod ? "🔢 Kod Bekliyor" : nLabel[n.durum] || n.durum}</span>
                               {nd?.paralelAktif && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.1)", color: "#a8590c", fontSize: 10, fontWeight: 600 }}>⚡ Paralel Aktif</span>}
                               {nd?.gunlukGonderim > 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>bugün {nd.gunlukGonderim} msj</span>}
                               {n.gonderim_sayisi > 0 && !nd?.gunlukGonderim && <span style={{ fontSize: 10, color: "var(--dim)" }}>{n.gonderim_sayisi} msj</span>}
@@ -7791,8 +7802,11 @@ function SuperAdminPanel({ kullanici }) {
                             </div>
                           </div>
                           <div className="row gap-4" style={{ flexShrink: 0, flexWrap: "wrap" }}>
-                            {n.durum === 'aktif' && !wsBagli && !wsQr && (
+                            {n.durum === 'aktif' && !wsBagli && !wsQr && !wsKod && (
                               <button onClick={async () => { await api.post("/admin/satis-bot/baslat", { numaraId: n.id }); setTimeout(() => satisBotYukle(), 1000); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "#5d4bb5", color: "#fff", fontWeight: 600, fontSize: 11 }}>🔗 Bağla</button>
+                            )}
+                            {n.durum === 'aktif' && !wsBagli && (
+                              <button onClick={kodIste} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontWeight: 600, fontSize: 11 }}>🔢 Numarayla bağla</button>
                             )}
                             {wsBagli && (
                               <button onClick={async () => { await api.post("/admin/satis-bot/durdur", { numaraId: n.id }); setTimeout(() => satisBotYukle(), 500); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 11 }}>⏹ Kes</button>
@@ -7802,6 +7816,13 @@ function SuperAdminPanel({ kullanici }) {
                             <button onClick={async () => { if (confirm(`"${n.isim}" sil?`)) { await api.del(`/admin/satis-bot/numaralar/${n.id}`); numaralariYukle(); }}} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.04)", color: "var(--dim)", fontSize: 11 }}>✕</button>
                           </div>
                         </div>
+                        {wsKod && (
+                          <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#5d4bb5", marginBottom: 8 }}>🔢 {n.isim} için eşleştirme kodu</div>
+                            <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: 6, color: "var(--text)", fontFamily: "monospace" }}>{String(nd.eslestirmeKodu).replace(/^(.{4})(.{4})$/, "$1-$2")}</div>
+                            <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 8 }}>WhatsApp → Bağlı cihazlar → Cihaz bağla → "Bunun yerine telefon numarasıyla bağla" → bu kodu gir</div>
+                          </div>
+                        )}
                         {/* QR Kodu göster */}
                         {wsQr && nd?.qrBase64 && (
                           <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
@@ -8295,6 +8316,8 @@ function SuperAdminPanel({ kullanici }) {
                       </div>
                     </div>
 
+                    {patron && <OncuRozet isl={isl} sonra={() => { isletmeDetayYukle(isl.id); isletmeleriYukle(); }} />}
+
                     {/* Deneme Süresi */}
                     <div style={{ background: d.deneme_suresi_kalan > 0 ? "rgba(93,75,181,.06)" : "rgba(111,106,98,.06)", borderRadius: 14, padding: "16px 20px", marginBottom: 16, border: d.deneme_suresi_kalan > 0 ? "1px solid rgba(93,75,181,.12)" : "1px solid var(--border)" }}>
                       <div className="row row-between" style={{ alignItems: "center" }}>
@@ -8685,6 +8708,64 @@ function AdminRandevuEkle({ isletmeId, hizmetler, calisanlar, eklendi }) {
         {durum?.hata && <span style={{ fontSize: 12, color: "#b42318" }}>{durum.hata}</span>}
         {durum?.ok && <span style={{ fontSize: 12, color: "#1f6f4a" }}>{durum.ok}</span>}
       </div>
+    </div>
+  );
+}
+
+// ── Öncü Esnaf (patron, 2026-10-20): rozeti ödeme değil patron verir; sayaç + liste ──
+function OncuSayac({ tetik, detayAc, yenile }) {
+  const [o, setO] = useState(null);
+  const [acik, setAcik] = useState(false);
+  const yukle = () => api.get("/admin/oncu").then(d => { if (d && !d.hata) setO(d); }).catch(() => {});
+  useEffect(() => { yukle(); }, [tetik]);
+  if (!o) return null;
+  const dolu = o.sayi / o.limit;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button onClick={() => setAcik(!acik)} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(168,89,12,.2)", background: "rgba(168,89,12,.06)", cursor: "pointer", fontFamily: "inherit" }}>
+        <span style={{ fontWeight: 700, color: "#a8590c", fontSize: 13 }}>🏆 Öncü Esnaf: {o.sayi}/{o.limit}</span>
+        <span style={{ width: 90, height: 6, borderRadius: 3, background: "rgba(168,89,12,.15)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${Math.min(100, dolu * 100)}%`, background: dolu >= 0.9 ? "#b42318" : "#a8590c" }} /></span>
+        <span style={{ fontSize: 12, color: "var(--dim)" }}>{o.kalan} yer kaldı {acik ? "▲" : "▼"}</span>
+      </button>
+      {acik && (
+        <div style={{ marginTop: 8, padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", maxWidth: 640 }}>
+          <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 8 }}>Rozeti işletme detayından (Genel sekmesi) sen verirsin; ödeme artık kendiliğinden öncü yapmaz.</div>
+          {o.liste.length === 0 && <div style={{ fontSize: 13, color: "var(--dim)" }}>Henüz öncü esnaf yok.</div>}
+          {o.liste.map(x => (
+            <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 4px", borderTop: "1px solid var(--border)", fontSize: 13 }}>
+              <b style={{ color: "#a8590c", width: 40 }}>#{x.oncu_no}</b>
+              <span onClick={() => detayAc(x.id)} style={{ flex: 1, cursor: "pointer", color: "var(--text)", fontWeight: 600 }}>{x.isim}{x.demo ? " 🧪" : ""}{x.aktif === false ? " (pasif)" : ""}</span>
+              <span style={{ fontSize: 11, color: "var(--dim)" }}>{(x.kilitli_paket || x.paket || "").toUpperCase()}{x.kilitli_fiyat ? ` · ${Number(x.kilitli_fiyat).toLocaleString("tr-TR")}₺` : ""}</span>
+              <button onClick={async () => { if (!confirm(`${x.isim} öncü rozetini geri al? Fiyat kilidi de kalkar.`)) return; const r = await api.del(`/admin/oncu/${x.id}`); if (r?.hata) return alert(r.hata); yukle(); yenile?.(); }}
+                style={{ padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontSize: 11, fontWeight: 600 }}>Geri al</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OncuRozet({ isl, sonra }) {
+  const [bekle, setBekle] = useState(false);
+  const islem = async (ver) => {
+    if (!ver && !confirm("Öncü rozetini geri al? Fiyat kilidi ve öncü ödülü de kalkar.")) return;
+    setBekle(true);
+    const r = ver ? await api.post(`/admin/oncu/${isl.id}`, {}) : await api.del(`/admin/oncu/${isl.id}`);
+    setBekle(false);
+    if (r?.hata) return alert(r.hata);
+    sonra?.();
+  };
+  return (
+    <div style={{ background: "rgba(168,89,12,.06)", border: "1px solid rgba(168,89,12,.15)", borderRadius: 14, padding: "14px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        <div style={{ fontWeight: 600, fontSize: 14, color: "#a8590c" }}>🏆 {isl.oncu_no ? `Öncü Esnaf #${isl.oncu_no}` : "Öncü Esnaf değil"}</div>
+        <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{isl.oncu_no
+          ? `Fiyat kilidi: ${(isl.kilitli_paket || "").toUpperCase()}${isl.kilitli_fiyat ? ` · ${Number(isl.kilitli_fiyat).toLocaleString("tr-TR")}₺` : ""}`
+          : "Rozet verilince o anki paket ve fiyatı ömür boyu kilitlenir, Standart özellikleri açılır."}</div>
+      </div>
+      <button disabled={bekle} onClick={() => islem(!isl.oncu_no)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 12,
+        background: isl.oncu_no ? "rgba(180,35,24,.08)" : "#a8590c", color: isl.oncu_no ? "#b42318" : "#fff" }}>{bekle ? "…" : isl.oncu_no ? "Rozeti geri al" : "🏆 Öncü yap"}</button>
     </div>
   );
 }

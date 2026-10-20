@@ -1,6 +1,7 @@
 const ELLE_SESSIZ_DK = 180;
 // Tanıdık sayılmayı engelleyen dükkân sözleri (sade yazımla): bunlardan biri geçtiyse kişi müşteri olabilir
-const DUKKAN_SOZU = /\b(randevu|sira|musait|yer var|bos|fiyat|ucret|kac para|ne kadar|tras|sac|sakal|kesim|bakim|boya|fon|manikur|kas|cilt|kapora|adres|kacta|acik mi|kapali mi|gelebilir miyim|gelcem|gelecegim)/;   // esnaf telefondan yazınca bot o kişiye 3 saat susar
+// Müşteri sözü (tanıdık sayılmaz). "tıraş" sadeleşince "tiras" olur (eskiden yakalanmıyordu); gelme/uygunluk sorusu da dükkân işi
+const DUKKAN_SOZU = /\b(randevu|sira|musait|yer var|bos|fiyat|ucret|kac para|ne kadar|tras|tiras|sac|sakal|kesim|bakim|boya|fon|manikur|kas|cilt|kapora|adres|kacta|acik mi|acik misin|kapali mi|gelebilir miyim|gelcem|gelecegim|gelsem|geleyim|gelicem|uygun mu|uygun musun|kac kisi|bekleme)/;   // esnaf telefondan yazınca bot o kişiye 3 saat susar
 const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
@@ -515,6 +516,16 @@ class WhatsAppWebService extends EventEmitter {
     }, 4000);
   }
 
+  // Esnaf bu kişiyle elle konuşurken bot susar; dükkân sözü geçen mesaj (randevu, saat, fiyat) yine kayda girer.
+  // Yoksa tanıdık kontrolü, esnafın elle randevu verdiği müşteriyi "dükkân sözü yok" sanıp kara listeye alıyordu.
+  async _elleKayit(msg, isletmeId, metin) {
+    const { sade } = require('../utils/sekreterKomut');
+    if (!metin || !DUKKAN_SOZU.test(sade(metin))) return;
+    const jid = msg.key.remoteJid || '', alt = msg.key.remoteJidAlt || '';
+    const tel = (jid.endsWith('@lid') && alt.endsWith('@s.whatsapp.net') ? alt : jid).replace(/[:@].*$/, '');
+    await pool.query('INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, $2, $3, $4)', [tel, isletmeId, 'gelen', metin]);
+  }
+
   // Tanıdık (kullanıcı kararı 2026-10-17): esnaf bir kişiye EN AZ 2 FARKLI GÜN elle yazdıysa, o kişi bu dükkândan hiç
   // randevu almadıysa ve son 50 mesajında randevu/fiyat gibi dükkân sözü geçmiyorsa → kara listeye "tanidik" olarak
   // girer, bot o sohbete hiç bakmaz. Mesaj içeriği yapay zekâya gönderilmez (yalnız yerel kelime kontrolü).
@@ -526,8 +537,10 @@ class WhatsAppWebService extends EventEmitter {
       `SELECT (SELECT COUNT(*) FROM elle_yazisma WHERE isletme_id = $1 AND telefon = $2)::int AS gun,
               EXISTS (SELECT 1 FROM randevular r JOIN musteriler m ON m.id = r.musteri_id WHERE r.isletme_id = $1 AND m.telefon = $2) AS musteri,
               EXISTS (SELECT 1 FROM kara_liste WHERE isletme_id = $1 AND telefon = $2) AS listede,
+              EXISTS (SELECT 1 FROM bot_durum WHERE isletme_id = $1 AND musteri_telefon = $2
+                        AND (secilen_hizmet_id IS NOT NULL OR secilen_tarih IS NOT NULL)) AS randevu_sordu,
               (SELECT isim FROM musteriler WHERE telefon = $2) AS isim`, [isletmeId, tel])).rows[0];
-    if (r.gun < 2 || r.musteri || r.listede) return;
+    if (r.gun < 2 || r.musteri || r.listede || r.randevu_sordu) return;   // botla randevu konuşmuş kişi müşteridir
     const mesajlar = (await pool.query(
       "SELECT mesaj FROM sohbet_gecmisi WHERE isletme_id = $1 AND musteri_telefon = $2 AND yon = 'gelen' ORDER BY id DESC LIMIT 50", [isletmeId, tel])).rows;
     const { sade } = require('../utils/sekreterKomut');
@@ -753,7 +766,10 @@ class WhatsAppWebService extends EventEmitter {
       return;
     }
 
-    if (await this._elleSessizMi(msg, isletmeId)) { sus('esnaf bu sohbette elle yazıyor'); return; }
+    if (await this._elleSessizMi(msg, isletmeId)) {
+      this._elleKayit(msg, isletmeId, metin).catch(e => console.error('Elle sohbet kaydı:', e.message));
+      sus('esnaf bu sohbette elle yazıyor'); return;
+    }
 
     // @lid veya @s.whatsapp.net — telefon numarasını çıkar
     let musteriTelefon;

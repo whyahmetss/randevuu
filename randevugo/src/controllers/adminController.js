@@ -1097,6 +1097,18 @@ class AdminController {
   }
 
   // Esnafın elle eklediği randevu (kapıdan gelen müşteri, telefonla arayan, boş saate dokun) — 2026-10-13
+  // Elle randevuda seçilen günün boş saatleri (esnaf paneli "Kapıdan gelen" → ileri tarih)
+  async bosSaatler(req, res) {
+    try {
+      const tarih = /^\d{4}-\d{2}-\d{2}$/.test(req.query.tarih || '') ? req.query.tarih : null;
+      if (!tarih) return res.status(400).json({ hata: 'Tarih seçin' });
+      const saatler = await require('../services/randevu').musaitSaatleriGetir(req.kullanici.isletme_id, tarih, null, parseInt(req.query.hizmet_id) || null);
+      res.json({ saatler: saatler.map(s => String(s).slice(0, 5)) });
+    } catch (error) {
+      res.status(400).json({ hata: error.message });
+    }
+  }
+
   // Patron (superadmin) İşletmeler > detay > Randevular sekmesinden müşteri adına elle randevu (OTP yok)
   async randevuElleEkleAdmin(req, res) {
     return this.randevuElleEkle(req, res, parseInt(req.params.id));
@@ -2070,6 +2082,15 @@ class AdminController {
   }
 
   // ==================== SATIŞ BOTU ====================
+
+  async satisBotNumaraEslestir(req, res) {
+    try {
+      const kod = await require('../services/satisBot').numaraEslestirmeKodu(parseInt(req.params.id), req.body?.telefon);
+      res.json({ kod });
+    } catch (error) {
+      res.status(400).json({ hata: error.message });
+    }
+  }
 
   async satisBotBaslat(req, res) {
     try {

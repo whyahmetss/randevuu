@@ -295,7 +295,8 @@ test('sohbet: randevuyla ilgisiz sohbet ("uyumuştum şimdi yine uyuyom") randev
 // 2026-10-17: bot yalnız randevu/dükkân konusuna girer; selama kime cevap verileceği; tanıdık listesi
 test('sohbet: ilgisiz sohbete susar; "selamün aleyküm abi" selamdır ama esnafın elle konuştuğu tanıdığa cevap yok', async () => {
   const { db } = await hazirla(SEMA(1) + `
-    CREATE TABLE elle_sessiz (isletme_id INT, jid VARCHAR(40), bitis TIMESTAMP, PRIMARY KEY (isletme_id, jid));`);
+    CREATE TABLE elle_sessiz (isletme_id INT, jid VARCHAR(40), bitis TIMESTAMP, PRIMARY KEY (isletme_id, jid));
+    ${fs.readFileSync(path.join(SRC, 'migrations', '064_elle_yazisma.sql'), 'utf8')}`);
   ortam();
   const sohbet = require(path.join(SRC, 'services', 'sohbetAsistani'));
   const wa = require(path.join(SRC, 'services', 'whatsappWeb'));
@@ -310,7 +311,13 @@ test('sohbet: ilgisiz sohbete susar; "selamün aleyküm abi" selamdır ama esnaf
   assert.match(String(await sor('905550000001', 'yarın saç kestirmek istiyorum')), /Yarın|saat/, 'randevu: cevap');
 
   await db.query(`INSERT INTO elle_sessiz VALUES (1, '905550000002', NOW() - INTERVAL '5 hours')`);
-  assert.ok((await sor('905550000002', 'Selamün aleyküm')).sus, 'esnafın elle konuştuğu kişi: selama bot girmez');
+  await db.query(`INSERT INTO elle_yazisma VALUES (1, '905550000002', CURRENT_DATE - 3), (1, '905550000002', CURRENT_DATE - 1)`);
+  assert.ok((await sor('905550000002', 'Selamün aleyküm')).sus, 'esnafın elle konuştuğu kişi (2 farklı gün): selama bot girmez');
+  // 2026-10-19'a kadar WhatsApp Business karşılaması "elle" sayılıyordu: tek günlük kayıt müşteriyi susturmaz
+  await db.query(`INSERT INTO bot_durum (musteri_telefon, isletme_id, asama) VALUES ('905550000003', 1, 'baslangic')`);
+  await db.query(`INSERT INTO elle_sessiz VALUES (1, '905550000003', NOW() - INTERVAL '20 hours')`);
+  await db.query(`INSERT INTO elle_yazisma VALUES (1, '905550000003', CURRENT_DATE - 1)`);
+  assert.match(String(await sor('905550000003', 'Merhaba')), /asistanıyım/, 'tek gün elle yazılan (karşılama mesajı) kişinin selamı karşılanır');
   await db.query(`INSERT INTO elle_sessiz VALUES (1, '905550000099', NOW() - INTERVAL '5 hours')`);
   await db.query(`INSERT INTO randevular (isletme_id, musteri_id, hizmet_id, tarih, saat, bitis_saati, durum) VALUES (1, 1, 1, CURRENT_DATE, '10:00', '10:30', 'tamamlandi')`);
   assert.match(String(await sor('905550000099', 'selam')), /asistanıyım/, 'müşteriyse elle konuşulsa da selam karşılanır');
@@ -327,6 +334,16 @@ test('tanıdık: 2 farklı gün elle yazılan, randevusu ve dükkân sözü olma
   const notlar = []; wa._sahibeYaz = async (i, m) => { notlar.push(m); };
   const kiz = '905321112233', musteri = '905324445566';
   await db.query(`INSERT INTO sohbet_gecmisi (musteri_telefon, isletme_id, yon, mesaj) VALUES ($1, 1, 'gelen', 'uyumustum simdi yine uyuyom'), ($2, 1, 'gelen', 'abi yarın sakal için yer var mı')`, [kiz, musteri]);
+  // Esnaf elle konuşurken (bot susarken) gelen müşteri sözü de kayda girer: "tıraş" (sadeleşince "tiras") dükkân sözüdür
+  const tirasci = '905327776655', soran = '905327776600';
+  await wa._elleKayit({ key: { remoteJid: `${tirasci}@s.whatsapp.net` } }, 1, 'Abi akşam tıraşa gelsem olur mu');
+  await wa._elleKayit({ key: { remoteJid: `${tirasci}@s.whatsapp.net` } }, 1, 'naber');
+  assert.deepStrictEqual((await db.query('SELECT mesaj FROM sohbet_gecmisi WHERE musteri_telefon = $1', [tirasci])).rows.map(r => r.mesaj), ['Abi akşam tıraşa gelsem olur mu'], 'yalnız dükkân sözü kaydedilir');
+  await db.query(`INSERT INTO bot_durum (musteri_telefon, isletme_id, asama, secilen_hizmet_id) VALUES ($1, 1, 'sohbet', 1)`, [soran]);
+  await db.query(`INSERT INTO elle_yazisma VALUES (1, $1, CURRENT_DATE - 2), (1, $1, CURRENT_DATE - 1), (1, $2, CURRENT_DATE - 2), (1, $2, CURRENT_DATE - 1)`, [tirasci, soran]);
+  await wa._tanidikKontrol(1, tirasci); await wa._tanidikKontrol(1, soran);
+  assert.strictEqual((await db.query('SELECT COUNT(*)::int AS n FROM kara_liste WHERE telefon IN ($1, $2)', [tirasci, soran])).rows[0].n, 0,
+    'tıraşa gelmek isteyen ve botla randevu konuşan müşteri tanıdık sayılmaz');
 
   await wa._tanidikKontrol(1, kiz);
   assert.strictEqual((await db.query('SELECT * FROM kara_liste')).rows.length, 0, 'tek gün yetmez');
@@ -353,6 +370,19 @@ test('hizmet: liste numaralı, tekrar sorarken nasıl seçileceği söylenir; "t
   assert.match(ilk, /1\. Saç Kesimi · 300₺\n2\. Sakal Tıraşı · 150₺/, ilk);
   assert.match(await yaz('abi şöyle bişey'), /anlayamadım[\s\S]*numarasını yazmanız yeterli/);
   assert.match(await yaz('sakal traşı'), /Hangi gün/);
+});
+
+// Canlı 2026-10-19: "Tıraş olmak istiyorum" → liste yalnız Sakal/Çocuk tıraşı gösterdi, saç kesimi yoktu
+test('hizmet: niteleyicisiz "tıraş" saç kesimini de sorar; yapay zekâ tahmin etse de hizmet seçilmez; "sakal tıraşı" doğrudan', async () => {
+  const { db } = await hazirla(SEMA(1) + `
+    INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat) VALUES (1, 'Çocuk Tıraşı', 20, 200), (1, 'Saç + Sakal', 45, 400), (1, 'Cilt Bakımı', 30, 500);`);
+  ortam({ niyet: 'randevu', hizmet_id: 2 });   // yapay zekâ "tıraş" → Sakal Tıraşı tahmin ediyor
+  const yaz = await konusma(db, '905550003001');
+  const c = await yaz('Tıraş olmak istiyorum');
+  assert.match(c, /• Saç Kesimi · 300₺\n• Sakal Tıraşı · 150₺\n• Çocuk Tıraşı · 200₺\n• Saç \+ Sakal · 400₺/, c);
+  assert.doesNotMatch(c, /Cilt/);
+  const yaz2 = await konusma(db, '905550003002');
+  assert.doesNotMatch(await yaz2('yarın sakal tıraşı olmak istiyorum'), /•/, 'nitelenen tıraş sorulmaz');
 });
 
 test('ölü bağlantı: "bağlı" görünen ama soketi kapanmış oturum yeniden başlatılır', async () => {
