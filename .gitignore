@@ -48,3 +48,10 @@ render.yaml.backup
 # Local auth files
 *.session
 *.json.bak
+
+# 3D video: .blend ve ara kareler betiklerden yeniden üretilir
+*.blend
+*.blend1
+videos/3d/**/kareler/
+videos/3d/**/katmanlar/
+videos/3d/_test/out/
