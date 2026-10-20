@@ -75,6 +75,7 @@ router.get('/grup/raporlar', authMiddleware, rolKontrol('grup_sahibi'), (req, re
 
 // ==================== ADMIN PANEL ====================
 router.get('/randevular', authMiddleware, odemeKontrol, (req, res) => adminController.randevulariGetir(req, res));
+router.get('/randevular/bos-saatler', authMiddleware, (req, res) => adminController.bosSaatler(req, res));
 router.post('/randevular/elle', authMiddleware, odemeKontrol, (req, res) => adminController.randevuElleEkle(req, res));
 router.get('/randevular/:id/islem', authMiddleware, (req, res) => adminController.randevuIslemGetir(req, res));
 router.put('/randevular/:id/islem', authMiddleware, (req, res) => adminController.randevuIslemKaydet(req, res));
