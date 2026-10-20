@@ -49,3 +49,7 @@ body { --w: 1080px; --h: 1920px; background: var(--gece); }
 .ses .dalga { position: relative; }
 .ses .ilerle { position: absolute; inset: 0; background: rgba(43,211,106,.0); }
 .ses .dalga i.c { background: #53bdeb; }
+
+/* Sohbet kaydırma: uzun mesaj gelince gerçek WhatsApp gibi yukarı kayar */
+.kay { animation: kay .6s var(--d, 0s) cubic-bezier(.2,.8,.2,1) both; }
+@keyframes kay { from { transform: none } to { transform: translateY(var(--kay, -200px)) } }

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="reels.css">
+<style>
+  .tel { left: 50%; margin-left: -300px; top: 560px; height: 790px; }
+  .saat-buyuk { position: absolute; top: 560px; left: 0; right: 0; text-align: center; font-family: var(--f-baslik); font-weight: 700; font-size: 230px; letter-spacing: -0.04em; color: var(--yazi-k); line-height: 1; }
+  .saat-buyuk small { display: block; font-family: var(--f-govde); font-size: 34px; font-weight: 500; letter-spacing: 0; color: var(--gri-k); margin-top: 12px; }
+  .yigin { top: 940px; }
+  .ayar { position: absolute; left: var(--kenar); right: 140px; top: 600px; display: grid; gap: 16px; }
+  .ayar div { display: flex; align-items: center; gap: 22px; padding: 30px 32px; border-radius: 28px; background: var(--gece-2); border: 1.5px solid var(--cizgi-k); font-size: 33px; font-weight: 600; color: var(--gri-k); }
+  .ayar div.sec { border-color: var(--parlak); color: var(--yazi-k); box-shadow: 0 0 0 4px rgba(43,211,106,.15); }
+  .ayar i { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--gri-k); flex: none; }
+  .ayar .sec i { border: 10px solid var(--parlak); }
+  .ayar-bas { position: absolute; left: var(--kenar); top: 540px; font-size: 24px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--gri-k); }
+  .son { display: flex; flex-direction: column; justify-content: center; padding: 0 140px 300px var(--kenar); }
+  .son .logo { height: 60px; width: auto; align-self: flex-start; margin-bottom: 64px; }
+  .son .liste { margin-top: 56px; display: grid; gap: 18px; font-size: 38px; font-weight: 600; }
+  .son .liste div { display: flex; gap: 20px; align-items: center; }
+  .son .dugme { margin-top: 64px; align-self: flex-start; font-size: 38px; }
+</style></head>
+<body data-total="23"><script src="../../tasarim/sistem/ikonlar.js"></script>
+
+<!-- 1 · Kanca: ilk karede okunur -->
+<section class="sahne ilk z-gece isik" style="--son:3.5s; --isik: 50% 45%">
+  <h1 class="r-baslik baslik b-xl">Gece 23:47. <em>Sen uyuyorsun.</em></h1>
+  <div class="saat-buyuk" style="top:620px">23:47<small>Salı · 20 Ekim</small></div>
+  <div class="yigin"><div class="bld pop" style="--d:.5s"><span class="app"><svg class="ik"><use href="#sohbet"/></svg></span><div><b>Zeynep</b><span>Yarın öğlene fön için yer var mı?</span></div><small>şimdi</small></div></div>
+  <div class="altyazi"><span>Müşteri gece yazar.<br>Sabaha unutulur.</span></div>
+</section>
+
+<!-- 2 · SıraGO cevaplar (botun gerçek metni) -->
+<section class="sahne z-gece isik" style="--bas:3.4s; --son:11.4s; --isik: 50% 80%">
+  <h1 class="r-baslik baslik b-l gir" style="--d:3.5s">SıraGO <em>gece de cevaplar.</em></h1>
+  <div class="tel gir" style="--d:3.7s"><div class="ekran wa">
+    <div class="wa-bas"><span class="av">Z</span><div><b>Zeynep</b><small>çevrimiçi</small></div></div>
+    <div class="wa-govde kay" style="--d:9.0s; --kay:-480px">
+      <div class="b gelen">Yarın öğlene fön için yer var mı?<span class="s">23:47</span></div>
+      <div class="b giden pop" style="--d:4.8s">Yarın (21 Ekim) için boş saatler: 12:00, 12:30, 13:30.<br>Size hangisi uygun?<span class="s">23:47</span></div>
+      <div class="b gelen pop" style="--d:6.2s">12:30<span class="s">23:48</span></div>
+      <div class="b giden uzun pop" style="--d:7.1s">🗓️ Yarın (21 Ekim) · 🕐 12:30<br>✂️ Fön<i class="bos"></i>Randevunuzu oluşturayım mı? ("evet" yazmanız yeterli)<span class="s">23:48</span></div>
+      <div class="b gelen pop" style="--d:8.3s">Evet<span class="s">23:48</span></div>
+      <div class="b giden uzun pop" style="--d:8.9s">✅ <b>Randevunuz Oluşturuldu!</b><i class="bos"></i>🏥 Kuaför Defne<br>✂️ Fön<br>🗓️ 21 Ekim Çarşamba<br>🕐 12:30<i class="bos"></i>⏰ Randevunuzdan 1 saat önce hatırlatma alacaksınız.<i class="bos"></i>Görüşmek üzere! 😊<span class="s">23:48</span></div>
+    </div>
+  </div></div>
+  <div class="altyazi"><span class="gir" style="--d:4.0s">Senin numarandan,<br>sen uyurken.</span></div>
+</section>
+
+<!-- 3 · Sabah panel (krem ara blok) -->
+<section class="sahne z-krem" style="--bas:11.3s; --son:15.6s">
+  <h1 class="r-baslik baslik b-l gir" style="--d:11.4s">Sabah açarsın, <em>randevu hazır.</em></h1>
+  <div class="tel gir" style="--d:11.5s"><div class="ekran pnl">
+    <div class="pnl-bas"><small>Bugün · 4 randevu</small><b>Randevular</b></div>
+    <div class="pnl-liste">
+      <div class="pnl-satir sol" style="--d:12.0s"><span class="saat">10:00</span><span class="kisi">Ece<small>Kesim</small></span><span class="durum">Onaylı</span></div>
+      <div class="pnl-satir sol" style="--d:12.2s"><span class="saat">11:00</span><span class="kisi">Melis<small>Boya</small></span><span class="durum">Onaylı</span></div>
+      <div class="pnl-satir yeni sol" style="--d:12.6s"><span class="saat">12:30</span><span class="kisi">Zeynep<small>Fön</small></span><span class="durum">Yeni</span></div>
+      <div class="pnl-satir sol" style="--d:12.8s"><span class="saat">15:00</span><span class="kisi">Aslı<small>Kesim + fön</small></span><span class="durum">Onaylı</span></div>
+    </div>
+  </div></div>
+  <div class="altyazi"><span class="gir" style="--d:11.8s">Gece gelen randevu<br>panelde seni bekler.</span></div>
+</section>
+
+<!-- 4 · Mesai dışı ayarı (panelin gerçek seçenekleri) -->
+<section class="sahne z-gece isik" style="--bas:15.5s; --son:19.6s; --isik: 50% 60%">
+  <h1 class="r-baslik baslik b-l gir" style="--d:15.6s">Gece ne yapsın? <em>Sen seç.</em></h1>
+  <div class="ayar-bas gir" style="--d:15.8s">Mesai dışı davranış</div>
+  <div class="ayar">
+    <div class="sec gir" style="--d:16.0s"><i></i>Normal Çalış (gece de randevu alır)</div>
+    <div class="gir" style="--d:16.2s"><i></i>Kapalı Mesajı Gönder</div>
+    <div class="gir" style="--d:16.4s"><i></i>Sessiz (Cevap Verme)</div>
+  </div>
+  <div class="altyazi"><span class="gir" style="--d:16.6s">Ayar panelde,<br>istediğin an değişir.</span></div>
+</section>
+
+<!-- 5 · Kapanış -->
+<section class="sahne son z-yesil" style="--bas:19.5s">
+  <img class="logo gir" style="--d:19.6s" src="../../tasarim/varliklar/logo-yatay-yesil-zemin.png" alt="SıraGO">
+  <h1 class="baslik b-xl gir" style="--d:19.75s">Sen uyu. <em>Randevuyu SıraGO yazsın.</em></h1>
+  <div class="liste">
+    <div class="gir" style="--d:20.3s"><svg class="ik"><use href="#tik"/></svg>Ücretsiz dene</div>
+    <div class="gir" style="--d:20.5s"><svg class="ik"><use href="#tik"/></svg>Kart bilgisi istenmez</div>
+  </div>
+  <span class="dugme pop" style="--d:21.0s">Bağlantı profilde <svg class="ik"><use href="#ok"/></svg></span>
+</section>
+</body></html>

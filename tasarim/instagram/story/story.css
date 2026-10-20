@@ -1,0 +1,23 @@
+@import url('../../sistem/marka.css');
+/* Story şablonu — 1080×1920. Üst 220 / alt 340 px arayüze bırakılır; metin sola dayalı. */
+body { --w: 1080px; --h: 1920px; --isik: 80% 78%; }
+.ust { top: 200px; }
+.seri { font-size: 22px; font-weight: 600; color: var(--ikincil); border: 1.5px solid var(--cizgi); border-radius: 100px; padding: 10px 20px; }
+.icerik { position: absolute; top: 320px; left: var(--kenar); right: var(--kenar); }
+.icerik .baslik { margin-top: 18px; }
+.icerik .metin { margin-top: 28px; }
+.cagri { position: absolute; left: var(--kenar); right: var(--kenar); top: 1500px; z-index: 8; }
+.cagri b { display: block; font-size: 36px; font-weight: 700; color: var(--vurgu); letter-spacing: -0.01em; }
+.cagri > span:not(.dugme) { display: block; font-size: 25px; color: var(--ikincil); margin-top: 6px; }
+.story-tel { left: var(--kenar); width: 600px; -webkit-mask-image: linear-gradient(#000 72%, transparent 99%); }
+.sor { padding: 40px 42px; border-radius: 32px; }
+.z-krem .sor { background: #fff; border: 1.5px solid var(--cizgi-a); }
+.z-gece .sor { background: var(--gece-2); border: 1.5px solid var(--cizgi-k); }
+.sor b { display: block; font-size: 40px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; }
+.sor span { display: block; font-size: 32px; color: var(--ikincil); margin-top: 12px; line-height: 1.4; }
+.sor span strong { color: var(--vurgu); font-weight: 700; }
+.adim4 { display: grid; gap: 0; border-top: 1.5px solid var(--cizgi); margin-top: 56px; }
+.adim4 div { display: grid; grid-template-columns: 96px 1fr; align-items: center; padding: 30px 0; border-bottom: 1.5px solid var(--cizgi); }
+.adim4 i { font-style: normal; font-family: var(--f-baslik); font-weight: 800; font-size: 64px; color: var(--vurgu); line-height: 1; }
+.adim4 b { font-size: 38px; font-weight: 700; letter-spacing: -0.01em; }
+.adim4 small { display: block; font-size: 26px; color: var(--ikincil); font-weight: 500; margin-top: 4px; }

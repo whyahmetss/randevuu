@@ -109,8 +109,13 @@ body {
 }
 .z-krem .tel { box-shadow: 0 50px 100px rgba(19,39,28,.28), inset 0 1px 0 rgba(255,255,255,.14); }
 .ekran { border-radius: 60px; overflow: hidden; height: 100%; position: relative; }
-.wa { background: #0b141a; color: #e9edef; }
-.wa-bas { display: flex; align-items: center; gap: 18px; padding: 62px 30px 22px; background: #1f2c34; }
+.wa { background: #0b141a; color: #e9edef; font-family: var(--f-govde), 'Noto Color Emoji'; }
+/* Bot balonları botun GERÇEK metnidir (randevugo/src/services/sohbetAsistani.js M.tr, hatirlatma.js, botMesajlar.js).
+   WhatsApp biçimi: *kalın* → <b>, _italik_ → <i>, boş satır → <i class="bos"></i> */
+.b .bos { display: block; height: .6em; }
+.b.uzun { font-size: 25px; line-height: 1.36; }
+.b .imza { display: block; margin-top: 10px; font-size: 21px; color: rgba(233,237,239,.72); }
+.wa-bas { display: flex; align-items: center; gap: 18px; padding: 62px 30px 22px; background: #1f2c34; position: relative; z-index: 2; }
 .wa-bas .av { width: 60px; height: 60px; border-radius: 50%; background: #2f4a3e; display: grid; place-items: center; font-weight: 700; font-size: 25px; color: #cfe3d8; flex: none; }
 .wa-bas b { font-size: 27px; font-weight: 600; display: block; }
 .wa-bas small { font-size: 19px; color: #8696a0; }
