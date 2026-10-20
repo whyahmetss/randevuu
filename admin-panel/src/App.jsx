@@ -5013,6 +5013,7 @@ function SuperAdminPanel({ kullanici }) {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                         <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.isim}</span>
                         <span style={{ width: 7, height: 7, borderRadius: "50%", background: i.aktif ? "#1f6f4a" : "#b42318", flexShrink: 0 }} />
+                        {i.oncu_no && <span title="Öncü Esnaf" style={{ padding: "1px 7px", borderRadius: 6, background: "rgba(168,89,12,.1)", color: "#a8590c", fontSize: 10, fontWeight: 700, flexShrink: 0 }}>🏆 #{i.oncu_no}</span>}
                       </div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                         <span style={{ padding: "2px 8px", borderRadius: 6, background: `${kRenk}12`, color: kRenk, fontSize: 10, fontWeight: 600, textTransform: "uppercase" }}>{etiket(i.kategori || "genel")}</span>
@@ -5062,6 +5063,7 @@ function SuperAdminPanel({ kullanici }) {
               <p>{demoGoster
                 ? `${demoSayi} demo · satış için açılmış örnek sayfalar, esnafın gerçek hesabı değil. Esnaf aynı numarayla kayıt olursa gerçek işletmeye döner.`
                 : `${gercekler.length} işletme kayıtlı · ${aktifSayi} aktif · ${pasifSayi} pasif · ${mevcutKategoriler.length} kategori`}</p>
+              {patron && <OncuSayac tetik={isletmeler} detayAc={isletmeDetayYukle} yenile={isletmeleriYukle} />}
             </div>
 
             {/* Arama + Durum Filtre + Yeni İşletme */}
@@ -8314,6 +8316,8 @@ function SuperAdminPanel({ kullanici }) {
                       </div>
                     </div>
 
+                    {patron && <OncuRozet isl={isl} sonra={() => { isletmeDetayYukle(isl.id); isletmeleriYukle(); }} />}
+
                     {/* Deneme Süresi */}
                     <div style={{ background: d.deneme_suresi_kalan > 0 ? "rgba(93,75,181,.06)" : "rgba(111,106,98,.06)", borderRadius: 14, padding: "16px 20px", marginBottom: 16, border: d.deneme_suresi_kalan > 0 ? "1px solid rgba(93,75,181,.12)" : "1px solid var(--border)" }}>
                       <div className="row row-between" style={{ alignItems: "center" }}>
@@ -8704,6 +8708,64 @@ function AdminRandevuEkle({ isletmeId, hizmetler, calisanlar, eklendi }) {
         {durum?.hata && <span style={{ fontSize: 12, color: "#b42318" }}>{durum.hata}</span>}
         {durum?.ok && <span style={{ fontSize: 12, color: "#1f6f4a" }}>{durum.ok}</span>}
       </div>
+    </div>
+  );
+}
+
+// ── Öncü Esnaf (patron, 2026-10-20): rozeti ödeme değil patron verir; sayaç + liste ──
+function OncuSayac({ tetik, detayAc, yenile }) {
+  const [o, setO] = useState(null);
+  const [acik, setAcik] = useState(false);
+  const yukle = () => api.get("/admin/oncu").then(d => { if (d && !d.hata) setO(d); }).catch(() => {});
+  useEffect(() => { yukle(); }, [tetik]);
+  if (!o) return null;
+  const dolu = o.sayi / o.limit;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button onClick={() => setAcik(!acik)} style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 14px", borderRadius: 10, border: "1px solid rgba(168,89,12,.2)", background: "rgba(168,89,12,.06)", cursor: "pointer", fontFamily: "inherit" }}>
+        <span style={{ fontWeight: 700, color: "#a8590c", fontSize: 13 }}>🏆 Öncü Esnaf: {o.sayi}/{o.limit}</span>
+        <span style={{ width: 90, height: 6, borderRadius: 3, background: "rgba(168,89,12,.15)", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: `${Math.min(100, dolu * 100)}%`, background: dolu >= 0.9 ? "#b42318" : "#a8590c" }} /></span>
+        <span style={{ fontSize: 12, color: "var(--dim)" }}>{o.kalan} yer kaldı {acik ? "▲" : "▼"}</span>
+      </button>
+      {acik && (
+        <div style={{ marginTop: 8, padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", maxWidth: 640 }}>
+          <div style={{ fontSize: 12, color: "var(--dim)", marginBottom: 8 }}>Rozeti işletme detayından (Genel sekmesi) sen verirsin; ödeme artık kendiliğinden öncü yapmaz.</div>
+          {o.liste.length === 0 && <div style={{ fontSize: 13, color: "var(--dim)" }}>Henüz öncü esnaf yok.</div>}
+          {o.liste.map(x => (
+            <div key={x.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 4px", borderTop: "1px solid var(--border)", fontSize: 13 }}>
+              <b style={{ color: "#a8590c", width: 40 }}>#{x.oncu_no}</b>
+              <span onClick={() => detayAc(x.id)} style={{ flex: 1, cursor: "pointer", color: "var(--text)", fontWeight: 600 }}>{x.isim}{x.demo ? " 🧪" : ""}{x.aktif === false ? " (pasif)" : ""}</span>
+              <span style={{ fontSize: 11, color: "var(--dim)" }}>{(x.kilitli_paket || x.paket || "").toUpperCase()}{x.kilitli_fiyat ? ` · ${Number(x.kilitli_fiyat).toLocaleString("tr-TR")}₺` : ""}</span>
+              <button onClick={async () => { if (!confirm(`${x.isim} öncü rozetini geri al? Fiyat kilidi de kalkar.`)) return; const r = await api.del(`/admin/oncu/${x.id}`); if (r?.hata) return alert(r.hata); yukle(); yenile?.(); }}
+                style={{ padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontSize: 11, fontWeight: 600 }}>Geri al</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OncuRozet({ isl, sonra }) {
+  const [bekle, setBekle] = useState(false);
+  const islem = async (ver) => {
+    if (!ver && !confirm("Öncü rozetini geri al? Fiyat kilidi ve öncü ödülü de kalkar.")) return;
+    setBekle(true);
+    const r = ver ? await api.post(`/admin/oncu/${isl.id}`, {}) : await api.del(`/admin/oncu/${isl.id}`);
+    setBekle(false);
+    if (r?.hata) return alert(r.hata);
+    sonra?.();
+  };
+  return (
+    <div style={{ background: "rgba(168,89,12,.06)", border: "1px solid rgba(168,89,12,.15)", borderRadius: 14, padding: "14px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        <div style={{ fontWeight: 600, fontSize: 14, color: "#a8590c" }}>🏆 {isl.oncu_no ? `Öncü Esnaf #${isl.oncu_no}` : "Öncü Esnaf değil"}</div>
+        <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>{isl.oncu_no
+          ? `Fiyat kilidi: ${(isl.kilitli_paket || "").toUpperCase()}${isl.kilitli_fiyat ? ` · ${Number(isl.kilitli_fiyat).toLocaleString("tr-TR")}₺` : ""}`
+          : "Rozet verilince o anki paket ve fiyatı ömür boyu kilitlenir, Standart özellikleri açılır."}</div>
+      </div>
+      <button disabled={bekle} onClick={() => islem(!isl.oncu_no)} style={{ padding: "8px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 12,
+        background: isl.oncu_no ? "rgba(180,35,24,.08)" : "#a8590c", color: isl.oncu_no ? "#b42318" : "#fff" }}>{bekle ? "…" : isl.oncu_no ? "Rozeti geri al" : "🏆 Öncü yap"}</button>
     </div>
   );
 }

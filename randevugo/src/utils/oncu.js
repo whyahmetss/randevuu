@@ -4,30 +4,52 @@ const pool = require('../config/db');
 
 const ONCU_LIMIT = 100;
 
-// Ödeme sonrası: henüz öncü değilse ve yer varsa sıra numarası ver; paketi ve o anki fiyatı kilitle.
+// Rozeti patron verir (kullanıcı kararı 2026-10-20): ödeme artık kendiliğinden öncü yapmaz; demo/deneme hesapları
+// 100 kişilik yeri doldurmasın. Ödeme sonrası yalnız zaten öncü olanın kilitli paketi/fiyatı güncellenir.
 // Öncü işletme paket değiştirirse yeni paketin o günkü fiyatı kilitlenir.
 async function oncuOdeme(isletmeId, paketKod, listeFiyat) {
   const i = (await pool.query('SELECT oncu_no, kilitli_paket FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
-  if (!i) return null;
-  if (i.oncu_no) {
-    if (i.kilitli_paket !== paketKod) {
-      await pool.query('UPDATE isletmeler SET kilitli_paket = $2, kilitli_fiyat = $3 WHERE id = $1', [isletmeId, paketKod, listeFiyat]);
-    }
-    return i.oncu_no;
+  if (!i?.oncu_no) return null;
+  if (i.kilitli_paket !== paketKod) {
+    await pool.query('UPDATE isletmeler SET kilitli_paket = $2, kilitli_fiyat = $3 WHERE id = $1', [isletmeId, paketKod, listeFiyat]);
   }
+  return i.oncu_no;
+}
+
+// Patron: rozeti ver. En küçük boş sıra numarası (geri alınanın numarası tekrar kullanılır); o anki paket ve
+// liste fiyatı kilitlenir. Yer doluysa hata.
+async function oncuVer(isletmeId) {
+  const i = (await pool.query('SELECT oncu_no, paket FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+  if (!i) throw new Error('İşletme bulunamadı');
+  if (i.oncu_no) return i.oncu_no;
+  let fiyat = null;
+  try { fiyat = Number((await require('../config/paketler').paketGetir(i.paket))?.fiyat) || null; } catch (e) { /* fiyatsız kilit: etkinFiyat liste fiyatını kullanır */ }
   for (let deneme = 0; deneme < 3; deneme++) {
     try {
       const r = await pool.query(`
-        UPDATE isletmeler SET oncu_no = (SELECT COALESCE(MAX(oncu_no), 0) + 1 FROM isletmeler),
-          kilitli_paket = $2, kilitli_fiyat = $3
-        WHERE id = $1 AND oncu_no IS NULL AND (SELECT COUNT(*) FROM isletmeler WHERE oncu_no IS NOT NULL) < $4
-        RETURNING oncu_no`, [isletmeId, paketKod, listeFiyat, ONCU_LIMIT]);
-      return r.rows[0]?.oncu_no || null;
+        UPDATE isletmeler SET kilitli_paket = paket, kilitli_fiyat = $3,
+          oncu_no = (SELECT MIN(n) FROM generate_series(1, $2::int) n WHERE NOT EXISTS (SELECT 1 FROM isletmeler WHERE oncu_no = n))
+        WHERE id = $1 AND oncu_no IS NULL AND (SELECT COUNT(*) FROM isletmeler WHERE oncu_no IS NOT NULL) < $2
+        RETURNING oncu_no`, [isletmeId, ONCU_LIMIT, fiyat]);
+      if (r.rows[0]?.oncu_no) return r.rows[0].oncu_no;
+      throw new Error(`Öncü Esnaf yerleri dolu (${ONCU_LIMIT}/${ONCU_LIMIT})`);
     } catch (e) {
-      if (!/duplicate|unique/i.test(e.message)) throw e;   // aynı anda iki ödeme: tekrar dene
+      if (!/duplicate|unique/i.test(e.message)) throw e;   // aynı anda iki işlem: tekrar dene
     }
   }
-  return null;
+  throw new Error('Rozet verilemedi, tekrar deneyin');
+}
+
+// Patron: rozeti geri al (yanlışlıkla verilen / demo). Fiyat kilidi ve öncü ödülü de kalkar; numara boşa çıkar.
+async function oncuKaldir(isletmeId) {
+  await pool.query('UPDATE isletmeler SET oncu_no = NULL, kilitli_paket = NULL, kilitli_fiyat = NULL WHERE id = $1', [isletmeId]);
+}
+
+// Patron sayacı: kaç öncü var, kimler
+async function oncuListe() {
+  const liste = (await pool.query(`SELECT id, isim, paket, oncu_no, kilitli_paket, kilitli_fiyat, demo, aktif
+    FROM isletmeler WHERE oncu_no IS NOT NULL ORDER BY oncu_no`)).rows;
+  return { limit: ONCU_LIMIT, sayi: liste.length, kalan: Math.max(0, ONCU_LIMIT - liste.length), liste };
 }
 
 // Ödenecek fiyat: öncünün kilitli paketi için kilitli fiyat (liste fiyatı düşerse düşük olan)
@@ -66,4 +88,4 @@ async function isletmePaketi(isletmeId) {
   return { kod: i?.paket || 'baslangic', paket: ayricalik.length ? { ...paket, ...Object.fromEntries(ayricalik.map(k => [k, true])) } : paket };
 }
 
-module.exports = { oncuOdeme, etkinFiyat, oncuDurum, oncuPaket, isletmePaketi, ONCU_LIMIT, ONCU_ODUL };
+module.exports = { oncuOdeme, oncuVer, oncuKaldir, oncuListe, etkinFiyat, oncuDurum, oncuPaket, isletmePaketi, ONCU_LIMIT, ONCU_ODUL };

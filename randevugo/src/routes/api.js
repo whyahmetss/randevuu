@@ -273,6 +273,16 @@ router.get('/davet', authMiddleware, async (req, res) => {
   try { res.json(await require('../utils/davet').davetBilgi(req.kullanici.isletme_id)); }
   catch (e) { res.status(500).json({ hata: e.message }); }
 });
+// Öncü Esnaf (patron): sayaç + liste, rozet ver / geri al
+router.get('/admin/oncu', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { res.json(await require('../utils/oncu').oncuListe()); } catch (e) { res.status(500).json({ hata: e.message }); }
+});
+router.post('/admin/oncu/:id', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { res.json({ oncu_no: await require('../utils/oncu').oncuVer(parseInt(req.params.id)) }); } catch (e) { res.status(400).json({ hata: e.message }); }
+});
+router.delete('/admin/oncu/:id', authMiddleware, superAdminMiddleware, async (req, res) => {
+  try { await require('../utils/oncu').oncuKaldir(parseInt(req.params.id)); res.json({ ok: true }); } catch (e) { res.status(400).json({ hata: e.message }); }
+});
 router.get('/oncu', authMiddleware, async (req, res) => {
   try { res.json(await require('../utils/oncu').oncuDurum(req.kullanici.isletme_id)); }
   catch (e) { res.status(500).json({ hata: e.message }); }
