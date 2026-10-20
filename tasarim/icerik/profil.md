@@ -1,7 +1,7 @@
 # Profil
 
 ## Kullanıcı adı
-**@siragoapp** (öneri; Telegram botu `siragoapp_bot` ile aynı aile). Alınmışsa: `@sirago.app`, `@siragotr`. Instagram ve TikTok'ta aynı ad.
+**@siragoapp** (mevcut, kalsın). Telegram botu `siragoapp_bot` ile aynı aile. TikTok'ta da aynı ad.
 
 ## İsim alanı (Instagram aramada bu alan da taranır)
 **SıraGO · WhatsApp Randevu Asistanı** (34 karakter). Esnaf “randevu” ya da “whatsapp randevu” diye aradığında çıkarız.
@@ -25,14 +25,15 @@ Tek emoji (👇) bilinçli: linki gösterir. Başka emoji yok.
 `maskot/marka/profil-instagram-whatsapp.png`: düz tilki, yeşil zemin (onaylandı). WhatsApp profiliyle aynı yüz → esnafa “bu aynı firma” güveni. 110 px'lik dairede 3D tilkiden daha net.
 Not: dosyanın tilki çevresinde ince, kesik beyaz bir kontur var; büyük boyda (WhatsApp profil önizlemesi) fark edilebilir. İstersen temizlenmiş bir kopyasını çıkarırım.
 
-## Link: Türkçe karakterli alan adı sorunu
-`sırago.com` IDN bir alan adı (ı harfi). Bio linkine yazıldığında Instagram ve TikTok çoğu zaman bunu **`xn--srago-n4a.com`** (punycode) olarak gösterir; bazı uygulama içi tarayıcılar hiç açmaz. Şüpheci esnaf için `xn--...` adresi **oltalama sitesi gibi görünür**; bu, güven hedefimize doğrudan zarar verir.
+## Link
+**beacons.ai/siragoapp kalsın** (mevcut). ASCII olduğu için `sırago.com`’un `xn--srago-n4a.com` görünme sorununu zaten çözüyor. Beacons sayfasında ilk düğme “Ücretsiz dene” olsun; sosyal medyadan gelen kaydı ölçmek için hedef linke `?utm_source=instagram&utm_medium=bio` ekle (TikTok için `utm_source=tiktok`).
+Not: Bot imzasındaki `sırago.com` WhatsApp’ta tıklanabilir olmayabilir; ileride ASCII bir alan adı alınırsa `randevugo/src/utils/siragoImza.js` de güncellenmeli.
 
-Öneri:
-1. **ASCII bir alan adı al** ve `sırago.com`'a yönlendir: `sirago.app`, `siragoapp.com` ya da `sirago.com.tr` (müsaitlik kontrol edilmeli; hiçbirinin sizde olduğunu bilmiyorum).
-2. Bio linki: `https://sirago.app/?utm_source=instagram&utm_medium=bio` (TikTok için `utm_source=tiktok`). Böylece kayıtların kaçının sosyal medyadan geldiğini panelden/analitikten görürsün.
-3. ASCII alan adı gelene kadar geçici: `https://xn--srago-n4a.com/?utm_source=instagram&utm_medium=bio`. Çalışır ama çirkin görünür; bio metnine ayrıca “sırago.com” yazılabilir (tıklanmaz ama okunur).
-4. Bot imzası (`━━━ 🚀 SıraGO ile güçlendirilmiştir · sırago.com`) da aynı sorunu taşır: WhatsApp IDN'i tıklanabilir yapmayabilir. ASCII alan adı alınırsa `randevugo/src/utils/siragoImza.js` içinde de değiştirmek mantıklı.
+## Mevcut hesap (20 Ekim 2026 itibarıyla)
+Eski 6 gönderi ve Reels arşivlendi, profil boş. İsim alanında “WhatApp” yazım hatası var → `SıraGO · WhatsApp Randevu Asistanı`. Bio eski haliyle (4 emoji, “Whatsapp”) → yukarıdaki öneri. Öne çıkan yok.
+
+## Maskot adı “Fiko”
+Eski gönderilerde tilki “Fiko” diye anıldı. Karar verilene kadar: ad yalnız mizah içeriğinde kullanılabilir; ürün anlatımında “SıraGO” denir, çünkü müşteri WhatsApp’ta botu işletmenin adıyla görür (“Kuzey Berber asistanıyım”), “Fiko” ile değil.
 
 ## Öne çıkanlar (A stili, onaylandı)
 SıraGO · Nasıl çalışır · Kurulum · Fiyat · Sorular · Güven. Kapaklar `tasarim/instagram/one-cikan/`, içerik eşleşmesi aynı klasördeki README'de.

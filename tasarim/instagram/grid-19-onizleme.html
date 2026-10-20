@@ -1,0 +1,7 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../sistem/marka.css">
+<style>body{--w:1080px;--h:auto;background:#000} .izgara{display:grid;grid-template-columns:repeat(3,1fr);gap:4px} .izgara div{aspect-ratio:3/4;background-size:cover;background-position:center;position:relative} .izgara span{position:absolute;left:12px;bottom:10px;font:700 22px var(--f-govde);background:rgba(0,0,0,.65);color:#fff;padding:3px 10px;border-radius:8px}</style></head>
+<body data-w="1080" data-h="auto"><div class="izgara" id="g"></div>
+<script>
+const L=['reels-kapak/01-elin-makasta','gonderi/02-suphelenmekte-haklisin/gonderi','gonderi/01-makas-elindeyken/1-kapak','gonderi/03-bes-dakikaya-oradayim/gonderi','reels-kapak/02-cumartesi-oglen','gonderi/06-kurulum-4-adim/1-kapak','gonderi/07-hatirlatma/1-kapak','gonderi/08-oncu-esnaf/gonderi','reels-kapak/03-gece-2347','gonderi/10-sorular/1-kapak','reels-kapak/04-ayni-saate-uc-kisi','gonderi/12-tanidiklar/gonderi','reels-kapak/05-defter','gonderi/14-esnaf-sozlugu-2/gonderi','reels-kapak/07-geliyorum','gonderi/16-mesai-disi/1-kapak','reels-kapak/06-yer-var-mi','gonderi/18-link-nereye/gonderi','reels-kapak/08-pazartesi-tatil'];
+document.getElementById('g').innerHTML=L.map((f,i)=>({f,n:i+1})).reverse().map(x=>`<div style="background-image:url(${x.f}.png)"><span>${x.n}</span></div>`).join('');
+</script></body></html>

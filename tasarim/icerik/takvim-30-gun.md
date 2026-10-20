@@ -1,51 +1,58 @@
-# İlk 30 günlük takvim
+# İlk 30 günlük takvim (v2)
 
-Gün 1 = bir **Pazartesi** varsayıldı (berberlerin çoğu kapalı, profil açılışı için sakin gün). Başka bir günde başlanırsa gün adları kayar, sıra aynı kalır. Aynı veri `takvim-30-gun.csv` dosyasında (tabloya/planlayıcıya aktarmak için).
+Gün 1 = **26 Ekim Pazartesi**. Daha erken başlarsan gün sırası aynı kalır, tarihler kayar. Paylaşım listesi: `paylasim-listesi.md` / `.csv`.
 
-**Saatler** tahmin; 2. haftanın sonunda Instagram İstatistikler’den en iyi iki saate indirilir. **Grid no** profil ızgarasındaki sırayı gösterir (1 = ilk paylaşılan; 1-9 tasarlandı, 10+ “tasarlanacak”). **3D Reels**’leri sen Blender’da yapıyorsun; senaryolar ve kapaklar hazır.
+- **VİDEO — yerelde yapılacak:** videoyu sen üretiyorsun. Konu, kanca, senaryo, alt yazı metni, açıklama ve kapak görseli burada.
+- **Saatler tahmin;** 2. haftanın sonunda Instagram İstatistikler’den en iyi iki saate indirilir.
+- **Grid no:** profil ızgarasındaki sıra (1 = ilk paylaşılan). Video kapakları ızgarada görünsün diye Reels’i “ızgarada göster” açık paylaş.
+- **Deneme süresi** açıklamalarda yazmıyor; yazacaksan paylaşım günü Platform Ayarları’ndan teyit et (bugün 14 gün).
 
-**Deneme süresi:** açıklamalara gün sayısı yazılmadı. Yazılacaksa paylaşım günü Platform Ayarları’ndaki değer teyit edilir (bugün 14 gün).
-
-| Gün | | Saat | Format | Grid | Kanca (ilk 2 sn) |
+| Gün | Tarih | Saat | Tür | Grid | Konu |
 |---|---|---|---|---|---|
-| 1 | Paz | 11:00 | Reels (HTML) + Carousel + Tek görsel · açılış | 1·2·3 | Elin makasta. Telefon titriyor. |
-| 2 | Sal | 21:30 | Story | — | — |
-| 3 | Çar | 13:30 | Tek görsel · mizah | 4 | “Abi 5 dakikaya oradayım.” |
-| 4 | Per | 21:30 | Story | — | — |
-| 5 | Cum | 21:30 | Reels (3D, senin)  | 5 | Cumartesi öğlen. Telefona kim bakacak? |
-| 6 | Cum | 10:00 | Story | — | — |
-| 7 | Paz | — | Dinlenme | — | — |
-| 8 | Paz | 11:00 | Carousel · eğitim (pazartesi, tatil günü) | 6 | 4 adımda hazırsın. |
-| 9 | Sal | 21:30 | Story | — | — |
-| 10 | Çar | 13:30 | Carousel · hatırlatma | 7 | Unutan müşteriye SıraGO yazar. |
-| 11 | Per | 21:30 | Story | — | — |
-| 12 | Cum | 13:30 | Tek görsel · fiyat/Öncü Esnaf | 8 | Fiyatın ömür boyu sabit. |
-| 13 | Cum | 10:00 | Story | — | — |
-| 14 | Paz | 21:30 | Reels (HTML) | 9 | Gece 23:47. Sen uyuyorsun. |
-| 15 | Paz | 11:00 | Carousel · sorular (pazartesi) | 10 | Aklındaki 6 soru. |
-| 16 | Sal | 21:30 | Story | — | — |
-| 17 | Çar | 21:30 | Reels (3D, senin) · mizah | 11 | Aynı saate üç kişiye “tamam” dedin. |
-| 18 | Per | 21:30 | Story | — | — |
-| 19 | Cum | 13:30 | Tek görsel · mizah | 12 | “Ben düzenli müşterinim.” |
-| 20 | Cum | 10:00 | Story | — | — |
-| 21 | Paz | 21:30 | Reels (3D, senin) | 13 | Defterde silinti, kafada karışıklık. |
-| 22 | Paz | 11:00 | Carousel · mesai dışı (pazartesi) | 14 | Gece ne yapsın? Sen seç. |
-| 23 | Sal | 21:30 | Story | — | — |
-| 24 | Çar | 21:30 | Reels (3D, senin) · mizah | 15 | “Yer var mı?” yazdı. Sen cevap verene kadar… |
-| 25 | Per | 21:30 | Story | — | — |
-| 26 | Cum | 13:30 | Tek görsel · güven 2 | 16 | Annen de botla mı konuşacak? |
-| 27 | Cum | 10:00 | Story | — | — |
-| 28 | Paz | 21:30 | Reels (3D, senin) | 17 | 1 saat kala: “Geliyorum.” |
-| 29 | Paz | 11:00 | Carousel · randevu linki (pazartesi) | 18 | Linkini 3 yere koy. |
-| 30 | Sal | 21:30 | Reels (3D, senin) · mizah | 19 | Pazartesi tatil. Telefon yine susmuyor. |
+| 1 | 26 Ekim Pazartesi | 11:00 | **VİDEO + 2 GÖRSEL** | 1 · 2 · 3 | Açılış üçlüsü |
+| 2 | 27 Ekim Salı | 21:30 | STORY | — | Anket |
+| 3 | 28 Ekim Çarşamba | 13:30 | GÖRSEL | 4 | Esnaf sözlüğü 1 |
+| 4 | 29 Ekim Perşembe | 21:30 | STORY | — | Soru kutusu cevapları |
+| 5 | 30 Ekim Cuma | 21:30 | **VİDEO** | 5 | Cumartesi öğlen (3D) |
+| 6 | 31 Ekim Cumartesi | 10:00 | STORY | — | Yoğun gün |
+| 7 | 1 Kasım Pazar | — | — | — | Dinlenme |
+| 8 | 2 Kasım Pazartesi | 11:00 | CAROUSEL | 6 | Kurulum 4 adım |
+| 9 | 3 Kasım Salı | 21:30 | STORY | — | Soru topla |
+| 10 | 4 Kasım Çarşamba | 13:30 | CAROUSEL | 7 | Hatırlatma |
+| 11 | 5 Kasım Perşembe | 21:30 | STORY | — | Cevaplar |
+| 12 | 6 Kasım Cuma | 13:30 | GÖRSEL | 8 | Öncü Esnaf |
+| 13 | 7 Kasım Cumartesi | 10:00 | STORY | — | Cumartesi |
+| 14 | 8 Kasım Pazar | 21:30 | **VİDEO** | 9 | Gece 23:47 |
+| 15 | 9 Kasım Pazartesi | 11:00 | CAROUSEL | 10 | 6 soru |
+| 16 | 10 Kasım Salı | 21:30 | STORY | — | Gelen soru |
+| 17 | 11 Kasım Çarşamba | 21:30 | **VİDEO** | 11 | Aynı saate üç kişi (3D, mizah) |
+| 18 | 12 Kasım Perşembe | 21:30 | STORY | — | Güven |
+| 19 | 13 Kasım Cuma | 13:30 | GÖRSEL | 12 | Tanıdıklar |
+| 20 | 14 Kasım Cumartesi | 10:00 | STORY | — | Cumartesi |
+| 21 | 15 Kasım Pazar | 21:30 | **VİDEO** | 13 | Defter (3D) |
+| 22 | 16 Kasım Pazartesi | 11:00 | GÖRSEL | 14 | Esnaf sözlüğü 2 |
+| 23 | 17 Kasım Salı | 21:30 | STORY | — | Soru |
+| 24 | 18 Kasım Çarşamba | 21:30 | **VİDEO** | 15 | 1 saat kala (3D) |
+| 25 | 19 Kasım Perşembe | 21:30 | STORY | — | — |
+| 26 | 20 Kasım Cuma | 13:30 | CAROUSEL | 16 | Mesai dışı |
+| 27 | 21 Kasım Cumartesi | 10:00 | STORY | — | Cumartesi |
+| 28 | 22 Kasım Pazar | 21:30 | **VİDEO** | 17 | Yer var mı? (3D, mizah) |
+| 29 | 23 Kasım Pazartesi | 11:00 | GÖRSEL | 18 | Linki 3 yere koy |
+| 30 | 24 Kasım Salı | 21:30 | **VİDEO** | 19 | Pazartesi tatil (3D, mizah) |
 
-## Gün 1 · Pazartesi · 11:00
+## Gün 1 · 26 Ekim Pazartesi · 11:00 · Açılış üçlüsü
 
-**Format:** Reels (HTML) + Carousel + Tek görsel · açılış  
-**Dosya:** `videos/out/reels-01-elin-makasta.mp4 · gonderi/02-suphelenmekte-haklisin · gonderi/01-makas-elindeyken`
-
-**Kanca:** Elin makasta. Telefon titriyor.  
-**Görsel/senaryo:** Reels: 4 bildirim → SıraGO cevaplar → panel → kapanış. Carousel 5 sayfa. Güven tek görsel.
+- **VİDEO — yerelde yapılacak:** Reels-01 “Elin makasta” (videos/out/reels-01-elin-makasta.mp4 var; kapanıştaki eski slogan yerelde “Sen makasına bak” yapılıp yeniden render edilecek) · kapak: `tasarim/instagram/reels-kapak/01-elin-makasta.png`
+- **GÖRSEL:** `tasarim/instagram/gonderi/02-suphelenmekte-haklisin/gonderi.png`
+- **CAROUSEL:** `tasarim/instagram/gonderi/01-makas-elindeyken/ (1-5)`
+- **Kanca (ilk 2 sn):** Elin makasta. Telefon titriyor.
+- **Senaryo:** Reels: kilit ekranında 4 bildirim → SıraGO senin yerine cevaplar (gerçek bot metni) → sesli mesajı anlar → panel → kapanış.
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. Baksan koltuktaki bekler. Bakmasan müşteri kaçar.
+  2. Senin numarandan yazar. Müşteri uygulama indirmez.
+  3. Türkçe, İngilizce ve Arapça cevap verir.
+  4. Telefonundan bakarsın. Gelmeyen azalır.
+  5. Sen makasına bak. Randevuyu SıraGO yazsın.
 
 **Açıklama:**
 ```
@@ -57,62 +64,73 @@ SıraGO senin WhatsApp numarana gelen randevu mesajlarını cevaplar: boş saati
 
 #berber #kuaför #randevu #whatsapp #esnaf
 ```
+**Açıklama (Güven):**
+```
+Tanımadığın bir sisteme şüpheyle bakmakta haklısın.
 
-**Story:** Story 01 (SıraGO nedir) + 3 gönderinin story paylaşımı. Öne çıkanları yükle.  
-**TikTok:** Reels-01 (11:00)
+Kart bilgisi istemiyoruz. Müşterin yine senin numarana yazar. Sen yazarsan bot çekilir. Tanıdıklarını bottan ayırırsın.
 
-## Gün 2 · Salı · 21:30
+Aklına takılanı yorumlara ya da DM’e yaz.
 
-**Format:** Story  
-**Dosya:** `story/02-04`
+#berber #kuaför #randevu #whatsapp #esnaf
+```
+**Açıklama (Carousel 01):**
+```
+Makas elindeyken randevuyu kim yazıyor?
 
-**Kanca:** —  
-**Görsel/senaryo:** Nasıl çalışır 1/3, 2/3, 3/3
+Müşterin her zamanki gibi senin numarana yazar; SıraGO boş saati söyler, randevuyu oluşturur, randevu panele düşer. Kaydır, 4 adımda gör.
 
-**Story:** Story 02, 03, 04 + anket: “Makastayken telefona bakıyor musun? Evet / Bakamıyorum”  
-**TikTok:** Carousel 01 fotoğraf modu
+Bağlantı profilde.
 
-## Gün 3 · Çarşamba · 13:30
+#berber #kuaför #randevu #whatsapp #esnaf
+```
 
-**Format:** Tek görsel · mizah  
-**Dosya:** `gonderi/03-bes-dakikaya-oradayim`
+**Story:** tasarim/instagram/story/01-sirago-nedir.png (Öne çıkan: SıraGO) · tasarim/instagram/story/02-nasil-1-musteri-yazar.png (Öne çıkan: Nasıl çalışır) · tasarim/instagram/story/03-nasil-2-sirago-cevaplar.png (Öne çıkan: Nasıl çalışır) · tasarim/instagram/story/04-nasil-3-hatirlatma.png (Öne çıkan: Nasıl çalışır) · tasarim/instagram/story/05-kurulum-1-dort-adim.png (Öne çıkan: Kurulum) · tasarim/instagram/story/06-kurulum-2-qr.png (Öne çıkan: Kurulum) · tasarim/instagram/story/07-fiyat.png (Öne çıkan: Fiyat) · tasarim/instagram/story/08-sorular-1.png (Öne çıkan: Sorular) · tasarim/instagram/story/09-sorular-2.png (Öne çıkan: Sorular) · tasarim/instagram/story/10-guven.png (Öne çıkan: Güven)
+**TikTok:** Reels-01 (aynı video, açıklama: “Elin makasta, telefon titriyor. #berber #kuaför #esnaf”)
 
-**Kanca:** “Abi 5 dakikaya oradayım.”  
-**Görsel/senaryo:** Çevirisi: Daha evden çıkmadım. Unutanı SıraGO hatırlatır.
+## Gün 2 · 27 Ekim Salı · 21:30 · Anket
+
+
+**Story:** Gün 1 gönderilerinin story paylaşımı (Anket çıkartması: “Makastayken telefona bakıyor musun?” Evet / Bakamıyorum)
+**TikTok:** Carousel 01, fotoğraf modu (5 kare)
+
+## Gün 3 · 28 Ekim Çarşamba · 13:30 · Esnaf sözlüğü 1
+
+- **GÖRSEL:** `tasarim/instagram/gonderi/03-bes-dakikaya-oradayim/gonderi.png`
+- **Kanca (ilk 2 sn):** “Abi 5 dakikaya oradayım.”
 
 **Açıklama:**
 ```
 “Abi 5 dakikaya oradayım.”
 Çevirisi: Daha evden çıkmadım.
 
-Randevudan 1 gün, 1 saat ve 15 dakika önce müşterine WhatsApp'tan hatırlatma gider. 1 saat kala “Geliyorum / İptal Et” diye sorar.
+Randevudan 1 gün, 1 saat ve 15 dakika önce müşterine WhatsApp’tan hatırlatma gider. 1 saat kala “Geliyorum / İptal Et” diye sorar.
 
 Sen en çok hangisini duyuyorsun? Yoruma yaz.
 
 #esnafhayatı #berber #kuaför #esnaf
 ```
 
-**Story:** Gönderiyi paylaş + soru kutusu: “Müşteriden en çok duyduğun bahane?”  
-**TikTok:** Mizah görseli fotoğraf modu
+**Story:** Gönderinin story paylaşımı (Soru kutusu: “Müşteriden en çok duyduğun bahane?”)
+**TikTok:** Fotoğraf modu (tek kare)
 
-## Gün 4 · Perşembe · 21:30
+## Gün 4 · 29 Ekim Perşembe · 21:30 · Soru kutusu cevapları
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** Dünkü soru kutusundan 3 cevap (isimsiz, izinsiz kişi bilgisi yok)
+**Story:** Dünkü cevaplardan 3 tanesi (isim ve numara yok) · tasarim/instagram/story/10-guven.png (Tekrar)
 
-**Story:** Soru kutusu cevapları + Story 10 (Güven)  
-**TikTok:** —
+## Gün 5 · 30 Ekim Cuma · 21:30 · Cumartesi öğlen (3D)
 
-## Gün 5 · Cuma · 21:30
-
-**Format:** Reels (3D, senin)   
-**Dosya:** `reels-kapak/02-cumartesi-oglen`
-
-**Kanca:** Cumartesi öğlen. Telefona kim bakacak?  
-**Görsel/senaryo:** Senaryo: dolu dükkân, 3D telefon tezgâhta titrer; bildirimler uçar; SıraGO cevaplar (botun gerçek cümleleri: “Maalesef 15:00 dolu. 15:40 uygun mu?”); panel dolar. Alt yazı: “Cumartesi en yoğun gün. Telefonu SıraGO açsın.”
+- **VİDEO — yerelde yapılacak:** Reels “Cumartesi öğlen” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/02-cumartesi-oglen.png`
+- **Kanca (ilk 2 sn):** Cumartesi öğlen. Telefona kim bakacak?
+- **Senaryo:** Dolu dükkân; tezgâhtaki telefon titrer, bildirimler üst üste düşer. Ekranda botun gerçek cevabı: “Maalesef 15:00 dolu. 15:40 uygun mu?” Panel dolar. Tilki yok (ürün anlatımı).
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. Cumartesi öğlen. Koltuk dolu, kapıda bekleyen var.
+  2. Telefon susmuyor.
+  3. SıraGO senin numarandan cevaplar:
+  4. “Maalesef 15:00 dolu. 15:40 uygun mu?”
+  5. Randevu panele düşer.
+  6. Sen makasına bak. Randevuyu SıraGO yazsın.
 
 **Açıklama:**
 ```
@@ -125,38 +143,24 @@ Bağlantı profilde.
 #berber #berberlik #erkekkuaförü #saçsakal #randevu
 ```
 
-**Story:** Reels paylaşımı + “Cumartesi kaç kişi randevu soruyor? 0-5 / 5-10 / 10+” anketi  
-**TikTok:** Reels-02 (3D)
+**Story:** Reels paylaşımı (Anket: “Cumartesi kaç kişi randevu soruyor?” 0-5 / 5-10 / 10+)
+**TikTok:** Aynı video
 
-## Gün 6 · Cumartesi · 10:00
+## Gün 6 · 31 Ekim Cumartesi · 10:00 · Yoğun gün
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** Cumartesi: kısa “yoğun gün” story’si
+**Story:** tasarim/instagram/story/03-nasil-2-sirago-cevaplar.png (Tekrar + soru çıkartması: “Bugün kaç randevu var?”)
+**TikTok:** Reels-01, farklı ilk yazı: “Müşteri yazdı, sen makastasın.”
 
-**Story:** Story 03 tekrar (Nasıl çalışır 2/3) + “Bugün kaç randevu var?” soru çıkartması  
-**TikTok:** TikTok: Reels-01 farklı kanca: “Müşteri yazdı, sen makastasın.”
+## Gün 7 · 1 Kasım Pazar · — · Dinlenme
 
-## Gün 7 · Pazar · —
 
-**Format:** Dinlenme  
-**Dosya:** —
+**Story:** — (Yalnız DM ve yorumlara cevap)
 
-**Kanca:** —  
-**Görsel/senaryo:** —
+## Gün 8 · 2 Kasım Pazartesi · 11:00 · Kurulum 4 adım
 
-**Story:** Yalnız gelen DM/yorumlara cevap  
-**TikTok:** —
-
-## Gün 8 · Pazartesi · 11:00
-
-**Format:** Carousel · eğitim (pazartesi, tatil günü)  
-**Dosya:** `gonderi/06-kurulum-4-adim`
-
-**Kanca:** 4 adımda hazırsın.  
-**Görsel/senaryo:** 6 sayfa: kurulum ilerlemesi → hizmetler → çalışanlar → QR → link → “birlikte kuralım”
+- **CAROUSEL:** `tasarim/instagram/gonderi/06-kurulum-4-adim/ (1-6)`
+- **Kanca (ilk 2 sn):** 4 adımda hazırsın.
 
 **Açıklama:**
 ```
@@ -164,35 +168,26 @@ Bugün dükkân kapalıysa tam vakti: SıraGO kurulumu 4 adım.
 
 1. Hizmetlerini ve fiyatlarını ekle
 2. Çalışanlarını ekle (kendin dahil)
-3. WhatsApp'ını QR ile bağla
+3. WhatsApp’ını QR ile bağla
 4. Randevu linkini paylaş
 
-Takıldığın yerde yaz, birlikte yapalım. Kaydet, kurarken aç.
+Takıldığın yerde yaz, birlikte kuralım. Kaydet, kurarken aç.
 
 #randevusistemi #onlinerandevu #berber #kuaför #esnaf
 ```
 
-**Story:** Story 05, 06 (Kurulum) + gönderi paylaşımı  
-**TikTok:** Carousel fotoğraf modu
+**Story:** tasarim/instagram/story/05-kurulum-1-dort-adim.png (Tekrar) · tasarim/instagram/story/06-kurulum-2-qr.png (Tekrar)
+**TikTok:** Fotoğraf modu (6 kare)
 
-## Gün 9 · Salı · 21:30
+## Gün 9 · 3 Kasım Salı · 21:30 · Soru topla
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** Soru-cevap
+**Story:** tasarim/instagram/story/08-sorular-1.png (Soru kutusu: “SıraGO hakkında ne sormak istersin?”)
 
-**Story:** Story 08 (Sorular 1/2) + soru kutusu: “SıraGO hakkında ne sormak istersin?”  
-**TikTok:** —
+## Gün 10 · 4 Kasım Çarşamba · 13:30 · Hatırlatma
 
-## Gün 10 · Çarşamba · 13:30
-
-**Format:** Carousel · hatırlatma  
-**Dosya:** `gonderi/07-hatirlatma`
-
-**Kanca:** Unutan müşteriye SıraGO yazar.  
-**Görsel/senaryo:** 2 sayfa: gerçek “Randevu Teyidi” mesajı → üç hatırlatma (1 gün, 1 saat, 15 dk)
+- **CAROUSEL:** `tasarim/instagram/gonderi/07-hatirlatma/ (1-2)`
+- **Kanca (ilk 2 sn):** Unutan müşteriye SıraGO yazar.
 
 **Açıklama:**
 ```
@@ -205,27 +200,18 @@ Bağlantı profilde.
 #berber #kuaför #randevu #whatsapp #esnaf
 ```
 
-**Story:** Gönderi paylaşımı + Story 04 (Hatırlatma)  
-**TikTok:** Carousel fotoğraf modu
+**Story:** tasarim/instagram/story/04-nasil-3-hatirlatma.png (Tekrar)
+**TikTok:** Fotoğraf modu (2 kare)
 
-## Gün 11 · Perşembe · 21:30
+## Gün 11 · 5 Kasım Perşembe · 21:30 · Cevaplar
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** Dünkü sorulara cevap
+**Story:** Soru kutusu cevapları (kişisel bilgi yok) · tasarim/instagram/story/09-sorular-2.png (Tekrar)
 
-**Story:** Soru kutusu cevapları (kişisel bilgi yok) + Story 09  
-**TikTok:** —
+## Gün 12 · 6 Kasım Cuma · 13:30 · Öncü Esnaf
 
-## Gün 12 · Cuma · 13:30
-
-**Format:** Tek görsel · fiyat/Öncü Esnaf  
-**Dosya:** `gonderi/08-oncu-esnaf`
-
-**Kanca:** Fiyatın ömür boyu sabit.  
-**Görsel/senaryo:** İlk 100 Öncü Esnaf: fiyat kilidi + panel rozeti. Rakam yok.
+- **GÖRSEL:** `tasarim/instagram/gonderi/08-oncu-esnaf/gonderi.png`
+- **Kanca (ilk 2 sn):** Fiyatın ömür boyu sabit.
 
 **Açıklama:**
 ```
@@ -236,27 +222,26 @@ Bağlantı profilde.
 #berber #kuaför #randevu #whatsapp #esnaf
 ```
 
-**Story:** Story 07 (Fiyat) + gönderi paylaşımı  
+**Story:** tasarim/instagram/story/07-fiyat.png (Tekrar)
 **TikTok:** —
 
-## Gün 13 · Cumartesi · 10:00
+## Gün 13 · 7 Kasım Cumartesi · 10:00 · Cumartesi
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** Cumartesi
+**Story:** tasarim/instagram/story/02-nasil-1-musteri-yazar.png (Tekrar + anket: “Cumartesi kaçta açıyorsun?”)
+**TikTok:** Cumartesi öğlen videosu, farklı ilk yazı
 
-**Story:** Story 02 tekrar + “Cumartesi kaçta açıyorsun?” anketi  
-**TikTok:** TikTok: Reels-02 (3D) farklı kanca
+## Gün 14 · 8 Kasım Pazar · 21:30 · Gece 23:47
 
-## Gün 14 · Pazar · 21:30
-
-**Format:** Reels (HTML)  
-**Dosya:** `videos/out/reels-02-gece-2347.mp4`
-
-**Kanca:** Gece 23:47. Sen uyuyorsun.  
-**Görsel/senaryo:** Bildirim → SıraGO gece cevaplar (gerçek akış) → sabah panel → mesai dışı ayarı → kapanış
+- **VİDEO — yerelde yapılacak:** Reels-02 “Gece 23:47” (videos/out/reels-02-gece-2347.mp4 var; kapanış sloganı “Sen uyu.” — değişiklik gerekmez) · kapak: `tasarim/instagram/reels-kapak/03-gece-2347.png`
+- **Kanca (ilk 2 sn):** Gece 23:47. Sen uyuyorsun.
+- **Senaryo:** Kilit ekranı 23:47, bildirim → SıraGO gece cevaplar (gerçek akış: boş saatler → onay özeti → Randevunuz Oluşturuldu) → sabah panel → mesai dışı ayarı → kapanış.
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. Müşteri gece yazar. Sabaha unutulur.
+  2. Senin numarandan, sen uyurken.
+  3. Gece gelen randevu panelde seni bekler.
+  4. Ayar panelde, istediğin an değişir.
+  5. Sen uyu. Randevuyu SıraGO yazsın.
 
 **Açıklama:**
 ```
@@ -269,51 +254,46 @@ Bağlantı profilde.
 #kuaför #kuaförsalonu #güzelliksalonu #randevu #whatsapp
 ```
 
-**Story:** Reels paylaşımı + anket: “Gece gelen mesaja cevap verir misin?”  
-**TikTok:** Reels-02 HTML (21:30)
+**Story:** Reels paylaşımı (Anket: “Gece gelen mesaja cevap verir misin?”)
+**TikTok:** Aynı video
 
-## Gün 15 · Pazartesi · 11:00
+## Gün 15 · 9 Kasım Pazartesi · 11:00 · 6 soru
 
-**Format:** Carousel · sorular (pazartesi)  
-**Dosya:** `(tasarlanacak) gonderi/10-sorular`
-
-**Kanca:** Aklındaki 6 soru.  
-**Görsel/senaryo:** Story 08-09 içeriğinin carousel hali: uygulama indirir mi, bot karışır mı, gece ne olur, tanıdıklar, sesli mesaj, diller
+- **CAROUSEL:** `tasarim/instagram/gonderi/10-sorular/ (1-4)`
+- **Kanca (ilk 2 sn):** Aklındaki 6 soru.
 
 **Açıklama:**
 ```
-En çok sorulan 6 soru, kısa cevaplar.
+En çok sorulan 6 soru, kısa cevaplar. Kaydır.
 
-Sorun burada yoksa yoruma yaz; cevabını bir sonraki gönderide paylaşalım.
+Sorun burada yoksa DM’den yaz; cevabını bir sonraki gönderide paylaşalım.
 
 #randevusistemi #onlinerandevu #berber #kuaför #esnaf
 ```
 
-**Story:** Story 08, 09  
-**TikTok:** Fotoğraf modu
+**Story:** tasarim/instagram/story/08-sorular-1.png (Tekrar) · tasarim/instagram/story/09-sorular-2.png (Tekrar)
+**TikTok:** Fotoğraf modu (4 kare)
 
-## Gün 16 · Salı · 21:30
+## Gün 16 · 10 Kasım Salı · 21:30 · Gelen soru
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** —
+**Story:** DM’den gelen bir soru + cevabı (isimsiz) · tasarim/instagram/story/01-sirago-nedir.png (Tekrar)
 
-**Story:** Yeni gelen sorulardan biri + Story 01  
-**TikTok:** —
+## Gün 17 · 11 Kasım Çarşamba · 21:30 · Aynı saate üç kişi (3D, mizah)
 
-## Gün 17 · Çarşamba · 21:30
-
-**Format:** Reels (3D, senin) · mizah  
-**Dosya:** `reels-kapak/04-ayni-saate-uc-kisi`
-
-**Kanca:** Aynı saate üç kişiye “tamam” dedin.  
-**Görsel/senaryo:** Senaryo: tilki dükkânda; üç müşteri aynı anda kapıdan girer, üçü de “17:00 dedin ya” der; tilki kameraya bakar. Son kare: “SıraGO dolu saati söyler: ‘Maalesef 17:00 dolu. 17:30 uygun mu?’” Alt yazı şart.
+- **VİDEO — yerelde yapılacak:** Reels “Aynı saate üç kişi” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/04-ayni-saate-uc-kisi.png`
+- **Kanca (ilk 2 sn):** Aynı saate üç kişiye “tamam” dedin.
+- **Senaryo:** Tilki dükkânda. Saat 17:00, üç müşteri aynı anda kapıdan girer, üçü de “17:00 dedin ya” der. Tilki kameraya bakar. Son kare telefon ekranı: “Maalesef 17:00 dolu. 17:30 uygun mu?”
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. Saat 17:00.
+  2. Kapıda üç kişi.
+  3. “Usta 17:00 dedin ya?”
+  4. SıraGO dolu saati bilir:
+  5. “Maalesef 17:00 dolu. 17:30 uygun mu?”
 
 **Açıklama:**
 ```
-Aynı saate üç kişiye “tamam canım” dedin. Saat 17:00, kapıda üç kişi.
+Aynı saate üç kişiye “tamam” dedin. Saat 17:00, kapıda üç kişi.
 
 SıraGO dolu saati bilir: “Maalesef 17:00 dolu. 17:30 uygun mu?” diye sorar.
 
@@ -322,83 +302,124 @@ Başına geldi mi? Yoruma yaz.
 #esnafhayatı #berber #kuaför #esnaf
 ```
 
-**Story:** Reels paylaşımı  
-**TikTok:** Reels (3D)
+**Story:** Reels paylaşımı
+**TikTok:** Aynı video
 
-## Gün 18 · Perşembe · 21:30
+## Gün 18 · 12 Kasım Perşembe · 21:30 · Güven
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** —
+**Story:** tasarim/instagram/story/10-guven.png (Tekrar + soru kutusu: “Bir sisteme numaranı bağlamadan önce neyi merak edersin?”)
 
-**Story:** Story 10 (Güven) + “Bir sisteme numaranı bağlamadan önce neyi merak edersin?” soru kutusu  
-**TikTok:** —
+## Gün 19 · 13 Kasım Cuma · 13:30 · Tanıdıklar
 
-## Gün 19 · Cuma · 13:30
-
-**Format:** Tek görsel · mizah  
-**Dosya:** `(tasarlanacak) gonderi/12-esnaf-sozlugu-2`
-
-**Kanca:** “Ben düzenli müşterinim.”  
-**Görsel/senaryo:** Esnaf sözlüğü 2. Çevirisi: “Altı ayda bir gelirim.” Alt blok: Randevu sayfan 7/24 açık.
+- **GÖRSEL:** `tasarim/instagram/gonderi/12-tanidiklar/gonderi.png`
+- **Kanca (ilk 2 sn):** Annen de botla mı konuşacak? Hayır.
 
 **Açıklama:**
 ```
-“Ben düzenli müşterinim.”
-Çevirisi: Altı ayda bir gelirim.
+Annen, kardeşin, eski dostun… Onlar da botla mı konuşacak? Hayır.
 
-Ne zaman gelirse gelsin, randevu sayfan 7/24 açık; saatini kendisi seçer.
+İstediğin kişiyi bottan ayırırsın. Bir sohbete sen yazarsan bot o kişiye 3 saat karışmaz.
 
-Esnaf sözlüğüne ne ekleyelim? Yoruma yaz.
+Aklına takılanı DM’den sor.
 
-#esnafhayatı #berber #kuaför #esnaf
+#berber #kuaför #randevu #whatsapp #esnaf
 ```
 
-**Story:** Gönderi paylaşımı  
+**Story:** Gönderinin story paylaşımı
 **TikTok:** Fotoğraf modu
 
-## Gün 20 · Cumartesi · 10:00
+## Gün 20 · 14 Kasım Cumartesi · 10:00 · Cumartesi
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** Cumartesi
+**Story:** Anket sonuçları · tasarim/instagram/story/03-nasil-2-sirago-cevaplar.png (Tekrar)
+**TikTok:** Gece 23:47 videosu, farklı ilk yazı
 
-**Story:** Anket sonuçları + Story 03  
-**TikTok:** —
+## Gün 21 · 15 Kasım Pazar · 21:30 · Defter (3D)
 
-## Gün 21 · Pazar · 21:30
-
-**Format:** Reels (3D, senin)  
-**Dosya:** `reels-kapak/05-defter`
-
-**Kanca:** Defterde silinti, kafada karışıklık.  
-**Görsel/senaryo:** Senaryo: 3D randevu defteri; silinmiş saatler, üst üste yazılmış isimler; sayfa kapanır, yerine panelin temiz listesi gelir (17:30 · Mehmet · Saç + sakal · Onaylı).
+- **VİDEO — yerelde yapılacak:** Reels “Defterde silinti” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/05-defter.png`
+- **Kanca (ilk 2 sn):** Defterde silinti, kafada karışıklık.
+- **Senaryo:** 3D randevu defteri: silinmiş saatler, üst üste yazılmış isimler. Defter kapanır, yerine panelin temiz listesi gelir (17:30 · Mehmet · Saç + sakal · Onaylı). Defteri kullanan esnafla alay yok; dert defterin değil, karışıklığın.
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. Kim kaçta geliyordu?
+  2. Silinti, üstüne yazı, bir de telefon.
+  3. SıraGO’da randevular panelde.
+  4. Telefondan bakarsın, tek ekranda.
 
 **Açıklama:**
 ```
 Defterde silinti, kafada karışıklık. Kim kaçta geliyordu?
 
-SıraGO'da randevular panelde: telefondan bakarsın, kim ne zaman geliyor tek ekranda.
+SıraGO’da randevular panelde: telefondan bakarsın, kim ne zaman geliyor tek ekranda.
 
 Bağlantı profilde.
 
 #berber #berberlik #erkekkuaförü #saçsakal #randevu
 ```
 
-**Story:** Reels paylaşımı  
-**TikTok:** Reels (3D)
+**Story:** Reels paylaşımı
+**TikTok:** Aynı video
 
-## Gün 22 · Pazartesi · 11:00
+## Gün 22 · 16 Kasım Pazartesi · 11:00 · Esnaf sözlüğü 2
 
-**Format:** Carousel · mesai dışı (pazartesi)  
-**Dosya:** `(tasarlanacak) gonderi/14-mesai-disi`
+- **GÖRSEL:** `tasarim/instagram/gonderi/14-esnaf-sozlugu-2/gonderi.png`
+- **Kanca (ilk 2 sn):** “Ben düzenli müşterinim.”
 
-**Kanca:** Gece ne yapsın? Sen seç.  
-**Görsel/senaryo:** Panelin gerçek 3 seçeneği: Normal Çalış (gece de randevu alır) / Kapalı Mesajı Gönder / Sessiz (Cevap Verme). Kapalı mesajı örneği: “Şu an kapalıyız. 🕐 Çalışma saatlerimiz: …”
+**Açıklama:**
+```
+“Ben düzenli müşterinim.”
+Çevirisi: Altı ayda bir gelirim.
+
+Ne zaman gelirse gelsin, randevu sayfan 7/24 açık; boş saati kendisi seçer.
+
+Esnaf sözlüğüne ne ekleyelim? Yoruma yaz.
+
+#esnafhayatı #berber #kuaför #esnaf
+```
+
+**Story:** Gönderinin story paylaşımı · tasarim/instagram/story/05-kurulum-1-dort-adim.png (Tekrar)
+**TikTok:** Fotoğraf modu
+
+## Gün 23 · 17 Kasım Salı · 21:30 · Soru
+
+
+**Story:** tasarim/instagram/story/02-nasil-1-musteri-yazar.png (Tekrar + soru kutusu)
+
+## Gün 24 · 18 Kasım Çarşamba · 21:30 · 1 saat kala (3D)
+
+- **VİDEO — yerelde yapılacak:** Reels “Geliyorum” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/07-geliyorum.png`
+- **Kanca (ilk 2 sn):** 1 saat kala: “Geliyorum.”
+- **Senaryo:** 3D telefon ekranında gerçek “Randevu Teyidi” mesajı; müşterinin parmağı “1” yazar; ekranda “✅ Harika, sizi bekliyoruz!”; boş koltuk dolar. Tilki yok.
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. Randevuya 1 saat kaldı.
+  2. “Gelebilecek misiniz? 1. Geliyorum 2. İptal Et”
+  3. Gelemeyen iptal eder,
+  4. saat başkasına açılır.
+  5. Gelmeyen azalır.
+
+**Açıklama:**
+```
+Randevuya 1 saat kala müşterine sorulur: “Gelebilecek misiniz? 1. Geliyorum 2. İptal Et”
+
+Gelemeyen iptal eder, saat başkasına açılır. Gelmeyen azalır.
+
+Bağlantı profilde.
+
+#berber #kuaför #randevu #whatsapp #esnaf
+```
+
+**Story:** Reels paylaşımı
+**TikTok:** Aynı video
+
+## Gün 25 · 19 Kasım Perşembe · 21:30 · —
+
+
+**Story:** tasarim/instagram/story/04-nasil-3-hatirlatma.png (Tekrar)
+
+## Gün 26 · 20 Kasım Cuma · 13:30 · Mesai dışı
+
+- **CAROUSEL:** `tasarim/instagram/gonderi/16-mesai-disi/ (1-2)`
+- **Kanca (ilk 2 sn):** Dükkân kapandı. Gelen mesaja ne olsun?
 
 **Açıklama:**
 ```
@@ -413,27 +434,26 @@ Sen hangisini seçerdin?
 #randevusistemi #onlinerandevu #berber #kuaför #esnaf
 ```
 
-**Story:** Gönderi paylaşımı + anket (3 seçenek)  
-**TikTok:** Fotoğraf modu
+**Story:** Gönderinin story paylaşımı (Anket (3 seçenek))
+**TikTok:** Fotoğraf modu (2 kare)
 
-## Gün 23 · Salı · 21:30
+## Gün 27 · 21 Kasım Cumartesi · 10:00 · Cumartesi
 
-**Format:** Story  
-**Dosya:** —
 
-**Kanca:** —  
-**Görsel/senaryo:** —
+**Story:** Anket sonucu · tasarim/instagram/story/03-nasil-2-sirago-cevaplar.png (Tekrar)
+**TikTok:** 1 saat kala videosu, farklı ilk yazı
 
-**Story:** Anket sonucu + Story 05  
-**TikTok:** —
+## Gün 28 · 22 Kasım Pazar · 21:30 · Yer var mı? (3D, mizah)
 
-## Gün 24 · Çarşamba · 21:30
-
-**Format:** Reels (3D, senin) · mizah  
-**Dosya:** `reels-kapak/06-yer-var-mi`
-
-**Kanca:** “Yer var mı?” yazdı. Sen cevap verene kadar…  
-**Görsel/senaryo:** Senaryo: müşteri “yer var mı?” yazar; tilki makasla meşgul; saat ilerler (hızlandırılmış); müşteri karşıdaki dükkâna girer. Son: SıraGO anında cevaplar.
+- **VİDEO — yerelde yapılacak:** Reels “Yer var mı?” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/06-yer-var-mi.png`
+- **Kanca (ilk 2 sn):** “Yer var mı?” yazdı. Sen cevap verene kadar…
+- **Senaryo:** Müşteri “yer var mı?” yazar; tilki makasla meşgul; saat hızlanır; müşteri karşıdaki dükkâna girer. Son: aynı mesaja SıraGO’nun anında cevabı.
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. “Yer var mı?”
+  2. Sen makastasın.
+  3. 10 dakika sonra…
+  4. Müşteri karşı dükkânda.
+  5. SıraGO o mesaja hemen cevap verir.
 
 **Açıklama:**
 ```
@@ -446,82 +466,13 @@ Bağlantı profilde.
 #esnafhayatı #berber #kuaför #esnaf
 ```
 
-**Story:** Reels paylaşımı  
-**TikTok:** Reels (3D)
+**Story:** Reels paylaşımı
+**TikTok:** Aynı video
 
-## Gün 25 · Perşembe · 21:30
+## Gün 29 · 23 Kasım Pazartesi · 11:00 · Linki 3 yere koy
 
-**Format:** Story  
-**Dosya:** —
-
-**Kanca:** —  
-**Görsel/senaryo:** —
-
-**Story:** Story 02 + soru kutusu  
-**TikTok:** —
-
-## Gün 26 · Cuma · 13:30
-
-**Format:** Tek görsel · güven 2  
-**Dosya:** `(tasarlanacak) gonderi/16-tanidiklar`
-
-**Kanca:** Annen de botla mı konuşacak?  
-**Görsel/senaryo:** Hayır: tanıdıklarını bottan ayırırsın; elle yazdığın sohbette bot 3 saat susar.
-
-**Açıklama:**
-```
-Annen, kardeşin, eski dostun… Onlar da botla mı konuşacak? Hayır.
-
-İstediğin kişiyi bottan ayırırsın. Bir sohbete sen yazarsan bot o kişiye 3 saat karışmaz.
-
-Aklına takılanı DM'den sor.
-
-#berber #kuaför #randevu #whatsapp #esnaf
-```
-
-**Story:** Gönderi paylaşımı + Story 10  
-**TikTok:** Fotoğraf modu
-
-## Gün 27 · Cumartesi · 10:00
-
-**Format:** Story  
-**Dosya:** —
-
-**Kanca:** —  
-**Görsel/senaryo:** Cumartesi
-
-**Story:** Story 03 + “Bugün kaç kişi yazdı?” soru çıkartması  
-**TikTok:** —
-
-## Gün 28 · Pazar · 21:30
-
-**Format:** Reels (3D, senin)  
-**Dosya:** `reels-kapak/07-geliyorum`
-
-**Kanca:** 1 saat kala: “Geliyorum.”  
-**Görsel/senaryo:** Senaryo: 3D telefon ekranında gerçek “Randevu Teyidi” mesajı; müşterinin parmağı “1” yazar; ekranda “✅ Harika, sizi bekliyoruz!”; boş koltuk dolar.
-
-**Açıklama:**
-```
-Randevuya 1 saat kala müşterine sorulur: “Gelebilecek misiniz? 1. Geliyorum 2. İptal Et”
-
-Gelemeyen iptal eder, saat başkasına açılır. Gelmeyen azalır.
-
-Bağlantı profilde.
-
-#berber #kuaför #randevu #whatsapp #esnaf
-```
-
-**Story:** Reels paylaşımı  
-**TikTok:** Reels (3D)
-
-## Gün 29 · Pazartesi · 11:00
-
-**Format:** Carousel · randevu linki (pazartesi)  
-**Dosya:** `(tasarlanacak) gonderi/18-link-nereye`
-
-**Kanca:** Linkini 3 yere koy.  
-**Görsel/senaryo:** WhatsApp durumu · Instagram profili · dükkân camı (QR). Kurulum adım 4’ün genişletilmiş hali.
+- **GÖRSEL:** `tasarim/instagram/gonderi/18-link-nereye/gonderi.png`
+- **Kanca (ilk 2 sn):** Linkini 3 yere koy.
 
 **Açıklama:**
 ```
@@ -536,16 +487,19 @@ Müşterin saatini 7/24 kendisi seçer. Kaydet.
 #randevusistemi #onlinerandevu #berber #kuaför #esnaf
 ```
 
-**Story:** Gönderi paylaşımı + Story 05  
+**Story:** Gönderinin story paylaşımı · tasarim/instagram/story/05-kurulum-1-dort-adim.png (Tekrar)
 **TikTok:** Fotoğraf modu
 
-## Gün 30 · Salı · 21:30
+## Gün 30 · 24 Kasım Salı · 21:30 · Pazartesi tatil (3D, mizah)
 
-**Format:** Reels (3D, senin) · mizah  
-**Dosya:** `reels-kapak/08-pazartesi-tatil`
-
-**Kanca:** Pazartesi tatil. Telefon yine susmuyor.  
-**Görsel/senaryo:** Senaryo: tilki çay bahçesinde; telefon masada titrer; tilki bakar, gülümser, telefonu ters çevirir. Son: “Tatilde de randevuyu SıraGO yazar.”
+- **VİDEO — yerelde yapılacak:** Reels “Pazartesi tatil” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/08-pazartesi-tatil.png`
+- **Kanca (ilk 2 sn):** Pazartesi tatil. Telefon yine susmuyor.
+- **Senaryo:** Tilki çay bahçesinde; telefon masada titrer; tilki bakar, gülümser, telefonu ters çevirir. Son kare: SıraGO cevapladı bildirimi.
+- **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
+  1. Pazartesi tatil.
+  2. Çay geldi.
+  3. Telefon yine susmuyor.
+  4. Tatilde de randevuyu SıraGO yazar.
 
 **Açıklama:**
 ```
@@ -558,5 +512,5 @@ Bağlantı profilde.
 #esnafhayatı #berber #kuaför #esnaf
 ```
 
-**Story:** Reels paylaşımı + ay sonu: “Bu ay en çok hangi içerik işine yaradı?” anketi  
-**TikTok:** Reels (3D)
+**Story:** Reels paylaşımı (Ay sonu anketi: “Bu ay en çok hangi içerik işine yaradı?”)
+**TikTok:** Aynı video
