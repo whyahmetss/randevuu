@@ -1,0 +1,24 @@
+@import url('../../fontlar/fontlar.css');
+
+/* Yön C — Mahalle: renk blokları, karakterli grotesk, maskot sahnede */
+:root {
+  --krem: #fbf4e8;
+  --krem2: #f3e9d7;
+  --yesil: #1f6f4a;
+  --yesil-k: #154d33;
+  --murekkep: #12281c;
+  --turuncu: #d9581b;
+  --kenar: 84px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: var(--w); height: var(--h); overflow: hidden; position: relative;
+  font-family: 'Inter', sans-serif; color: var(--murekkep); -webkit-font-smoothing: antialiased;
+}
+h1 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-variation-settings: 'opsz' 96; letter-spacing: -0.035em; line-height: .94; }
+.ust { position: absolute; top: 84px; left: var(--kenar); right: var(--kenar); display: flex; justify-content: space-between; align-items: center; z-index: 5; }
+.ust img { height: 46px; }
+.ust span { font-family: 'Bricolage Grotesque'; font-size: 26px; font-weight: 600; opacity: .55; }
+.balon { font-size: 36px; line-height: 1.3; padding: 24px 32px; border-radius: 36px; width: fit-content; max-width: 80%; font-weight: 500; }
+.balon small { display: block; font-size: 20px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; opacity: .6; }
+.tilki { position: absolute; }

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../fontlar/fontlar.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 2400px; height: 1010px; background: #e9e7e2; font-family: 'Inter'; color: #1b1a17; padding: 64px 72px; -webkit-font-smoothing: antialiased; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 44px; }
+  header h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; }
+  header p { font-size: 22px; color: #5d5952; }
+  .yonler { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; }
+  .yon h2 { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; }
+  .yon h2 span { color: #8a847a; font-weight: 500; margin-right: 10px; }
+  .yon p { font-size: 19px; color: #5d5952; margin: 8px 0 16px; line-height: 1.45; height: 56px; }
+  .renk { display: flex; gap: 6px; margin-bottom: 22px; align-items: center; font-size: 17px; color: #5d5952; }
+  .renk i { width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(0,0,0,.1); }
+  .renk em { font-style: normal; margin-left: 12px; }
+  .gorseller { display: flex; gap: 18px; align-items: flex-start; }
+  .gorseller img { border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.12); display: block; }
+  .g { width: 400px; }
+  .s { width: 300px; }
+</style></head>
+<body data-w="2400" data-h="1010">
+<header><h1>SıraGO · 3 görsel yön</h1><p>Aynı mesaj, üç farklı marka dili. Soldaki: gönderi 1080×1350 · Sağdaki: story 1080×1920</p></header>
+<div class="yonler">
+  <div class="yon">
+    <h2><span>A</span>Esnaf Defteri</h2>
+    <p>Sıcak kâğıt zemin, editoryal serif başlık, tek koyu yeşil. Sakin, olgun, güven veren. Maskot yalnız logoda.</p>
+    <div class="renk"><i style="background:#f4f1ea"></i><i style="background:#1b1a17"></i><i style="background:#1f6f4a"></i><i style="background:#b5532a"></i><em>Fraunces + Inter</em></div>
+    <div class="gorseller"><img class="g" src="a-defter/gonderi.png"><img class="s" src="a-defter/story.png"></div>
+  </div>
+  <div class="yon">
+    <h2><span>B</span>Gece Mesaisi</h2>
+    <p>Koyu orman zemini, logodaki parlak yeşil tek vurgu, ürün ekranı merkezde. Teknolojik, premium, net.</p>
+    <div class="renk"><i style="background:#0a1410"></i><i style="background:#eef3f0"></i><i style="background:#2bd36a"></i><i style="background:#8fa39a"></i><em>Inter Tight + Inter</em></div>
+    <div class="gorseller"><img class="g" src="b-gece/gonderi.png"><img class="s" src="b-gece/story.png"></div>
+  </div>
+  <div class="yon">
+    <h2><span>C</span>Mahalle</h2>
+    <p>Krem ve yeşil renk blokları, karakterli kalın grotesk, tilki sahnede. Sıcak, akılda kalır, en samimi.</p>
+    <div class="renk"><i style="background:#fbf4e8"></i><i style="background:#1f6f4a"></i><i style="background:#154d33"></i><i style="background:#d9581b"></i><em>Bricolage Grotesque + Inter</em></div>
+    <div class="gorseller"><img class="g" src="c-mahalle/gonderi.png"><img class="s" src="c-mahalle/story.png"></div>
+  </div>
+</div>
+</body></html>

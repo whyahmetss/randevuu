@@ -1,0 +1,50 @@
+@import url('../../fontlar/fontlar.css');
+
+/* Yön A — Esnaf Defteri: sıcak kâğıt zemin, editoryal serif başlık, tek koyu yeşil */
+:root {
+  --kagit: #f4f1ea;
+  --kart: #fffdf8;
+  --murekkep: #1b1a17;
+  --gri: #5d5952;
+  --cizgi: #ddd7cb;
+  --yesil: #1f6f4a;
+  --yesil-acik: #e6efe9;
+  --kiremit: #b5532a;
+  --kenar: 88px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--kagit); }
+body {
+  width: var(--w); height: var(--h); overflow: hidden; position: relative;
+  font-family: 'Inter', sans-serif; color: var(--murekkep);
+  -webkit-font-smoothing: antialiased; font-feature-settings: 'ss01', 'cv11';
+}
+.sayfa { position: absolute; inset: 0; padding: var(--kenar); display: flex; flex-direction: column; }
+
+.ust { display: flex; align-items: center; justify-content: space-between; padding-bottom: 28px; border-bottom: 2px solid var(--murekkep); }
+.ust img { height: 46px; }
+.ust .no { font-size: 24px; font-weight: 500; letter-spacing: .08em; color: var(--gri); font-variant-numeric: tabular-nums; }
+
+.etiket { font-size: 23px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--yesil); }
+.etiket::before { content: ''; display: inline-block; width: 36px; height: 2px; background: var(--yesil); vertical-align: middle; margin-right: 16px; transform: translateY(-3px); }
+
+h1 {
+  font-family: 'Fraunces', serif; font-weight: 460; font-variation-settings: 'opsz' 96, 'SOFT' 100;
+  letter-spacing: -0.025em; line-height: 0.98;
+}
+h1 em { font-style: italic; color: var(--yesil); font-weight: 420; }
+.alt { font-size: 34px; line-height: 1.42; color: var(--gri); }
+.alt b { color: var(--murekkep); font-weight: 600; }
+
+/* sohbet kartı */
+.sohbet { background: var(--kart); border: 1.5px solid var(--cizgi); border-radius: 30px; padding: 30px 32px 34px; }
+.sohbet .bas { display: flex; align-items: center; gap: 14px; font-size: 22px; font-weight: 600; color: var(--gri); padding-bottom: 22px; margin-bottom: 26px; border-bottom: 1.5px solid var(--cizgi); }
+.sohbet .bas i { width: 12px; height: 12px; border-radius: 50%; background: var(--yesil); }
+.sohbet .bas span { margin-left: auto; font-weight: 500; color: #8a847a; }
+.b { max-width: 78%; font-size: 30px; line-height: 1.35; padding: 18px 26px; border-radius: 26px; margin-top: 14px; width: fit-content; }
+.b.gelen { background: #efebe2; border-bottom-left-radius: 8px; }
+.b.giden { background: var(--yesil); color: #fff; margin-left: auto; border-bottom-right-radius: 8px; }
+.b small { display: block; font-size: 19px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
+
+.alt-satir { display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 500; color: var(--gri); }
+.alt-satir .ok { color: var(--murekkep); font-weight: 600; }

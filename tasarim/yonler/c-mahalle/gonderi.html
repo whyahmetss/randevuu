@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="stil.css">
+<style>
+  body { --w: 1080px; --h: 1350px; background: var(--krem); }
+  h1 { position: absolute; top: 210px; left: var(--kenar); font-size: 112px; color: var(--yesil-k); }
+  h1 em { font-style: normal; color: var(--turuncu); }
+  .tilki { width: 440px; right: -10px; top: 420px; z-index: 1; }
+  .panel { position: absolute; left: 0; right: 0; top: 740px; bottom: 0; background: var(--yesil); border-radius: 64px 64px 0 0; z-index: 2; padding: 64px var(--kenar) 0; }
+  .gelen { background: #fff; border-bottom-left-radius: 10px; }
+  .giden { background: var(--krem); margin: 22px 0 0 auto; border-bottom-right-radius: 10px; }
+  .giden small { color: var(--yesil); opacity: 1; }
+  .alt { position: absolute; left: var(--kenar); right: var(--kenar); bottom: 70px; display: flex; justify-content: space-between; color: var(--krem); font-size: 25px; font-weight: 500; z-index: 3; }
+  .alt b { font-weight: 700; }
+</style></head>
+<body data-w="1080" data-h="1350">
+<div class="ust"><img src="../../../maskot/marka/logo-yatay-acik-zemin.png" alt="SıraGO"><span>01/06</span></div>
+<h1>Makas elindeyken<br>randevuyu<br><em>kim yazıyor?</em></h1>
+<img class="tilki" src="../../varliklar/tilki-3d-temiz.png" alt="">
+<div class="panel">
+  <div class="balon gelen">Yarın 5'e yer var mı?</div>
+  <div class="balon giden"><small>SıraGO</small>17:30 ya da 18:00 boş. Hangisini yazayım?</div>
+  <div class="balon gelen" style="margin-top:22px">17:30 olsun</div>
+</div>
+<div class="alt"><span>Müşteri senin WhatsApp'ına yazar.</span><b>Kaydır →</b></div>
+</body></html>

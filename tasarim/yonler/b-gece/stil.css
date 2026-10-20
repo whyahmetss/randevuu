@@ -1,0 +1,71 @@
+@import url('../../fontlar/fontlar.css');
+
+/* Yön B — Gece Mesaisi: koyu orman zemini, tek parlak yeşil vurgu, sıkı grotesk, ürün ekranı merkezde */
+:root {
+  --zemin: #0a1410;
+  --zemin2: #0f1d17;
+  --yuzey: #13241c;
+  --cizgi: rgba(255,255,255,.09);
+  --yazi: #eef3f0;
+  --gri: #8fa39a;
+  --parlak: #2bd36a;
+  --yesil: #1f6f4a;
+  --kenar: 84px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--zemin); }
+body {
+  width: var(--w); height: var(--h); overflow: hidden; position: relative;
+  font-family: 'Inter', sans-serif; color: var(--yazi); -webkit-font-smoothing: antialiased;
+}
+/* tek, sakin ışık kaynağı + çok ince ızgara */
+body::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(900px 700px at 85% 78%, rgba(43,211,106,.16), transparent 70%);
+}
+body::after {
+  content: ''; position: absolute; inset: 0; opacity: .5;
+  background-image: linear-gradient(var(--cizgi) 1px, transparent 1px), linear-gradient(90deg, var(--cizgi) 1px, transparent 1px);
+  background-size: 108px 108px; background-position: -1px -1px;
+  mask-image: radial-gradient(800px 600px at 85% 80%, #000 0%, transparent 75%);
+}
+.sayfa { position: absolute; inset: 0; padding: var(--kenar); z-index: 1; }
+
+.ust { display: flex; align-items: center; justify-content: space-between; }
+.ust img { height: 44px; }
+.rozet { display: inline-flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 500; color: var(--gri); border: 1px solid var(--cizgi); border-radius: 100px; padding: 10px 20px; background: rgba(255,255,255,.03); }
+.rozet i { width: 10px; height: 10px; border-radius: 50%; background: var(--parlak); box-shadow: 0 0 12px var(--parlak); }
+
+h1 { font-family: 'Inter Tight', sans-serif; font-weight: 750; letter-spacing: -0.04em; line-height: 0.98; }
+h1 span { color: var(--gri); }
+h1 em { font-style: normal; color: var(--parlak); }
+.alt { font-size: 32px; line-height: 1.45; color: var(--gri); }
+.alt b { color: var(--yazi); font-weight: 600; }
+
+/* telefon */
+.tel {
+  position: absolute; width: 620px; border-radius: 72px; padding: 16px;
+  background: linear-gradient(160deg, #2a3a33, #0d1813 40%); border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 60px 120px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.ekran { border-radius: 58px; background: #0b141a; overflow: hidden; height: 100%; }
+.wa-bas { display: flex; align-items: center; gap: 18px; padding: 56px 30px 22px; background: #1f2c34; }
+.wa-bas .av { width: 58px; height: 58px; border-radius: 50%; background: #2c3c35; display: grid; place-items: center; font-weight: 700; font-size: 24px; color: var(--gri); }
+.wa-bas b { font-size: 26px; font-weight: 600; display: block; }
+.wa-bas small { font-size: 19px; color: #8696a0; }
+.wa-govde { padding: 26px 22px; display: flex; flex-direction: column; gap: 12px; }
+.b { max-width: 82%; font-size: 26px; line-height: 1.38; padding: 14px 20px 12px; border-radius: 18px; }
+.b.gelen { background: #1f2c34; align-self: flex-start; border-top-left-radius: 4px; }
+.b.giden { background: #005c4b; align-self: flex-end; border-top-right-radius: 4px; }
+.b .s { display: block; text-align: right; font-size: 16px; color: rgba(255,255,255,.55); margin-top: 4px; }
+
+/* bildirim kartı */
+.bildirim {
+  position: absolute; display: flex; gap: 22px; align-items: center; padding: 26px 30px; border-radius: 30px;
+  background: rgba(22,38,30,.78); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 30px 60px rgba(0,0,0,.45);
+}
+.bildirim .ik { width: 64px; height: 64px; border-radius: 18px; background: var(--parlak); display: grid; place-items: center; flex: none; }
+.bildirim .ik svg { width: 34px; height: 34px; }
+.bildirim small { display: block; font-size: 20px; color: var(--gri); font-weight: 500; letter-spacing: .02em; }
+.bildirim b { display: block; font-size: 30px; font-weight: 650; margin-top: 2px; letter-spacing: -0.01em; }

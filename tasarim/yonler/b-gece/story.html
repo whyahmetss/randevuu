@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="stil.css">
+<style>
+  body { --w: 1080px; --h: 1920px; }
+  body::before { background: radial-gradient(1000px 800px at 50% 70%, rgba(43,211,106,.16), transparent 70%); }
+  body::after { mask-image: radial-gradient(900px 700px at 50% 70%, #000 0%, transparent 75%); }
+  .sayfa { padding-top: 190px; text-align: center; }
+  .ust { justify-content: center; }
+  h1 { font-size: 116px; margin-top: 64px; }
+  .alt { margin: 34px auto 0; max-width: 760px; }
+  .adimlar { display: flex; justify-content: center; gap: 14px; margin-top: 52px; }
+  .adimlar span { font-size: 25px; font-weight: 550; border: 1px solid var(--cizgi); background: rgba(255,255,255,.04); border-radius: 100px; padding: 14px 24px; }
+  .adimlar span i { font-style: normal; color: var(--parlak); margin-right: 10px; }
+  .tel { left: 50%; margin-left: -300px; width: 600px; top: 1000px; height: 760px; z-index: 2;
+         -webkit-mask-image: linear-gradient(#000 62%, transparent 96%); }
+  .ses { display: flex; align-items: center; gap: 16px; width: 380px; }
+  .ses .oynat { width: 0; height: 0; border-left: 22px solid #aebac1; border-top: 13px solid transparent; border-bottom: 13px solid transparent; }
+  .ses .dalga { flex: 1; height: 34px; background: repeating-linear-gradient(90deg, #aebac1 0 4px, transparent 4px 9px);
+                -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'><path d='M0 8h4v4H0zM9 5h4v10H9zM18 2h4v16h-4zM27 6h4v8h-4zM36 3h4v14h-4zM45 7h4v6h-4zM54 1h4v18h-4zM63 5h4v10h-4zM72 8h4v4h-4zM81 4h4v12h-4zM90 7h4v6h-4z'/></svg>"); -webkit-mask-size: 100% 100%; }
+  .ses small { font-size: 18px; color: #8696a0; }
+  .bildirim { left: 110px; right: 110px; top: 1420px; z-index: 3; }
+  .cagri { position: absolute; left: 0; right: 0; top: 1600px; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .cagri b { font-size: 34px; font-weight: 650; color: var(--yazi); }
+  .cagri b em { font-style: normal; color: var(--parlak); }
+  .cagri small { font-size: 24px; color: var(--gri); }
+</style></head>
+<body data-w="1080" data-h="1920">
+<div class="sayfa">
+  <div class="ust"><img src="../../../maskot/marka/logo-yatay-koyu-zemin.png" alt="SıraGO"></div>
+  <h1>Müşterin<br>uygulama<br><em>indirmez.</em></h1>
+  <p class="alt">Senin WhatsApp numarana yazar. <b>Gerisini SıraGO halleder.</b></p>
+  <div class="adimlar"><span><i>1</i>Müşteri yazar</span><span><i>2</i>SıraGO cevaplar</span><span><i>3</i>Panele düşer</span></div>
+</div>
+<div class="tel"><div class="ekran">
+  <div class="wa-bas"><span class="av">A</span><div><b>Ayşe</b><small>çevrimiçi</small></div></div>
+  <div class="wa-govde">
+    <div class="b gelen"><span class="ses"><i class="oynat"></i><i class="dalga"></i><small>0:06</small></span></div>
+    <div class="b giden">Cumartesi 11:00 boş. Fön için yazayım mı?<span class="s">10:12</span></div>
+  </div>
+</div></div>
+<div class="bildirim">
+  <span class="ik"><svg viewBox="0 0 24 24" fill="none" stroke="#06140c" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+  <div><small>Yeni randevu · SıraGO</small><b>Cumartesi 11:00 · Ayşe · Fön</b></div>
+</div>
+<div class="cagri"><b>Ücretsiz dene <em>→</em></b><small>Kart bilgisi istenmez · Bağlantı profilde</small></div>
+</body></html>
