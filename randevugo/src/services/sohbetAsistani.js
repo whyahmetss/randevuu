@@ -398,7 +398,7 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
   await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_dilim: null, sohbet_bekleyen: 'onay' });
   if (oneriMetni) return oneriMetni;
   const usta = alan.secilen_calisan_id ? (uygun.find(c => c.id === alan.secilen_calisan_id) || calisanlar.find(c => c.id === alan.secilen_calisan_id)) : null;
-  const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n✂️ ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
+  const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
   return T.onay(ozet);
 }
 

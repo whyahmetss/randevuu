@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
+const { hizmetEmoji } = require('../utils/hizmetEmoji');
 const randevuService = require('./randevu');
 const { tarihFormatla } = require('../utils/tarih');
 
@@ -43,7 +44,7 @@ class HatirlatmaService {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
-               h.isim as hizmet_isim, i.isim as isletme_isim, i.adres as isletme_adres,
+               h.isim as hizmet_isim, i.isim as isletme_isim, i.kategori as isletme_kategori, i.adres as isletme_adres,
                i.telegram_token, i.id as isletme_id
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
@@ -56,7 +57,7 @@ class HatirlatmaService {
       `);
       for (const r of result.rows) {
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏰ *Randevu Teyidi*\n\nMerhaba ${r.musteri_isim || ''}! Randevunuza *1 saat* kaldı.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nGelebilecek misiniz?\n\n*1.* ✅ Geliyorum\n*2.* ❌ İptal Et`;
+        const mesaj = `⏰ *Randevu Teyidi*\n\nMerhaba ${r.musteri_isim || ''}! Randevunuza *1 saat* kaldı.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? hizmetEmoji(r.isletme_kategori) + ' ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nGelebilecek misiniz?\n\n*1.* ✅ Geliyorum\n*2.* ❌ İptal Et`;
         await this.mesajGonder(r, mesaj);
         await pool.query('UPDATE randevular SET teyit_gonderildi = true, hatirlatma_gonderildi = true WHERE id = $1', [r.id]);
         console.log(`📩 Teyit mesajı gönderildi: ${r.musteri_isim} - ${saat}`);
@@ -69,7 +70,7 @@ class HatirlatmaService {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
-               h.isim as hizmet_isim, i.isim as isletme_isim, i.adres as isletme_adres,
+               h.isim as hizmet_isim, i.isim as isletme_isim, i.kategori as isletme_kategori, i.adres as isletme_adres,
                i.telegram_token, i.id as isletme_id, i.hatirlatma_zinciri_aktif
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
@@ -86,7 +87,7 @@ class HatirlatmaService {
         const tarih = new Date(r.tarih);
         const gun = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][tarih.getDay()];
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `🗓️ *Yarınki Randevunuz*\n\nMerhaba ${r.musteri_isim || ''}! Yarın saat ${saat}'de randevunuz var.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ Yarın (${gun}) saat ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nGörüşmek üzere! 😊`;
+        const mesaj = `🗓️ *Yarınki Randevunuz*\n\nMerhaba ${r.musteri_isim || ''}! Yarın saat ${saat}'de randevunuz var.\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? hizmetEmoji(r.isletme_kategori) + ' ' + r.hizmet_isim + '\n' : ''}🗓️ Yarın (${gun}) saat ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nGörüşmek üzere! 😊`;
         await this.mesajGonder(r, mesaj);
         // hatirlatma_gonderildi true yaparak 24h mesajının tekrar gitmesini engelle
         await pool.query('UPDATE randevular SET hatirlatma_gonderildi = true WHERE id = $1', [r.id]);
@@ -100,7 +101,7 @@ class HatirlatmaService {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
-               h.isim as hizmet_isim, i.isim as isletme_isim, i.adres as isletme_adres,
+               h.isim as hizmet_isim, i.isim as isletme_isim, i.kategori as isletme_kategori, i.adres as isletme_adres,
                i.telegram_token, i.id as isletme_id, i.hatirlatma_zinciri_aktif
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
@@ -115,7 +116,7 @@ class HatirlatmaService {
       for (const r of result.rows) {
         if (r.hatirlatma_zinciri_aktif === false) continue;
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏰ *Randevunuza 15 dakika kaldı!*\n\nMerhaba ${r.musteri_isim || ''}!\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nYola çıktınız mı? 🚗`;
+        const mesaj = `⏰ *Randevunuza 15 dakika kaldı!*\n\nMerhaba ${r.musteri_isim || ''}!\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? hizmetEmoji(r.isletme_kategori) + ' ' + r.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}${r.isletme_adres ? '\n📍 ' + r.isletme_adres : ''}\n\nYola çıktınız mı? 🚗`;
         await this.mesajGonder(r, mesaj);
         await pool.query('UPDATE randevular SET onbes_dk_gonderildi = true WHERE id = $1', [r.id]);
         console.log(`⏰ 15dk hatırlatma: ${r.musteri_isim} - ${saat}`);
@@ -131,7 +132,7 @@ class HatirlatmaService {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
-               h.isim as hizmet_isim, h.sure_dk, i.isim as isletme_isim,
+               h.isim as hizmet_isim, h.sure_dk, i.isim as isletme_isim, i.kategori as isletme_kategori,
                i.telegram_token, i.id as isletme_id
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
@@ -143,7 +144,7 @@ class HatirlatmaService {
           AND (r.saat + INTERVAL '1 hour' + (COALESCE(h.sure_dk, 30) || ' minutes')::interval) < NOW()::time
       `);
       for (const r of result.rows) {
-        const mesaj = `⭐ *Hizmetimizi Değerlendirin!*\n\n${r.isletme_isim} ziyaretiniz nasıldı?\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}\nPuanınız bizim için çok değerli:\n\n*1.* ⭐ (Kötü)\n*2.* ⭐⭐\n*3.* ⭐⭐⭐\n*4.* ⭐⭐⭐⭐\n*5.* ⭐⭐⭐⭐⭐ (Mükemmel)`;
+        const mesaj = `⭐ *Hizmetimizi Değerlendirin!*\n\n${r.isletme_isim} ziyaretiniz nasıldı?\n${r.hizmet_isim ? hizmetEmoji(r.isletme_kategori) + ' ' + r.hizmet_isim + '\n' : ''}\nPuanınız bizim için çok değerli:\n\n*1.* ⭐ (Kötü)\n*2.* ⭐⭐\n*3.* ⭐⭐⭐\n*4.* ⭐⭐⭐⭐\n*5.* ⭐⭐⭐⭐⭐ (Mükemmel)`;
         await this.mesajGonder(r, mesaj);
         await pool.query('UPDATE randevular SET anket_gonderildi = true, memnuniyet_soruldu = true WHERE id = $1', [r.id]);
         console.log(`⭐ Post-randevu anket: ${r.musteri_isim} - ${r.isletme_isim}`);
@@ -159,7 +160,7 @@ class HatirlatmaService {
   async sessizOnay() {
     try {
       const result = await pool.query(`
-        SELECT r.id, r.saat, m.isim as musteri_isim, i.isim as isletme_isim
+        SELECT r.id, r.saat, m.isim as musteri_isim, i.isim as isletme_isim, i.kategori as isletme_kategori
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
         JOIN isletmeler i ON r.isletme_id = i.id
@@ -270,7 +271,7 @@ class HatirlatmaService {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
-               h.isim as hizmet_isim, i.isim as isletme_isim, i.adres as isletme_adres,
+               h.isim as hizmet_isim, i.isim as isletme_isim, i.kategori as isletme_kategori, i.adres as isletme_adres,
                i.telegram_token, i.id as isletme_id, i.onay_timeout_dk
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
@@ -282,7 +283,7 @@ class HatirlatmaService {
       for (const r of result.rows) {
         await pool.query("UPDATE randevular SET durum='iptal' WHERE id=$1", [r.id]);
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏳ *Randevunuz zaman aşımına uğradı*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\nİşletme belirtilen sürede onay vermediği için randevunuz iptal edildi.\n\n🗓️ Yeni randevu için *1* yazın.`;
+        const mesaj = `⏳ *Randevunuz zaman aşımına uğradı*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? hizmetEmoji(r.isletme_kategori) + ' ' + r.hizmet_isim + '\n' : ''}🗓️ ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\nİşletme belirtilen sürede onay vermediği için randevunuz iptal edildi.\n\n🗓️ Yeni randevu için *1* yazın.`;
         await this.mesajGonder(r, mesaj);
         console.log(`⏳ Onay timeout: ${r.musteri_isim} - ${r.isletme_isim} - ${saat}`);
       }
@@ -294,7 +295,7 @@ class HatirlatmaService {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
-               h.isim as hizmet_isim, i.isim as isletme_isim,
+               h.isim as hizmet_isim, i.isim as isletme_isim, i.kategori as isletme_kategori,
                i.telegram_token, i.id as isletme_id,
                r.kapora_shopier_urun_id
         FROM randevular r
@@ -307,7 +308,7 @@ class HatirlatmaService {
       for (const r of result.rows) {
         await pool.query("UPDATE randevular SET durum='iptal', kapora_durumu='iptal' WHERE id=$1", [r.id]);
         const saat = String(r.saat).substring(0, 5);
-        const mesaj = `⏳ *Kapora süresi doldu*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}🗓️ ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\n💳 Kapora ödemesi 5 dakika içinde tamamlanmadığı için randevunuz iptal edildi.\n\n🗓️ Yeni randevu için *1* yazın.`;
+        const mesaj = `⏳ *Kapora süresi doldu*\n\n🏥 ${r.isletme_isim}\n${r.hizmet_isim ? hizmetEmoji(r.isletme_kategori) + ' ' + r.hizmet_isim + '\n' : ''}🗓️ ${this.tarihFormat(r.tarih)} - 🕐 ${saat}\n\n💳 Kapora ödemesi 5 dakika içinde tamamlanmadığı için randevunuz iptal edildi.\n\n🗓️ Yeni randevu için *1* yazın.`;
         await this.mesajGonder(r, mesaj);
         console.log(`💳⏳ Kapora timeout: ${r.musteri_isim} - ${r.isletme_isim} - ${saat}`);
         // Shopier ürününü sil
@@ -330,7 +331,7 @@ class HatirlatmaService {
     try {
       const result = await pool.query(`
         SELECT r.*, m.telefon as musteri_telefon, m.isim as musteri_isim,
-               h.isim as hizmet_isim, h.sure_dk, i.isim as isletme_isim,
+               h.isim as hizmet_isim, h.sure_dk, i.isim as isletme_isim, i.kategori as isletme_kategori,
                i.telegram_token, i.id as isletme_id, i.rebook_aktif
         FROM randevular r
         JOIN musteriler m ON r.musteri_id = m.id
@@ -358,7 +359,7 @@ class HatirlatmaService {
           continue;
         }
 
-        const mesaj = `🗓️ *Tekrar Bekleriz!*\n\nMerhaba ${r.musteri_isim || ''}! ${r.isletme_isim} ziyaretinizden memnun kaldıysanız bir sonraki randevunuzu şimdi alabilirsiniz! 😊\n\n${r.hizmet_isim ? '✂️ ' + r.hizmet_isim + '\n' : ''}Randevu almak için *1* yazın.`;
+        const mesaj = `🗓️ *Tekrar Bekleriz!*\n\nMerhaba ${r.musteri_isim || ''}! ${r.isletme_isim} ziyaretinizden memnun kaldıysanız bir sonraki randevunuzu şimdi alabilirsiniz! 😊\n\n${r.hizmet_isim ? hizmetEmoji(r.isletme_kategori) + ' ' + r.hizmet_isim + '\n' : ''}Randevu almak için *1* yazın.`;
         await this.mesajGonder(r, mesaj);
         await pool.query('UPDATE randevular SET rebook_gonderildi = true WHERE id = $1', [r.id]);
         console.log(`🗓️ Rebook mesajı: ${r.musteri_isim} - ${r.isletme_isim}`);

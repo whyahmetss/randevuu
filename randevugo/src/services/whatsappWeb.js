@@ -1559,7 +1559,7 @@ class WhatsAppWebService extends EventEmitter {
                 [urun.url, urun.id, sonuc.randevu.id]);
               let kaporaMesaj = `📋 *Randevunuz kaydedildi!*\n\n`;
               kaporaMesaj += `🏥 ${isletme.isim}\n`;
-              if (sonuc.hizmet) kaporaMesaj += `✂️ ${sonuc.hizmet.isim}\n`;
+              if (sonuc.hizmet) kaporaMesaj += `${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${sonuc.hizmet.isim}\n`;
               if (clOnay) kaporaMesaj += `👤 ${clOnay.isim}\n`;
               kaporaMesaj += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
               kaporaMesaj += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
@@ -1580,7 +1580,7 @@ class WhatsAppWebService extends EventEmitter {
           if (sonuc.manuelOnay) {
             let bekle = `⏳ *Randevunuz kaydedildi!*\n\n`;
             bekle += `🏥 ${isletme.isim}\n`;
-            if (sonuc.hizmet) bekle += `✂️ ${sonuc.hizmet.isim}\n`;
+            if (sonuc.hizmet) bekle += `${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${sonuc.hizmet.isim}\n`;
             if (clOnay) bekle += `👤 ${clOnay.isim}\n`;
             bekle += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
             bekle += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
@@ -1938,7 +1938,7 @@ class WhatsAppWebService extends EventEmitter {
     if (isTeyitYanit) {
       try {
         const teyitRandevu = (await pool.query(`
-          SELECT r.id, r.saat, r.tarih, h.isim as hizmet_isim, i.isim as isletme_isim
+          SELECT r.id, r.saat, r.tarih, h.isim as hizmet_isim, i.isim as isletme_isim, i.kategori as isletme_kategori
           FROM randevular r
           JOIN isletmeler i ON r.isletme_id = i.id
           JOIN musteriler m ON r.musteri_id = m.id
@@ -1959,13 +1959,13 @@ class WhatsAppWebService extends EventEmitter {
             // Müşteri iptal etti → randevuyu düşür, slotu aç
             await pool.query("UPDATE randevular SET durum = 'iptal' WHERE id = $1", [teyitRandevu.id]);
             console.log(`❌ Teyit → İPTAL: ${musteriTelefon} - ${teyitRandevu.isletme_isim} ${saat}`);
-            return `❌ *Randevunuz iptal edildi.*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? '✂️ ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 ${saat}\n\nYeni randevu almak için *1* yazın.`;
+            return `❌ *Randevunuz iptal edildi.*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? require('../utils/hizmetEmoji').hizmetEmoji(teyitRandevu.isletme_kategori) + ' ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 ${saat}\n\nYeni randevu almak için *1* yazın.`;
           }
 
           if (geliyorumIntents.includes(metinKucuk)) {
             // Müşteri gelecek → durum zaten onaylı, teyit edildi
             console.log(`✅ Teyit → GELİYORUM: ${musteriTelefon} - ${teyitRandevu.isletme_isim} ${saat}`);
-            return `✅ *Harika, sizi bekliyoruz!*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? '✂️ ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}\n\nGörüşmek üzere! 😊`;
+            return `✅ *Harika, sizi bekliyoruz!*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? require('../utils/hizmetEmoji').hizmetEmoji(teyitRandevu.isletme_kategori) + ' ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 Saat: ${saat}\n\nGörüşmek üzere! 😊`;
           }
         }
         // "Geliyorum" dedi ama yaklaşan randevusu yok: yeni randevu menüsüne düşürme
