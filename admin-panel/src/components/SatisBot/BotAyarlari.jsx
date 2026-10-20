@@ -22,7 +22,7 @@ const ACIK_KAPA = [
 const KATEGORILER = ['berber', 'kuaför', 'güzellik salonu', 'dövme', 'tırnak salonu', 'cilt bakım', 'spa', 'diş kliniği', 'veteriner', 'diyetisyen', 'psikolog', 'fizyoterapi', 'pilates', 'oto yıkama'];
 const VARSAYILAN = { mod: 'hepsi', mesaiBaslangic: 9, mesaiBitis: 19, gunlukLimit: 80, minBekleme: 5, maxBekleme: 10, takipSaati: 12, maxTakipSayisi: 2,
   typingMinMs: 2000, typingMaxMs: 6000, mesajBekleMs: 8000, insanSessizSaat: 24, frenSertRedLimit: 3, frenOlumsuzMin: 8, frenOlumsuzOran: 0.25, frenAyniHata: 3,
-  mesajBirlestir: true, hedefKategori: '' };
+  mesajBirlestir: true, hedefKategori: '', sohbetteBekleDk: 5, guvenMetni: '' };
 
 const kutu = { background: 'var(--bg)', borderRadius: 12, padding: 14 };
 const etiket = { fontSize: 11, color: 'var(--dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', display: 'block', marginBottom: 6 };
@@ -64,7 +64,7 @@ export default function BotAyarlari({ api, ayarlar, onKaydedildi }) {
   const kaydet = async () => {
     setBekle(true);
     const gonder = { ...t };
-    for (const k of Object.keys(gonder)) if (gonder[k] === '') delete gonder[k];
+    for (const k of Object.keys(gonder)) if (gonder[k] === '' && k !== 'guvenMetni') delete gonder[k];   // güven metni silinebilsin
     const d = await api.put('/admin/satis-bot/ayarlar', gonder);
     setBekle(false);
     if (d?.hata) { setMesaj({ tip: 'hata', metin: d.hata }); return; }
@@ -162,6 +162,15 @@ export default function BotAyarlari({ api, ayarlar, onKaydedildi }) {
         <Sayi ad="'Yazıyor' en az" deger={t.typingMinMs != null ? t.typingMinMs / 1000 : ''} set={v => set('typingMinMs')(v === '' ? '' : Math.round(v * 1000))} min={0.5} max={30} adim={0.5} birim="sn" />
         <Sayi ad="'Yazıyor' en çok" deger={t.typingMaxMs != null ? t.typingMaxMs / 1000 : ''} set={v => set('typingMaxMs')(v === '' ? '' : Math.round(v * 1000))} min={0.5} max={60} adim={0.5} birim="sn" />
         <Sayi ad="Elle yazınca bot susar" deger={t.insanSessizSaat} set={set('insanSessizSaat')} min={0} max={720} birim="saat" aciklama="Telefondan sen yazınca o sohbette bot bu kadar susar (0 = susmaz)" />
+        <Sayi ad="Sohbet varken bekle" deger={t.sohbetteBekleDk} set={set('sohbetteBekleDk')} min={0} max={60} birim="dk" aciklama="Bir numaraya aday cevap yazınca o numara bu kadar yeni kişiye 'Merhaba' atmaz, önce sohbet (0 = beklemez)" />
+      </div>
+
+      {baslik('🤝 Güven bilgisi', 'Esnaf "dolandırıcı mısınız, kimsiniz" diye şüphelenince bot bunu söyler. Yalnız doğru bilgi yaz; boşsa bot referans uydurmaz.')}
+      <div style={kutu}>
+        <textarea value={t.guvenMetni || ''} onChange={e => set('guvenMetni')(e.target.value.slice(0, 400))} rows={3}
+          placeholder="Örn: Bandırma'da Elit Barber Shop kullanıyor (izinli). Instagram: @siragoapp"
+          style={{ ...girdi, fontWeight: 500, resize: 'vertical' }} />
+        <div style={{ fontSize: 11, color: 'var(--dim)', marginTop: 4 }}>{(t.guvenMetni || '').length}/400 · Referans dükkân yazacaksan önce esnafın iznini al.</div>
       </div>
 
       {baslik('🛑 Otomatik fren (ban koruması)', 'Eşik aşılınca soğuk mesaj durur, Telegram\'a haber gelir. Elle yeniden başlatınca sayaç o andan itibaren sayar.')}

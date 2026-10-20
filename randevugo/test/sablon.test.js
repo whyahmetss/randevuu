@@ -69,7 +69,8 @@ test('açılış yalnız "Merhaba, kolay gelsin"; "sağolun, size de" ilk cevab�
 
   const bot = require(SRC + '/services/satisBot');
   const ilk = await bot.fallbackCevapUret('Sağolun, size de', { gelen_mesajlar: null, isletme_adi: 'Makas' });
-  assert.match(ilk.mesaj, /^Size de kolay gelsin\. Ben SıraGO'dan yazıyorum/);
+  assert.match(ilk.mesaj, /^Size de kolay gelsin\. İşletmelere WhatsApp'tan gelen randevu mesajlarını/);
+  assert.doesNotMatch(ilk.mesaj, /https?:|sırago\.com/, 'tanıtımda link yok');
   assert.match(ilk.mesaj, /nasıl alıyorsunuz\?$/);
-  assert.match((await bot.fallbackCevapUret('buyrun', { gelen_mesajlar: '[10:00] Müşteri: x' })).mesaj, /SıraGO'dan yazıyorum/);
+  assert.match((await bot.fallbackCevapUret('buyrun', { gelen_mesajlar: '[10:00] Müşteri: x' })).mesaj, /adı SıraGO/);
 });

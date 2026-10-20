@@ -32,7 +32,8 @@ function sinirAsildi(anahtar, sinir) {
 }
 
 // { metin } | { hata: 'uzun' | 'sinir' | 'kapali' | 'cevrilemedi' } | null (ses mesajı değil)
-async function metneCevir(msg, { isletmeId, telefon, sock, indir } = {}) {
+// talimat: başka bağlam için çeviri talimatı (Satış Bot: esnafın satış sohbetindeki sesli cevabı)
+async function metneCevir(msg, { isletmeId, telefon, sock, indir, talimat } = {}) {
   const ses = sesMesaji(msg);
   if (!ses) return null;
   if (!gemini.anahtarlar().length) return { hata: 'kapali' };
@@ -44,7 +45,7 @@ async function metneCevir(msg, { isletmeId, telefon, sock, indir } = {}) {
     if (!tampon?.length || tampon.length > EN_BUYUK_BAYT) return { hata: 'uzun' };
     const j = await gemini.geminiIstek({
       contents: [{ role: 'user', parts: [
-        { text: TALIMAT },
+        { text: talimat || TALIMAT },
         { inline_data: { mime_type: String(ses.mimetype || 'audio/ogg').split(';')[0].trim(), data: Buffer.from(tampon).toString('base64') } },
       ] }],
       generationConfig: { temperature: 0, maxOutputTokens: 400 },
