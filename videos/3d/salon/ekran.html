@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../ortak/telefon.css">
+<script src="../ortak/zaman.js"></script>
+<!-- Salon sahibinin telefonu. Gerçek metinler: sohbetAsistani.js (saatler:28, onay:36, ozet:401),
+     botMesajlar.js randevuOnaylandi, push: services/randevu.js:528 ('🎉 Yeni Randevu', '<isim> — <hizmet> • <tarih> <saat>') -->
+<style>
+  .bildirimler { flex-direction: column; }
+  .kilit.sabah { background: radial-gradient(120% 70% at 70% 15%, #6b5446 0%, #2d231d 60%, #15100c 100%); }
+  .push.kilitte { position: relative; left: 0; right: 0; top: 0; padding: 40px 42px; }
+  .push.kilitte b { font-size: 56px; } .push.kilitte span { font-size: 46px; } .push.kilitte .ust { font-size: 38px; }
+  .push.kilitte .uyg { width: 104px; height: 104px; } .bildirimler { gap: 30px; }
+  .bildirimler .push { box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+</style>
+</head>
+<body data-total="16.5">
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="wa" viewBox="0 0 32 32"><path d="M16 3.2A12.8 12.8 0 0 0 5 22.6L3.3 28.7l6.3-1.6A12.8 12.8 0 1 0 16 3.2Z" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M11.6 9.6c.4 0 .8 0 1 .6l1.1 2.6c.1.3 0 .6-.1.8l-.8 1c-.2.2-.2.5 0 .8a9 9 0 0 0 4.2 3.6c.3.1.6.1.8-.1l1-1.2c.2-.3.5-.3.8-.2l2.6 1.2c.3.1.5.4.4.8-.2 1.2-1.4 2.4-2.8 2.4-3.6 0-9.4-5.2-9.4-9.4 0-1.3 1-2.6 2.2-2.9Z" fill="#fff"/></symbol>
+</defs></svg>
+
+<!-- 1 · Gece 23:47, kapalı salon: mesaj düşer -->
+<div class="ekran kilit" data-sahne="0-4.6">
+  <div class="durum"><span></span><span class="sag"><span class="sinyal"><i style="height:10px"></i><i style="height:16px"></i><i style="height:22px"></i><i style="height:30px"></i></span><span class="pil"></span></span></div>
+  <div class="tarih">Perşembe 22 Ekim</div>
+  <div class="saat">23:47</div>
+  <div class="bildirimler">
+    <div class="bld" data-gir="0.6" data-efekt="yukari"><span class="uyg"><svg><use href="#wa"/></svg></span><div class="ic"><div class="ust"><span>WhatsApp</span><span>şimdi</span></div><b>Elif</b><span>Cumartesi kaş + cilt bakımı için yer var mı?</span></div></div>
+  </div>
+</div>
+
+<!-- 2 · SıraGO cevaplar (salonun WhatsApp'ı; bot mesajları giden/yeşil) -->
+<div class="ekran wa" data-sahne="4.6-11.4">
+  <div class="durum"><span data-saat="0:23:47,6.6:23:48">23:47</span><span class="sag"><span class="sinyal"><i style="height:10px"></i><i style="height:16px"></i><i style="height:22px"></i><i style="height:30px"></i></span><span class="pil"></span></span></div>
+  <div class="wa-bas"><span class="geri">‹</span><span class="av" style="background:#b98ad6">E</span><div><b>Elif</b><small>çevrimiçi</small></div></div>
+  <div class="wa-govde" data-kay="0:0,6.9:0,7.5:-430,8.4:-430">
+    <div class="gun-etiket">BUGÜN</div>
+    <div class="b gelen">Cumartesi kaş + cilt bakımı için yer var mı?<span class="s">23:47</span></div>
+    <div class="b giden" data-gir="5.1">Cumartesi (24 Ekim) için boş saatler: 10:00, 11:30, 15:00.
+Size hangisi uygun?<span class="s">23:47 <span class="tik">✓✓</span></span></div>
+    <div class="b gelen" data-gir="5.8">11:30 olur<span class="s">23:48</span></div>
+    <div class="b giden" data-gir="6.4">🗓️ Cumartesi (24 Ekim) · 🕐 11:30
+✂️ Kaş + cilt bakımı
+
+Randevunuzu oluşturayım mı? ("evet" yazmanız yeterli)<span class="s">23:48 <span class="tik">✓✓</span></span></div>
+    <div class="b gelen" data-gir="7.0">Evet 🙏<span class="s">23:48</span></div>
+    <div class="b giden" data-gir="7.6">✅ <b>Randevunuz Oluşturuldu!</b>
+
+🏥 Lavin Güzellik
+✂️ Kaş + cilt bakımı
+🗓️ 24 Ekim Cumartesi
+🕐 11:30
+
+⏰ Randevunuzdan 1 saat önce hatırlatma alacaksınız.
+
+Görüşmek üzere! 😊<span class="s">23:48 <span class="tik">✓✓</span></span></div>
+  </div>
+  <div class="wa-alt"><div class="kutu">Mesaj</div><div class="mik"></div></div>
+</div>
+
+<!-- 3 · Sabah: gece yazılan randevular bildirimde -->
+<div class="ekran kilit sabah" data-sahne="11.4-99">
+  <div class="durum"><span></span><span class="sag"><span class="sinyal"><i style="height:10px"></i><i style="height:16px"></i><i style="height:22px"></i><i style="height:30px"></i></span><span class="pil"></span></span></div>
+  <div class="tarih">Cuma 23 Ekim</div>
+  <div class="saat">08:52</div>
+  <div class="bildirimler">
+    <div class="push kilitte" data-gir="11.5" data-efekt="yukari"><span class="uyg"><img src="../../../maskot/marka/site-ikonu-192.png"></span><div style="flex:1"><div class="ust"><span>SıraGO</span><span>23:48</span></div><b>🎉 Yeni Randevu</b><span>Elif — Kaş + cilt bakımı • 2026-10-24 11:30</span></div></div>
+    <div class="push kilitte" data-gir="11.8" data-efekt="yukari"><span class="uyg"><img src="../../../maskot/marka/site-ikonu-192.png"></span><div style="flex:1"><div class="ust"><span>SıraGO</span><span>01:12</span></div><b>🎉 Yeni Randevu</b><span>Derya — Manikür • 2026-10-23 16:00</span></div></div>
+  </div>
+</div>
+</body></html>
