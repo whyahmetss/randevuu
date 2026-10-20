@@ -1,0 +1,28 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="kitap.css"><style></style></head>
+<body class="z-krem" data-w="1440" data-h="auto"><script src="../sistem/ikonlar.js"></script>
+<div class="kafa"><img src="../../maskot/marka/logo-yatay-acik-zemin.png" alt="SıraGO"><span>Sosyal Medya Marka Kitapçığı · v1 · 05/10</span></div>
+
+<div class="govde">
+  <div class="bolum">05 · Grid ve güvenli alan</div>
+  <h2 class="sayfa-baslik">Her şey aynı kenardan başlar.</h2>
+  <p class="giris">Kenar boşluğu 84 px, aralık birimi 12 px'in katları. Önemli metin hiçbir zaman uygulama arayüzünün altına girmez.</p>
+  <div style="display:flex;gap:40px;margin-top:44px;align-items:flex-start">
+    <div><div style="position:relative;width:280.8px;height:351.0px;background:#0a1410;border-radius:10px;overflow:hidden"><div style="position:absolute;inset:22px;border:1.5px dashed #2bd36a;background:transparent;display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">kenar<br>84 px</div><div style="position:absolute;top:0;bottom:0;left:0;width:10px;background:rgba(251,244,232,.25);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2"></div><div style="position:absolute;top:0;bottom:0;right:0;width:10px;background:rgba(251,244,232,.25);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2"></div></div><div style="font-size:22px;font-weight:700;margin-top:14px">Gönderi · 1080×1350</div></div>
+    <div><div style="position:relative;width:280.8px;height:499.20000000000005px;background:#0a1410;border-radius:10px;overflow:hidden"><div style="position:absolute;top:0;left:0;right:0;height:57px;background:rgba(180,35,24,.22);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">üst 220</div><div style="position:absolute;bottom:0;left:0;right:0;height:88px;background:rgba(180,35,24,.22);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">alt 340<br>yanıt çubuğu</div><div style="position:absolute;top:57px;bottom:88px;left:22px;right:22px;border:1.5px dashed #2bd36a;background:transparent;display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2"></div></div><div style="font-size:22px;font-weight:700;margin-top:14px">Story · 1080×1920</div></div>
+    <div><div style="position:relative;width:280.8px;height:499.20000000000005px;background:#0a1410;border-radius:10px;overflow:hidden"><div style="position:absolute;top:0;left:0;right:0;height:57px;background:rgba(180,35,24,.22);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">üst 220</div><div style="position:absolute;bottom:0;left:0;right:0;height:109px;background:rgba(180,35,24,.22);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">alt 420<br>açıklama</div><div style="position:absolute;top:57px;bottom:109px;right:0;width:36px;background:rgba(180,35,24,.22);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">sağ<br>140</div><div style="position:absolute;top:356px;left:22px;right:36px;height:31px;background:rgba(43,211,106,.35);display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">alt yazı</div></div><div style="font-size:22px;font-weight:700;margin-top:14px">Reels · 1080×1920</div></div>
+    <div><div style="position:relative;width:280.8px;height:499.20000000000005px;background:#0a1410;border-radius:10px;overflow:hidden"><div style="position:absolute;top:62px;bottom:62px;left:0;right:0;border-top:1.5px dashed #fbf4e8;border-bottom:1.5px dashed #fbf4e8;background:transparent;display:grid;place-items:center;font-size:13px;font-weight:650;color:#fff;text-align:center;line-height:1.2">profil ızgarası<br>3:4 · y 240-1680</div></div><div style="font-size:22px;font-weight:700;margin-top:14px">Reels kapağı</div></div>
+  </div>
+  <div class="iki" style="margin-top:44px">
+    <div class="kutu"><ul class="liste">
+      <li><b>Gönderi 4:5.</b> Profil ızgarası 3:4 kırpar: yanlardan ~34 px gider. Kenar 84 px olduğu için içerik güvende.</li>
+      <li><b>Story:</b> üst 220, alt 340 px boş kalır. Bağlantı çıkartması için alt-orta alan ayrılır.</li>
+      <li><b>Reels:</b> üst 220, alt 420, sağ 140 px. Alt yazı her videoda aynı yerde: y 1370.</li>
+    </ul></div>
+    <div class="kutu"><ul class="liste">
+      <li><b>Hizalama:</b> metin sola dayalı; yalnız story kapanışı ve öne çıkanlar ortalı.</li>
+      <li><b>Sabit yerler:</b> logo sol üst, sayfa no sağ üst, “Kaydır →” sol alt. Her carousel aynı.</li>
+      <li><b>Telefon ekranı</b> alttan taşar ya da hafif eğik durur (en fazla 3°). Ekran içi metin 27 px'ten küçük olmaz.</li>
+    </ul></div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,51 @@
+/* SıraGO Reels/TikTok ortak stiller — 1080x1920. Renk, yazı ve bileşenler tasarim/sistem/marka.css'ten gelir.
+   Güvenli alan: üst 220px, alt 420px (açıklama + butonlar), sağ 140px (beğen/yorum). Önemli her şey bunun içinde.
+   Zamanlama: --d = öğenin girişi, --bas/--son = sahnenin açılış/kapanışı (saniye, video başından). */
+@import url('../../tasarim/sistem/marka.css');
+
+body { --w: 1080px; --h: 1920px; background: var(--gece); }
+
+.sahne {
+  position: absolute; inset: 0; opacity: 0;
+  animation: sahneAc .3s var(--bas, 0s) ease both, sahneKapa .3s var(--son, 999s) ease forwards;
+}
+.sahne.ilk { animation: sahneKapa .3s var(--son, 999s) ease forwards; opacity: 1; }
+@keyframes sahneAc { from { opacity: 0 } to { opacity: 1 } }
+@keyframes sahneKapa { from { opacity: 1 } to { opacity: 0 } }
+
+.gir { animation: gir .5s var(--d, 0s) cubic-bezier(.2,.8,.2,1) both; }
+.pop { animation: pop .45s var(--d, 0s) cubic-bezier(.3,1.4,.5,1) both; }
+.sol { animation: sol .45s var(--d, 0s) cubic-bezier(.2,.8,.2,1) both; }
+.sag { animation: sag .45s var(--d, 0s) cubic-bezier(.2,.8,.2,1) both; }
+@keyframes gir { from { opacity: 0; transform: translateY(48px) } to { opacity: 1; transform: none } }
+@keyframes pop { from { opacity: 0; transform: scale(.85) translateY(20px) } to { opacity: 1; transform: none } }
+@keyframes sol { from { opacity: 0; transform: translateX(-40px) } to { opacity: 1; transform: none } }
+@keyframes sag { from { opacity: 0; transform: translateX(40px) } to { opacity: 1; transform: none } }
+
+/* Başlık bandı: sahnenin ana cümlesi */
+.r-baslik { position: absolute; top: 240px; left: var(--kenar); right: 140px; }
+
+/* Alt yazı: sesi kapalı izleyen için anlatım. Her sahnede aynı yer, aynı biçim. */
+.altyazi {
+  position: absolute; left: var(--kenar); right: 140px; top: 1370px; z-index: 20;
+  display: flex; justify-content: center;
+}
+.altyazi span {
+  background: rgba(10,20,16,.9); color: #fff; font-size: 42px; font-weight: 650; line-height: 1.3;
+  padding: 18px 30px; border-radius: 22px; text-align: center; letter-spacing: -0.005em;
+  border: 1.5px solid rgba(255,255,255,.08);
+}
+
+/* Bildirim yığını (kilit ekranı) */
+.yigin { position: absolute; left: var(--kenar); right: var(--kenar); top: 700px; display: flex; flex-direction: column; gap: 18px; }
+.bld { display: grid; grid-template-columns: 72px 1fr auto; gap: 22px; align-items: center; padding: 24px 28px; border-radius: 34px;
+       background: rgba(30,46,38,.86); border: 1.5px solid rgba(255,255,255,.12); box-shadow: 0 24px 50px rgba(0,0,0,.4); }
+.bld .app { width: 72px; height: 72px; border-radius: 20px; background: #25d366; display: grid; place-items: center; color: #fff; font-size: 40px; }
+.bld b { font-size: 31px; font-weight: 700; display: block; }
+.bld span { font-size: 29px; color: #c9d4ce; display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.bld small { font-size: 22px; color: var(--gri-k); align-self: start; margin-top: 6px; }
+
+/* Sesli mesaj oynatma çubuğu */
+.ses .dalga { position: relative; }
+.ses .ilerle { position: absolute; inset: 0; background: rgba(43,211,106,.0); }
+.ses .dalga i.c { background: #53bdeb; }

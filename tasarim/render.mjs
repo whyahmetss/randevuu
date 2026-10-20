@@ -18,7 +18,15 @@ for (const f of walk(root).filter(p => relative(root, p).includes(filter)).sort(
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
   await page.goto(pathToFileURL(f).href);
   await page.evaluate(() => document.fonts.ready);
-  const { w, h } = await page.evaluate(() => ({ w: +document.body.dataset.w || 1080, h: +document.body.dataset.h || 1350 }));
+  // data-h="auto": yükseklik içerikten (en alttaki öğe + 96 px)
+  const { w, h } = await page.evaluate(() => {
+    const w = +document.body.dataset.w || 1080;
+    if (document.body.dataset.h !== 'auto') return { w, h: +document.body.dataset.h || 1350 };
+    const alt = Math.max(...[...document.body.querySelectorAll('*')].map(e => e.getBoundingClientRect().bottom));
+    const h = Math.ceil(alt + 96);
+    document.body.style.setProperty('--h', h + 'px');
+    return { w, h };
+  });
   await page.setViewportSize({ width: w, height: h });
   await page.waitForTimeout(150);
   await page.screenshot({ path: f.replace(/\.html$/, '.png') });

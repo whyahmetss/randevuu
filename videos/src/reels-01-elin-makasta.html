@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="reels.css">
+<style>
+  .tel { left: 50%; margin-left: -300px; top: 560px; height: 790px; }
+  .tel .b { font-size: 29px; }
+  .s4 .tel { top: 560px; }
+  .s4 .bildirim { left: 150px; right: 150px; top: 1120px; }
+  .son { display: flex; flex-direction: column; justify-content: center; padding: 0 140px 300px var(--kenar); }
+  .son .logo { height: 60px; width: auto; align-self: flex-start; margin-bottom: 64px; }
+  .son .liste { margin-top: 56px; display: grid; gap: 18px; font-size: 38px; font-weight: 600; }
+  .son .liste div { display: flex; gap: 20px; align-items: center; }
+  .son .dugme { margin-top: 64px; align-self: flex-start; font-size: 38px; }
+  .kanca { position: absolute; top: 240px; left: var(--kenar); right: 140px; }
+  .sayac { position: absolute; top: 620px; left: var(--kenar); font-size: 26px; font-weight: 600; color: var(--gri-k); letter-spacing: .1em; text-transform: uppercase; }
+</style></head>
+<body data-total="23.5"><script src="../../tasarim/sistem/ikonlar.js"></script>
+
+<!-- 1 · Kanca: ilk karede okunur -->
+<section class="sahne ilk z-gece isik" style="--son:3.6s; --isik: 50% 60%">
+  <h1 class="kanca baslik b-xl">Elin makasta. <em>Telefon titriyor.</em></h1>
+  <div class="sayac gir" style="--d:1.9s">4 yeni mesaj</div>
+  <div class="yigin">
+    <div class="bld"><span class="app"><svg class="ik"><use href="#sohbet"/></svg></span><div><b>Mehmet</b><span>Yarın 5'e yer var mı?</span></div><small>şimdi</small></div>
+    <div class="bld pop" style="--d:.6s"><span class="app"><svg class="ik"><use href="#sohbet"/></svg></span><div><b>Ayşe</b><span><svg class="ik"><use href="#mikrofon"/></svg>Sesli mesaj (0:07)</span></div><small>şimdi</small></div>
+    <div class="bld pop" style="--d:1.2s"><span class="app"><svg class="ik"><use href="#sohbet"/></svg></span><div><b>Kerem</b><span>Cumartesi kaçta boşsun?</span></div><small>şimdi</small></div>
+    <div class="bld pop" style="--d:1.8s"><span class="app"><svg class="ik"><use href="#sohbet"/></svg></span><div><b>Selin</b><span>Usta yarın açık mısın?</span></div><small>şimdi</small></div>
+  </div>
+  <div class="altyazi"><span>Baksan koltuktaki bekler.<br>Bakmasan müşteri kaçar.</span></div>
+</section>
+
+<!-- 2 · SıraGO cevaplar -->
+<section class="sahne z-gece isik" style="--bas:3.5s; --son:10.4s; --isik: 50% 80%">
+  <h1 class="r-baslik baslik b-l gir" style="--d:3.6s">SıraGO senin yerine <em>cevaplar.</em></h1>
+  <div class="tel gir" style="--d:3.8s"><div class="ekran wa">
+    <div class="wa-bas"><span class="av">M</span><div><b>Mehmet</b><small>çevrimiçi</small></div></div>
+    <div class="wa-govde">
+      <div class="b gelen">Yarın 5'e yer var mı?<span class="s">17:42</span></div>
+      <div class="b giden pop" style="--d:5.0s">17:00 dolu. 17:30 ya da 18:00 boş, hangisini yazayım?<span class="s">17:42</span></div>
+      <div class="b gelen pop" style="--d:6.6s">17:30 olsun<span class="s">17:43</span></div>
+      <div class="b giden pop" style="--d:7.8s">Yazdım: yarın 17:30, saç + sakal. Görüşmek üzere.<span class="s">17:43</span></div>
+    </div>
+  </div></div>
+  <div class="altyazi"><span class="gir" style="--d:4.2s">Senin numarandan yazar.<br>Müşteri uygulama indirmez.</span></div>
+</section>
+
+<!-- 3 · Sesli mesaj -->
+<section class="sahne z-gece isik" style="--bas:10.3s; --son:15.0s; --isik: 50% 80%">
+  <h1 class="r-baslik baslik b-l gir" style="--d:10.4s">Sesli mesajı da <em>anlar.</em></h1>
+  <div class="tel gir" style="--d:10.5s"><div class="ekran wa">
+    <div class="wa-bas"><span class="av">A</span><div><b>Ayşe</b><small>çevrimiçi</small></div></div>
+    <div class="wa-govde">
+      <div class="b gelen"><span class="ses"><i class="oynat"></i><span class="dalga"><i style="height:30%"></i><i style="height:55%"></i><i style="height:85%"></i><i style="height:40%"></i><i style="height:65%"></i><i style="height:100%"></i><i style="height:50%"></i><i style="height:30%"></i><i style="height:75%"></i><i style="height:45%"></i><i style="height:90%"></i><i style="height:60%"></i><i style="height:35%"></i><i style="height:70%"></i><i style="height:40%"></i><i style="height:80%"></i><i style="height:50%"></i><i style="height:30%"></i><i style="height:60%"></i><i style="height:25%"></i><i style="height:45%"></i><i style="height:70%"></i><i style="height:35%"></i><i style="height:20%"></i><i style="height:50%"></i><i style="height:30%"></i></span><small>0:07</small></span></div>
+      <div class="b giden pop" style="--d:11.9s">Cumartesi 11:00 boş. Fön için yazayım mı?<span class="s">17:40</span></div>
+      <div class="b gelen pop" style="--d:13.0s">Evet, yaz<span class="s">17:41</span></div>
+      <div class="b giden pop" style="--d:13.8s">Yazdım: cumartesi 11:00, fön.<span class="s">17:41</span></div>
+    </div>
+  </div></div>
+  <div class="altyazi"><span class="gir" style="--d:10.9s">Türkçe, İngilizce ve Arapça<br>cevap verir.</span></div>
+</section>
+
+<!-- 4 · Panel (krem ara blok) -->
+<section class="sahne s4 z-krem" style="--bas:14.9s; --son:19.2s">
+  <h1 class="r-baslik baslik b-l gir" style="--d:15.0s">Randevular <em>panele düşer.</em></h1>
+  <div class="tel gir" style="--d:15.1s"><div class="ekran pnl">
+    <div class="pnl-bas"><small>Yarın · 3 randevu</small><b>Randevular</b></div>
+    <div class="pnl-liste">
+      <div class="pnl-satir sol" style="--d:15.6s"><span class="saat">10:00</span><span class="kisi">Kerem<small>Saç kesim</small></span><span class="durum">Onaylı</span></div>
+      <div class="pnl-satir sol" style="--d:15.9s"><span class="saat">14:30</span><span class="kisi">Burak<small>Sakal tıraşı</small></span><span class="durum">Onaylı</span></div>
+      <div class="pnl-satir yeni sol" style="--d:16.3s"><span class="saat">17:30</span><span class="kisi">Mehmet<small>Saç + sakal</small></span><span class="durum">Yeni</span></div>
+    </div>
+  </div></div>
+  <div class="bildirim pop" style="--d:17.2s"><span class="kutu"><svg class="ik"><use href="#zil"/></svg></span><div><small>Randevudan önce</small><b>Müşterine hatırlatma gider</b></div></div>
+  <div class="altyazi"><span class="gir" style="--d:15.4s">Telefonundan bakarsın.<br>Gelmeyen azalır.</span></div>
+</section>
+
+<!-- 5 · Kapanış -->
+<section class="sahne son z-yesil" style="--bas:19.1s">
+  <img class="logo gir" style="--d:19.2s" src="../../tasarim/varliklar/logo-yatay-yesil-zemin.png" alt="SıraGO">
+  <h1 class="baslik b-xl gir" style="--d:19.35s">Sen işine bak. <em>Randevuyu SıraGO yazsın.</em></h1>
+  <div class="liste">
+    <div class="gir" style="--d:19.9s"><svg class="ik"><use href="#tik"/></svg>Ücretsiz dene</div>
+    <div class="gir" style="--d:20.1s"><svg class="ik"><use href="#tik"/></svg>Kart bilgisi istenmez</div>
+  </div>
+  <span class="dugme pop" style="--d:20.6s">Bağlantı profilde <svg class="ik"><use href="#ok"/></svg></span>
+</section>
+</body></html>

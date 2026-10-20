@@ -1,0 +1,27 @@
+@import url('../sistem/marka.css');
+/* Marka kitapçığı sayfa düzeni — 1440×1800 */
+body { --w: 1440px; --h: 1800px; --kenar: 96px; }
+.kafa { position: absolute; top: 64px; left: var(--kenar); right: var(--kenar); display: flex; justify-content: space-between; align-items: center; font-size: 20px; font-weight: 550; color: var(--ikincil); padding-bottom: 22px; border-bottom: 1.5px solid var(--cizgi); }
+.kafa img { height: 34px; }
+.govde { position: absolute; top: 170px; left: var(--kenar); right: var(--kenar); }
+.bolum { font-family: var(--f-baslik); font-size: 22px; font-weight: 650; color: var(--vurgu); letter-spacing: .12em; text-transform: uppercase; }
+.sayfa-baslik { font-family: var(--f-baslik); font-weight: 780; font-size: 84px; letter-spacing: -0.025em; line-height: 1; margin: 18px 0 18px; text-wrap: balance; }
+.giris { font-size: 26px; line-height: 1.5; color: var(--ikincil); max-width: 1000px; }
+.ara-baslik { font-family: var(--f-baslik); font-size: 32px; font-weight: 700; letter-spacing: -0.015em; margin-bottom: 18px; }
+.kutu { border-radius: 24px; padding: 30px 34px; }
+.z-krem .kutu { background: #fff; border: 1.5px solid var(--cizgi-a); }
+.z-gece .kutu { background: var(--gece-2); border: 1.5px solid var(--cizgi-k); }
+.kural { font-size: 22px; line-height: 1.5; color: var(--ikincil); }
+.kural b { color: var(--yazi-a); font-weight: 650; }
+.z-gece .kural b { color: var(--yazi-k); }
+ul.liste { list-style: none; display: grid; gap: 12px; }
+ul.liste li { font-size: 22px; line-height: 1.45; padding-left: 34px; position: relative; color: var(--ikincil); }
+ul.liste li b { color: var(--yazi-a); font-weight: 650; }
+ul.liste li::before { content: ''; position: absolute; left: 4px; top: 12px; width: 12px; height: 12px; border-radius: 50%; background: var(--vurgu); }
+ul.liste.hayir li::before { background: none; border-radius: 0; width: 14px; height: 2.5px; top: 16px; background: #b42318; transform: rotate(45deg); box-shadow: none; }
+ul.liste.hayir li::after { content: ''; position: absolute; left: 4px; top: 16px; width: 14px; height: 2.5px; background: #b42318; transform: rotate(-45deg); }
+.iki { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+.uc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.kucuk { font-size: 18px; color: var(--ikincil); line-height: 1.45; }
+.evet, .hayir-et { font-size: 17px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.evet { color: var(--yesil); } .hayir-et { color: #b42318; }

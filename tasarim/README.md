@@ -1,0 +1,26 @@
+# SıraGO sosyal medya tasarımları
+
+Her şey `marka-kitabi/` kurallarına ve `sistem/marka.css` tek kaynağına göre üretilir.
+
+| Klasör | İçerik |
+|---|---|
+| `marka-kitabi/` | Marka kitapçığı sayfaları (HTML → PNG) ve birleşik PDF |
+| `sistem/` | `marka.css` (renk, yazı, bileşen), `ikonlar.js` (ikon seti) |
+| `instagram/gonderi/` | Gönderiler, 1080×1350. Carousel'de her sayfa ayrı dosya |
+| `instagram/story/` | Story'ler, 1080×1920 |
+| `instagram/reels-kapak/` | Reels kapakları, 1080×1920 (ızgarada orta 3:4 görünür) |
+| `instagram/one-cikan/` | Öne çıkan kapakları (a = gece, b = krem) |
+| `varliklar/` | Kenarı temizlenmiş 3D tilki, yeşil blok logosu |
+| `fontlar/` | Bricolage Grotesque, Inter (OFL) yerel kopyası; render internetsiz çalışır |
+| `yonler/` | İlk aşamadaki 3 görsel yön (arşiv) |
+
+Reels/TikTok videoları `videos/src/reels-*.html` (stil: `videos/src/reels.css`).
+
+## Komutlar
+
+```bash
+node tasarim/render.mjs [yol-parçası]   # HTML → PNG (yanına). Boyut <body data-w data-h>; data-h="auto" içerikten
+node videos/render.mjs reels-01          # HTML → MP4 (videos/out/), 30 fps
+```
+
+Playwright global kuruluysa ESM için bir kez: `mkdir -p node_modules && ln -s "$(npm root -g)/playwright" node_modules/playwright`
