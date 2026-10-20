@@ -263,8 +263,25 @@ class AuthController {
           kullanici.sifre_degistirmeli = f?.sifre_degistirmeli === true;
         } catch (e) { kullanici.sifre_degistirmeli = false; }
         kullanici.impersonated = req.kullanici.impersonated === true;
+        try {
+          kullanici.profil_foto = (await pool.query('SELECT profil_foto FROM admin_kullanicilar WHERE id = $1', [kullanici.id])).rows[0]?.profil_foto || null;
+        } catch (e) { kullanici.profil_foto = null; }
       }
       res.json({ kullanici });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Profil fotoğrafı (2026-10-20): panel 256 px'e küçültüp gönderir; null → kaldır
+  async profilFoto(req, res) {
+    try {
+      const veri = req.body?.veri ?? null;
+      if (veri !== null && !(/^data:image\/(jpeg|png|webp);base64,/.test(String(veri)) && String(veri).length <= 400_000)) {
+        return res.status(400).json({ hata: 'Fotoğraf JPG, PNG ya da WEBP olmalı ve çok büyük olmamalı' });
+      }
+      await pool.query('UPDATE admin_kullanicilar SET profil_foto = $1 WHERE id = $2', [veri, req.kullanici.id]);
+      res.json({ profil_foto: veri });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

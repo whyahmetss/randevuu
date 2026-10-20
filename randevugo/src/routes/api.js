@@ -33,6 +33,7 @@ router.post('/auth/google', (req, res) => authController.google(req, res));
 router.post('/auth/sifre-kod', (req, res) => authController.sifreKod(req, res));
 router.post('/auth/sifre-yenile', (req, res) => authController.sifreYenile(req, res));
 router.get('/auth/profil', authMiddleware, (req, res) => authController.profilim(req, res));
+router.put('/auth/profil-foto', authMiddleware, (req, res) => authController.profilFoto(req, res));
 router.post('/auth/sifre-degistir', authMiddleware, (req, res) => authController.sifreDegistir(req, res));
 
 // ==================== İLETİŞİM (public) ====================

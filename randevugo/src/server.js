@@ -962,6 +962,8 @@ const PORT = process.env.PORT || 3000;
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS bekleyen_shopier_urun_id VARCHAR(100)`,
     // Saha satışı (2026-10-15, migration 051'de de var): giriş, Satış Bot ve teşvik işi bu kolonları okur
     `ALTER TABLE admin_kullanicilar ADD COLUMN IF NOT EXISTS sifre_degistirmeli BOOLEAN NOT NULL DEFAULT false`,
+    // Profil fotoğrafı (2026-10-20): esnaf ve süper admin; küçültülmüş data URL
+    `ALTER TABLE admin_kullanicilar ADD COLUMN IF NOT EXISTS profil_foto TEXT`,
     `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS kurulum_durum JSONB`,
     `ALTER TABLE satis_konusmalar ADD COLUMN IF NOT EXISTS ref_kullanici_id INT`,
     `ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ilk_randevu_tebrik TIMESTAMP`,

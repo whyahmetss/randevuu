@@ -54,6 +54,7 @@ import Konusmalar from './components/SatisBot/Konusmalar';
 import BayiYonetimi from './components/Bayi/BayiYonetimi';
 import BackendHealth from './components/BackendHealth';
 import SifreBelirle, { SifreFormu } from './components/SifreDegistir';
+import ProfilFoto, { profilFotoKaydet } from './components/ProfilFoto';
 import { bildirimCal, titret as bildirimTitret, ayarOku as bildirimAyarOku, sesKilidiAc } from './lib/bildirim';
 import BildirimAktivasyon from './components/BildirimAktivasyon';
 import DukkanModuPopup from './components/DukkanModuPopup';
@@ -1296,6 +1297,7 @@ function Dashboard({ kullanici }) {
   const [yogunlukTahmini, setYogunlukTahmini] = useState(null);
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [profilPopover, setProfilPopover] = useState(false);
+  const [profilFoto, setProfilFoto] = useState(kullanici?.profil_foto || null);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
   const [kapaliDuyurular, setKapaliDuyurular] = useState(() => { try { return JSON.parse(localStorage.getItem("kapali_duyurular") || "[]"); } catch { return []; } });
@@ -2099,11 +2101,7 @@ function Dashboard({ kullanici }) {
                   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
                   cursor: "pointer"
                 }} onClick={() => setProfilPopover(!profilPopover)}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 10,
-                    background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 13, fontWeight: 600, color: "#fff"
-                  }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
+                  <ProfilFoto foto={profilFoto} isim={ayarlar.isim} boyut={32} radius={10} />
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", lineHeight: 1.2 }}>{ayarlar.isim}</div>
                     <div style={{ fontSize: 10, color: "var(--dim)" }}>{etiket(ayarlar.kategori) || "İşletme"}</div>
@@ -2119,14 +2117,13 @@ function Dashboard({ kullanici }) {
                       boxShadow: "0 8px 32px rgba(0,0,0,.15)"
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                        <div style={{
-                          width: 40, height: 40, borderRadius: 12,
-                          background: "var(--gradient)", display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 16, fontWeight: 600, color: "#fff"
-                        }}>{ayarlar.isim?.charAt(0)?.toUpperCase() || "?"}</div>
+                        <ProfilFoto foto={profilFoto} isim={ayarlar.isim} boyut={48} radius={14} api={api} degisti={setProfilFoto} />
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{ayarlar.isim}</div>
                           <div style={{ fontSize: 11, color: "var(--dim)" }}>{etiket(ayarlar.kategori) || "İşletme"}</div>
+                          {profilFoto
+                            ? <button onClick={async () => { try { setProfilFoto(await profilFotoKaydet(api, null)); } catch (e) { alert(e.message); } }} style={{ marginTop: 4, padding: 0, border: "none", background: "none", color: "#b42318", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>Fotoğrafı kaldır</button>
+                            : <div style={{ marginTop: 4, fontSize: 11, color: "var(--dim)" }}>📷 Fotoğraf eklemek için dokun</div>}
                         </div>
                       </div>
                       {paketDurum && (
@@ -3915,6 +3912,7 @@ function Dashboard({ kullanici }) {
 
 // ==================== SUPER ADMIN PANEL ====================
 function SuperAdminPanel({ kullanici }) {
+  const [profilFoto, setProfilFoto] = useState(kullanici?.profil_foto || null);
   // Ekip yetkisi (config/ekip.js ile aynı anahtarlar). ekip_yetkileri yoksa kurucu: her şey açık.
   // Asıl kontrol sunucuda; burada yalnız görmediği bölümü menüde göstermemek için.
   const ekipYetki = Array.isArray(kullanici?.ekip_yetkileri) ? kullanici.ekip_yetkileri : null;
@@ -4657,9 +4655,12 @@ function SuperAdminPanel({ kullanici }) {
             <div className="brand-sub">Süper Admin</div>
           </div>
         </div>
-        <div className="sidebar-user">
+        <div className="sidebar-user" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <ProfilFoto foto={profilFoto} isim={kullanici.isim || kullanici.email} boyut={40} radius={12} api={api} degisti={setProfilFoto} />
+          <div style={{ minWidth: 0 }}>
           <div className="u-email">{kullanici.email}</div>
           <span className="sidebar-badge gold">{patron ? '👑 PATRON' : ekipYetki ? (GOREV_AD[kullanici.ekip_gorev] || 'EKİP') : 'KURUCU'}</span>
+          </div>
         </div>
         <nav className="sidebar-nav">
           <input className="nav-arama" value={menuArama} onChange={e => setMenuArama(e.target.value)} placeholder="Menüde ara…" aria-label="Menüde ara" />
