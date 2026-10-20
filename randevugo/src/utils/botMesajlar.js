@@ -4,7 +4,9 @@
  */
 
 const STILLER = {
-  samimi: { hitap: 'sen', emoji: true, kisa: false },
+  // Samimi = sıcak dil + emoji, hitap yine "siz" (2026-10-20): sohbet asistanı hep "siz" diyor, aynı müşteriye
+  // hem "Randevunuzu oluşturayım mı?" hem "Randevun Oluşturuldu!" gidiyordu
+  samimi: { hitap: 'siz', emoji: true, kisa: false },
   resmi:  { hitap: 'siz', emoji: false, kisa: false },
   kisa:   { hitap: 'siz', emoji: true, kisa: true },
 };
@@ -26,7 +28,7 @@ const tr = {
   },
 
   hizmetListesi: (s, p) => {
-    const baslik = s.emoji ? `✂️ *${p.isletmeAd} - Hizmetlerimiz*` : `*${p.isletmeAd} - Hizmetlerimiz*`;
+    const baslik = s.emoji ? `${s.ikon || '✂️'} *${p.isletmeAd} - Hizmetlerimiz*` : `*${p.isletmeAd} - Hizmetlerimiz*`;
     let metin = baslik + '\n\n';
     p.hizmetler.forEach((h, i) => {
       metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL\n`;
@@ -88,7 +90,7 @@ const tr = {
     const icon = s.emoji;
     let ozet = `${icon ? '📋 ' : ''}*Randevu Özeti*\n\n`;
     ozet += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
-    if (p.hizmetAd) ozet += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
+    if (p.hizmetAd) ozet += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n`;
     ozet += `${icon ? '🕐 ' : ''}${p.saatStr}\n`;
@@ -101,7 +103,7 @@ const tr = {
     const icon = s.emoji;
     let txt = `${icon ? '✅ ' : ''}*Randevu${s.hitap === 'siz' ? 'nuz' : 'n'} Oluşturuldu!*\n\n`;
     txt += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
-    if (p.hizmetAd) txt += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
+    if (p.hizmetAd) txt += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) txt += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     txt += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n`;
     txt += `${icon ? '🕐 ' : ''}${p.saatStr}\n`;
@@ -230,7 +232,7 @@ const en = {
   },
 
   hizmetListesi: (s, p) => {
-    const baslik = s.emoji ? `✂️ *${p.isletmeAd} - Our Services*` : `*${p.isletmeAd} - Our Services*`;
+    const baslik = s.emoji ? `${s.ikon || '✂️'} *${p.isletmeAd} - Our Services*` : `*${p.isletmeAd} - Our Services*`;
     let metin = baslik + '\n\n';
     p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL\n`; });
     metin += s.kisa ? '\nChoose:' : '\nType a number to select:';
@@ -277,7 +279,7 @@ const en = {
     const icon = s.emoji;
     let ozet = `${icon ? '📋 ' : ''}*Appointment Summary*\n\n`;
     ozet += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
-    if (p.hizmetAd) ozet += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
+    if (p.hizmetAd) ozet += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
@@ -289,7 +291,7 @@ const en = {
     const icon = s.emoji;
     let txt = `${icon ? '✅ ' : ''}*Appointment Confirmed!*\n\n`;
     txt += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
-    if (p.hizmetAd) txt += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
+    if (p.hizmetAd) txt += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) txt += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     txt += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}You will receive a reminder 1 hour before.\n`;
@@ -402,7 +404,7 @@ const ar = {
   },
 
   hizmetListesi: (s, p) => {
-    let metin = `${s.emoji ? '✂️ ' : ''}*${p.isletmeAd} - خدماتنا*\n\n`;
+    let metin = `${s.emoji ? (s.ikon || '✂️') + ' ' : ''}*${p.isletmeAd} - خدماتنا*\n\n`;
     p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL\n`; });
     metin += '\nاكتب رقماً:';
     return metin;
@@ -446,7 +448,7 @@ const ar = {
     const icon = s.emoji;
     let ozet = `${icon ? '📋 ' : ''}*ملخص الموعد*\n\n`;
     ozet += `${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
-    if (p.hizmetAd) ozet += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
+    if (p.hizmetAd) ozet += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
@@ -457,7 +459,7 @@ const ar = {
   randevuOnaylandi: (s, p) => {
     const icon = s.emoji;
     let txt = `${icon ? '✅ ' : ''}*تم تأكيد الموعد!*\n\n${icon ? '🏥 ' : ''}${p.isletmeAd}\n`;
-    if (p.hizmetAd) txt += `${icon ? '✂️ ' : ''}${p.hizmetAd}\n`;
+    if (p.hizmetAd) txt += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     txt += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
     if (!s.kisa) txt += `\n${icon ? '⏰ ' : ''}سيتم تذكيرك قبل ساعة.\n`;
     txt += `\nنراكم${icon ? '! 😊' : '.'}`;
@@ -657,7 +659,7 @@ function varsayilanDil(isletme) {
 function get(isletme, key, params = {}, musteriMesaj = null, kaydedilenDil = null) {
   // Stil belirle
   const stilKey = isletme.bot_konusma_stili || 'samimi';
-  const stil = STILLER[stilKey] || STILLER.samimi;
+  const stil = { ...(STILLER[stilKey] || STILLER.samimi), ikon: require('./hizmetEmoji').hizmetEmoji(isletme.kategori) };
 
   // İşletmenin desteklediği diller
   const desteklenen = Array.isArray(isletme.bot_diller) ? isletme.bot_diller : 
