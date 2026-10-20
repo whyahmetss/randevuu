@@ -136,6 +136,14 @@ const SES_TALIMAT = 'Bu, bir randevu sistemi satan firmaya bir esnafın (berber,
   'Söylenenleri konuşulan dilde, kelimesi kelimesine yazıya dök. Yalnız metni yaz; açıklama, tırnak ya da etiket ekleme. ' +
   'Konuşma anlaşılmıyorsa ya da ses yoksa yalnız [anlaşılmadı] yaz.';
 
+// Kendini tanıtmadan cevap yok (canlı 2026-10-20: "Teşekkür ederim"e "Rica ederim, nasıl yardımcı olabilirim?" dendi,
+// esnaf "kim olduğunuzu bilmiyorum" deyince bot yine söylemeden vedalaştı). Bizim başlattığımız sohbette SıraGO'yu
+// anmamış ilk cevaplar bu metinlerle değiştirilir; yapay zekâ ne derse desin esnaf kimin yazdığını öğrenir.
+const TANITIM = 'Berber ve kuaförlere, WhatsApp\'tan gelen randevu mesajlarını sizin yerinize cevaplayıp boş saate yazan bir sistem kuruyoruz, adı SıraGO. Sizden para ya da kart bilgisi istemiyoruz.';
+const TANITIM_SORU = 'Randevuları şu an nasıl alıyorsunuz, telefonla mı WhatsApp\'tan mı?';
+const TANITIM_VEDA = 'Hiç sorun değil, rahatsız ettiysem kusura bakmayın. İlgilenirseniz buraya yazmanız yeterli, kolay gelsin.';
+const tanitimVar = (t) => /s[ıi]ra\s?go/i.test(String(t || ''));
+
 function otomatikYanit(metin) {
   const t = String(metin || '');
   return t.length >= 25 && OTOMATIK_YANIT.some(r => r.test(t));
@@ -1507,6 +1515,15 @@ class SatisBot extends EventEmitter {
     }
   }
 
+  // Bizim başlattığımız sohbette henüz kim olduğumuzu söylemediysek ve giden cevap da söylemiyorsa: tanıtım eklenir.
+  // durum olumsuzsa kısa tanıtım + veda, değilse tanıtım + tek soru.
+  _tanitimSart(konusma, mesajlar, olumsuz = false) {
+    const bizBaslattik = konusma?.lead_id || !['Müşteri kendisi yazdı', 'Elle yazıldı', undefined, null].includes(konusma?.gonderilen_mesaj);
+    const oncekiBiz = String(konusma?.gelen_mesajlar || '').split('\n').filter(x => /\]\s*(Bot|Elle):/.test(x)).join('\n');
+    if (!bizBaslattik || tanitimVar(oncekiBiz) || mesajlar.some(tanitimVar)) return mesajlar;
+    return olumsuz ? [`Anlıyorum. Kısaca: ${TANITIM}`, TANITIM_VEDA] : [`Kolay gelsin. ${TANITIM}`, TANITIM_SORU];
+  }
+
   // Adayın Avcı kaydı (Google'da nerede bulundu, puanı): yapay zekâ "dükkânınızı Google'da gördüm" diyebilsin
   async _leadBilgi(konusma) {
     if (!konusma?.lead_id) return null;
@@ -2143,8 +2160,10 @@ class SatisBot extends EventEmitter {
         kibar: `Tabii, acelesi yok. Ne zaman isterseniz buraya *kayıt* yazmanız yeterli, ${denemeGun()} gün ücretsiz. İyi çalışmalar 🙏`,
       }[ret];
       const yeniDurum = ret === 'kibar' ? 'sonra' : 'olumsuz';
-      try { await this._yaz(sock, remoteJid, veda); } catch (e) { console.error('Veda gönderilemedi:', e.message); }
-      await this._botKaydet(konusma.id, veda, { durum: yeniDurum, red_tipi: ret });
+      // Kim olduğumuzu bilmeden reddettiyse veda, kısa tanıtımla gider ("kayıt yazın" ona bir şey ifade etmiyor)
+      const vedalar = ret === 'sert' ? [veda] : this._tanitimSart(konusma, [veda], true);
+      try { for (const v of vedalar) await this._yaz(sock, remoteJid, v); } catch (e) { console.error('Veda gönderilemedi:', e.message); }
+      await this._botKaydet(konusma.id, vedalar.join('\n'), { durum: yeniDurum, red_tipi: ret });
       if (konusma.lead_id && yeniDurum === 'olumsuz') {
         await pool.query("UPDATE potansiyel_musteriler SET durum = 'ilgilenmiyor' WHERE id = $1", [konusma.lead_id]);
       }
@@ -2199,6 +2218,7 @@ class SatisBot extends EventEmitter {
     }
     // Kişi cevap verdi: AI 'bekliyor' dese de takip sırasına geri düşmesin
     const durum = ['olumlu', 'sicak', 'olumsuz'].includes(cevap.durum) ? cevap.durum : 'ai_devrede';
+    cevap.mesajlar = this._tanitimSart(konusma, cevap.mesajlar, durum === 'olumsuz');
 
     const gidenler = [];
     try {
@@ -2451,4 +2471,4 @@ Yalnızca JSON döndür: {"mesaj": "...", "durum": "olumlu" | "olumsuz" | "bekli
 }
 
 module.exports = new SatisBot();
-module.exports._test = { redTipi, linkDuzelt, kisiselSatir, sadeMetin, yalnizNezaket, sablonDoldur, otomatikYanit, yalnizSelam };
+module.exports._test = { TANITIM, redTipi, linkDuzelt, kisiselSatir, sadeMetin, yalnizNezaket, sablonDoldur, otomatikYanit, yalnizSelam };
