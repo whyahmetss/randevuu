@@ -7866,7 +7866,7 @@ function SuperAdminPanel({ kullanici }) {
 
               {/* Değişkenler Bilgisi */}
               <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(47,86,198,.04)", border: "1px solid rgba(47,86,198,.1)", marginBottom: 16, fontSize: 12, color: "var(--dim)" }}>
-                <strong style={{ color: "#2f56c6" }}>Kullanılabilir Değişkenler:</strong> <code>{"{isletme_adi}"}</code> · <code>{"{isletme_sahibi}"}</code> · <code>{"{kategori}"}</code> · <code>{"{telefon}"}</code> · <code>{"{kisisel}"}</code> <span style={{ color: "var(--dim)" }}>(Google puanı/yorum sayısından tek cümle, veri yoksa boş)</span> · <code>{"{puan}"}</code> · <code>{"{yorum_sayisi}"}</code>. İlk mesajın sonuna "dur" satırı otomatik eklenir.
+                <strong style={{ color: "#2f56c6" }}>Kullanılabilir Değişkenler:</strong> <code>{"{isletme_adi}"}</code> · <code>{"{isletme_sahibi}"}</code> · <code>{"{kategori}"}</code> · <code>{"{telefon}"}</code> · <code>{"{kisisel}"}</code> <span style={{ color: "var(--dim)" }}>(Google puanı/yorum sayısından tek cümle, veri yoksa boş)</span> · <code>{"{puan}"}</code> · <code>{"{yorum_sayisi}"}</code>. Bot ilk cevapta kendini mutlaka tanıtır; şablonda tanıtım yazmak zorunlu değil.
               </div>
 
               {/* Şablon Form Modal */}

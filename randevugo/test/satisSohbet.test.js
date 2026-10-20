@@ -7,7 +7,7 @@ const { hazirla, SRC } = require('./yardimci');
 const ortam = hazirla(`
   CREATE TABLE satis_konusmalar (id SERIAL PRIMARY KEY, telefon TEXT, isletme_adi TEXT, kategori TEXT, gonderilen_mesaj TEXT, durum TEXT,
     gelen_mesajlar TEXT, son_mesaj_tarihi TIMESTAMP, sablon_id INT, lead_id INT, kayit_durum JSONB, kurulum_durum JSONB, ref_kullanici_id INT,
-    bayi_id INT, kayit_isletme_id INT, insan_devraldi TIMESTAMP, otomatik_yanit TEXT, demo_gonderildi BOOLEAN, numara_id INT,
+    bayi_id INT, kayit_isletme_id INT, insan_devraldi TIMESTAMP, red_tipi TEXT, otomatik_yanit TEXT, demo_gonderildi BOOLEAN, numara_id INT,
     olusturma_tarihi TIMESTAMP DEFAULT NOW());
   CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, telefon TEXT, demo BOOLEAN DEFAULT false);
   CREATE TABLE potansiyel_musteriler (id SERIAL PRIMARY KEY, isletme_adi TEXT, telefon TEXT, kategori TEXT, durum TEXT, wp_mesaj_durumu TEXT,
@@ -77,7 +77,7 @@ test('kaybolan mesaj sarmalayıcısı açılır; sesli mesaj yalnız satış soh
   const { db } = await ortam;
   const { yaz } = botHazirla();
   await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj, lead_id) VALUES ('905321110000', 'Usta', 'bekliyor', 'Merhaba, kolay gelsin', 8)");
-  assert.strictEqual((await yaz('905321110000', null, { message: { ephemeralMessage: { message: { extendedTextMessage: { text: 'nasıl çalışıyor' } } } } })).length, 1);
+  assert.ok((await yaz('905321110000', null, { message: { ephemeralMessage: { message: { extendedTextMessage: { text: 'nasıl çalışıyor' } } } } })).length > 0);
 
   const sm = require(SRC + '/services/sesliMesaj');
   const eski = sm.metneCevir;
@@ -85,7 +85,7 @@ test('kaybolan mesaj sarmalayıcısı açılır; sesli mesaj yalnız satış soh
   sm.metneCevir = async (msg, o) => { cevrilen.push(o.telefon); return { metin: 'fiyatı ne kadar' }; };
   try {
     const ses = { audioMessage: { seconds: 5, mimetype: 'audio/ogg' } };
-    assert.strictEqual((await yaz('905321110000', null, { message: ses })).length, 1, 'adayın sesli mesajı cevaplanır');
+    assert.ok((await yaz('905321110000', null, { message: ses })).length > 0, 'adayın sesli mesajı cevaplanır');
     assert.match((await db.query("SELECT gelen_mesajlar FROM satis_konusmalar WHERE telefon = '905321110000'")).rows[0].gelen_mesajlar, /Müşteri: fiyatı ne kadar/);
     assert.deepStrictEqual(await yaz('905449990000', null, { message: ses }), [], 'tanımadık kişinin sesi açılmaz bile');
     assert.deepStrictEqual(cevrilen, ['905321110000']);
@@ -177,4 +177,36 @@ test('bir numarada sohbet sürerken o numara yeni kişiye "Merhaba" atmaz', asyn
     clearTimeout(bot.numaraTimers.get(9)); bot.numaraTimers.delete(9);
     bot.numaraSockets.delete(9); bot.siradakiLeadGetir = eski; bot.aktif = false; bot._numaraSohbet = new Map();
   }
+});
+
+// Canlı 2026-10-20: "Teşekkür ederim"e "Rica ederim, nasıl yardımcı olabilirim?", "kim olduğunuzu bilmiyorum"a tanıtımsız veda
+test('bot kendini tanıtmadan cevap vermez: tanıtımsız ilk cevap ve tanıtımsız veda düzeltilir; tanıttıktan sonra dokunulmaz', async () => {
+  const { db } = await ortam;
+  const { yaz } = botHazirla();
+  const ai = require(SRC + '/services/satisAI');
+  const eski = { aktifMi: ai.aktifMi, cevapUret: ai.cevapUret };
+  let siradaki = null;
+  ai.aktifMi = () => true;
+  ai.cevapUret = async () => siradaki;
+  try {
+    await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj, lead_id) VALUES ('905457259801', 'Mimar Sinan', 'bekliyor', 'Merhaba, kolay gelsin', 11)");
+    siradaki = { mesajlar: ['Rica ederim, nasıl yardımcı olabilirim?'], durum: 'bekliyor', arama_istiyor: false, demo_gonder: false, fiyatlar: [] };
+    const ilk = await yaz('905457259801', 'Teşekkür ederim');
+    assert.strictEqual(ilk.length, 2);
+    assert.match(ilk[0], /adı SıraGO/);
+    assert.doesNotMatch(ilk.join(' '), /nasıl yardımcı olabilirim/);
+
+    siradaki = { mesajlar: ['Anladım, kusura bakmayın.'], durum: 'olumlu', arama_istiyor: false, demo_gonder: false, fiyatlar: [] };
+    assert.deepStrictEqual(await yaz('905457259801', 'nasıl yani'), ['Anladım, kusura bakmayın.'], 'tanıttıktan sonra yapay zekâ cevabına dokunulmaz');
+
+    await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj, lead_id) VALUES ('905457259802', 'Usta', 'bekliyor', 'Merhaba, kolay gelsin', 12)");
+    siradaki = { mesajlar: ['Anladım, rahatsız ettiysem kusura bakmayın.'], durum: 'olumsuz', arama_istiyor: false, demo_gonder: false, fiyatlar: [] };
+    const veda = await yaz('905457259802', 'kim olduğunuzu bilmiyorum, yardımcı olabileceğiniz bir husus olduğunu düşünmüyorum');
+    assert.match(veda[0], /^Anlıyorum\. Kısaca: .*adı SıraGO/);
+    assert.match(veda[1], /kolay gelsin/);
+
+    await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj, lead_id) VALUES ('905457259803', 'Usta 2', 'bekliyor', 'Merhaba, kolay gelsin', 13)");
+    const ret = await yaz('905457259803', 'ilgilenmiyorum');
+    assert.match(ret[0], /adı SıraGO/, 'kural yedeğinin vedası da tanıtımlı');
+  } finally { Object.assign(ai, eski); }
 });
