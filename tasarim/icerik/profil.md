@@ -30,10 +30,10 @@ Not: dosyanın tilki çevresinde ince, kesik beyaz bir kontur var; büyük boyda
 Not: Bot imzasındaki `sırago.com` WhatsApp’ta tıklanabilir olmayabilir; ileride ASCII bir alan adı alınırsa `randevugo/src/utils/siragoImza.js` de güncellenmeli.
 
 ## Mevcut hesap (20 Ekim 2026 itibarıyla)
-Eski 6 gönderi ve Reels arşivlendi, profil boş. İsim alanında “WhatApp” yazım hatası var → `SıraGO · WhatsApp Randevu Asistanı`. Bio eski haliyle (4 emoji, “Whatsapp”) → yukarıdaki öneri. Öne çıkan yok.
+Eski 6 gönderi ve Reels arşivlendi, profil boş. İsim alanında “WhatApp” yazım hatası var → `SıraGO · WhatsApp Randevu Asistanı`. Bio güncellendi. Öne çıkan yok.
 
-## Maskot adı “Fiko”
-Eski gönderilerde tilki “Fiko” diye anıldı. Karar verilene kadar: ad yalnız mizah içeriğinde kullanılabilir; ürün anlatımında “SıraGO” denir, çünkü müşteri WhatsApp’ta botu işletmenin adıyla görür (“Kuzey Berber asistanıyım”), “Fiko” ile değil.
+## Maskot adı: Fiko (onaylandı)
+Açıklamalarda ve mizah içeriğinde “Fiko” denir. Ürünü anlatırken özne SıraGO’dur (“Randevuyu SıraGO yazar”), çünkü müşteri WhatsApp’ta botu işletmenin adıyla görür; “Randevuyu Fiko alsın” gibi cümle kullanılmaz.
 
 ## Öne çıkanlar (A stili, onaylandı)
 SıraGO · Nasıl çalışır · Kurulum · Fiyat · Sorular · Güven. Kapaklar `tasarim/instagram/one-cikan/`, içerik eşleşmesi aynı klasördeki README'de.

@@ -106,7 +106,7 @@ Bağlantı profilde.
 
 Randevudan 1 gün, 1 saat ve 15 dakika önce müşterine WhatsApp’tan hatırlatma gider. 1 saat kala “Geliyorum / İptal Et” diye sorar.
 
-Sen en çok hangisini duyuyorsun? Yoruma yaz.
+Fiko bunu her gün duyuyor. Sen en çok hangisini duyuyorsun? Yoruma yaz.
 
 #esnafhayatı #berber #kuaför #esnaf
 ```
@@ -283,7 +283,7 @@ Sorun burada yoksa DM’den yaz; cevabını bir sonraki gönderide paylaşalım.
 
 - **VİDEO — yerelde yapılacak:** Reels “Aynı saate üç kişi” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/04-ayni-saate-uc-kisi.png`
 - **Kanca (ilk 2 sn):** Aynı saate üç kişiye “tamam” dedin.
-- **Senaryo:** Tilki dükkânda. Saat 17:00, üç müşteri aynı anda kapıdan girer, üçü de “17:00 dedin ya” der. Tilki kameraya bakar. Son kare telefon ekranı: “Maalesef 17:00 dolu. 17:30 uygun mu?”
+- **Senaryo:** Fiko dükkânda. Saat 17:00, üç müşteri aynı anda kapıdan girer, üçü de “17:00 dedin ya” der. Fiko kameraya bakar. Son kare telefon ekranı: “Maalesef 17:00 dolu. 17:30 uygun mu?”
 - **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
   1. Saat 17:00.
   2. Kapıda üç kişi.
@@ -297,7 +297,7 @@ Aynı saate üç kişiye “tamam” dedin. Saat 17:00, kapıda üç kişi.
 
 SıraGO dolu saati bilir: “Maalesef 17:00 dolu. 17:30 uygun mu?” diye sorar.
 
-Başına geldi mi? Yoruma yaz.
+Fiko’nun başına geldi. Senin de geldi mi? Yoruma yaz.
 
 #esnafhayatı #berber #kuaför #esnaf
 ```
@@ -372,7 +372,7 @@ Bağlantı profilde.
 
 Ne zaman gelirse gelsin, randevu sayfan 7/24 açık; boş saati kendisi seçer.
 
-Esnaf sözlüğüne ne ekleyelim? Yoruma yaz.
+Fiko’nun sözlüğüne ne ekleyelim? Yoruma yaz.
 
 #esnafhayatı #berber #kuaför #esnaf
 ```
@@ -447,7 +447,7 @@ Sen hangisini seçerdin?
 
 - **VİDEO — yerelde yapılacak:** Reels “Yer var mı?” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/06-yer-var-mi.png`
 - **Kanca (ilk 2 sn):** “Yer var mı?” yazdı. Sen cevap verene kadar…
-- **Senaryo:** Müşteri “yer var mı?” yazar; tilki makasla meşgul; saat hızlanır; müşteri karşıdaki dükkâna girer. Son: aynı mesaja SıraGO’nun anında cevabı.
+- **Senaryo:** Müşteri “yer var mı?” yazar; Fiko makasla meşgul; saat hızlanır; müşteri karşıdaki dükkâna girer. Son: aynı mesaja SıraGO’nun anında cevabı.
 - **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
   1. “Yer var mı?”
   2. Sen makastasın.
@@ -457,7 +457,7 @@ Sen hangisini seçerdin?
 
 **Açıklama:**
 ```
-“Yer var mı?” yazdı. Sen cevap verene kadar karşı dükkândaydı.
+“Yer var mı?” yazdı. Fiko cevap verene kadar müşteri karşı dükkândaydı.
 
 SıraGO o mesaja hemen cevap verir; sen yine makasına bak.
 
@@ -494,7 +494,7 @@ Müşterin saatini 7/24 kendisi seçer. Kaydet.
 
 - **VİDEO — yerelde yapılacak:** Reels “Pazartesi tatil” — yerelde, Blender · kapak: `tasarim/instagram/reels-kapak/08-pazartesi-tatil.png`
 - **Kanca (ilk 2 sn):** Pazartesi tatil. Telefon yine susmuyor.
-- **Senaryo:** Tilki çay bahçesinde; telefon masada titrer; tilki bakar, gülümser, telefonu ters çevirir. Son kare: SıraGO cevapladı bildirimi.
+- **Senaryo:** Fiko çay bahçesinde; telefon masada titrer; Fiko bakar, gülümser, telefonu ters çevirir. Son kare: SıraGO cevapladı bildirimi.
 - **Alt yazı (sırayla, sessiz izlenince de anlaşılsın):**
   1. Pazartesi tatil.
   2. Çay geldi.
@@ -503,7 +503,7 @@ Müşterin saatini 7/24 kendisi seçer. Kaydet.
 
 **Açıklama:**
 ```
-Pazartesi tatil. Çay geldi, telefon yine susmuyor.
+Pazartesi tatil. Fiko çayını içiyor, telefon yine susmuyor.
 
 Tatil gününde de randevu mesajlarına SıraGO cevap verir; istersen o gün kapalı mesajı atar.
 
