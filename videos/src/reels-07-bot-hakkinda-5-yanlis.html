@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="reels.css">
+<style>
+  .tel { left: 50%; margin-left: -300px; top: 560px; height: 790px; }
+  .tel .b { font-size: 28px; }
+  .son { display: flex; flex-direction: column; justify-content: center; padding: 0 140px 300px var(--kenar); }
+  .son .logo { height: 60px; width: auto; align-self: flex-start; margin-bottom: 64px; }
+  .son .liste { margin-top: 56px; display: grid; gap: 18px; font-size: 38px; font-weight: 600; }
+  .son .liste div { display: flex; gap: 20px; align-items: center; }
+  .son .dugme { margin-top: 64px; align-self: flex-start; font-size: 38px; }
+  .son .not { margin-top: 28px; font-size: 26px; color: var(--ikincil); }
+  .kanca { position: absolute; top: 240px; left: var(--kenar); right: 140px; }
+
+  .sayi{position:absolute;top:300px;left:var(--kenar);font-size:26px;font-weight:650;letter-spacing:.14em;text-transform:uppercase;color:var(--ikincil)}
+  .yanlis{position:absolute;top:360px;left:var(--kenar);right:140px;font-family:var(--f-baslik);font-weight:780;font-size:96px;letter-spacing:-0.025em;line-height:1;text-decoration:line-through;text-decoration-color:#e5484d;text-decoration-thickness:8px}
+  .dogru{position:absolute;top:900px;left:var(--kenar);right:140px;display:flex;gap:24px;align-items:flex-start;padding:40px 44px;border-radius:32px;font-size:44px;font-weight:700;line-height:1.25}
+  .z-gece .dogru{background:var(--parlak);color:var(--gece)} .z-krem .dogru{background:var(--yesil);color:var(--krem)}
+  .dogru .ik{font-size:52px;stroke-width:2.6;flex:none;margin-top:2px}
+</style></head>
+<body data-total="25.0"><script src="../../tasarim/sistem/ikonlar.js"></script>
+<section class="sahne ilk z-gece isik" style="--son:3.1s; --isik:50% 60%">
+  <h1 class="kanca baslik b-xl">Bot hakkında duyduğun <em>5 yanlış.</em></h1>
+  <div class="altyazi"><span>Hangisini sen de duydun?</span></div>
+</section>
+<section class="sahne z-gece isik" style="--bas:3.0s; --son:6.6s">
+  <div class="sayi gir" style="--d:3.1s">Yanlış 1/5</div>
+  <h2 class="yanlis gir" style="--d:3.15s">“Müşteri uygulama indirmeli.”</h2>
+  <div class="dogru pop" style="--d:4.0s"><svg class="ik"><use href="#tik"/></svg><span>WhatsApp’tan yazar, o kadar.</span></div>
+</section>
+<section class="sahne z-krem" style="--bas:6.5s; --son:10.1s">
+  <div class="sayi gir" style="--d:6.6s">Yanlış 2/5</div>
+  <h2 class="yanlis gir" style="--d:6.65s">“Robot gibi konuşur.”</h2>
+  <div class="dogru pop" style="--d:7.5s"><svg class="ik"><use href="#tik"/></svg><span>Samimi, resmi ya da kısa: üslubu sen seçersin.</span></div>
+</section>
+<section class="sahne z-gece isik" style="--bas:10.0s; --son:13.6s">
+  <div class="sayi gir" style="--d:10.1s">Yanlış 3/5</div>
+  <h2 class="yanlis gir" style="--d:10.15s">“Ben yazınca karışır.”</h2>
+  <div class="dogru pop" style="--d:11.0s"><svg class="ik"><use href="#tik"/></svg><span>Elle yazdığın sohbette bot 3 saat susar.</span></div>
+</section>
+<section class="sahne z-krem" style="--bas:13.5s; --son:17.1s">
+  <div class="sayi gir" style="--d:13.6s">Yanlış 4/5</div>
+  <h2 class="yanlis gir" style="--d:13.65s">“Olmayan saati verir.”</h2>
+  <div class="dogru pop" style="--d:14.5s"><svg class="ik"><use href="#tik"/></svg><span>Saatler senin takviminden gelir; olmayan saati “boş” diyemez.</span></div>
+</section>
+<section class="sahne z-gece isik" style="--bas:17.0s; --son:20.6s">
+  <div class="sayi gir" style="--d:17.1s">Yanlış 5/5</div>
+  <h2 class="yanlis gir" style="--d:17.15s">“Tanıdıklarım da botla konuşur.”</h2>
+  <div class="dogru pop" style="--d:18.0s"><svg class="ik"><use href="#tik"/></svg><span>İstediğin kişiyi bottan ayırırsın.</span></div>
+</section><section class="sahne son z-yesil" style="--bas:20.5s">
+  <img class="logo gir" style="--d:20.6s" src="../../tasarim/varliklar/logo-yatay-yesil-zemin.png" alt="SıraGO">
+  <h1 class="baslik b-xl gir" style="--d:20.75s">Sen makasına bak. <em>Randevuyu SıraGO yazsın.</em></h1>
+  <div class="liste"><div class="gir" style="--d:21.3s"><svg class="ik"><use href="#tik"/></svg>Ücretsiz dene</div><div class="gir" style="--d:21.5s"><svg class="ik"><use href="#tik"/></svg>Kart bilgisi istenmez</div></div>
+  <span class="dugme pop" style="--d:22.0s">Bağlantı profilde <svg class="ik"><use href="#ok"/></svg></span>
+  
+</section>
+</body></html>
