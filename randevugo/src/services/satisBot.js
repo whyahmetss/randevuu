@@ -1,4 +1,4 @@
-const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
@@ -412,11 +412,39 @@ class SatisBot extends EventEmitter {
     }
   }
 
+  // Numara ile bağlama (2026-10-20, esnaftaki gibi): QR yerine 8 haneli kod.
+  // WhatsApp → Bağlı cihazlar → Cihaz bağla → "Bunun yerine telefon numarasıyla bağla" ekranına girilir.
+  async numaraEslestirmeKodu(numaraId, telefon) {
+    let tel = String(telefon || '').replace(/\D/g, '');
+    if (tel.startsWith('0')) tel = '9' + tel;
+    if (tel.length === 10) tel = '90' + tel;
+    if (!/^\d{11,15}$/.test(tel)) throw new Error('Telefon numarasını 05xx xxx xx xx şeklinde yazın');
+    if (this.numaraSockets.get(numaraId)?.durum === 'bagli') throw new Error('Bu numara zaten bağlı');
+    const bekle = new Promise((coz) => {
+      const t = setTimeout(() => coz(null), 20000);
+      this.once(`kod_numara_${numaraId}`, (kod) => { clearTimeout(t); coz(kod); });
+    });
+    // QR bekleyen eski bağlantı kapatılır, kod isteyen yeni bağlantı açılır
+    const mevcut = this.numaraSockets.get(numaraId);
+    if (mevcut) {
+      if (mevcut._reconnectTimer) clearTimeout(mevcut._reconnectTimer);
+      try { mevcut.sock?.end(undefined); } catch (e) {}
+      this.numaraSockets.delete(numaraId);
+      await new Promise(r => setTimeout(r, 300));
+    }
+    if (!this._eslestirmeTel) this._eslestirmeTel = new Map();
+    this._eslestirmeTel.set(numaraId, tel);
+    await this.numaraBaslat(numaraId);
+    const kod = await bekle;
+    if (!kod) { this._eslestirmeTel.delete(numaraId); throw new Error('WhatsApp kodu vermedi, birkaç saniye sonra tekrar deneyin ya da QR ile bağlayın'); }
+    return kod;
+  }
+
   // Belirli bir numarayı bağla (numaraId = DB id)
   async numaraBaslat(numaraId) {
     const authId = 900000 + numaraId; // Her numara için benzersiz auth ID
     const mevcut = this.numaraSockets.get(numaraId);
-    if (mevcut && (mevcut.durum === 'bagli' || mevcut.durum === 'qr_bekleniyor' || mevcut.durum === 'baslatiyor')) {
+    if (mevcut && (mevcut.durum === 'bagli' || mevcut.durum === 'qr_bekleniyor' || mevcut.durum === 'kod_bekleniyor' || mevcut.durum === 'baslatiyor')) {
       console.log(`🔄 Numara #${numaraId} zaten ${mevcut.durum} durumunda`);
       return mevcut;
     }
@@ -444,7 +472,8 @@ class SatisBot extends EventEmitter {
           keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         logger: pino({ level: 'silent' }),
-        browser: ['SıraGO-Sales', 'Desktop', '4.0.0'],
+        // Kodla bağlamada WhatsApp standart tarayıcı imzası ister
+        browser: this._eslestirmeTel?.has(numaraId) ? Browsers.ubuntu('Chrome') : ['SıraGO-Sales', 'Desktop', '4.0.0'],
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: false,
@@ -458,6 +487,8 @@ class SatisBot extends EventEmitter {
       ns.sock.ev.on('creds.update', saveCreds);
 
       ns.sock.ev.on('connection.update', (update) => {
+        // Yerine yeni bağlantı açılmış eski soketin olayları yeni bağlantıyı bozmasın
+        if (this.numaraSockets.get(numaraId) !== ns) return;
         this._handleNumaraConnectionUpdate(numaraId, update);
       });
 
@@ -515,6 +546,21 @@ class SatisBot extends EventEmitter {
 
     try {
       const { connection, lastDisconnect, qr } = update;
+
+      const eslestirTel = this._eslestirmeTel?.get(numaraId);
+      if (qr && eslestirTel && !ns.eslestirmeKodu) {
+        try {
+          const kod = await ns.sock.requestPairingCode(eslestirTel);
+          ns.eslestirmeKodu = kod;
+          ns.durum = 'kod_bekleniyor';
+          this._eslestirmeTel.delete(numaraId);   // kod süresi dolup yeniden bağlanırsa QR'a döner
+          this.emit(`kod_numara_${numaraId}`, kod);
+          console.log(`🔢 [#${numaraId}] Eşleştirme kodu hazır`);
+        } catch (e) { console.error(`[#${numaraId}] Eşleştirme kodu alınamadı:`, e.message); this.emit(`kod_numara_${numaraId}`, null); }
+        this._senkronEt();
+        return;
+      }
+      if (qr && ns.eslestirmeKodu) return;   // kod girilmesi beklenirken QR üretme
 
       if (qr) {
         ns.durum = 'qr_bekleniyor';
@@ -900,6 +946,7 @@ class SatisBot extends EventEmitter {
         numaraId: id,
         durum: ns.durum,
         qrBase64: ns.qrBase64,
+        eslestirmeKodu: ns.durum === 'kod_bekleniyor' ? ns.eslestirmeKodu : null,
         numara: ns.sock?.user?.id?.split(':')[0] || null,
         paralelAktif: this.numaraTimers.has(id),
         gunlukGonderim: ng?.gonderim || 0,

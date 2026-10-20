@@ -2071,6 +2071,15 @@ class AdminController {
 
   // ==================== SATIŞ BOTU ====================
 
+  async satisBotNumaraEslestir(req, res) {
+    try {
+      const kod = await require('../services/satisBot').numaraEslestirmeKodu(parseInt(req.params.id), req.body?.telefon);
+      res.json({ kod });
+    } catch (error) {
+      res.status(400).json({ hata: error.message });
+    }
+  }
+
   async satisBotBaslat(req, res) {
     try {
       const satisBot = require('../services/satisBot');

@@ -7775,6 +7775,14 @@ function SuperAdminPanel({ kullanici }) {
                     const nd = (satisBotDurum?.numaraDurumlari || []).find(x => x.numaraId === n.id);
                     const wsBagli = nd?.durum === 'bagli';
                     const wsQr = nd?.durum === 'qr_bekleniyor';
+                    const wsKod = nd?.durum === 'kod_bekleniyor' && nd?.eslestirmeKodu;
+                    const kodIste = async () => {
+                      const tel = prompt("WhatsApp numarası (05xx xxx xx xx):", n.telefon || "");
+                      if (!tel) return;
+                      const r = await api.post(`/admin/satis-bot/numaralar/${n.id}/eslestir`, { telefon: tel });
+                      if (r.hata) return alert(r.hata);
+                      satisBotYukle();
+                    };
                     return (
                       <div key={n.id} style={{ padding: "14px 16px", borderRadius: 12, background: n.durum === 'banli' ? "rgba(180,35,24,.03)" : wsBagli ? "rgba(31,111,74,.03)" : "var(--bg)", border: `1px solid ${wsBagli ? "rgba(31,111,74,.15)" : n.durum === 'banli' ? "rgba(180,35,24,.12)" : "var(--border)"}` }}>
                         <div className="row gap-10" style={{ alignItems: "center" }}>
@@ -7783,7 +7791,7 @@ function SuperAdminPanel({ kullanici }) {
                             <div className="row gap-6" style={{ alignItems: "center", flexWrap: "wrap" }}>
                               <span style={{ fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{n.isim}</span>
                               <span style={{ fontSize: 12, color: "var(--dim)" }}>{n.telefon || "—"}</span>
-                              <span style={{ padding: "2px 8px", borderRadius: 6, background: wsBagli ? "rgba(31,111,74,.1)" : `${nRenk[n.durum] || "#6f6a62"}15`, color: wsBagli ? "#1f6f4a" : nRenk[n.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{wsBagli ? "🟢 Bağlı" : wsQr ? "📱 QR Bekliyor" : nLabel[n.durum] || n.durum}</span>
+                              <span style={{ padding: "2px 8px", borderRadius: 6, background: wsBagli ? "rgba(31,111,74,.1)" : `${nRenk[n.durum] || "#6f6a62"}15`, color: wsBagli ? "#1f6f4a" : nRenk[n.durum] || "#6f6a62", fontSize: 10, fontWeight: 600 }}>{wsBagli ? "🟢 Bağlı" : wsQr ? "📱 QR Bekliyor" : wsKod ? "🔢 Kod Bekliyor" : nLabel[n.durum] || n.durum}</span>
                               {nd?.paralelAktif && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(168,89,12,.1)", color: "#a8590c", fontSize: 10, fontWeight: 600 }}>⚡ Paralel Aktif</span>}
                               {nd?.gunlukGonderim > 0 && <span style={{ fontSize: 10, color: "var(--dim)" }}>bugün {nd.gunlukGonderim} msj</span>}
                               {n.gonderim_sayisi > 0 && !nd?.gunlukGonderim && <span style={{ fontSize: 10, color: "var(--dim)" }}>{n.gonderim_sayisi} msj</span>}
@@ -7791,8 +7799,11 @@ function SuperAdminPanel({ kullanici }) {
                             </div>
                           </div>
                           <div className="row gap-4" style={{ flexShrink: 0, flexWrap: "wrap" }}>
-                            {n.durum === 'aktif' && !wsBagli && !wsQr && (
+                            {n.durum === 'aktif' && !wsBagli && !wsQr && !wsKod && (
                               <button onClick={async () => { await api.post("/admin/satis-bot/baslat", { numaraId: n.id }); setTimeout(() => satisBotYukle(), 1000); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "#5d4bb5", color: "#fff", fontWeight: 600, fontSize: 11 }}>🔗 Bağla</button>
+                            )}
+                            {n.durum === 'aktif' && !wsBagli && (
+                              <button onClick={kodIste} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontWeight: 600, fontSize: 11 }}>🔢 Numarayla bağla</button>
                             )}
                             {wsBagli && (
                               <button onClick={async () => { await api.post("/admin/satis-bot/durdur", { numaraId: n.id }); setTimeout(() => satisBotYukle(), 500); }} style={{ padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.08)", color: "#b42318", fontWeight: 600, fontSize: 11 }}>⏹ Kes</button>
@@ -7802,6 +7813,13 @@ function SuperAdminPanel({ kullanici }) {
                             <button onClick={async () => { if (confirm(`"${n.isim}" sil?`)) { await api.del(`/admin/satis-bot/numaralar/${n.id}`); numaralariYukle(); }}} style={{ padding: "5px 10px", borderRadius: 6, border: "none", cursor: "pointer", background: "rgba(180,35,24,.04)", color: "var(--dim)", fontSize: 11 }}>✕</button>
                           </div>
                         </div>
+                        {wsKod && (
+                          <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#5d4bb5", marginBottom: 8 }}>🔢 {n.isim} için eşleştirme kodu</div>
+                            <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: 6, color: "var(--text)", fontFamily: "monospace" }}>{String(nd.eslestirmeKodu).replace(/^(.{4})(.{4})$/, "$1-$2")}</div>
+                            <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 8 }}>WhatsApp → Bağlı cihazlar → Cihaz bağla → "Bunun yerine telefon numarasıyla bağla" → bu kodu gir</div>
+                          </div>
+                        )}
                         {/* QR Kodu göster */}
                         {wsQr && nd?.qrBase64 && (
                           <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "center" }}>
