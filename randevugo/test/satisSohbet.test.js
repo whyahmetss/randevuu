@@ -210,3 +210,25 @@ test('bot kendini tanıtmadan cevap vermez: tanıtımsız ilk cevap ve tanıtım
     assert.match(ret[0], /adı SıraGO/, 'kural yedeğinin vedası da tanıtımlı');
   } finally { Object.assign(ai, eski); }
 });
+
+// Canlı 2026-10-22: ikinci cevapta tanıtım + aynı soru tekrar gitti; diş kliniğine "Berber ve kuaförlere" yazıldı
+test('tanıtım yalnız ilk cevapta; önceki bot cevabı marka anmasa da tekrarlanmaz; tanıtım sektöre göre', async () => {
+  const { db } = await ortam;
+  const { yaz } = botHazirla();
+  const ai = require(SRC + '/services/satisAI');
+  const eski = { aktifMi: ai.aktifMi, cevapUret: ai.cevapUret };
+  ai.aktifMi = () => true;
+  ai.cevapUret = async () => ({ mesajlar: ['Anladım. Telefonla gelenleri kaçırdığınız oluyor mu?'], durum: 'olumlu', arama_istiyor: false, demo_gonder: false, fiyatlar: [] });
+  try {
+    await db.query(`INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, durum, gonderilen_mesaj, lead_id, gelen_mesajlar)
+      VALUES ('905332060206', 'Kaya Diş', 'diş kliniği', 'ai_devrede', 'Merhaba, kolay gelsin', 21,
+        E'\\n[12:27] Müşteri: Merhaba\\n[12:28] Bot: Siz randevuları şu an genelde telefonla mı alıyorsunuz?')`);
+    assert.deepStrictEqual(await yaz('905332060206', 'Yok efendim olmuyor'), ['Anladım. Telefonla gelenleri kaçırdığınız oluyor mu?']);
+
+    await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, durum, gonderilen_mesaj, lead_id) VALUES ('905332060207', 'Gülüş Diş', 'diş kliniği', 'bekliyor', 'Merhaba, kolay gelsin', 22)");
+    ai.cevapUret = async () => ({ mesajlar: ['Rica ederim'], durum: 'bekliyor', arama_istiyor: false, demo_gonder: false, fiyatlar: [] });
+    const ilk = await yaz('905332060207', 'Teşekkürler');
+    assert.match(ilk[0], /Diş kliniklerine/);
+    assert.doesNotMatch(ilk[0], /Berber/);
+  } finally { Object.assign(ai, eski); }
+});

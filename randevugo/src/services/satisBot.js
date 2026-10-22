@@ -139,7 +139,16 @@ const SES_TALIMAT = 'Bu, bir randevu sistemi satan firmaya bir esnafın (berber,
 // Kendini tanıtmadan cevap yok (canlı 2026-10-20: "Teşekkür ederim"e "Rica ederim, nasıl yardımcı olabilirim?" dendi,
 // esnaf "kim olduğunuzu bilmiyorum" deyince bot yine söylemeden vedalaştı). Bizim başlattığımız sohbette SıraGO'yu
 // anmamış ilk cevaplar bu metinlerle değiştirilir; yapay zekâ ne derse desin esnaf kimin yazdığını öğrenir.
-const TANITIM = 'Berber ve kuaförlere, WhatsApp\'tan gelen randevu mesajlarını sizin yerinize cevaplayıp boş saate yazan bir sistem kuruyoruz, adı SıraGO. Sizden para ya da kart bilgisi istemiyoruz.';
+// Sektöre göre kime yazdığımız (canlı 2026-10-22: diş kliniğine "Berber ve kuaförlere" gitti)
+const TANITIM_KIME = (kategori) => {
+  const k = String(kategori || '').toLocaleLowerCase('tr');
+  if (/berber|kuaf/.test(k)) return 'Berber ve kuaförlere';
+  if (/diş|dis|klinik|hekim/.test(k)) return 'Diş kliniklerine';
+  if (/güzellik|guzellik|cilt|tırnak|tirnak|spa|estetik/.test(k)) return 'Güzellik salonlarına';
+  if (/veteriner/.test(k)) return 'Veteriner kliniklerine';
+  return 'Randevuyla çalışan işletmelere';
+};
+const TANITIM = (kategori) => `${TANITIM_KIME(kategori)}, WhatsApp'tan gelen randevu mesajlarını sizin yerinize cevaplayıp boş saate yazan bir sistem kuruyoruz, adı SıraGO. Sizden para ya da kart bilgisi istemiyoruz.`;
 const TANITIM_SORU = 'Randevuları şu an nasıl alıyorsunuz, telefonla mı WhatsApp\'tan mı?';
 const TANITIM_VEDA = 'Hiç sorun değil, rahatsız ettiysem kusura bakmayın. İlgilenirseniz buraya yazmanız yeterli, kolay gelsin.';
 const tanitimVar = (t) => /s[ıi]ra\s?go/i.test(String(t || ''));
@@ -1519,9 +1528,12 @@ class SatisBot extends EventEmitter {
   // durum olumsuzsa kısa tanıtım + veda, değilse tanıtım + tek soru.
   _tanitimSart(konusma, mesajlar, olumsuz = false) {
     const bizBaslattik = konusma?.lead_id || !['Müşteri kendisi yazdı', 'Elle yazıldı', undefined, null].includes(konusma?.gonderilen_mesaj);
-    const oncekiBiz = String(konusma?.gelen_mesajlar || '').split('\n').filter(x => /\]\s*(Bot|Elle):/.test(x)).join('\n');
-    if (!bizBaslattik || tanitimVar(oncekiBiz) || mesajlar.some(tanitimVar)) return mesajlar;
-    return olumsuz ? [`Anlıyorum. Kısaca: ${TANITIM}`, TANITIM_VEDA] : [`Kolay gelsin. ${TANITIM}`, TANITIM_SORU];
+    // Yalnız İLK cevapta: daha önce bizden bir cevap gittiyse (marka adı geçmese de) tekrar tanıtılmaz
+    // (canlı 2026-10-22: ikinci cevapta tanıtım + aynı soru yeniden gitti, "aynı mesajı iki kez atıyor")
+    const oncekiBiz = String(konusma?.gelen_mesajlar || '').split('\n').some(x => /\]\s*(Bot|Elle):/.test(x));
+    if (!bizBaslattik || oncekiBiz || mesajlar.some(tanitimVar)) return mesajlar;
+    const t = TANITIM(konusma?.kategori);
+    return olumsuz ? [`Anlıyorum. Kısaca: ${t}`, TANITIM_VEDA] : [`Kolay gelsin. ${t}`, TANITIM_SORU];
   }
 
   // Adayın Avcı kaydı (Google'da nerede bulundu, puanı): yapay zekâ "dükkânınızı Google'da gördüm" diyebilsin
