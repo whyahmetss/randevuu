@@ -1,0 +1,20 @@
+{
+  "seslendirme": [
+    { "t": 0.2, "bitis": 2.1, "metin": "Telefon susmuyor mu?" },
+    { "t": 2.6, "bitis": 6.1, "metin": "Sıra Go müşterine boş saati söyler, randevuyu yazar." },
+    { "t": 6.5, "bitis": 10.1, "metin": "Randevudan önce hatırlatır, müşterinin dilinde konuşur. Uygulama indirmek yok." },
+    { "t": 10.4, "bitis": 12.2, "metin": "Senin WhatsApp'ından cevaplar." },
+    { "t": 13.3, "bitis": 14.9, "metin": "Sen işine bak. Randevuyu Sıra Go yazsın." }
+  ],
+  "efektler": [
+    { "ad": "vurus", "t": [0.45, 10.75, 12.85], "db": -13 },
+    { "ad": "titresim", "t": [2.9], "db": -16 },
+    { "ad": "mesaj_gelen", "t": [3.4, 4.8, 7.0, 7.8, 8.6], "db": -15 },
+    { "ad": "mesaj_giden", "t": [3.1, 4.6], "db": -18 },
+    { "ad": "bildirim", "t": [7.0], "db": -15 },
+    { "ad": "logo", "t": [13.0], "db": -12 }
+  ],
+  "vurgu": [],
+  "muzik": { "db": -22, "kisilma_db": 9 },
+  "sure": 15.0
+}

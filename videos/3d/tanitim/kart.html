@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<!-- Süzülen cam kartların yüz dokusu (?kart=1..5). Yalnız doğrulanmış özellikler:
+     hatırlatma zinciri (services/hatirlatma.js: 24s + 1s teyit + 15dk), 3 dil (tr/en/ar), bot metinleri (sohbetAsistani.js, botMesajlar.js) -->
+<link rel="stylesheet" href="../../../tasarim/fontlar/fontlar.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 900px; height: 300px; overflow: hidden; background: transparent; }
+  body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  .kart { position: absolute; inset: 0; border-radius: 56px; background: rgba(251, 248, 242, .94);
+    display: flex; align-items: center; gap: 36px; padding: 0 56px; color: #13271c; }
+  .ikon { width: 150px; height: 150px; border-radius: 40px; background: #1f6f4a; display: grid; place-items: center;
+    font-size: 84px; flex: none; }
+  .ikon.acik { background: #e3f5ea; }
+  b { display: block; font-family: 'Bricolage Grotesque', 'Inter'; font-weight: 800; font-size: 62px; line-height: 1.02;
+    letter-spacing: -1.4px; }
+  small { display: block; margin-top: 10px; font-size: 36px; font-weight: 600; color: #4f6a5c; }
+</style>
+</head>
+<body>
+<div class="kart" id="k1"><div class="ikon acik">🗓️</div><div><b>Bugün · 17:00</b><small>Saç + sakal · boş saat bulundu</small></div></div>
+<div class="kart" id="k2"><div class="ikon">✅</div><div><b>Randevunuz Oluşturuldu!</b><small>Kuzey Berber · 31 Ekim</small></div></div>
+<div class="kart" id="k3"><div class="ikon acik">⏰</div><div><b>Randevudan önce hatırlatır</b><small>1 gün · 1 saat · 15 dk önce</small></div></div>
+<div class="kart" id="k4"><div class="ikon acik">💬</div><div><b>Türkçe · English · العربية</b><small>Müşterinin dilinde cevap verir</small></div></div>
+<div class="kart" id="k5"><div class="ikon">📲</div><div><b>Uygulama indirmek yok</b><small>Müşteri senin WhatsApp'ına yazar</small></div></div>
+<script>
+  const n = new URLSearchParams(location.search).get('kart') || '1';
+  document.querySelectorAll('.kart').forEach(k => k.style.display = k.id === 'k' + n ? '' : 'none');
+  window.zaman = () => {};
+</script>
+</body></html>

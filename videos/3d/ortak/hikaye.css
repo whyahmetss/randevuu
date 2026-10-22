@@ -1,0 +1,41 @@
+/* Hikâye videoları için yazı katmanı (şeffaf 1080×1920): üstte soru başlığı, ortada serif italik anlatım,
+   köşede belgesel HUD etiketi. Fontlar marka setinden (Instrument Serif + Inter). */
+@import url(../../../tasarim/fontlar/fontlar.css);
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+body { font-family: 'Inter', sans-serif; color: #fbf4e8; -webkit-font-smoothing: antialiased; }
+.golge { text-shadow: 0 2px 6px rgba(0, 0, 0, .55), 0 6px 30px rgba(0, 0, 0, .45); }
+
+/* Üst soru başlığı */
+.soru { position: absolute; top: 230px; left: 70px; right: 70px; text-align: center;
+  font-family: 'Instrument Serif', 'Fraunces', serif; font-size: 100px; line-height: 1.02; letter-spacing: -1px; }
+.soru span { background: rgba(10, 18, 14, .5); padding: 4px 22px 12px; border-radius: 18px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; line-height: 1.12; }
+.soru em { font-style: italic; color: #2bd36a; }
+
+/* Ortadaki anlatım satırı (serif italik, kutusuz) */
+.anlati { position: absolute; left: 80px; right: 80px; top: 1180px; text-align: center;
+  font-family: 'Instrument Serif', 'Fraunces', serif; font-style: italic; font-size: 64px; line-height: 1.12; }
+.anlati span { display: inline; background: rgba(10, 18, 14, .58); padding: 6px 18px 10px; border-radius: 14px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; line-height: 1.32; }
+.anlati.ust { top: 560px; }
+.anlati.alt { top: 1430px; }
+.anlati b { font-style: normal; font-weight: 400; color: #2bd36a; }
+
+/* HUD etiketi (sol orta) */
+.hud { position: absolute; left: 64px; top: 760px; background: rgba(10, 20, 16, .62); border-radius: 18px;
+  padding: 20px 26px 22px; min-width: 330px; backdrop-filter: blur(6px); }
+.hud small { display: block; font-size: 22px; font-weight: 700; letter-spacing: .14em; color: #c9d6cf; }
+.hud b { display: block; font-family: 'Inter Tight', 'Inter'; font-size: 66px; font-weight: 600; letter-spacing: -1px;
+  line-height: 1.05; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.hud span { display: block; font-size: 22px; font-weight: 700; letter-spacing: .12em; color: #93a69c; }
+.hud .kirmizi { color: #ff7b6b; }
+.hud .yesil { color: #2bd36a; }
+
+/* Kapanış: yeşil blok + tek cümle + logo (marka) */
+.son { position: absolute; left: 60px; right: 60px; top: 220px; background: #1f6f4a; border-radius: 44px;
+  padding: 64px 64px 56px; box-shadow: 0 30px 80px rgba(0, 0, 0, .35); }
+.son h1 { color: #fbf4e8; font-family: 'Bricolage Grotesque', 'Inter'; font-weight: 800; font-size: 92px;
+  line-height: 1.0; letter-spacing: -2.5px; }
+.son h1 i { font-style: normal; display: block; color: #c9f3d6; }
+.son img { height: 92px; margin-top: 48px; display: block; }

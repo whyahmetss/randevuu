@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url';
 
 const kok = join(dirname(fileURLToPath(import.meta.url)), '..');
 const video = process.argv[2];
-const SURE = 16.5;
 const kurgu = JSON.parse(readFileSync(join(kok, video, 'ses.json'), 'utf8'));
+const SURE = kurgu.sure || 16.5;   // hikâye videoları daha uzun (ses.json'da "sure")
 
 function arac(ad) {
   const paket = join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WinGet', 'Packages');

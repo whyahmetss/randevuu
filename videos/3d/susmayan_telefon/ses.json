@@ -1,0 +1,28 @@
+{
+  "seslendirme": [
+    { "t": 0.5, "bitis": 3.2, "metin": "Cumartesi sabahı. Dükkânı yeni açtın." },
+    { "t": 3.4, "bitis": 6.9, "metin": "Öğlen olmadan koltuk doldu. Telefon titremeye devam ediyor." },
+    { "t": 7.2, "bitis": 10.4, "metin": "Cevap yazsan, koltuktaki bekliyor." },
+    { "t": 10.7, "bitis": 13.4, "metin": "Yazmasan, müşteri başka yere gidiyor." },
+    { "t": 13.7, "bitis": 15.5, "metin": "Peki cevabı başkası verseydi?" },
+    { "t": 15.8, "bitis": 21.4, "metin": "Sıra Go senin WhatsApp'ından cevap verir, randevuyu yazar." },
+    { "t": 21.7, "bitis": 25.4, "metin": "Akşam oldu. Telefona bakmadın, gün yine doldu." },
+    { "t": 25.7, "bitis": 28.8, "metin": "Sen makasına bak. Randevuyu Sıra Go yazsın." }
+  ],
+  "efektler": [
+    { "ad": "sabah", "t": [0], "db": -30, "dongu": 3.3 },
+    { "ad": "dukkan", "t": [3.3, 15.3], "db": -30, "dongu": 12.0 },
+    { "ad": "supurge", "t": [0.1], "db": -18 },
+    { "ad": "titresim", "t": [1.2, 2.2, 3.6, 4.4, 5.2, 6.0, 7.8, 8.6, 9.6, 10.8, 11.5, 12.3], "db": -15 },
+    { "ad": "makas", "t": [3.3, 21.6, 25.0, 27.0], "db": -19 },
+    { "ad": "ic_cekis", "t": [13.7], "db": -15 },
+    { "ad": "mesaj_giden", "t": [16.1, 17.6], "db": -16 },
+    { "ad": "mesaj_gelen", "t": [16.9], "db": -16 },
+    { "ad": "liste", "t": [19.6], "db": -17 },
+    { "ad": "gulusme", "t": [23.3], "db": -17 },
+    { "ad": "logo", "t": [25.6], "db": -15 }
+  ],
+  "vurgu": [3.3, 7.0, 10.5, 13.5, 15.6, 21.6, 25.5],
+  "muzik": { "db": -26, "kisilma_db": 9 },
+  "sure": 29.0
+}
