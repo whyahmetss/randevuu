@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<!-- Randevu defteri sayfası dokusu (sol/sağ: ?yan=sol | ?yan=sag). El yazısı: Windows "Ink Free". -->
+<style>
+  @font-face { font-family: 'El'; src: local('Ink Free'), url('file:///C:/Windows/Fonts/Inkfree.ttf'); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 1600px; overflow: hidden; }
+  body { background: #f4ecd9; font-family: 'El', 'Segoe Print', cursive; color: #22356f; position: relative; }
+  .cizgi { position: absolute; inset: 0;
+    background: repeating-linear-gradient(to bottom, transparent 0 108px, #b9c7d8 108px 110px); background-position: 0 150px; }
+  .kenar { position: absolute; top: 0; bottom: 0; left: 190px; width: 3px; background: #d98a8a; }
+  .gun { position: absolute; top: 46px; left: 220px; font-size: 76px; color: #1b2a5c; }
+  .satir { position: absolute; left: 40px; right: 40px; height: 110px; display: flex; align-items: flex-end; padding-bottom: 14px;
+    font-size: 62px; white-space: nowrap; }
+  .satir .s { width: 170px; font-size: 54px; color: #2b3f7c; }
+  .satir .i { flex: 1; position: relative; }
+  .ciz { position: relative; display: inline-block; margin-right: 26px; }
+  .ciz::after { content: ''; position: absolute; left: -6px; right: -6px; top: 52%; height: 6px; background: #22356f;
+    transform: rotate(-3deg); border-radius: 3px; }
+  .ciz.iki::before { content: ''; position: absolute; left: -4px; right: -8px; top: 40%; height: 5px; background: #22356f;
+    transform: rotate(4deg); border-radius: 3px; }
+  .silgi { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, rgba(150,140,125,.35), rgba(150,140,125,0)); }
+  .daire { position: absolute; border: 5px solid #22356f; border-radius: 50%; }
+  .ok { position: absolute; height: 5px; background: #22356f; transform-origin: 0 50%; border-radius: 3px; }
+  .ok::after { content: ''; position: absolute; right: -4px; top: -11px; border: 13px solid transparent; border-left: 22px solid #22356f; }
+  .kucuk { font-size: 44px; color: #4a5b8f; }
+  .kirmizi { color: #b23a3a; }
+  .leke { position: absolute; border-radius: 50%; border: 14px solid rgba(120, 78, 40, .18); }
+  .soluk { opacity: .55; }
+</style>
+</head>
+<body>
+<div class="cizgi"></div><div class="kenar"></div>
+<div id="sol">
+  <div class="gun">Perşembe 22 Ekim</div>
+  <div class="satir" style="top:150px"><span class="s">09:30</span><span class="i">Kerem ✓</span></div>
+  <div class="satir" style="top:260px"><span class="s">10:00</span><span class="i"><span class="ciz">Ali</span>Burak (sakal)</span></div>
+  <div class="satir" style="top:370px"><span class="s">11:00</span><span class="i"><span class="ciz">Emre</span><span class="kucuk">→ 14:00?</span></span></div>
+  <div class="satir" style="top:480px"><span class="s">11:30</span><span class="i">Mehmet abi ??</span></div>
+  <div class="satir" style="top:590px"><span class="s">12:00</span><span class="i kirmizi">ÖĞLE</span></div>
+  <div class="satir" style="top:700px"><span class="s">13:00</span><span class="i">Selim + oğlu</span></div>
+  <div class="satir" style="top:810px"><span class="s">13:30</span><span class="i"><span class="ciz iki">Kaan</span><span class="ciz">Kaan</span>?</span></div>
+  <div class="satir" style="top:920px"><span class="s">14:00</span><span class="i">Emre sakal <span class="ciz">Can</span></span></div>
+  <div class="satir" style="top:1030px"><span class="s">15:00</span><span class="i"><span class="ciz">Ali 15:00</span><span class="kucuk">yarın dedi</span></span></div>
+  <div class="satir" style="top:1140px"><span class="s">16:00</span><span class="i soluk">Burak?</span></div>
+  <div class="satir" style="top:1250px"><span class="s"><span class="ciz">17:00</span></span><span class="i"><span class="ciz iki">Mehmet</span><span class="ciz">Murat</span>Mehmet??</span></div>
+  <div class="satir" style="top:1360px"><span class="s">17:30</span><span class="i">Mehmet saç+sakal</span></div>
+  <div class="satir" style="top:1470px"><span class="s">18:00</span><span class="i kucuk">Can aradı, geri ara</span></div>
+  <div class="daire" style="left:330px; top:478px; width:440px; height:120px; transform:rotate(-4deg)"></div>
+  <div class="ok" style="left:760px; top:1305px; width:150px; transform:rotate(38deg)"></div>
+  <div class="silgi" style="left:250px; top:800px; width:420px; height:150px"></div>
+  <div class="silgi" style="left:220px; top:1230px; width:520px; height:160px"></div>
+  <div class="leke" style="left:880px; top:600px; width:260px; height:240px"></div>
+</div>
+<div id="sag" style="display:none">
+  <div class="gun">Cuma 23 Ekim</div>
+  <div class="satir" style="top:150px"><span class="s"><span class="ciz">09:00</span></span><span class="i"><span class="ciz">Kerem?</span></span></div>
+  <div class="satir" style="top:260px"><span class="s">10:00</span><span class="i">Ali (dün dedi)</span></div>
+  <div class="satir" style="top:370px"><span class="s">10:30</span><span class="i"><span class="ciz iki">Emre</span>Emre ✓</span></div>
+  <div class="satir" style="top:480px"><span class="s">11:00</span><span class="i soluk">—</span></div>
+  <div class="satir" style="top:590px"><span class="s">12:30</span><span class="i"><span class="ciz">Murat + 2</span><span class="kucuk">kaç kişi?</span></span></div>
+  <div class="satir" style="top:700px"><span class="s">14:00</span><span class="i">Mehmet abi</span></div>
+  <div class="satir" style="top:810px"><span class="s">15:00</span><span class="i"><span class="ciz">Burak</span><span class="ciz">Selim</span>Burak</span></div>
+  <div class="satir" style="top:920px"><span class="s">16:30</span><span class="i kirmizi">KAPORA?</span></div>
+  <div class="satir" style="top:1030px"><span class="s">17:00</span><span class="i"><span class="ciz">Can</span>Can (sesli msj)</span></div>
+  <div class="satir" style="top:1140px"><span class="s">18:00</span><span class="i soluk">?</span></div>
+  <div class="ok" style="left:640px; top:1010px; width:180px; transform:rotate(-120deg)"></div>
+  <div class="silgi" style="left:230px; top:120px; width:480px; height:150px"></div>
+  <div class="silgi" style="left:240px; top:790px; width:560px; height:140px"></div>
+</div>
+<script>
+  const yan = new URLSearchParams(location.search).get('yan') || 'sol';
+  document.getElementById('sol').style.display = yan === 'sol' ? '' : 'none';
+  document.getElementById('sag').style.display = yan === 'sag' ? '' : 'none';
+  window.zaman = () => {};
+</script>
+</body></html>

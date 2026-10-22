@@ -14,7 +14,8 @@ mkdirSync(cikti, { recursive: true });
 
 const tarayici = await chromium.launch({ channel: 'msedge' });
 const sekme = await tarayici.newPage({ viewport: { width: 1080, height: 1920 } });
-await sekme.goto(pathToFileURL(resolve(sayfa)).href);
+const [dosya, sorgu] = sayfa.split('?');   // sayfa.html?yan=sag gibi sorgular desteklenir
+await sekme.goto(pathToFileURL(resolve(dosya)).href + (sorgu ? '?' + sorgu : ''));
 await sekme.evaluate(() => document.fonts.ready);
 const { w, h, toplam } = await sekme.evaluate(() => ({
   w: document.body.offsetWidth, h: document.body.offsetHeight, toplam: +document.body.dataset.total || 0 }));
