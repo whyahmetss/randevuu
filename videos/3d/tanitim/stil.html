@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<!-- Tanıtım tarz örnekleri (tek kare): ?stil=A|B|C & sahne=kahraman|son|arka
+     Yazılar düz (2D) katmanda: keskin, gerçek harf aralığı. 3D yalnız telefon, kartlar ve stüdyo. -->
+<link rel="stylesheet" href="../../../tasarim/fontlar/fontlar.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+  body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  .sahne { display: none; position: absolute; inset: 0; }
+  .etiket { font: 700 26px/1 'Inter'; letter-spacing: .2em; text-transform: uppercase; }
+  .baslik { position: absolute; left: 80px; right: 80px; top: 210px; text-align: center; }
+  .baslik .etiket { margin-bottom: 34px; }
+  .baslik h1 { font-family: 'Inter Tight'; font-weight: 700; font-size: 88px; line-height: 1.0; letter-spacing: -3.5px; }
+  .baslik h1 em { font-family: 'Instrument Serif'; font-style: italic; font-weight: 400; letter-spacing: -1px; font-size: 104px; }
+
+  .son { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .ikon { width: 300px; height: 300px; border-radius: 68px; }
+  .marka { font-family: 'Inter Tight'; font-weight: 800; font-size: 132px; letter-spacing: -5px; margin-top: 56px; line-height: 1; }
+  .slogan { font-family: 'Inter Tight'; font-weight: 600; font-size: 50px; letter-spacing: -1.2px; line-height: 1.15; margin-top: 30px; }
+  .slogan em { font-family: 'Instrument Serif'; font-style: italic; font-weight: 400; font-size: 60px; letter-spacing: -.5px; }
+
+  /* A · krem stüdyo */
+  .A { color: #13271c; } .A .etiket { color: #1f6f4a; } .A em { color: #1f6f4a; }
+  .A .marka i { font-style: normal; color: #1f6f4a; }
+  .A .ikon { box-shadow: 0 40px 80px rgba(31, 60, 40, .25), 0 8px 20px rgba(31, 60, 40, .15); }
+  /* B · gece cam */
+  .B { color: #f4f7f5; } .B .etiket { color: #2bd36a; } .B em { color: #2bd36a; }
+  .B .marka i { font-style: normal; color: #2bd36a; }
+  .B .ikon { box-shadow: 0 0 120px rgba(43, 211, 106, .35), 0 30px 60px rgba(0, 0, 0, .5); }
+  /* C · marka yeşili */
+  .C { color: #fbf4e8; } .C .etiket { color: #c9f3d6; } .C em { color: #c9f3d6; }
+  .C .marka i { font-style: normal; color: #9ef0bb; }
+  .C .ikon { box-shadow: 0 40px 80px rgba(0, 30, 15, .35); }
+
+  /* C arka yazı (telefonun arkasına düşen dev tipografi, Blender'da düzlem dokusu) */
+  body.arka { width: 1600px; height: 1000px; }
+  .dev { font-family: 'Inter Tight'; font-weight: 800; font-size: 300px; line-height: .86; letter-spacing: -16px;
+    color: #fbf4e8; text-align: center; padding-top: 60px; }
+  .dev em { font-family: 'Instrument Serif'; font-style: italic; font-weight: 400; letter-spacing: -6px; font-size: 330px; color: #c9f3d6; }
+</style>
+</head>
+<body>
+<div class="sahne kahraman" data-s="kahraman">
+  <div class="baslik">
+    <div class="etiket">WhatsApp randevu asistanı</div>
+    <h1>Boş saati söyler,<br><em>randevuyu yazar.</em></h1>
+  </div>
+</div>
+<div class="sahne kahraman-c" data-s="kahraman-c">
+  <div class="baslik" style="top:100px"><div class="etiket">WhatsApp randevu asistanı</div></div>
+</div>
+<div class="sahne son" data-s="son">
+  <img class="ikon" src="../../../maskot/marka/uygulama-ikonu-1024.png">
+  <div class="marka">Sıra<i>GO</i></div>
+  <div class="slogan">Sen işine bak.<br><em>Randevuyu SıraGO yazsın.</em></div>
+</div>
+<div class="sahne" data-s="arka"><div class="dev">Boş saati<br><em>söyler.</em></div></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const stil = q.get('stil') || 'A', sahne = q.get('sahne') || 'kahraman';
+  document.body.classList.add(stil);
+  if (sahne === 'arka') document.body.classList.add('arka');
+  const ad = sahne === 'kahraman' && stil === 'C' ? 'kahraman-c' : sahne;
+  document.querySelectorAll('.sahne').forEach(s => s.style.display = s.dataset.s === ad ? (s.classList.contains('son') ? 'flex' : 'block') : 'none');
+  window.zaman = () => {};
+</script>
+</body></html>
