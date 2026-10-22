@@ -32,10 +32,16 @@ M = mekan_berber.kur(BURA, TOPLAM)
 tel, berber, musteri, mk, TZ = M.tel, M.berber, M.musteri, M.mk, M.TZ
 for k_ in (M.bek1, M.bek2):
     gorunur(k_.kok, [(1, False)])
+# Defterin yeri açılsın: dezenfektan kavanozu ve sprey bu videoda tezgâhta yok
+for o in list(bpy.data.objects):
+    if o.name.startswith(("kavanoz", "sprey", "tarak_tez")):
+        o.hide_render = o.hide_viewport = True
 
 # ------------------------------------------------------------------ DEFTER (tezgâhta açık; sağ yarı kapanır)
 PG, PY = 0.255, 0.34                     # sayfa ölçüsü (doku 1200×1600)
-NX, NY = -0.12, -1.13
+NX, NY = -0.22, -1.13
+TX = 0.16                                 # telefon deftere yakın (bu videoda)
+tel.location.x = TX
 kapak = mat("defter_kapak", "#24452f", 0.55, sheen=0.4)
 yaprak = mat("defter_yaprak", "#efe6d2", 0.8)
 kok = bos("defter", (NX, NY, TZ), rot=(0, 0, -4))
@@ -71,7 +77,7 @@ MK0 = musteri.kafa.matrix_world.translation.copy()
 BK0 = berber.kafa.matrix_world.translation.copy()
 KES_MAKAS = MK0 + Vector((0.36, -0.1, 0.04))
 KES_TARAK = MK0 + Vector((0.02, 0.2, 0.32))
-KASI = BK0 + Vector((-0.25, 0.05, 0.25))           # tarakla kafasını kaşır
+KASI = BK0 + Vector((0.05, 0.12, 0.45))             # eli kafasının üstünde, kaşır
 K.kol_hedef(berber, 1, "R", KES_MAKAS, dirsek=-30, gecis=1)
 K.kol_hedef(berber, 1, "L", KES_TARAK, dirsek=-30, gecis=1)
 O.makas_kes(mk, 1, s(2.6))
@@ -80,15 +86,9 @@ K.bak_yon(berber, 1, sag=-10, asagi=18)
 # B: deftere bakar, şaşkın, kafasını kaşır
 K.bak_yon(berber, s(2.9), sag=10, asagi=30, gecis=8)
 K.ifade(berber, s(3.1), "endise", gecis=6)
-K.kol_hedef(berber, s(3.3), "L", KASI, dirsek=-110, gecis=8)
-for i, f in enumerate(range(s(3.5), s(4.9), 5)):
-    om = berber.omuz["L"]
-    om.rotation_euler.y += R(6 if i % 2 else -6)
-    om.keyframe_insert("rotation_euler", index=1, frame=f)
 K.kirp(berber, s(4.3))
 K.ifade(berber, s(4.6), "stres", gecis=5)
 # F: rahat; kameraya (aynaya) bakar, gülümser, işine döner
-K.kol_hedef(berber, s(8.6), "L", KES_TARAK, dirsek=-30, gecis=8)
 K.ifade(berber, s(13.4), "gulumse", gecis=8)
 K.bak_yon(berber, s(13.5), sag=-10, asagi=18, gecis=8)
 O.makas_kes(mk, s(13.6), TOPLAM)
@@ -101,7 +101,7 @@ K.ifade(musteri, s(13.8), "gulumse", gecis=8)
 # Telefon: bildirim titreşimi + ekran ışığı
 for t in (5.3, 6.2):
     titret(tel, s(t), s(t) + 9, genlik=0.003, aci=1.5, tohum=int(t * 10) + 7)
-tel_isik = isik("tel_isik", "AREA", (0.4, -1.06, TZ + 0.06), guc=0.0, renk="#e8f2ff", boyut=0.12)
+tel_isik = isik("tel_isik", "AREA", (TX, -1.06, TZ + 0.06), guc=0.0, renk="#e8f2ff", boyut=0.12)
 tel_isik.rotation_euler = (R(180), 0, 0)
 for f, e in ((1, 0.0), (s(5.3), 0.0), (s(5.35), 3.0), (TOPLAM, 3.0)):
     tel_isik.data.energy = e
@@ -112,13 +112,13 @@ isik("ana", "AREA", (-1.4, -2.2, 2.7), (0.1, 0.2, 1.5), 260, "#ffdcbc", 1.8)
 isik("kenar", "AREA", (1.6, 1.9, 2.6), (0.2, 0.4, 1.6), 380, "#ffb067", 0.9)
 isik("kenar2", "AREA", (-1.5, 2.0, 2.3), (0.2, 0.3, 1.5), 220, "#ffa255", 0.8)
 isik("dolgu", "AREA", (0.6, -3.2, 1.3), (0.2, 0.2, 1.3), 45, "#b4caff", 3.0)
-isik("defter_ust", "AREA", (NX - 0.3, NY - 0.5, TZ + 1.0), (NX, NY, TZ), 40, "#fff0dc", 0.8)
+isik("defter_ust", "AREA", (NX - 0.3, NY - 0.5, TZ + 1.0), (NX, NY, TZ), 8, "#fff0dc", 0.8)
 
 # ------------------------------------------------------------------ KAMERALAR
 bpy.context.view_layer.update()
 sc.frame_set(1)
 BK = berber.kafa.matrix_world.translation.copy()
-TEL = Vector((0.4, -1.06, TZ))
+TEL = Vector((TX, -1.06, TZ))
 SOL = Vector((NX - PG / 2, NY, TZ + 0.025))        # sol sayfanın ortası
 
 pA = SOL + Vector((0.0, -0.17, 0.46))
@@ -131,8 +131,8 @@ kamB.data.dof.focus_distance = (pB - BK).length - 0.36
 anahtar(kamB, "location", [(s(2.8), pB), (s(5.0), pB + Vector((0.02, 0.1, 0)))])
 
 ORTA = (SOL + TEL) / 2
-pC = ORTA + Vector((0.05, -0.55, 0.55))
-kamC = kamera("C_defter_tel", pC, ORTA + Vector((0, 0.02, 0)), lens=32, fstop=4.0, yukari=(0, 1, 0.3))
+pC = ORTA + Vector((0.0, -0.42, 0.78))
+kamC = kamera("C_defter_tel", pC, ORTA + Vector((0, 0.03, 0)), lens=20, fstop=5.6, yukari=(0, 1, 0.3))
 anahtar(kamC, "location", [(s(5.0), pC), (s(8.6), pC + Vector((0, 0.08, -0.06)))])
 
 THEDEF = TEL + Vector((0, -0.045, 0))

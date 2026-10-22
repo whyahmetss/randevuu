@@ -199,7 +199,7 @@ def ifade(k, kare, ad, gecis=4):
             adimlar.insert(0, (bas, IFADE[onceki]))
         for f, d in adimlar:
             kas.rotation_euler.y = R(d["kas"]) * isaret
-            kas.location.z = kas["_z0"] + d["kas_z"]
+            kas.location.z = kas["_z0"] + d["kas_z"] * getattr(k, "yuz_olcek", 1.0)   # v2 yüzü küçük: kayma ölçeklenir
             kas.keyframe_insert("rotation_euler", index=1, frame=f)
             kas.keyframe_insert("location", index=2, frame=f)
             gp.scale.z = max(0.0001, d["goz"][i])
@@ -287,9 +287,10 @@ def goz_kay(k, kare, x=0.0, z=0.0, gecis=4):
             g.keyframe_insert("location", frame=1)
         g.location.x, g.location.z = g["_son"]
         g.keyframe_insert("location", frame=max(1, kare - gecis))
-        g.location.x, g.location.z = x, z
+        o_ = getattr(k, "yuz_olcek", 1.0)
+        g.location.x, g.location.z = x * o_, z * o_
         g.keyframe_insert("location", frame=kare)
-        g["_son"] = [x, z]
+        g["_son"] = [x * o_, z * o_]
 
 
 def egil(k, kare, ileri=0.0, yana=0.0, gecis=10):
