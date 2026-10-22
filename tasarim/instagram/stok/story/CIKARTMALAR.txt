@@ -1,0 +1,22 @@
+Story çıkartma notları (görselde bırakılan boşluğa ekle)
+
+01-anket-telefon.png → ANKET çıkartması: “Açarım” / “Çalsın dursun”
+02-soru-bahane.png → SORU çıkartması: “Bahaneni yaz”. Gelen cevapları ertesi gün isimsiz paylaş.
+03-test-ne-zaman.png → TEST çıkartması: A) Sabah  B) Öğlen  C) Akşam  D) Gece — doğru cevap seçme; “Sizce?” diye sor, sonuçları paylaş (bu bir tahmin oyunu, rakam iddiası değil).
+04-bu-mu-su-mu.png → ANKET çıkartması kartların altına: “Defter” / “Panel”. Kimseyi küçümseme; ikisi de iş görür.
+05-ipucu-sure.png → Çıkartma yok. Ertesi günkü (06) bunun devamı.
+06-ipucu-mola.png → Çıkartma yok.
+07-fiko-cay.png → EMOJİ KAYDIRICI çıkartması (☕) sol alta.
+08-gece-kac.png → SORU çıkartması: “Saati yaz”. En ilginç cevapları paylaş.
+09-kontrol-listesi.png → Çıkartma yok. Cumartesi sabahı paylaş.
+10-dogru-yanlis-uygulama.png → TEST çıkartması: Doğru / Yanlış (doğru cevap: Yanlış). Cevabı ertesi gün (11).
+11-cevap-uygulama.png → BAĞLANTI çıkartması: beacons.ai/siragoapp (butonun üstüne).
+12-musteri-tipi-anket.png → ANKET çıkartması: “A” / “B”.
+13-sesli-mesaj.png → Çıkartma yok.
+14-tanidiklar.png → Çıkartma yok.
+15-gun-sonu.png → EMOJİ KAYDIRICI (✂️) ya da SORU çıkartması. Akşam 20:00-21:30 arası.
+16-kapora-anket.png → ANKET: “İsterim” / “Ayıp olur”. Sonuç gelince 03 numaralı kapora videosunu paylaş.
+17-hatirlatma-ornek.png → Çıkartma yok.
+18-ucretsiz-dene.png → BAĞLANTI çıkartması: beacons.ai/siragoapp, listenin altına.
+19-sen-hangisisin.png → ANKET: “Sabah yazarım” / “Hemen yazarım”.
+20-dm-sor.png → SORU çıkartması: “SıraGO’ya sor”.

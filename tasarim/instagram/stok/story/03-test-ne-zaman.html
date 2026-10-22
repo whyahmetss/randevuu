@@ -1,0 +1,42 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><link rel="stylesheet" href="../../../sistem/marka.css">
+<style>body{--w:1080px;--h:1920px}
+.etiket.u{position:absolute;top:196px;left:var(--kenar)}
+h1.u{position:absolute;top:244px;left:var(--kenar);right:var(--kenar)}
+/* not kâğıdı */
+.not-kagit{position:absolute;left:100px;right:100px;top:330px;background:#fffdf6;border-radius:6px;padding:90px 70px 80px;box-shadow:0 30px 70px rgba(19,39,28,.18);transform:rotate(-1.6deg);
+  background-image:repeating-linear-gradient(#fffdf6 0 63px,#e7dfcf 63px 65px);color:#1b1a17}
+.not-kagit::before{content:'';position:absolute;top:-22px;left:50%;margin-left:-90px;width:180px;height:48px;background:rgba(43,211,106,.55);transform:rotate(2deg)}
+.serif{font-family:'Instrument Serif',serif;font-weight:400;letter-spacing:-0.01em}
+.not-kagit .serif{font-size:98px;line-height:1.08}
+.not-kagit .serif em{color:var(--yesil)}
+.not-kagit .imza{margin-top:44px;font-size:28px;font-weight:600;color:var(--gri-a)}
+/* adisyon fişi */
+.fis{position:absolute;left:150px;right:150px;top:150px;background:#fbfaf6;color:#1b1a17;padding:60px 54px 70px;font-family:'JetBrains Mono',monospace;font-size:27px;line-height:1.55;
+  box-shadow:0 30px 70px rgba(0,0,0,.35);-webkit-mask:linear-gradient(#000,#000) top/100% calc(100% - 18px) no-repeat, conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) bottom/36px 18px repeat-x}
+.fis .ort{text-align:center} .fis .cizgi{border-top:3px dashed #9a958b;margin:22px 0}
+.fis .sat{display:flex;justify-content:space-between;gap:20px} .fis .sat span:last-child{white-space:nowrap}
+.fis .top{font-weight:800;font-size:31px} .fis .bas{font-weight:800;font-size:34px;letter-spacing:.06em}
+.fis .barkod{height:70px;margin:30px 40px 0;background:repeating-linear-gradient(90deg,#1b1a17 0 3px,transparent 3px 6px,#1b1a17 6px 11px,transparent 11px 14px,#1b1a17 14px 16px,transparent 16px 21px)}
+/* büyük numara */
+.dev{position:absolute;top:150px;right:var(--kenar);font-family:var(--f-baslik);font-weight:800;font-size:260px;line-height:1;letter-spacing:-0.05em;color:var(--vurgu);opacity:.22}
+.ne-yapar{position:absolute;left:var(--kenar);right:var(--kenar);bottom:170px;display:flex;gap:24px;align-items:flex-start;padding:34px 38px;border-radius:30px}
+.z-gece .ne-yapar{background:var(--gece-2);border:1.5px solid var(--cizgi-k)} .z-krem .ne-yapar{background:#fff;border:1.5px solid var(--cizgi-a)} .z-yesil .ne-yapar{background:var(--yesil-d)}
+.ne-yapar .ik{font-size:46px;color:var(--vurgu);flex:none;margin-top:4px}
+.ne-yapar small{display:block;font-size:21px;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:var(--vurgu)}
+.ne-yapar b{display:block;font-size:33px;font-weight:650;line-height:1.3;margin-top:6px}
+/* şablon balonu */
+.sablon{position:absolute;left:var(--kenar);right:var(--kenar);top:560px;background:#005c4b;color:#e9edef;border-radius:30px;border-top-right-radius:8px;padding:38px 42px;font-size:33px;line-height:1.45;font-family:var(--f-govde),'Noto Color Emoji'}
+.sablon mark{background:rgba(43,211,106,.25);color:#b9f6cf;border-radius:8px;padding:0 8px}
+.sablon .s{display:block;text-align:right;font-size:20px;color:rgba(233,237,239,.55);margin-top:8px}
+.ipucu-yaz{position:absolute;left:var(--kenar);right:var(--kenar);font-size:27px;line-height:1.45;color:var(--ikincil)}
+/* önce/sonra */
+.yarim{position:absolute;left:0;right:0;height:675px;overflow:hidden}
+.yarim .lbl{position:absolute;top:150px;left:var(--kenar);font-family:var(--f-baslik);font-weight:800;font-size:64px;letter-spacing:-0.03em}
+.ust{top:200px} .s-et{position:absolute;top:320px;left:var(--kenar);right:var(--kenar)} .s-h{position:absolute;top:370px;left:var(--kenar);right:var(--kenar)}
+.cikartma{position:absolute;left:150px;right:150px;height:300px;border:4px dashed var(--cizgi);border-radius:36px;display:grid;place-items:center;font-size:26px;font-weight:600;color:var(--ikincil);text-align:center}
+.cikartma{visibility:hidden} /* yalnız yer tutucu; görselde görünmez */</style></head>
+<body class="z-gece isik" data-w="1080" data-h="1920"><script src="../../../sistem/ikonlar.js"></script>
+<div class="ust"><img class="logo" src="../../../../maskot/marka/logo-yatay-koyu-zemin.png" alt="SıraGO"><span class="no"></span></div>
+<div class="etiket s-et">Test</div><h1 class="baslik s-h" style="font-size:110px">Esnafa en çok randevu mesajı <em>ne zaman</em> gelir?</h1><div class="cikartma" style="top:1000px">Test çıkartması<br>(buraya ekle)</div>
+
+</body></html>
