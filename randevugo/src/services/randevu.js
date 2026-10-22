@@ -565,6 +565,38 @@ class RandevuService {
     return { randevu, musteri, hizmet: birlesikHizmet, hizmetler, kapora, manuelOnay };
   }
 
+  // Çok kişilik randevu (kullanıcı kararı 2026-10-22): ilk randevu yazıldıktan sonra aynı telefona ek kişiler.
+  // Her kişi için önce aynı saatte boş başka usta denenir, yoksa bir önceki kişinin bitişine yazılır (tek ustalı dükkân:
+  // arka arkaya). Kapanış saatini geçen ya da hiç yer bulunamayan kişi eksik sayılır. → { yazilan: [{ saat, calisanId, id }], eksik }
+  async ekKisilerOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, tarih, saat, adet, kaynak }) {
+    const s5 = (x) => String(x || '').slice(0, 5);
+    const dk = (x) => { const [h, m] = s5(x).split(':').map(Number); return h * 60 + (m || 0); };
+    const hhmm = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+    const isl = (await pool.query('SELECT calisma_bitis FROM isletmeler WHERE id = $1', [isletmeId])).rows[0] || {};
+    const kapanis = isl.calisma_bitis ? dk(isl.calisma_bitis) : 24 * 60;
+    const sure = Number((await pool.query('SELECT sure_dk FROM hizmetler WHERE id = $1', [hizmetId])).rows[0]?.sure_dk) || 30;
+    const ustalar = (await this.uygunCalisanlar(isletmeId, hizmetId).catch(() => [])).map(c => c.id);
+    if (!ustalar.length) ustalar.push(null);
+    const yazilan = [];
+    let t = dk(saat);
+    for (let i = 0; i < Math.min(Number(adet) || 0, 5); i++) {
+      let kondu = null;
+      for (let deneme = 0; deneme < 12 && !kondu && t + sure <= kapanis; deneme++) {
+        for (const u of ustalar) {
+          try {
+            const r = await this.randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, calisanId: u, tarih, saat: hhmm(t), kaynak });
+            kondu = { saat: hhmm(t), calisanId: u, id: r?.randevu?.id };
+            break;
+          } catch (e) { if (e.code !== 'SLOT_DOLU') throw e; }
+        }
+        if (!kondu) t += sure;                       // bu saatte boş usta yok: bir hizmet süresi sonrası
+      }
+      if (!kondu) break;
+      yazilan.push(kondu);
+    }
+    return { yazilan, eksik: Math.max(0, (Number(adet) || 0) - yazilan.length) };
+  }
+
   // Randevu iptal et
   async randevuIptal(randevuId) {
     const result = await pool.query(

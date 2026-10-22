@@ -1147,7 +1147,16 @@ class AdminController {
       });
       const r = sonuc?.randevu || sonuc;
       if (r?.id) await pool.query("UPDATE randevular SET durum = 'onaylandi' WHERE id = $1 AND durum = 'onay_bekliyor'", [r.id]);
-      res.json({ ok: true, randevu: r });
+      // Çok kişilik (2026-10-22): ek kişiler aynı saatte boş ustaya, yoksa arka arkaya
+      const kisi = Math.min(Math.max(parseInt(req.body.kisi) || 1, 1), 5);
+      let ek = null;
+      if (kisi > 1 && r?.id) {
+        ek = await randevuService.ekKisilerOlustur({ isletmeId, musteriTelefon: tel, musteriIsim: String(req.body.musteri_isim || '').trim() || 'Kapıdan gelen',
+          hizmetId, tarih, saat, adet: kisi - 1, kaynak: 'manuel' });
+        const idler = ek.yazilan.map(x => x.id).filter(Boolean);
+        if (idler.length) await pool.query("UPDATE randevular SET durum = 'onaylandi' WHERE id = ANY($1::int[]) AND durum = 'onay_bekliyor'", [idler]);
+      }
+      res.json({ ok: true, randevu: r, ek });
     } catch (error) {
       res.status(error.statusCode || 400).json({ hata: error.message });
     }

@@ -1073,6 +1073,26 @@ class WhatsAppWebService extends EventEmitter {
   }
 
   // Randevu onaylandı mesajının sonuna "doğum günü havuç" ekler (opsiyonel)
+  // Çok kişilik randevu (2026-10-22): müşteri "2 kişiyiz" dediyse ilk randevudan sonra ek kişiler yazılır
+  // (aynı saatte boş usta, yoksa arka arkaya). Mesaja eklenecek satırları döndürür; tek kişide boş metin.
+  async _ekKisiler(sd, sonuc, isletme, musteriTelefon, isletmeId) {
+    const n = Math.min(Number(sd?.kisi_sayisi) || 1, 5);
+    if (n < 2 || !sonuc?.randevu) return '';
+    await pool.query('UPDATE bot_durum SET kisi_sayisi = NULL WHERE musteri_telefon = $1 AND isletme_id = $2', [musteriTelefon, isletmeId]).catch(() => {});
+    const en = isletme._musteriDil === 'en';
+    try {
+      const ek = await require('./randevu').ekKisilerOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id,
+        tarih: require('../utils/tarih').tarihFormatla(sd.secilen_tarih), saat: String(sd.secilen_saat).slice(0, 5), adet: n - 1, kaynak: 'bot' });
+      let t = ek.yazilan.map((x, i) => en ? `👥 Person ${i + 2}: ${x.saat}` : `👥 ${i + 2}. kişi: ${x.saat}`).join('\n');
+      if (ek.eksik) t += `${t ? '\n' : ''}⚠️ ` + (en ? `No free time left that day for ${ek.eksik} more person(s); please write another time for them.`
+        : `${ek.eksik} kişi için o gün yer kalmadı; onlar için başka bir saat yazabilirsiniz.`);
+      return t ? `${t}\n` : '';
+    } catch (e) {
+      console.error('❌ Ek kişi randevusu:', e.message);
+      return en ? '⚠️ I could only book 1 person; please write again for the others.\n' : '⚠️ Yalnız 1 kişilik randevu açılabildi; diğerleri için tekrar yazabilirsiniz.\n';
+    }
+  }
+
   async _dogumTarihiHavucEkle(onayMesaji, musteriTelefon, isletmeId, isletme) {
     try {
       if (!isletme?.dogum_gunu_aktif) return onayMesaji;
@@ -1542,6 +1562,7 @@ class WhatsAppWebService extends EventEmitter {
             }
             throw limitErr;
           }
+          const ekMetin = await this._ekKisiler(sd, sonuc, isletme, musteriTelefon, isletmeId);
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
           const clOnay = sd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [sd.secilen_calisan_id])).rows[0] : null;
 
@@ -1562,7 +1583,7 @@ class WhatsAppWebService extends EventEmitter {
               if (sonuc.hizmet) kaporaMesaj += `${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${sonuc.hizmet.isim}\n`;
               if (clOnay) kaporaMesaj += `👤 ${clOnay.isim}\n`;
               kaporaMesaj += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
-              kaporaMesaj += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
+              kaporaMesaj += `🕐 ${this.saatFormat(sd.secilen_saat)}\n${ekMetin}`;
               kaporaMesaj += `\n💳 *Kapora: ${sonuc.kapora.tutar} ₺* (%${sonuc.kapora.yuzde})\n`;
               kaporaMesaj += `\n⚠️ Randevunuz, kapora ödemeniz onaylandıktan sonra kesinleşecektir.\n`;
               kaporaMesaj += `\n🔗 Ödeme linki: ${urun.url}`;
@@ -1583,14 +1604,15 @@ class WhatsAppWebService extends EventEmitter {
             if (sonuc.hizmet) bekle += `${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${sonuc.hizmet.isim}\n`;
             if (clOnay) bekle += `👤 ${clOnay.isim}\n`;
             bekle += `🗓️ ${this.tarihFormat(sd.secilen_tarih)}\n`;
-            bekle += `🕐 ${this.saatFormat(sd.secilen_saat)}\n`;
+            bekle += `🕐 ${this.saatFormat(sd.secilen_saat)}\n${ekMetin}`;
             bekle += `\n⏳ İşletme randevunuzu *${isletme.onay_timeout_dk || 30} dakika* içinde onaylayacak.`;
             bekle += `\nOnay verilmezse randevunuz otomatik iptal edilir.`;
             bekle += `\n\n_Powered by SıraGO — sırago.com_`;
             return { metin: bekle, butonlar: null };
           }
 
-          const tebrik = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, calisanAd: clOnay?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
+          const tebrik = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, calisanAd: clOnay?.isim, tarihStr: this.tarihFormat(sd.secilen_tarih),
+            saatStr: this.saatFormat(sd.secilen_saat) + (ekMetin ? `\n${ekMetin.trimEnd()}` : '') });   // ek kişiler saat satırının altında
           return await this._dogumTarihiHavucEkle({ metin: tebrik, butonlar: null }, musteriTelefon, isletmeId, isletme);
         } else if (metinKucuk !== '2' && !metinKucuk.includes('iptal') && !metinKucuk.includes('hayır') && metin.length > 1) {
           // Musteri not yazdi - onaylayip notu kaydet
