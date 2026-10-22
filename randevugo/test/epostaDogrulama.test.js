@@ -46,7 +46,7 @@ test('e-posta doğrulama: kod olmadan / yanlış kodla hesap açılmaz, doğru k
   assert.equal(gidenler.length, 1);
   assert.equal(gidenler[0].url, 'https://api.resend.com/emails');
   assert.deepEqual(gidenler[0].govde.to, ['Tayfun@Ornek.com']);
-  const kod = gidenler[0].govde.text.match(/\b(\d{6})\b/)[1];
+  const kod = gidenler[0].govde.text.match(/(\d{3}) (\d{3})/).slice(1).join("");
 
   r = cevap(); await a.kayitKod({ body: { email: 'tayfun@ornek.com' } }, r);
   assert.equal(r.kod, 429, 'dakikada bir kod');
@@ -77,7 +77,7 @@ test('e-posta doğrulama: 5 yanlış denemede kod geçersiz; mail gidemezse kod 
 
   basarili = true;
   r = cevap(); await a.kayitKod({ body: { email: 'ali@ornek.com' } }, r);
-  const kod = giden.text.match(/\b(\d{6})\b/)[1];
+  const kod = giden.text.match(/(\d{3}) (\d{3})/).slice(1).join("");
   for (let i = 0; i < 5; i++) { r = cevap(); await a.botKayit(kayit({ email: 'ali@ornek.com', eposta_kod: kod === '000000' ? '111111' : '000000' }), r); }
   r = cevap(); await a.botKayit(kayit({ email: 'ali@ornek.com', eposta_kod: kod }), r);
   assert.match(r.veri.hata, /süresi doldu/);
