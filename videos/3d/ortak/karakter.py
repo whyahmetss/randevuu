@@ -91,7 +91,7 @@ def karakter(ad, konum=(0, 0, 0), yon=0, ten=RENK["ten"], sac=RENK["sac_koyu"], 
         # göz pivotu ortada: ölçek z ile kırpma; parlama da birlikte ezilir
         gp = bos(f"{ad}_gozp{t}", (x, yz, gz), kp)
         g.parent, g.location = gp, (0, 0.004, 0)
-        kapali = yay(f"{ad}_kapali{t}", 0.05, 120, 0.022, 0.02, (x, yz - 0.004, gz + (0.025 if maske else -0.02)), m_goz, kp, ters=True)
+        kapali = yay(f"{ad}_kapali{t}", 0.05, 120, 0.022, 0.02, (x, yz - 0.004, gz + (0.045 if maske else -0.02)), m_goz, kp, ters=True)
         kapali.scale = (0.0001,) * 3
         k.goz[t], k.kapak[t], k.kapali[t] = g, gp, kapali
         if kirpik:
@@ -149,9 +149,9 @@ def karakter(ad, konum=(0, 0, 0), yon=0, ten=RENK["ten"], sac=RENK["sac_koyu"], 
         kutu(f"{ad}_biyik", (0.22, 0.04, 0.035), (0, yz - 0.012, az + 0.065), m_sac, 0.015, ebeveyn=kp)
     if maske:
         m_mas = mat("maske", "#9ec9e6", 0.85, sheen=0.4)
-        kutu(f"{ad}_maske", (0.54, 0.07, 0.25), (0, yz - 0.02, az + 0.05), m_mas, 0.04, ebeveyn=kp)
+        kutu(f"{ad}_maske", (0.54, 0.07, 0.22), (0, yz - 0.02, az + 0.035), m_mas, 0.04, ebeveyn=kp)
         for i in range(3):
-            kutu(f"{ad}_maske_pli{i}", (0.5, 0.075, 0.008), (0, yz - 0.022, az + 0.0 + i * 0.05), mat("maske_pli", "#86b6d8", 0.9), 0.003, ebeveyn=kp)
+            kutu(f"{ad}_maske_pli{i}", (0.5, 0.075, 0.008), (0, yz - 0.022, az - 0.01 + i * 0.045), mat("maske_pli", "#86b6d8", 0.9), 0.003, ebeveyn=kp)
         for x in (-0.3, 0.3):
             kutu(f"{ad}_maske_ip", (0.012, 0.36, 0.012), (x, -0.06, az + 0.08), m_mas, 0.004, ebeveyn=kp)
         for a in k.agiz.values():

@@ -241,12 +241,23 @@ K.bak_yon(elif_, 1, sag=0, asagi=-8)
 K.ifade(elif_, s(3.2), "gulumse", gecis=8)
 K.kirp(elif_, s(3.9))
 K.ifade(elif_, s(8.6), "rahat", gecis=6)
-K.kirp(elif_, s(9.2))
+K.ifade(elif_, s(9.15), "uykulu", gecis=6)   # lamba sönünce gözler kapanır
 bpy.context.view_layer.update()
 EK0 = elif_.kafa.matrix_world.translation.copy()
 pTel = EK0 + Vector((-0.34, -0.36, -0.02))
 elif_tel = O.telefon("elif_tel", pTel, rot=(-90, 180, 0))
 elif_tel.scale = (1.5,) * 3
+# Kameraya sırtı dönük: pastel kılıf + kamera modülü telefon olduğunu okutur, kenarından ekran ışığı taşar
+m_kilif = mat("kilif", "#e9b8c8", 0.45, sheen=0.4)
+for ad_ in ("elif_tel_govde", "elif_tel_cerceve"):
+    birlestir_mat(bpy.data.objects[ad_], m_kilif)
+kutu("elif_tel_modul", (0.04, 0.05, 0.006), (-0.025, 0.07, -O.TEL_K / 2 - 0.003), mat("modul", "#1c1c1e", 0.2, coat=1), 0.01,
+     ebeveyn=elif_tel)
+for dy in (0.083, 0.06):
+    silindir("elif_tel_lens", 0.009, 0.004, (-0.025, dy, -O.TEL_K / 2 - 0.01), mat("lens", "#0b0b0d", 0.05, coat=1), 16,
+             elif_tel)
+kutu("elif_tel_hale", (0.112, 0.232, 0.004), (0, 0, O.TEL_K / 2 - 0.002), isik_mat("hale", "#cfe0ff", 1.6), 0.01,
+     ebeveyn=elif_tel)
 kutu("elif_tel_ekran", (0.095, 0.2, 0.002), (0, 0, O.TEL_K / 2 + 0.001), isik_mat("elif_ekran", "#eaf2ff", 3.0), 0,
      ebeveyn=elif_tel)
 elif_tel.rotation_euler = (R(-90), R(180), R(-15))
@@ -281,12 +292,14 @@ kamB = kamera("B_elif", pB, EK_ + Vector((0.05, -0.2, -0.05)), lens=35, fstop=1.
 kamB.data.dof.focus_distance = (pB - EK_).length - 0.2
 anahtar(kamB, "location", [(s(2.6), pB), (s(4.6), pB + Vector((-0.1, 0.03, -0.03)))])
 
-pC = TEL + TALT * 0.08 + Vector((0, 0, 0.43))
-kamC = kamera("C_sohbet", pC, TEL, lens=50, fstop=8.0, yukari=TUST)
-anahtar(kamC, "location", [(s(4.6), pC), (s(8.4), pC + TUST * 0.02 + Vector((0, 0, -0.04)))])
+# Telefon planları: telefon kadrajın üst üçte ikisinde, altta alt yazıya yer kalır
+THEDEF = TEL + TALT * 0.058
+pC = TEL + TALT * 0.1 + Vector((0, 0, 0.54))
+kamC = kamera("C_sohbet", pC, THEDEF, lens=50, fstop=8.0, yukari=TUST)
+anahtar(kamC, "location", [(s(4.6), pC), (s(8.4), pC + TUST * 0.01 + Vector((0, 0, -0.025)))])
 
 pD = EK_ + Vector((0.0, -1.6, 0.45))
-kamD = kamera("D_uyku", pD, EK_ + Vector((-0.1, -0.1, -0.03)), lens=45, fstop=1.8, yukari=(1, 0, 0.3))
+kamD = kamera("D_uyku", pD, EK_ + Vector((-0.12, -0.1, -0.03)), lens=34, fstop=1.8, yukari=(1, 0, 0.3))
 kamD.data.dof.focus_distance = (pD - EK_).length - 0.2
 
 sc.frame_set(s(10.5))
@@ -296,9 +309,9 @@ kamE = kamera("E_sabah", pE, SK * 0.7 + TEL * 0.3, lens=32, fstop=2.0)
 kamE.data.dof.focus_distance = (pE - SK).length - 0.3
 anahtar(kamE, "location", [(s(9.4), pE), (s(11.4), pE + Vector((0.05, 0.12, 0)))])
 
-pF = TEL + TALT * 0.12 + Vector((0.02, 0, 0.42))
-kamF = kamera("F_bildirim", pF, TEL, lens=50, fstop=8.0, yukari=TUST)
-anahtar(kamF, "location", [(s(11.4), pF), (s(13.6), pF + TUST * 0.02 + Vector((0, 0, -0.04)))])
+pF = TEL + TALT * 0.1 + Vector((0.02, 0, 0.54))
+kamF = kamera("F_bildirim", pF, THEDEF, lens=50, fstop=8.0, yukari=TUST)
+anahtar(kamF, "location", [(s(11.4), pF), (s(13.6), pF + TUST * 0.01 + Vector((0, 0, -0.025)))])
 
 pG = Vector((1.9, -1.7, 1.55))
 kamG = kamera("G_genis", pG, Vector((0.0, 1.2, 1.25)), lens=24, fstop=2.8)
@@ -308,7 +321,7 @@ for kam, t in ((kamA, 0), (kamB, 2.6), (kamC, 4.6), (kamD, 8.4), (kamE, 9.4), (k
     plan(kam, s(t))
 
 # ================================================================== ÇIKTI
-cikti = al("--cikti", os.path.join(BURA, "kareler"))
+cikti = os.path.abspath(al("--cikti", os.path.join(BURA, "kareler")))
 os.makedirs(cikti, exist_ok=True)
 if "--kadraj" in arg:
     from bpy_extras.object_utils import world_to_camera_view
@@ -323,6 +336,7 @@ if al("--kaydet"):
 if "--hepsi" in arg:
     sc.render.filepath = os.path.join(cikti, "kare_")
     sc.frame_start, sc.frame_end = int(al("--bas", 1)), int(al("--bit", TOPLAM))
+    sc.render.use_overwrite = False   # yarıda kalırsa yeniden çalıştırınca var olan kareler atlanır
     bpy.ops.render.render(animation=True)
 elif al("--kareler"):
     import time

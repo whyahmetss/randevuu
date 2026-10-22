@@ -346,6 +346,7 @@ if "--hepsi" in arg:
     sc.render.filepath = os.path.join(cikti, "kare_")
     bas, bit = int(al("--bas", 1)), int(al("--bit", TOPLAM))
     sc.frame_start, sc.frame_end = bas, bit
+    sc.render.use_overwrite = False   # yarıda kalırsa yeniden çalıştırınca var olan kareler atlanır
     bpy.ops.render.render(animation=True)
 elif al("--kareler"):
     import time

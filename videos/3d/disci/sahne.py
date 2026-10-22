@@ -163,10 +163,10 @@ K.egil(hekim, 1, ileri=18, gecis=1)
 K.kol_poz(hekim, 1, CALIS_SAG, CALIS_SOL)
 K.ifade(hekim, 1, "normal")
 K.bak_yon(hekim, 1, sag=0, asagi=30)
-K.goz_kay(hekim, s(0.8), x=0.0, z=-0.01)
-K.goz_kay(hekim, s(1.0), x=0.0, z=0.016, gecis=3)            # göz telefona
-K.bak_yon(hekim, s(1.4), sag=4, asagi=6, gecis=8)
-K.ifade(hekim, s(1.2), "stres", gecis=6)
+K.goz_kay(hekim, s(0.2), x=0.0, z=-0.01)
+K.goz_kay(hekim, s(0.35), x=0.0, z=0.016, gecis=3)            # göz telefona
+K.bak_yon(hekim, s(0.65), sag=4, asagi=6, gecis=8)   # kanca: yüz ilk saniyede görünsün
+K.ifade(hekim, s(0.55), "stres", gecis=6)
 K.kirp(hekim, s(2.3))
 K.kirp(hekim, s(4.9))
 # G: dik durur, "mutlu" (^^) gözler, el sallar
@@ -210,7 +210,7 @@ PK = hasta.kafa.matrix_world.translation.copy()
 TUST = Vector((math.sin(R(12)), math.cos(R(12)), 0))   # telefonun üst yönü (z dönüşü −12°)
 TALT = -TUST
 
-pA = Vector((-0.95, -0.95, 1.9))
+pA = Vector((-0.95, -0.95, 1.72))
 kamA = kamera("A_kanca", pA, HK * 0.3 + PK * 0.35 + TEL * 0.35, lens=22, fstop=2.0)
 anahtar(kamA, "location", [(1, pA), (s(2.6), pA + Vector((0.1, 0.1, -0.03)))])
 dA = kamA.data.dof
@@ -219,27 +219,29 @@ for f, d in ((1, dH), (s(0.9), dH), (s(1.3), dT), (s(1.9), dT), (s(2.3), dH)):
     dA.focus_distance = d
     dA.keyframe_insert("focus_distance", frame=f)
 
-pB = TEL + TALT * 0.15 + Vector((0, 0, 0.44))
-kamB = kamera("B_telefon", pB, TEL, lens=50, fstop=7.0, yukari=TUST)
-anahtar(kamB, "location", [(s(2.6), pB), (s(4.4), pB + TUST * 0.02 + Vector((0, 0, -0.04)))])
+# Telefon planları: telefon kadrajın üst üçte ikisinde, altta alt yazıya yer kalır
+THEDEF = TEL + TALT * 0.058
+pB = TEL + TALT * 0.12 + Vector((0, 0, 0.54))
+kamB = kamera("B_telefon", pB, THEDEF, lens=50, fstop=7.0, yukari=TUST)
+anahtar(kamB, "location", [(s(2.6), pB), (s(4.4), pB + TUST * 0.01 + Vector((0, 0, -0.025)))])
 
 yuzH = Vector((0, -0.57, 0.82))   # hastanın yüz yönü (yatar)
-pC = PK + yuzH * 1.25 + Vector((0.1, 0, 0))
+pC = PK + yuzH * 1.25 + Vector((-0.28, 0, 0))   # lamba kolu kadraja girmesin
 kamC = kamera("C_hasta", pC, PK, lens=32, fstop=2.4)
 kamC.data.dof.focus_distance = (pC - PK).length - 0.3
 anahtar(kamC, "location", [(s(4.4), pC), (s(5.4), pC - yuzH * 0.08)])
 
-pD = TEL + TALT * 0.06 + Vector((0, 0, 0.43))
-kamD = kamera("D_sohbet", pD, TEL, lens=50, fstop=8.0, yukari=TUST)
-anahtar(kamD, "location", [(s(5.4), pD), (s(9.7), pD + TUST * 0.02 + Vector((0, 0, -0.04)))])
+pD = TEL + TALT * 0.1 + Vector((0.01, 0, 0.54))
+kamD = kamera("D_sohbet", pD, THEDEF, lens=50, fstop=8.0, yukari=TUST)
+anahtar(kamD, "location", [(s(5.4), pD), (s(9.7), pD + TUST * 0.01 + Vector((0, 0, -0.025)))])
 
 pE = Vector((1.55, -1.85, 1.55))
 kamE = kamera("E_sabah", pE, Vector((-0.1, 0.6, 0.85)), lens=28, fstop=3.2)
 anahtar(kamE, "location", [(s(9.7), pE), (s(10.6), pE + Vector((-0.08, 0.1, 0)))])
 
-pF = TEL + TALT * 0.1 + Vector((-0.03, 0, 0.42))
-kamF = kamera("F_teyit", pF, TEL, lens=50, fstop=8.0, yukari=TUST)
-anahtar(kamF, "location", [(s(10.6), pF), (s(12.6), pF + TUST * 0.02 + Vector((0, 0, -0.04)))])
+pF = TEL + TALT * 0.1 + Vector((-0.02, 0, 0.54))
+kamF = kamera("F_teyit", pF, THEDEF, lens=50, fstop=8.0, yukari=TUST)
+anahtar(kamF, "location", [(s(10.6), pF), (s(12.6), pF + TUST * 0.01 + Vector((0, 0, -0.025)))])
 
 ZK = PK
 pG = Vector((-0.55, -0.45, 1.75))
@@ -255,7 +257,7 @@ for kam, t in ((kamA, 0), (kamB, 2.6), (kamC, 4.4), (kamD, 5.4), (kamE, 9.7), (k
     plan(kam, s(t))
 
 # ------------------------------------------------------------------ ÇIKTI
-cikti = al("--cikti", os.path.join(BURA, "kareler"))
+cikti = os.path.abspath(al("--cikti", os.path.join(BURA, "kareler")))
 os.makedirs(cikti, exist_ok=True)
 if "--kadraj" in arg:
     from bpy_extras.object_utils import world_to_camera_view
@@ -271,6 +273,7 @@ if al("--kaydet"):
 if "--hepsi" in arg:
     sc.render.filepath = os.path.join(cikti, "kare_")
     sc.frame_start, sc.frame_end = int(al("--bas", 1)), int(al("--bit", TOPLAM))
+    sc.render.use_overwrite = False   # yarıda kalırsa yeniden çalıştırınca var olan kareler atlanır
     bpy.ops.render.render(animation=True)
 elif al("--kareler"):
     import time
