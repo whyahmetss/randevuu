@@ -1086,6 +1086,8 @@ app.use('/api', (req, res, next) => {
 // Hesap açma ayrıca sınırlı: başarılı kayıtlar da sayılır (toplu sahte hesap olmasın; saha ekibine saatte 30 yeter)
 const kayitLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { hata: 'Bu ağdan çok fazla hesap açıldı. Bir saat sonra tekrar deneyin.' }, keyGenerator: limitAnahtari });
 app.use(['/api/auth/kayit', '/api/auth/google'], kayitLimiter);
+// Kayıt kodu e-posta gönderir: ağ başına saatte 30 (aynı adrese dakikada 1 ayrıca)
+app.use('/api/auth/kayit-kod', rateLimit({ windowMs: 60 * 60 * 1000, max: 30, message: { hata: 'Çok fazla kod istendi. Bir saat sonra tekrar deneyin.' }, keyGenerator: limitAnahtari }));
 app.use('/api/auth', authLimiter);
 app.use('/api/iletisim', publicFormLimiter);
 app.use('/api/referans/kullan', publicFormLimiter);

@@ -42,6 +42,9 @@ services:
       # Google ile giriş (Google Cloud → OAuth istemci kimliği, Web uygulaması). Boşsa buton görünmez.
       - key: GOOGLE_CLIENT_ID
         sync: false
+      # Kayıtta e-posta doğrulama kodu (resend.com API anahtarı). Boşsa kayıt doğrulamasız devam eder.
+      - key: RESEND_API_KEY
+        sync: false
 
   # PostgreSQL Database
   - type: pserv

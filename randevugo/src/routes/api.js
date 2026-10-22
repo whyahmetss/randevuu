@@ -28,6 +28,7 @@ router.use((req, res, next) => {
 // ==================== AUTH ====================
 router.post('/auth/giris', (req, res) => authController.giris(req, res));
 router.post('/auth/kayit', (req, res) => authController.botKayit(req, res));
+router.post('/auth/kayit-kod', (req, res) => authController.kayitKod(req, res));
 router.get('/auth/ayar', (req, res) => authController.ayar(req, res));
 router.post('/auth/google', (req, res) => authController.google(req, res));
 router.post('/auth/sifre-kod', (req, res) => authController.sifreKod(req, res));

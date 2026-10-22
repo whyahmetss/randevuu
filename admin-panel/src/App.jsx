@@ -338,6 +338,9 @@ function Login({ onLogin }) {
   const [googleId, setGoogleId] = useState(null);          // sunucuda GOOGLE_CLIENT_ID varsa Google butonu çıkar
   const [googleYeni, setGoogleYeni] = useState(null);      // { credential, email } → işletme adı sorulur
   const [sifreForm, setSifreForm] = useState({ adim: 1, email: "", kod: "", sifre: "" });
+  // E-posta doğrulama (2026-10-22): sunucuda mail servisi açıksa kayıt, e-postaya gelen 6 haneli kodla tamamlanır
+  const [epostaDogrulama, setEpostaDogrulama] = useState(false);
+  const [kayitKod, setKayitKod] = useState({ gonderilen: "", kod: "" });   // gonderilen: kodun gittiği e-posta
   const googleRef = useRef(null);
 
   // Giriş/kayıt/şifre yenileme hepsi aynı cevabı döner (token + kullanıcı)
@@ -365,6 +368,7 @@ function Login({ onLogin }) {
 
   useEffect(() => {
     fetch(`${API_URL}/auth/ayar`).then(r => r.json()).then(d => {
+      setEpostaDogrulama(!!d?.eposta_dogrulama);
       if (!d?.google_client_id) return;
       const kur = () => {
         window.google?.accounts?.id?.initialize({ client_id: d.google_client_id, callback: (c) => googleCevapRef.current(c.credential) });
@@ -414,8 +418,11 @@ function Login({ onLogin }) {
     if (kayitForm.sifre.length < 8) return setHata("Şifre en az 8 karakter olmalı");
     if (kayitForm.sifre !== kayitForm.sifreTekrar) return setHata("Şifreler eşleşmiyor");
     if (!sartOnay) return setHata("Devam etmek için Kullanım Şartları ve KVKK metnini onayla");
+    // 1. adım: e-postaya kod (kod henüz gitmediyse ya da e-posta değiştiyse)
+    if (epostaDogrulama && kayitKod.gonderilen !== kayitForm.email.trim()) return kodGonder();
+    if (epostaDogrulama && kayitKod.kod.replace(/\D/g, "").length !== 6) return setHata("E-postana gelen 6 haneli kodu yaz");
     setYukleniyor(true);
-    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre,
+    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre, eposta_kod: kayitKod.kod || undefined,
       kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined, sartlar_onay: true, saha_kodu: sahaKodu });
     if (data.basarili) {
       // Kayıttan sonra şifreyi tekrar yazdırmadan doğrudan panele
@@ -425,6 +432,16 @@ function Login({ onLogin }) {
       setHata(data.hata || "Kayıt başarısız");
     }
     setYukleniyor(false);
+  };
+
+  const kodGonder = async () => {
+    setHata(""); setBilgi(""); setYukleniyor(true);
+    const d = await authPost("/auth/kayit-kod", { email: kayitForm.email.trim() });
+    setYukleniyor(false);
+    if (d.hata) return setHata(d.hata);
+    if (d.gerekli === false) { setEpostaDogrulama(false); return; }   // sunucuda mail servisi kapalı: kodsuz kayıt
+    setKayitKod({ gonderilen: kayitForm.email.trim(), kod: "" });
+    setBilgi(d.mesaj);
   };
 
   const WP_NUMARA = useDestekWp();
@@ -587,9 +604,18 @@ function Login({ onLogin }) {
                   <input type="checkbox" checked={sartOnay} onChange={e => setSartOnay(e.target.checked)} style={{ marginTop: 3 }} />
                   <span><a href="https://xn--srago-n4a.com/kullanim.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>Kullanım Şartları</a>'nı okudum, kabul ediyorum; kişisel verilerimin <a href="https://xn--srago-n4a.com/kvkk.html" target="_blank" rel="noreferrer" style={{ color: "#1f6f4a", fontWeight: 600 }}>KVKK Aydınlatma Metni</a>'ne göre işleneceğini biliyorum.</span>
                 </label>
+                {epostaDogrulama && kayitKod.gonderilen && kayitKod.gonderilen === kayitForm.email.trim() && (
+                  <div className="form-group">
+                    {bilgi && <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(31,111,74,.08)", color: "#1f6f4a", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>📧 {bilgi}</div>}
+                    <label className="form-label">E-posta doğrulama kodu</label>
+                    <input type="text" inputMode="numeric" autoComplete="one-time-code" placeholder="6 haneli kod" maxLength={6} value={kayitKod.kod}
+                      onChange={e => setKayitKod(k => ({ ...k, kod: e.target.value.replace(/\D/g, "") }))} className="input" style={{ letterSpacing: 6, fontSize: 20, textAlign: "center" }} autoFocus />
+                    <button type="button" onClick={kodGonder} disabled={yukleniyor} style={{ marginTop: 8, border: "none", background: "none", color: "#1f6f4a", fontWeight: 600, fontSize: 13, cursor: "pointer", padding: 0, fontFamily: "inherit" }}>Kod gelmedi mi? Tekrar gönder</button>
+                  </div>
+                )}
                 {hata && <div className="alert alert-error">{hata}</div>}
                 <button type="submit" disabled={yukleniyor} className="login-btn-primary">
-                  {yukleniyor ? "Hesap oluşturuluyor..." : "Ücretsiz Hesap Oluştur"}
+                  {yukleniyor ? "Bekleyin..." : epostaDogrulama && kayitKod.gonderilen !== kayitForm.email.trim() ? "E-postama kod gönder" : "Ücretsiz Hesap Oluştur"}
                 </button>
               </form>
 
