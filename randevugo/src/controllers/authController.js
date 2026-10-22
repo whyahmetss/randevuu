@@ -80,6 +80,21 @@ class AuthController {
         return res.status(400).json({ hata: 'Bu email zaten kayıtlı. Giriş yapmayı dene.' });
       }
 
+      // E-posta doğrulama (2026-10-22): web kaydında e-postaya giden kod doğrulanmadan hesap açılmaz.
+      // Google kaydında e-postayı Google doğrular (req._epostaDogru, gövdeden gelemez). Mail servisi ayarlı değilse atlanır.
+      const epostaAnahtar = String(email).trim().toLowerCase();
+      let epostaDogru = req._epostaDogru === true;
+      if (!epostaDogru && require('../utils/eposta').aktif()) {
+        const d = (await pool.query('SELECT * FROM eposta_dogrulama WHERE email = $1 AND son_gecerlilik > NOW()', [epostaAnahtar])).rows[0];
+        if (!d || d.deneme >= 5) return res.status(400).json({ hata: 'Doğrulama kodunun süresi doldu, yeni kod isteyin.', kod_gerekli: true });
+        if (!(await bcrypt.compare(String(req.body.eposta_kod || '').replace(/\D/g, ''), d.kod_hash))) {
+          await pool.query('UPDATE eposta_dogrulama SET deneme = deneme + 1 WHERE email = $1', [epostaAnahtar]);
+          return res.status(400).json({ hata: 'Doğrulama kodu yanlış', kod_gerekli: true });
+        }
+        await pool.query('DELETE FROM eposta_dogrulama WHERE email = $1', [epostaAnahtar]);
+        epostaDogru = true;
+      }
+
       // İşletme oluştur
       const isletme = (await pool.query(
         `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
@@ -94,6 +109,9 @@ class AuthController {
          VALUES ($1, $2, $3, 'admin', $4, true) RETURNING *`,
         [isletmeAdi, email, hashSifre, isletme.id]
       )).rows[0];
+      if (epostaDogru) {
+        try { await pool.query('UPDATE admin_kullanicilar SET eposta_dogrulandi = true WHERE id = $1', [kullanici.id]); } catch (e) { /* kolon yoksa */ }
+      }
       // Web kaydında Kullanım Şartları + KVKK onayı alındıysa tarihi saklanır
       if (req.body.sartlar_onay === true) {
         try { await pool.query('UPDATE admin_kullanicilar SET sartlar_onay_tarihi = NOW() WHERE id = $1', [kullanici.id]); } catch (e) { /* kolon yoksa */ }
@@ -156,9 +174,38 @@ class AuthController {
     }
   }
 
-  // Panelin giriş ekranı ayarları (Google girişi açık mı)
+  // Panelin giriş ekranı ayarları (Google girişi açık mı, kayıtta e-posta kodu isteniyor mu)
   async ayar(req, res) {
-    res.json({ google_client_id: GOOGLE_CLIENT_ID() || null });
+    res.json({ google_client_id: GOOGLE_CLIENT_ID() || null, eposta_dogrulama: require('../utils/eposta').aktif() });
+  }
+
+  // Kayıt 1/2 (2026-10-22): e-postaya 6 haneli kod. Kayıt (botKayit) bu kodla tamamlanır. 15 dk geçerli, dakikada 1.
+  async kayitKod(req, res) {
+    try {
+      const eposta = require('../utils/eposta');
+      const email = String(req.body.email || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 150) return res.status(400).json({ hata: 'Geçerli bir e-posta yazın' });
+      if (!eposta.aktif()) return res.json({ gerekli: false });
+      if (await kullaniciBul(email)) return res.status(400).json({ hata: 'Bu email zaten kayıtlı. Giriş yapmayı dene.' });
+      const anahtar = email.toLowerCase();
+      const son = (await pool.query("SELECT 1 FROM eposta_dogrulama WHERE email = $1 AND olusturma > NOW() - INTERVAL '1 minute'", [anahtar])).rows[0];
+      if (son) return res.status(429).json({ hata: 'Kod az önce gönderildi, 1 dakika sonra tekrar dene.' });
+      const kod = String(require('crypto').randomInt(0, 1000000)).padStart(6, '0');
+      await pool.query(
+        `INSERT INTO eposta_dogrulama (email, kod_hash, son_gecerlilik) VALUES ($1, $2, NOW() + INTERVAL '15 minutes')
+         ON CONFLICT (email) DO UPDATE SET kod_hash = EXCLUDED.kod_hash, son_gecerlilik = EXCLUDED.son_gecerlilik, deneme = 0, olusturma = NOW()`,
+        [anahtar, await bcrypt.hash(kod, 8)]);
+      const m = eposta.dogrulamaMaili(kod);
+      const g = await eposta.epostaGonder({ kime: email, konu: m.konu, html: m.html, metin: m.metin });
+      if (!g.success) {
+        await pool.query('DELETE FROM eposta_dogrulama WHERE email = $1', [anahtar]);
+        return res.status(502).json({ hata: 'Kod e-postanıza gönderilemedi. Adresi kontrol edip tekrar deneyin.' });
+      }
+      res.json({ gerekli: true, mesaj: `Doğrulama kodunu ${email} adresine gönderdik. Gelen kutunuzu (ve spam klasörünü) kontrol edin.` });
+    } catch (error) {
+      console.error('❌ Kayıt kodu hatası:', error.message);
+      res.status(500).json({ hata: 'Kod gönderilemedi' });
+    }
   }
 
   // Google ile giriş/kayıt (kullanıcı kararı 2026-10-14). Google'ın kimlik kartı (ID token) Google'a doğrulatılır.
@@ -180,7 +227,7 @@ class AuthController {
         if (!isletmeAdi) return res.json({ yeni: true, email, isim: g.name || '' });
         // Kayıt, normal kaydın aynısı (davet, kanal, bildirim); şifre rastgele — istenirse "Şifremi unuttum" ile belirlenir
         let sonuc = null;
-        await this.botKayit({ body: { isletmeAdi, email, sifre: require('crypto').randomBytes(24).toString('hex'),
+        await this.botKayit({ _epostaDogru: true, body: { isletmeAdi, email, sifre: require('crypto').randomBytes(24).toString('hex'),
           kayitKanal: req.body.kayitKanal, davet: req.body.davet, sartlar_onay: req.body.sartlar_onay === true, saha_kodu: req.body.saha_kodu } },
           { status: () => ({ json: (d) => { sonuc = d; } }), json: (d) => { sonuc = d; } });
         if (!sonuc?.basarili) return res.status(400).json({ hata: sonuc?.hata || 'Kayıt yapılamadı' });
