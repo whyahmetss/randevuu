@@ -1919,7 +1919,7 @@ function Dashboard({ kullanici }) {
               const toplam = 30;
               const pctB = Math.max(0, Math.min(100, Math.round(Math.max(0, kalan) / toplam * 100)));
               const renk = kalan > 10 ? 'var(--green)' : kalan > 3 ? '#a8590c' : 'var(--red)';
-              const label = tip === 'deneme' ? 'Deneme süresi' : `${paketDurum?.paket_bilgi?.isim || paketDurum?.paket || 'Paket'} süresi`;
+              const label = tip === 'anlasma' ? '🤝 Ücretsiz kullanım' : tip === 'deneme' ? 'Deneme süresi' : `${paketDurum?.paket_bilgi?.isim || paketDurum?.paket || 'Paket'} süresi`;
               return (
                 <div>
                   <div className="pw-bar-label">
@@ -1934,7 +1934,7 @@ function Dashboard({ kullanici }) {
                 </div>
               );
             })()}
-            {!['kurumsal', 'premium'].includes(paketDurum.paket) && (
+            {!['kurumsal', 'premium'].includes(paketDurum.paket) && !dashEkstra?.anlasma && (
               <div className="pw-upgrade" onClick={() => setPaketModal(true)}>
                 <span>Paketi Yükselt</span>
               </div>
@@ -2655,7 +2655,17 @@ function Dashboard({ kullanici }) {
               </div>
 
               {/* ── ROW 6: Paket & Ödeme Durumu ── */}
-              {odemeBilgi && (
+              {/* Anlaşmalı hesap: ödeme / uzatma yerine iş birliği bilgisi */}
+              {dashEkstra?.anlasma && (
+                <div style={{ background: "rgba(31,111,74,.06)", borderRadius: 16, padding: "16px 22px", border: "1px solid rgba(31,111,74,.18)", display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>🤝</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "#1f6f4a" }}>SıraGO iş birliği hesabı</div>
+                    <div style={{ fontSize: 13, color: "var(--muted)" }}>{new Date(dashEkstra.anlasma.bitis).toLocaleDateString("tr-TR")} tarihine kadar ücretsiz. Ödeme yapmana gerek yok.</div>
+                  </div>
+                </div>
+              )}
+              {odemeBilgi && !dashEkstra?.anlasma && (
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", borderLeft: `4px solid ${odemeBilgi.odeme?.durum === 'odendi' ? '#1f6f4a' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '#a8590c' : '#b42318'}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -5434,7 +5444,8 @@ function SuperAdminPanel({ kullanici }) {
                   const deneme = denemeKalan > 0;
                   const durum = buAyO ? buAyO.durum : (deneme ? "deneme" : "odenmedi");
                   const durumRenk = durum === "odendi" ? "#1f6f4a" : durum === "deneme" ? "#2f56c6" : durum === "bekliyor" ? "#a8590c" : durum === "havale_bekliyor" ? "#5d4bb5" : "#b42318";
-                  const durumText = durum === "odendi" ? "✓ Ödendi" : durum === "deneme" ? `⏳ Deneme (${denemeKalan} gün)` : durum === "bekliyor" ? "⏳ Bekliyor" : durum === "havale_bekliyor" ? "🏦 Havale" : durum === "gecikti" ? "⚠ Gecikti" : "✕ Ödenmedi";
+                  const anlasmali = !buAyO && i.anlasma_bitis && new Date(i.anlasma_bitis) > new Date();
+                  const durumText = anlasmali ? "🤝 Anlaşmalı" : durum === "odendi" ? "✓ Ödendi" : durum === "deneme" ? `⏳ Deneme (${denemeKalan} gün)` : durum === "bekliyor" ? "⏳ Bekliyor" : durum === "havale_bekliyor" ? "🏦 Havale" : durum === "gecikti" ? "⚠ Gecikti" : "✕ Ödenmedi";
                   return (
                     <div key={i.id} className="list-item mb-8" style={{ cursor: "pointer" }} onClick={() => odemeProfiliYukle(i.id)}>
                       <div className="row row-between row-wrap gap-8" style={{ width: "100%" }}>
@@ -8263,7 +8274,9 @@ function SuperAdminPanel({ kullanici }) {
                       <div className="row gap-6" style={{ marginTop: 2 }}>
                         <span style={{ padding: "2px 8px", borderRadius: 6, background: `${paketRenk[isl.paket] || "#6f6a62"}15`, color: paketRenk[isl.paket] || "#6f6a62", fontSize: 11, fontWeight: 600 }}>{(isl.paket || "—").toUpperCase()}</span>
                         <span style={{ padding: "2px 8px", borderRadius: 6, background: isl.aktif ? "rgba(31,111,74,.1)" : "rgba(180,35,24,.1)", color: isl.aktif ? "#1f6f4a" : "#b42318", fontSize: 11, fontWeight: 600 }}>{isl.aktif ? "● Aktif" : "● Pasif"}</span>
-                        {d.deneme_suresi_kalan > 0 && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontSize: 11, fontWeight: 600 }}>🧪 {d.deneme_suresi_kalan} gün deneme</span>}
+                        {isl.anlasma_bitis && new Date(isl.anlasma_bitis) > new Date()
+                          ? <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(31,111,74,.1)", color: "#1f6f4a", fontSize: 11, fontWeight: 600 }}>🤝 Anlaşmalı</span>
+                          : d.deneme_suresi_kalan > 0 && <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontSize: 11, fontWeight: 600 }}>🧪 {d.deneme_suresi_kalan} gün deneme</span>}
                       </div>
                     </div>
                   </div>
@@ -8317,6 +8330,7 @@ function SuperAdminPanel({ kullanici }) {
                     </div>
 
                     {patron && <OncuRozet isl={isl} sonra={() => { isletmeDetayYukle(isl.id); isletmeleriYukle(); }} />}
+                    {patron && <AnlasmaKutusu key={`anl-${isl.id}`} isl={isl} sonra={() => { isletmeDetayYukle(isl.id); isletmeleriYukle(); }} />}
 
                     {/* Deneme Süresi */}
                     <div style={{ background: d.deneme_suresi_kalan > 0 ? "rgba(93,75,181,.06)" : "rgba(111,106,98,.06)", borderRadius: 14, padding: "16px 20px", marginBottom: 16, border: d.deneme_suresi_kalan > 0 ? "1px solid rgba(93,75,181,.12)" : "1px solid var(--border)" }}>
@@ -8742,6 +8756,35 @@ function OncuSayac({ tetik, detayAc, yenile }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Anlaşmalı hesap (2026-10-22): reklam / iş birliği karşılığı ücretsiz. Ödeme kaydı açılmaz, her ay bir şey yapmak gerekmez.
+function AnlasmaKutusu({ isl, sonra }) {
+  const aktif = isl.anlasma_bitis && new Date(isl.anlasma_bitis) > new Date();
+  const [not, setNot] = useState(isl.anlasma_notu || "");
+  const [bekle, setBekle] = useState(false);
+  const islem = async (govde) => {
+    if (govde.kaldir && !confirm("Anlaşmayı bitir? Deneme de bugün biter, panel ödeme ister hale gelir.")) return;
+    setBekle(true);
+    const r = await api.post(`/admin/isletmeler/${isl.id}/anlasma`, govde);
+    setBekle(false);
+    if (r?.hata) return alert(r.hata);
+    sonra?.();
+  };
+  const btn = { padding: "6px 12px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 11, background: "rgba(31,111,74,.1)", color: "#1f6f4a" };
+  return (
+    <div style={{ background: aktif ? "rgba(31,111,74,.06)" : "var(--bg)", border: `1px solid ${aktif ? "rgba(31,111,74,.18)" : "var(--border)"}`, borderRadius: 14, padding: "14px 20px", marginBottom: 16 }}>
+      <div style={{ fontWeight: 600, fontSize: 14, color: aktif ? "#1f6f4a" : "var(--text)" }}>🤝 {aktif ? `Anlaşmalı hesap · ${new Date(isl.anlasma_bitis).toLocaleDateString("tr-TR")}'e kadar ücretsiz` : "Anlaşmalı hesap değil"}</div>
+      <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 2 }}>Reklam / iş birliği karşılığı ücretsiz kullanım. Ödeme kaydı açılmaz (gelire yazılmaz), esnafın panelinde ödeme kartı çıkmaz, her ay bir şey yapman gerekmez.</div>
+      <input value={not} onChange={e => setNot(e.target.value)} placeholder="Anlaşma notu (ör. video reklam karşılığı)" className="input" style={{ width: "100%", marginTop: 10, fontSize: 13 }} />
+      <div className="row gap-4" style={{ marginTop: 10, flexWrap: "wrap" }}>
+        {[[90, "+3 ay"], [180, "+6 ay"], [365, "+1 yıl"]].map(([g, l]) => (
+          <button key={g} disabled={bekle} onClick={() => islem({ gun: g, not })} style={btn}>{l}</button>
+        ))}
+        {aktif && <button disabled={bekle} onClick={() => islem({ kaldir: true })} style={{ ...btn, background: "rgba(180,35,24,.08)", color: "#b42318" }}>Anlaşmayı bitir</button>}
+      </div>
     </div>
   );
 }

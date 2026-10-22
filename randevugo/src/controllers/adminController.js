@@ -1806,7 +1806,7 @@ class AdminController {
       `, [isletmeId, bugun])).rows[0] || null;
 
       // Paket bitiş bilgisi
-      const isletme = (await pool.query('SELECT paket, paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi, grup_id FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+      const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       let paketKalanGun = null;
       let paketBitisTarihi = null;
       let paketDurumTipi = null; // 'deneme' | 'paket' | 'odeme'
@@ -1856,7 +1856,10 @@ class AdminController {
         }
       }
 
-      res.json({ topHizmet, topCalisan, paketKalanGun, paketBitisTarihi, paketDurumTipi, paket: isletme?.paket });
+      // Anlaşmalı hesap: ödeme kartı yerine "iş birliği hesabı" gösterilir
+      const anlasma = isletme?.anlasma_bitis && new Date(isletme.anlasma_bitis) > new Date() ? { bitis: new Date(isletme.anlasma_bitis).toISOString().slice(0, 10) } : null;
+      if (anlasma) { paketDurumTipi = 'anlasma'; paketBitisTarihi = anlasma.bitis; paketKalanGun = Math.ceil((new Date(isletme.anlasma_bitis) - Date.now()) / 86400000); }
+      res.json({ topHizmet, topCalisan, paketKalanGun, paketBitisTarihi, paketDurumTipi, paket: isletme?.paket, anlasma });
     } catch (error) {
       res.json({ topHizmet: null, topCalisan: null, paketKalanGun: null });
     }
@@ -2543,6 +2546,32 @@ class AdminController {
          WHERE id = $2 RETURNING deneme_bitis_tarihi`, [gun, id]);
       if (!r.rows[0]) return res.status(404).json({ hata: 'İşletme bulunamadı' });
       res.json({ mesaj: `Deneme süresi ${gun} gün uzatıldı`, deneme_bitis_tarihi: r.rows[0].deneme_bitis_tarihi });
+    } catch (error) { res.status(500).json({ hata: error.message }); }
+  }
+
+  // Anlaşmalı hesap (2026-10-22): reklam/iş birliği karşılığı ücretsiz kullanım. Ödeme kaydı açılmaz (gelir raporu temiz kalır),
+  // her ay elle bir şey yapmak gerekmez. Ödeme kapısı ve hatırlatmalar deneme bitişine baktığı için deneme de anlaşma bitişine
+  // kadar uzatılır. { gun, not } → uzat (bitmişse bugünden), { kaldir: true } → anlaşma biter, deneme de bugün biter.
+  async isletmeAnlasma(req, res) {
+    try {
+      const id = parseInt(req.params.id);
+      if (req.body.kaldir) {
+        const r = await pool.query(
+          `UPDATE isletmeler SET deneme_bitis_tarihi = CASE WHEN anlasma_bitis IS NOT NULL AND deneme_bitis_tarihi <= anlasma_bitis
+                   THEN LEAST(deneme_bitis_tarihi, NOW()) ELSE deneme_bitis_tarihi END,
+                 anlasma_bitis = NULL WHERE id = $1 RETURNING id`, [id]);
+        if (!r.rows[0]) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+        return res.json({ mesaj: 'Anlaşma bitirildi' });
+      }
+      const gun = Math.min(Math.max(parseInt(req.body.gun) || 0, 1), 730);
+      const not = req.body.not != null ? String(req.body.not).trim().slice(0, 300) : null;
+      const r = await pool.query(
+        `UPDATE isletmeler SET anlasma_bitis = GREATEST(COALESCE(anlasma_bitis, NOW()), NOW()) + make_interval(days => $1),
+                anlasma_notu = COALESCE($2, anlasma_notu)
+          WHERE id = $3 RETURNING anlasma_bitis`, [gun, not || null, id]);
+      if (!r.rows[0]) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      await pool.query('UPDATE isletmeler SET deneme_bitis_tarihi = GREATEST(COALESCE(deneme_bitis_tarihi, NOW()), anlasma_bitis) WHERE id = $1', [id]);
+      res.json({ mesaj: 'Anlaşma kaydedildi', anlasma_bitis: r.rows[0].anlasma_bitis });
     } catch (error) { res.status(500).json({ hata: error.message }); }
   }
 
