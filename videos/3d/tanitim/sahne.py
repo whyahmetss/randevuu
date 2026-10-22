@@ -50,20 +50,20 @@ for i in range(46):   # derinlikte yeşil ve sıcak bokeh noktaları
     renk = "#2bd36a" if i % 3 else "#ffcf94"
     kure(f"bokeh{i}", rnd.uniform(0.02, 0.05), (rnd.uniform(-3.5, 3.5), rnd.uniform(4.5, 6.2), rnd.uniform(0.3, 4.2)),
          isik_mat(f"bokeh_m{i % 3}", renk, 4.0 if i % 3 else 3.0), 10)
-isik("ana", "AREA", (-2.2, -3.0, 3.2), (0, 0, 1.4), 380, "#fff1e2", 2.6)
+isik("ana", "AREA", (-2.2, -3.0, 3.2), (0, 0, 1.4), 230, "#fff1e2", 2.6)
 isik("dolgu", "AREA", (2.4, -3.2, 1.2), (0, 0, 1.4), 90, "#c8dcff", 3.0)
 for x in (-2.6, 2.6):
     isik(f"kenar{x}", "AREA", (x, 1.2, 2.2), (0, 0, 1.4), 160, "#2bd36a", 0.6)
 isik("tepe", "AREA", (0, 0.5, 4.5), (0, 0, 1.2), 90, "#eef6f0", 3.0)
 supur = isik("supurme", "AREA", (-3, -1.2, 2.0), (0, 0, 1.4), 0, "#bff5d2", 0.4, boyut_y=3.0)
 for f, x, e in ((s(0.6), -2.6, 0), (s(0.7), -2.6, 900), (s(1.6), 2.6, 900), (s(1.7), 2.6, 0),
-                (s(13.0), -2.6, 0), (s(13.1), -2.6, 900), (s(13.9), 2.6, 900), (s(14.0), 2.6, 0)):
+                (s(13.0), -2.6, 0), (s(13.1), -2.6, 280), (s(13.9), 2.6, 280), (s(14.0), 2.6, 0)):
     supur.location.x, supur.data.energy = x, e
     supur.keyframe_insert("location", index=0, frame=f)
     supur.data.keyframe_insert("energy", frame=f)
 
-m_krem = mat("yazi_krem", "#fbf4e8", 0.22, coat=0.6)
-m_yesil = mat("yazi_yesil", "#2bd36a", 0.25, coat=0.6, emis="#2bd36a", emis_guc=0.6)
+m_krem = mat("yazi_krem", "#ebe3d5", 0.32, coat=0.3)
+m_yesil = mat("yazi_yesil", "#2bd36a", 0.32, coat=0.3, emis="#2bd36a", emis_guc=0.3)
 m_yesil_k = mat("yazi_yesil_koyu", "#1f6f4a", 0.35, coat=0.5)
 
 
@@ -168,16 +168,16 @@ def kart(n, loc, giris, cikis, yan=-1, egim=6):
     return p
 
 
-kart(1, (-0.12, -0.55, 2.3), 3.3, 6.0, yan=-1)        # telefonun üstünde
-kart(2, (0.12, -0.6, 0.58), 4.7, 6.0, yan=1)          # telefonun altında
-kart(3, (-0.12, -0.55, 2.3), 6.9, 10.0, yan=-1)
-kart(4, (0.14, -0.7, 1.12), 7.7, 10.0, yan=1, egim=10)  # yanda, panelin alt boşluğunda
-kart(5, (-0.1, -0.6, 0.55), 8.5, 10.0, yan=-1)
+kart(1, (-0.12, -0.55, 2.14), 3.3, 6.0, yan=-1)       # telefonun üstünde
+kart(2, (0.12, -0.6, 0.66), 4.7, 6.0, yan=1)          # telefonun altında
+kart(3, (-0.12, -0.55, 2.14), 6.9, 10.0, yan=-1)
+kart(4, (0.03, -0.7, 1.12), 7.7, 10.0, yan=1, egim=10)  # yanda, panelin alt boşluğunda
+kart(5, (-0.04, -0.6, 0.64), 8.5, 10.0, yan=-1)
 
 # ------------------------------------------------------------------ 4 · Tipografi: "Senin WhatsApp'ından / cevaplar."
-t3 = yazi("t_senin", "Senin", (0, 0, 2.05), 0.34, m_krem)
-t4 = yazi("t_wa", "WhatsApp'ından", (0, 0, 1.6), 0.27, m_yesil)
-t5 = yazi("t_cevaplar", "cevaplar.", (0, 0, 1.15), 0.34, m_krem)
+t3 = yazi("t_senin", "Senin", (0, 0, 2.15), 0.44, m_krem)
+t4 = yazi("t_wa", "WhatsApp'ından", (0, 0, 1.6), 0.35, m_yesil)
+t5 = yazi("t_cevaplar", "cevaplar.", (0, 0, 1.05), 0.44, m_krem)
 for o, b in ((t3, 10.3), (t4, 10.42), (t5, 10.54)):
     uc_gel(o, b)
     uc_git(o, 12.0, yon=(0, -3.5, -1.0))
@@ -203,9 +203,13 @@ uc_gel(isim, 12.6, kaynak=(0, 2.5, -0.3), don=-60)
 
 # ------------------------------------------------------------------ KAMERA: yavaş itme + hafif yörünge
 kam = kamera("kamera", (0, -3.9, 1.5), (0, 0, 1.42), lens=38, fstop=3.2)
-kam.data.dof.focus_distance = 3.9
-kolay(kam, "location", [(1, (0.0, -3.9, 1.5)), (s(2.2), (0.0, -3.6, 1.48)), (s(6.2), (0.15, -3.5, 1.5)),
-                        (s(10.2), (-0.15, -3.55, 1.5)), (s(12.2), (0.0, -3.7, 1.48)), (TOPLAM, (0.0, -3.45, 1.46))])
+# telefon bölümünde (2.2–10.2 sn) kamera yaklaşır: mock-up kadrajın yarısını doldurur, odak da onunla gelir
+KAM = [(1, (0.0, -3.9, 1.5)), (s(2.2), (0.0, -3.6, 1.48)), (s(3.1), (0.0, -2.85, 1.45)), (s(6.2), (0.1, -2.75, 1.45)),
+       (s(10.1), (-0.1, -2.8, 1.45)), (s(10.6), (0.0, -3.55, 1.5)), (s(12.2), (0.0, -3.7, 1.48)), (TOPLAM, (0.0, -3.45, 1.46))]
+kolay(kam, "location", KAM)
+for f, (x, y, z) in KAM:
+    kam.data.dof.focus_distance = -y
+    kam.data.dof.keyframe_insert("focus_distance", frame=f)
 sc.camera = kam
 
 # ------------------------------------------------------------------ ÇIKTI
