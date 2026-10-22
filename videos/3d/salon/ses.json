@@ -1,0 +1,24 @@
+{
+  "seslendirme": [
+    { "t": 0.15, "bitis": 2.55, "metin": "Salon kapalıyken gelen mesajlar ne oluyor?" },
+    { "t": 2.7, "bitis": 4.55, "metin": "Gece yarısı, müşteri yazıyor." },
+    { "t": 4.7, "bitis": 8.35, "metin": "Sıra Go salonun WhatsApp'ından boş saati söyler, randevuyu yazar." },
+    { "t": 8.45, "bitis": 9.35, "metin": "Müşteri rahat uyur." },
+    { "t": 9.5, "bitis": 11.35, "metin": "Sabah kahveyle telefona bakarsın:" },
+    { "t": 11.5, "bitis": 13.55, "metin": "Gece gelen randevular yazılmış bile." },
+    { "t": 13.8, "bitis": 16.4, "metin": "Sen uyurken bile randevu alan salon." }
+  ],
+  "efektler": [
+    { "ad": "gece", "t": [0], "db": -28, "dongu": 9.4 },
+    { "ad": "sabah", "t": [9.4], "db": -29, "dongu": 7.1 },
+    { "ad": "titresim", "t": [0.6], "db": -14 },
+    { "ad": "mesaj_giden", "t": [5.1, 6.4, 7.6], "db": -16 },
+    { "ad": "mesaj_gelen", "t": [5.8, 7.0], "db": -16 },
+    { "ad": "lamba_tik", "t": [9.03], "db": -14 },
+    { "ad": "bildirim", "t": [11.5], "db": -13 },
+    { "ad": "whoosh", "t": [2.55, 4.55, 8.35, 9.35, 11.35, 13.55], "db": -17 },
+    { "ad": "logo", "t": [13.85], "db": -15 }
+  ],
+  "vurgu": [2.6, 4.6, 8.4, 9.4, 11.4, 13.6],
+  "muzik": { "db": -26, "kisilma_db": 9 }
+}

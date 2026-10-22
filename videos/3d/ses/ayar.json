@@ -1,0 +1,10 @@
+{
+  "ses_id": "sqN4QwtcnanCCWx6TTYj",
+  "model": "eleven_multilingual_v2",
+  "ayar": {
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0.1,
+    "use_speaker_boost": true
+  }
+}

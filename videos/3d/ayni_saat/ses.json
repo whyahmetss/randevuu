@@ -1,0 +1,22 @@
+{
+  "seslendirme": [
+    { "t": 0.15, "bitis": 2.55, "metin": "Aynı saate üç kişiye tamam dedin." },
+    { "t": 2.7, "bitis": 5.1, "metin": "Saat beş. Kapıda üç kişi." },
+    { "t": 5.3, "bitis": 7.5, "metin": "Usta, beşe dedin ya?" },
+    { "t": 9.9, "bitis": 13.55, "metin": "Sıra Go dolu saati bilir. Dolu saate randevu vermez, boşu önerir." },
+    { "t": 13.8, "bitis": 16.4, "metin": "Sen makasına bak. Randevuyu Sıra Go yazsın." }
+  ],
+  "efektler": [
+    { "ad": "dukkan", "t": [0], "db": -30, "dongu": 16.5 },
+    { "ad": "makas", "t": [0.0], "db": -19 },
+    { "ad": "kapi_zili", "t": [1.7, 2.5, 3.3], "db": -15 },
+    { "ad": "circir", "t": [8.0], "db": -16 },
+    { "ad": "titresim", "t": [10.0], "db": -14 },
+    { "ad": "mesaj_gelen", "t": [10.0, 11.8], "db": -16 },
+    { "ad": "mesaj_giden", "t": [10.7, 12.5], "db": -16 },
+    { "ad": "whoosh", "t": [2.55, 5.15, 7.55, 9.75], "db": -17 },
+    { "ad": "logo", "t": [13.7], "db": -15 }
+  ],
+  "vurgu": [2.6, 5.2, 7.6, 9.8],
+  "muzik": { "db": -26, "kisilma_db": 9 }
+}

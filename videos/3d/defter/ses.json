@@ -1,0 +1,21 @@
+{
+  "seslendirme": [
+    { "t": 0.15, "bitis": 2.75, "metin": "Defterde silinti, kafada karışıklık." },
+    { "t": 2.9, "bitis": 4.95, "metin": "Kim kaçta geliyordu?" },
+    { "t": 5.1, "bitis": 8.5, "metin": "Silinti, üstüne yazı, bir de telefon." },
+    { "t": 8.7, "bitis": 13.5, "metin": "Sıra Go'da randevular panelde. Telefondan bakarsın, tek ekranda." },
+    { "t": 13.8, "bitis": 16.4, "metin": "Sen makasına bak. Randevuyu Sıra Go yazsın." }
+  ],
+  "efektler": [
+    { "ad": "dukkan", "t": [0], "db": -30, "dongu": 16.5 },
+    { "ad": "kalem", "t": [0.3], "db": -16 },
+    { "ad": "titresim", "t": [5.3, 6.2], "db": -14 },
+    { "ad": "defter", "t": [7.98], "db": -12 },
+    { "ad": "liste", "t": [8.75], "db": -17 },
+    { "ad": "makas", "t": [13.6, 15.6], "db": -19 },
+    { "ad": "whoosh", "t": [2.75, 4.95, 8.55, 13.55], "db": -17 },
+    { "ad": "logo", "t": [13.7], "db": -15 }
+  ],
+  "vurgu": [2.8, 5.0, 8.6, 13.6],
+  "muzik": { "db": -26, "kisilma_db": 9 }
+}

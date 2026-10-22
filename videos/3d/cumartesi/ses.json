@@ -1,0 +1,22 @@
+{
+  "seslendirme": [
+    { "t": 0.15, "bitis": 2.45, "metin": "Cumartesi öğlen. Telefona kim bakacak?" },
+    { "t": 2.6, "bitis": 4.45, "metin": "Koltuk dolu, kapıda bekleyen var." },
+    { "t": 4.6, "bitis": 6.25, "metin": "Telefon susmuyor." },
+    { "t": 6.4, "bitis": 10.75, "metin": "Sıra Go senin numarandan cevaplar. Dolu saati söyler, boşunu önerir." },
+    { "t": 10.9, "bitis": 13.35, "metin": "Randevu panele düşer." },
+    { "t": 13.6, "bitis": 16.4, "metin": "Sen makasına bak. Randevuyu Sıra Go yazsın." }
+  ],
+  "efektler": [
+    { "ad": "dukkan", "t": [0], "db": -30, "dongu": 16.5 },
+    { "ad": "makas", "t": [0.0, 2.0, 13.6, 15.6], "db": -19 },
+    { "ad": "titresim", "t": [0.3, 1.3, 4.7, 5.3], "db": -14 },
+    { "ad": "mesaj_giden", "t": [6.8, 8.7], "db": -16 },
+    { "ad": "mesaj_gelen", "t": [7.9], "db": -16 },
+    { "ad": "bildirim", "t": [11.3], "db": -12 },
+    { "ad": "whoosh", "t": [2.45, 4.45, 6.25, 10.75, 12.55, 13.35], "db": -17 },
+    { "ad": "logo", "t": [13.6], "db": -15 }
+  ],
+  "vurgu": [2.5, 4.5, 6.3, 10.8, 12.6, 13.4],
+  "muzik": { "db": -26, "kisilma_db": 9 }
+}
