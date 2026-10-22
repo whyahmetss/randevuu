@@ -10,6 +10,8 @@ export default function KapidanGelen({ api, saat, tarih, calisanId, kapat, eklen
   const [tel, setTel] = useState('');
   const [bekle, setBekle] = useState(false);
   const [hata, setHata] = useState(null);
+  const [kisi, setKisi] = useState(1);        // çok kişilik: ek kişiler aynı saatte boş ustaya, yoksa arka arkaya
+  const [bilgi, setBilgi] = useState(null);   // kayıttan sonra gösterilecek özet (yer kalmayan kişi varsa)
   // Ne zaman: saat dışarıdan gelmediyse "Şimdi" ya da seçilen gün + saat
   const gun = (n) => new Date(Date.now() + n * 864e5).toLocaleDateString('sv-SE');
   const [ileri, setIleri] = useState(false);
@@ -26,10 +28,15 @@ export default function KapidanGelen({ api, saat, tarih, calisanId, kapat, eklen
   const kaydet = async () => {
     setBekle(true); setHata(null);
     const r = await api.post('/randevular/elle', { hizmet_id: secili, musteri_isim: isim, musteri_telefon: tel,
-      saat: saat || (ileri ? secSaat : undefined), tarih: tarih || (ileri ? secTarih : undefined), calisan_id: calisanId });
+      saat: saat || (ileri ? secSaat : undefined), tarih: tarih || (ileri ? secTarih : undefined), calisan_id: calisanId, kisi });
     setBekle(false);
     if (r?.hata) return setHata(r.hata);
-    eklendi?.(); kapat();
+    eklendi?.();
+    if (r?.ek?.eksik > 0) {
+      const saatler = [String(r.randevu?.saat || '').slice(0, 5), ...(r.ek.yazilan || []).map(x => x.saat)].filter(Boolean);
+      return setBilgi(`${saatler.length} kişi yazıldı (${saatler.join(', ')}). ${r.ek.eksik} kişiye o gün yer kalmadı.`);
+    }
+    kapat();
   };
 
   const fs = buyuk ? 20 : 17;
@@ -53,6 +60,16 @@ export default function KapidanGelen({ api, saat, tarih, calisanId, kapat, eklen
           ))}
           {hizmetler.length === 0 && <div style={{ fontSize: 15, color: 'var(--dim)' }}>Önce Dükkanım → Hizmetler'den hizmet ekle.</div>}
         </div>
+        <div style={{ fontSize: 14, color: 'var(--dim)', fontWeight: 600 }}>Kaç kişi?</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {[1, 2, 3, 4].map(n => (
+            <button key={n} onClick={() => setKisi(n)} style={{ minWidth: 56, minHeight: 48, padding: '0 14px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', fontSize: fs - 1, fontWeight: 700,
+              border: `2px solid ${kisi === n ? '#1f6f4a' : 'var(--border)'}`, background: kisi === n ? 'rgba(31,111,74,.1)' : 'var(--surface)', color: kisi === n ? '#1f6f4a' : 'var(--text)' }}>
+              {n} kişi
+            </button>
+          ))}
+        </div>
+        {kisi > 1 && <div style={{ fontSize: 13, color: 'var(--dim)', marginTop: -6 }}>Her kişiye ayrı randevu açılır: boş usta varsa aynı saatte, yoksa arka arkaya.</div>}
         {!saat && (() => {
           const chip = (aktif) => ({ minHeight: 48, padding: '0 16px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit', fontSize: fs - 2, fontWeight: 700,
             border: `2px solid ${aktif ? '#1f6f4a' : 'var(--border)'}`, background: aktif ? 'rgba(31,111,74,.1)' : 'var(--surface)', color: aktif ? '#1f6f4a' : 'var(--text)' });
@@ -84,9 +101,11 @@ export default function KapidanGelen({ api, saat, tarih, calisanId, kapat, eklen
           <input value={tel} onChange={e => setTel(e.target.value)} inputMode="tel" placeholder="05xx xxx xx xx" className="input" style={{ width: '100%', height: 52, fontSize: fs, marginTop: 6, borderRadius: 12 }} />
         </label>
         {hata && <div style={{ color: '#b42318', fontSize: 14, fontWeight: 600 }}>{hata}</div>}
+        {bilgi && <div style={{ color: '#b54708', fontSize: 15, fontWeight: 700 }}>{bilgi}</div>}
+        {bilgi ? <button onClick={kapat} style={{ height: 58, border: 'none', borderRadius: 16, background: '#1f6f4a', color: '#fff', fontSize: fs + 1, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }}>Tamam</button> :
         <button onClick={kaydet} disabled={!hazir || bekle} style={{ height: 58, border: 'none', borderRadius: 16, background: hazir ? '#1f6f4a' : '#9bb9a8', color: '#fff', fontSize: fs + 1, fontWeight: 800, fontFamily: 'inherit', cursor: hazir ? 'pointer' : 'default' }}>
-          {bekle ? 'Kaydediliyor…' : saat ? 'Randevuyu kaydet' : ileri ? (secSaat ? `${secTarih.split('-').reverse().slice(0, 2).join('.')} ${secSaat} randevusunu kaydet` : 'Saat seçin') : 'Şimdi başlat'}
-        </button>
+          {bekle ? 'Kaydediliyor…' : saat ? 'Randevuyu kaydet' : ileri ? (secSaat ? `${secTarih.split('-').reverse().slice(0, 2).join('.')} ${secSaat} randevusunu kaydet` : 'Saat seçin') : 'Şimdi başlat'}{kisi > 1 && !bekle ? ` · ${kisi} kişi` : ''}
+        </button>}
       </div>
     </div>
   );

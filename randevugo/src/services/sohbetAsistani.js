@@ -38,6 +38,7 @@ const M = {
     oneriYok: (s) => `Maalesef ${s} için uygun bir saat bulamadım. Başka bir saat yazabilir misiniz?`,
     ipucu: () => `Randevu için gün ve saati yazmanız yeterli 😊`,
     erken: (s) => `(Daha erken isterseniz ${s} de boş.)`,
+    kisi: (n) => `${n} kişi (boş usta varsa aynı saatte, yoksa arka arkaya)`,
   },
   en: {
     selam: (i, l) => `Hello, I'm the ${i} assistant 😊 How can I help you?\n\nTo book, just write the day and time (e.g. "tomorrow at 3, haircut").` + (l ? `\nOr pick a time yourself here:\n${l}` : ''),
@@ -56,6 +57,7 @@ const M = {
     oneriYok: (s) => `Sorry, I couldn't find a free time near ${s}. Could you suggest another time?`,
     ipucu: () => `To book, just write the day and time 😊`,
     erken: (s) => `(${s} is also free if you prefer earlier.)`,
+    kisi: (n) => `${n} people (same time if staff is free, otherwise back to back)`,
   },
   ar: {
     selam: (i, l) => `مرحبًا، أنا مساعد ${i} 😊 كيف يمكنني مساعدتك؟\n\nللحجز اكتب اليوم والوقت فقط.` + (l ? `\nأو اختر الوقت بنفسك من هنا:\n${l}` : ''),
@@ -74,6 +76,7 @@ const M = {
     oneriYok: (s) => `عذرًا، لم أجد وقتًا متاحًا قريبًا من ${s}. هل يمكنك اقتراح وقت آخر؟`,
     ipucu: () => `للحجز اكتب اليوم والوقت فقط 😊`,
     erken: (s) => `(الساعة ${s} متاحة أيضًا إن أردت أبكر.)`,
+    kisi: (n) => `${n} أشخاص`,
   },
 };
 
@@ -98,6 +101,21 @@ const RANDEVU = /\b(randevu|sira al|yer var|musait|bos yer|bos saat|gelebilir mi
 // olabilir (canlı 2026-10-19: liste yalnız Sakal/Çocuk tıraşı gösterdi, saç kesimi yoktu). Tahmin edilmez, sorulur.
 const TIRAS_NITELEYICI = /\b(sakal|sac|cocuk|ense|kafa|bebek|damat|ustura|kirli|yuz|perma)/;
 const tirasBelirsiz = (s) => /\bt[iı]?ras/.test(s) && !TIRAS_NITELEYICI.test(s);
+// Çok kişilik (2026-10-22): "2 kişiyiz", "iki kişilik", "ikimiz", "oğlumla geleceğim", "ben ve eşim" → kişi sayısı.
+// Eşleşen parça metinden çıkarılır: "yarın 2 kişiyiz"deki 2 saat (14:00) sanılmasın.
+const YAKIN = '(oglum|kizim|esim|kardesim|arkadasim|babam|annem|abim|ablam|kocam|karim|yegenim|cocugum|nisanlim|sevgilim)';
+const KISI_KALIP = [
+  [/\b([2-5]) ?(kisi|kisiyiz|kisilik|kisiye|kisi icin|people|persons|person)\b/, (m) => Number(m[1])],
+  [/\b(iki|uc|dort|bes) ?(kisi|kisiyiz|kisilik|kisiye)\b/, (m) => ({ iki: 2, uc: 3, dort: 4, bes: 5 })[m[1]]],
+  [/\b(ikimiz|ikimize|ikimizin|two of us)\b/, () => 2],
+  [/\b(ucumuz|ucumuze|three of us)\b/, () => 3],
+  [new RegExp(`\\b${YAKIN}(la|le|lan|len|la beraber|le beraber| ile)\\b`), () => 2],
+  [new RegExp(`\\bben ve ${YAKIN}\\b|\\b${YAKIN} ve ben\\b`), () => 2],
+];
+function kisiBul(s) {
+  for (const [re, n] of KISI_KALIP) { const m = s.match(re); if (m) return { kisi: n(m), metin: m[0] }; }
+  return null;
+}
 const DILIM = (s) => /\bsabah|morning|صباح/.test(s) ? 'sabah' : /\b(ogle|ogleden sonra|ogleden|afternoon|بعد الظهر)/.test(s) ? 'ogle' : /\b(aksam|aksamustu|evening|مساء)/.test(s) ? 'aksam' : '';
 
 function gunYazi(tarih, dil) {
@@ -137,7 +155,7 @@ Bugün: ${bugun} (${GUNLER[haftaGunu(bugun)]}). İşletme: ${isletme.isim}. Çal
 Hizmetler (id: ad): ${hizmetler.map(h => `${h.id}: ${h.isim}`).join('; ')}
 Çalışanlar (id: ad): ${calisanlar.map(c => `${c.id}: ${c.isim}`).join('; ') || 'yok'}
 Bilinenler: hizmet=${durum.secilen_hizmet_id || 'yok'}, tarih=${durum.secilen_tarih || 'yok'}, saat=${durum.secilen_saat || 'yok'}. Asistanın son sorusu: ${durum.sohbet_bekleyen || 'yok'}.
-Kurallar: Yalnız "tıraş/traş olmak" denip ne tıraşı olduğu söylenmediyse hizmet_id verme (saç kesimi de olabilir). Tarihi YYYY-MM-DD ver ("yarın", "cuma", "haftaya salı" gibi ifadeleri bugüne göre çevir). Saati HH:MM ver; "3'te", "3 gibi" gibi saatler çalışma saatine göre öğleden sonradır (15:00). Belirsiz zaman ("öğleden sonra") için saat verme, dilim ver. Hizmet adı tam geçmese de en yakın hizmetin id'sini ver ("saç" → saç kesimi). Mesajda olmayan bilgiyi uydurma, boş bırak.`;
+Kurallar: Yalnız "tıraş/traş olmak" denip ne tıraşı olduğu söylenmediyse hizmet_id verme (saç kesimi de olabilir). Tarihi YYYY-MM-DD ver ("yarın", "cuma", "haftaya salı" gibi ifadeleri bugüne göre çevir). Saati HH:MM ver; "3'te", "3 gibi" gibi saatler çalışma saatine göre öğleden sonradır (15:00). Belirsiz zaman ("öğleden sonra") için saat verme, dilim ver. Hizmet adı tam geçmese de en yakın hizmetin id'sini ver ("saç" → saç kesimi). Randevu birden çok kişi içinse ("2 kişiyiz", "oğlumla geleceğiz") kisi_sayisi ver; tek kişiyse boş bırak. Mesajda olmayan bilgiyi uydurma, boş bırak.`;
   try {
     const j = await g.geminiIstek({
       systemInstruction: { parts: [{ text: sistem }] },
@@ -150,6 +168,7 @@ Kurallar: Yalnız "tıraş/traş olmak" denip ne tıraşı olduğu söylenmediys
             niyet: { type: 'STRING', enum: ['randevu', 'onay', 'red', 'bilgi', 'iptal', 'selam', 'diger'] },
             hizmet_id: { type: 'INTEGER' }, calisan_id: { type: 'INTEGER' }, fark_etmez: { type: 'BOOLEAN' },
             tarih: { type: 'STRING' }, saat: { type: 'STRING' }, dilim: { type: 'STRING', enum: ['sabah', 'ogle', 'aksam'] },
+            kisi_sayisi: { type: 'INTEGER' },
           },
           required: ['niyet'],
         },
@@ -163,8 +182,10 @@ Kurallar: Yalnız "tıraş/traş olmak" denip ne tıraşı olduğu söylenmediys
 // Mesajdan bilgi: önce kendi çözücümüz, eksik kalanı yapay zekâ
 async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
   const bugun = bugunTarih();
-  const s = ' ' + sade(metin).replace(/[!?,;]+/g, ' ').replace(/\.(?!\d)/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
-  const sonuc = { niyet: null, hizmetId: null, calisanId: null, farkEtmez: FARK_ETMEZ.test(s), tarih: null, saat: null, dilim: DILIM(s) };
+  let s = ' ' + sade(metin).replace(/[!?,;]+/g, ' ').replace(/\.(?!\d)/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+  const kb = kisiBul(s);
+  if (kb) s = s.replace(kb.metin, ' ');
+  const sonuc = { kisi: kb?.kisi || null, niyet: null, hizmetId: null, calisanId: null, farkEtmez: FARK_ETMEZ.test(s), tarih: null, saat: null, dilim: DILIM(s) };
   const t = tarihBul(s, bugun); if (t.kelime) sonuc.tarih = t.tarih;
   // Yalnız gerçekten tarih olarak okunan "19.10" silinir; "19 ekim 13.00"daki 13.00 saattir (önceden siliniyordu)
   const st = saatBul(t.metin ? s.replace(t.metin, ' ') : s); if (st) sonuc.saat = st.saat;
@@ -183,7 +204,7 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
   else if (EVET.test(trimli) && trimli.split(' ').length <= 4) sonuc.niyet = 'onay';
   else if (HAYIR.test(trimli) && trimli.split(' ').length <= 4 && !sonuc.tarih && !sonuc.saat) sonuc.niyet = 'red';
   else if (BILGI.test(s) && !sonuc.tarih && !sonuc.saat) sonuc.niyet = 'bilgi';
-  else if (RANDEVU.test(s) || sonuc.tarih || sonuc.saat || sonuc.hizmetId || sonuc.enErken) sonuc.niyet = 'randevu';
+  else if (RANDEVU.test(s) || sonuc.tarih || sonuc.saat || sonuc.hizmetId || sonuc.enErken || sonuc.kisi) sonuc.niyet = 'randevu';
 
   // Kısa ve net mesajlarda yapay zekâya gerek yok ("evet", "15:40", "yarın"); diğerlerinde eksikleri tamamla
   const kisaNet = sonuc.niyet && trimli.split(' ').length <= 3;
@@ -199,6 +220,7 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
       if (!sonuc.calisanId && calisanlar.some(c => c.id === yz.calisan_id)) sonuc.calisanId = yz.calisan_id;
       if (yz.fark_etmez) sonuc.farkEtmez = true;
       if (!sonuc.dilim && yz.dilim) sonuc.dilim = yz.dilim;
+      if (!sonuc.kisi && yz.kisi_sayisi >= 2 && yz.kisi_sayisi <= 5) sonuc.kisi = yz.kisi_sayisi;
     }
   }
   return sonuc;
@@ -274,6 +296,8 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   }
 
   // Bilgileri işle: yeni gün/saat gelirse eskisinin üzerine yazılır
+  if (!surecte) d.kisi_sayisi = null;                                   // yeni konuşma: önceki randevunun kişi sayısı taşınmaz
+  if (a.kisi) d.kisi_sayisi = a.kisi;
   if (a.hizmetId) d.secilen_hizmet_id = a.hizmetId;
   if (a.calisanId) d.secilen_calisan_id = a.calisanId;
   if (a.farkEtmez) d._fark_etmez = true;
@@ -295,7 +319,8 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
 async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId }) {
   // secilen_calisan_id = 0 → müşteri "fark etmez" dedi (saat seçilince o saatte boş usta atanır)
   const alan = { secilen_hizmet_id: d.secilen_hizmet_id || null, secilen_tarih: d.secilen_tarih || null,
-    secilen_saat: d.secilen_saat || null, secilen_calisan_id: d.secilen_calisan_id ?? null, sohbet_dilim: d._enErken ? 'erken' : (d._dilim || null) };
+    secilen_saat: d.secilen_saat || null, secilen_calisan_id: d.secilen_calisan_id ?? null, sohbet_dilim: d._enErken ? 'erken' : (d._dilim || null),
+    kisi_sayisi: Number(d.kisi_sayisi) > 1 ? Number(d.kisi_sayisi) : null };
 
   // 1) Hizmet
   if (!alan.secilen_hizmet_id) {
@@ -398,7 +423,8 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
   await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_dilim: null, sohbet_bekleyen: 'onay' });
   if (oneriMetni) return oneriMetni;
   const usta = alan.secilen_calisan_id ? (uygun.find(c => c.id === alan.secilen_calisan_id) || calisanlar.find(c => c.id === alan.secilen_calisan_id)) : null;
-  const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`;
+  const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`
+    + (alan.kisi_sayisi ? `\n👥 ${T.kisi(alan.kisi_sayisi)}` : '');
   return T.onay(ozet);
 }
 
@@ -449,13 +475,15 @@ async function selamaCevapVer(isletmeId, tel) {
 
 async function kaydet(wa, tel, isletmeId, asama, alanlar) {
   const temiz = Object.fromEntries(Object.entries(alanlar).filter(([k]) => !k.startsWith('_')));
-  try { await wa.durumGuncelle(tel, isletmeId, asama, temiz); }
-  catch (e) {
-    // sohbet_dilim kolonu henüz yoksa (geçiş tamamlanmadan) randevu akışı durmasın
-    if (!/sohbet_dilim/.test(e.message)) throw e;
-    delete temiz.sohbet_dilim;
-    await wa.durumGuncelle(tel, isletmeId, asama, temiz);
+  // sohbet_dilim / kisi_sayisi kolonu henüz yoksa (geçiş tamamlanmadan) randevu akışı durmasın
+  for (let i = 0; ; i++) {
+    try { return await wa.durumGuncelle(tel, isletmeId, asama, temiz); }
+    catch (e) {
+      const k = ['sohbet_dilim', 'kisi_sayisi'].find(x => x in temiz && e.message.includes(x));
+      if (!k || i > 2) throw e;
+      delete temiz[k];
+    }
   }
 }
 
-module.exports = { isle, anla, saatSecki, M };
+module.exports = { isle, anla, saatSecki, kisiBul, M };

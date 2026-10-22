@@ -54,6 +54,8 @@ function yolYetkisi(method, url) {
   if (method === 'GET' && (ilk === 'isletmeler' || ilk === 'paketler') && (kalan === '' || kalan === '/')) return 'genel';
   // İşletme silmek geri alınamaz: yalnız patron
   if (method === 'DELETE' && ilk === 'isletmeler') return 'patron';
+  // Anlaşmalı (ücretsiz) hesap para kararı: yalnız patron
+  if (ilk === 'isletmeler' && /^\/\d+\/anlasma/.test(kalan) && method !== 'GET') return 'patron';
   // Hedef ayarı ve itiraz düzeltme/silme patronun; itiraz eklemek herkesin
   if (ilk === 'masa' && (/^\/hedef/.test(kalan) && method !== 'GET')) return 'patron';
   if (ilk === 'masa' && /^\/itiraz\/\d+/.test(kalan)) return 'patron';
