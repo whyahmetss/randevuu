@@ -1,0 +1,9 @@
+{
+  "name": "sirago-3d-reels",
+  "private": true,
+  "type": "module",
+  "description": "Telefon ekranı ve alt yazı katmanlarını HTML'den PNG'ye çevirir (Edge ile)",
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}

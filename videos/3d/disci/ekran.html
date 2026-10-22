@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../ortak/telefon.css">
+<script src="../ortak/zaman.js"></script>
+<!-- Gerçek bot metinleri: sohbetAsistani.js (saatler:28, onay:36, ozet:401 — hizmet emojisi sektöre göre: utils/hizmetEmoji.js, dişçide 🦷),
+     botMesajlar.js randevuOnaylandi, hatirlatma.js:58 (1 saat önce teyit), whatsappWeb.js:1968 (Geliyorum cevabı) -->
+<style>.bildirimler { flex-direction: column; } .gun-etiket.yeni { margin-top: 26px; }</style>
+</head>
+<body data-total="16.5">
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="wa" viewBox="0 0 32 32"><path d="M16 3.2A12.8 12.8 0 0 0 5 22.6L3.3 28.7l6.3-1.6A12.8 12.8 0 1 0 16 3.2Z" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M11.6 9.6c.4 0 .8 0 1 .6l1.1 2.6c.1.3 0 .6-.1.8l-.8 1c-.2.2-.2.5 0 .8a9 9 0 0 0 4.2 3.6c.3.1.6.1.8-.1l1-1.2c.2-.3.5-.3.8-.2l2.6 1.2c.3.1.5.4.4.8-.2 1.2-1.4 2.4-2.8 2.4-3.6 0-9.4-5.2-9.4-9.4 0-1.3 1-2.6 2.2-2.9Z" fill="#fff"/></symbol>
+</defs></svg>
+
+<!-- 1 · Kilit ekranı: 3 cevapsız mesaj -->
+<div class="ekran kilit" data-sahne="0-5.4">
+  <div class="durum"><span></span><span class="sag"><span class="sinyal"><i style="height:10px"></i><i style="height:16px"></i><i style="height:22px"></i><i style="height:30px"></i></span><span class="pil"></span></span></div>
+  <div class="tarih">Perşembe 22 Ekim</div>
+  <div class="saat">14:12</div>
+  <div class="bildirimler">
+    <div class="bld" data-gir="0.1" data-efekt="yer"><span class="uyg"><svg><use href="#wa"/></svg></span><div class="ic"><div class="ust"><span>WhatsApp</span><span>4 dk önce</span></div><b>Zeynep</b><span>Yarın diş taşı temizliği için yer var mı?</span></div></div>
+    <div class="bld" data-gir="0.1" data-efekt="yer"><span class="uyg"><svg><use href="#wa"/></svg></span><div class="ic"><div class="ust"><span>WhatsApp</span><span>2 dk önce</span></div><b>Ahmet</b><span>Dolgum düştü, bu hafta bakabilir misiniz?</span></div></div>
+    <div class="bld" data-gir="1.0" data-efekt="yukari"><span class="uyg"><svg><use href="#wa"/></svg></span><div class="ic"><div class="ust"><span>WhatsApp</span><span>şimdi</span></div><b>Elif</b><span>Cumartesi açık mısınız?</span></div></div>
+    <div class="bld sayac" data-gir="1.0" data-efekt="yukari">3 okunmamış mesaj</div>
+  </div>
+</div>
+
+<!-- 2 · SıraGO hastaya boş saati verir, randevuyu yazar -->
+<div class="ekran wa" data-sahne="5.4-99">
+  <div class="durum"><span data-saat="0:14:13,10.6:10:30">14:13</span><span class="sag"><span class="sinyal"><i style="height:10px"></i><i style="height:16px"></i><i style="height:22px"></i><i style="height:30px"></i></span><span class="pil"></span></span></div>
+  <div class="wa-bas"><span class="geri">‹</span><span class="av" style="background:#d36ba6">Z</span><div><b>Zeynep</b><small>çevrimiçi</small></div></div>
+  <div class="wa-govde" data-kay="0:0,7.3:0,7.9:-330,9.0:-330,9.6:-560,10.55:-560,10.6:-1050,11.45:-1050,12.05:-1720">
+    <div class="gun-etiket" data-saat="0:BUGÜN,10.6:DÜN">BUGÜN</div>
+    <div class="b gelen">Merhaba, yarın diş taşı temizliği için yer var mı?<span class="s">14:08</span></div>
+    <div class="b giden" data-gir="5.8">Yarın (23 Ekim) için boş saatler: 10:00, 11:30, 14:00.
+Size hangisi uygun?<span class="s">14:13 <span class="tik">✓✓</span></span></div>
+    <div class="b gelen" data-gir="6.6">11:30 olsun<span class="s">14:13</span></div>
+    <div class="b giden" data-gir="7.3">🗓️ Yarın (23 Ekim) · 🕐 11:30
+🦷 Diş taşı temizliği
+
+Randevunuzu oluşturayım mı? ("evet" yazmanız yeterli)<span class="s">14:13 <span class="tik">✓✓</span></span></div>
+    <div class="b gelen" data-gir="8.1">Evet<span class="s">14:14</span></div>
+    <div class="b giden" data-gir="8.7">✅ <b>Randevunuz Oluşturuldu!</b>
+
+🏥 Işık Diş Kliniği
+🦷 Diş taşı temizliği
+🗓️ 23 Ekim Cuma
+🕐 11:30
+
+⏰ Randevunuzdan 1 saat önce hatırlatma alacaksınız.
+
+Görüşmek üzere! 😊<span class="s">14:14 <span class="tik">✓✓</span></span></div>
+    <!-- Ertesi gün: 1 saat önce teyit -->
+    <div class="gun-etiket yeni" data-gir="10.6" data-efekt="yer">BUGÜN</div>
+    <div class="b giden" data-gir="10.75">⏰ <b>Randevu Teyidi</b>
+
+Merhaba Zeynep! Randevunuza <b>1 saat</b> kaldı.
+
+🏥 Işık Diş Kliniği
+🦷 Diş taşı temizliği
+🕐 Saat: 11:30
+
+Gelebilecek misiniz?
+
+<b>1.</b> ✅ Geliyorum
+<b>2.</b> ❌ İptal Et<span class="s">10:30 <span class="tik">✓✓</span></span></div>
+    <div class="b gelen" data-gir="11.5">1<span class="s">10:31</span></div>
+    <div class="b giden" data-gir="12.05">✅ <b>Harika, sizi bekliyoruz!</b>
+
+🏥 Işık Diş Kliniği
+🦷 Diş taşı temizliği
+🕐 Saat: 11:30
+
+Görüşmek üzere! 😊<span class="s">10:31 <span class="tik">✓✓</span></span></div>
+  </div>
+  <div class="wa-alt"><div class="kutu">Mesaj</div><div class="mik"></div></div>
+</div>
+</body></html>

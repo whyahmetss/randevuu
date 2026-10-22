@@ -1,0 +1,22 @@
+{
+  "_not": "Ses kurgusu. t: saniye. Seslendirme satırları sahne başına yerleşir; taşan satır en fazla %12 hızlanır.",
+  "seslendirme": [
+    { "t": 0.15, "bitis": 2.55, "metin": "Makas elinde, telefon susmuyor." },
+    { "t": 2.75, "bitis": 5.55, "metin": "Bakarsan koltuktaki bekler. Bakmazsan müşteri kaçar." },
+    { "t": 5.75, "bitis": 10.75, "metin": "Sıra Go senin WhatsApp'ından cevap verir, randevuyu yazar. Öncesinde müşteriye hatırlatma da gider." },
+    { "t": 10.95, "bitis": 13.55, "metin": "Müşteri uygulama indirmez. Sen telefona bakmazsın." },
+    { "t": 13.85, "bitis": 16.4, "metin": "Sen kes, randevuyu Sıra Go yazsın." }
+  ],
+  "efektler": [
+    { "ad": "dukkan", "t": [0], "db": -30, "dongu": 16.5 },
+    { "ad": "makas", "t": [0.0, 13.3, 15.3], "db": -18 },
+    { "ad": "titresim", "t": [0.15, 0.95, 1.75, 2.9, 3.7], "db": -14 },
+    { "ad": "mesaj_giden", "t": [6.0, 7.6], "db": -16 },
+    { "ad": "mesaj_gelen", "t": [6.9], "db": -16 },
+    { "ad": "bildirim", "t": [8.6], "db": -12 },
+    { "ad": "whoosh", "t": [2.55, 4.35, 5.55, 10.75, 13.55], "db": -17 },
+    { "ad": "logo", "t": [13.85], "db": -15 }
+  ],
+  "vurgu": [2.6, 4.4, 5.6, 10.8, 13.6],
+  "muzik": { "db": -26, "kisilma_db": 9 }
+}

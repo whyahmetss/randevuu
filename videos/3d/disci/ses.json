@@ -1,0 +1,20 @@
+{
+  "seslendirme": [
+    { "t": 0.15, "bitis": 2.55, "metin": "Hasta ağzı açık bekliyor. Telefonda üç mesaj." },
+    { "t": 2.7, "bitis": 5.3, "metin": "Eldivenle telefona uzanılmaz. Mesajlar cevapsız kalır." },
+    { "t": 5.5, "bitis": 9.6, "metin": "Sıra Go hastaya boş saati söyler, randevuyu kendisi yazar." },
+    { "t": 9.8, "bitis": 12.5, "metin": "Ertesi sabah hatırlatma gider, hasta geliyorum der." },
+    { "t": 12.7, "bitis": 14.15, "metin": "Ve koltuk dolu." },
+    { "t": 14.4, "bitis": 16.4, "metin": "Klinik çalışırken randevular kendiliğinden yazılsın." }
+  ],
+  "efektler": [
+    { "ad": "klinik", "t": [0], "db": -30, "dongu": 16.5 },
+    { "ad": "titresim", "t": [0.15, 1.0], "db": -14 },
+    { "ad": "mesaj_giden", "t": [5.8, 7.3, 8.7, 10.75, 12.05], "db": -16 },
+    { "ad": "mesaj_gelen", "t": [6.6, 8.1, 11.5], "db": -16 },
+    { "ad": "whoosh", "t": [2.55, 4.35, 5.35, 9.65, 10.55, 12.55, 14.15], "db": -17 },
+    { "ad": "logo", "t": [14.4], "db": -15 }
+  ],
+  "vurgu": [2.6, 4.4, 5.4, 9.7, 10.6, 12.6, 14.2],
+  "muzik": { "db": -26, "kisilma_db": 9 }
+}

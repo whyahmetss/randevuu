@@ -1,0 +1,20 @@
+{
+  "_not": "ElevenLabs Sound Effects ile bir kez üretilir (ses/efekt/<ad>.mp3), tüm videolarda tekrar kullanılır. sure: saniye.",
+  "titresim":   { "sure": 1.0, "metin": "smartphone vibrating on a wooden barbershop counter, two short buzzes, close up, no music" },
+  "mesaj_gelen": { "sure": 0.6, "metin": "soft modern chat app incoming message pop, subtle, clean UI sound" },
+  "mesaj_giden": { "sure": 0.5, "metin": "soft short message sent swoosh pop, clean mobile UI sound, subtle" },
+  "bildirim":   { "sure": 1.2, "metin": "pleasant warm two-note notification chime, modern app, clean and soft" },
+  "makas":      { "sure": 2.0, "metin": "barber scissors snipping hair close up, steady rhythmic snips, dry, no background" },
+  "whoosh":     { "sure": 0.6, "metin": "fast soft cinematic whoosh transition, short, airy, no impact" },
+  "logo":       { "sure": 1.5, "metin": "gentle uplifting logo reveal shimmer with soft swoosh, warm and premium, short" },
+  "kapi_zili":  { "sure": 1.2, "metin": "small shop door bell jingle as the door opens, single ring, close" },
+  "defter":     { "sure": 0.8, "metin": "thick paper notebook snapping shut on a wooden table, soft thud" },
+  "dukkan":     { "sure": 12.0, "metin": "cozy barbershop room tone, soft indistinct chatter far away, distant hair clipper hum, warm, no music" },
+  "klinik":     { "sure": 12.0, "metin": "quiet modern dental clinic room tone, soft distant equipment hum, calm, no music" },
+  "gece":       { "sure": 12.0, "metin": "quiet city night ambience inside a room, very soft distant traffic, calm, no music" },
+  "sabah":      { "sure": 10.0, "metin": "calm morning inside a small beauty salon, soft birds outside the window, gentle room tone, no music" },
+  "lamba_tik":  { "sure": 0.5, "metin": "small bedside lamp switch click, single, close" },
+  "circir":     { "sure": 2.0, "metin": "single cricket chirping in an awkward silence, comedic, quiet, sparse" },
+  "kalem":      { "sure": 1.5, "metin": "pencil scribbling quickly on paper then erasing, close, short" },
+  "liste":      { "sure": 0.8, "metin": "soft modern UI list items appearing, gentle quick ticks, clean" }
+}

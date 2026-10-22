@@ -55,3 +55,4 @@ render.yaml.backup
 videos/3d/**/kareler/
 videos/3d/**/katmanlar/
 videos/3d/_test/out/
+__pycache__/
