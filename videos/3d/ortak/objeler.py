@@ -35,18 +35,19 @@ def telefon(ad, loc, rot=(0, 0, 0), ekran_yolu=None, dizi=None, ebeveyn=None, pa
 def makas(ad, ebeveyn=None, loc=(0, 0, 0), rot=(0, 0, 0), olcek=1.0):
     kok = bos(ad, loc, ebeveyn, rot)
     kok.scale = (olcek,) * 3
-    m_krom = mat("makas_krom", RENK["krom"], 0.18, metal=1.0)
-    m_sap = mat("makas_sap", "#151515", 0.4)
+    m_krom = mat("makas_krom", "#dfe3e8", 0.22, metal=1.0, coat=0.5)
+    m_sap = mat("makas_sap", "#121212", 0.35, coat=0.4)
     agizlar = []
     for i, s in enumerate((1, -1)):
         p = bos(f"{ad}_bicak{i}", (0, 0, 0), kok)
-        kutu(f"{ad}_bicakm{i}", (0.014, 0.004, 0.2), (0, 0.003 * s, 0.1), m_krom, 0.003, ebeveyn=p)
-        kutu(f"{ad}_kol{i}", (0.01, 0.004, 0.07), (0.012 * s, 0.003 * s, -0.035), m_krom, 0.003, ebeveyn=p,
+        kutu(f"{ad}_bicakm{i}", (0.03, 0.008, 0.19), (0.006 * s, 0.005 * s, 0.095), m_krom, 0.004, ebeveyn=p)
+        kutu(f"{ad}_uc{i}", (0.018, 0.008, 0.04), (0.003 * s, 0.005 * s, 0.2), m_krom, 0.004, ebeveyn=p)
+        kutu(f"{ad}_kol{i}", (0.016, 0.008, 0.07), (0.014 * s, 0.005 * s, -0.035), m_sap, 0.004, ebeveyn=p,
              rot=(0, -15 * s, 0))
         tor = bpy.data.meshes.new(f"{ad}_halka{i}")
         import bmesh
         bm = bmesh.new()
-        seg, r1, r2 = 14, 0.024, 0.007
+        seg, r1, r2 = 16, 0.03, 0.011
         halka = []
         for a in range(seg):
             t = 2 * math.pi * a / seg
@@ -66,7 +67,7 @@ def makas(ad, ebeveyn=None, loc=(0, 0, 0), rot=(0, 0, 0), olcek=1.0):
         ho = bpy.data.objects.new(f"{ad}_halka{i}", tor)
         bpy.context.scene.collection.objects.link(ho)
         ho.parent = p
-        ho.location = (0.03 * s, 0.003 * s, -0.08)
+        ho.location = (0.036 * s, 0.005 * s, -0.09)
         tor.materials.append(m_sap)
         for f in tor.polygons:
             f.use_smooth = True

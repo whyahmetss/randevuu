@@ -165,8 +165,8 @@ O.tarak("tarak_tez", None, (0.15, -1.0, TZ + 0.004), (90, 0, 75))
 berber = K.karakter("berber", (0.72, 0.45, 0), yon=-35, sakal=True, onluk=RENK["yesil_koyu"], gomlek="#ece6dc",
                     ten=RENK["ten"], sac="#2a1c14")
 berber.kok.scale = (1.18,) * 3
-mk = O.makas("makas", berber.el["L"], (0, 0, -0.1), (180, 0, 0), olcek=1.8)
-O.tarak("tarak", berber.el["R"], (0, 0, -0.1), (180, 0, 0))
+mk = O.makas("makas", berber.el["R"], (0, 0, -0.12), (180, 0, 0), olcek=1.25)
+O.tarak("tarak", berber.el["L"], (0, 0, -0.1), (180, 0, 0))
 
 
 def kol_poz(k, kare, sag=None, sol=None, gecis=8):
@@ -189,20 +189,25 @@ def kol_poz(k, kare, sag=None, sol=None, gecis=8):
         om[anah] = list(poz)
 
 
-KES_SAG = (-88, 0, -12, -28)     # makas müşterinin başında
-KES_SOL = (-50, 0, 15, -55)       # tarak öbür yanda
-BEKLE_SAG = (-55, 0, -8, -60)    # makas havada, duraksamış
-kol_poz(berber, 1, KES_SAG, KES_SOL)
+# Kollar dünya noktalarına bakar (kol_hedef): makas müşterinin kafasının kameraya bakan yanında
+bpy.context.view_layer.update()
+MK0 = musteri.kafa.matrix_world.translation.copy()
+BK0 = berber.kafa.matrix_world.translation.copy()
+KES_MAKAS = MK0 + Vector((0.36, -0.1, 0.04))
+KES_TARAK = MK0 + Vector((0.02, 0.2, 0.32))
+BEKLE_MAKAS = BK0 + Vector((0.1, -0.5, -0.62))
+K.kol_hedef(berber, 1, "R", KES_MAKAS, dirsek=-30, gecis=1)
+K.kol_hedef(berber, 1, "L", KES_TARAK, dirsek=-30, gecis=1)
 
 # Zaman çizelgesi
 s = sn
 # A: kesiyor → telefona bakar, stres
-O.makas_kes(mk, 1, s(1.1))
+O.makas_kes(mk, 1, s(0.7))
 K.ifade(berber, 1, "normal")
 K.bak_yon(berber, 1, sag=-10, asagi=18)
-K.bak_yon(berber, s(0.9), sag=25, asagi=30, gecis=7)        # telefona döner
-K.ifade(berber, s(1.2), "stres", gecis=6)
-kol_poz(berber, s(1.4), BEKLE_SAG, None, gecis=10)
+K.bak_yon(berber, s(0.5), sag=25, asagi=30, gecis=7)        # telefona döner
+K.ifade(berber, s(0.8), "stres", gecis=6)
+K.kol_hedef(berber, s(1.1), "R", BEKLE_MAKAS, dirsek=-50, gecis=10)
 K.kirp(berber, s(2.2))
 # C: yüz yakın — gözleri telefonla müşteri arasında
 K.ifade(berber, s(4.7), "endise", gecis=5)
@@ -215,7 +220,7 @@ K.ifade(berber, s(12.3), "gulumse", gecis=5)
 K.ifade(berber, s(12.6), "goz_kirp", gecis=3)
 K.ifade(berber, s(13.0), "gulumse", gecis=4)
 K.bak_yon(berber, s(13.3), sag=-10, asagi=18, gecis=9)
-kol_poz(berber, s(13.2), KES_SAG, None, gecis=10)
+K.kol_hedef(berber, s(13.2), "R", KES_MAKAS, dirsek=-30, gecis=10)
 O.makas_kes(mk, s(13.3), TOPLAM)
 for t in (7.2, 9.5, 15.2):
     K.kirp(berber, s(t))
@@ -286,8 +291,9 @@ kamC.data.dof.focus_distance = (pC - BK).length - 0.36
 anahtar(kamC, "location", [(s(4.4), pC), (s(5.6), pC + Vector((0, 0.06, 0.03)))])
 
 # D · telefon yakın: SıraGO sohbeti
-kamD = kamera("D_sohbet", TEL + Vector((0.015, -0.06, 0.43)), TEL, lens=50, fstop=8.0)
-anahtar(kamD, "location", [(s(5.6), TEL + Vector((0.015, -0.06, 0.43))), (s(10.8), TEL + Vector((0.015, -0.04, 0.39)))])
+# Telefon kadrajın üst üçte ikisinde: altta alt yazıya yer kalır, balonların üstüne binmez
+kamD = kamera("D_sohbet", TEL + Vector((0.015, -0.1, 0.54)), TEL + Vector((0, -0.045, 0)), lens=50, fstop=8.0)
+anahtar(kamD, "location", [(s(5.6), TEL + Vector((0.015, -0.1, 0.54))), (s(10.8), TEL + Vector((0.02, -0.09, 0.515)))])
 
 # E · aynadan: berber kameraya (aynaya) göz kırpar
 pE = Vector((BK.x - 0.3, -1.38, BK.z + 0.1))
@@ -303,10 +309,26 @@ for kam, t in ((kamA, 0), (kamB, 2.6), (kamC, 4.4), (kamD, 5.6), (kamE, 10.8), (
     plan(kam, s(t))
 
 # ------------------------------------------------------------------ ÇIKTI
-cikti = al("--cikti", os.path.join(BURA, "kareler"))
+cikti = os.path.abspath(al("--cikti", os.path.join(BURA, "kareler")))
+# Hız ayarları (ölçüm için): --sis 0 → hacimsel pus kapalı, --isin 0 → ışın izleme kapalı, --golge N → gölge ışını
+if al("--sis") is not None and float(al("--sis")) == 0:
+    sc.world.node_tree.links.clear() if False else None
+    for l in list(sc.world.node_tree.links):
+        if l.to_socket.name == "Volume":
+            sc.world.node_tree.links.remove(l)
+if al("--isin") is not None:
+    sc.eevee.use_raytracing = al("--isin") == "1"
+if al("--golge") is not None:
+    sc.eevee.shadow_ray_count, sc.eevee.shadow_step_count = int(al("--golge")), 4
 os.makedirs(cikti, exist_ok=True)
 if al("--kaydet"):
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(al("--kaydet")))
+if al("--debug_kamera"):   # x,y,z,hx,hy,hz,lens: geçici bakış (inceleme için)
+    v = [float(x) for x in al("--debug_kamera").split(",")]
+    dk = kamera("debug", v[0:3], v[3:6], lens=v[6] if len(v) > 6 else 35, fstop=16)
+    for mk_ in list(sc.timeline_markers):
+        sc.timeline_markers.remove(mk_)
+    sc.camera = dk
 if "--kadraj" in arg:
     from bpy_extras.object_utils import world_to_camera_view
     noktalar = {"tel": tel.matrix_world.translation, "berber_kafa": berber.kafa.matrix_world.translation,

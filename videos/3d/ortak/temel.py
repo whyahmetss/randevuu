@@ -53,7 +53,7 @@ def sahne_hazirla(kare_sayisi, ornek=64, gorunum="AgX", bakis="AgX - Medium High
     sc.render.image_settings.color_mode = "RGB"
     ee = sc.eevee
     ee.taa_render_samples = ornek
-    for ad, deger in (("use_shadows", True), ("shadow_ray_count", 2), ("shadow_step_count", 8),
+    for ad, deger in (("use_shadows", True), ("shadow_ray_count", 1), ("shadow_step_count", 4),
                       ("use_raytracing", True), ("ray_tracing_method", "SCREEN"),
                       ("use_fast_gi", True), ("fast_gi_method", "GLOBAL_ILLUMINATION"),
                       ("volumetric_tile_size", "8"), ("volumetric_samples", 48),

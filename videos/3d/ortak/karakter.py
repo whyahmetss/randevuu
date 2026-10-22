@@ -305,3 +305,21 @@ def egil(k, kare, ileri=0.0, yana=0.0, gecis=10):
     p.rotation_euler = (R(ileri), R(yana), 0)
     p.keyframe_insert("rotation_euler", frame=kare)
     p["_son"] = [ileri, yana]
+
+
+def kol_hedef(k, kare, taraf, hedef, dirsek=-20.0, gecis=8):
+    """Kolu (omuzdan) dünyadaki `hedef` noktaya çevirir; dirsek derece. taraf "L"/"R".
+    Gövde/kafa animasyonu o karede değerlendirilir, sonra omuz anahtarlanır."""
+    import bpy
+    from mathutils import Vector
+    om, dr = k.omuz[taraf], k.dirsek[taraf]
+    sc = bpy.context.scene
+    sc.frame_set(kare)
+    ust = om.parent.matrix_world
+    yerel = (ust.inverted() @ Vector(hedef)) - om.location
+    yon = yerel.normalized()
+    # dirsek bükülmesi kolu öne çeker: yaklaşık olarak hedefi yarım açı kadar telafi et
+    e = Vector((0, 0, -1)).rotation_difference(yon).to_euler()
+    poz = (math.degrees(e.x) - dirsek / 2, math.degrees(e.y), math.degrees(e.z), dirsek)
+    kol_poz(k, kare, poz if taraf == "L" else None, poz if taraf == "R" else None, gecis)
+    return poz
