@@ -84,3 +84,22 @@ body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #000; color: #1
 .push .ust { font-size: 34px; color: #54656f; display: flex; justify-content: space-between; margin-bottom: 4px; }
 .push b { display: block; font-size: 50px; }
 .push span { display: block; font-size: 41px; color: #2b3a33; line-height: 1.3; }
+
+/* SıraGO paneli (marka.css .pnl bileşeninin telefon dokusu ölçeği, ×1.8) */
+.pnl { background: #f6f5f2; color: #1b1a17; }
+.pnl .durum { color: #1b1a17; background: #fff; }
+.pnl-bas { position: absolute; top: 110px; left: 0; right: 0; padding: 40px 56px 36px; background: #fff;
+  border-bottom: 2px solid #e8e5de; }
+.pnl-bas small { font-size: 36px; font-weight: 600; color: #1f6f4a; letter-spacing: .02em; }
+.pnl-bas b { display: block; font-size: 70px; font-weight: 700; letter-spacing: -0.02em; margin-top: 6px; }
+.pnl-liste { position: absolute; top: 380px; left: 0; right: 0; padding: 40px; display: flex; flex-direction: column;
+  gap: 22px; }
+.pnl-satir { display: grid; grid-template-columns: 170px 1fr auto; gap: 24px; align-items: center; background: #fff;
+  border: 2px solid #e8e5de; border-radius: 32px; padding: 32px 36px; }
+.pnl-satir .saat { font-size: 50px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pnl-satir .kisi { font-size: 46px; font-weight: 600; }
+.pnl-satir .kisi small { display: block; font-size: 36px; font-weight: 500; color: #77716a; margin-top: 4px; }
+.pnl-satir .rozet { font-size: 32px; font-weight: 650; padding: 12px 22px; border-radius: 100px; background: #eaf3ee;
+  color: #1f6f4a; }
+.pnl-satir.yeni { border-color: #2bd36a; box-shadow: 0 0 0 4px rgba(43, 211, 106, .25); }
+.pnl-satir.yeni .rozet { background: #1f6f4a; color: #fff; }
