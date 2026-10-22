@@ -28,7 +28,8 @@ async function epostaGonder({ kime, konu, html, metin }) {
 }
 
 // Kayıt doğrulama kodu e-postası (2026-10-22 tasarım): tablo düzeni (Gmail/Outlook uyumlu), tilki logosu + SıraGO yazısı,
-// kod büyük ve 3+3 aralıklı, gizli önizleme satırında kod görünür. Logo yüklenmese de yazı ve kod okunur.
+// kod büyük ve 3+3 aralıklı, gizli önizleme satırında kod görünür. Logo yüklenmese de yazı ve kod okunur; Gmail spam klasöründe
+// resimleri hiç göstermez, o zaman logo yerinde yeşil kutuda 🦊 (alt metin) görünür.
 function dogrulamaMaili(kod) {
   const panel = (process.env.ADMIN_PANEL_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '');
   const goster = `${kod.slice(0, 3)} ${kod.slice(3)}`;
@@ -40,7 +41,7 @@ function dogrulamaMaili(kod) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:20px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1d2a24">
     <tr><td style="background:#1f6f4a;padding:22px 28px">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-        <td style="padding-right:12px"><img src="${panel}/icon-192.png" width="44" height="44" alt="" style="display:block;border:0;border-radius:12px"></td>
+        <td style="padding-right:12px"><img src="${panel}/icon-192.png" width="44" height="44" alt="🦊" style="display:block;border:0;border-radius:12px;background:#2a8a5f;color:#ffffff;font-size:26px;line-height:44px;text-align:center"></td>
         <td style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-.3px">SıraGO</td>
       </tr></table>
     </td></tr>
