@@ -1,0 +1,27 @@
+1
+00:00:04,400 --> 00:00:07,900
+Yusuf dükkânını yeni açtı.
+
+2
+00:00:08,000 --> 00:00:11,750
+Annesi sordu: “Müşteri var mı?”
+
+3
+00:00:11,850 --> 00:00:15,200
+“Geliyor anne, geliyor.”
+
+4
+00:00:15,300 --> 00:00:19,450
+Mesajlar düştü; cevabı SıraGO yazdı.
+
+5
+00:00:19,550 --> 00:00:23,200
+Müşteriler geldi, saatinde.
+
+6
+00:00:23,900 --> 00:00:28,250
+Akşam baktı: randevular çoktan yazılmış.
+
+7
+00:00:28,400 --> 00:00:32,600
+Sen işini kur. Randevuyu SıraGO yazsın.

@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>@font-face{font-family:'Patrick Hand';src:url(ortak/fonts/PatrickHand-Regular.ttf)}@font-face{font-family:'Caveat Brush';src:url(ortak/fonts/CaveatBrush-Regular.ttf)}
+html,body{margin:0;background:#000;overflow:hidden}canvas{position:absolute;left:0;top:0}</style></head>
+<body><canvas id="gl" width="1080" height="1920"></canvas><script type="module">
+import { makeComp } from './ortak/gl.js';
+import { CAM, BOIL, layer, clear, text } from './ortak/crayon.js';
+import { group, clearGroup } from './ortak/rig.js';
+import { kisi } from './ortak/kisi.js';
+import { PAL } from './ortak/pal.js';
+const K = PAL.crayon;
+await document.fonts.load('40px "Patrick Hand"'); await document.fonts.load('40px "Caveat Brush"');
+const comp = makeComp(document.getElementById('gl'));
+const C = group(), T = layer();
+window.DUR = 1;
+window.render = t => {
+  BOIL.step = Math.floor(t * 12); CAM.x = 540; CAM.y = 960; CAM.s = 1;
+  clearGroup(C); clear(T);
+  kisi(C, { x: 200, y: 640, seed: 100, sac: { tip: 'kisa', renk: K.brown }, ust: K.blue, onluk: K.green, ifade: 'mutlu', kolR: { a: 40, b: 20 }, tut: 'makas' });
+  kisi(C, { x: 540, y: 640, seed: 200, sac: { tip: 'basortu', renk: K.violet }, ust: K.pink, gozluk: true, ifade: 'gulen', kolR: { el: [86, -238] }, tut: 'telefon' });
+  kisi(C, { x: 880, y: 640, seed: 300, sac: { tip: 'kivircik', renk: '#2c2320' }, ust: K.blue, ten: K.tan, ifade: 'saskin', kolL: { a: 150, b: 10 }, kolR: { a: 150, b: 10 } });
+  kisi(C, { x: 200, y: 1240, seed: 400, sac: { tip: 'kel', renk: '#7a7470' }, ust: K.ochre, biyik: true, ifade: 'endise' });
+  kisi(C, { x: 540, y: 1240, seed: 500, sac: { tip: 'uzun', renk: K.orange }, ust: K.red, ifade: 'mutlu-kapali' });
+  kisi(C, { x: 880, y: 1240, seed: 600, sac: { tip: 'topuz', renk: K.brown }, ust: K.mint, ifade: 'duz', oturan: true });
+  kisi(C, { x: 300, y: 1800, seed: 700, s: 1.25, sac: { tip: 'kisa', renk: '#2c2320' }, ust: K.green, onluk: K.green, ifade: 'endise', bak: -.6 });
+  text(T, 'Yusuf · Anne · Müşteriler — ğüşıöç', 540, 1870, { size: 54, col: K.ink });
+  comp.paperCam(540, 960, 1); comp.begin(PAL.paper); comp.group(C); comp.crayon(T.c); comp.finish({ vig: .3 });
+};
+window.READY = true;
+</script></body></html>
