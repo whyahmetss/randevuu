@@ -1,0 +1,15 @@
+1
+00:00:02,300 --> 00:00:09,600
+Herkes aynı anda soruyor.
+
+2
+00:00:12,300 --> 00:00:19,600
+SıraGO her birine cevap veriyor.
+
+3
+00:00:20,050 --> 00:00:22,650
+Hepsi listede.
+
+4
+00:00:22,750 --> 00:00:26,800
+Usta makasını bırakmadı.

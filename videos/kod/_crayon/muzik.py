@@ -104,11 +104,20 @@ def serit(buf, x, t0, t1, g, fade=.5):
     n = int((t1 - t0) * SR); y = np.resize(x, n).copy(); f = min(int(fade * SR), n // 2)
     y[:f] *= np.linspace(0, 1, f); y[-f:] *= np.linspace(1, 0, f); add(buf, y, t0, g)
 
-def bitir(muz, fol, amb, dur, yol, muz_g=.6):
+def bitir(muz, fol, amb, dur, yol, muz_g=.6, yumusak=False):
     import soundfile as sf
     mix = muz * muz_g + fol + amb
-    for c in range(2): mix[:, c] = compress(mix[:, c], .35, 2.5)
+    if yumusak:   # ritim oyunu: sert vuruşları yumuşak kırp (tepe/ses oranı düşer, loudnorm tepeyi aşmaz)
+        mix = np.tanh(mix * 2.2) / 2.2
+    for c in range(2): mix[:, c] = compress(mix[:, c], .3 if yumusak else .35, 4 if yumusak else 2.5)
     for c in range(2): mix[:, c] = limit(mix[:, c], .9)
     mix = mix[:int(dur * SR)]
     sf.write(yol, mix.astype(np.float32), SR)
     print('mix.wav', round(len(mix) / SR, 2), 's, tepe', round(float(np.abs(mix).max()), 3))
+
+def kare(m, d=.12, v=.25, vib=0.0):
+    """chiptune kare dalga (yumuşatılmış), isteğe bağlı vibrato"""
+    tt = t_(d); f = hz(m) * (1 + vib * np.sin(2 * np.pi * 5.5 * tt))
+    x = np.sign(np.sin(2 * np.pi * np.cumsum(f) / SR))
+    x = lp(x, 5200) * np.minimum(1, tt / .004) * np.minimum(1, (d - tt) / .02)
+    return x * v

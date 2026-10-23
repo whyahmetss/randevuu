@@ -1,0 +1,15 @@
+1
+00:00:02,200 --> 00:00:09,400
+“Geliyorum abi” dedi, gelmedi.
+
+2
+00:00:12,200 --> 00:00:15,800
+Bir saat önce SıraGO sorar.
+
+3
+00:00:16,000 --> 00:00:19,800
+İptal eden olursa saat boşalır.
+
+4
+00:00:20,100 --> 00:00:22,700
+Bu sefer geldi.
