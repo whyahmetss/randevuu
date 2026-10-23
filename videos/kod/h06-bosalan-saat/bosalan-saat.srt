@@ -1,0 +1,23 @@
+1
+00:00:00,600 --> 00:00:04,400
+Ahmet’in toplantısı uzadı.
+
+2
+00:00:05,000 --> 00:00:09,600
+Bir saat önce sordu: “Gelebilecek misiniz?”
+
+3
+00:00:09,800 --> 00:00:13,800
+Ahmet “İptal” dedi; saat boşaldı.
+
+4
+00:00:14,000 --> 00:00:18,600
+Zeynep yazdı; o saat ona yazıldı.
+
+5
+00:00:19,200 --> 00:00:23,400
+Koltuk boş kalmadı.
+
+6
+00:00:24,000 --> 00:00:28,600
+Randevuyu SıraGO yazsın.

@@ -1,0 +1,12 @@
+__BASLIK__ — kullanılan varlıklar
+
+Yazı tipleri
+- Patrick Hand — Patrick Wagesreiter, SIL Open Font License 1.1 (ortak/fonts, _crayon/fonts/OFL-PatrickHand.txt)
+- Caveat Brush — Impallari Type, SIL Open Font License 1.1 (_crayon/fonts/OFL-CaveatBrush.txt)
+
+Kod
+- Pastel çizim ve kâğıt/suluboya birleştirici (_crayon/gl.js, crayon.js, rig.js): Lemo-Opuscar crayon-book örneğinden uyarlandı, MIT lisansı
+
+Ses
+- Müzik ve foley kodla sentezlendi (_crayon/muzik.py, mix.py)
+- Ambiyans (kuşlar, cırcır), kapı zili, makas: ElevenLabs ses efekti API'siyle SıraGO için üretildi (videos/3d/ses/efekt)

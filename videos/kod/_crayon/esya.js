@@ -21,13 +21,13 @@ export function sekil(F, Lc, poly, col, d, f, seed, o = {}) {
 
 // ── berber dükkânı (kesit: ön duvar yok). Sol üst köşe (x, y), genişlik W.
 export function dukkan(F, Lc, o) {
-  const { x = 60, y = 760, W = 960, d = 1, f = 1, tabela = 'Kuzey Berber', yazi = 1 } = o;
+  const { x = 60, y = 760, W = 960, d = 1, f = 1, tabela = 'Kuzey Berber', yazi = 1, tabelaRenk = K.green, duvar = K.ochre } = o;
   const H = 1140, alt = y + H;
   // tabela bandı
-  sekil(F, Lc, kutu(x - 20, y, x + W + 20, y + 130), K.green, d, f, 900, { p: .9 });
+  sekil(F, Lc, kutu(x - 20, y, x + W + 20, y + 130), tabelaRenk, d, f, 900, { p: .9 });
   if (yazi > 0) yaz(Lc, tabela, x + W / 2, y + 92, 84, { font: 'Caveat Brush', col: K.white, reveal: yazi, seed: 31, stroke: 2 });
   // arka duvar + zemin
-  sekil(F, Lc, kutu(x, y + 130, x + W, alt - 200), K.ochre, d, f, 910, { p: .55, gap: 12 });
+  sekil(F, Lc, kutu(x, y + 130, x + W, alt - 200), duvar, d, f, 910, { p: .55, gap: 12 });
   sekil(F, Lc, kutu(x, alt - 200, x + W, alt), K.brown, d, f, 920, { p: .55, gap: 11, ang: .15 });
   // döşeme çizgileri
   for (let i = 1; i < 6; i++) line(Lc, [[x + i * W / 6 - 40, alt - 200], [x + i * W / 6 - 90, alt]], { w: 3.5, seed: 930 + i, draw: d, p: .5 });
@@ -126,4 +126,95 @@ export function buzdolabi(F, Lc, [x0, y0, x1, y1], pay = 900) {
     fill(F, xf(kutu(-60, -18, 60, 18), { x: cx, y: cy, r: (i % 2 ? -1 : 1) * .7 }), { col: '#efe6c8', p: .9, gap: 5, w: 8, seed: 1110 + i, over: 0 });
   // mıknatıs: küçük tilki yüzü (Fiko)
   dab(F, x1 + 90, y0 + 120, 34, { col: K.orange, seed: 1120 });
+}
+
+// ───────── ek dekorlar (hikâye 4–9)
+// el çizimi panel çerçevesi (çizgi roman şeridi gibi dikey sayfa bölmeleri)
+export function panel(Lc, x0, y0, x1, y1, d = 1, seed = 1200) {
+  line(Lc, [[x0, y0], [x1, y0 + 4], [x1 - 3, y1], [x0 + 2, y1 - 3], [x0, y0]], { w: 8, seed, draw: d });
+}
+// telefon (elde ya da masada) + ekranda mesaj satırları. msj: [{m, yesil, ben}] — ben: sağa yaslı (kullanıcının yazdığı)
+export function ekranTelefon(F, Lc, cx, cy, msj, o = {}) {
+  const w = o.w ?? 300, h = o.h ?? 520, d = o.d ?? 1, f = o.f ?? 1, size = o.size ?? 26;
+  const t = telefonCerceve(F, Lc, cx, cy, { w, h, d, f });
+  const [e0, e1, e2, e3] = t.ekran; let y = e1 + 18;
+  msj.forEach((q, i) => {
+    if (q.op === 0) return;
+    const satirlar = q.m.split('\n'), bw = Math.min(e2 - e0 - 20, Math.max(...satirlar.map(l => l.length)) * size * .46 + 26), bh = satirlar.length * size * 1.2 + 16;
+    const bx = q.ben ? e2 - 10 - bw : e0 + 10;
+    if (y + bh > e3) return;
+    sekil(F, Lc, yuvarlak(bx, y, bx + bw, y + bh, 10), q.yesil ? K.mint : '#e6e0d6', d, (q.op ?? 1) * f, (o.seed ?? 1400) + i * 7, { p: .7, gap: 6, w: 8, lw: 3.5 });
+    satirlar.forEach((l, j) => yaz(Lc, l, bx + bw / 2, y + 8 + (j + 1) * size * 1.12, size, { reveal: q.op ?? 1, seed: (o.seed ?? 1400) + i * 7 + j }));
+    y += bh + 12;
+  });
+  return t;
+}
+// yüzlü duvar saati: saat (0–12 ondalık) akrep/yelkovan
+export function saat(F, Lc, cx, cy, r, sa, o = {}) {
+  sekil(F, Lc, handCircle(cx, cy, r, 1210, .06, 36), '#f6efe0', o.d ?? 1, o.f ?? 1, 1210, { p: .4 });
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; dab(Lc, cx + Math.sin(a) * r * .8, cy - Math.cos(a) * r * .8, 3, { col: K.ink, seed: 1220 + i }); }
+  const ak = sa / 12 * Math.PI * 2, ye = (sa % 1) * Math.PI * 2;
+  line(Lc, [[cx, cy], [cx + Math.sin(ak) * r * .45, cy - Math.cos(ak) * r * .45]], { w: 7, seed: 1235 });
+  line(Lc, [[cx, cy], [cx + Math.sin(ye) * r * .7, cy - Math.cos(ye) * r * .7]], { w: 5, seed: 1236 });
+}
+// kanepe
+export function kanepe(F, Lc, x, zemin, col, d = 1, f = 1, s = 1) {
+  const Y = v => zemin - (zemin - v) * s, X = v => x + (v - x) * s;
+  sekil(F, Lc, yuvarlak(X(x - 230), Y(zemin - 260), X(x + 230), Y(zemin - 130), 30), col, d, f, 1240);
+  sekil(F, Lc, yuvarlak(X(x - 250), Y(zemin - 150), X(x + 250), Y(zemin - 40), 24), col, d, f, 1242);
+  for (const k of [-1, 1]) sekil(F, Lc, yuvarlak(X(x + k * 250 - 40), Y(zemin - 200), X(x + k * 250 + 40), Y(zemin - 40), 20), col, d, f, 1244 + k);
+  for (const k of [-1, 1]) line(Lc, [[X(x + k * 200), Y(zemin - 40)], [X(x + k * 205), zemin]], { w: 7, seed: 1248 + k, draw: d });
+}
+// masa (toplantı / ofis)
+export function masa(F, Lc, x0, x1, ust, zemin, col = K.brown, d = 1, f = 1) {
+  sekil(F, Lc, kutu(x0, ust, x1, ust + 30), col, d, f, 1250, { p: .85 });
+  for (const x of [x0 + 30, x1 - 30]) sekil(F, Lc, kutu(x - 12, ust + 30, x + 12, zemin), col, d, f, 1252 + x % 7, { p: .85 });
+}
+// çocuk çizimi araba (yandan), yon: 1 sağa
+export function araba(F, Lc, x, zemin, col, o = {}) {
+  const d = o.d ?? 1, f = o.f ?? 1, k = o.yon ?? 1, tek = o.tekerlek ?? 0, s = o.s ?? 1;
+  const P = pts => pts.map(([a, b]) => [x + a * k * s, zemin + (b - zemin) * s]);
+  sekil(F, Lc, P(smooth([[-190, zemin - 50], [-180, zemin - 120], [-90, zemin - 130], [-50, zemin - 210], [90, zemin - 210], [130, zemin - 130], [200, zemin - 115], [205, zemin - 50]], 3)), col, d, f, 1260);
+  sekil(F, Lc, P(smooth([[-30, zemin - 195], [80, zemin - 195], [110, zemin - 132], [-60, zemin - 132]], 3)), K.blue, d, f, 1262, { p: .45 });
+  for (const ox of [-110, 120]) { const c = [x + ox * k * s, zemin - 40 * s]; sekil(F, Lc, handCircle(c[0], c[1], 40 * s, 1264 + ox, .08, 24), '#3a3640', d, f, 1264 + ox, { p: .95 });
+    line(Lc, [[c[0] + Math.cos(tek) * 18 * s, c[1] + Math.sin(tek) * 18 * s], [c[0] - Math.cos(tek) * 18 * s, c[1] - Math.sin(tek) * 18 * s]], { w: 4, col: K.gray, seed: 1268 + ox }); }
+}
+// yağmur çizgileri (k: yoğunluk 0–1), alan dünyada
+export function yagmur(Lc, x0, y0, x1, y1, t, k = 1) {
+  const n = Math.floor(60 * k);
+  for (let i = 0; i < n; i++) { const x = x0 + ((i * 137.5) % (x1 - x0)), sp = (t * 900 + i * 97) % (y1 - y0), y = y0 + sp;
+    line(Lc, [[x, y], [x - 10, y + 40]], { w: 3, col: K.blue, p: .8, seed: 1280 + i, wob: .2 }); }
+}
+// yatak
+export function yatak(F, Lc, x, zemin, d = 1, f = 1) {
+  sekil(F, Lc, kutu(x - 300, zemin - 180, x - 260, zemin), K.brown, d, f, 1290);
+  sekil(F, Lc, kutu(x - 300, zemin - 120, x + 300, zemin - 60), K.brown, d, f, 1292);
+  sekil(F, Lc, yuvarlak(x - 250, zemin - 190, x - 120, zemin - 120, 24), '#f0e8da', d, f, 1294, { p: .35 });
+}
+// yorgan (karakterin üstüne, onu belinden aşağı örter) — KIS grubuna part olarak çizilir
+export function yorgan(C, x, zemin, col) {
+  part(C, smooth([[x - 140, zemin - 150], [x + 300, zemin - 160], [x + 310, zemin - 60], [x - 150, zemin - 60]], 4), { col, p: .85, gap: 8, w: 10, seed: 1296 }, { w: 6, seed: 1297 });
+}
+// dişçi koltuğu (yatık)
+export function disKoltugu(F, Lc, x, zemin, d = 1, f = 1) {
+  sekil(F, Lc, kutu(x - 20, zemin - 120, x + 20, zemin), K.gray, d, f, 1300, { p: .7 });
+  sekil(F, Lc, smooth([[x - 220, zemin - 260], [x - 150, zemin - 170], [x + 200, zemin - 150], [x + 210, zemin - 110], [x - 170, zemin - 120], [x - 250, zemin - 230]], 3), K.mint, d, f, 1302);
+  // lamba kolu
+  line(Lc, [[x + 160, zemin - 150], [x + 170, zemin - 520], [x - 40, zemin - 560]], { w: 7, col: K.gray, seed: 1304, draw: d });
+  sekil(F, Lc, ellipse(x - 60, zemin - 545, 46, 26, 20), K.yellow, d, f, 1306);
+}
+// defter (açık, karalanmış sayfalar)
+export function defter(F, Lc, cx, cy, o = {}) {
+  const w = o.w ?? 340, h = o.h ?? 230, d = o.d ?? 1;
+  sekil(F, Lc, kutu(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2), '#efe6cf', d, d, 1310, { p: .5 });
+  line(Lc, [[cx, cy - h / 2], [cx, cy + h / 2]], { w: 4, seed: 1312, draw: d });
+  if (o.karalama) for (let i = 0; i < 6; i++) { const y = cy - h / 2 + 30 + i * 32; line(Lc, [[cx - w / 2 + 20, y], [cx - 30, y + (i % 2 ? 6 : -4)]], { w: 3, col: K.blue, seed: 1314 + i, draw: d });
+    if (i % 2) line(Lc, [[cx - w / 2 + 30, y - 8], [cx - 60, y + 10]], { w: 4, col: K.red, seed: 1320 + i, draw: d }); }
+}
+export { kutu, yuvarlak };
+
+// bulut (pastel), s ölçek
+export function bulut(F, Lc, cx, cy, s = 1, col = '#e4ecf2', d = 1, seed = 1330) {
+  const pts = []; for (let i = 0; i <= 18; i++) { const a = Math.PI * 2 * i / 18; const r = (i % 3 === 0 ? 1.15 : 1) * 70 * s; pts.push([cx + Math.cos(a) * r * 1.7, cy + Math.sin(a) * r * .75]); }
+  sekil(F, Lc, smooth(pts, 3), col, d, d, seed, { p: .7, lw: 5 });
 }

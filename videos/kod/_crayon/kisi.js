@@ -1,5 +1,5 @@
 // Resimli kitap insanı: yuvarlak kafa (~2.4 kafa boy), nokta gözler + beyaz mum parıltı, pembe yanak, tüp kollar, eldiven eller.
-// Yerel koordinat: ayakların ortası (0,0), yukarı eksi. o: { x, y, s, flip, ten, sac:{tip, renk}, ust, onluk, alt, ayakkabi,
+// Yerel koordinat: ayakların ortası (0,0), yukarı eksi. o: { x, y, s, flip, r (radyan), ten, sac:{tip, renk}, ust, onluk, alt, ayakkabi,
 //   ifade, bak (-1..1 yüz yönü), kolL, kolR ({a: derece aşağıdan, b: dirsek bükümü} ya da {el:[x,y]} yerel), oturan, gozluk,
 //   biyik, tut (elde tutulan: 'telefon' | 'makas' | null), seed }
 import { line, fill, dab, ellipse, handCircle, xf, smooth } from './crayon.js';
@@ -10,7 +10,7 @@ const LW = 6.5;
 
 export function kisi(C, o) {
   const sd = o.seed || 300, s = o.s || 1, k = o.flip ? -1 : 1;
-  const P = pts => xf(pts, { x: o.x || 0, y: o.y || 0, s, sx: k });
+  const P = pts => xf(pts, { x: o.x || 0, y: o.y || 0, s, sx: k, r: o.r || 0 });   // r: bütün figür ayak noktası etrafında döner (yatan kişi)
   const lo = (n, e = {}) => ({ w: LW, seed: sd + n, ...e });
   const ten = o.ten || K.peach, ust = o.ust || K.blue, alt = o.alt || '#4a5a7a';
   const fo = (col, n, e = {}) => ({ col, p: .8, gap: 9, w: 11, ang: .55, seed: sd + n, over: 4, ...e });

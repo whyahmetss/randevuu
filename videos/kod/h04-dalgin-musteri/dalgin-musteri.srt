@@ -1,0 +1,23 @@
+1
+00:00:00,600 --> 00:00:04,400
+Murat her şeyi unuturdu.
+
+2
+00:00:07,600 --> 00:00:11,900
+Bir gün önce: “Yarınki Randevunuz.”
+
+3
+00:00:13,200 --> 00:00:17,900
+Bir saat önce: “Gelebilecek misiniz?”
+
+4
+00:00:19,000 --> 00:00:23,400
+On beş dakika kala: “Yola çıktınız mı?”
+
+5
+00:00:24,500 --> 00:00:28,000
+Islandı ama geç kalmadı.
+
+6
+00:00:28,200 --> 00:00:31,800
+Hatırlatmayı SıraGO yapar.
