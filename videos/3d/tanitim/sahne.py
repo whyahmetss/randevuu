@@ -1,16 +1,20 @@
-"""TANITIM (motion graphics) — 3D tipografi + telefon mock-up + süzülen kartlar + logo animasyonu (15 sn, 450 kare)
+"""TANITIM (motion graphics, krem stüdyo) — ürün çekimi gibi telefon + ekrandan fırlayan kartlar + 3D uygulama ikonu
+(15 sn, 450 kare). Yazılar 2D katmanda (altyazi.html); burada yazı yok.
 
   blender -b -P tanitim/sahne.py -- --kareler 30,120 --cikti <klasor> [--ornek 32] [--yuzde 50]
   blender -b -P tanitim/sahne.py -- --hepsi [--bas N --bit M]
 
-ZAMAN ÇİZELGESİ (saniye)
-  0.0–2.2   3D tipografi: "Telefon / susmuyor mu?" derinlikten uçarak gelir, yeşil ışık üstünden geçer
-  2.2–6.2   telefon dönerek gelir; ekranda SıraGO sohbeti; kartlar: "Bugün · 17:00", "Randevunuz Oluşturuldu!"
-  6.2–10.2  telefon bir tur döner (whip) → panel; kartlar: hatırlatma, 3 dil, uygulama indirmek yok
-  10.2–12.2 3D tipografi: "Senin WhatsApp'ından / cevaplar."
-  12.2–15.0 logo: yeşil döşemede tilki + 3D "SıraGO"; altta slogan (2D katman)
+ÇEKİMLER (saniye)
+  0.0–2.2   tepeden: telefon kıvrımlı krem zeminde yüzüstü değil, ekranı yukarı; bildirimler düştükçe titrer
+  2.2–3.0   tek hareket: telefon kalkıp dikilir, kamera tepeden önden ürün kadrajına iner (ekran: sohbet)
+  3.0–6.5   ürün kadrajı, yavaş itme; kartlar ekrandan fırlar ("Bugün · 17:00", "Randevunuz Oluşturuldu!")
+            6.0–6.45 telefon bir tur döner (ekran: panel)
+  6.5–10.2  KESME → sağdan alçak açı; 17:00 Mehmet panele düşer; hatırlatma / 3 dil / uygulama yok kartları
+  10.2–12.3 KESME → boş stüdyo, büyük tipografi (2D)
+  12.3–15.0 3D uygulama ikonu dönerek gelir, gölgesi fona düşer; isim + slogan (2D)
 """
-import bpy, sys, os, math, glob, random
+import bpy, sys, os, math, glob
+from mathutils import Vector
 BURA = os.path.dirname(os.path.abspath(__file__))
 KOK = os.path.join(BURA, "..")
 sys.path.insert(0, os.path.join(KOK, "ortak"))
@@ -25,115 +29,103 @@ s = sn
 TOPLAM = 450
 sc = sahne_hazirla(TOPLAM, ornek=int(al("--ornek", 48)), gorunum="Khronos PBR Neutral", bakis="None")
 sc.render.resolution_percentage = int(al("--yuzde", 100))
-dunya("#05090a", 0.08, sis=0.0025, sis_renk="#dfeee5")
-FONT = bpy.data.fonts.load(os.path.join(KOK, "ortak", "font", "BricolageGrotesque-ExtraBold.ttf"))
+sc.render.use_motion_blur = True
+if hasattr(sc.render, "motion_blur_position"):
+    sc.render.motion_blur_position = "START"      # kesme karesi bir önceki çekimle karışmasın
+sc.render.motion_blur_shutter = 0.5
+dunya("#fbf4e8", 0.3)
 
 
-def kolay(o, yol, kareler, ara="BEZIER", easing="AUTO"):
-    anahtar(o, yol, kareler)
+def kf(o, yol, liste):
+    """liste: (kare, değer[, ara, easing]) — her anahtarın kendi geçişi (ara: BEZIER/EXPO/BACK/CONSTANT…)."""
+    for it in liste:
+        v = [R(a) for a in it[1]] if yol == "rotation_euler" else it[1]
+        setattr(o, yol, v)
+        o.keyframe_insert(yol, frame=it[0])
+    ayar = {it[0]: (it[2] if len(it) > 2 else "BEZIER", it[3] if len(it) > 3 else "AUTO") for it in liste}
     for fc in egriler(o):
         if fc.data_path == yol:
             for k in fc.keyframe_points:
-                k.interpolation, k.easing = ara, easing
+                a = ayar.get(round(k.co.x))
+                if a:
+                    k.interpolation, k.easing = a
 
 
-# ------------------------------------------------------------------ STÜDYO: koyu kıvrımlı fon, yeşil kenar ışıkları, bokeh
-m_fon = mat("studyo", "#07100c", 0.7)
-bpy.ops.mesh.primitive_plane_add(size=1, location=(0, 4, 0))
-fon = bpy.context.object
-fon.scale = (14, 10, 1)
-fon.data.materials.append(m_fon)
-kutu("fon_duvar", (14, 0.1, 9), (0, 6.5, 4.5), m_fon, 0)
-kutu("fon_zemin", (14, 12, 0.1), (0, 1, -0.05), m_fon, 0)
-rnd = random.Random(7)
-for i in range(46):   # derinlikte yeşil ve sıcak bokeh noktaları
-    renk = "#2bd36a" if i % 3 else "#ffcf94"
-    kure(f"bokeh{i}", rnd.uniform(0.02, 0.05), (rnd.uniform(-3.5, 3.5), rnd.uniform(4.5, 6.2), rnd.uniform(0.3, 4.2)),
-         isik_mat(f"bokeh_m{i % 3}", renk, 4.0 if i % 3 else 3.0), 10)
-isik("ana", "AREA", (-2.2, -3.0, 3.2), (0, 0, 1.4), 230, "#fff1e2", 2.6)
-isik("dolgu", "AREA", (2.4, -3.2, 1.2), (0, 0, 1.4), 90, "#c8dcff", 3.0)
-for x in (-2.6, 2.6):
-    isik(f"kenar{x}", "AREA", (x, 1.2, 2.2), (0, 0, 1.4), 160, "#2bd36a", 0.6)
-isik("tepe", "AREA", (0, 0.5, 4.5), (0, 0, 1.2), 90, "#eef6f0", 3.0)
-supur = isik("supurme", "AREA", (-3, -1.2, 2.0), (0, 0, 1.4), 0, "#bff5d2", 0.4, boyut_y=3.0)
-for f, x, e in ((s(0.6), -2.6, 0), (s(0.7), -2.6, 900), (s(1.6), 2.6, 900), (s(1.7), 2.6, 0),
-                (s(13.0), -2.6, 0), (s(13.1), -2.6, 280), (s(13.9), 2.6, 280), (s(14.0), 2.6, 0)):
-    supur.location.x, supur.data.energy = x, e
-    supur.keyframe_insert("location", index=0, frame=f)
-    supur.data.keyframe_insert("energy", frame=f)
-
-m_krem = mat("yazi_krem", "#ebe3d5", 0.32, coat=0.3)
-m_yesil = mat("yazi_yesil", "#2bd36a", 0.32, coat=0.3, emis="#2bd36a", emis_guc=0.3)
-m_yesil_k = mat("yazi_yesil_koyu", "#1f6f4a", 0.35, coat=0.5)
+def goster(o, bas, bit=None):
+    """Nesne (ve çocukları) yalnız [bas, bit) karelerinde render'da görünür."""
+    for n in [o] + list(o.children_recursive):
+        for f, gizli in [(1, bas > 1), (bas, False)] + ([(bit, True)] if bit else []):
+            n.hide_render = gizli
+            n.keyframe_insert("hide_render", frame=f)
 
 
-def yazi(ad, metin, loc, boyut, m, derinlik=0.08, hiza="CENTER"):
-    bpy.ops.object.text_add(location=loc, rotation=(R(90), 0, 0))
-    o = bpy.context.object
-    o.name = ad
-    d = o.data
-    d.body, d.font, d.size, d.align_x, d.align_y = metin, FONT, boyut, hiza, "CENTER"
-    d.extrude, d.bevel_depth, d.bevel_resolution = derinlik, 0.012, 3
-    d.materials.append(m)
-    return o
+# ------------------------------------------------------------------ STÜDYO: kıvrımlı krem fon (ufuk çizgisi yok)
+m_fon = mat("fon", "#efe6d8", 0.85)
 
 
-def uc_gel(o, bas, sure=0.6, kaynak=(0, 3.2, 0.4), don=70):
-    """Derinlikten dönerek yerine oturur (ölçek + konum + dönüş)."""
-    hedef = tuple(o.location)
-    kolay(o, "location", [(s(bas), (hedef[0] + kaynak[0], hedef[1] + kaynak[1], hedef[2] + kaynak[2])),
-                          (s(bas + sure), hedef)], "BACK", "EASE_OUT")
-    kolay(o, "rotation_euler", [(s(bas), (90 + don, 0, 0)), (s(bas + sure), (90, 0, 0))], "BACK", "EASE_OUT")
-    gorunur(o, [(1, False), (s(bas), True)])
+def siklorama(m, duvar_y=0.75, r=0.6):
+    profil = [(y, 0.0) for y in (-8, -2, duvar_y - r)]
+    for i in range(1, 12):
+        a = math.radians(90 * i / 12)
+        profil.append((duvar_y - r + r * math.sin(a), r - r * math.cos(a)))
+    profil += [(duvar_y, r), (duvar_y, 4), (duvar_y, 9)]
+    v = [(x, y, z) for x in (-10, 10) for y, z in profil]
+    n = len(profil)
+    me = bpy.data.meshes.new("siklorama")
+    me.from_pydata(v, [], [(i, i + 1, n + i + 1, n + i) for i in range(n - 1)])
+    me.materials.append(m)
+    for p in me.polygons:
+        p.use_smooth = True
+    o = bpy.data.objects.new("siklorama", me)
+    sc.collection.objects.link(o)
 
 
-def uc_git(o, bas, sure=0.35, yon=(0, -3.5, 1.2)):
-    hedef = tuple(o.location)
-    kolay(o, "location", [(s(bas), hedef), (s(bas + sure), (hedef[0] + yon[0], hedef[1] + yon[1], hedef[2] + yon[2]))],
-          "QUAD", "EASE_IN")
+siklorama(m_fon)
+isik("ana", "AREA", (-1.9, -2.5, 2.9), (0, 0.4, 1.4), 520, "#fff6ea", 1.1)   # yumuşak softbox, gölge fona düşer
+isik("dolgu", "AREA", (2.2, -2.4, 1.4), (0, 0, 1.4), 90, "#f3f6ff", 2.0)
+isik("kenar", "AREA", (1.4, 0.6, 2.4), (0, 0, 1.4), 60, "#ffffff", 0.5)
+isik("tepe", "AREA", (-1.6, 1.3, 3.0), (0, 0, 0), 220, "#fff6ea", 1.4)      # 1. çekim: yerdeki telefonu aydınlatır
 
+# ------------------------------------------------------------------ TELEFON
 
-# ------------------------------------------------------------------ 1 · Tipografi kancası
-t1 = yazi("t_telefon", "Telefon", (0, 0, 1.8), 0.44, m_krem)
-t2 = yazi("t_susmuyor", "susmuyor mu?", (0, 0, 1.3), 0.38, m_yesil)
-uc_gel(t1, 0.0)
-uc_gel(t2, 0.15)
-gorunur(t1, [(1, True)])           # ilk karede yazı görünür (kanca)
-gorunur(t2, [(1, True)])
-for o, b in ((t1, 2.0), (t2, 2.05)):
-    uc_git(o, b)
-    gorunur(o, [(s(2.5), False)])
-
-# ------------------------------------------------------------------ 2–3 · Telefon mock-up
 EK = sorted(glob.glob(os.path.join(BURA, "katmanlar", "ekran", "kare_*.png")))
-tel = O.telefon("telefon", (0, 0, 1.38), rot=(90, 0, 0), ekran_yolu=EK[0] if EK else None, dizi=(TOPLAM, 1),
-                parlaklik=1.05)
-tel.scale = (6.2,) * 3
-kolay(tel, "location", [(s(2.2), (0, 0.6, -1.4)), (s(3.0), (0, 0, 1.38))], "BACK", "EASE_OUT")
-kolay(tel, "rotation_euler", [(s(2.2), (90, 0, 200)), (s(3.0), (90, 0, -8)), (s(5.8), (90, 0, 6)),
-                              (s(6.05), (90, 0, 6)), (s(6.5), (90, 0, -354)), (s(9.8), (90, 0, -364))])
-for f in range(s(3.2), s(10.0), 12):   # hafif süzülme
-    tel.location.z = 1.38 + 0.025 * math.sin(f / 9)
-    tel.keyframe_insert("location", index=2, frame=f)
-kolay(tel, "location", [(s(10.1), (0, 0, 1.38)), (s(10.55), (0, 3.5, 0.6))], "QUAD", "EASE_IN")
-gorunur(tel, [(1, False), (s(2.2), True), (s(10.6), False)])
+OLC = 9.25
+YER_Z = O.TEL2_K / 2 * OLC
+YER_Y = -0.75                       # yerdeki telefon fonun kıvrımından önde
+tel = O.telefon2("telefon", (0, 0, YER_Z), ekran_yolu=EK[0] if EK else None, dizi=(TOPLAM, 1), parlaklik=1.0)
+tel.scale = (OLC,) * 3
+for n in bpy.data.materials["telefon_ekran_m"].node_tree.nodes:   # cam yansıması yazıyı yakmasın
+    if n.type == "FRESNEL":
+        n.inputs[0].default_value = 1.18
+# 1. çekim: yerde; bildirimlerle titrer
+tel.location, tel.rotation_euler = (0, YER_Y, YER_Z), (0, 0, R(-6))
+for b in (0.2, 0.85, 1.45):
+    titret(tel, s(b), s(b) + 9, genlik=0.012, aci=1.6, tohum=int(b * 10))
+# kalkış → ürün kadrajı → tur → 3. çekim duruşu
+kf(tel, "location", [(s(2.2), (0, YER_Y, YER_Z), "EXPO", "EASE_IN_OUT"), (s(3.0), (0, 0, 1.38)),
+                     (s(4.6), (0, 0, 1.40)), (s(6.0), (0, 0, 1.38)), (s(8.2), (0, 0, 1.40)), (s(10.1), (0, 0, 1.38))])
+kf(tel, "rotation_euler", [(s(2.2), (0, 0, -6), "EXPO", "EASE_IN_OUT"), (s(3.0), (90, 0, -16)),
+                           (s(6.0), (90, 0, -12), "EXPO", "EASE_IN_OUT"), (s(6.45), (90, 0, 374)),
+                           (s(10.2), (90, 0, 380))])
+goster(tel, 1, s(10.2))
 
 
-def kart_mat(n):
+# ------------------------------------------------------------------ KARTLAR: ekrandan fırlar (gölgesi dokuda)
+def kart_mat(n, yol):
     m = bpy.data.materials.new(f"kart{n}")
     m.use_nodes = True
     nt = m.node_tree
     nt.nodes.clear()
     tex = nt.nodes.new("ShaderNodeTexImage")
-    tex.image = bpy.data.images.load(os.path.join(BURA, "katmanlar", f"kart_{n}.png"))
+    tex.image = bpy.data.images.load(yol)
     tex.interpolation = "Cubic"
     em = nt.nodes.new("ShaderNodeEmission")
-    em.inputs[1].default_value = 0.95
+    em.inputs[1].default_value = 0.92
     sd = nt.nodes.new("ShaderNodeBsdfPrincipled")
     sd.inputs["Roughness"].default_value = 0.2
     sd.inputs["Coat Weight"].default_value = 1.0
     mix = nt.nodes.new("ShaderNodeMixShader")
-    mix.inputs[0].default_value = 0.25
+    mix.inputs[0].default_value = 0.2
     sh = nt.nodes.new("ShaderNodeMixShader")
     sa = nt.nodes.new("ShaderNodeBsdfTransparent")
     out = nt.nodes.new("ShaderNodeOutputMaterial")
@@ -150,67 +142,80 @@ def kart_mat(n):
     return m
 
 
-def kart(n, loc, giris, cikis, yan=-1, egim=6):
-    bpy.ops.mesh.primitive_plane_add(size=1, location=loc, rotation=(R(90), 0, R(yan * -egim)))
+KART_OLCEK = (0.54 * 980 / 900, 0.18 * 380 / 300, 1)
+
+
+def kart(n, hedef, yaw, giris, cikis, olcek=1.0):
+    """Telefon ekranının önünden küçük başlar, yerine yaylanarak oturur, hafif süzülür; kesmede kaybolur."""
+    bpy.ops.mesh.primitive_plane_add(size=1, location=hedef, rotation=(R(90), 0, R(yaw)))
     p = bpy.context.object
     p.name = f"kart{n}"
-    p.scale = (0.72, 0.24, 1)
-    p.data.materials.append(kart_mat(n))
-    hedef = tuple(p.location)
-    kolay(p, "location", [(s(giris), (hedef[0] + yan * 1.2, hedef[1] - 0.6, hedef[2])), (s(giris + 0.45), hedef)],
-          "BACK", "EASE_OUT")
-    for f in range(s(giris + 0.5), s(cikis), 10):
-        p.location.z = hedef[2] + 0.018 * math.sin(f / 7 + n)
-        p.keyframe_insert("location", index=2, frame=f)
-    kolay(p, "location", [(s(cikis), hedef), (s(cikis + 0.3), (hedef[0] + yan * 2.4, hedef[1] - 1.0, hedef[2]))],
-          "QUAD", "EASE_IN")
-    gorunur(p, [(1, False), (s(giris), True), (s(cikis + 0.32), False)])
+    p.data.materials.append(kart_mat(n, os.path.join(BURA, "katmanlar", f"kartg_{n}", "t_0.00.png")))
+    tam = tuple(k * olcek for k in KART_OLCEK)
+    bas = (hedef[0] * 0.3, -0.08, hedef[2] * 0.85 + 1.38 * 0.15)
+    kf(p, "location", [(s(giris), bas, "BACK", "EASE_OUT"), (s(giris + 0.55), hedef)]
+       + [(f, (hedef[0], hedef[1], hedef[2] + 0.012 * math.sin(f / 8 + n))) for f in range(s(giris + 0.7), cikis, 12)])
+    kf(p, "scale", [(s(giris), tuple(k * 0.25 for k in tam), "BACK", "EASE_OUT"), (s(giris + 0.55), tam)])
+    goster(p, s(giris), cikis)
     return p
 
 
-kart(1, (-0.12, -0.55, 2.14), 3.3, 6.0, yan=-1)       # telefonun üstünde
-kart(2, (0.12, -0.6, 0.66), 4.7, 6.0, yan=1)          # telefonun altında
-kart(3, (-0.12, -0.55, 2.14), 6.9, 10.0, yan=-1)
-kart(4, (0.03, -0.7, 1.12), 7.7, 10.0, yan=1, egim=10)  # yanda, panelin alt boşluğunda
-kart(5, (-0.04, -0.6, 0.64), 8.5, 10.0, yan=-1)
+kart(1, (-0.2, -0.42, 2.0), 8, 3.3, s(6.5))
+kart(2, (0.2, -0.5, 0.86), -8, 4.7, s(6.5))
+kart(3, (-0.13, -0.5, 1.98), 20, 6.9, s(10.2), 0.9)
+kart(4, (-0.2, -0.62, 1.38), 22, 7.7, s(10.2), 0.9)
+kart(5, (-0.12, -0.55, 0.8), 20, 8.5, s(10.2), 0.9)
 
-# ------------------------------------------------------------------ 4 · Tipografi: "Senin WhatsApp'ından / cevaplar."
-t3 = yazi("t_senin", "Senin", (0, 0, 2.15), 0.44, m_krem)
-t4 = yazi("t_wa", "WhatsApp'ından", (0, 0, 1.6), 0.35, m_yesil)
-t5 = yazi("t_cevaplar", "cevaplar.", (0, 0, 1.05), 0.44, m_krem)
-for o, b in ((t3, 10.3), (t4, 10.42), (t5, 10.54)):
-    uc_gel(o, b)
-    uc_git(o, 12.0, yon=(0, -3.5, -1.0))
-    gorunur(o, [(s(12.5), False)])
+# ------------------------------------------------------------------ 3D UYGULAMA İKONU (kapanış)
+ikon = bos("ikon", (0, 0, 1.78), None, (90, 0, 0))
+IK = 0.5
+m_ikon_yan = mat("ikon_yan", "#1cc463", 0.3, coat=0.8)
+O._plaka("ikon_govde", IK, IK, IK * 0.225, 0.07, m_ikon_yan, -0.07, ikon, bevel=0.012)
+m_yuz = resim_mat("ikon_yuz", os.path.join(KOK, "..", "..", "maskot", "marka", "uygulama-ikonu-1024.png"),
+                  emisyon=0.92)   # ikon renkleri ışıkta solmasın
+O._plaka("ikon_yuz", IK - 0.006, IK - 0.006, IK * 0.222, 0.0005, m_yuz, 0.0002, ikon, uv=True)
+kf(ikon, "location", [(s(12.3), (0, 0.9, 1.5), "BACK", "EASE_OUT"), (s(13.0), (0, 0, 1.78)),
+                      (s(15.0), (0, 0, 1.81))])
+kf(ikon, "rotation_euler", [(s(12.3), (90, 0, -95), "BACK", "EASE_OUT"), (s(13.0), (90, 0, 0)),
+                            (s(14.0), (91.5, 0, 3)), (s(15.0), (90, 0, 1))])
+goster(ikon, s(12.3))
 
-# ------------------------------------------------------------------ 5 · Logo: yeşil döşeme + tilki + 3D "SıraGO"
-logo = bos("logo", (0, 0, 1.62))
-kutu("logo_doseme", (0.78, 0.14, 0.78), (0, 0.07, 0), m_yesil_k, 0.18, seg=6, ebeveyn=logo)
-bpy.ops.mesh.primitive_plane_add(size=1, location=(0, -0.002, 0), rotation=(R(90), 0, 0))
-tilki = bpy.context.object
-tilki.scale = (0.62, 0.62, 1)
-tilki.data.materials.append(resim_mat("logo_tilki", os.path.join(KOK, "..", "..", "maskot", "tilki-logo-seffaf.png"),
-                                      isik=False, rough=0.4))
-tilki.parent = logo
-kolay(logo, "rotation_euler", [(s(12.3), (0, 0, -180)), (s(12.95), (0, 0, 0))], "BACK", "EASE_OUT")
-kolay(logo, "location", [(s(12.3), (0, 1.5, 1.2)), (s(12.95), (0, 0, 1.62))], "BACK", "EASE_OUT")
-gorunur(logo, [(1, False), (s(12.3), True)])
-isim = yazi("logo_yazi", "SıraGO", (0, 0, 0.9), 0.56, m_krem, derinlik=0.1)
-isim.data.materials.append(m_yesil)
-for i in (4, 5):                     # "GO" parlak yeşil (koyu zemin logosu)
-    isim.data.body_format[i].material_index = 1
-uc_gel(isim, 12.6, kaynak=(0, 2.5, -0.3), don=-60)
-
-# ------------------------------------------------------------------ KAMERA: yavaş itme + hafif yörünge
-kam = kamera("kamera", (0, -3.9, 1.5), (0, 0, 1.42), lens=38, fstop=3.2)
-# telefon bölümünde (2.2–10.2 sn) kamera yaklaşır: mock-up kadrajın yarısını doldurur, odak da onunla gelir
-KAM = [(1, (0.0, -3.9, 1.5)), (s(2.2), (0.0, -3.6, 1.48)), (s(3.1), (0.0, -2.85, 1.45)), (s(6.2), (0.1, -2.75, 1.45)),
-       (s(10.1), (-0.1, -2.8, 1.45)), (s(10.6), (0.0, -3.55, 1.5)), (s(12.2), (0.0, -3.7, 1.48)), (TOPLAM, (0.0, -3.45, 1.46))]
-kolay(kam, "location", KAM)
-for f, (x, y, z) in KAM:
-    kam.data.dof.focus_distance = -y
-    kam.data.dof.keyframe_insert("focus_distance", frame=f)
+# ------------------------------------------------------------------ KAMERA
+kam = kamera("kamera", (0, -1.2, 2.45), (0, -0.57, 0), lens=40, fstop=2.8, yukari=(0, 1, 0))
 sc.camera = kam
+_onceki = [None]
+
+
+def poz(f, loc, hedef, ara="BEZIER", easing="AUTO", yukari=None):
+    kam.location = loc
+    bak(kam, hedef, yukari)
+    if _onceki[0] is not None:
+        e = kam.rotation_euler.copy()
+        e.make_compatible(_onceki[0])
+        kam.rotation_euler = e
+    _onceki[0] = kam.rotation_euler.copy()
+    kam.keyframe_insert("location", frame=f)
+    kam.keyframe_insert("rotation_euler", frame=f)
+    kam.data.dof.focus_distance = (Vector(hedef) - Vector(loc)).length
+    kam.data.dof.keyframe_insert("focus_distance", frame=f)
+    for fc in egriler(kam):
+        if fc.data_path in ("location", "rotation_euler"):
+            for k in fc.keyframe_points:
+                if round(k.co.x) == f:
+                    k.interpolation, k.easing = ara, easing
+
+
+UST = (0, 1, 0)
+poz(1, (0, -1.2, 2.45), (0, -0.57, 0), yukari=UST)
+poz(s(2.2), (0.03, -1.15, 2.3), (0, -0.57, 0), "EXPO", "EASE_IN_OUT", yukari=UST)
+poz(s(3.0), (0, -2.75, 1.62), (0, 0, 1.62))
+poz(s(6.48), (0.05, -2.45, 1.6), (0, 0, 1.6), "CONSTANT")                  # kesme
+poz(s(6.5), (0.75, -2.5, 1.3), (-0.17, 0, 1.42))
+poz(s(10.18), (0.55, -2.6, 1.36), (-0.17, 0, 1.42), "CONSTANT")                # kesme
+poz(s(10.2), (0, -2.9, 1.62), (0, 0.75, 1.62))
+poz(s(12.28), (0, -2.75, 1.62), (0, 0.75, 1.62), "CONSTANT")               # kesme
+poz(s(12.3), (0, -2.85, 1.62), (0, 0, 1.62))
+poz(TOPLAM, (0, -2.6, 1.62), (0, 0, 1.62))
 
 # ------------------------------------------------------------------ ÇIKTI
 cikti = os.path.abspath(al("--cikti", os.path.join(BURA, "kareler")))
@@ -223,10 +228,7 @@ if "--hepsi" in arg:
     sc.render.use_overwrite = False
     bpy.ops.render.render(animation=True)
 elif al("--kareler"):
-    import time
     for f in [int(x) for x in al("--kareler").split(",")]:
         sc.frame_set(f)
         sc.render.filepath = os.path.join(cikti, f"kare_{f:04d}.png")
-        t = time.perf_counter()
         bpy.ops.render.render(write_still=True)
-        print(f"KARE {f}: {time.perf_counter() - t:.1f} sn")

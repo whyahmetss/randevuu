@@ -1,14 +1,62 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8">
-<link rel="stylesheet" href="../ortak/hikaye.css">
+<!-- Tanıtım yazı katmanı (krem stüdyo): düz, keskin tipografi; kelimeler maske içinden alttan çıkar.
+     Inter Tight (gövde) + Instrument Serif italik (vurgu). Seslendirme satırlarıyla aynı anlarda. -->
+<link rel="stylesheet" href="../../../tasarim/fontlar/fontlar.css">
 <script src="../ortak/zaman.js"></script>
 <style>
-  .slogan { position: absolute; left: 70px; right: 70px; top: 1470px; text-align: center; font-family: 'Bricolage Grotesque';
-    font-weight: 800; font-size: 62px; line-height: 1.08; letter-spacing: -1.2px; color: #fbf4e8; }
-  .slogan i { font-style: normal; color: #2bd36a; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+  body { font-family: 'Inter', sans-serif; color: #13271c; -webkit-font-smoothing: antialiased; }
+  .blok { position: absolute; left: 60px; right: 60px; text-align: center; }
+  .satir { display: block; overflow: hidden; padding: 0 10px 14px; margin-bottom: -14px; }
+  .satir > span { display: inline-block; margin: 0 .12em; }
+  .govde { font-family: 'Inter Tight'; font-weight: 700; letter-spacing: -.04em; line-height: 1.02; }
+  .vurgu { font-family: 'Instrument Serif'; font-style: italic; font-weight: 400; color: #1f6f4a; letter-spacing: -.01em;
+    line-height: 1.0; }
+  .etiket { font: 700 26px/1 'Inter'; letter-spacing: .2em; text-transform: uppercase; color: #1f6f4a; margin-bottom: 30px; }
+
+  .s1 { top: 190px; } .s1 .govde { font-size: 128px; } .s1 .vurgu { font-size: 150px; }
+  .s2 { top: 200px; } .s2 .govde { font-size: 88px; } .s2 .vurgu { font-size: 104px; }
+  .s4 { top: 640px; } .s4 .govde { font-size: 150px; } .s4 .vurgu { font-size: 158px; }
+  .s5 { top: 1110px; }
+  .marka { font-family: 'Inter Tight'; font-weight: 800; font-size: 136px; letter-spacing: -5px; line-height: 1; }
+  .marka i { font-style: normal; color: #1f6f4a; }
+  .slogan .govde { font-size: 54px; letter-spacing: -1.4px; font-weight: 600; }
+  .slogan .vurgu { font-size: 64px; }
+  .slogan { margin-top: 34px; }
 </style>
 </head>
 <body data-total="15">
-<!-- Tanıtım: yazıların çoğu 3D; burada yalnız kapanış sloganı -->
-<div class="slogan golge" data-gir="13.4" data-efekt="yukari" data-sure="0.5">Sen işine bak.<br><i>Randevuyu SıraGO yazsın.</i></div>
+<!-- 1 · kanca -->
+<div class="blok s1" data-sahne="0-2.3">
+  <div data-gir="0" data-cik="2.05" data-efekt="yer">
+    <span class="satir govde"><span data-gir="0.12" data-efekt="maske" data-sure="0.55">Telefon</span></span>
+    <span class="satir vurgu"><span data-gir="0.32" data-efekt="maske" data-sure="0.55">susmuyor</span><span data-gir="0.46" data-efekt="maske" data-sure="0.55">mu?</span></span>
+  </div>
+</div>
+<!-- 2 · çözüm -->
+<div class="blok s2" data-sahne="2.8-6.3">
+  <div data-gir="0" data-cik="6.05" data-efekt="yer">
+    <div class="etiket" data-gir="2.9" data-efekt="bulanik" data-sure="0.6">WhatsApp randevu asistanı</div>
+    <span class="satir govde"><span data-gir="3.0" data-efekt="maske" data-sure="0.55">Boş</span><span data-gir="3.1" data-efekt="maske" data-sure="0.55">saati</span><span data-gir="3.2" data-efekt="maske" data-sure="0.55">söyler,</span></span>
+    <span class="satir vurgu"><span data-gir="3.45" data-efekt="maske" data-sure="0.55">randevuyu</span><span data-gir="3.58" data-efekt="maske" data-sure="0.55">yazar.</span></span>
+  </div>
+</div>
+<!-- 4 · tipografi -->
+<div class="blok s4" data-sahne="10.2-12.3">
+  <div data-gir="0" data-cik="12.05" data-efekt="yer">
+    <span class="satir govde"><span data-gir="10.3" data-efekt="maske" data-sure="0.55">Senin</span></span>
+    <span class="satir vurgu"><span data-gir="10.48" data-efekt="maske" data-sure="0.55">WhatsApp'ından</span></span>
+    <span class="satir govde"><span data-gir="10.66" data-efekt="maske" data-sure="0.55">cevaplar.</span></span>
+  </div>
+</div>
+<!-- 5 · kapanış: ikon 3D sahnede; altında isim + slogan -->
+<div class="blok s5" data-sahne="12.3-99">
+  <div class="marka" data-gir="12.85" data-efekt="bulanik" data-sure="0.7">Sıra<i>GO</i></div>
+  <div class="slogan">
+    <span class="satir govde"><span data-gir="13.3" data-efekt="maske" data-sure="0.55">Sen</span><span data-gir="13.38" data-efekt="maske" data-sure="0.55">işine</span><span data-gir="13.46" data-efekt="maske" data-sure="0.55">bak.</span></span>
+    <span class="satir vurgu"><span data-gir="13.62" data-efekt="maske" data-sure="0.55">Randevuyu</span><span data-gir="13.72" data-efekt="maske" data-sure="0.55">SıraGO</span><span data-gir="13.82" data-efekt="maske" data-sure="0.55">yazsın.</span></span>
+  </div>
+</div>
 </body></html>

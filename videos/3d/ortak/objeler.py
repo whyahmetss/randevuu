@@ -255,3 +255,89 @@ def havlu_yigini(ad, loc, renkler=("#f4f1ec", "#e8e1d6", RENK["yesil_koyu"]), eb
         kutu(f"{ad}_{i}", (0.26, 0.2, 0.06), (0, 0, 0.03 + i * 0.062), mat(f"havlu_{r}", r, 0.95, sheen=1.0), 0.025,
              ebeveyn=kok, rot=(0, 0, (i - 1) * 4))
     return kok
+
+
+# ---------------------------------------------------------------- gerçekçi telefon (tanıtım mock-up'ı)
+
+def _yuvarlak_kose(w, h, r, n=12):
+    """Köşeleri r yarıçaplı dikdörtgenin kenar noktaları (saat yönü tersine)."""
+    pts = []
+    for cx, cy, a0 in ((w / 2 - r, h / 2 - r, 0), (-w / 2 + r, h / 2 - r, 90),
+                       (-w / 2 + r, -h / 2 + r, 180), (w / 2 - r, -h / 2 + r, 270)):
+        for i in range(n + 1):
+            a = math.radians(a0 + 90 * i / n)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def _plaka(ad, w, h, r, kal, m, z, ebeveyn, bevel=0.0, uv=False):
+    """Yuvarlak köşeli plaka (alt yüzü z'de). uv=True: üst yüze 0–1 UV (ekran dokusu)."""
+    import bmesh
+    bm = bmesh.new()
+    pts = _yuvarlak_kose(w, h, r)
+    alt = [bm.verts.new((x, y, z)) for x, y in pts]
+    ust = [bm.verts.new((x, y, z + kal)) for x, y in pts]
+    bm.faces.new(alt[::-1])
+    ust_yuz = bm.faces.new(ust)
+    n = len(pts)
+    for i in range(n):
+        bm.faces.new((alt[i], alt[(i + 1) % n], ust[(i + 1) % n], ust[i]))
+    if uv:
+        katman = bm.loops.layers.uv.new("UVMap")
+        for f in bm.faces:
+            for l in f.loops:
+                l[katman].uv = (l.vert.co.x / w + 0.5, l.vert.co.y / h + 0.5)
+    me = bpy.data.meshes.new(ad)
+    bm.to_mesh(me)
+    bm.free()
+    for p in me.polygons:
+        p.use_smooth = True
+    if hasattr(me, "set_sharp_from_angle"):
+        me.set_sharp_from_angle(angle=math.radians(35))
+    me.materials.append(m)
+    o = bpy.data.objects.new(ad, me)
+    bpy.context.scene.collection.objects.link(o)
+    o.parent = ebeveyn
+    if bevel:
+        b = o.modifiers.new("bevel", "BEVEL")
+        b.width, b.segments, b.limit_method, b.angle_limit = bevel, 4, "ANGLE", math.radians(35)
+        b.harden_normals = False
+    return o
+
+
+# Gerçek ölçüler (m): 6.1" sınıfı telefon, ekran 1080×2340 oranında
+TEL2_EKR_G = 0.0672
+TEL2_EKR_Y = TEL2_EKR_G * 2340 / 1080
+TEL2_CERCEVE = 0.0019
+TEL2_G, TEL2_Y, TEL2_K = TEL2_EKR_G + 2 * TEL2_CERCEVE, TEL2_EKR_Y + 2 * TEL2_CERCEVE, 0.0083
+
+
+def telefon2(ad, loc, rot=(0, 0, 0), ekran_yolu=None, dizi=None, parlaklik=1.0, renk="#2e3033"):
+    """Ekran +Z'ye bakan, üstü +Y olan gerçekçi telefon: titanyum çerçeve, ince siyah çerçeve,
+    yuvarlak köşeli ekran, ada (dynamic island), yan tuşlar, arkada kamera adası. Pivot gövde ortası."""
+    kok = bos(ad, loc, None, rot)
+    m_cer = mat(f"{ad}_titanyum", renk, 0.3, metal=1.0)
+    m_arka = mat(f"{ad}_arka_cam", "#26282b", 0.42, coat=0.6)
+    m_on = mat(f"{ad}_on_cam", "#040405", 0.06, coat=1.0)
+    m_lens = mat(f"{ad}_lens", "#0b0c10", 0.05, metal=0.3, coat=1.0)
+    K = TEL2_K
+    _plaka(f"{ad}_govde", TEL2_G, TEL2_Y, 0.0105, K, m_cer, -K / 2, kok, bevel=0.0014)
+    _plaka(f"{ad}_arka", TEL2_G - 0.0012, TEL2_Y - 0.0012, 0.0099, 0.0003, m_arka, -K / 2 - 0.0002, kok)
+    _plaka(f"{ad}_on", TEL2_G - 0.0010, TEL2_Y - 0.0010, 0.0100, 0.0003, m_on, K / 2 - 0.0001, kok)
+    m_ekr = resim_mat(f"{ad}_ekran_m", ekran_yolu, emisyon=parlaklik, dizi=dizi) if ekran_yolu else \
+        mat("ekran_kapali", "#050607", 0.08, coat=1)
+    ekran = _plaka(f"{ad}_ekran", TEL2_EKR_G, TEL2_EKR_Y, 0.0088, 0.00002, m_ekr, K / 2 + 0.00021, kok, uv=True)
+    ada_g, ada_y = 0.32 * TEL2_EKR_G, 0.0063
+    ada = _plaka(f"{ad}_ada", ada_g, ada_y, ada_y / 2 - 0.00001, 0.00002, m_on, K / 2 + 0.00025, kok)
+    ada.location.y = TEL2_EKR_Y / 2 - 0.0035 - ada_y / 2
+    # yan tuşlar (sağ: güç; sol: eylem + ses ±)
+    for i, (x, y, uz) in enumerate(((1, 0.022, 0.016), (-1, 0.036, 0.006), (-1, 0.022, 0.011), (-1, 0.008, 0.011))):
+        kutu(f"{ad}_tus{i}", (0.0012, uz, 0.0034), (x * (TEL2_G / 2 + 0.0004), y, 0), m_cer, 0.0005, seg=3, ebeveyn=kok)
+    # arka kamera adası + 3 lens
+    _plaka(f"{ad}_kamada", 0.032, 0.033, 0.0075, 0.0012, m_arka, -K / 2 - 0.0013, kok).location = (
+        -TEL2_G / 2 + 0.019, TEL2_Y / 2 - 0.0195, 0)
+    for j, (lx, ly) in enumerate(((-0.007, 0.0075), (-0.007, -0.0075), (0.0075, 0.0))):
+        silindir(f"{ad}_lens{j}", 0.0052, 0.0016, (-TEL2_G / 2 + 0.019 + lx, TEL2_Y / 2 - 0.0195 + ly, -K / 2 - 0.0018),
+                 m_lens, ebeveyn=kok)
+    kok["ekran"] = ekran.name
+    return kok

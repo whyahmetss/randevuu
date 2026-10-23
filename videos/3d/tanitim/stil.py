@@ -22,7 +22,7 @@ sc = sahne_hazirla(1, ornek=int(al("--ornek", 32)), gorunum="Khronos PBR Neutral
 sc.render.resolution_percentage = int(al("--yuzde", 100))
 
 FON = {"A": "#efe6d8", "B": "#0b0f0d", "C": "#1f6f4a"}[STIL]
-dunya({"A": "#fbf4e8", "B": "#050807", "C": "#2a7a55"}[STIL], {"A": 0.55, "B": 0.03, "C": 0.35}[STIL])
+dunya({"A": "#fbf4e8", "B": "#050807", "C": "#2a7a55"}[STIL], {"A": 0.3, "B": 0.03, "C": 0.35}[STIL])
 m_fon = mat("fon", FON, 0.85 if STIL != "B" else 0.6)
 
 
@@ -48,11 +48,11 @@ def siklorama(m, duvar_y=1.2, r=0.9):
     return o
 
 
-siklorama(m_fon)
+siklorama(m_fon, *((0.75, 0.6) if STIL == "A" else ()))
 
 # ------------------------------------------------------------------ ışık
 if STIL == "A":
-    isik("ana", "AREA", (-1.8, -2.2, 3.4), (0, 0.4, 1.4), 420, "#fff6ea", 2.4)     # büyük yumuşak softbox
+    isik("ana", "AREA", (-1.9, -2.5, 2.9), (0, 0.4, 1.4), 520, "#fff6ea", 1.1)     # büyük yumuşak softbox
     isik("dolgu", "AREA", (2.2, -2.4, 1.4), (0, 0, 1.4), 90, "#f3f6ff", 2.0)
     isik("kenar", "AREA", (1.4, 0.6, 2.4), (0, 0, 1.4), 60, "#ffffff", 0.5)
 elif STIL == "B":
@@ -67,8 +67,11 @@ else:
 # ------------------------------------------------------------------ telefon + kartlar
 EK = os.path.join(BURA, "katmanlar", "ekran", "kare_0160.png")
 if SAHNE == "kahraman":
-    tel = O.telefon("telefon", (0, 0, 1.38), rot=(90, 0, -16), ekran_yolu=EK, parlaklik=1.0)
-    tel.scale = (6.2,) * 3
+    tel = O.telefon2("telefon", (0, 0, 1.38), rot=(90, 0, -16), ekran_yolu=EK, parlaklik=1.0)
+    tel.scale = (9.25,) * 3
+    for n in bpy.data.materials["telefon_ekran_m"].node_tree.nodes:   # cam yansıması yazıyı yakmasın
+        if n.type == "FRESNEL":
+            n.inputs[0].default_value = 1.18
     koyu = STIL == "B"
 
 
@@ -105,10 +108,10 @@ if SAHNE == "kahraman":
 
     def kart(n, loc, yaw):
         yol = os.path.join(BURA, "katmanlar", f"kart_koyu_{n}", "t_0.00.png") if koyu else \
-            os.path.join(BURA, "katmanlar", f"kart_{n}.png")
+            os.path.join(BURA, "katmanlar", f"kartg_{n}", "t_0.00.png")
         bpy.ops.mesh.primitive_plane_add(size=1, location=loc, rotation=(R(90), 0, R(yaw)))
         p = bpy.context.object
-        p.scale = (0.54, 0.18, 1)
+        p.scale = (0.54 * 980 / 900, 0.18 * 380 / 300, 1) if not koyu else (0.54, 0.18, 1)
         p.data.materials.append(kart_mat(n, yol))
         return p
 

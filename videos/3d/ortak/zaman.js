@@ -1,11 +1,13 @@
 // Kare kare belirlenimci zaman çizelgesi (CSS animasyonu yok; her kare zaman(t) ile kurulur).
 //   data-sahne="bas-bit"        → [bas, bit) aralığında görünür (saniye)
 //   data-gir="t" data-efekt=... → t anında girer: pop | yukari | asagi | sol | sag | sol-kay (yalnız opaklık: sön)
+//                                 maske (kelime alttan, overflow:hidden kutudan çıkar) | bulanik (odaktan gelir)
 //   data-cik="t"                → t anında söner
 //   data-kay="t1:px,t2:px,..."  → dikey kaydırma (translateY), aralarda yumuşak
 (function () {
   const yumusak = x => x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.pow(1 - x, 3);
   const yay = x => { if (x <= 0) return 0; if (x >= 1) return 1; const c = 1.70158 * 1.2; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  const expo = x => x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
   const SURE = 0.32;
   window.zaman = function (t) {
     document.querySelectorAll('[data-sahne]').forEach(el => {
@@ -21,6 +23,10 @@
       if (ef === 'asagi') tr = `translateY(${(1 - yay(p)) * -160}px)`;
       if (ef === 'sol') tr = `translateX(${(1 - yay(p)) * -80}px)`;
       if (ef === 'sag') tr = `translateX(${(1 - yay(p)) * 80}px)`;
+      if (ef === 'maske') { op = t >= g ? 1 : 0; tr = `translateY(${(1 - expo(p)) * 110}%)`; }
+      let fl = '';
+      if (ef === 'bulanik') { op = yumusak(p * 1.4); fl = `blur(${(1 - expo(p)) * 16}px)`; tr = `scale(${1.06 - 0.06 * expo(p)})`; }
+      el.style.filter = fl;
       if (el.dataset.cik) op *= 1 - yumusak((t - +el.dataset.cik) / 0.25);
       el.style.opacity = op;
       el.style.transform = tr;
