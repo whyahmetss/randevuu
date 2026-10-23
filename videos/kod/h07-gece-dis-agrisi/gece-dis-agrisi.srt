@@ -1,0 +1,23 @@
+1
+00:00:00,700 --> 00:00:04,700
+Gece üç. Kerem’in dişi zonkluyor.
+
+2
+00:00:05,200 --> 00:00:09,600
+Klinik kapalı. Ama mesajı cevaplandı.
+
+3
+00:00:10,000 --> 00:00:14,200
+Sabah dokuza randevusu yazıldı.
+
+4
+00:00:14,600 --> 00:00:18,000
+Kerem sonunda uyudu.
+
+5
+00:00:18,800 --> 00:00:23,200
+Sabah dokuzda koltuktaydı.
+
+6
+00:00:24,000 --> 00:00:28,600
+Klinik kapalıyken de randevu yazılır.

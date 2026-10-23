@@ -1,0 +1,27 @@
+1
+00:00:00,600 --> 00:00:04,600
+Fatma Hanım hep defter tutardı.
+
+2
+00:00:05,000 --> 00:00:09,600
+Elif telefonu gösterdi. Annesi: “Hıh.”
+
+3
+00:00:09,800 --> 00:00:14,600
+Mesajlar geldi; randevular yazıldı.
+
+4
+00:00:14,800 --> 00:00:18,400
+Müşteriler saatinde geldi.
+
+5
+00:00:18,800 --> 00:00:23,200
+Akşam telefona baktı. Hepsi oradaydı.
+
+6
+00:00:23,600 --> 00:00:27,600
+Defter rafa kalktı.
+
+7
+00:00:27,800 --> 00:00:31,800
+Randevuyu SıraGO yazsın.
