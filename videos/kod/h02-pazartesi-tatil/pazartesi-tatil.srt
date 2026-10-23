@@ -1,0 +1,19 @@
+1
+00:00:00,400 --> 00:00:05,300
+Pazartesi. Dükkân kapalı, Usta gölde.
+
+2
+00:00:08,200 --> 00:00:12,300
+Telefon titredi. Usta bakmadı.
+
+3
+00:00:12,400 --> 00:00:18,800
+Cevabı SıraGO verdi; Salı’ya randevu yazdı.
+
+4
+00:00:19,400 --> 00:00:23,400
+Balık da geldi.
+
+5
+00:00:23,400 --> 00:00:28,000
+Kapalı günde bile randevu yazılır.
