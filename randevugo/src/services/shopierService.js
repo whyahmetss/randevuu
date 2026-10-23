@@ -143,13 +143,11 @@ class ShopierService {
   // Shopier HS256 HMAC ile imzalar, header: Shopier-Signature
   webhookDogrula(rawBody, signatureHeader) {
     if (!this.webhookToken || !signatureHeader) return false;
-    const computed = crypto
-      .createHmac('sha256', this.webhookToken)
-      .update(rawBody)
-      .digest('hex');
-    const a = Buffer.from(computed, 'hex');
-    const b = Buffer.from(String(signatureHeader), 'hex');
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
+    const mac = crypto.createHmac('sha256', this.webhookToken).update(rawBody).digest();
+    // Başlık hex ya da base64 olabilir, "sha256=" önekiyle gelebilir
+    const ham = String(signatureHeader).trim().replace(/^sha256=/i, '');
+    const adaylar = [/^[0-9a-f]{64}$/i.test(ham) ? Buffer.from(ham, 'hex') : null, Buffer.from(ham, 'base64')].filter(Boolean);
+    return adaylar.some(b => b.length === mac.length && crypto.timingSafeEqual(mac, b));
   }
 
   // ─── Webhook: order.created işle ───
@@ -174,13 +172,26 @@ class ShopierService {
 
     // Ürün bilgilerinden referans kodunu bul (ürün başlığında SRGO-XX var)
     const urunBaslik = order.lineItems?.[0]?.title || '';
-    const urunId = order.lineItems?.[0]?.id || null;
+    // Satırdaki ürün kimliği: productId (yoksa eski varsayım: id)
+    const satir = order.lineItems?.[0] || {};
+    const urunId = satir.productId || satir.product?.id || satir.id || null;
     const tutar = parseFloat(order.totals?.grandTotal || '0');
     const aliciEmail = order.shippingAddress?.email || '';
     const aliciTelefon = order.shippingAddress?.phone || '';
     const siparisNotu = order.note || '';
 
     console.log(`📦 Shopier sipariş geldi: #${siparisId} - ${urunBaslik} - ${tutar}₺ - ${aliciEmail}`);
+
+    // Süper admin bu ödemeyi bildirim gelmeden elle onayladıysa (✓ Öde) ikinci kez işlenmez: yalnız sipariş no yazılır
+    if (urunId) {
+      const elle = (await pool.query(
+        "SELECT id FROM odemeler WHERE shopier_urun_id::text = $1 AND durum = 'odendi' AND shopier_siparis_id IS NULL", [String(urunId)])).rows[0];
+      if (elle) {
+        await pool.query('UPDATE odemeler SET shopier_siparis_id = $1 WHERE id = $2', [siparisId, elle.id]);
+        console.log(`ℹ️ Shopier sipariş #${siparisId} zaten elle onaylanmıştı`);
+        return { islem: 'zaten_islenmis', elle: true };
+      }
+    }
 
     // ─── KAPORA KONTROLÜ ───
     // Ürün başlığı "Kapora -" ile başlıyorsa, bu bir randevu kapora ödemesi
@@ -245,6 +256,12 @@ class ShopierService {
         [urunId]
       )).rows[0];
       if (pendingOdeme) isletmeId = pendingOdeme.isletme_id;
+    }
+
+    // Ürünle değil referans/e-posta/telefonla eşleştiyse de işletmenin seçtiği paket uygulanır (eskiden paket yükselmiyordu)
+    if (isletmeId && !bekleyenPaket) {
+      const b = (await pool.query('SELECT bekleyen_paket, bekleyen_sure, bekleyen_kupon_id FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+      if (b?.bekleyen_paket) { bekleyenPaket = b.bekleyen_paket; bekleyenSure = b.bekleyen_sure; bekleyenKuponId = b.bekleyen_kupon_id; }
     }
 
     const buAy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
@@ -385,5 +402,30 @@ class ShopierService {
     return { islem: 'basarili', isletmeId, siparisId, tutar };
   }
 }
+
+// Süper admin "✓ Öde" (Shopier bildirimi gelmediğinde): ödeme başlatılırken seçilen paket ve süre uygulanır,
+// Öncü sırası ve "ödemeniz alındı" bildirimi webhook'takiyle aynı. Admin onayladığı için tutar kontrolü yok.
+// Bekleyen paket yoksa eski davranış (+30 gün). → { paket, gun }
+ShopierService.prototype.elleOnayla = async function (isletmeId, tutar) {
+  const i = (await pool.query('SELECT paket, bekleyen_paket, bekleyen_sure, bekleyen_shopier_urun_id FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+  if (!i) return null;
+  const gun = i.bekleyen_paket && i.bekleyen_sure === 'yil' ? 365 : 30;
+  await pool.query(
+    `UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + make_interval(days => $3),
+       aktif = true, paket = COALESCE($2, paket), bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL, bekleyen_sure = NULL, bekleyen_kupon_id = NULL,
+       son_odeme_sure = CASE WHEN $3 >= 365 THEN 'yil' ELSE 'ay' END WHERE id = $1`,
+    [isletmeId, i.bekleyen_paket || null, gun]);
+  const paket = i.bekleyen_paket || i.paket;
+  try {
+    const { paketGetir } = require('../config/paketler');
+    const no = await require('../utils/oncu').oncuOdeme(isletmeId, paket, (await paketGetir(paket)).fiyat);
+    if (no) console.log(`🏆 Öncü Esnaf #${no}: işletme ${isletmeId}`);
+  } catch (e) { console.error('Öncü atama hatası:', e.message); }
+  try { require('./odemeOtomasyon').odemeAlindiBildir(isletmeId, tutar); } catch (e) { /* bildirim opsiyonel */ }
+  try { socketServer.emitToIsletme(isletmeId, 'odeme:onaylandi', { isletme_id: isletmeId, tutar, yontem: 'elle' }); } catch (e) {}
+  if (i.bekleyen_shopier_urun_id) this.urunSil(i.bekleyen_shopier_urun_id).catch(() => {});
+  console.log(`✅ Ödeme elle onaylandı: işletme=${isletmeId}, paket=${paket}, ${gun} gün`);
+  return { paket, gun };
+};
 
 module.exports = new ShopierService();

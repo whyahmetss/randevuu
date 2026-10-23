@@ -1267,13 +1267,10 @@ class AdminController {
         `UPDATE odemeler SET durum = $1::varchar, odeme_tarihi = CASE WHEN $2::boolean THEN NOW() ELSE odeme_tarihi END WHERE id = $3 RETURNING *`,
         [durum, durum === 'odendi', req.params.id]
       );
-      if (durum === 'odendi' && result.rows[0]) {
+      if (durum === 'odendi' && result.rows[0]?.isletme_id) {
+        // Kalan günler korunur; ödeme başlatılırken seçilen paket (Standart, yıllık…) de uygulanır (eskiden yalnız +30 gün)
         const odeme = result.rows[0];
-        await pool.query(
-          // Kalan günler silinmesin: mevcut bitiş gelecekteyse onun üzerine ekle
-          "UPDATE isletmeler SET paket_bitis_tarihi = GREATEST(COALESCE(paket_bitis_tarihi, NOW()), NOW()) + INTERVAL '30 days' WHERE id = $1",
-          [odeme.isletme_id]
-        );
+        await shopierService.elleOnayla(odeme.isletme_id, parseFloat(odeme.tutar) || 0);
       }
       try { await this.auditLogYaz(req.kullanici, `odeme_${durum}`, `Ödeme #${req.params.id} durumu: ${durum}`, 'odemeler', parseInt(req.params.id), require('../utils/istemciIp').istemciIp(req)); } catch(e) {}
       res.json({ odeme: result.rows[0] });
