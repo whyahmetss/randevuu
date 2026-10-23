@@ -1,0 +1,31 @@
+1
+00:00:00,300 --> 00:00:04,650
+Dükkân kapandı. Mesajlar kapanmadı.
+
+2
+00:00:04,750 --> 00:00:09,250
+SıraGO senin WhatsApp'ından cevap verir.
+
+3
+00:00:09,350 --> 00:00:13,400
+Boş saati bilir, randevuyu yazar.
+
+4
+00:00:15,150 --> 00:00:19,350
+Randevu panele kendiliğinden düşer.
+
+5
+00:00:19,450 --> 00:00:23,500
+Randevudan önce hatırlatır.
+
+6
+00:00:23,800 --> 00:00:27,600
+Müşteri “Geliyorum” der.
+
+7
+00:00:34,250 --> 00:00:37,800
+Sen sadece işine bakarsın.
+
+8
+00:00:37,850 --> 00:00:42,500
+Sen işine bak. Randevuyu SıraGO yazsın.

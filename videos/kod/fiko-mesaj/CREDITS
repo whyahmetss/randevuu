@@ -1,0 +1,13 @@
+Fiko ve Mesaj — kullanılan varlıklar
+
+Yazı tipleri
+- Inter — Rasmus Andersson, SIL Open Font License 1.1 (fonts/inter-*.woff2, tasarim/fontlar'dan)
+- Geist — The Geist Project Authors, SIL Open Font License 1.1 (fonts/Geist.ttf, fonts/OFL-Geist.txt; github.com/google/fonts/ofl/geist)
+
+Görseller
+- SıraGO uygulama ikonu ve Fiko — SıraGO'nun kendi markası (maskot/marka/uygulama-ikonu-1024.png)
+- Arayüzler — SıraGO esnaf paneli (admin-panel) ve bot metinleri (randevugo) koddan yeniden çizildi; WhatsApp logosu kullanılmadı
+
+Ses
+- Müzik ve foley — kodla sentezlendi (mix.py), örnek kütüphanesi yok
+- Ambiyans "gece" ve "dükkân" — ElevenLabs ses efekti API'siyle SıraGO için üretildi (videos/3d/ses/efekt)
