@@ -1,0 +1,12 @@
+Arapça Mesaj — kullanılan varlıklar
+
+Yazı tipleri
+- Caveat — Impallari Type, SIL Open Font License 1.1 (_eskiz/fonts/OFL-Caveat.txt)
+- Arapça satırlar: sistem yazı tipi (Segoe UI / Tahoma), yalnız oynatma sırasında çizim için
+
+Kod
+- Kalem + suluboya motoru (_eskiz/engine.js, poses.js): Lemo-Opuscar urban-sketch örneğinden, MIT lisansı
+
+Ses
+- Müzik ve foley kodla sentezlendi (_crayon/muzik.py, mix.py)
+- Ambiyans ve kapı zili: ElevenLabs ses efekti API'siyle SıraGO için üretildi (videos/3d/ses/efekt)

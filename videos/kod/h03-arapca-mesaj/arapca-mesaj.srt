@@ -1,0 +1,19 @@
+1
+00:00:00,400 --> 00:00:04,600
+Usta Arapça bilmez.
+
+2
+00:00:05,000 --> 00:00:09,600
+Yasmin dükkâna Arapça yazdı.
+
+3
+00:00:12,800 --> 00:00:17,600
+SıraGO ona Arapça cevap verdi.
+
+4
+00:00:18,200 --> 00:00:22,400
+Randevu panele Türkçe düştü.
+
+5
+00:00:22,600 --> 00:00:28,400
+Müşterinin dilinde cevap, senin panelinde randevu.
