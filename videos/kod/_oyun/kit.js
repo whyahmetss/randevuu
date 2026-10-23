@@ -88,7 +88,7 @@ export function kart(p, no, ad, col, col2) {
   zemin(g, col, 'isin', col2);
   const pl = plaka(g, 820, 560, K.cream, { r: 60 }); tf(pl, 540, 900);
   gtext(g, no, 540, 790, 96, { fill: K.yellow });
-  const h = harfler(g, ad, 540, 980, ad.length > 12 ? 92 : 120, { fill: K.white });
+  const h = harfler(g, ad, 540, 980, Math.min(120, 700 / (olc(ad, 100) / 100)), { fill: K.white });   // başlık karta sığsın
   return (t, t0) => { const k = E.back(seg(t, t0, t0 + .35)); tf(pl, 540, 900, k); h(t, t0 + .2); };
 }
 // karar kelimesi: açılı, kocaman, patlar

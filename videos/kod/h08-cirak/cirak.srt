@@ -1,0 +1,15 @@
+1
+00:00:02,200 --> 00:00:05,900
+Çırak herkese “Tamam” dedi.
+
+2
+00:00:06,100 --> 00:00:09,800
+Saat beş: üç kişi, bir koltuk.
+
+3
+00:00:12,200 --> 00:00:17,800
+SıraGO dolu saati bilir, boşu önerir.
+
+4
+00:00:18,000 --> 00:00:21,900
+Herkes kendi saatinde.

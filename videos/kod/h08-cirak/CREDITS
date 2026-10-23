@@ -1,0 +1,11 @@
+Çırak — kullanılan varlıklar
+
+Yazı tipi
+- Rubik — Hubert & Fischer, SIL Open Font License 1.1 (_oyun/fonts/OFL-Rubik.txt)
+
+Kod
+- Ritim oyunu seti (_oyun/kit.js): Lemo-Opuscar game-show stilinden yöntem öğrenilerek SıraGO için yeniden yazıldı (MIT)
+
+Ses
+- Müzik ve foley tamamen sentez (_oyun/ses.py, _crayon/muzik.py, mix.py)
+- Ambiyans ve kapı zili: ElevenLabs ses efekti API'siyle SıraGO için üretildi (videos/3d/ses/efekt)
