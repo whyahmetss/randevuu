@@ -21,7 +21,8 @@ function panelGoruldu(k) {
 }
 
 const authMiddleware = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+  // Anahtar yalnız başlıktan (2026-10-26): adres satırındaki anahtar erişim loglarına ve tarayıcı geçmişine düşer
+  const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ hata: 'Token bulunamadı' });
 
   try {
@@ -31,20 +32,22 @@ const authMiddleware = async (req, res, next) => {
     // JWT eski olabilir — admin_kullanicilar'dan fresh rol + grup_id çek
     // (özellikle grup kurma sonrası: rol 'admin' → 'grup_sahibi' güncellenmiş olur)
     if (decoded.rol !== 'superadmin' && decoded.id) {
+      let k;
       try {
-        const k = (await pool.query('SELECT rol, grup_id FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
-        if (k) {
-          if (k.rol) req.kullanici.rol = k.rol;
-          if (k.grup_id) req.kullanici.grup_id = k.grup_id;
-        }
-      } catch (e) { /* ignore — JWT değerleri kullanılmaya devam eder */ }
+        k = (await pool.query('SELECT rol, grup_id, aktif FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
+      } catch (e) { return res.status(503).json({ hata: 'Yetki kontrol edilemedi' }); }
+      // Silinen ya da kapatılan hesabın eski anahtarı geçmez (2026-10-26: satır yoksa anahtardaki rolle 7 gün devam ediliyordu)
+      if (!k || k.aktif === false) return res.status(401).json({ hata: 'Hesap kapatılmış' });
+      if (k.rol) req.kullanici.rol = k.rol;
+      if (k.grup_id) req.kullanici.grup_id = k.grup_id;
     }
 
     // Ekip üyesi (süper admin): yetkiler ve aktiflik her istekte DB'den — kapatılan hesap anında düşer
     if (decoded.rol === 'superadmin' && decoded.id) {
       try {
-        const k = (await pool.query('SELECT aktif, ekip_yetkileri, ekip_gorev, patron FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
-        if (!k || k.aktif === false) return res.status(401).json({ hata: 'Hesap kapatılmış' });
+        const k = (await pool.query('SELECT rol, aktif, ekip_yetkileri, ekip_gorev, patron FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
+        // Rolü sonradan düşürülen hesabın eski süper admin anahtarı da geçmez
+        if (!k || k.aktif === false || k.rol !== 'superadmin') return res.status(401).json({ hata: 'Hesap kapatılmış' });
         req.kullanici.ekip_yetkileri = Array.isArray(k.ekip_yetkileri) ? k.ekip_yetkileri : null;
         req.kullanici.ekip_gorev = k.ekip_gorev || null;
         req.kullanici.patron = k.patron === true;
@@ -84,7 +87,7 @@ const authMiddleware = async (req, res, next) => {
         if (isletme && isletme.grup_id && !req.kullanici.grup_id) {
           req.kullanici.grup_id = isletme.grup_id;
         }
-      } catch (e) { /* DB hatası durumunda engelleme */ }
+      } catch (e) { return res.status(503).json({ hata: 'Yetki kontrol edilemedi' }); }
     }
 
     panelGoruldu(req.kullanici);

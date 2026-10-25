@@ -7,7 +7,7 @@ const { hazirla, SRC } = require('./yardimci');
 const ortam = (async () => {
   const o = await hazirla(`
     CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, aktif BOOLEAN DEFAULT true, demo BOOLEAN DEFAULT false, grup_id INT, getiren_id INT, bayi_id INT);
-    CREATE TABLE admin_kullanicilar (id SERIAL PRIMARY KEY, isim TEXT, email TEXT, rol TEXT, isletme_id INT, grup_id INT);
+    CREATE TABLE admin_kullanicilar (id SERIAL PRIMARY KEY, isim TEXT, email TEXT, rol TEXT, isletme_id INT, grup_id INT, aktif BOOLEAN DEFAULT true);
     CREATE TABLE randevular (id SERIAL, isletme_id INT);
     CREATE TABLE bayiler (id SERIAL PRIMARY KEY, isim TEXT, firma TEXT);
     INSERT INTO admin_kullanicilar (isim, email, rol) VALUES ('Ahmet', 'a@x', 'superadmin');
