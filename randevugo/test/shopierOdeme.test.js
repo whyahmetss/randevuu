@@ -15,6 +15,7 @@ async function ortam() {
       paket_bitis_tarihi TIMESTAMP, deneme_bitis_tarihi TIMESTAMP, son_odeme_sure VARCHAR(5), bekleyen_paket TEXT, bekleyen_shopier_urun_id TEXT,
       bekleyen_sure TEXT, bekleyen_kupon_id INT, oncu_no INT, kilitli_paket TEXT, kilitli_fiyat NUMERIC,
       referans_ile_gelen INT, referans_odeme_tetiklendi BOOLEAN DEFAULT false);
+    CREATE TABLE shopier_islenen_siparisler (siparis_id TEXT PRIMARY KEY, olusturma TIMESTAMPTZ DEFAULT NOW());
     CREATE TABLE odemeler (id SERIAL PRIMARY KEY, isletme_id INT, tutar NUMERIC, donem TEXT, durum TEXT, odeme_yontemi TEXT, odeme_tarihi TIMESTAMP,
       shopier_siparis_id TEXT, shopier_urun_id TEXT, referans_kodu TEXT, kupon_kodu TEXT, olusturma_tarihi TIMESTAMP DEFAULT NOW());
     CREATE UNIQUE INDEX odemeler_isletme_donem ON odemeler (isletme_id, donem) WHERE isletme_id IS NOT NULL;
@@ -74,4 +75,43 @@ test('webhook imzası: hex, base64 ve "sha256=" önekli kabul; yanlışı red', 
   assert.equal(shopier.webhookDogrula(govde, 'sha256=' + mac.toString('hex')), true);
   assert.equal(shopier.webhookDogrula(govde, crypto.createHmac('sha256', 'baska').update(govde).digest('hex')), false);
   assert.equal(shopier.webhookDogrula(govde, 'bozuk'), false);
+});
+
+// Rapor doğrulaması (2026-10-26): ön kontrol ile yazım ayrıydı. Aynı bildirim eşzamanlı gelince iki kez işleniyordu;
+// ay içinde ikinci ödeme shopier_siparis_id'yi ezdiği için ilk siparişin tekrar gelen bildirimi de yeniden işleniyordu.
+const siparis = (id, tutar = '499.00') => ({ id, paymentStatus: 'paid', lineItems: [{ id: 'satir-' + id, title: 'SıraGO Standart Paket [SRGO-1]' }], totals: { grandTotal: tutar } });
+
+test('aynı sipariş eşzamanlı iki kez gelirse yalnız bir kez işlenir', async () => {
+  const { db, shopier } = await ortam();
+  const sonuc = await Promise.all([shopier.siparisGeldi(siparis(5)), shopier.siparisGeldi(siparis(5))]);
+  assert.deepEqual(sonuc.map(r => r.islem).sort(), ['basarili', 'zaten_islenmis']);
+  assert.equal(Number((await db.query('SELECT tutar FROM odemeler WHERE id = 1')).rows[0].tutar), 499);
+  const bitis = new Date((await isletme(db)).paket_bitis_tarihi).getTime();
+  assert.ok(Math.abs(bitis - (Date.now() + 30 * 864e5)) < 864e5, 'süre bir kez uzar');
+});
+
+test('ay içinde ikinci ödemeden sonra ilk siparişin bildirimi tekrar gelirse işlenmez', async () => {
+  const { db, shopier } = await ortam();
+  assert.equal((await shopier.siparisGeldi(siparis(5))).islem, 'basarili');
+  assert.equal((await shopier.siparisGeldi(siparis(6))).islem, 'basarili');
+  const once = (await db.query('SELECT tutar FROM odemeler WHERE id = 1')).rows[0].tutar;
+  const bitisOnce = (await isletme(db)).paket_bitis_tarihi;
+  assert.equal((await shopier.siparisGeldi(siparis(5))).islem, 'zaten_islenmis');
+  assert.equal((await db.query('SELECT tutar FROM odemeler WHERE id = 1')).rows[0].tutar, once);
+  assert.equal(String((await isletme(db)).paket_bitis_tarihi), String(bitisOnce));
+});
+
+test('işleme hata verirse sipariş kilitli kalmaz, sonraki bildirim işlenir', async () => {
+  const { db, shopier } = await ortam();
+  await db.query('ALTER TABLE odemeler RENAME TO odemeler_yedek');
+  await assert.rejects(shopier.siparisGeldi(siparis(7)));
+  await db.query('ALTER TABLE odemeler_yedek RENAME TO odemeler');
+  assert.equal((await shopier.siparisGeldi(siparis(7))).islem, 'basarili');
+});
+
+test('deploy anı: kilit tablosu henüz yoksa bildirim yine işlenir', async () => {
+  const { db, shopier } = await ortam();
+  await db.query('DROP TABLE shopier_islenen_siparisler');
+  assert.equal((await shopier.siparisGeldi(siparis(8))).islem, 'basarili');
+  assert.equal((await db.query('SELECT durum FROM odemeler WHERE id = 1')).rows[0].durum, 'odendi');
 });

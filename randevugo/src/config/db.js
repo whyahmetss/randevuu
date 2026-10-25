@@ -54,6 +54,21 @@ const isTransient = (err) => {
   );
 };
 
+// Bağlantı hiç kurulamadı: sorgu sunucuya gitmedi, her sorgu güvenle tekrarlanır
+const BAGLANAMADI_KOD = new Set(['ENOTFOUND', 'ENETUNREACH', 'ECONNREFUSED', '57P03', '08001', '08004']);
+const baglanamadi = (err) => {
+  if (BAGLANAMADI_KOD.has(err.code)) return true;
+  const msg = String(err.message || '').toLowerCase();
+  return msg.includes('could not connect') || msg.includes('when trying to connect') || msg.includes('due to connection timeout');
+};
+// Yan etkisi olmayan sorgu: düz SELECT (kilit, sayaç ve yazım içermeyen)
+const okumaMi = (sql) => /^\s*select\b/i.test(sql) && !/\b(insert|update|delete|nextval|setval|pg_advisory\w*|for\s+update)\b/i.test(sql);
+
+// Sorgu yoldayken bağlantı koptuysa (2026-10-26) yazım sunucuda tamamlanmış olabilir; tekrar denemek çift kayıt
+// üretir. Bu durumda yalnız okumalar tekrarlanır, yazım hatası çağırana gider.
+const tekrarDenenebilir = (err, sorgu) =>
+  baglanamadi(err) || (isTransient(err) && okumaMi(typeof sorgu === 'string' ? sorgu : sorgu?.text || ''));
+
 const originalQuery = pool.query.bind(pool);
 
 pool.query = async (...args) => {
@@ -63,7 +78,7 @@ pool.query = async (...args) => {
       return await originalQuery(...args);
     } catch (err) {
       lastErr = err;
-      if (!isTransient(err) || attempt === 3) throw err;
+      if (!tekrarDenenebilir(err, args[0]) || attempt === 3) throw err;
       const delay = 200 * attempt * attempt; // 200, 800, 1800 ms
       console.log(`⏳ DB geçici hata (${err.code || err.message}), ${delay}ms sonra yeniden (deneme ${attempt}/3)...`);
       await new Promise(r => setTimeout(r, delay));
@@ -72,4 +87,5 @@ pool.query = async (...args) => {
   throw lastErr;
 };
 
+pool._tekrarDenenebilir = tekrarDenenebilir; // test için
 module.exports = pool;

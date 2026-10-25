@@ -18,7 +18,7 @@ setInterval(() => {
   for (const [key, val] of otpStore) {
     if (now - val.olusturma > OTP_TTL) otpStore.delete(key);
   }
-}, 10 * 60 * 1000);
+}, 10 * 60 * 1000).unref();
 
 // Ad soyad validation — minimum 3 karakter + en az bir harf (sayı/sembol kabul değil)
 function adGecerliMi(isim) {
@@ -410,6 +410,7 @@ class BookingController {
   }
   // POST /api/book/:slug/otp-gonder — Çok kanallı OTP (WhatsApp | Telegram)
   async otpGonder(req, res) {
+    let hak = null, kodGitti = false; // günlük hak ayrıldıysa ve kod gitmediyse sonunda iade edilir
     try {
       const { slug } = req.params;
       const { telefon, kanal } = req.body;  // kanal: 'whatsapp' | 'telegram' (default 'whatsapp')
@@ -432,20 +433,24 @@ class BookingController {
       const storeKey = `${isletme.id}:${telefonTemiz}`;
       const mevcut = otpStore.get(storeKey);
 
-      // Numara başına günlük en fazla 5 kod (işletmeden bağımsız)
-      const gun = new Date().toISOString().slice(0, 10);
+      // Numara başına günlük en fazla 5 kod (işletmeden bağımsız). Gün İstanbul'a göre (UTC'de 03:00'te sıfırlanıyordu).
+      const gun = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
       const ns = otpNumaraSayac.get(telefonTemiz);
       if (ns && ns.gun === gun && ns.sayi >= 5) {
         return res.status(429).json({ hata: 'Bu numaraya bugün çok fazla kod gönderildi. Yarın tekrar deneyin.' });
       }
-      otpNumaraSayac.set(telefonTemiz, ns && ns.gun === gun ? { gun, sayi: ns.sayi + 1 } : { gun, sayi: 1 });
-      if (otpNumaraSayac.size > 50000) otpNumaraSayac.clear();
 
       // Cooldown kontrolü
       if (mevcut && Date.now() - mevcut.olusturma < OTP_COOLDOWN) {
         const kalan = Math.ceil((OTP_COOLDOWN - (Date.now() - mevcut.olusturma)) / 1000);
         return res.status(429).json({ hata: `Lütfen ${kalan} saniye bekleyin.`, cooldown: kalan });
       }
+
+      // Hak bekleme kontrolünden sonra ayrılır (2026-10-26): bekleme süresinde "tekrar gönder"e basmak günlük
+      // hakkı yiyordu. Kontrol ile ayırma arasında await yok; aynı anda gelen istekler de sınırı aşamaz.
+      otpNumaraSayac.set(telefonTemiz, ns && ns.gun === gun ? { gun, sayi: ns.sayi + 1 } : { gun, sayi: 1 });
+      if (otpNumaraSayac.size > 50000) otpNumaraSayac.clear();
+      hak = { telefon: telefonTemiz, gun };
 
       // 6 haneli kod üret
       const kod = String(require('crypto').randomInt(100000, 1000000));
@@ -540,12 +545,17 @@ class BookingController {
 
       // Store'a kaydet
       otpStore.set(storeKey, { kod, olusturma: Date.now(), deneme: 0, kaynak });
+      kodGitti = true;
 
       console.log(`📤 OTP gönderildi (${kaynak}): ${telefonTemiz} → ${isletme.isim}`);
       res.json({ basarili: true, kaynak });
     } catch (error) {
       console.error('❌ OTP gönderme hatası:', error.message);
       res.status(500).json({ hata: 'Doğrulama kodu gönderilemedi' });
+    } finally {
+      // Gitmeyen kod (kanal yok, Telegram bağlı değil, hata) hakkı yemez
+      const s = hak && !kodGitti && otpNumaraSayac.get(hak.telefon);
+      if (s && s.gun === hak.gun && s.sayi > 0) s.sayi--;
     }
   }
 

@@ -28,41 +28,51 @@ async function benzersizSlug(base) {
 class GrupController {
   // POST /api/grup — Grup kur (mevcut işletmeyi ilk şube olarak attach)
   async grupKur(req, res) {
+    const { isim, slug, logo, tanitim, renk_tema } = req.body;
+    if (!isim) return res.status(400).json({ hata: 'Grup ismi zorunlu' });
+
+    const kullaniciId = req.kullanici.id;
+    const isletmeId = req.kullanici.isletme_id;
+    if (!isletmeId) return res.status(400).json({ hata: 'Aktif işletme bulunamadı' });
+
+    // Tek parça (2026-10-26): araya hata girince grup açılmış ama işletme bağlanmamış/rol değişmemiş kalıyordu.
+    // İşletme satırı kilitlenir: aynı anda iki istek iki grup açamaz.
+    const client = await pool.connect();
     try {
-      const { isim, slug, logo, tanitim, renk_tema } = req.body;
-      if (!isim) return res.status(400).json({ hata: 'Grup ismi zorunlu' });
-
-      const kullaniciId = req.kullanici.id;
-      const isletmeId = req.kullanici.isletme_id;
-      if (!isletmeId) return res.status(400).json({ hata: 'Aktif işletme bulunamadı' });
-
-      // Zaten bir gruba bağlı mı?
-      const mevcut = (await pool.query('SELECT grup_id FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
-      if (mevcut?.grup_id) return res.status(400).json({ hata: 'Bu işletme zaten bir gruba bağlı' });
+      await client.query('BEGIN');
+      const mevcut = (await client.query('SELECT grup_id FROM isletmeler WHERE id=$1 FOR UPDATE', [isletmeId])).rows[0];
+      if (mevcut?.grup_id) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ hata: 'Bu işletme zaten bir gruba bağlı' });
+      }
 
       const finalSlug = await benzersizSlug(slugify(slug || isim));
-      const grup = (await pool.query(
+      const grup = (await client.query(
         `INSERT INTO sube_gruplari (isim, slug, sahip_kullanici_id, logo, tanitim, renk_tema)
          VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
         [isim, finalSlug, kullaniciId, logo || null, tanitim || null, renk_tema || '#8B5CF6']
       )).rows[0];
 
       // Mevcut işletmeyi gruba bağla
-      await pool.query('UPDATE isletmeler SET grup_id=$1, sube_etiketi=COALESCE(sube_etiketi, $2) WHERE id=$3',
+      await client.query('UPDATE isletmeler SET grup_id=$1, sube_etiketi=COALESCE(sube_etiketi, $2) WHERE id=$3',
         [grup.id, 'Merkez', isletmeId]);
 
       // Kullanıcıyı grup_sahibi yap
-      await pool.query("UPDATE admin_kullanicilar SET rol='grup_sahibi', grup_id=$1 WHERE id=$2",
+      await client.query("UPDATE admin_kullanicilar SET rol='grup_sahibi', grup_id=$1 WHERE id=$2",
         [grup.id, kullaniciId]);
 
       // Mevcut müşterilere grup_id backfill
-      await pool.query('UPDATE musteriler SET grup_id=$1 WHERE (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2)) AND grup_id IS NULL',
+      await client.query('UPDATE musteriler SET grup_id=$1 WHERE (musteriler.son_gelinen_isletme_id = $2 OR EXISTS (SELECT 1 FROM randevular rx WHERE rx.musteri_id = musteriler.id AND rx.isletme_id = $2)) AND grup_id IS NULL',
         [grup.id, isletmeId]);
 
+      await client.query('COMMIT');
       res.json({ ok: true, grup, mesaj: 'Grup kuruldu. Yeniden giriş yapmanız gerekebilir.' });
     } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
       console.error('grupKur hata:', e.message);
       res.status(500).json({ hata: e.message });
+    } finally {
+      client.release();
     }
   }
 

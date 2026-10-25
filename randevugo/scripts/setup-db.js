@@ -4,6 +4,12 @@ require('dotenv').config();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const setupDB = async () => {
+  // Varsayılan şifre yok (2026-10-26): eskiden ADMIN_PASSWORD verilmezse süper admin 'admin123456' ile açılıyordu
+  const adminSifreAcik = process.env.ADMIN_PASSWORD || '';
+  if (adminSifreAcik.length < 12) {
+    console.error('❌ ADMIN_PASSWORD ortam değişkeni en az 12 karakter olmalı (varsayılan şifre yok).');
+    process.exit(1);
+  }
   console.log('🗄️  RandevuGO Veritabanı kuruluyor...\n');
 
   await pool.query(`
@@ -129,7 +135,7 @@ const setupDB = async () => {
 
   // Super admin oluştur
   const bcrypt = require('bcryptjs');
-  const adminSifre = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123456', 10);
+  const adminSifre = await bcrypt.hash(adminSifreAcik, 10);
   
   await pool.query(`
     INSERT INTO admin_kullanicilar (email, sifre, isim, rol)
@@ -138,8 +144,7 @@ const setupDB = async () => {
   `, [process.env.ADMIN_EMAIL || 'admin@randevugo.com', adminSifre]);
 
   console.log('✅ Super admin oluşturuldu!');
-  console.log(`   Email: ${process.env.ADMIN_EMAIL || 'admin@randevugo.com'}`);
-  console.log(`   Şifre: ${process.env.ADMIN_PASSWORD || 'admin123456'}\n`);
+  console.log(`   Email: ${process.env.ADMIN_EMAIL || 'admin@randevugo.com'} (şifre ADMIN_PASSWORD'dan; ekrana yazılmaz)\n`);
 
   console.log('🎉 RandevuGO veritabanı hazır!\n');
   process.exit(0);

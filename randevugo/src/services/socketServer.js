@@ -42,19 +42,7 @@ function init(httpServer, allowedOrigins = [], corsCheck = null) {
   });
 
   // JWT auth middleware
-  io.use((socket, next) => {
-    try {
-      const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-      const slug = String(socket.handshake.auth?.slug || '');
-      if (!token && /^[a-z0-9-]{1,100}$/.test(slug)) { socket.data.misafir = slug; return next(); }
-      if (!token) return next(new Error('Token yok'));
-      const decoded = jwt.verify(token, jwtSecret);
-      socket.data.kullanici = decoded;
-      return next();
-    } catch (e) {
-      return next(new Error('Geçersiz token'));
-    }
-  });
+  io.use((socket, next) => kimlik(socket).then(() => next(), (e) => next(e)));
 
   io.on('connection', async (socket) => {
     if (socket.data.misafir) { socket.join(`book:${socket.data.misafir}`); return; }
@@ -91,6 +79,26 @@ function init(httpServer, allowedOrigins = [], corsCheck = null) {
 
   console.log('✅ Socket.IO sunucusu başlatıldı');
   return io;
+}
+
+// Bağlantı kimliği: HTTP ile aynı kural (2026-10-26). Anahtar yalnız auth alanından (adres satırı loglara düşer);
+// silinen/kapatılan hesap bağlanamaz; rol veritabanından (rolü düşürülen ekip üyesi süper admin odasına giremez).
+async function kimlik(socket) {
+  const token = socket.handshake.auth?.token;
+  const slug = String(socket.handshake.auth?.slug || '');
+  if (!token && /^[a-z0-9-]{1,100}$/.test(slug)) { socket.data.misafir = slug; return; }
+  if (!token) throw new Error('Token yok');
+  let decoded;
+  try { decoded = jwt.verify(token, jwtSecret); } catch (e) { throw new Error('Geçersiz token'); }
+  const k = (await require('../config/db').query('SELECT rol, aktif FROM admin_kullanicilar WHERE id = $1', [decoded.id])).rows[0];
+  if (!k || k.aktif === false) throw new Error('Hesap kapatılmış');
+  socket.data.kullanici = { ...decoded, rol: k.rol || decoded.rol };
+}
+
+// Hesap kapatılınca/silinince açık canlı bağlantıları da düşür
+function kullaniciDusur(userId) {
+  if (!io || !userId) return;
+  try { io.in(`user:${userId}`).disconnectSockets(true); } catch (e) {}
 }
 
 function getIo() { return io; }
@@ -142,4 +150,6 @@ module.exports = {
   emitToAdmin,
   emitAll,
   emitToBook,
+  kullaniciDusur,
+  _test: { kimlik },
 };

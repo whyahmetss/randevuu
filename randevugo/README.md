@@ -88,7 +88,7 @@ Admin panel React ile yazılmış. `RandevuGO_Admin_Panel.jsx` dosyasını kulla
 
 **Super Admin:**
 - Email: .env'deki ADMIN_EMAIL (varsayılan: admin@randevugo.com)
-- Şifre: .env'deki ADMIN_PASSWORD (varsayılan: admin123456)
+- Şifre: .env'deki ADMIN_PASSWORD (zorunlu, en az 12 karakter; varsayılan yok)
 
 **Demo İşletme (seed çalıştırıldıysa):**
 - Email: ali@berberali.com

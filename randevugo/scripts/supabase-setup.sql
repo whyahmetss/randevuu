@@ -154,7 +154,5 @@ SELECT 'ali@berberali.com', '$2a$10$uVqzyHHYEZBTyh7EMehP4e/na2/cNReowsRsLqzZt12e
 FROM isletmeler WHERE telefon = '05551234567'
 ON CONFLICT (email) DO NOTHING;
 
--- Super admin (şifre: admin123456 → bcrypt hash)
-INSERT INTO admin_kullanicilar (email, sifre, isim, rol)
-VALUES ('admin@randevugo.com', '$2a$10$AgcJQ0IEOR5qkk.zMdwkoe3HyBWUTXirj0RAo5shO9Uf7foRn.zz6', 'Super Admin', 'superadmin')
-ON CONFLICT (email) DO NOTHING;
+-- Super admin burada açılmaz (2026-10-26: herkesin bildiği şifreyle açılıyordu).
+-- ADMIN_PASSWORD verip `npm run db:setup` çalıştırın.

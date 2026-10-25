@@ -81,6 +81,7 @@ class EkipController {
          WHERE id = $6 RETURNING id, isim, email, aktif, ekip_gorev, ekip_yetkileri`,
         [isim ? String(isim).trim() : null, yeniGorev, yeniYetki, yeniAktif,
           sifre ? await bcrypt.hash(String(sifre), 10) : null, id]);
+      if (!yeniAktif) require('../services/socketServer').kullaniciDusur(id);
       kaydet(req, 'ekip_guncelle',
         `${uye.email} · ${GOREVLER[yeniGorev]?.ad || yeniGorev} · ${yeniAktif ? 'aktif' : 'kapalı'}${sifre ? ' · şifre yenilendi' : ''}`);
       res.json({ uye: r.rows[0] });
@@ -97,6 +98,7 @@ class EkipController {
       if (uye.aktif) return hata(res, 'Önce hesabı kapatın, sonra silin');
       await pool.query('UPDATE potansiyel_musteriler SET atanan_id = NULL, atanma_tarihi = NULL WHERE atanan_id = $1', [id]).catch(() => {});
       await pool.query('DELETE FROM admin_kullanicilar WHERE id = $1', [id]);
+      require('../services/socketServer').kullaniciDusur(id);
       kaydet(req, 'ekip_sil', `${uye.email} silindi`);
       res.json({ ok: true });
     } catch (err) { hata(res, 'Üye silinemedi', 500); }
