@@ -26,7 +26,8 @@ const SEMA = `
   CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, telefon TEXT, paket TEXT, grup_id INT, aktif BOOLEAN DEFAULT true, demo BOOLEAN DEFAULT false,
     paket_bitis_tarihi TIMESTAMP, bekleyen_paket TEXT, bekleyen_shopier_urun_id TEXT, bekleyen_sure VARCHAR(5), son_odeme_sure VARCHAR(5),
     oncu_no INT, kilitli_paket TEXT, kilitli_fiyat NUMERIC, referans_ile_gelen INT, referans_odeme_tetiklendi BOOLEAN, bot_konusma_stili TEXT, bot_diller TEXT);
-  CREATE TABLE odemeler (id SERIAL PRIMARY KEY, isletme_id INT, tutar NUMERIC, donem TEXT, durum TEXT, odeme_yontemi TEXT, referans_kodu TEXT,
+  CREATE TABLE shopier_islenen_siparisler (siparis_id TEXT PRIMARY KEY, olusturma TIMESTAMPTZ DEFAULT NOW());
+    CREATE TABLE odemeler (id SERIAL PRIMARY KEY, isletme_id INT, tutar NUMERIC, donem TEXT, durum TEXT, odeme_yontemi TEXT, referans_kodu TEXT,
     shopier_urun_id TEXT, shopier_siparis_id TEXT, odeme_tarihi TIMESTAMP);
   CREATE UNIQUE INDEX ON odemeler (isletme_id, donem) WHERE isletme_id IS NOT NULL;
   CREATE TABLE admin_kullanicilar (id SERIAL PRIMARY KEY, email TEXT, sifre TEXT, isletme_id INT);

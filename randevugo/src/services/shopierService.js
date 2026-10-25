@@ -160,7 +160,35 @@ class ShopierService {
       return { islem: 'atlandı', sebep: 'unpaid' };
     }
 
-    // Zaten işlenmiş mi?
+    // Her sipariş bir kez (2026-10-26): ön kontrol ile yazım ayrıydı, aynı bildirim eşzamanlı gelince ikisi de
+    // geçiyordu; ay içindeki ikinci ödeme shopier_siparis_id'yi ezdiği için ilk siparişin tekrarı da yeniden işleniyordu
+    // (tutar ve paket süresi iki kez). Sipariş numarası benzersiz tabloya yazılır; yazamayan çağrı işlemez.
+    let kilit;
+    try {
+      kilit = await pool.query(
+        'INSERT INTO shopier_islenen_siparisler (siparis_id) VALUES ($1) ON CONFLICT DO NOTHING RETURNING siparis_id', [String(siparisId)]);
+    } catch (e) {
+      // Deploy anında migration bitmeden gelen bildirim kaybolmasın: tablo yoksa eski yolla işlenir
+      if (e.code !== '42P01') throw e;
+      return this._siparisIsle(order);
+    }
+    if (!kilit.rows.length) {
+      console.log(`ℹ️ Shopier sipariş #${siparisId} zaten işlenmiş`);
+      return { islem: 'zaten_islenmis' };
+    }
+    try {
+      return await this._siparisIsle(order);
+    } catch (e) {
+      // Yarım kalan işlem kilitlenmesin: sonraki bildirim (ya da elle yeniden deneme) işleyebilsin
+      await pool.query('DELETE FROM shopier_islenen_siparisler WHERE siparis_id = $1', [String(siparisId)]).catch(() => {});
+      throw e;
+    }
+  }
+
+  async _siparisIsle(order) {
+    const siparisId = order.id;
+
+    // Tablo öncesi işlenmiş siparişler (geriye dönük)
     const zatenVar = (await pool.query(
       "SELECT id FROM odemeler WHERE shopier_siparis_id = $1 AND durum = 'odendi'",
       [siparisId]
