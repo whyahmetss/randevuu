@@ -422,12 +422,12 @@ function Login({ onLogin }) {
     if (epostaDogrulama && kayitKod.gonderilen !== kayitForm.email.trim()) return kodGonder();
     if (epostaDogrulama && kayitKod.kod.replace(/\D/g, "").length !== 6) return setHata("E-postana gelen 6 haneli kodu yaz");
     setYukleniyor(true);
-    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email, sifre: kayitForm.sifre, eposta_kod: kayitKod.kod || undefined,
+    const data = await api.post("/auth/kayit", { isletmeAdi: kayitForm.isletmeAdi, email: kayitForm.email.trim(), sifre: kayitForm.sifre, eposta_kod: kayitKod.kod || undefined,
       kayitKanal: davetParam.kod ? davetParam.kanal : "web", davet: (kayitForm.davet || "").trim() || undefined, sartlar_onay: true, saha_kodu: sahaKodu });
     if (data.basarili) {
       // Kayıttan sonra şifreyi tekrar yazdırmadan doğrudan panele
-      const g = await authPost("/auth/giris", { email: kayitForm.email, sifre: kayitForm.sifre });
-      if (!oturumAc(g)) { setEkran("giris"); setEmail(kayitForm.email); setBilgi("Hesabın oluşturuldu, giriş yapabilirsin."); }
+      const g = await authPost("/auth/giris", { email: kayitForm.email.trim(), sifre: kayitForm.sifre });
+      if (!oturumAc(g)) { setEkran("giris"); setEmail(kayitForm.email.trim()); setBilgi("Hesabın oluşturuldu, giriş yapabilirsin."); }
     } else {
       setHata(data.hata || "Kayıt başarısız");
     }
