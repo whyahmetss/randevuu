@@ -364,6 +364,8 @@ function SubeModal({ api, sube, onKapat, onOk }) {
     mudur_isim: '',
     mudur_email: '',
     mudur_sifre: '',
+    kopyala_hizmet: true,
+    kopyala_calisan: false,
   });
   const [kaydediliyor, setKaydediliyor] = useState(false);
   const [hata, setHata] = useState(null);
@@ -436,6 +438,20 @@ function SubeModal({ api, sube, onKapat, onOk }) {
 
           {!sube && (
             <>
+              <div style={{
+                margin: '20px 0 10px', padding: '10px 14px',
+                background: C.primaryDim, borderRadius: 8, color: C.primary,
+                fontSize: 12, fontWeight: 600,
+              }}>📋 Merkezden kopyala (çalışma saatleri ve ayarlar her zaman gelir)</div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.text, fontSize: 13, marginBottom: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.kopyala_hizmet} onChange={e => set('kopyala_hizmet', e.target.checked)} />
+                Hizmetler ve fiyatlar
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.text, fontSize: 13, cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.kopyala_calisan} onChange={e => set('kopyala_calisan', e.target.checked)} />
+                Çalışanlar (aynı ekip bu şubede de çalışıyorsa)
+              </label>
+
               <div style={{
                 margin: '20px 0 10px', padding: '10px 14px',
                 background: C.primaryDim, borderRadius: 8, color: C.primary,
