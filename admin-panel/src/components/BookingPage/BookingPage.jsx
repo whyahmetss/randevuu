@@ -18,6 +18,8 @@ const I = {
   Check: (p) => <svg {...p} width={p?.size || 16} height={p?.size || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
   CheckBig: (p) => <svg {...p} width={p?.size || 40} height={p?.size || 40} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
   ChevronLeft: (p) => <svg {...p} width={p?.size || 14} height={p?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+  Search: (p) => <svg {...p} width={p?.size || 16} height={p?.size || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+  Star: (p) => <svg {...p} width={p?.size || 14} height={p?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11.5 2.3a.5.5 0 0 1 .9 0l2.3 4.8a2 2 0 0 0 1.6 1.1l5.2.8a.5.5 0 0 1 .3.9l-3.8 3.7a2 2 0 0 0-.6 1.9l.9 5.2a.5.5 0 0 1-.8.6l-4.7-2.5a2 2 0 0 0-1.9 0l-4.7 2.5a.5.5 0 0 1-.8-.6l.9-5.2a2 2 0 0 0-.6-1.9L2.1 9.9a.5.5 0 0 1 .3-.9l5.2-.8a2 2 0 0 0 1.6-1.1z"/></svg>,
   Timer: (p) => <svg {...p} width={p?.size || 12} height={p?.size || 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>,
   CalendarX: (p) => <svg {...p} width={p?.size || 28} height={p?.size || 28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m14 14-4 4"/><path d="m10 14 4 4"/></svg>,
   AlertCircle: (p) => <svg {...p} width={p?.size || 14} height={p?.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
@@ -88,6 +90,11 @@ export default function BookingPage({ slug }) {
   const [adim, setAdim] = useState(0);
   const [isletme, setIsletme] = useState(null);
   const [hizmetler, setHizmetler] = useState([]);
+  // Kategoriler (2026-10-26): çok hizmetli salonda arama + kategori sekmeleri; zengin = Pro+ ve üstü (öne çıkanlar, kategori özeti)
+  const [zengin, setZengin] = useState(false);
+  const [hizmetArama, setHizmetArama] = useState('');
+  const [aktifKategori, setAktifKategori] = useState(null);
+  const [acikKatlar, setAcikKatlar] = useState([]); // çok hizmette kapalı gelen kategorilerden açılanlar
   const [calisanlar, setCalisanlar] = useState([]);
   const [saatler, setSaatler] = useState([]);
   const [otomatikCalisan, setOtomatikCalisan] = useState(false);
@@ -178,7 +185,7 @@ export default function BookingPage({ slug }) {
 
   useEffect(() => {
     if (!isletme) return;
-    fetch(`${API_URL}/book/${slug}/hizmetler`).then(r => r.json()).then(d => setHizmetler(d.hizmetler || []));
+    fetch(`${API_URL}/book/${slug}/hizmetler`).then(r => r.json()).then(d => { setHizmetler(d.hizmetler || []); setZengin(d.zengin === true); });
   }, [isletme]);
 
   // ─── Canlı (2026-10-14): sayfayı açık tutan müşteri de güncel görür, yenilemek gerekmez ───
@@ -209,6 +216,56 @@ export default function BookingPage({ slug }) {
   // Esnaf panelde İngilizce/Arapça ad girdiyse yabancı müşteriye o gösterilir (Türkçe dışı dillerde İngilizce ad)
   const hizmetAd = (h) => (dil === 'ar' && h.isim_ar) || (dil !== 'tr' && h.isim_en) || h.isim;
   const hizmetAdiOzet = secilenHizmetler.map(hizmetAd).join(' + ');
+
+  // ─── Hizmet kategorileri ───
+  // Kategori sırası: esnafın girdiği ilk hizmetin sırası. Kategorisizler "Diğer" altında, en sonda.
+  const DIGER = '\u0000diger';
+  const katAnahtar = (h) => (h.kategori && String(h.kategori).trim()) || DIGER;
+  const kategoriler = [];
+  for (const h of hizmetler) { const k = katAnahtar(h); if (!kategoriler.includes(k)) kategoriler.push(k); }
+  if (kategoriler.includes(DIGER)) { kategoriler.splice(kategoriler.indexOf(DIGER), 1); kategoriler.push(DIGER); }
+  const kategoriVar = kategoriler.some(k => k !== DIGER);
+  const katAdi = (k) => (k === DIGER ? t('otherServices') : k);
+  const sade = (s) => String(s || '').toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ı/g, 'i');
+  const aramaQ = sade(hizmetArama.trim());
+  const aramaGoster = hizmetler.length > 8;
+  const hizmetUyar = (h) => (!aramaQ || sade(h.isim).includes(aramaQ) || sade(hizmetAd(h)).includes(aramaQ) || sade(h.kategori).includes(aramaQ))
+    && (!aktifKategori || katAnahtar(h) === aktifKategori);
+  const gorunenHizmetler = hizmetler.filter(hizmetUyar);
+  const oneCikanlar = zengin && !aramaQ && !aktifKategori ? hizmetler.filter(h => h.one_cikan) : [];
+  // 20'den çok hizmette "Tümü" görünümü kategori başlıklarıyla kapalı gelir (80 hizmet tek uzun liste olmasın);
+  // arama ya da kategori sekmesi seçilince hepsi açık
+  const katlarKapali = kategoriVar && hizmetler.length > 20 && !aramaQ && !aktifKategori;
+  const enDusukFiyat = (liste) => { const f = liste.map(h => Number(h.fiyat) || 0).filter(x => x > 0); return f.length ? Math.min(...f) : 0; };
+
+  // Tek hizmet satırı (liste, kategori ve öne çıkanlar aynı satırı kullanır; on = anahtar öneki, aynı hizmet iki bölümde olabilir)
+  const hizmetSatiri = (h, on = '') => {
+    const secili = secilenHizmetler.some(x => x.id === h.id);
+    return (
+      <button
+        key={on + h.id}
+        onClick={() => hizmetToggle(h)}
+        className={`bk-item bk-svc-item ${secili ? 'active' : ''} ${on === 'f' ? 'bk-item-featured' : ''}`}
+      >
+        <div className={`bk-svc-check ${secili ? 'on' : ''}`} aria-hidden="true">
+          {secili && <I.Check size={14} />}
+        </div>
+        <div className="bk-item-icon">{hizmetIconu(h.isim)}</div>
+        <div className="bk-item-body">
+          <div className="bk-item-name">{hizmetAd(h)}</div>
+          <div className="bk-item-meta">
+            <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
+          </div>
+        </div>
+        <div className="bk-item-price">
+          {Number(h.fiyat) > 0 ? (<>
+            <span className="bk-price-num">{Number(h.fiyat).toLocaleString(locale)}</span>
+            <span className="bk-price-lira">₺</span>
+          </>) : <span className="bk-price-lira" style={{ fontSize: 12 }}>{locale === 'tr-TR' || locale === 'tr' ? 'fiyat dükkanda' : '—'}</span>}
+        </div>
+      </button>
+    );
+  };
 
   useEffect(() => {
     if (secilenHizmetler.length === 0) return;
@@ -681,34 +738,66 @@ export default function BookingPage({ slug }) {
                 <I.Sparkles size={11} /> {t('selectService')}
               </span>
             </div>
-            <div className="bk-list" style={{ paddingBottom: secilenHizmetler.length ? 80 : 0 }}>
-              {hizmetler.map(h => {
-                const secili = secilenHizmetler.some(x => x.id === h.id);
-                return (
-                  <button
-                    key={h.id}
-                    onClick={() => hizmetToggle(h)}
-                    className={`bk-item bk-svc-item ${secili ? 'active' : ''}`}
-                  >
-                    <div className={`bk-svc-check ${secili ? 'on' : ''}`} aria-hidden="true">
-                      {secili && <I.Check size={14} />}
-                    </div>
-                    <div className="bk-item-icon">{hizmetIconu(h.isim)}</div>
-                    <div className="bk-item-body">
-                      <div className="bk-item-name">{hizmetAd(h)}</div>
-                      <div className="bk-item-meta">
-                        <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
-                      </div>
-                    </div>
-                    <div className="bk-item-price">
-                      {Number(h.fiyat) > 0 ? (<>
-                        <span className="bk-price-num">{Number(h.fiyat).toLocaleString(locale)}</span>
-                        <span className="bk-price-lira">₺</span>
-                      </>) : <span className="bk-price-lira" style={{ fontSize: 12 }}>{locale === 'tr-TR' || locale === 'tr' ? 'fiyat dükkanda' : '—'}</span>}
-                    </div>
+            {aramaGoster && (
+              <label className="bk-svc-search">
+                <I.Search size={16} />
+                <input type="search" value={hizmetArama} onChange={e => setHizmetArama(e.target.value)}
+                  placeholder={t('searchService')} aria-label={t('searchService')} />
+              </label>
+            )}
+            {kategoriVar && (
+              <div className="bk-kat-chips" role="tablist">
+                <button role="tab" aria-selected={!aktifKategori} className={`bk-kat-chip ${!aktifKategori ? 'on' : ''}`} onClick={() => setAktifKategori(null)}>
+                  {t('allServices')}
+                </button>
+                {kategoriler.map(k => (
+                  <button key={k} role="tab" aria-selected={aktifKategori === k} className={`bk-kat-chip ${aktifKategori === k ? 'on' : ''}`}
+                    onClick={() => setAktifKategori(aktifKategori === k ? null : k)}>
+                    {katAdi(k)} <span>{hizmetler.filter(h => katAnahtar(h) === k).length}</span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
+            )}
+            <div className="bk-list" style={{ paddingBottom: secilenHizmetler.length ? 80 : 0 }}>
+              {oneCikanlar.length > 0 && (
+                <div className="bk-kat-head bk-kat-featured"><I.Star size={14} /> {t('featured')}</div>
+              )}
+              {oneCikanlar.map(h => hizmetSatiri(h, 'f'))}
+              {kategoriVar
+                ? kategoriler.map(k => {
+                    const liste = gorunenHizmetler.filter(h => katAnahtar(h) === k);
+                    if (!liste.length) return null;
+                    const enAz = zengin ? enDusukFiyat(liste) : 0;
+                    const ozet = `${liste.length} ${t('serviceCount')}${enAz > 0 ? ` · ${t('fromPrice').replace('{p}', enAz.toLocaleString(locale))}` : ''}`;
+                    if (katlarKapali) {
+                      const acik = acikKatlar.includes(k);
+                      const seciliSayi = liste.filter(h => secilenHizmetler.some(x => x.id === h.id)).length;
+                      return (
+                        <Fragment key={k}>
+                          <button className={`bk-kat-toggle ${acik ? 'open' : ''}`} aria-expanded={acik}
+                            onClick={() => setAcikKatlar(a => (a.includes(k) ? a.filter(x => x !== k) : [...a, k]))}>
+                            <span className="bk-kat-toggle-ad">{katAdi(k)}{seciliSayi > 0 && <b>{seciliSayi}</b>}</span>
+                            <small>{ozet}</small>
+                            <I.ChevronDown size={16} />
+                          </button>
+                          {acik && liste.map(h => hizmetSatiri(h))}
+                        </Fragment>
+                      );
+                    }
+                    return (
+                      <Fragment key={k}>
+                        <div className="bk-kat-head">
+                          <span>{katAdi(k)}</span>
+                          {zengin && <small>{ozet}</small>}
+                        </div>
+                        {liste.map(h => hizmetSatiri(h))}
+                      </Fragment>
+                    );
+                  })
+                : gorunenHizmetler.map(h => hizmetSatiri(h))}
+              {gorunenHizmetler.length === 0 && (
+                <div className="bk-svc-empty">{t('noServiceFound')}</div>
+              )}
             </div>
             {secilenHizmetler.length > 0 && (
               <div className="bk-multi-footer">
