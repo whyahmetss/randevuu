@@ -17,12 +17,13 @@ const ACIK_KAPA = [
   ['takipAktif', '🔔 Takip mesajı', 'Cevap vermeyene hatırlatma'],
   ['typingIndicator', '✍️ "Yazıyor…" göster', 'İnsan gibi görünür (ban riskini azaltır)'],
   ['mesajBirlestir', '🧩 Parça mesajları birleştir', 'Art arda yazılanları bekleyip tek cevap verir'],
+  ['dogalDonus', '⏱️ İnsan gibi geç cevap', 'Mesaj hemen okunmaz; 5 sn–2 dk sonra okunup cevaplanır (bot olduğu belli olmasın)'],
   ['tatil', '🏖️ Tatil', 'Bugün soğuk mesaj gönderme'],
 ];
 const KATEGORILER = ['berber', 'kuaför', 'güzellik salonu', 'dövme', 'tırnak salonu', 'cilt bakım', 'spa', 'diş kliniği', 'veteriner', 'diyetisyen', 'psikolog', 'fizyoterapi', 'pilates', 'oto yıkama'];
 const VARSAYILAN = { mod: 'hepsi', mesaiBaslangic: 9, mesaiBitis: 19, gunlukLimit: 80, minBekleme: 5, maxBekleme: 10, takipSaati: 12, maxTakipSayisi: 2,
   typingMinMs: 2000, typingMaxMs: 6000, mesajBekleMs: 8000, insanSessizSaat: 24, frenSertRedLimit: 3, frenOlumsuzMin: 8, frenOlumsuzOran: 0.25, frenAyniHata: 3,
-  mesajBirlestir: true, hedefKategori: '', sohbetteBekleDk: 5, guvenMetni: '' };
+  mesajBirlestir: true, dogalDonus: true, hedefKategori: '', sohbetteBekleDk: 5, guvenMetni: '' };
 
 const kutu = { background: 'var(--bg)', borderRadius: 12, padding: 14 };
 const etiket = { fontSize: 11, color: 'var(--dim)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', display: 'block', marginBottom: 6 };
@@ -105,7 +106,7 @@ export default function BotAyarlari({ api, ayarlar, onKaydedildi }) {
       {baslik('🔘 Özellikler')}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 8 }}>
         {ACIK_KAPA.map(([k, ad, aciklama]) => {
-          const acik = k === 'mesajBirlestir' ? t[k] !== false : !!t[k];
+          const acik = ['mesajBirlestir', 'dogalDonus'].includes(k) ? t[k] !== false : !!t[k];
           return (
             <div key={k} onClick={() => set(k)(!acik)} role="switch" aria-checked={acik} aria-label={ad}
               style={{ ...kutu, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, border: acik ? '1px solid rgba(31,111,74,.25)' : '1px solid transparent' }}>

@@ -148,9 +148,10 @@ const TANITIM_KIME = (kategori) => {
   if (/veteriner/.test(k)) return 'Veteriner kliniklerine';
   return 'Randevuyla çalışan işletmelere';
 };
-const TANITIM = (kategori) => `${TANITIM_KIME(kategori)}, WhatsApp'tan gelen randevu mesajlarını sizin yerinize cevaplayıp boş saate yazan bir sistem kuruyoruz, adı SıraGO. Sizden para ya da kart bilgisi istemiyoruz.`;
-const TANITIM_SORU = 'Randevuları şu an nasıl alıyorsunuz, telefonla mı WhatsApp\'tan mı?';
-const TANITIM_VEDA = 'Hiç sorun değil, rahatsız ettiysem kusura bakmayın. İlgilenirseniz buraya yazmanız yeterli, kolay gelsin.';
+// Kimse sormadan "para/kart istemiyoruz" demek dolandırıcı mesajı gibi duruyordu (2026-10-26); o cümle yalnız şüphede (satisAI)
+const TANITIM = (kategori) => `${TANITIM_KIME(kategori)} WhatsApp'tan gelen randevu mesajlarını sizin yerinize cevaplayan bir sistem kuruyoruz, adı SıraGO`;
+const TANITIM_SORU = 'Siz randevuları şu an telefonla mı alıyorsunuz?';
+const TANITIM_VEDA = 'Tabii, rahatsız ettiysem kusura bakmayın. Kolay gelsin';
 const tanitimVar = (t) => /s[ıi]ra\s?go/i.test(String(t || ''));
 
 function otomatikYanit(metin) {
@@ -181,15 +182,18 @@ const ACILIS_GENEL = [
   () => 'Merhaba, kolay gelsin 🙂',
 ];
 const MESAJ_SABLONLARI = { default: ACILIS_GENEL };
+// Takip (2026-10-26): Google'daki uzun işletme adı ("Elit Barber Shop … için yazmıştım") ve "*kayıt* yazın" komutu
+// bot gibi duruyordu. Kısa, kim olduğumuzu söyleyen, kapıyı açık bırakan cümleler. k = konuşma kaydı
+const kimeKucuk = (k) => TANITIM_KIME(k?.kategori).toLocaleLowerCase('tr');
 const TAKIP_SABLONLARI = {
   1: [
-    (ad) => `Merhaba, yoğunsunuzdur diye tahmin ediyorum. Kısaca: müşterileriniz WhatsApp'tan kendi randevusunu alıyor, hatırlatma otomatik gidiyor. ${denemeGun()} gün ücretsiz, merak ederseniz yazın, ilgilenmiyorsanız söylemeniz yeterli.`,
-    (ad) => `Tekrar merhaba, ${ad} için yazmıştım. Randevuları otomatik alan bir sistemimiz var, ${denemeGun()} gün ücretsiz denenebiliyor. Sorunuz olursa buradayım; ilgilenmiyorsanız söylemeniz yeterli.`,
-    (ad) => `Merhaba, mesajım arada kaybolmuş olabilir. ${ad} için online randevu sistemini göstermek isterim, uygun olunca yazın; ilgilenmiyorsanız söylemeniz yeterli.`,
+    (k) => `Merhaba, yoğunsunuzdur. ${TANITIM_KIME(k?.kategori)} WhatsApp'tan gelen randevu mesajlarını otomatik cevaplayan bir sistem kuruyoruz, merak ederseniz yazın`,
+    (k) => `Mesajım arada kaybolmuş olabilir. Dükkânınızı Google'da görüp yazmıştım, ${kimeKucuk(k)} randevu sistemi kuruyoruz (SıraGO). Uygun olunca bakarsınız`,
+    () => `Tekrar merhaba, yoğun saate denk geldiysem kusura bakmayın. Müşterinin WhatsApp'tan yazdığı randevuyu sizin yerinize alan bir sistemimiz var, ${denemeGun()} gün ücretsiz deneniyor. İlgilenmezseniz de sorun değil`,
   ],
   2: [
-    (ad) => `Son kez rahatsız ediyorum. Denemek isterseniz *kayıt* yazmanız yeterli, ${denemeGun()} gün ücretsiz. İlgilenmiyorsanız hiç sorun değil, iyi çalışmalar.`,
-    (ad) => `Son bir not bırakayım: ${ad} için ${denemeGun()} günlük ücretsiz deneme hâlâ açık, *kayıt* yazarsanız hesabı buradan açarım. İlgilenmiyorsanız söylemeniz yeterli, kolay gelsin.`,
+    () => 'Son kez yazıyorum, merak ederseniz buraya yazmanız yeterli, hesabı ben açarım. Kolay gelsin',
+    () => `Bir daha rahatsız etmeyeyim. ${denemeGun()} günlük ücretsiz deneme açık, istediğiniz zaman buraya yazabilirsiniz. İyi çalışmalar`,
   ]
 };
 
@@ -197,7 +201,7 @@ const TAKIP_SABLONLARI = {
 const AYAR_KURALI = {
   mod: ['hepsi', 'sadece_kayit', 'sadece_satis', 'sadece_ai', 'kapali'],
   tatil: 'bool', kayitAktif: 'bool', otopilotKurulum: 'bool', aiCevapAktif: 'bool', takipAktif: 'bool', gelenMesajCevap: 'bool',
-  typingIndicator: 'bool', mesajBirlestir: 'bool',
+  typingIndicator: 'bool', mesajBirlestir: 'bool', dogalDonus: 'bool',
   hedefKategori: 'metin',
   mesaiBaslangic: [0, 23], mesaiBitis: [1, 24], gunlukLimit: [1, 500], minBekleme: [1, 120], maxBekleme: [1, 240],
   takipSaati: [1, 168], maxTakipSayisi: [0, 5], typingMinMs: [500, 30000], typingMaxMs: [500, 60000],
@@ -259,6 +263,7 @@ class SatisBot extends EventEmitter {
       frenAyniHata: 3,       // aynı gönderim hatası art arda bu kadar tekrar ederse gönderim durur
       insanSessizSaat: 24,   // telefondan elle yazılan sohbette bot bu kadar saat susar (0 = kapalı)
       sohbetteBekleDk: 5,    // bir numaraya aday cevap yazdıysa o numara bu kadar dakika yeni kişiye "Merhaba" atmaz (0 = beklemez)
+      dogalDonus: true,      // mesaj hemen okunup ~10 sn'de cevaplanmaz; insan gibi 5 sn–2 dk sonra okunur (_donusGecikmesi)
       guvenMetni: '',        // ekibin girdiği doğru güven/referans bilgisi; yapay zekâ şüphe anında kullanır (boşsa referans uydurmaz)
     };
   }
@@ -889,7 +894,7 @@ class SatisBot extends EventEmitter {
     const takipNo = (konusma.takip_sayisi || 0) + 1;
     const sablonlar = TAKIP_SABLONLARI[takipNo] || TAKIP_SABLONLARI[2];
     const sablon = sablonlar[Math.floor(Math.random() * sablonlar.length)];
-    const mesaj = linkDuzelt(sablon(konusma.isletme_adi || 'işletmeniz'));
+    const mesaj = linkDuzelt(sablon(konusma));
 
     const telefon = konusma.telefon;
     const jid = `${telefon}@s.whatsapp.net`;
@@ -1533,7 +1538,7 @@ class SatisBot extends EventEmitter {
     const oncekiBiz = String(konusma?.gelen_mesajlar || '').split('\n').some(x => /\]\s*(Bot|Elle):/.test(x));
     if (!bizBaslattik || oncekiBiz || mesajlar.some(tanitimVar)) return mesajlar;
     const t = TANITIM(konusma?.kategori);
-    return olumsuz ? [`Anlıyorum. Kısaca: ${t}`, TANITIM_VEDA] : [`Kolay gelsin. ${t}`, TANITIM_SORU];
+    return olumsuz ? [`Kısaca söyleyeyim, ${t.charAt(0).toLocaleLowerCase('tr')}${t.slice(1)}`, TANITIM_VEDA] : [`Kolay gelsin. ${t}`, TANITIM_SORU];
   }
 
   // Adayın Avcı kaydı (Google'da nerede bulundu, puanı): yapay zekâ "dükkânınızı Google'da gördüm" diyebilsin
@@ -1991,7 +1996,7 @@ class SatisBot extends EventEmitter {
     // Aday yazıyor: bu numara bir süre yeni kişiye "Merhaba" atmaz, önce sohbet (_numaraGonderim bakar)
     this._numaraSohbet = this._numaraSohbet || new Map();
     this._numaraSohbet.set(numaraId || 'tek', Date.now());
-    try { await sock?.readMessages?.([msg.key]); } catch (e) { /* okundu önemsiz */ }
+    const okundu = async (anahtarlar) => { try { await sock?.readMessages?.(anahtarlar); } catch (e) { /* okundu önemsiz */ } };
 
     // Sesli mesaj (esnaf çoğu zaman sesle cevap veriyor, canlıda "uzunluk=0" diye cevapsız kalıyordu): yazıya çevrilir
     if (sesli) {
@@ -2016,19 +2021,32 @@ class SatisBot extends EventEmitter {
       return;
     }
     const kayitIstegi = /^\s*kay[ıi]t\s*$/i.test(metin);
-    if (this.konusmalar[telefon]?.kayit || kayitIstegi || this.ayarlar.mesajBirlestir === false) return this._mesajIsle(msg, numaraId, metin);
+    if (this.konusmalar[telefon]?.kayit || kayitIstegi || this.ayarlar.mesajBirlestir === false) {
+      await okundu([msg.key]);
+      return this._mesajIsle(msg, numaraId, metin);
+    }
 
     this._tampon = this._tampon || new Map();
-    const t = this._tampon.get(anahtar) || { metinler: [], ilk: Date.now(), zaman: null };
-    t.metinler.push(metin); t.msg = msg; t.numaraId = numaraId;
+    const t = this._tampon.get(anahtar) || { metinler: [], anahtarlar: [], ilk: Date.now(), hedef: Date.now() + this._donusGecikmesi(telefon), zaman: null };
+    t.metinler.push(metin); t.anahtarlar.push(msg.key); t.msg = msg; t.numaraId = numaraId;
     clearTimeout(t.zaman);
     // Kurulum sohbetinde kısa bekle (alt alta yazılan hizmet satırları yine tek mesaj olur)
-    const bekle = Date.now() - t.ilk > 17000 ? 0 : (this.konusmalar[telefon]?.kurulum ? 2500 : (this.ayarlar.mesajBekleMs ?? 8000));
-    t.zaman = setTimeout(() => {
+    const temel = Date.now() - t.ilk > 17000 ? 0 : (this.konusmalar[telefon]?.kurulum ? 2500 : (this.ayarlar.mesajBekleMs ?? 8000));
+    const bekle = Math.max(temel, t.hedef - Date.now());
+    t.zaman = setTimeout(async () => {
       this._tampon.delete(anahtar);
+      await okundu(t.anahtarlar);
       this._mesajIsle(t.msg, t.numaraId, t.metinler.join('\n')).catch(e => console.error('Satış mesajı işlenemedi:', e.message));
     }, bekle);
     this._tampon.set(anahtar, t);
+  }
+
+  // İnsan gibi dönüş (2026-10-26): mesaj gelir gelmez "okundu" + ~10 sn içinde cevap, botu ele veriyordu. Sohbet sürüyorsa
+  // (son cevabımız 10 dk içinde) 5–20 sn, ara verdiyse 30–120 sn sonra okunup yazılır. Kurulum sohbeti beklemez.
+  _donusGecikmesi(telefon) {
+    if (this.ayarlar.dogalDonus === false || this.konusmalar[telefon]?.kurulum) return 0;
+    const sohbette = Date.now() - (this._sonBotCevap?.[telefon] || 0) < 10 * 60 * 1000;
+    return Math.round(sohbette ? 5000 + Math.random() * 15000 : 30000 + Math.random() * 90000);
   }
 
   // Cevap hazırlanırken o numara yeni kişiye "Merhaba" atmaz (_numaraGonderim bakar)

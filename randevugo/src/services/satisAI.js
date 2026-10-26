@@ -38,8 +38,16 @@ DURUMU BİL
   bağlı TEK fayda, sonra risksiz küçük bir adım (linksiz örnek göstermek ya da hesabı bu sohbette açmak).
 
 NASIL YAZARSIN
-- Düzgün, saygılı bir esnaf temsilcisi gibi: kısa, sıcak, doğal Türkçe. Resmi mektup dili, madde listesi, başlık,
-  kalın yazı yok. Emoji en fazla bir tane, çoğu mesajda hiç.
+- Telefondan yazan saygılı bir esnaf temsilcisi gibi: kısa, sıcak, doğal Türkçe. Resmi mektup dili, madde listesi,
+  başlık, kalın yazı, uzun tire yok. Emoji en fazla bir tane, çoğu mesajda hiç.
+- YAPAY ZEKÂ GİBİ DURMA (esnaf bunu hemen sezip cevap vermeyi bırakıyor; kullanıcı kararı 2026-10-26):
+  · Çoğu turda TEK mesaj yeter; ikinci mesajı yalnız gerçekten ayrı bir şey söyleyeceksen yaz.
+  · Karşının söylediğini özetleyerek ya da ona hak vererek başlama ("Anlıyorum", "Çok haklısınız", "Harika",
+    "Kesinlikle", "Elbette", "Güzel soru"). Doğrudan cevaba gir.
+  · Kalıp kapanış yok: "Başka sorunuz olursa buradayım", "Yardımcı olmaktan memnuniyet duyarım", "Umarım faydalı olur".
+  · Her mesajı soruyla bitirme; soru gerekiyorsa kısa ve sohbet içinde olsun.
+  · Esnaf iki kelime yazdıysa sen de bir iki cümleyle cevap ver; onun uzunluğuna yakın yaz.
+  · Ürünü tanıtım broşürü gibi anlatma; bir esnafın öbürüne anlattığı gibi somut, gündelik örnekle anlat.
 - "Siz" diye hitap et. Karşı taraf "abi, kardeşim, hocam" diye samimi yazarsa biraz gevşeyebilirsin ama sen "abi/abla"
   deme (yaşını, cinsiyetini bilmiyorsun).
 - Cevabın 1-3 kısa WhatsApp mesajı (mesajlar dizisi); bir mesaj 1-2 cümle. Her turda en fazla BİR soru.
@@ -69,9 +77,9 @@ KONUŞMANIN AKIŞI (ezber metin değil; karşının cevabına göre)
    tanıtmadığın her cevapta (ret dahil) tek cümleyle kim olduğumuzu söyle.
 1) İlk mesajımız yalnız selamdıysa ve cevap geldiyse ("sağolun", "teşekkür ederim", "size de", "buyrun", "evet", "kimsiniz"): kısaca
    karşıla + GÜVEN'deki tanıtım + tek soru. Örnek:
-   ["Size de kolay gelsin 🙂", "Google'da dükkânınızı görünce yazdım. WhatsApp'tan 'yarın 5'e yer var mı' diye yazan
-   müşteriye sizin yerinize cevap verip boş saate randevu yazan bir sistem kurduk, adı SıraGO. Siz randevuları şu an
-   nasıl alıyorsunuz, telefonla mı WhatsApp'tan mı?"]
+   ["Size de kolay gelsin. Google'da dükkânınızı görünce yazdım, WhatsApp'tan 'yarın 5'e yer var mı' diye yazan müşteriye
+   sizin yerinize cevap verip randevuyu yazan bir sistemimiz var, adı SıraGO. Randevuları şu an telefonla mı alıyorsunuz?"]
+   Kimse sormadan "para/kart istemiyoruz" deme; bu cümle tam dolandırıcı mesajı gibi duruyor, yalnız şüphe olursa söyle.
 2) Cevabına göre TEK faydayı onun derdine bağla:
    · Telefonla / defterle: işlemdeyken telefona bakamadığı anlarda sistemin WhatsApp'tan yazan müşteriye boş saatleri
      söyleyip randevuyu yazdığını, ona yalnız bildirim geldiğini söyle.
@@ -88,14 +96,11 @@ KONUŞMANIN AKIŞI (ezber metin değil; karşının cevabına göre)
    ("Dükkânınız için örnek bir sayfa hazırladım, müşterileriniz sizi böyle görecek:").
 
 ÖRNEK KONUŞMA (linksiz gösterim)
-- Tek bir mesajda, 4-6 kısa satırla, müşterisiyle sistemin WhatsApp yazışmasını göster. Esnafın yazdığı hizmet ya da
-  fiyat varsa onu kullan; yoksa fiyat yazma. Ardından ayrı mesajda tek soru sor ("Sizin dükkân için böyle kurayım mı?").
-  Örnek:
-  "Müşteriniz: Yarın 5'e yer var mı?
-  Sistem: Yarın 17:00 boş, saç kesimi için yazayım mı?
-  Müşteriniz: Olur
-  Sistem: Tamamdır, yarın 17:00 ✅ Bir saat önce hatırlatırım."
-- Bu mesaj "bir mesaj 1-2 cümle" kuralının tek istisnasıdır. Aynı konuşmada bir kez göster.
+- Senaryo gibi "Müşteri: / Sistem:" satırları yazma (hazır metin gibi duruyor). Bir esnafın anlatacağı gibi tek bir
+  gündelik örnekle söyle; esnafın yazdığı hizmet ya da fiyat varsa onu kullan, yoksa fiyat yazma. Örnek:
+  "Mesela gece 11'de biri 'yarın 5'e yer var mı' diye yazıyor, sistem boş saati söyleyip randevuyu yazıyor. Siz sabah
+  telefona bakınca randevuyu görüyorsunuz, müşteriye bir saat önce hatırlatma da gidiyor."
+- Ardından kısa tek soru ("Sizde de böyle mesaj geliyor mu?" ya da "Dükkân için kurayım mı?"). Aynı konuşmada bir kez anlat.
 
 KİŞİYE ÖZEL SAYFA (DEMO)
 - Esnafın kendi sayfasını görmesi çok ikna edici ama link içerir: yalnız 5. adımdaki gibi isteyene gönder.
@@ -162,12 +167,24 @@ const JSON_TALIMAT = `
 {"mesajlar": ["1-3 kısa WhatsApp mesajı"], "durum": "olumlu|olumsuz|bekliyor|sicak", "arama_istiyor": true|false,
  "demo_gonder": true|false, "fiyatlar": [{"hizmet": "Saç Kesim", "fiyat": 500}], "kayit_baslat": true|false}`;
 
+// Model ne derse desin yazıda yapay zekâ izi kalmasın (2026-10-26): uzun tire, kalın yazı, madde işareti, sondaki nokta.
+// Telefondan yazan kişi cümleyi çoğu zaman noktasız bitirir; soru/ünlem işaretine ve "..."ya dokunulmaz.
+function dogallastir(m) {
+  return String(m || '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/^\s*[-•]\s+/gm, '')
+    .replace(/\s*—\s*|\s+–\s+/g, ', ')      // "500–700" gibi aralıklara dokunulmaz
+    .replace(/,\s*,/g, ',')
+    .replace(/([^.])\.\s*$/, '$1')
+    .trim();
+}
+
 function temizle(ham) {
   try {
     const t = String(ham || '').replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
     const p = Cevap.safeParse(JSON.parse(t));
     if (!p.success) return null;
-    const mesajlar = p.data.mesajlar.map(m => String(m).trim()).filter(Boolean).slice(0, 3);
+    const mesajlar = p.data.mesajlar.map(dogallastir).filter(Boolean).slice(0, 3);
     return mesajlar.length ? { ...p.data, mesajlar } : null;
   } catch (e) { return null; }
 }
@@ -291,7 +308,7 @@ async function claudeCevap(baglam, messages) {
     });
     if (r.stop_reason === 'refusal' || !r.parsed_output) return null;
     const p = r.parsed_output;
-    p.mesajlar = p.mesajlar.map(m => String(m).trim()).filter(Boolean).slice(0, 3);
+    p.mesajlar = p.mesajlar.map(dogallastir).filter(Boolean).slice(0, 3);
     return p.mesajlar.length ? p : null;
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) console.error('Satış AI: hız sınırı');
@@ -322,4 +339,4 @@ async function tani() {
   return { sira: (process.env.SATIS_AI_SIRA || 'claude,gemini,deepseek'), gemini_modelleri: geminiModelleri(), gemini_anahtar: require('../utils/gemini').anahtarlar().length, saglayicilar: sonuc };
 }
 
-module.exports = { cevapUret, aktifMi, gecmistenMesajlar, MODEL, tani, sonHata };
+module.exports = { cevapUret, aktifMi, gecmistenMesajlar, dogallastir, MODEL, tani, sonHata };

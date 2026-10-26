@@ -55,3 +55,10 @@ test('Gemini: birden çok anahtar dönüşümlü; kotası dolan anahtardan sıra
     assert.ok(kullanilan.includes('anahtarB'));
   } finally { global.fetch = eski; delete process.env.GEMINI_API_KEYS; }
 });
+
+test('yapay zekâ izi temizlenir: uzun tire, kalın yazı, madde işareti, sondaki nokta', () => {
+  assert.strictEqual(ai.dogallastir('Tabii — hemen bakalım.'), 'Tabii, hemen bakalım');
+  assert.strictEqual(ai.dogallastir('**Kayıt** için yazın...'), 'Kayıt için yazın...');
+  assert.strictEqual(ai.dogallastir('- Olur mu?'), 'Olur mu?');
+  assert.strictEqual(ai.dogallastir('Fiyat 500–700 arası.'), 'Fiyat 500–700 arası', 'sayı aralığı bozulmaz');
+});
