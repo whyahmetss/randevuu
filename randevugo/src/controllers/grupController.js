@@ -2,6 +2,7 @@ const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { getGrupId } = require('../middleware/auth');
 const { grupLimit } = require('../utils/subeLimit');
+const { subeyeKopyala } = require('../utils/subeKopya');
 
 function slugify(s) {
   return String(s || '')
@@ -141,7 +142,8 @@ class GrupController {
       const grupId = getGrupId(req);
       if (!grupId) return res.status(403).json({ hata: 'Grup bulunamadı' });
 
-      const { isim, sube_etiketi, telefon, sehir, ilce, adres, mudur_email, mudur_sifre, mudur_isim } = req.body;
+      const { isim, sube_etiketi, telefon, sehir, ilce, adres, mudur_email, mudur_sifre, mudur_isim,
+        kopyala_hizmet = true, kopyala_calisan = false } = req.body;
       if (!isim) return res.status(400).json({ hata: 'Şube ismi zorunlu' });
 
       // Paket + ödeme tarihleri merkezden gelir (şube ayrıca ödeme istemez), ama şube SAYISI
@@ -153,6 +155,11 @@ class GrupController {
       }
       if (g.aktifler.length >= g.limit) {
         return res.status(403).json({ hata: `${g.paket.isim} paketinde en fazla ${g.limit} şube olabilir (merkez dahil).`, limit_asimi: true, gereken_paket: 'kurumsal' });
+      }
+      // Müdür e-postası şube açılmadan bakılır: önceden şube açılıp sonra "e-posta kayıtlı" hatası dönüyordu
+      if (mudur_email && mudur_sifre) {
+        const mevcut = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email=$1', [mudur_email])).rows[0];
+        if (mevcut) return res.status(400).json({ hata: 'Bu email zaten kayıtlı' });
       }
       const ornek = g.merkez;
       const paket = ornek.paket;
@@ -168,29 +175,41 @@ class GrupController {
         if (i > 20) { slug = `${baseSlug}-${Date.now()}`; break; }
       }
 
-      const sube = (await pool.query(
-        `INSERT INTO isletmeler
-           (isim, slug, telefon, sehir, ilce, adres, kategori, aktif, paket, grup_id, sube_etiketi,
-            paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi)
-         VALUES ($1,$2,$3,$4,$5,$6,'genel',true,$7,$8,$9,$10,$11,NOW()) RETURNING *`,
-        [isim, slug, telefon || '', sehir || null, ilce || null, adres || null, paket, grupId, sube_etiketi || null,
-         paketBitis, denemeBitis]
-      )).rows[0];
-
-      // Şube müdürü (opsiyonel)
-      let mudur = null;
-      if (mudur_email && mudur_sifre) {
-        const mevcut = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email=$1', [mudur_email])).rows[0];
-        if (mevcut) return res.status(400).json({ hata: 'Bu email zaten kayıtlı', sube });
-        const hash = await bcrypt.hash(mudur_sifre, 10);
-        mudur = (await pool.query(
-          `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, grup_id, aktif)
-           VALUES ($1,$2,$3,'sube_muduru',$4,$5,true) RETURNING id, isim, email, rol`,
-          [mudur_isim || isim, mudur_email, hash, sube.id, grupId]
+      // Tek parça (2026-10-26): şube + merkezden kopyalanan hizmet/ayar/çalışan + müdür ya hep birlikte yazılır ya hiç
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const sube = (await client.query(
+          `INSERT INTO isletmeler
+             (isim, slug, telefon, sehir, ilce, adres, kategori, aktif, paket, grup_id, sube_etiketi,
+              paket_bitis_tarihi, deneme_bitis_tarihi, olusturma_tarihi)
+           VALUES ($1,$2,$3,$4,$5,$6,'genel',true,$7,$8,$9,$10,$11,NOW()) RETURNING *`,
+          [isim, slug, telefon || '', sehir || null, ilce || null, adres || null, paket, grupId, sube_etiketi || null,
+           paketBitis, denemeBitis]
         )).rows[0];
-      }
 
-      res.json({ ok: true, sube, mudur });
+        const kopya = await subeyeKopyala(client, ornek.id, sube.id,
+          { hizmetler: kopyala_hizmet !== false, calisanlar: !!kopyala_calisan });
+
+        // Şube müdürü (opsiyonel)
+        let mudur = null;
+        if (mudur_email && mudur_sifre) {
+          const hash = await bcrypt.hash(mudur_sifre, 10);
+          mudur = (await client.query(
+            `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, grup_id, aktif)
+             VALUES ($1,$2,$3,'sube_muduru',$4,$5,true) RETURNING id, isim, email, rol`,
+            [mudur_isim || isim, mudur_email, hash, sube.id, grupId]
+          )).rows[0];
+        }
+
+        await client.query('COMMIT');
+        res.json({ ok: true, sube, mudur, kopya });
+      } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+      } finally {
+        client.release();
+      }
     } catch (e) {
       console.error('subeEkle hata:', e.message);
       res.status(500).json({ hata: e.message });
