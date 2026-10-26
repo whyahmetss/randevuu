@@ -60,6 +60,8 @@ import BildirimAktivasyon from './components/BildirimAktivasyon';
 import DukkanModuPopup from './components/DukkanModuPopup';
 import GrupYonetim from './components/Grup/GrupYonetim';
 import SubeSwitcher from './components/Grup/SubeSwitcher';
+import AcilDurum from './components/AcilDurum/AcilDurum';
+import PersonelPaneli, { PersonelDavet } from './components/Personel/PersonelPaneli';
 
 // "Müşteri olarak giriş" token'ı sekmeye özel (sessionStorage) tutulur; eskiden localStorage'daki
 // süper admin token'ını eziyordu ve süper admin oturumu tüm sekmelerde işletme hesabına dönüşüyordu.
@@ -853,10 +855,23 @@ function CalisanlarSayfasi({ paketDurum }) {
   const [duzenle, setDuzenle] = useState(null); // düzenlenen çalışan ID
   const [hizmetModal, setHizmetModal] = useState(null); // hizmet atama modal
   const [hizmetListesi, setHizmetListesi] = useState([]);
+  const [personelHesap, setPersonelHesap] = useState([]);   // girişi olan çalışanlar (calisan_id)
+  const [davet, setDavet] = useState(null);                 // { link, calisan, telefon }
 
   const yukle = async () => {
-    const d = await api.get("/calisanlar");
+    const [d, p] = await Promise.all([api.get("/calisanlar"), api.get("/personel-hesaplari")]);
     setCalisanlar(d.calisanlar || []);
+    setPersonelHesap(p.hesaplar || []);
+  };
+  const davetOlustur = async (c) => {
+    const d = await api.post(`/calisanlar/${c.id}/personel-davet`, {});
+    if (d.hata) return alert(d.hata);
+    setDavet(d);
+  };
+  const girisKaldir = async (c) => {
+    if (!window.confirm(`${c.isim} artık kendi telefonundan giriş yapamayacak. Emin misin?`)) return;
+    const d = await api.del(`/calisanlar/${c.id}/personel`);
+    if (d.hata) alert(d.hata); else yukle();
   };
 
   useEffect(() => { yukle(); }, []);
@@ -926,6 +941,8 @@ function CalisanlarSayfasi({ paketDurum }) {
             : <button onClick={() => { setForm(formSifirla()); setDuzenle(null); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Çalışan</button>}
         </div>
       </div>
+
+      <AcilDurum api={api} calisanlar={calisanlar} />
 
       {formAcik && (
         <form onSubmit={ekle} className="form-card card-accent-green">
@@ -1037,6 +1054,9 @@ function CalisanlarSayfasi({ paketDurum }) {
               <span className="tag" style={{ background: (c.aktif === false) ? "var(--red-s)" : "rgba(31,111,74,.12)", color: (c.aktif === false) ? "var(--red)" : "var(--green)" }}>
                 {(c.aktif === false) ? "Pasif" : "Aktif"}
               </span>
+              {personelHesap.some(h => h.calisan_id === c.id)
+                ? <button onClick={() => girisKaldir(c)} title="Çalışanın kendi girişini kaldır" className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>Girişi var · kaldır</button>
+                : <button onClick={() => davetOlustur(c)} title="Çalışan kendi randevularını telefonundan görsün" className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>Personel girişi</button>}
               <button onClick={() => hizmetAtamaAc(c.id)} title="Hizmet Ata" className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>🔗 Hizmetler</button>
               <button onClick={() => duzenleBasla(c)} title="Düzenle" className="btn btn-sm btn-ghost" style={{ fontSize: 11 }}>✏️</button>
               <button onClick={() => sil(c.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", padding: 6, borderRadius: 8, color: "var(--muted)", transition: "all .2s" }} onMouseOver={e => { e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-s)"; }} onMouseOut={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "none"; }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
@@ -1051,6 +1071,29 @@ function CalisanlarSayfasi({ paketDurum }) {
           </div>
         </div>
       ))}
+
+      {/* Personel davet linki */}
+      {davet && (
+        <div onClick={() => setDavet(null)} className="modal-overlay">
+          <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 440 }}>
+            <div className="modal-header">
+              <h2 style={{ fontSize: 16 }}>{davet.calisan} için personel girişi</h2>
+              <button onClick={() => setDavet(null)} className="modal-close">✕</button>
+            </div>
+            <div style={{ padding: "16px 20px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+              <p style={{ margin: 0, fontSize: 13.5, color: "var(--dim)", lineHeight: 1.5 }}>
+                Bu linki çalışanına gönder. Açınca kendi e-posta ve şifresini belirler; telefonundan yalnız kendi randevularını görür ve gelemeyeceği gün acil durum açabilir. Link {davet.gecerlilik_gun} gün geçerli, bir kez kullanılır.
+              </p>
+              <input readOnly value={davet.link} className="input" onFocus={e => e.target.select()} />
+              <div className="row gap-8" style={{ flexWrap: "wrap" }}>
+                <button onClick={() => { navigator.clipboard?.writeText(davet.link); }} className="btn btn-ghost">Linki kopyala</button>
+                {davet.telefon && <a className="btn btn-primary" target="_blank" rel="noreferrer"
+                  href={`https://wa.me/${(t => (t.length === 10 ? "90" + t : t.replace(/^0/, "90")))(String(davet.telefon).replace(/\D/g, ""))}?text=${encodeURIComponent(`Randevularını telefonundan görmek için hesabını aç: ${davet.link}`)}`}>WhatsApp'tan gönder</a>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hizmet Atama Modal */}
       {hizmetModal && (
@@ -8754,12 +8797,16 @@ export default function App() {
     </div>
   );
 
+  // Personel davet linki (?personel=TOKEN): çalışan kendi hesabını açar
+  const personelDavet = !kullanici && new URLSearchParams(window.location.search).get("personel");
+  if (personelDavet) return <PersonelDavet token={personelDavet} onLogin={(d) => { api.token = d.token; localStorage.setItem("randevugo_token", d.token); setKullanici(d.kullanici); }} />;
   if (!kullanici) return <Login onLogin={setKullanici} />;
   // Geçici şifreyle açılan hesap (sahada açıldı / şifre sıfırlandı): kendi şifresini belirlemeden panel açılmaz
   if (kullanici.sifre_degistirmeli && !kullanici.impersonated && !sessionStorage.getItem("randevugo_imp_token")) {
     return <SifreBelirle api={api} kullanici={kullanici} onTamam={() => setKullanici({ ...kullanici, sifre_degistirmeli: false })}
       onCikis={() => { api.token = null; oturumuKapat(); window.location.reload(); }} />;
   }
+  if (kullanici.rol === "personel") return <PersonelPaneli api={api} onCikis={() => { api.token = null; oturumuKapat(); window.location.reload(); }} />;
   if (kullanici.rol === "superadmin") return <SuperAdminPanel kullanici={kullanici} />;
   if (sessionStorage.getItem("randevugo_imp_token")) {
     // Müşteri olarak giriş sekmesi: görünür uyarı + çıkış (oturum yalnız bu sekmede)

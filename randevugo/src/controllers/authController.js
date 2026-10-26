@@ -9,11 +9,11 @@ const { jwtSecret } = require('../middleware/auth');
 // Giriş cevabı (şifre, Google ve şifre sıfırlama aynı biçimde döner)
 function oturumCevabi(kullanici) {
   const token = jwt.sign(
-    { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null },
+    { id: kullanici.id, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null, calisan_id: kullanici.calisan_id || null },
     jwtSecret, { expiresIn: '7d' });
   return { token, kullanici: { id: kullanici.id, isim: kullanici.isim, email: kullanici.email, rol: kullanici.rol, isletme_id: kullanici.isletme_id, grup_id: kullanici.grup_id || null,
     ekip_gorev: kullanici.ekip_gorev || null, ekip_yetkileri: Array.isArray(kullanici.ekip_yetkileri) ? kullanici.ekip_yetkileri : null, patron: kullanici.patron === true,
-    sifre_degistirmeli: kullanici.sifre_degistirmeli === true } };
+    sifre_degistirmeli: kullanici.sifre_degistirmeli === true, calisan_id: kullanici.calisan_id || null } };
 }
 const sifreGecerli = (s) => String(s || '').length >= 8 && String(s).length <= 72;
 // E-posta büyük/küçük harf duyarsız (Google "Ali@…" ile "ali@…" aynı hesap)
@@ -376,3 +376,4 @@ class AuthController {
 }
 
 module.exports = new AuthController();
+module.exports.oturumCevabi = oturumCevabi;   // personel daveti kabulünde aynı oturum cevabı

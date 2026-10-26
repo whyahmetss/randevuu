@@ -50,7 +50,8 @@ function init(httpServer, allowedOrigins = [], corsCheck = null) {
     if (!k) { socket.disconnect(true); return; }
 
     // Otomatik odalar
-    if (k.isletme_id) socket.join(`isletme:${k.isletme_id}`);
+    // Personel dükkânın bütün randevu olaylarını almaz (yalnız kendi ekranı; liste sayfası yeniler)
+    if (k.isletme_id && k.rol !== 'personel') socket.join(`isletme:${k.isletme_id}`);
     if (k.id) socket.join(`user:${k.id}`);
     if (k.rol === 'superadmin' || k.rol === 'super_admin') socket.join('admin');
 

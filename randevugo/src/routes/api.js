@@ -95,6 +95,24 @@ router.put('/calisanlar/:id', authMiddleware, odemeKontrol, (req, res) => adminC
 router.delete('/calisanlar/:id', authMiddleware, odemeKontrol, (req, res) => adminController.calisanSil(req, res));
 router.get('/calisanlar/:id/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.calisanHizmetleriGetir(req, res));
 router.put('/calisanlar/:id/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.calisanHizmetleriGuncelle(req, res));
+
+// ==================== PERSONEL GİRİŞİ · ACİL DURUM · RESMÎ TATİL (2026-10-26) ====================
+// Personel rolü middleware/auth.js'te PERSONEL_YOLLARI dışına çıkamaz. Acil durum ödeme kontrolüne takılmaz (acil iş).
+const personelController = require('../controllers/personelController');
+const acilDurumController = require('../controllers/acilDurumController');
+router.get('/personel-hesaplari', authMiddleware, odemeKontrol, (req, res) => personelController.liste(req, res));
+router.post('/calisanlar/:id/personel-davet', authMiddleware, odemeKontrol, (req, res) => personelController.davetOlustur(req, res));
+router.delete('/calisanlar/:id/personel', authMiddleware, odemeKontrol, (req, res) => personelController.erisimKaldir(req, res));
+router.get('/personel/davet/:token', (req, res) => personelController.davetBilgi(req, res));
+router.post('/personel/davet/:token', (req, res) => personelController.davetKabul(req, res));
+router.get('/personel/ben', authMiddleware, (req, res) => personelController.ben(req, res));
+router.get('/personel/randevular', authMiddleware, (req, res) => personelController.randevularim(req, res));
+router.get('/acil-durum', authMiddleware, (req, res) => acilDurumController.liste(req, res));
+router.post('/acil-durum/onizleme', authMiddleware, (req, res) => acilDurumController.onizleme(req, res));
+router.post('/acil-durum', authMiddleware, (req, res) => acilDurumController.baslat(req, res));
+router.delete('/acil-durum/:id', authMiddleware, (req, res) => acilDurumController.bitir(req, res));
+router.get('/tatiller', authMiddleware, odemeKontrol, (req, res) => acilDurumController.tatilAyar(req, res));
+router.put('/tatiller', authMiddleware, odemeKontrol, (req, res) => acilDurumController.tatilKaydet(req, res));
 router.put('/kapora', authMiddleware, odemeKontrol, featureGuard('kapora'), (req, res) => adminController.kaporaToggle(req, res));
 
 router.get('/musteriler', authMiddleware, odemeKontrol, (req, res) => adminController.musterileriGetir(req, res));
@@ -554,6 +572,7 @@ router.post('/book/:slug/randevu', ddosGuard, (req, res) => bookingController.ra
 router.post('/book/:slug/bekleme', ddosGuard, (req, res) => bookingController.beklemeEkle(req, res));
 router.post('/book/:slug/otp-gonder', (req, res) => bookingController.otpGonder(req, res));
 router.post('/book/:slug/otp-dogrula', (req, res) => bookingController.otpDogrula(req, res));
+router.post('/book/:slug/verilerimi-sil', (req, res) => bookingController.verilerimiSil(req, res));
 router.get('/book/:slug/telegram-chat-durum', noCache, (req, res) => bookingController.telegramChatDurum(req, res));
 
 // ==================== MAĞAZA (berber önerisiyle ürün) ====================

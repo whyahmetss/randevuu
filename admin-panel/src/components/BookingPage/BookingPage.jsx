@@ -2,6 +2,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { API_URL, SOCKET_URL } from '../../lib/config';
 import { DILLER, TRANSLATIONS, detectLang, saveLang } from './translations';
 import './BookingPage.css';
+import VeriSil from './VeriSil';
 
 /* ═══════════════════════════════════════════════════════════════
    INLINE LUCIDE-STYLE ICONS
@@ -1350,6 +1351,7 @@ export default function BookingPage({ slug }) {
               İşletmeniz için ücretsiz kurun →
             </a>
           )}
+          <VeriSil slug={slug} dil={dil} />
         </div>
 
       </div>
