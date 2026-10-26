@@ -67,6 +67,7 @@ export const TRANSLATIONS = {
     periodAfternoon: 'Öğleden Sonra',
     periodEvening: 'Akşam',
     noSlotsInPeriod: 'Bu zaman diliminde uygun saat yok',
+    searchService: "Hizmet ara", allServices: "Tümü", featured: "Öne çıkanlar", otherServices: "Diğer", serviceCount: "hizmet", fromPrice: "{p}₺'den başlayan", noServiceFound: "Aramana uyan hizmet yok",
     locale: 'tr-TR',
   },
   en: {
@@ -116,6 +117,7 @@ export const TRANSLATIONS = {
     periodAfternoon: 'Afternoon',
     periodEvening: 'Evening',
     noSlotsInPeriod: 'No available times in this period',
+    searchService: "Search services", allServices: "All", featured: "Featured", otherServices: "Other", serviceCount: "services", fromPrice: "from ₺{p}", noServiceFound: "No matching services",
     locale: 'en-US',
   },
   ru: {
@@ -156,6 +158,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Изменить номер телефона',
     servicesSelected: 'услуг выбрано',
     periodMorning: 'Утро', periodAfternoon: 'День', periodEvening: 'Вечер',
+    searchService: "Поиск услуг", allServices: "Все", featured: "Популярное", otherServices: "Другое", serviceCount: "услуг", fromPrice: "от {p} ₺", noServiceFound: "Ничего не найдено",
     locale: 'ru-RU',
   },
   de: {
@@ -196,6 +199,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Telefonnummer ändern',
     servicesSelected: 'Dienste ausgewählt',
     periodMorning: 'Morgen', periodAfternoon: 'Nachmittag', periodEvening: 'Abend',
+    searchService: "Leistung suchen", allServices: "Alle", featured: "Empfohlen", otherServices: "Sonstiges", serviceCount: "Leistungen", fromPrice: "ab {p} ₺", noServiceFound: "Keine passende Leistung",
     locale: 'de-DE',
   },
   ar: {
@@ -245,6 +249,7 @@ export const TRANSLATIONS = {
     periodAfternoon: 'بعد الظهر',
     periodEvening: 'مساءً',
     noSlotsInPeriod: 'لا توجد أوقات متاحة في هذه الفترة',
+    searchService: "ابحث عن خدمة", allServices: "الكل", featured: "مميزة", otherServices: "أخرى", serviceCount: "خدمات", fromPrice: "ابتداءً من {p} ₺", noServiceFound: "لا توجد خدمة مطابقة",
     locale: 'ar-SA',
   },
   fr: {
@@ -285,6 +290,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Changer le numéro',
     servicesSelected: 'services sélectionnés',
     periodMorning: 'Matin', periodAfternoon: 'Après-midi', periodEvening: 'Soir',
+    searchService: "Rechercher un service", allServices: "Tous", featured: "À la une", otherServices: "Autres", serviceCount: "services", fromPrice: "dès {p} ₺", noServiceFound: "Aucun service trouvé",
     locale: 'fr-FR',
   },
   uk: {
@@ -325,6 +331,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Змінити номер',
     servicesSelected: 'послуг обрано',
     periodMorning: 'Ранок', periodAfternoon: 'День', periodEvening: 'Вечір',
+    searchService: "Пошук послуг", allServices: "Усі", featured: "Популярне", otherServices: "Інше", serviceCount: "послуг", fromPrice: "від {p} ₺", noServiceFound: "Нічого не знайдено",
     locale: 'uk-UA',
   },
   fa: {
@@ -365,6 +372,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← تغییر شماره تلفن',
     servicesSelected: 'خدمت انتخاب شد',
     periodMorning: 'صبح', periodAfternoon: 'بعدازظهر', periodEvening: 'عصر',
+    searchService: "جستجوی خدمت", allServices: "همه", featured: "ویژه", otherServices: "سایر", serviceCount: "خدمت", fromPrice: "از {p} ₺", noServiceFound: "خدمتی یافت نشد",
     locale: 'fa-IR',
   },
   es: {
@@ -405,6 +413,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Cambiar número',
     servicesSelected: 'servicios seleccionados',
     periodMorning: 'Mañana', periodAfternoon: 'Tarde', periodEvening: 'Noche',
+    searchService: "Buscar servicio", allServices: "Todos", featured: "Destacados", otherServices: "Otros", serviceCount: "servicios", fromPrice: "desde {p} ₺", noServiceFound: "No hay servicios",
     locale: 'es-ES',
   },
   nl: {
@@ -445,6 +454,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Telefoonnummer wijzigen',
     servicesSelected: 'diensten geselecteerd',
     periodMorning: 'Ochtend', periodAfternoon: 'Middag', periodEvening: 'Avond',
+    searchService: "Dienst zoeken", allServices: "Alle", featured: "Uitgelicht", otherServices: "Overig", serviceCount: "diensten", fromPrice: "vanaf ₺{p}", noServiceFound: "Geen dienst gevonden",
     locale: 'nl-NL',
   },
   it: {
@@ -481,6 +491,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Cambia numero',
     servicesSelected: 'servizi selezionati',
     periodMorning: 'Mattina', periodAfternoon: 'Pomeriggio', periodEvening: 'Sera',
+    searchService: "Cerca servizio", allServices: "Tutti", featured: "In evidenza", otherServices: "Altro", serviceCount: "servizi", fromPrice: "da {p} ₺", noServiceFound: "Nessun servizio trovato",
     locale: 'it-IT',
   },
   pl: {
@@ -517,6 +528,7 @@ export const TRANSLATIONS = {
     otpChangePhone: '← Zmień numer',
     servicesSelected: 'usług wybrano',
     periodMorning: 'Rano', periodAfternoon: 'Popołudnie', periodEvening: 'Wieczór',
+    searchService: "Szukaj usługi", allServices: "Wszystkie", featured: "Polecane", otherServices: "Inne", serviceCount: "usług", fromPrice: "od {p} ₺", noServiceFound: "Brak pasujących usług",
     locale: 'pl-PL',
   },
 };

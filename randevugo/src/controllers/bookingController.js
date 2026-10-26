@@ -140,15 +140,18 @@ class BookingController {
   async hizmetleriGetir(req, res) {
     try {
       const { slug } = req.params;
-      const isletme = (await pool.query('SELECT id FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
+      const isletme = (await pool.query('SELECT id, paket FROM isletmeler WHERE slug=$1 AND aktif=true', [slug])).rows[0];
       if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
 
+      // Zengin sayfa (Pro+ ve üstü): öne çıkanlar ve kategori özeti. Alt pakette öne çıkarma yok sayılır
+      // (paket düşünce eski işaretler sayfada kalmasın).
+      const zengin = !!(await require('../config/paketler').paketGetir(isletme.paket)).zengin_sayfa;
       const hizmetler = (await pool.query(
-        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
+        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat, kategori, one_cikan FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
         [isletme.id]
-      )).rows;
+      )).rows.map(h => ({ ...h, one_cikan: zengin && h.one_cikan === true }));
 
-      res.json({ hizmetler });
+      res.json({ hizmetler, zengin });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }

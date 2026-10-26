@@ -646,23 +646,53 @@ function Login({ onLogin }) {
 }
 
 // ==================== HİZMETLER SAYFASI ====================
+const BOS_HIZMET = { isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30", kategori: "", one_cikan: false };
+
+// Toplu ekleme metni (2026-10-26): "Saç:" satırı kategori başlatır; diğer satırlar "ad, süre, fiyat" (süre ve fiyat isteğe bağlı)
+function topluMetinCoz(metin) {
+  const sonuc = []; let kategori = "";
+  const sayi = (x) => { const n = parseFloat(String(x || "").replace(/[^\d.,]/g, "").replace(/\.(?=\d{3}\b)/g, "").replace(",", ".")); return isNaN(n) ? null : n; };
+  for (const ham of String(metin || "").split(/\r?\n/)) {
+    const satir = ham.trim();
+    if (!satir) continue;
+    if (/:$/.test(satir)) { kategori = satir.slice(0, -1).trim(); continue; }
+    const p = satir.split(/\t|;|,(?=\s*\d)|\s+-\s+/).map(x => x.trim());
+    sonuc.push({ isim: p[0], sure_dk: sayi(p[1]) || 30, fiyat: sayi(p[2]) || 0, kategori });
+  }
+  return sonuc.filter(h => h.isim);
+}
+
 function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   const [formAcik, setFormAcik] = useState(false);
-  const [form, setForm] = useState({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30" });
+  const [form, setForm] = useState(BOS_HIZMET);
   const [hata, setHata] = useState("");
   const [duzenleId, setDuzenleId] = useState(null); // düzenlenen hizmet (yoksa yeni ekleme)
+  const [topluAcik, setTopluAcik] = useState(false);
+  const [topluMetin, setTopluMetin] = useState("");
+  const [topluSonuc, setTopluSonuc] = useState("");
+  const zengin = paketDurum?.paket_bilgi?.zengin_sayfa === true;
+  const kategoriler = [...new Set(hizmetler.map(h => h.kategori).filter(Boolean))];
+  const topluOnizleme = topluMetinCoz(topluMetin);
+  const topluKategoriler = [...new Set(topluOnizleme.map(h => h.kategori).filter(Boolean))];
+  const topluEkle = async () => {
+    setTopluSonuc("");
+    const r = await api.post("/hizmetler/toplu", { hizmetler: topluOnizleme });
+    if (r.hata) { setTopluSonuc(r.hata); return; }
+    setTopluSonuc(`${r.eklenen} hizmet eklendi${r.atlanan ? `, ${r.atlanan} tanesi zaten vardı` : ""}.`);
+    setTopluMetin(""); yukle();
+  };
 
   const duzenleAc = (h) => {
-    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false });
+    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false, kategori: h.kategori || "", one_cikan: h.one_cikan === true });
     setDuzenleId(h.id); setHata(""); setFormAcik(true);
   };
 
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0, seans_sayisi: parseInt(form.seans_sayisi) || 0, seans_aralik_gun: parseInt(form.seans_aralik_gun) || 30 });
+    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0, seans_sayisi: parseInt(form.seans_sayisi) || 0, seans_aralik_gun: parseInt(form.seans_aralik_gun) || 30, kategori: form.kategori, one_cikan: !!form.one_cikan });
     if (res.hata) { setHata(res.hata); return; }
-    setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30" });
+    setForm(BOS_HIZMET);
     setFormAcik(false); setDuzenleId(null);
     yukle();
   };
@@ -690,13 +720,33 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
           {/* Kota doluysa ekleme yerine paket yükseltme (eskiden buton açık kalıyordu) */}
           {paketDurum && limit < 999 && hizmetler.length >= limit
             ? <button onClick={() => window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: { mesaj: "Paket sınırına ulaştın" } }))} className="btn btn-ghost">🔒 Paketi yükselt</button>
-            : <button onClick={() => { setDuzenleId(null); setForm({ isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30" }); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>}
+            : <button onClick={() => { setDuzenleId(null); setForm(BOS_HIZMET); setFormAcik(!formAcik); }} className="btn btn-primary">+ Yeni Hizmet</button>}
+          <button onClick={() => { setTopluAcik(!topluAcik); setTopluSonuc(""); }} className="btn btn-ghost">Toplu ekle</button>
         </div>
       </div>
 
+      {topluAcik && (
+        <div className="form-card">
+          <h3>Toplu hizmet ekle</h3>
+          <p style={{ color: "var(--dim)", fontSize: 13, margin: "4px 0 10px" }}>Her satıra bir hizmet: <b>ad, süre (dk), fiyat</b>. Süre ve fiyat boş kalabilir (30 dk, "fiyat dükkânda"). Sonu iki nokta ile biten satır kategori başlatır. Aynı adlı hizmet varsa atlanır.</p>
+          <textarea className="input" rows={10} value={topluMetin} onChange={e => setTopluMetin(e.target.value)} style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}
+            placeholder={"Saç:\nSaç kesim, 45, 300\nFön, 30, 200\nRenk:\nOmbre, 180, 2500\nRöfle, 120"} />
+          {topluOnizleme.length > 0 && (
+            <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 8 }}>
+              {topluOnizleme.length} hizmet{topluKategoriler.length ? ` · ${topluKategoriler.length} kategori (${topluKategoriler.join(", ")})` : ""}
+            </div>
+          )}
+          {topluSonuc && <div className="alert" style={{ marginTop: 8 }}>{topluSonuc}</div>}
+          <div className="form-actions">
+            <button type="button" disabled={!topluOnizleme.length} onClick={topluEkle} className="btn btn-primary">{topluOnizleme.length || ""} hizmeti ekle</button>
+            <button type="button" onClick={() => setTopluAcik(false)} className="btn btn-ghost">Kapat</button>
+          </div>
+        </div>
+      )}
+
       {formAcik && (
         <form onSubmit={ekle} className="form-card card-accent-green">
-          <h3 className="green">Yeni Hizmet Ekle</h3>
+          <h3 className="green">{duzenleId ? "Hizmeti düzenle" : "Yeni Hizmet Ekle"}</h3>
           {hata && <div className="alert alert-error">{hata}</div>}
           <div className="form-grid">
             <div className="full row gap-12">
@@ -708,6 +758,20 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
                 <label className="form-label">Hizmet Adı *</label>
                 <input placeholder="Saç Kesimi" required value={form.isim} onChange={e => setForm({...form, isim: e.target.value})} className="input" />
               </div>
+            </div>
+            <div>
+              <label className="form-label">Kategori</label>
+              <input placeholder="Saç, Renk, Bakım…" list="hizmet-kategorileri" maxLength={60} value={form.kategori} onChange={e => setForm({...form, kategori: e.target.value})} className="input" />
+              <datalist id="hizmet-kategorileri">{kategoriler.map(k => <option key={k} value={k} />)}</datalist>
+              <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>Randevu sayfasında hizmetler bu başlıklarla gruplanır. Boş = "Diğer".</div>
+            </div>
+            <div>
+              <label className="form-label">Öne çıkar</label>
+              <label className="row gap-8" style={{ alignItems: "center", fontSize: 13, minHeight: 40, opacity: zengin ? 1 : .55 }}>
+                <input type="checkbox" disabled={!zengin} checked={!!form.one_cikan && zengin} onChange={e => setForm({...form, one_cikan: e.target.checked})} />
+                Randevu sayfasının en üstünde göster
+              </label>
+              {!zengin && <div style={{ color: "var(--dim)", fontSize: 11 }}>Pro+ ve Kurumsal pakette.</div>}
             </div>
             <div>
               <label className="form-label">🇬🇧 English Name</label>
@@ -764,6 +828,8 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               {h.isim_ar && <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 11 }}>🇸🇦{h.isim_ar}</span>}
               {!h.aktif && <span style={{ color: "var(--red)", marginLeft: 8, fontSize: 12 }}>(Pasif)</span>}
             </div>
+            {h.kategori && <span className="tag-sm" style={{ background: "var(--surface3)", color: "var(--muted)", fontWeight: 600 }}>{h.kategori}</span>}
+            {h.one_cikan && zengin && <span className="tag-sm" style={{ background: "var(--amber-s)", color: "var(--amber)", fontWeight: 600 }}>Öne çıkan</span>}
             <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>
             <span className="tag-sm" style={{ background: "rgba(31,111,74,.12)", color: "var(--green)", fontWeight: 600 }}>{h.fiyat} ₺</span>
             {h.kapora_yuzdesi > 0 && <span className="tag-sm" style={{ background: "rgba(168,89,12,.12)", color: "var(--amber)", fontWeight: 600 }}>💳 %{h.kapora_yuzdesi} kapora</span>}

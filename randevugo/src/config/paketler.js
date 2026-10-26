@@ -27,6 +27,7 @@ const FALLBACK_PAKETLER = {
     dogum_gunu: false,       // × Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: false, // ×
     api_erisimi: false,      // ×
+    zengin_sayfa: false,     // × Zengin randevu sayfası (öne çıkanlar, kategori özeti) — Pro+ ve üstü
     ozellikler: [
       '2 çalışan',
       '500 randevu / ay',
@@ -61,6 +62,7 @@ const FALLBACK_PAKETLER = {
     dogum_gunu: true,       // ✓ Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: false, // ×
     api_erisimi: false,      // ×
+    zengin_sayfa: false,     // ×
     ozellikler: [
       '5 çalışan',
       'Sınırsız randevu',
@@ -100,6 +102,7 @@ const FALLBACK_PAKETLER = {
     dogum_gunu: true,       // ✓ Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: true,
     api_erisimi: false,
+    zengin_sayfa: true,      // ✓ Zengin randevu sayfası
     sube_yonetimi: true,     // ✓ Çoklu şube (3'e kadar)
     sube_limit: 3,
     ozellikler: [
@@ -139,6 +142,7 @@ const FALLBACK_PAKETLER = {
     dogum_gunu: true,       // ✓ Doğum günü mesajı (Standart ve üstü)
     oncelikli_destek: true,  // ✓
     api_erisimi: true,       // ✓
+    zengin_sayfa: true,      // ✓
     sube_yonetimi: true,     // ✓ Çok şubeli işletme yönetimi
     sube_limit: 999,
     ozellikler: [
@@ -167,7 +171,7 @@ const FALLBACK_PAKETLER = {
     export_aktif: true,
     coklu_dil: 99, kasa: true, magaza: true, prim: true, sadakat: true, winback: true,
     yorum_avcisi: true, gece_raporu: true, sms_hatirlatma: true, kapora: true, telegram: true, dogum_gunu: true,
-    oncelikli_destek: true, api_erisimi: true, sube_yonetimi: true, sube_limit: 999,
+    oncelikli_destek: true, api_erisimi: true, sube_yonetimi: true, sube_limit: 999, zengin_sayfa: true,
     ozellikler: [
       'Sınırsız çalışan',
       'Sınırsız randevu',
@@ -186,7 +190,7 @@ const BAYRAKLAR = {
   kasa: 'Kasa takibi', prim: 'Prim raporu', magaza: 'Vitrin (ürün önerisi)', sadakat: 'Sadakat puanı', winback: 'Kayıp müşteri',
   yorum_avcisi: 'Yorum avcısı', gece_raporu: 'Gece raporu', sms_hatirlatma: 'SMS hatırlatma', kapora: 'Kapora / ön ödeme',
   telegram: 'Telegram botu', dogum_gunu: 'Doğum günü mesajı', oncelikli_destek: 'Öncelikli destek', api_erisimi: 'API erişimi',
-  sube_yonetimi: 'Şube yönetimi',
+  sube_yonetimi: 'Şube yönetimi', zengin_sayfa: 'Zengin randevu sayfası',
 };
 const SAYILAR = { coklu_dil: 'Bot dil sayısı (0 = yalnız Türkçe)', sube_limit: 'Şube limiti' };
 

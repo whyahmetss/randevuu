@@ -25,7 +25,7 @@ setInterval(() => {
     if (yeni.length === 0) fingerprintSayac.delete(hash);
     else fingerprintSayac.set(hash, yeni);
   }
-}, 5 * 60 * 1000);
+}, 5 * 60 * 1000).unref(); // süreci tek başına açık tutmasın (testler kapanabilsin)
 
 const BOT_UA_PATTERNS = [
   /curl\//i, /python-requests/i, /python-urllib/i, /axios\//i,

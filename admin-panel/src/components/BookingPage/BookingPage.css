@@ -416,3 +416,54 @@
 /* Saat dilimi sekmesi tek satır ("Öğleden Sonra" dar ekranda ikiye bölünüyordu) */
 .bk-period-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 @media (max-width: 400px) { .bk-period-tab { font-size: 12.5px; gap: 4px; } }
+
+/* ── Hizmet kategorileri ve arama (2026-10-26) — renkler esnafın sayfa temasından ── */
+.bk-svc-search {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  padding: 0 12px; height: 44px; border: 1px solid var(--bk-line); border-radius: 10px;
+  background: var(--bk-surface); color: var(--bk-dim); transition: border-color .12s, box-shadow .12s;
+}
+.bk-svc-search:focus-within { border-color: var(--bk-accent); box-shadow: 0 0 0 3px var(--bk-accent-soft); }
+.bk-svc-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 15px; color: var(--bk-text); }
+.bk-kat-chips {
+  display: flex; gap: 6px; overflow-x: auto; margin: 0 -2px 12px; padding: 2px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.bk-kat-chips::-webkit-scrollbar { display: none; }
+.bk-kat-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px;
+  border: 1px solid var(--bk-line); border-radius: 999px; background: var(--bk-surface);
+  font: inherit; font-size: 13.5px; font-weight: 500; color: var(--bk-text); cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.bk-kat-chip span { font-size: 12px; color: var(--bk-dim); }
+.bk-kat-chip:hover { border-color: var(--bk-line-2); }
+.bk-kat-chip.on { background: var(--bk-accent); border-color: var(--bk-accent); color: var(--bk-on-accent); }
+.bk-kat-chip.on span { color: inherit; opacity: .8; }
+.bk-kat-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin: 10px 2px 2px; font-size: 13px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; color: var(--bk-muted);
+}
+.bk-kat-head:first-child { margin-top: 0; }
+.bk-kat-head small { font-size: 12.5px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--bk-dim); }
+.bk-kat-featured { justify-content: flex-start; align-items: center; gap: 6px; color: var(--bk-accent); }
+.bk-item-featured { box-shadow: inset 3px 0 0 var(--bk-accent); }
+.bk-svc-empty { padding: 22px 8px; text-align: center; font-size: 14px; color: var(--bk-dim); }
+.bk-kat-toggle {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 20px; align-items: center; gap: 10px; width: 100%;
+  min-height: 54px; padding: 0 14px; border: 1px solid var(--bk-line); border-radius: 10px;
+  background: var(--bk-surface-2); font: inherit; color: var(--bk-text); text-align: start; cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.bk-kat-toggle:hover { border-color: var(--bk-line-2); }
+.bk-kat-toggle-ad { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-kat-toggle-ad b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--bk-accent); color: var(--bk-on-accent); font-size: 12px; display: inline-grid; place-items: center; }
+.bk-kat-toggle small { font-size: 12.5px; color: var(--bk-dim); white-space: nowrap; }
+.bk-kat-toggle svg { color: var(--bk-dim); transition: transform .18s ease; }
+.bk-kat-toggle.open { border-color: var(--bk-line-2); }
+.bk-kat-toggle.open svg { transform: rotate(180deg); }
+/* Ad üstte, özet altında: uzun kategori adları ve dar ekranlar sığsın */
+.bk-kat-toggle { grid-template-columns: minmax(0, 1fr) 20px; row-gap: 2px; padding: 10px 14px; }
+.bk-kat-toggle-ad { grid-column: 1; overflow: visible; white-space: normal; }
+.bk-kat-toggle small { grid-column: 1; grid-row: 2; white-space: normal; }
+.bk-kat-toggle svg { grid-column: 2; grid-row: 1 / span 2; }
