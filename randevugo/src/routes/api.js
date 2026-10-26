@@ -85,6 +85,7 @@ router.put('/randevular/:id/durum', authMiddleware, odemeKontrol, (req, res) => 
 
 router.get('/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetleriGetir(req, res));
 router.post('/hizmetler', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetEkle(req, res));
+router.post('/hizmetler/toplu', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetTopluEkle(req, res));
 router.put('/hizmetler/:id', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetGuncelle(req, res));
 router.delete('/hizmetler/:id', authMiddleware, odemeKontrol, (req, res) => adminController.hizmetSil(req, res));
 

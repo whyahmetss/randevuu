@@ -34,6 +34,12 @@ function seansAlanlari(sayi, aralik) {
   return [Math.min(n, 50), Math.min(Math.max(parseInt(aralik) || 30, 1), 365)];
 }
 
+// Hizmet kategorisi (2026-10-26): kısa serbest metin ("Saç", "Renk"); boşsa kategorisiz ("Diğer")
+function kategoriTemiz(k) {
+  const s = String(k ?? '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  return s || null;
+}
+
 class AdminController {
 
   // ==================== RANDEVULAR ====================
@@ -281,7 +287,7 @@ class AdminController {
 
   async hizmetEkle(req, res) {
     try {
-      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun } = req.body;
+      const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun, kategori, one_cikan } = req.body;
       const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
       const paket = await paketGetir(isletme?.paket);
       const mevcut = (await pool.query('SELECT COUNT(*) as sayi FROM hizmetler WHERE isletme_id=$1 AND aktif=true', [req.kullanici.isletme_id])).rows[0];
@@ -289,12 +295,58 @@ class AdminController {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet ekleyebilirsin. Paketini yükselt.`, limit_asimi: true });
       }
       const result = await pool.query(
-        'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
-        [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, ...seansAlanlari(seans_sayisi, seans_aralik_gun)]
+        'INSERT INTO hizmetler (isletme_id, isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun, kategori, one_cikan) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
+        [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, ...seansAlanlari(seans_sayisi, seans_aralik_gun),
+          kategoriTemiz(kategori), !!one_cikan && !!paket.zengin_sayfa]
       );
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
       res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Toplu hizmet ekleme (2026-10-26): 80 hizmetli salonu tek tek girmek yerine liste yapıştırılır.
+  // Aynı adla zaten olan hizmet atlanır; paket limiti toplamda uygulanır; hepsi tek transaction.
+  async hizmetTopluEkle(req, res) {
+    const liste = Array.isArray(req.body?.hizmetler) ? req.body.hizmetler : [];
+    if (!liste.length) return res.status(400).json({ hata: 'Eklenecek hizmet yok' });
+    if (liste.length > 200) return res.status(400).json({ hata: 'Tek seferde en fazla 200 hizmet eklenebilir' });
+    const isletmeId = req.kullanici.isletme_id;
+    const temiz = [];
+    for (const h of liste) {
+      const isim = String(h?.isim ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
+      if (!isim) continue;
+      const sure = parseInt(h.sure_dk);
+      const fiyat = parseFloat(String(h.fiyat ?? '').replace(',', '.'));
+      temiz.push({ isim, sure_dk: sure >= 5 && sure <= 600 ? sure : 30, fiyat: fiyat >= 0 ? fiyat : 0, kategori: kategoriTemiz(h.kategori) });
+    }
+    if (!temiz.length) return res.status(400).json({ hata: 'Geçerli hizmet adı bulunamadı' });
+
+    const isletme = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
+    const paket = await paketGetir(isletme?.paket);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT id FROM isletmeler WHERE id=$1 FOR UPDATE', [isletmeId]); // aynı anda iki toplu ekleme limiti aşmasın
+      const mevcut = (await client.query('SELECT isim, aktif FROM hizmetler WHERE isletme_id=$1', [isletmeId])).rows;
+      const adlar = new Set(mevcut.map(h => h.isim.toLocaleLowerCase('tr')));
+      const yeni = temiz.filter(h => { const k = h.isim.toLocaleLowerCase('tr'); if (adlar.has(k)) return false; adlar.add(k); return true; });
+      const aktifSayi = mevcut.filter(h => h.aktif !== false).length;
+      if (aktifSayi + yeni.length > paket.hizmet_limit) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet olabilir (şu an ${aktifSayi}, eklenecek ${yeni.length}). Paketini yükselt.`, limit_asimi: true });
+      }
+      for (const h of yeni) {
+        await client.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, kategori) VALUES ($1, $2, $3, $4, $5)',
+          [isletmeId, h.isim, h.sure_dk, h.fiyat, h.kategori]);
+      }
+      await client.query('COMMIT');
+      res.json({ eklenen: yeni.length, atlanan: temiz.length - yeni.length });
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      res.status(500).json({ hata: error.message });
+    } finally {
+      client.release();
     }
   }
 
@@ -310,6 +362,17 @@ class AdminController {
       if (result.rows[0] && seans_sayisi !== undefined) {
         const [ss, sa] = seansAlanlari(seans_sayisi, seans_aralik_gun);
         result.rows[0] = (await pool.query('UPDATE hizmetler SET seans_sayisi=$1, seans_aralik_gun=$2 WHERE id=$3 RETURNING *', [ss, sa, result.rows[0].id])).rows[0];
+      }
+      // Kategori ve öne çıkarma da yalnız gönderildiyse değişir; öne çıkarma Pro+ ve üstünde
+      if (result.rows[0] && (req.body.kategori !== undefined || req.body.one_cikan !== undefined)) {
+        const h = result.rows[0];
+        const kat = req.body.kategori !== undefined ? kategoriTemiz(req.body.kategori) : h.kategori;
+        let one = h.one_cikan;
+        if (req.body.one_cikan !== undefined) {
+          const isl = (await pool.query('SELECT paket FROM isletmeler WHERE id=$1', [req.kullanici.isletme_id])).rows[0];
+          one = !!req.body.one_cikan && !!(await paketGetir(isl?.paket)).zengin_sayfa;
+        }
+        result.rows[0] = (await pool.query('UPDATE hizmetler SET kategori=$1, one_cikan=$2 WHERE id=$3 RETURNING *', [kat, one, h.id])).rows[0];
       }
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
