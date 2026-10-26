@@ -54,7 +54,9 @@ class AuthController {
   // Bot üzerinden kayıt (WP/TG bot çağırır)
   async botKayit(req, res) {
     try {
-      const { isletmeAdi, email, sifre, telefon, kayitKanal, referans_kodu, davet } = req.body;
+      const { isletmeAdi, sifre, telefon, kayitKanal, referans_kodu, davet } = req.body;
+      // Telefon klavyesi e-postanın sonuna boşluk ekleyebiliyor: kod adımı (kayitKod) kırpıyordu, kayıt "geçerli e-posta yazın" diyordu (2026-10-26)
+      const email = String(req.body.email || '').trim();
       if (!isletmeAdi || !email || !sifre) {
         return res.status(400).json({ hata: 'İşletme adı, email ve şifre zorunlu' });
       }
@@ -75,7 +77,7 @@ class AuthController {
       }
 
       // Email kontrolü
-      const mevcutKullanici = (await pool.query('SELECT id FROM admin_kullanicilar WHERE email = $1', [email])).rows[0];
+      const mevcutKullanici = (await pool.query('SELECT id FROM admin_kullanicilar WHERE LOWER(email) = LOWER($1)', [email])).rows[0];
       if (mevcutKullanici) {
         return res.status(400).json({ hata: 'Bu email zaten kayıtlı. Giriş yapmayı dene.' });
       }
