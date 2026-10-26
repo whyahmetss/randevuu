@@ -29,6 +29,14 @@ class RandevuService {
     }
     if (!tarih) return [];
 
+    // Usta belli değilse (müşteri seçmedi / otomatik atama / bot): her uygun ustanın kendi takvimi ayrı hesaplanıp
+    // birleştirilir. Eskiden bütün ustaların randevuları tek takvime yığılıyordu; bir usta doluyken boş ustalar
+    // da kapalı görünüyordu (canlı şikâyet, 2026-10-26).
+    if (!calisanId && randevuModu !== 'seans') {
+      const uygunlar = await this.uygunCalisanlar(isletmeId, opts.hizmetIds && opts.hizmetIds.length ? opts.hizmetIds : hizmetId);
+      if (uygunlar.length > 0) return this._ustalarBirlesik(isletme, tarih, uygunlar, hizmetId, opts);
+    }
+
     // Gün kontrolü (0=Pazar, 6=Cumartesi) — timezone-safe
     const [yil, ay, gn] = tarih.split('-').map(Number);
     const gun = new Date(yil, ay - 1, gn).getDay();
@@ -280,6 +288,43 @@ class RandevuService {
     return { gerekli: true, tutar: toplamKapora, yuzde: efektifYuzde };
   }
 
+  // Uygun ustaların boş saatlerinin birleşimi. Ustası atanmamış (eski) randevular herhangi bir ustayı tutar:
+  // o saatte boş usta sayısı, ona denk gelen ustasız randevu sayısından fazla olmalı.
+  async _ustalarBirlesik(isletme, tarih, uygunlar, hizmetId, opts) {
+    const ustaSaatleri = await Promise.all(uygunlar.map(u => this.musaitSaatleriGetir(isletme.id, tarih, u.id, hizmetId, opts)));
+    const bosUsta = new Map();
+    for (const liste of ustaSaatleri) for (const s of liste) bosUsta.set(s, (bosUsta.get(s) || 0) + 1);
+    if (!bosUsta.size) return [];
+
+    const ustasiz = (await pool.query(
+      "SELECT saat, bitis_saati FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND calisan_id IS NULL AND durum NOT IN ('iptal','gelmedi')",
+      [isletme.id, tarih]
+    )).rows;
+    const dakika = (x) => { const [h, m] = String(x).split(':').map(Number); return h * 60 + (m || 0); };
+    let sure = isletme.randevu_suresi_dk || 30;
+    if (typeof opts.toplamSureDk === 'number' && opts.toplamSureDk > 0) sure = opts.toplamSureDk;
+    else {
+      const ids = (opts.hizmetIds && opts.hizmetIds.length ? opts.hizmetIds : [hizmetId]).map(x => parseInt(x)).filter(Boolean);
+      if (ids.length) sure = (await pool.query('SELECT COALESCE(SUM(sure_dk), 0)::int AS t FROM hizmetler WHERE id = ANY($1::int[])', [ids])).rows[0].t || sure;
+    }
+    return [...bosUsta.keys()].sort().filter(s => {
+      const bas = dakika(s), bit = bas + sure;
+      const cakisan = ustasiz.filter(r => bas < dakika(r.bitis_saati || r.saat) + (r.bitis_saati ? 0 : 30) && bit > dakika(r.saat)).length;
+      return bosUsta.get(s) > cakisan;
+    });
+  }
+
+  // Ustası verilmeyen randevuya o saatte gerçekten boş olan uygun usta atanır (yoksa null kalır, kapasite kontrolü karar verir)
+  async _bosUstaBul(isletmeId, tarih, saat, hizmetIds) {
+    const modu = (await pool.query('SELECT randevu_modu FROM isletmeler WHERE id = $1', [isletmeId])).rows[0]?.randevu_modu;
+    if (modu === 'seans') return null;
+    for (const u of await this.uygunCalisanlar(isletmeId, hizmetIds)) {
+      const saatler = await this.musaitSaatleriGetir(isletmeId, tarih, u.id, null, { hizmetIds });
+      if (saatler.includes(saat)) return u.id;
+    }
+    return null;
+  }
+
   // Hizmete uygun çalışanları getir (calisan_hizmetler tablosundan)
   // hizmetIdOrIds: tek hizmet (legacy) VEYA hizmet array (intersection — tümünü yapabilen)
   async uygunCalisanlar(isletmeId, hizmetIdOrIds = null) {
@@ -353,6 +398,8 @@ class RandevuService {
       const c = (await pool.query('SELECT id FROM calisanlar WHERE id=$1 AND isletme_id=$2', [calisanId, isletmeId])).rows[0];
       if (!c) { const err = new Error('Çalışan bulunamadı'); err.code = 'CALISAN_BULUNAMADI'; throw err; }
     }
+
+    if (!calisanId) calisanId = await this._bosUstaBul(isletmeId, tarihStr, String(saat).slice(0, 5), hizmetIdsUnique).catch(() => null);
 
     // ─── AYLIK RANDEVU LİMİT KONTROLÜ ───
     const { paketGetir } = require('../config/paketler');
