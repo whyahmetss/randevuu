@@ -142,7 +142,7 @@ test('takip mesajı ilk mesajı atan numaradan gider; o numara bağlı değilse 
   const { bot } = botHazirla();
   const atilan = [];
   const sockYap = (ad) => ({ user: { id: ad }, presenceSubscribe: async () => {}, sendPresenceUpdate: async () => {},
-    sendMessage: async (jid, m) => { atilan.push([ad, jid]); return { key: { id: 'T' + atilan.length } }; } });
+    sendMessage: async (jid, m) => { atilan.push([ad, jid, m.text]); return { key: { id: 'T' + atilan.length } }; } });
   bot.numaraSockets.set(5, { numaraId: 5, durum: 'bagli', sock: sockYap('A') });
   bot.numaraSockets.set(6, { numaraId: 6, durum: 'bagli', sock: sockYap('B') });
   try {
@@ -153,6 +153,7 @@ test('takip mesajı ilk mesajı atan numaradan gider; o numara bağlı değilse 
     global.setTimeout = (f) => { f(); return 0; };
     try { await bot.takipMesajGonder(k); } finally { global.setTimeout = eskiZaman; }
     assert.deepStrictEqual(atilan.map(x => x[0]), ['B']);
+    assert.doesNotMatch(atilan[0][2], /Usta için|\*kay/, 'takipte işletme adı ve *kayıt* komutu yok');
     bot.numaraSockets.get(6).durum = 'kapali';
     await bot.takipMesajGonder({ ...k, takip_sayisi: 1 });
     assert.strictEqual(atilan.length, 1, 'numara 6 bağlı değil: numara 5 "yazmıştım" demez');
@@ -202,8 +203,8 @@ test('bot kendini tanıtmadan cevap vermez: tanıtımsız ilk cevap ve tanıtım
     await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj, lead_id) VALUES ('905457259802', 'Usta', 'bekliyor', 'Merhaba, kolay gelsin', 12)");
     siradaki = { mesajlar: ['Anladım, rahatsız ettiysem kusura bakmayın.'], durum: 'olumsuz', arama_istiyor: false, demo_gonder: false, fiyatlar: [] };
     const veda = await yaz('905457259802', 'kim olduğunuzu bilmiyorum, yardımcı olabileceğiniz bir husus olduğunu düşünmüyorum');
-    assert.match(veda[0], /^Anlıyorum\. Kısaca: .*adı SıraGO/);
-    assert.match(veda[1], /kolay gelsin/);
+    assert.match(veda[0], /^Kısaca söyleyeyim, .*adı SıraGO/);
+    assert.match(veda[1], /Kolay gelsin/i);
 
     await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj, lead_id) VALUES ('905457259803', 'Usta 2', 'bekliyor', 'Merhaba, kolay gelsin', 13)");
     const ret = await yaz('905457259803', 'ilgilenmiyorum');
