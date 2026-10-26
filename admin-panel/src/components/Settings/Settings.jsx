@@ -5,6 +5,7 @@ import GoogleCalendar from './GoogleCalendar';
 import { bookingUrl, BOOKING_BASE } from '../../lib/config';
 import { dosyaIndir } from '../Platform/ortak';
 import { SifreFormu } from '../SifreDegistir';
+import Tatiller from './Tatiller';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -199,6 +200,12 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               })}
             </div>
           </div>
+        </div>
+
+        {/* Resmî tatiller (2026-10-26) */}
+        <div style={S.card}>
+          <CardHead emoji="🗓️" title="Resmî Tatiller" color="#b42318" desc="Kapalı seçtiğin tatilde randevu alınmaz" />
+          <Tatiller api={api} />
         </div>
 
         {/* Mola Saatleri */}

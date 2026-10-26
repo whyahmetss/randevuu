@@ -311,6 +311,7 @@
 .bk-footer { margin-top: 28px; text-align: center; }
 .bk-footer a { display: inline-flex; align-items: center; gap: 6px; color: var(--bk-dim); font-size: 12px; text-decoration: none; }
 .bk-footer a:hover { color: var(--bk-muted); }
+.bk-footer-veri { display: block; margin: 10px auto 0; background: none; border: 0; padding: 4px; font: inherit; font-size: 11px; color: inherit; opacity: .6; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .bk-footer a.bk-footer-cta { display: block; margin-top: 6px; font-size: 11px; text-decoration: underline; text-underline-offset: 2px; }
 .bk-footer-logo {
   width: 16px; height: 16px; border-radius: 4px; background: var(--bk-text); color: var(--bk-on-text);

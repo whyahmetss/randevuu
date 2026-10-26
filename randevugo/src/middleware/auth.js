@@ -20,6 +20,9 @@ function panelGoruldu(k) {
   pool.query('UPDATE isletmeler SET son_panel = NOW() WHERE id = $1', [id]).catch(() => {});
 }
 
+// Personel hesabının açabileceği uç noktalar (2026-10-26); geri kalan her şey 403
+const PERSONEL_YOLLARI = /^\/api\/(personel\/(ben|randevular)|acil-durum(\/onizleme|\/\d+)?|auth\/(profil|sifre-degistir))\/?$/;
+
 const authMiddleware = async (req, res, next) => {
   // Anahtar yalnız başlıktan (2026-10-26): adres satırındaki anahtar erişim loglarına ve tarayıcı geçmişine düşer
   const token = req.headers.authorization?.split(' ')[1];
@@ -34,12 +37,18 @@ const authMiddleware = async (req, res, next) => {
     if (decoded.rol !== 'superadmin' && decoded.id) {
       let k;
       try {
-        k = (await pool.query('SELECT rol, grup_id, aktif FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
+        // * : calisan_id kolonu migration 071 ile geldi; eski şemada sorgu düşmesin
+        k = (await pool.query('SELECT * FROM admin_kullanicilar WHERE id=$1', [decoded.id])).rows[0];
       } catch (e) { return res.status(503).json({ hata: 'Yetki kontrol edilemedi' }); }
       // Silinen ya da kapatılan hesabın eski anahtarı geçmez (2026-10-26: satır yoksa anahtardaki rolle 7 gün devam ediliyordu)
       if (!k || k.aktif === false) return res.status(401).json({ hata: 'Hesap kapatılmış' });
       if (k.rol) req.kullanici.rol = k.rol;
       if (k.grup_id) req.kullanici.grup_id = k.grup_id;
+      // Personel (çalışan girişi): yalnız kendi ekranının uç noktaları; esnaf panelinin hiçbir verisine erişemez
+      if (k.rol === 'personel') {
+        req.kullanici.calisan_id = k.calisan_id || null;
+        if (!k.calisan_id || !PERSONEL_YOLLARI.test(req.baseUrl + req.path)) return res.status(403).json({ hata: 'Bu bölüm personel hesabına kapalı' });
+      }
     }
 
     // Ekip üyesi (süper admin): yetkiler ve aktiflik her istekte DB'den — kapatılan hesap anında düşer

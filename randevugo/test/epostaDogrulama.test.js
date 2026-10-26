@@ -53,10 +53,13 @@ test('e-posta doğrulama: kod olmadan / yanlış kodla hesap açılmaz, doğru k
 
   r = cevap(); await a.botKayit(kayit({ eposta_kod: kod === '000000' ? '111111' : '000000' }), r);
   assert.equal(r.veri.hata, 'Doğrulama kodu yanlış');
-  r = cevap(); await a.botKayit(kayit({ eposta_kod: kod }), r);
+  // Telefon klavyesi sona boşluk ekleyebiliyor: kod adımı kırpıyor, kayıt da kırpmalı
+  r = cevap(); await a.botKayit(kayit({ eposta_kod: kod, email: 'Tayfun@Ornek.com ' }), r);
   assert.equal(r.veri.basarili, true, JSON.stringify(r.veri));
   assert.equal((await db.query('SELECT eposta_dogrulandi FROM admin_kullanicilar')).rows[0].eposta_dogrulandi, true);
   assert.equal((await db.query('SELECT COUNT(*)::int AS n FROM eposta_dogrulama')).rows[0].n, 0, 'kod tek kullanımlık');
+  r = cevap(); await a.botKayit(kayit({ email: 'TAYFUN@ornek.com' }), r);
+  assert.match(r.veri.hata, /zaten kayıtlı/, 'büyük-küçük harf farkıyla ikinci hesap açılmaz');
 
   r = cevap(); await a.kayitKod({ body: { email: 'tayfun@ornek.com' } }, r);
   assert.match(r.veri.hata, /zaten kayıtlı/);

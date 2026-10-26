@@ -640,6 +640,25 @@ class BookingController {
     }
   }
 
+  // POST /api/book/:slug/verilerimi-sil { telefon, otpToken } — KVKK silme talebi (2026-10-26). Telefon önce
+  // otp-gonder / otp-dogrula ile doğrulanır; başkasının verisi silinemez. services/kvkk.js anonimleştirir.
+  async verilerimiSil(req, res) {
+    try {
+      const isletme = (await pool.query('SELECT id FROM isletmeler WHERE slug=$1 AND aktif=true', [req.params.slug])).rows[0];
+      if (!isletme) return res.status(404).json({ hata: 'İşletme bulunamadı' });
+      const telefonTemiz = telefonNormalize(req.body?.telefon);
+      if (!otpToken.dogrula(req.body?.otpToken, isletme.id, telefonTemiz)) {
+        return res.status(401).json({ hata: 'Telefon doğrulanmadı. Önce gelen kodu girin.' });
+      }
+      await require('../services/kvkk').veriSil({ isletmeId: isletme.id, telefon: telefonTemiz });
+      res.json({ silindi: true, mesaj: 'Kişisel verileriniz silindi. Geçmiş randevu kayıtları isminiz ve numaranız olmadan saklanır.' });
+    } catch (error) {
+      if (error.kod) return res.status(error.kod).json({ hata: error.message });
+      console.error('❌ KVKK silme hatası:', error.message);
+      res.status(500).json({ hata: 'İşlem tamamlanamadı, lütfen tekrar deneyin.' });
+    }
+  }
+
   // GET /api/book/grup/:slug — Grup landing (public)
   async grupLanding(req, res) {
     try {

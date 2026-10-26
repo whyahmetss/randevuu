@@ -10,6 +10,7 @@ class RandevuService {
   // hizmetId: tek hizmet (legacy)
   // opts.hizmetIds: çoklu hizmet array [1,4] → toplam süre + max tampon
   // opts.toplamSureDk: manuel override (bot'larda direkt süre geçmek için)
+  // opts.simdiPayi: bugün için şimdiden kaç dakika sonrası sunulur (varsayılan 30; acil durum aktarımı 0)
   // calisanId: sadece o çalışanın randevularına bakar
   // Randevu Modları:
   //   sirali: her slot 1 randevu alır, arka arkaya sıralı (varsayılan)
@@ -28,6 +29,10 @@ class RandevuService {
       tarih = String(tarih);
     }
     if (!tarih) return [];
+
+    // Resmî tatil (config/tatiller.js): esnafın kapalı seçtiği tatilde randevu yok; arifede 13:00'ten sonrası kapalı
+    const tatil = require('../config/tatiller').tatilKapanisi(isletme, tarih);
+    if (tatil?.tamGun) return [];
 
     // Usta belli değilse (müşteri seçmedi / otomatik atama / bot): her uygun ustanın kendi takvimi ayrı hesaplanıp
     // birleştirilir. Eskiden bütün ustaların randevuları tek takvime yığılıyordu; bir usta doluyken boş ustalar
@@ -109,6 +114,7 @@ class RandevuService {
         return { bas: bH * 60 + (bM || 0), bit: eH * 60 + (eM || 0) };
       });
     } catch (e) { /* tablo yoksa (eski kurulum) kapalı aralık yok */ }
+    if (tatil?.sonra) { const [tH, tM] = tatil.sonra.split(':').map(Number); bloklar.push({ bas: tH * 60 + tM, bit: 24 * 60 }); }
 
     // ─── SEANS MODU: aynı slota birden fazla müşteri alınabilir ───
     if (randevuModu === 'seans') {
@@ -150,7 +156,7 @@ class RandevuService {
 
       const musaitSaatler = [];
       for (let dk = basDk; dk + hizmetSureDk <= bitisDk; dk += SEANS_ARALIK) {
-        if (tarih === bugun && dk <= simdiDk + 30) continue;
+        if (tarih === bugun && dk <= simdiDk + (opts.simdiPayi ?? 30)) continue;
         // Mola kontrolü
         const molada = molaAraliklari.some(m => dk < m.bit && dk + hizmetSureDk > m.bas);
         if (molada) continue;
@@ -235,7 +241,7 @@ class RandevuService {
 
     for (const dk of adaylar) {
       // Bugünse ve geçmişse atla
-      if (tarih === bugun && dk <= simdiDk + 30) continue;
+      if (tarih === bugun && dk <= simdiDk + (opts.simdiPayi ?? 30)) continue;
 
       if (!cakismaVar(dk) && !googleCakisma(dk)) {
         const saat = `${String(Math.floor(dk / 60)).padStart(2, '0')}:${String(dk % 60).padStart(2, '0')}`;
