@@ -107,24 +107,34 @@ class AuthController {
           await pool.query('UPDATE eposta_dogrulama SET deneme = deneme + 1 WHERE email = $1', [epostaAnahtar]);
           return res.status(400).json({ hata: 'Doğrulama kodu yanlış', kod_gerekli: true });
         }
-        await pool.query('DELETE FROM eposta_dogrulama WHERE email = $1', [epostaAnahtar]);
         epostaDogru = true;
       }
 
-      // İşletme oluştur
-      const isletme = (await pool.query(
-        `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
-         VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + make_interval(days => $3)) RETURNING *`,
-        [isletmeAdi, telefon || '', denemeGun()]
-      )).rows[0];
-
-      // Admin kullanıcı oluştur
+      // Tek parça (2026-10-27): kod önce siliniyor, işletme açılışı patlayınca esnaf aynı kodla tekrar deneyince
+      // "süresi doldu" görüyordu. Kod ancak işletme + kullanıcı yazılınca harcanır; hata olursa kod geçerli kalır.
       const hashSifre = await bcrypt.hash(sifre, 10);
-      const kullanici = (await pool.query(
-        `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) 
-         VALUES ($1, $2, $3, 'admin', $4, true) RETURNING *`,
-        [isletmeAdi, email, hashSifre, isletme.id]
-      )).rows[0];
+      const client = await pool.connect();
+      let isletme, kullanici;
+      try {
+        await client.query('BEGIN');
+        isletme = (await client.query(
+          `INSERT INTO isletmeler (isim, telefon, kategori, aktif, paket, olusturma_tarihi, deneme_bitis_tarihi) 
+           VALUES ($1, $2, 'genel', true, 'baslangic', NOW(), NOW() + make_interval(days => $3)) RETURNING *`,
+          [isletmeAdi, telefon || '', denemeGun()]
+        )).rows[0];
+        kullanici = (await client.query(
+          `INSERT INTO admin_kullanicilar (isim, email, sifre, rol, isletme_id, aktif) 
+           VALUES ($1, $2, $3, 'admin', $4, true) RETURNING *`,
+          [isletmeAdi, email, hashSifre, isletme.id]
+        )).rows[0];
+        await client.query('DELETE FROM eposta_dogrulama WHERE email = $1', [epostaAnahtar]);
+        await client.query('COMMIT');
+      } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw e;
+      } finally {
+        client.release();
+      }
       if (epostaDogru) {
         try { await pool.query('UPDATE admin_kullanicilar SET eposta_dogrulandi = true WHERE id = $1', [kullanici.id]); } catch (e) { /* kolon yoksa */ }
       }
@@ -185,7 +195,7 @@ class AuthController {
         mesaj: `${isletmeAdi} başarıyla oluşturuldu!${referansMesaj}` 
       });
     } catch (error) {
-      console.error('❌ Bot kayıt hatası:', error.message);
+      console.error('❌ Bot kayıt hatası:', error.message, error.code || '', error.constraint || '');
       res.status(500).json({ hata: 'Kayıt sırasında bir hata oluştu' });
     }
   }
