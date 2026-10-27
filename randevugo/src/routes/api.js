@@ -165,6 +165,7 @@ router.get('/memnuniyetler', authMiddleware, odemeKontrol, (req, res) => adminCo
 
 // ==================== BEKLEME LİSTESİ ====================
 router.get('/bekleme-listesi', authMiddleware, odemeKontrol, (req, res) => adminController.beklemeListesiGetir(req, res));
+router.delete('/bekleme-listesi/:id', authMiddleware, odemeKontrol, (req, res) => adminController.beklemeListesiSil(req, res));
 
 // ==================== SUPER ADMIN ====================
 router.get('/admin/isletmeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.tumIsletmeler(req, res));

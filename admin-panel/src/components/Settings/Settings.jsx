@@ -338,6 +338,13 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
             <div style={{ color: "var(--dim)", fontSize: 12, marginTop: 6 }}>
               Bot: “Randevu için gün ve saati yazmanız yeterli (ör. "yarın 3'te <b>{(ayarlar.bot_ornek_hizmet || '').trim() || 'öne çıkan hizmetiniz'}</b>")”
             </div>
+            {/* Masaj salonunda bot "usta" diyordu (2026-10-27). Boşsa kategoriden: masaj → terapist, güzellik → uzman, diş → doktor… */}
+            <div style={{ ...S.sectionLabel, marginTop: 14 }}>Çalışan Unvanı</div>
+            <input value={ayarlar.calisan_unvani || ''} maxLength={30} onChange={e => setAyarlar({...ayarlar, calisan_unvani: e.target.value})}
+              placeholder="Boş bırakın: kategoriye göre (masaj → terapist, berber → usta)" className="input" style={{ width: "100%" }} />
+            <div style={{ color: "var(--dim)", fontSize: 12, marginTop: 6 }}>
+              Bot: “Tercih ettiğiniz bir <b>{(ayarlar.calisan_unvani || '').trim().toLocaleLowerCase('tr') || 'usta / terapist / uzman'}</b> var mı?”
+            </div>
           </div>
 
           {/* Mesai Dışı */}

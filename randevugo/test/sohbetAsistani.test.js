@@ -414,3 +414,20 @@ test('karşılama örneği: panel → öne çıkan → ilk hizmet → kategori',
   assert.match(M.tr.selam('Turkuas', null, 'Bali Masajı'), /yarın 3'te Bali Masajı/);
   assert.doesNotMatch(M.tr.selam('Turkuas', null, 'Bali Masajı'), /saç/);
 });
+
+// 2026-10-27: masaj salonu "Tercih ettiğiniz bir usta var mı?" yerine "terapist" istedi
+test('çalışan unvanı: panel → kategori → usta; bot mesajlarında kullanılır', () => {
+  const { calisanUnvani } = require(path.join(SRC, 'utils', 'calisanUnvani'));
+  assert.deepEqual(calisanUnvani({ kategori: 'Masaj Salonu' }), { tr: 'terapist', en: 'therapist' });
+  assert.equal(calisanUnvani({ kategori: 'SPA' }).tr, 'terapist');
+  assert.equal(calisanUnvani({ kategori: 'Berber' }).tr, 'usta');
+  assert.equal(calisanUnvani({ kategori: 'Güzellik Salonu' }).tr, 'uzman');
+  assert.equal(calisanUnvani({ kategori: 'Diş Kliniği' }).tr, 'doktor');
+  assert.equal(calisanUnvani({ kategori: 'genel' }).tr, 'usta', 'kategorisi genel kalan eski dükkân: eskisi gibi');
+  assert.equal(calisanUnvani({ kategori: 'Berber', calisan_unvani: ' Kuaför ' }).tr, 'kuaför', 'panelde yazılan önce');
+  const { M } = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  assert.match(M.tr.usta('Azra, Nurgül, Ece', 'terapist'), /^Tercih ettiğiniz bir terapist var mı\? Azra, Nurgül, Ece/);
+  const bm = require(path.join(SRC, 'utils', 'botMesajlar'));
+  const metin = bm.get({ kategori: 'Masaj Salonu', bot_diller: 'tr' }, 'calisanSec', { hizmetAd: 'Taş Masajı', sureDk: 40, fiyat: 3000, calisanlar: [{ isim: 'Azra' }] });
+  assert.match(metin, /Terapist seçiniz/);
+});

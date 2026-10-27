@@ -61,6 +61,7 @@ import DukkanModuPopup from './components/DukkanModuPopup';
 import GrupYonetim from './components/Grup/GrupYonetim';
 import SubeSwitcher from './components/Grup/SubeSwitcher';
 import AcilDurum from './components/AcilDurum/AcilDurum';
+import BeklemeListesi from './components/Randevu/BeklemeListesi';
 import PersonelPaneli, { PersonelDavet } from './components/Personel/PersonelPaneli';
 
 // "Müşteri olarak giriş" token'ı sekmeye özel (sessionStorage) tutulur; eskiden localStorage'daki
@@ -3020,6 +3021,7 @@ function Dashboard({ kullanici }) {
 
             return (
             <>
+              <BeklemeListesi api={api} />
               {/* Hızlı tarih sekmeleri + görünüm toggle */}
               <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
                 {tabBtn("Dün", "⏪", dun, "dun")}

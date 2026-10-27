@@ -25,6 +25,7 @@ const KATEGORI_ORNEK = [
   [/di[sş]|dent/, 'muayene', 'check-up'], [/veteriner|vet/, 'muayene', 'check-up'], [/d[oö]vme|tattoo/, 'dövme', 'tattoo'],
   [/epilasyon|lazer/, 'lazer epilasyon', 'laser hair removal'], [/diyet|beslenme/, 'görüşme', 'consultation'],
 ];
+const unvan = (isletme, dil) => require('../utils/calisanUnvani').calisanUnvani(isletme)[dil === 'en' ? 'en' : 'tr'];
 function ornekHizmet(isletme, hizmetler, dil) {
   const elle = String(isletme.bot_ornek_hizmet || '').trim();
   if (elle) return elle;
@@ -42,7 +43,7 @@ const M = {
     selam: (i, l, h) => `Merhaba, ben ${i} asistanıyım 😊 Size nasıl yardımcı olabilirim?\n\nRandevu için gün ve saati yazmanız yeterli (ör. "yarın 3'te ${h}").` + (l ? `\nDilerseniz saatinizi buradan kendiniz de seçebilirsiniz:\n${l}` : ''),
     hizmet: (liste) => `Tabii! Hangi hizmet için randevu alalım?\n${liste}`,
     hizmetTekrar: (liste) => `Hangi hizmeti istediğinizi anlayamadım 🙏 Listeden numarasını yazmanız yeterli (ör. *1*):\n${liste}`,
-    usta: (liste) => `Tercih ettiğiniz bir usta var mı? ${liste}\nFark etmezse "fark etmez" yazabilirsiniz.`,
+    usta: (liste, u = 'usta') => `Tercih ettiğiniz bir ${u} var mı? ${liste}\nFark etmezse "fark etmez" yazabilirsiniz.`,
     gun: () => `Tabii! Hangi gün gelmek istersiniz?`,
     saatler: (g, l) => `${g} için boş saatler: ${l}.\nSize hangisi uygun?`,
     saatSor: () => `Hangi saati istediğinizi yazar mısınız? (ör. "14:30" ya da "en erken")`,
@@ -57,12 +58,12 @@ const M = {
     oneriYok: (s) => `Maalesef ${s} için uygun bir saat bulamadım. Başka bir saat yazabilir misiniz?`,
     ipucu: () => `Randevu için gün ve saati yazmanız yeterli 😊`,
     erken: (s) => `(Daha erken isterseniz ${s} de boş.)`,
-    kisi: (n) => `${n} kişi (boş usta varsa aynı saatte, yoksa arka arkaya)`,
+    kisi: (n, u = 'usta') => `${n} kişi (boş ${u} varsa aynı saatte, yoksa arka arkaya)`,
   },
   en: {
     selam: (i, l, h) => `Hello, I'm the ${i} assistant 😊 How can I help you?\n\nTo book, just write the day and time (e.g. "tomorrow at 3, ${h}").` + (l ? `\nOr pick a time yourself here:\n${l}` : ''),
     hizmet: (liste) => `Sure! Which service would you like to book?\n${liste}`,
-    usta: (liste) => `Do you have a preferred staff member? ${liste}\nIf not, just write "any".`,
+    usta: (liste, u = 'staff member') => `Do you have a preferred ${u}? ${liste}\nIf not, just write "any".`,
     gun: () => `Sure! Which day would you like to come?`,
     saatSor: () => `Which time would you like? (e.g. "14:30" or "earliest")`,
     saatler: (g, l) => `Available times on ${g}: ${l}.\nWhich one suits you?`,
@@ -364,7 +365,7 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
     if (secimModu !== 'musteri' || d._fark_etmez || d.sohbet_bekleyen === 'usta') alan.secilen_calisan_id = 0;
     else {
       await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'usta' });
-      return T.usta(uygun.map(c => c.isim).join(', '));
+      return T.usta(uygun.map(c => c.isim).join(', '), unvan(isletme, dil));
     }
   }
   const ustaBelli = Number(alan.secilen_calisan_id) > 0;
@@ -443,7 +444,7 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
   if (oneriMetni) return oneriMetni;
   const usta = alan.secilen_calisan_id ? (uygun.find(c => c.id === alan.secilen_calisan_id) || calisanlar.find(c => c.id === alan.secilen_calisan_id)) : null;
   const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`
-    + (alan.kisi_sayisi ? `\n👥 ${T.kisi(alan.kisi_sayisi)}` : '');
+    + (alan.kisi_sayisi ? `\n👥 ${T.kisi(alan.kisi_sayisi, unvan(isletme, dil))}` : '');
   return T.onay(ozet);
 }
 

@@ -743,15 +743,31 @@ class AdminController {
 
   // ==================== BEKLEME LİSTESİ ====================
 
+  // Panelde gösterilir (2026-10-27): yalnız bugün ve sonrası, hâlâ bekleyenler; gün sırasıyla, aynı günde ilk gelen önce
   async beklemeListesiGetir(req, res) {
     try {
       const result = await pool.query(`
-        SELECT bl.*, h.isim as hizmet_isim
+        SELECT bl.*, COALESCE(
+          (SELECT string_agg(h2.isim, ' + ' ORDER BY h2.id) FROM hizmetler h2 WHERE h2.id = ANY(bl.hizmet_ids)), h.isim) AS hizmet_isim
         FROM bekleme_listesi bl
         LEFT JOIN hizmetler h ON bl.hizmet_id = h.id
-        WHERE bl.isletme_id=$1 ORDER BY bl.olusturma_tarihi DESC
-      `, [req.kullanici.isletme_id]);
+        WHERE bl.isletme_id=$1 AND bl.durum IN ('bekliyor', 'bildirildi') AND bl.istenen_tarih >= $2
+        ORDER BY bl.istenen_tarih, bl.olusturma_tarihi
+      `, [req.kullanici.isletme_id, bugunTarih()]);
       res.json({ bekleme_listesi: result.rows });
+    } catch (error) {
+      res.status(500).json({ hata: error.message });
+    }
+  }
+
+  // Esnaf müşteriyi arayıp hallettiyse listeden çıkarır (yer açılınca ona teklif gitmesin)
+  async beklemeListesiSil(req, res) {
+    try {
+      const r = await pool.query(
+        `UPDATE bekleme_listesi SET durum = 'kaldirildi' WHERE id = $1 AND isletme_id = $2 AND durum IN ('bekliyor', 'bildirildi') RETURNING id`,
+        [parseInt(req.params.id), req.kullanici.isletme_id]);
+      if (!r.rows.length) return res.status(404).json({ hata: 'Kayıt bulunamadı' });
+      res.json({ ok: true });
     } catch (error) {
       res.status(500).json({ hata: error.message });
     }
@@ -804,7 +820,7 @@ class AdminController {
     try {
       const izinliAlanlar = [
         'isim','adres','calisma_baslangic','calisma_bitis','randevu_suresi_dk','kapali_gunler','mola_saatleri',
-        'kategori','bot_konusma_stili','bot_ornek_hizmet','randevu_modu','hatirlatma_saat','calisan_secim_modu',
+        'kategori','bot_konusma_stili','bot_ornek_hizmet','calisan_unvani','randevu_modu','hatirlatma_saat','calisan_secim_modu',
         'randevu_onay_modu','onay_timeout_dk','iptal_sinir_saat','mesai_disi_mod','mesai_disi_mesaj',
         'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug',
         'varsayilan_tampon_dk','slot_aralik_dk',
@@ -819,6 +835,7 @@ class AdminController {
         return res.status(400).json({ hata: 'Geçersiz panel görünümü' });
       }
       if (req.body.bot_ornek_hizmet !== undefined) req.body.bot_ornek_hizmet = String(req.body.bot_ornek_hizmet || '').trim().slice(0, 60) || null;
+      if (req.body.calisan_unvani !== undefined) req.body.calisan_unvani = String(req.body.calisan_unvani || '').trim().slice(0, 30) || null;
       const jsonAlanlar = ['mola_saatleri','musteri_formu'];
       const setClauses = [];
       const values = [];
