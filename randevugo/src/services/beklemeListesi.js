@@ -24,6 +24,11 @@ async function ekle({ isletmeId, telefon, isim, hizmetIds = [], tarih, kaynak = 
     `INSERT INTO bekleme_listesi (musteri_telefon, isletme_id, hizmet_id, hizmet_ids, istenen_tarih, musteri_isim, kaynak)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
     [telefon, isletmeId, ids[0] || null, ids.length ? ids : null, tarihStr, isim ? String(isim).slice(0, 80) : null, kaynak])).rows[0];
+  // Esnaf listeye kimin girdiğini görmüyordu (2026-10-27): panel bildirimi + telefona push; panel listesi de tazelenir
+  try {
+    await require('../controllers/adminController').bildirimOlustur(isletmeId, 'bekleme', '⏳ Bekleme listesine yeni kişi',
+      `${isim ? String(isim).slice(0, 80) + ' · ' : ''}${tarihYazi(tarihStr)} için yer bekliyor. Yer açılınca ona otomatik haber verilecek.`);
+  } catch (e) { /* bildirim tablosu yoksa listeye ekleme yine geçerli */ }
   return { eklendi: true, id: r.id };
 }
 

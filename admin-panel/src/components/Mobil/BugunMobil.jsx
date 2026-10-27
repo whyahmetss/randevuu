@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import KapidanGelen from './KapidanGelen';
 import IslemNotu from '../Randevu/IslemNotu';
+import BeklemeListesi from '../Randevu/BeklemeListesi';
 
 // Kapı müşterisi ve WhatsApp gizli kimliği (LID, 14-15 hane) aranamaz
 const aranabilir = (t) => { const s = String(t || ''); const d = s.replace(/\D/g, ''); return !!d && !s.startsWith('kapi') && !(d.length >= 14 && !d.startsWith('90')); };
@@ -53,6 +54,7 @@ export default function BugunMobil({ api, setSayfa }) {
           <div style={{ fontSize: 14, color: 'var(--dim)' }}>Müşteri mesajlarına cevap gitmiyor. Bağlamak için dokun.</div>
         </button>
       )}
+      <BeklemeListesi api={api} />
 
       <div style={{ borderRadius: 18, background: '#1f6f4a', color: '#fff', padding: 16, display: 'flex', justifyContent: 'space-between' }}>
         <div><div style={{ fontSize: 30, fontWeight: 800 }}>{aktif.length}</div><div style={{ fontSize: 14, opacity: .9 }}>randevu</div></div>

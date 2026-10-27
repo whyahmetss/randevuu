@@ -46,7 +46,7 @@ const tr = {
     if (!s.kisa && p.fiyat) {
       txt += `${s.emoji ? '💰' : '•'} Ücret: ${p.fiyat} TL\n`;
     }
-    if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} Çalışan: ${p.calisanAd}\n`;
+    if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} ${s.unvan || 'Çalışan'}: ${p.calisanAd}\n`;
     txt += `\n${s.emoji ? '🗓️' : ''} Hangi gün ister${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`;
     return txt;
   },
@@ -58,7 +58,7 @@ const tr = {
       txt += `${s.emoji ? '⏱' : '•'} Süre: ${p.sureDk} dk\n`;
       txt += `${s.emoji ? '💰' : '•'} Ücret: ${p.fiyat} TL\n`;
     }
-    txt += `\n${s.emoji ? '👤' : ''} Çalışan seçin${s.hitap === 'siz' ? 'iz' : ''}:\n\n`;
+    txt += `\n${s.emoji ? '👤' : ''} ${s.unvan || 'Çalışan'} seçin${s.hitap === 'siz' ? 'iz' : ''}:\n\n`;
     p.calisanlar.forEach((c, i) => { txt += `*${i + 1}.* ${c.isim}\n`; });
     return txt;
   },
@@ -244,7 +244,7 @@ const en = {
     let txt = `${ok} *${p.hizmetAd}* selected\n\n`;
     if (!s.kisa && p.sureDk) txt += `${s.emoji ? '⏱' : '•'} Duration: ${p.sureDk} min\n`;
     if (!s.kisa && p.fiyat) txt += `${s.emoji ? '💰' : '•'} Price: ${p.fiyat} TL\n`;
-    if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} Staff: ${p.calisanAd}\n`;
+    if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} ${s.unvanEn || 'Staff'}: ${p.calisanAd}\n`;
     txt += `\n${s.emoji ? '🗓️ ' : ''}Which day?\n\n*1.* Today\n*2.* Tomorrow\n*3.* This Week`;
     return txt;
   },
@@ -252,7 +252,7 @@ const en = {
   calisanSec: (s, p) => {
     let txt = `${s.emoji ? '✅' : '•'} *${p.hizmetAd}* selected\n\n`;
     if (!s.kisa) { txt += `${s.emoji ? '⏱' : '•'} Duration: ${p.sureDk} min\n${s.emoji ? '💰' : '•'} Price: ${p.fiyat} TL\n`; }
-    txt += `\n${s.emoji ? '👤 ' : ''}Choose staff:\n\n`;
+    txt += `\n${s.emoji ? '👤 ' : ''}Choose ${(s.unvanEn || 'staff').toLowerCase()}:\n\n`;
     p.calisanlar.forEach((c, i) => { txt += `*${i + 1}.* ${c.isim}\n`; });
     return txt;
   },
@@ -659,7 +659,10 @@ function varsayilanDil(isletme) {
 function get(isletme, key, params = {}, musteriMesaj = null, kaydedilenDil = null) {
   // Stil belirle
   const stilKey = isletme.bot_konusma_stili || 'samimi';
-  const stil = { ...(STILLER[stilKey] || STILLER.samimi), ikon: require('./hizmetEmoji').hizmetEmoji(isletme.kategori) };
+  const { calisanUnvani, buyukHarf } = require('./calisanUnvani');
+  const u = calisanUnvani(isletme);
+  const stil = { ...(STILLER[stilKey] || STILLER.samimi), ikon: require('./hizmetEmoji').hizmetEmoji(isletme.kategori),
+    unvan: buyukHarf(u.tr), unvanEn: buyukHarf(u.en) };
 
   // İşletmenin desteklediği diller
   const desteklenen = Array.isArray(isletme.bot_diller) ? isletme.bot_diller : 

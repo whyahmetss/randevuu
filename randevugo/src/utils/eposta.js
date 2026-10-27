@@ -33,10 +33,10 @@ async function epostaGonder({ kime, konu, html, metin }) {
 function dogrulamaMaili(kod) {
   const panel = (process.env.ADMIN_PANEL_URL || 'https://admin.xn--srago-n4a.com').replace(/\/$/, '');
   const goster = `${kod.slice(0, 3)} ${kod.slice(3)}`;
-  const metin = `SıraGO doğrulama kodun: ${goster}\n\nHesabını açmak için bu kodu kayıt ekranına yaz. Kod 15 dakika geçerli.\nBu kaydı sen yapmadıysan bu e-postayı yok sayabilirsin.\n\nSıraGO · sırago.com`;
+  const metin = `SıraGO doğrulama kodun: ${goster}\n\nHesabını açmak için bu kodu kayıt ekranına yaz. Kod 30 dakika geçerli.\nBu kaydı sen yapmadıysan bu e-postayı yok sayabilirsin.\n\nSıraGO · sırago.com`;
   const html = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>SıraGO doğrulama kodu</title></head>
 <body style="margin:0;padding:0;background:#f4f1ec;-webkit-text-size-adjust:100%">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0">Doğrulama kodun: ${goster} · 15 dakika geçerli</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">Doğrulama kodun: ${goster} · 30 dakika geçerli</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ec"><tr><td align="center" style="padding:32px 16px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:460px;background:#ffffff;border-radius:20px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1d2a24">
     <tr><td style="background:#1f6f4a;padding:22px 28px">
@@ -51,7 +51,7 @@ function dogrulamaMaili(kod) {
     </td></tr>
     <tr><td style="padding:18px 28px">
       <div style="background:#eaf3ee;border:1px solid #cfe3d7;border-radius:16px;padding:22px 12px;text-align:center;font-size:38px;font-weight:800;letter-spacing:10px;color:#1f6f4a;font-family:'SF Mono',Menlo,Consolas,monospace">${goster}</div>
-      <div style="font-size:13px;color:#6f7d76;text-align:center;margin-top:12px">⏱ 15 dakika geçerli</div>
+      <div style="font-size:13px;color:#6f7d76;text-align:center;margin-top:12px">⏱ 30 dakika geçerli</div>
     </td></tr>
     <tr><td style="padding:8px 28px 28px">
       <div style="border-top:1px solid #eee9e1;padding-top:18px;font-size:13px;line-height:1.6;color:#8a948f">Bu kaydı sen yapmadıysan bu e-postayı yok sayabilirsin; kimse hesabına giremez.</div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { bookingUrl } from '../../lib/config';
 import { useCanliYenile } from '../../lib/socket';
 import IslemNotu from '../Randevu/IslemNotu';
+import BeklemeListesi from '../Randevu/BeklemeListesi';
 
 // SıraGO Lite — esnafın tek ekranı (kullanıcı kararı 2026-10-08):
 // bugünkü randevular, WhatsApp durumu, günlük ciro, hizmet/fiyat. Gerisi Pro görünümde.
@@ -72,6 +73,7 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
   return (
     <div style={{ maxWidth: 860 }}>
       {mesaj && <div className={`alert alert-${mesaj.tip}`} style={{ marginBottom: 12 }}>{mesaj.metin}</div>}
+      <BeklemeListesi api={api} />
 
       {/* Üst özet */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 12, marginBottom: 16 }}>

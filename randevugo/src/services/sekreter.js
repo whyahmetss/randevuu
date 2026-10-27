@@ -4,7 +4,7 @@
 // Komutlar utils/sekreterKomut ile çözülür; tanınmayan cümleye karışılmaz (kendime mesaj notları bozulmasın).
 const pool = require('../config/db');
 const { komutCoz, sade } = require('../utils/sekreterKomut');
-const { bugunTarih, tarihFormatla } = require('../utils/tarih');
+const { bugunTarih, tarihFormatla, kapanisDk } = require('../utils/tarih');
 const { telefonNormalize } = require('../utils/telefon');
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -27,6 +27,9 @@ const YARDIM = `🤵 *Sekreter modu* — panele girmeden yaz ya da sesli söyle:
 ✍️ *Ahmet'e yarın 15:00 saç kesimi yaz*
    (yeni müşteriyse numarasını da yaz: Ahmet 0532 111 22 33 …)
 ↩️ *son randevuyu sil*`;
+// Örnekte bu dükkânın hizmeti geçsin (2026-10-27): masaj salonuna da "saç kesimi yaz" diyordu
+const ornek = (isletme, hizmetler) => require('./sohbetAsistani').ornekHizmet(isletme, hizmetler, 'tr');
+const yardim = (isletme, hizmetler) => YARDIM.replace('saç kesimi', ornek(isletme, hizmetler));
 
 // Bu numara/sohbet sekreter komutu verebilir mi?
 function sahipNumarasiMi(isletme, telefon) {
@@ -39,20 +42,20 @@ function sahipNumarasiMi(isletme, telefon) {
 async function isle({ isletmeId, metin, kanal }) {
   const isletme = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
   if (!isletme || isletme.sekreter_aktif === false) return null;
-  const hizmetler = (await pool.query('SELECT id, isim, sure_dk FROM hizmetler WHERE isletme_id = $1 AND aktif = true ORDER BY id', [isletmeId])).rows;
+  const hizmetler = (await pool.query('SELECT * FROM hizmetler WHERE isletme_id = $1 AND aktif = true ORDER BY id', [isletmeId])).rows;
   const k = komutCoz(metin, { bugun: bugunTarih(), hizmetler });
   if (!k) {
     // "Kendime mesaj"a yazılan sıradan notlara karışma; yalnız "fiko …" ile başlayıp anlaşılmayanlara yardım göster
-    return /^\s*(fiko|sekreter)\b/i.test(String(metin)) ? `Anlayamadım 🤔\n\n${YARDIM}` : null;
+    return /^\s*(fiko|sekreter)\b/i.test(String(metin)) ? `Anlayamadım 🤔\n\n${yardim(isletme, hizmetler)}` : null;
   }
   try {
     switch (k.tip) {
-      case 'yardim': return YARDIM;
+      case 'yardim': return yardim(isletme, hizmetler);
       case 'liste': return await liste(isletme, k.tarih);
       case 'kapat': return await kapat(isletme, k);
       case 'ac': return await ac(isletme, k);
       case 'yaz': return await yaz(isletme, k, hizmetler);
-      case 'yaz_eksik': return `Saati anlayamadım. Örnek: *Ahmet'e yarın 15:00 saç kesimi yaz*`;
+      case 'yaz_eksik': return `Saati anlayamadım. Örnek: *Ahmet'e yarın 15:00 ${ornek(isletme, hizmetler)} yaz*`;
       case 'sil_son': return await silSon(isletme);
       default: return null;
     }
@@ -79,7 +82,8 @@ async function liste(isletme, tarih) {
 
 async function kapat(isletme, k) {
   const bas = k.bas || s5(isletme.calisma_baslangic || '09:00');
-  const bit = k.bit || s5(isletme.calisma_bitis || '19:00');
+  let bit = k.bit || s5(isletme.calisma_bitis || '19:00');
+  if (kapanisDk(bas, bit) === 24 * 60) bit = '24:00'; // "00:00" kapanış: blok gün sonuna kadar sürsün (0. dakikada bitmesin)
   if (k.tarih < bugunTarih()) return 'Geçmiş bir gün kapatılamaz.';
   await pool.query(
     `INSERT INTO takvim_bloklari (isletme_id, tarih, baslangic, bitis, aciklama, kaynak) VALUES ($1, $2, $3, $4, $5, 'sekreter')`,
@@ -107,13 +111,13 @@ async function ac(isletme, k) {
 
 async function yaz(isletme, k, hizmetler) {
   if (!k.hizmetId) {
-    return `Hangi hizmet? Şunlardan birini yaz:\n${hizmetler.slice(0, 12).map(h => `• ${h.isim}`).join('\n')}\n\nÖrnek: *${k.isim || 'Ahmet'}'e ${k.saat} ${hizmetler[0]?.isim || 'saç kesimi'} yaz*`;
+    return `Hangi hizmet? Şunlardan birini yaz:\n${hizmetler.slice(0, 12).map(h => `• ${h.isim}`).join('\n')}\n\nÖrnek: *${k.isim || 'Ahmet'}'e ${k.saat} ${ornek(isletme, hizmetler)} yaz*`;
   }
   // Müşteri: numara yazıldıysa o; yoksa bu dükkânın müşterilerinde isimle ara
   let telefon = k.telefon ? telefonNormalize(k.telefon) : null;
   let isim = k.isim;
   if (!telefon) {
-    if (!isim) return `Kime yazayım? Örnek: *Ahmet'e yarın 15:00 saç kesimi yaz*`;
+    if (!isim) return `Kime yazayım? Örnek: *Ahmet'e yarın 15:00 ${ornek(isletme, hizmetler)} yaz*`;
     const adaylar = (await pool.query(
       `SELECT DISTINCT m.id, m.isim, m.telefon FROM musteriler m
         WHERE (m.son_gelinen_isletme_id = $1 OR EXISTS (SELECT 1 FROM randevular r WHERE r.musteri_id = m.id AND r.isletme_id = $1))
