@@ -97,6 +97,7 @@ class AuthController {
       // Google kaydında e-postayı Google doğrular (req._epostaDogru, gövdeden gelemez). Mail servisi ayarlı değilse atlanır.
       const epostaAnahtar = String(email).trim().toLowerCase();
       let epostaDogru = req._epostaDogru === true;
+      let kodKullanildi = false;
       if (!epostaDogru && require('../utils/eposta').aktif()) {
         const d = (await pool.query('SELECT * FROM eposta_dogrulama WHERE email = $1 AND son_gecerlilik > NOW()', [epostaAnahtar])).rows[0];
         if (!d) return res.status(400).json({ hata: 'Doğrulama kodunun süresi doldu, yeni kod isteyin.', kod_gerekli: true });
@@ -108,6 +109,7 @@ class AuthController {
           return res.status(400).json({ hata: 'Doğrulama kodu yanlış', kod_gerekli: true });
         }
         epostaDogru = true;
+        kodKullanildi = true;
       }
 
       // Tek parça (2026-10-27): kod önce siliniyor, işletme açılışı patlayınca esnaf aynı kodla tekrar deneyince
@@ -127,7 +129,7 @@ class AuthController {
            VALUES ($1, $2, $3, 'admin', $4, true) RETURNING *`,
           [isletmeAdi, email, hashSifre, isletme.id]
         )).rows[0];
-        await client.query('DELETE FROM eposta_dogrulama WHERE email = $1', [epostaAnahtar]);
+        if (kodKullanildi) await client.query('DELETE FROM eposta_dogrulama WHERE email = $1', [epostaAnahtar]);
         await client.query('COMMIT');
       } catch (e) {
         await client.query('ROLLBACK').catch(() => {});
