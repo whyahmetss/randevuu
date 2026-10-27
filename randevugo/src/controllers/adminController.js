@@ -804,7 +804,7 @@ class AdminController {
     try {
       const izinliAlanlar = [
         'isim','adres','calisma_baslangic','calisma_bitis','randevu_suresi_dk','kapali_gunler','mola_saatleri',
-        'kategori','bot_konusma_stili','randevu_modu','hatirlatma_saat','calisan_secim_modu',
+        'kategori','bot_konusma_stili','bot_ornek_hizmet','randevu_modu','hatirlatma_saat','calisan_secim_modu',
         'randevu_onay_modu','onay_timeout_dk','iptal_sinir_saat','mesai_disi_mod','mesai_disi_mesaj',
         'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug',
         'varsayilan_tampon_dk','slot_aralik_dk',
@@ -818,6 +818,7 @@ class AdminController {
       if (req.body.panel_modu !== undefined && ![null, 'lite', 'pro'].includes(req.body.panel_modu)) {
         return res.status(400).json({ hata: 'Geçersiz panel görünümü' });
       }
+      if (req.body.bot_ornek_hizmet !== undefined) req.body.bot_ornek_hizmet = String(req.body.bot_ornek_hizmet || '').trim().slice(0, 60) || null;
       const jsonAlanlar = ['mola_saatleri','musteri_formu'];
       const setClauses = [];
       const values = [];

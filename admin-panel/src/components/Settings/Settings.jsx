@@ -331,6 +331,13 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
                 </button>
               ))}
             </div>
+            {/* Karşılamadaki örnek (2026-10-27): masaj salonunda "yarın 3'te saç kesimi" yazıyordu. Boşsa hizmetlerden otomatik. */}
+            <div style={{ ...S.sectionLabel, marginTop: 14 }}>Karşılama Mesajındaki Örnek Hizmet</div>
+            <input value={ayarlar.bot_ornek_hizmet || ''} maxLength={60} onChange={e => setAyarlar({...ayarlar, bot_ornek_hizmet: e.target.value})}
+              placeholder="Boş bırakın: hizmetlerinizden otomatik seçilir" className="input" style={{ width: "100%" }} />
+            <div style={{ color: "var(--dim)", fontSize: 12, marginTop: 6 }}>
+              Bot: “Randevu için gün ve saati yazmanız yeterli (ör. "yarın 3'te <b>{(ayarlar.bot_ornek_hizmet || '').trim() || 'öne çıkan hizmetiniz'}</b>")”
+            </div>
           </div>
 
           {/* Mesai Dışı */}

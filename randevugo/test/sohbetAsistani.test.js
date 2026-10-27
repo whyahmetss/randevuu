@@ -397,3 +397,20 @@ test('ölü bağlantı: "bağlı" görünen ama soketi kapanmış oturum yeniden
   wa._oluBaglanti(901, 'test');
   assert.strictEqual(cagri.length, 1, 'aynı anda ikinci tamir başlamaz');
 });
+
+// 2026-10-27: masaj salonunda karşılama "yarın 3'te saç kesimi" diyordu; örnek işletmenin kendi hizmetinden/kategorisinden gelir
+test('karşılama örneği: panel → öne çıkan → ilk hizmet → kategori', () => {
+  const { ornekHizmet, M } = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  const masaj = { kategori: 'Masaj Salonu' };
+  const hz = [{ isim: 'Thai Masajı' }, { isim: 'Bali Masajı', one_cikan: true, isim_en: 'Balinese Massage' }];
+  assert.equal(ornekHizmet(masaj, hz, 'tr'), 'Bali Masajı');
+  assert.equal(ornekHizmet(masaj, [hz[0]], 'tr'), 'Thai Masajı');
+  assert.equal(ornekHizmet(masaj, hz, 'en'), 'Balinese Massage');
+  assert.equal(ornekHizmet(masaj, [hz[0]], 'en'), 'massage', 'İngilizce adı yoksa kategoriden');
+  assert.equal(ornekHizmet(masaj, [{ isim: 'Aromaterapi Sıcak Taş Masajı ve Cilt Bakımı Paketi' }], 'tr'), 'masaj', 'uzun ad örneği bozmaz');
+  assert.equal(ornekHizmet({ ...masaj, bot_ornek_hizmet: ' klasik masaj ' }, hz, 'tr'), 'klasik masaj');
+  assert.equal(ornekHizmet({ kategori: 'Berber' }, [], 'tr'), 'saç kesimi');
+  assert.equal(ornekHizmet({ kategori: 'genel' }, [], 'tr'), 'randevu');
+  assert.match(M.tr.selam('Turkuas', null, 'Bali Masajı'), /yarın 3'te Bali Masajı/);
+  assert.doesNotMatch(M.tr.selam('Turkuas', null, 'Bali Masajı'), /saç/);
+});

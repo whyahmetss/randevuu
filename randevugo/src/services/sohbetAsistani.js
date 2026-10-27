@@ -17,10 +17,29 @@ const haftaGunu = (t) => { const [y, a, g] = t.split('-').map(Number); return ne
 const dk = (s) => { const [h, m] = String(s).slice(0, 5).split(':').map(Number); return h * 60 + (m || 0); };
 const s5 = (s) => String(s || '').slice(0, 5);
 
+// Karşılamadaki örnek hizmet (2026-10-27): masaj salonunda "yarın 3'te saç kesimi" yazıyordu. Sıra: panelde esnafın yazdığı →
+// öne çıkan hizmet → ilk hizmet → kategoriye göre genel ad. Uzun hizmet adı örneği bozmasın diye kategoriye düşer.
+const KATEGORI_ORNEK = [
+  [/masaj|spa|wellness/, 'masaj', 'massage'], [/berber|barber/, 'saç kesimi', 'haircut'], [/kuaf[oö]r|sa[cç]/, 'fön', 'blow-dry'],
+  [/t[ıi]rnak|nail|man[ıi]k[uü]r/, 'manikür', 'manicure'], [/g[uü]zellik|beauty|cilt|estetik/, 'cilt bakımı', 'facial'],
+  [/di[sş]|dent/, 'muayene', 'check-up'], [/veteriner|vet/, 'muayene', 'check-up'], [/d[oö]vme|tattoo/, 'dövme', 'tattoo'],
+  [/epilasyon|lazer/, 'lazer epilasyon', 'laser hair removal'], [/diyet|beslenme/, 'görüşme', 'consultation'],
+];
+function ornekHizmet(isletme, hizmetler, dil) {
+  const elle = String(isletme.bot_ornek_hizmet || '').trim();
+  if (elle) return elle;
+  const h = hizmetler.find(x => x.one_cikan) || hizmetler[0];
+  const ad = h && String((dil === 'en' && h.isim_en) || h.isim || '').trim();
+  if (ad && ad.length <= 30 && (dil === 'tr' || h.isim_en)) return ad;
+  const k = sade(isletme.kategori || '');
+  const e = KATEGORI_ORNEK.find(([re]) => re.test(k));
+  return e ? (dil === 'en' ? e[2] : e[1]) : (dil === 'en' ? 'appointment' : 'randevu');
+}
+
 // Kısa metinler (bot 3 dil: tr/en/ar). Müşteriye "siz" diye hitap edilir.
 const M = {
   tr: {
-    selam: (i, l) => `Merhaba, ben ${i} asistanıyım 😊 Size nasıl yardımcı olabilirim?\n\nRandevu için gün ve saati yazmanız yeterli (ör. "yarın 3'te saç kesimi").` + (l ? `\nDilerseniz saatinizi buradan kendiniz de seçebilirsiniz:\n${l}` : ''),
+    selam: (i, l, h) => `Merhaba, ben ${i} asistanıyım 😊 Size nasıl yardımcı olabilirim?\n\nRandevu için gün ve saati yazmanız yeterli (ör. "yarın 3'te ${h}").` + (l ? `\nDilerseniz saatinizi buradan kendiniz de seçebilirsiniz:\n${l}` : ''),
     hizmet: (liste) => `Tabii! Hangi hizmet için randevu alalım?\n${liste}`,
     hizmetTekrar: (liste) => `Hangi hizmeti istediğinizi anlayamadım 🙏 Listeden numarasını yazmanız yeterli (ör. *1*):\n${liste}`,
     usta: (liste) => `Tercih ettiğiniz bir usta var mı? ${liste}\nFark etmezse "fark etmez" yazabilirsiniz.`,
@@ -41,7 +60,7 @@ const M = {
     kisi: (n) => `${n} kişi (boş usta varsa aynı saatte, yoksa arka arkaya)`,
   },
   en: {
-    selam: (i, l) => `Hello, I'm the ${i} assistant 😊 How can I help you?\n\nTo book, just write the day and time (e.g. "tomorrow at 3, haircut").` + (l ? `\nOr pick a time yourself here:\n${l}` : ''),
+    selam: (i, l, h) => `Hello, I'm the ${i} assistant 😊 How can I help you?\n\nTo book, just write the day and time (e.g. "tomorrow at 3, ${h}").` + (l ? `\nOr pick a time yourself here:\n${l}` : ''),
     hizmet: (liste) => `Sure! Which service would you like to book?\n${liste}`,
     usta: (liste) => `Do you have a preferred staff member? ${liste}\nIf not, just write "any".`,
     gun: () => `Sure! Which day would you like to come?`,
@@ -254,7 +273,7 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
     await kaydet(wa, musteriTelefon, isletmeId, 'ana_menu', {});
     // Randevu linki WhatsApp'ta önizleme kartıyla açılır (düğme yerine)
     let link = null; try { link = await require('../utils/randevuLinki').randevuLinki(isletme); } catch (e) { /* link olmadan */ }
-    return T.selam(isletme.isim, link);
+    return T.selam(isletme.isim, link, ornekHizmet(isletme, hizmetler, dil));
   }
   if (a.niyet === 'iptal') return null;
   if (a.niyet === 'bilgi' || ((!a.niyet || a.niyet === 'diger') && !surecte)) {
@@ -486,4 +505,4 @@ async function kaydet(wa, tel, isletmeId, asama, alanlar) {
   }
 }
 
-module.exports = { isle, anla, saatSecki, kisiBul, M };
+module.exports = { isle, anla, saatSecki, kisiBul, M, ornekHizmet };
