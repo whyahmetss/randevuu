@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { bugunTarih, simdiSaat, tarihFormatla } = require('../utils/tarih');
+const { bugunTarih, simdiSaat, tarihFormatla, kapanisDk } = require('../utils/tarih');
 const socketServer = require('./socketServer');
 const pushService = require('./pushService');
 const googleCalendar = require('./googleCalendar');
@@ -110,8 +110,8 @@ class RandevuService {
         [isletmeId, tarih, calisanId ? parseInt(calisanId) : null]
       )).rows.map(b => {
         const [bH, bM] = String(b.baslangic).split(':').map(Number);
-        const [eH, eM] = String(b.bitis).split(':').map(Number);
-        return { bas: bH * 60 + (bM || 0), bit: eH * 60 + (eM || 0) };
+        const bas = bH * 60 + (bM || 0);
+        return { bas, bit: kapanisDk(b.baslangic, b.bitis) };
       });
     } catch (e) { /* tablo yoksa (eski kurulum) kapalı aralık yok */ }
     if (tatil?.sonra) { const [tH, tM] = tatil.sonra.split(':').map(Number); bloklar.push({ bas: tH * 60 + tM, bit: 24 * 60 }); }
@@ -147,9 +147,8 @@ class RandevuService {
       molaAraliklari.push(...bloklar);
 
       const [basH, basM] = baslangic.split(':').map(Number);
-      const [bitH, bitM] = bitis.split(':').map(Number);
       const basDk = basH * 60 + basM;
-      const bitisDk = bitH * 60 + bitM;
+      const bitisDk = kapanisDk(baslangic, bitis);
       const bugun = bugunTarih();
       const simdiDk = simdiSaat().toplam;
       const SEANS_ARALIK = isletme.slot_aralik_dk || 30;
@@ -198,9 +197,8 @@ class RandevuService {
     };
 
     const [basH, basM] = baslangic.split(':').map(Number);
-    const [bitH, bitM] = bitis.split(':').map(Number);
     const basDk = basH * 60 + basM;
-    const bitisDk = bitH * 60 + bitM;
+    const bitisDk = kapanisDk(baslangic, bitis);
 
     // Şu anki saatten önceki saatleri atla (bugün ise)
     const bugun = bugunTarih();
@@ -625,8 +623,8 @@ class RandevuService {
     const s5 = (x) => String(x || '').slice(0, 5);
     const dk = (x) => { const [h, m] = s5(x).split(':').map(Number); return h * 60 + (m || 0); };
     const hhmm = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
-    const isl = (await pool.query('SELECT calisma_bitis FROM isletmeler WHERE id = $1', [isletmeId])).rows[0] || {};
-    const kapanis = isl.calisma_bitis ? dk(isl.calisma_bitis) : 24 * 60;
+    const isl = (await pool.query('SELECT calisma_baslangic, calisma_bitis FROM isletmeler WHERE id = $1', [isletmeId])).rows[0] || {};
+    const kapanis = isl.calisma_bitis ? kapanisDk(isl.calisma_baslangic || '00:00', isl.calisma_bitis) : 24 * 60;
     const sure = Number((await pool.query('SELECT sure_dk FROM hizmetler WHERE id = $1', [hizmetId])).rows[0]?.sure_dk) || 30;
     const ustalar = (await this.uygunCalisanlar(isletmeId, hizmetId).catch(() => [])).map(c => c.id);
     if (!ustalar.length) ustalar.push(null);

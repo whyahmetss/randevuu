@@ -19,6 +19,20 @@ const sifreGecerli = (s) => String(s || '').length >= 8 && String(s).length <= 7
 // E-posta büyük/küçük harf duyarsız (Google "Ali@…" ile "ali@…" aynı hesap)
 const kullaniciBul = async (email) => (await pool.query(
   'SELECT * FROM admin_kullanicilar WHERE LOWER(email) = LOWER($1) AND aktif = true ORDER BY id LIMIT 1', [String(email || '').trim()])).rows[0];
+// Geçici şifre girişi (2026-10-27, "geçici şifreyi kabul etmiyor"): şifre WhatsApp'a *kalın* gidiyor; kopyalayınca yıldız/boşluk
+// geliyor, "göster" açıkken telefon ilk harfi büyütüyor. Geçici şifreli hesapta bu farklar yok sayılır (şifre zaten küçük harf + rakam).
+const geciciNormal = (x) => String(x || '').replace(/[*\s]/g, '').replace(/[\u2010-\u2015\u2212]/g, '-').toLowerCase();
+// Aynı e-posta birden fazla hesapta olabilir (eski kayıtlar, büyük/küçük harf farkı): ilk satıra değil, şifresi tutana bakılır.
+async function sifresiTutan(email, sifre) {
+  const adaylar = (await pool.query(
+    'SELECT * FROM admin_kullanicilar WHERE LOWER(email) = LOWER($1) AND aktif = true ORDER BY id', [String(email || '').trim()])).rows;
+  for (const k of adaylar) {
+    if (!k.sifre) continue;
+    if (await bcrypt.compare(String(sifre || ''), k.sifre)) return k;
+    if (k.sifre_degistirmeli === true && await bcrypt.compare(geciciNormal(sifre), k.sifre)) return k;
+  }
+  return null;
+}
 const GOOGLE_CLIENT_ID = () => (process.env.GOOGLE_CLIENT_ID || '').trim();
 const telMaskele = (t) => { const d = String(t || '').replace(/\D/g, ''); return d.length >= 4 ? `•••• ••• ${d.slice(-4, -2)} ${d.slice(-2)}` : ''; };
 
@@ -26,11 +40,8 @@ class AuthController {
   async giris(req, res) {
     try {
       const { email, sifre } = req.body;
-      const kullanici = await kullaniciBul(email);
-      
-      if (!kullanici || !(await bcrypt.compare(String(sifre || ''), kullanici.sifre))) {
-        return res.status(401).json({ hata: 'Email veya şifre hatalı' });
-      }
+      const kullanici = await sifresiTutan(email, sifre);
+      if (!kullanici) return res.status(401).json({ hata: 'Email veya şifre hatalı' });
 
       // Audit log — giriş kaydı
       try {
@@ -88,8 +99,11 @@ class AuthController {
       let epostaDogru = req._epostaDogru === true;
       if (!epostaDogru && require('../utils/eposta').aktif()) {
         const d = (await pool.query('SELECT * FROM eposta_dogrulama WHERE email = $1 AND son_gecerlilik > NOW()', [epostaAnahtar])).rows[0];
-        if (!d || d.deneme >= 5) return res.status(400).json({ hata: 'Doğrulama kodunun süresi doldu, yeni kod isteyin.', kod_gerekli: true });
-        if (!(await bcrypt.compare(String(req.body.eposta_kod || '').replace(/\D/g, ''), d.kod_hash))) {
+        if (!d) return res.status(400).json({ hata: 'Doğrulama kodunun süresi doldu, yeni kod isteyin.', kod_gerekli: true });
+        if (d.deneme >= 5) return res.status(400).json({ hata: 'Çok fazla yanlış deneme. Yeni kod isteyin.', kod_gerekli: true });
+        // Tekrar gönderilince spamdaki ilk kod da geçerli kalır (2026-10-27): esnaf genelde ilk geleni yazıyordu
+        const yazilan = String(req.body.eposta_kod || '').replace(/\D/g, '');
+        if (!(await bcrypt.compare(yazilan, d.kod_hash)) && !(d.onceki_kod_hash && await bcrypt.compare(yazilan, d.onceki_kod_hash))) {
           await pool.query('UPDATE eposta_dogrulama SET deneme = deneme + 1 WHERE email = $1', [epostaAnahtar]);
           return res.status(400).json({ hata: 'Doğrulama kodu yanlış', kod_gerekli: true });
         }
@@ -181,7 +195,7 @@ class AuthController {
     res.json({ google_client_id: GOOGLE_CLIENT_ID() || null, eposta_dogrulama: require('../utils/eposta').aktif() });
   }
 
-  // Kayıt 1/2 (2026-10-22): e-postaya 6 haneli kod. Kayıt (botKayit) bu kodla tamamlanır. 15 dk geçerli, dakikada 1.
+  // Kayıt 1/2 (2026-10-22): e-postaya 6 haneli kod. Kayıt (botKayit) bu kodla tamamlanır. 30 dk geçerli (spam gecikmesi), dakikada 1.
   async kayitKod(req, res) {
     try {
       const eposta = require('../utils/eposta');
@@ -191,11 +205,13 @@ class AuthController {
       if (await kullaniciBul(email)) return res.status(400).json({ hata: 'Bu email zaten kayıtlı. Giriş yapmayı dene.' });
       const anahtar = email.toLowerCase();
       const son = (await pool.query("SELECT 1 FROM eposta_dogrulama WHERE email = $1 AND olusturma > NOW() - INTERVAL '1 minute'", [anahtar])).rows[0];
-      if (son) return res.status(429).json({ hata: 'Kod az önce gönderildi, 1 dakika sonra tekrar dene.' });
+      // gonderildi: sayfa yenilenip tekrar basılınca panel kod kutusunu yine açsın (kutu görünmüyordu, esnaf takılıyordu)
+      if (son) return res.status(429).json({ hata: 'Kod az önce gönderildi. E-postana (spam klasörü dahil) gelen kodu yaz.', gonderildi: true });
       const kod = String(require('crypto').randomInt(0, 1000000)).padStart(6, '0');
       await pool.query(
-        `INSERT INTO eposta_dogrulama (email, kod_hash, son_gecerlilik) VALUES ($1, $2, NOW() + INTERVAL '15 minutes')
-         ON CONFLICT (email) DO UPDATE SET kod_hash = EXCLUDED.kod_hash, son_gecerlilik = EXCLUDED.son_gecerlilik, deneme = 0, olusturma = NOW()`,
+        `INSERT INTO eposta_dogrulama (email, kod_hash, son_gecerlilik) VALUES ($1, $2, NOW() + INTERVAL '30 minutes')
+         ON CONFLICT (email) DO UPDATE SET kod_hash = EXCLUDED.kod_hash, son_gecerlilik = EXCLUDED.son_gecerlilik, deneme = 0, olusturma = NOW(),
+           onceki_kod_hash = CASE WHEN eposta_dogrulama.son_gecerlilik > NOW() THEN eposta_dogrulama.kod_hash END`,
         [anahtar, await bcrypt.hash(kod, 8)]);
       const m = eposta.dogrulamaMaili(kod);
       const g = await eposta.epostaGonder({ kime: email, konu: m.konu, html: m.html, metin: m.metin });

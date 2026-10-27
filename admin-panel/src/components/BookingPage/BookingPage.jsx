@@ -58,7 +58,8 @@ function isletmeAcikMi(isletme, t) {
   const [eh, em] = String(isletme.calisma_bitis || '19:00').split(':').map(Number);
   const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
   const baslangic = bh * 60 + bm;
-  const bitis = eh * 60 + em;
+  // "00:00" kapanış = gece yarısı (gün sonu); 0. dakika okununca salon bütün gün kapalı görünüyordu
+  const bitis = eh * 60 + em <= baslangic ? 24 * 60 : eh * 60 + em;
 
   if (simdiDk >= baslangic && simdiDk < bitis) return { acik: true, metin: t('open') };
   return { acik: false, metin: t('closed') };

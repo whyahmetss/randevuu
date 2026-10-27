@@ -4,7 +4,7 @@
 // Komutlar utils/sekreterKomut ile çözülür; tanınmayan cümleye karışılmaz (kendime mesaj notları bozulmasın).
 const pool = require('../config/db');
 const { komutCoz, sade } = require('../utils/sekreterKomut');
-const { bugunTarih, tarihFormatla } = require('../utils/tarih');
+const { bugunTarih, tarihFormatla, kapanisDk } = require('../utils/tarih');
 const { telefonNormalize } = require('../utils/telefon');
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -79,7 +79,8 @@ async function liste(isletme, tarih) {
 
 async function kapat(isletme, k) {
   const bas = k.bas || s5(isletme.calisma_baslangic || '09:00');
-  const bit = k.bit || s5(isletme.calisma_bitis || '19:00');
+  let bit = k.bit || s5(isletme.calisma_bitis || '19:00');
+  if (kapanisDk(bas, bit) === 24 * 60) bit = '24:00'; // "00:00" kapanış: blok gün sonuna kadar sürsün (0. dakikada bitmesin)
   if (k.tarih < bugunTarih()) return 'Geçmiş bir gün kapatılamaz.';
   await pool.query(
     `INSERT INTO takvim_bloklari (isletme_id, tarih, baslangic, bitis, aciklama, kaynak) VALUES ($1, $2, $3, $4, $5, 'sekreter')`,

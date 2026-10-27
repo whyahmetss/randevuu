@@ -1,7 +1,7 @@
 const pool = require('../config/db');
 const { denemeGun } = require('../config/deneme');
 const platformAyar = require('../utils/platformAyar');
-const { bugunTarih, gunSonraTarih } = require('../utils/tarih');
+const { bugunTarih, gunSonraTarih, kapanisDk } = require('../utils/tarih');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
 const { paketGetir, paketleriYukle, paketCacheTemizle, BAYRAKLAR, SAYILAR, satirdanPaket } = require('../config/paketler');
@@ -2035,8 +2035,7 @@ class AdminController {
       const isletme = (await pool.query('SELECT calisma_baslangic, calisma_bitis, randevu_suresi_dk FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
       const sureDk = isletme?.randevu_suresi_dk || 30;
       const basSaat = parseInt((isletme?.calisma_baslangic || '09:00').split(':')[0]);
-      const bitSaat = parseInt((isletme?.calisma_bitis || '18:00').split(':')[0]);
-      const toplamSlot = Math.floor(((bitSaat - basSaat) * 60) / sureDk);
+      const toplamSlot = Math.floor((kapanisDk(isletme?.calisma_baslangic || '09:00', isletme?.calisma_bitis || '18:00') - basSaat * 60) / sureDk);
 
       // Calisan sayısı
       const calisanSayi = (await pool.query("SELECT COUNT(*) as sayi FROM calisanlar WHERE isletme_id=$1 AND (aktif IS NULL OR aktif=true)", [isletmeId])).rows[0];

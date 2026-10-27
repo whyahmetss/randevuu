@@ -314,8 +314,9 @@ function SifreAlani({ value, onChange, placeholder, autoComplete, name }) {
   const [goster, setGoster] = useState(false);
   return (
     <div style={{ position: "relative" }}>
+      {/* Göster'e basınca alan metin olur; telefon klavyesi ilk harfi büyütüp düzeltme yapmasın (geçici şifre tutmuyordu) */}
       <input type={goster ? "text" : "password"} name={name} autoComplete={autoComplete} placeholder={placeholder} value={value} onChange={onChange}
-        className="input" style={{ paddingRight: 72 }} />
+        autoCapitalize="none" autoCorrect="off" spellCheck={false} className="input" style={{ paddingRight: 72 }} />
       <button type="button" onClick={() => setGoster(g => !g)} aria-label={goster ? "Şifreyi gizle" : "Şifreyi göster"}
         style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", border: "none", background: "none", color: "var(--dim)",
           fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "6px 8px", fontFamily: "inherit" }}>{goster ? "Gizle" : "Göster"}</button>
@@ -440,9 +441,11 @@ function Login({ onLogin }) {
     setHata(""); setBilgi(""); setYukleniyor(true);
     const d = await authPost("/auth/kayit-kod", { email: kayitForm.email.trim() });
     setYukleniyor(false);
+    // Kod az önce gittiyse (sayfa yenilendi, tekrar basıldı) kutu yine açılır; yoksa esnaf kodu yazacak yer bulamıyordu
+    if (d.gonderildi) { setKayitKod(k => ({ gonderilen: kayitForm.email.trim(), kod: k.kod })); return setBilgi(d.hata); }
     if (d.hata) return setHata(d.hata);
     if (d.gerekli === false) { setEpostaDogrulama(false); return; }   // sunucuda mail servisi kapalı: kodsuz kayıt
-    setKayitKod({ gonderilen: kayitForm.email.trim(), kod: "" });
+    setKayitKod(k => ({ gonderilen: kayitForm.email.trim(), kod: k.kod }));   // önceki kod da geçerli: yazılanı silme
     setBilgi(d.mesaj);
   };
 
@@ -2953,7 +2956,8 @@ function Dashboard({ kullanici }) {
             /* ── Timeline Render ── */
             const renderTimeline = () => {
               const baslangic = parseInt((ayarlar?.calisma_baslangic || "09:00").split(":")[0]);
-              const bitis = parseInt((ayarlar?.calisma_bitis || "19:00").split(":")[0]);
+              const bitisHam = parseInt((ayarlar?.calisma_bitis || "19:00").split(":")[0]);
+              const bitis = bitisHam <= baslangic ? 24 : bitisHam; // "00:00" kapanış = gün sonu
               const saatler = [];
               for (let h = baslangic; h <= bitis; h++) saatler.push(h);
               const molalar = (ayarlar?.mola_saatleri || []);

@@ -7,7 +7,7 @@ const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
 const pino = require('pino');
-const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla } = require('../utils/tarih');
+const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla, kapanisDk } = require('../utils/tarih');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
 const botMesajlar = require('../utils/botMesajlar');
 const socketServer = require('./socketServer');
@@ -844,11 +844,10 @@ class WhatsAppWebService extends EventEmitter {
       const basSaat = isletme.calisma_baslangic ? String(isletme.calisma_baslangic).substring(0,5) : '09:00';
       const bitSaat = isletme.calisma_bitis ? String(isletme.calisma_bitis).substring(0,5) : '19:00';
       const [basH, basM] = basSaat.split(':').map(Number);
-      const [bitH, bitM] = bitSaat.split(':').map(Number);
       const basDk = basH * 60 + basM;
-      const bitDk = bitH * 60 + bitM;
+      const bitDk = kapanisDk(basSaat, bitSaat);
       const bugunKapali = (isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number).includes(simdi.getDay());
-      const mesaiDisi = simdiDk < basDk || simdiDk > bitDk || bugunKapali;
+      const mesaiDisi = simdiDk < basDk || simdiDk >= bitDk || bugunKapali;
 
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
         if (isletme.mesai_disi_mod === 'sessiz') { sus('mesai dışı: sessiz mod'); return; }

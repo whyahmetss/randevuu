@@ -17,7 +17,8 @@ async function ortam() {
       olusturma_tarihi TIMESTAMP, deneme_bitis_tarihi TIMESTAMP, kayit_kanali TEXT);
     CREATE TABLE admin_kullanicilar (id SERIAL PRIMARY KEY, isim TEXT, email TEXT, sifre TEXT, rol TEXT, isletme_id INT, aktif BOOLEAN,
       grup_id INT, ekip_gorev TEXT, ekip_yetkileri JSONB, patron BOOLEAN, son_giris TIMESTAMP, sartlar_onay_tarihi TIMESTAMP);
-    ${fs.readFileSync(path.join(SRC, 'migrations', '068_eposta_dogrulama.sql'), 'utf8')}`);
+    ${fs.readFileSync(path.join(SRC, 'migrations', '068_eposta_dogrulama.sql'), 'utf8')}
+    ${fs.readFileSync(path.join(SRC, 'migrations', '072_eposta_onceki_kod.sql'), 'utf8')}`);
   sahte('services/socketServer', { emitToAdmin() {} });
   sahte('services/pushService', { sendToAdmin() {} });
   sahte('utils/davet', { kodGecerli: async () => true, davetUygula: async () => null, KANALLAR: ['web'] });
@@ -50,6 +51,7 @@ test('e-posta doğrulama: kod olmadan / yanlış kodla hesap açılmaz, doğru k
 
   r = cevap(); await a.kayitKod({ body: { email: 'tayfun@ornek.com' } }, r);
   assert.equal(r.kod, 429, 'dakikada bir kod');
+  assert.equal(r.veri.gonderildi, true, 'panel kod kutusunu açabilsin');
 
   r = cevap(); await a.botKayit(kayit({ eposta_kod: kod === '000000' ? '111111' : '000000' }), r);
   assert.equal(r.veri.hata, 'Doğrulama kodu yanlış');
@@ -83,7 +85,28 @@ test('e-posta doğrulama: 5 yanlış denemede kod geçersiz; mail gidemezse kod 
   const kod = giden.text.match(/(\d{3}) (\d{3})/).slice(1).join("");
   for (let i = 0; i < 5; i++) { r = cevap(); await a.botKayit(kayit({ email: 'ali@ornek.com', eposta_kod: kod === '000000' ? '111111' : '000000' }), r); }
   r = cevap(); await a.botKayit(kayit({ email: 'ali@ornek.com', eposta_kod: kod }), r);
-  assert.match(r.veri.hata, /süresi doldu/);
+  assert.match(r.veri.hata, /fazla yanlış deneme/);
+});
+
+test('e-posta doğrulama: tekrar gönderilince spamdaki ilk kod da geçerli, ondan öncekiler değil', async (t) => {
+  const { db, a } = await ortam();
+  const gidenler = [];
+  const eskiFetch = global.fetch;
+  process.env.RESEND_API_KEY = 're_test';
+  global.fetch = async (url, o) => { gidenler.push(JSON.parse(o.body)); return { ok: true, json: async () => ({}) }; };
+  t.after(() => { global.fetch = eskiFetch; delete process.env.RESEND_API_KEY; });
+  const kodAl = () => gidenler[gidenler.length - 1].text.match(/(\d{3}) (\d{3})/).slice(1).join('');
+  const gonder = async () => {
+    await db.query("UPDATE eposta_dogrulama SET olusturma = NOW() - INTERVAL '2 minutes'");   // dakika sınırını geç
+    const r = cevap(); await a.kayitKod({ body: { email: 'can@ornek.com' } }, r); assert.equal(r.kod, 200); return kodAl();
+  };
+  const k1 = await gonder(), k2 = await gonder(), k3 = await gonder();
+  assert.match(gidenler[0].text, /30 dakika/);
+  let r = cevap(); await a.botKayit(kayit({ email: 'can@ornek.com', eposta_kod: k1 }), r);
+  if (k1 !== k2 && k1 !== k3) assert.equal(r.veri.hata, 'Doğrulama kodu yanlış', 'iki önceki kod geçmez');
+  r = cevap(); await a.botKayit(kayit({ email: 'can@ornek.com', eposta_kod: k2 }), r);
+  assert.equal(r.veri.basarili, true, JSON.stringify(r.veri));
+  void k3;
 });
 
 test('e-posta doğrulama: mail servisi yoksa kodsuz kayıt; Google kaydı doğrulanmış sayılır', async () => {
