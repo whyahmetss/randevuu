@@ -13,7 +13,9 @@ test('randevu sayfası: tema, renk, kapak, logo, tanıtım', async () => {
     INSERT INTO isletmeler (isim, slug) VALUES ('Kemal', 'kemal');
     CREATE TABLE calisanlar (id SERIAL PRIMARY KEY, isletme_id INT, isim TEXT, aktif BOOLEAN DEFAULT true);
     ${fs.readFileSync(path.join(SRC, 'migrations', '038_randevu_sayfasi.sql'), 'utf8')}
-    ${fs.readFileSync(path.join(SRC, 'migrations', '046_mini_site.sql'), 'utf8')}`);
+    ${fs.readFileSync(path.join(SRC, 'migrations', '046_mini_site.sql'), 'utf8')}
+    CREATE TABLE hizmetler (id SERIAL PRIMARY KEY); CREATE TABLE randevular (id SERIAL PRIMARY KEY);
+    ${fs.readFileSync(path.join(SRC, 'migrations', '080_ilk_randevu_indirimi.sql'), 'utf8')}`);
   const s = require(path.join(SRC, 'controllers', 'sayfaController'));
   const req = (body) => ({ kullanici: { isletme_id: 1 }, body });
 

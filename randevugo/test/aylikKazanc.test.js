@@ -8,6 +8,7 @@ test('aylık kazanç: sayımlar ve mesaj', async () => {
   await hazirla(`
     CREATE TABLE isletmeler (id SERIAL PRIMARY KEY, isim TEXT, telefon TEXT, aktif BOOLEAN DEFAULT true, calisma_baslangic TIME, calisma_bitis TIME, kapali_gunler TEXT, aylik_ozet_aktif BOOLEAN DEFAULT true);
     CREATE TABLE hizmetler (id SERIAL PRIMARY KEY, fiyat NUMERIC);
+    CREATE TABLE randevu_hizmetleri (randevu_id INT, hizmet_id INT, fiyat NUMERIC);
     CREATE TABLE randevular (id SERIAL PRIMARY KEY, isletme_id INT, hizmet_id INT, tarih DATE, durum TEXT, kaynak TEXT, hatirlatma_gonderildi BOOLEAN DEFAULT false, olusturma_tarihi TIMESTAMP);
     INSERT INTO isletmeler (isim, calisma_baslangic, calisma_bitis, kapali_gunler) VALUES ('Kemal', '09:00', '20:00', '1');
     INSERT INTO hizmetler (fiyat) VALUES (300);

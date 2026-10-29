@@ -671,7 +671,7 @@ function Login({ onLogin }) {
 }
 
 // ==================== HİZMETLER SAYFASI ====================
-const BOS_HIZMET = { isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", kart_fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30", kategori: "", one_cikan: false };
+const BOS_HIZMET = { isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", kart_fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30", kategori: "", one_cikan: false, ilk_indirim: true };
 
 // Toplu ekleme metni (2026-10-26): "Saç:" satırı kategori başlatır; diğer satırlar "ad, süre, fiyat, kart fiyatı" (süre, fiyat ve kart fiyatı isteğe bağlı)
 function topluMetinCoz(metin) {
@@ -708,14 +708,14 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   };
 
   const duzenleAc = (h) => {
-    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), kart_fiyat: String(parseFloat(h.kart_fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false, kategori: h.kategori || "", one_cikan: h.one_cikan === true });
+    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), kart_fiyat: String(parseFloat(h.kart_fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false, kategori: h.kategori || "", one_cikan: h.one_cikan === true, ilk_indirim: h.ilk_indirim !== false });
     setDuzenleId(h.id); setHata(""); setFormAcik(true);
   };
 
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), kart_fiyat: parseFloat(form.kart_fiyat) || null, aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0, seans_sayisi: parseInt(form.seans_sayisi) || 0, seans_aralik_gun: parseInt(form.seans_aralik_gun) || 30, kategori: form.kategori, one_cikan: !!form.one_cikan });
+    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), kart_fiyat: parseFloat(form.kart_fiyat) || null, aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0, seans_sayisi: parseInt(form.seans_sayisi) || 0, seans_aralik_gun: parseInt(form.seans_aralik_gun) || 30, kategori: form.kategori, one_cikan: !!form.one_cikan, ilk_indirim: form.ilk_indirim !== false });
     if (res.hata) { setHata(res.hata); return; }
     setForm(BOS_HIZMET);
     setFormAcik(false); setDuzenleId(null);
@@ -799,6 +799,14 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               {!zengin && <div style={{ color: "var(--dim)", fontSize: 11 }}>Pro+ ve Kurumsal pakette.</div>}
             </div>
             <div>
+              <label className="form-label">İlk randevu indirimi</label>
+              <label className="row gap-8" style={{ alignItems: "center", fontSize: 13, minHeight: 40 }}>
+                <input type="checkbox" checked={form.ilk_indirim !== false} onChange={e => setForm({...form, ilk_indirim: e.target.checked})} />
+                Bu hizmette geçerli
+              </label>
+              <div style={{ color: "var(--dim)", fontSize: 11 }}>Kampanyayı Randevu sayfam'dan açarsın. Paket ve kampanyalı hizmetlerde kapatabilirsin.</div>
+            </div>
+            <div>
               <label className="form-label">🇬🇧 English Name</label>
               <input placeholder="Haircut" value={form.isim_en} onChange={e => setForm({...form, isim_en: e.target.value})} className="input" />
             </div>
@@ -867,6 +875,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
             </div>
             {h.kategori && <span className="tag-sm" style={{ background: "var(--surface3)", color: "var(--muted)", fontWeight: 600 }}>{h.kategori}</span>}
             {h.one_cikan && zengin && <span className="tag-sm" style={{ background: "var(--amber-s)", color: "var(--amber)", fontWeight: 600 }}>Öne çıkan</span>}
+            {h.ilk_indirim === false && <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>İlk randevu indirimi yok</span>}
             <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>
             <span className="tag-sm" style={{ background: "rgba(31,111,74,.12)", color: "var(--green)", fontWeight: 600 }}>{h.fiyat} ₺{Number(h.kart_fiyat) > 0 && Number(h.kart_fiyat) !== Number(h.fiyat) ? ` · kart ${h.kart_fiyat} ₺` : ""}</span>
             {h.kapora_yuzdesi > 0 && <span className="tag-sm" style={{ background: "rgba(168,89,12,.12)", color: "var(--amber)", fontWeight: 600 }}>💳 %{h.kapora_yuzdesi} kapora</span>}
@@ -3177,6 +3186,7 @@ function Dashboard({ kullanici }) {
                             <span>📞 {telGoster(r.musteri_telefon)}</span>
                             {(r.hizmetler_adlari || r.hizmet_isim) && <span>✂️ {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}{(Number(r.toplam_fiyat) || Number(r.fiyat)) ? ` · ${(Number(r.toplam_fiyat) || Number(r.fiyat)).toLocaleString("tr-TR")}₺` : ""}</span>}
                             {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
+                            {Number(r.ilk_indirim_tutari) > 0 && <span style={{ color: '#c2410c', fontWeight: 600 }}>🎁 İlk randevu −{Number(r.ilk_indirim_tutari).toLocaleString("tr-TR")}₺</span>}
                             {r.kapora_durumu && r.kapora_durumu !== 'yok' && (
                               <span style={{ color: r.kapora_durumu === 'odendi' ? '#1f6f4a' : '#a8590c', fontWeight: 600 }}>
                                 💳 {r.kapora_durumu === 'odendi' ? `Ödendi (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)` : `Bekliyor (${Number(r.kapora_tutari).toLocaleString("tr-TR")}₺)`}

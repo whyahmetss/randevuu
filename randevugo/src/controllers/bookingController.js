@@ -41,6 +41,7 @@ class BookingController {
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
                 google_maps_reserve_url, booking_acik, telegram_token, demo,
                 sayfa_tema, sayfa_vurgu, sayfa_tanitim, sayfa_guncelleme, sayfa_hakkimizda, sayfa_instagram,
+                ilk_indirim_aktif, ilk_indirim_tur, ilk_indirim_deger, to_char(ilk_indirim_bitis, 'YYYY-MM-DD') AS ilk_indirim_bitis,
                 (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = isletmeler.id AND g.tur = 'kapak')) AS kapak_var,
                 (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = isletmeler.id AND g.tur = 'logo')) AS logo_var
          FROM isletmeler WHERE slug = $1 AND aktif = true`,
@@ -75,6 +76,9 @@ class BookingController {
 
       // Response'tan token gizle (güvenlik)
       delete isletme.telegram_token;
+      // İlk randevu indirimi: sayfanın üstünde kampanya şeridi; kapalı ya da süresi geçmişse null
+      isletme.ilk_indirim = require('../utils/ilkIndirim').kampanya(isletme, require('../utils/tarih').bugunTarih());
+      for (const k of ['ilk_indirim_aktif', 'ilk_indirim_tur', 'ilk_indirim_deger', 'ilk_indirim_bitis']) delete isletme[k];
       isletme.telegram_aktif = telegramAktif;
       isletme.telegram_bot_username = telegramBotUsername;
 
@@ -149,7 +153,7 @@ class BookingController {
       // (paket düşünce eski işaretler sayfada kalmasın).
       const zengin = !!(await require('../config/paketler').paketGetir(isletme.paket)).zengin_sayfa;
       const hizmetler = (await pool.query(
-        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat, kart_fiyat, kategori, one_cikan, aciklama FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
+        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat, kart_fiyat, kategori, one_cikan, aciklama, ilk_indirim FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
         [isletme.id]
       )).rows.map(h => ({ ...h, one_cikan: zengin && h.one_cikan === true }));
 
@@ -365,7 +369,8 @@ class BookingController {
         calisanId: secilenCalisanId,
         tarih,
         saat,
-        kaynak: 'online'
+        kaynak: 'online',
+        ilkIndirim: true
       });
 
       // Bölünmüş randevuda her parça ayrı randevu (her usta kendi takviminde görür)
@@ -423,6 +428,7 @@ class BookingController {
         hizmet: sonuc.hizmet ? { isim: sonuc.hizmet.isim, fiyat: sonuc.hizmet.fiyat, sure_dk: sonuc.hizmet.sure_dk } : null,
         hizmetler: (sonuc.hizmetler || []).map(h => ({ id: h.id, isim: h.isim, fiyat: h.fiyat, sure_dk: h.sure_dk })),
         kapora: sonuc.kapora,
+        ilkIndirim: sonuc.ilkIndirimTutari || 0,
         ...(parcalar ? { parcalar } : {})
       });
     } catch (error) {
@@ -658,7 +664,9 @@ class BookingController {
         }
       } catch {}
       console.log(`✅ OTP doğrulandı: ${telefonTemiz} (kaynak=${kayit.kaynak || 'bilinmiyor'})`);
-      res.json({ basarili: true, dogrulandi: true, otpToken: otpToken.olustur(isletme.id, telefonTemiz) });
+      // İlk kez gelen müşteriye sayfa özette indirimli fiyatı gösterir (asıl hesap randevu yazılırken yapılır)
+      const ilkIndirim = !!(await randevuService.ilkIndirimBul(isletme.id, telefonTemiz).catch(() => null));
+      res.json({ basarili: true, dogrulandi: true, otpToken: otpToken.olustur(isletme.id, telefonTemiz), ilkIndirim });
     } catch (error) {
       console.error('❌ OTP doğrulama hatası:', error.message);
       res.status(500).json({ hata: 'Doğrulama hatası' });

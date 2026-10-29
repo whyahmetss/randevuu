@@ -120,7 +120,7 @@ export default function LiteBugun({ api, ayarlar, setSayfa }) {
               <div style={{ flex: '1 1 160px', minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{r.musteri_isim || 'Müşteri'}</div>
                 <div style={{ fontSize: 13, color: 'var(--dim)' }}>
-                  {r.hizmetler_adlari || r.hizmet_isim || '—'}{fiyatOf(r) ? ` · ${tl(fiyatOf(r))}` : ''}{r.calisan_isim ? ` · ${r.calisan_isim}` : ''}
+                  {r.hizmetler_adlari || r.hizmet_isim || '—'}{fiyatOf(r) ? ` · ${tl(fiyatOf(r))}` : ''}{Number(r.ilk_indirim_tutari) > 0 ? ' · 🎁 İlk randevu' : ''}{r.calisan_isim ? ` · ${r.calisan_isim}` : ''}
                 </div>
               </div>
               <span className={`tag tag-sm ${sinif}`}>{etiket}</span>

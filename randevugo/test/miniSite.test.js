@@ -16,7 +16,9 @@ test('mini site: hakkımızda, Instagram, galeri, ekip', async () => {
     INSERT INTO calisanlar (isletme_id, isim) VALUES (1, 'Mehmet'), (2, 'Yabancı'), (1, 'Eski');
     UPDATE calisanlar SET aktif = false WHERE isim = 'Eski';
     ${fs.readFileSync(path.join(SRC, 'migrations', '038_randevu_sayfasi.sql'), 'utf8')}
-    ${fs.readFileSync(path.join(SRC, 'migrations', '046_mini_site.sql'), 'utf8')}`);
+    ${fs.readFileSync(path.join(SRC, 'migrations', '046_mini_site.sql'), 'utf8')}
+    CREATE TABLE hizmetler (id SERIAL PRIMARY KEY); CREATE TABLE randevular (id SERIAL PRIMARY KEY);
+    ${fs.readFileSync(path.join(SRC, 'migrations', '080_ilk_randevu_indirimi.sql'), 'utf8')}`);
   const s = require(path.join(SRC, 'controllers', 'sayfaController'));
   const req = (body, params = {}, isletme = 1) => ({ kullanici: { isletme_id: isletme }, body, params });
 
