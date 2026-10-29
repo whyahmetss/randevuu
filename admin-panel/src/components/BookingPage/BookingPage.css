@@ -125,6 +125,7 @@
 .bk-item-body { flex: 1; min-width: 0; }
 .bk-item-name { font-size: 15px; font-weight: 500; }
 .bk-item-meta { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--bk-dim); margin-top: 2px; }
+.bk-item-not { font-size: 12.5px; color: var(--bk-accent, #1f6f4a); margin-top: 3px; line-height: 1.35; white-space: pre-line; overflow-wrap: anywhere; }
 .bk-item-price { white-space: nowrap; font-size: 15px; font-weight: 600; }
 .bk-price-lira { margin-left: 2px; font-weight: 500; color: var(--bk-muted); }
 .bk-svc-check {

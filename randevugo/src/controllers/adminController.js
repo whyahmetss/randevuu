@@ -355,7 +355,7 @@ class AdminController {
       const { id } = req.params;
       const { isim, isim_en, isim_ar, sure_dk, fiyat, aciklama, aktif, emoji, kapora_yuzdesi, tampon_dk, seans_sayisi, seans_aralik_gun } = req.body;
       const result = await pool.query(
-        'UPDATE hizmetler SET isim=$1, isim_en=$2, isim_ar=$3, sure_dk=$4, fiyat=$5, aciklama=$6, aktif=$7, emoji=$8, kapora_yuzdesi=$9, tampon_dk=$10 WHERE id=$11 AND isletme_id=$12 RETURNING *',
+        'UPDATE hizmetler SET isim=$1, isim_en=$2, isim_ar=$3, sure_dk=$4, fiyat=$5, aciklama=COALESCE($6, aciklama), aktif=$7, emoji=$8, kapora_yuzdesi=$9, tampon_dk=$10 WHERE id=$11 AND isletme_id=$12 RETURNING *',
         [isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, id, req.kullanici.isletme_id]
       );
       // Seans alanları yalnız formdan gönderildiyse değişir (Bugün ekranındaki hızlı fiyat düzenlemesi bunları göndermez)

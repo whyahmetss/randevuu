@@ -2,6 +2,7 @@
  * Bot Mesaj Şablonları — Dil + Stil desteği
  * Kullanım: const M = require('./botMesajlar'); M.get(isletme, 'anaMenu', { musteriAd, hizmetler })
  */
+const { notSatiri } = require('./hizmetNotu');
 
 const STILLER = {
   // Samimi = sıcak dil + emoji, hitap yine "siz" (2026-10-20): sohbet asistanı hep "siz" diyor, aynı müşteriye
@@ -31,7 +32,7 @@ const tr = {
     const baslik = s.emoji ? `${s.ikon || '✂️'} *${p.isletmeAd} - Hizmetlerimiz*` : `*${p.isletmeAd} - Hizmetlerimiz*`;
     let metin = baslik + '\n\n';
     p.hizmetler.forEach((h, i) => {
-      metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL\n`;
+      metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`;
     });
     metin += s.kisa ? '\nSeçin:' : '\nNumara yazarak seçin:';
     return metin;
@@ -149,7 +150,7 @@ const tr = {
   hizmetBulunamadi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}Anlayamadım. Lütfen hizmet numarası veya adı yaz${s.hitap === 'siz' ? 'ın' : ''}:\n\n`;
     p.hizmetler.forEach((h, i) => {
-      txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL\n`;
+      txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`;
     });
     txt += s.kisa ? '\nSeçin:' : '\nNumara yazarak seçin:';
     return txt;
@@ -234,7 +235,7 @@ const en = {
   hizmetListesi: (s, p) => {
     const baslik = s.emoji ? `${s.ikon || '✂️'} *${p.isletmeAd} - Our Services*` : `*${p.isletmeAd} - Our Services*`;
     let metin = baslik + '\n\n';
-    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL\n`; });
+    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
     metin += s.kisa ? '\nChoose:' : '\nType a number to select:';
     return metin;
   },
@@ -323,7 +324,7 @@ const en = {
 
   hizmetBulunamadi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}Couldn't understand. Please type a service number or name:\n\n`;
-    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL\n`; });
+    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
     txt += s.kisa ? '\nChoose:' : '\nType a number to select:';
     return txt;
   },
@@ -405,7 +406,7 @@ const ar = {
 
   hizmetListesi: (s, p) => {
     let metin = `${s.emoji ? (s.ikon || '✂️') + ' ' : ''}*${p.isletmeAd} - خدماتنا*\n\n`;
-    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL\n`; });
+    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
     metin += '\nاكتب رقماً:';
     return metin;
   },
@@ -490,7 +491,7 @@ const ar = {
 
   hizmetBulunamadi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}لم أفهم. اكتب رقم أو اسم الخدمة:\n\n`;
-    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL\n`; });
+    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
     txt += '\nاكتب رقماً:';
     return txt;
   },

@@ -18,7 +18,7 @@ KURALLAR:
 - Sadece JSON formatında yanıt ver, başka bir şey yazma
 
 MEVCUT HİZMETLER:
-${hizmetler.map((h, i) => `${i + 1}. ${h.isim} (${h.sure_dk} dk - ${h.fiyat} TL)`).join('\n')}
+${hizmetler.map((h, i) => `${i + 1}. ${require('../utils/hizmetNotu').yzHizmet(h)}`).join('\n')}
 
 MÜSAİT SAATLER (bugün için):
 ${musaitSaatler.length > 0 ? musaitSaatler.join(', ') : 'Bugün müsait saat yok'}
@@ -79,7 +79,7 @@ JSON FORMATI (SADECE BU JSON'U DÖNDÜR, BAŞKA HİÇBİR ŞEY YAZMA):
 
   async kisiselKarsilama(musteriIsim, gecmisRandevu, yaklasanRandevu, isletmeBilgi, hizmetler, kanal = 'telegram') {
     if (!this.apiKey) return null;
-    const hizmetListesi = hizmetler.map(h => `${h.isim} (${h.sure_dk} dk, ${h.fiyat} TL)`).join(', ');
+    const hizmetListesi = hizmetler.map(require('../utils/hizmetNotu').yzHizmet).join(', ');
 
     let profilBilgisi = '';
     if (yaklasanRandevu) {
@@ -141,7 +141,7 @@ KRİTİK KURALLAR:
   }
 
   async serbetCevap(mesaj, isletmeBilgi, hizmetler, kanal = 'whatsapp') {
-    const hizmetListesi = hizmetler.map(h => `${h.isim} (${h.sure_dk} dk, ${h.fiyat} TL)`).join(', ');
+    const hizmetListesi = hizmetler.map(require('../utils/hizmetNotu').yzHizmet).join(', ');
     const sistem = this._serbestSistem(isletmeBilgi, hizmetListesi, kanal);
     // Önce Gemini (ücretsiz kota, birden çok anahtar dönüşümlü), olmazsa DeepSeek (2026-10-13)
     try {

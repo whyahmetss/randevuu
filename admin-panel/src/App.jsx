@@ -795,6 +795,12 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               <label className="form-label">Fiyat (₺) *</label>
               <input type="number" placeholder="150" required value={form.fiyat} onChange={e => setForm({...form, fiyat: e.target.value})} className="input" />
             </div>
+            {/* Müşteriye görünen not (2026-10-29): kampanya/hediye bilgisi randevu sayfasında ve botta hizmetin altında çıkar */}
+            <div className="full">
+              <label className="form-label">Müşteriye görünen not</label>
+              <input placeholder="🎁 Yüz bakımı hediye" maxLength={100} value={form.aciklama} onChange={e => setForm({...form, aciklama: e.target.value})} className="input" />
+              <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>Kampanya, hediye ya da kısa bilgi. Randevu sayfasında ve WhatsApp botunda hizmetin altında görünür.</div>
+            </div>
             <div>
               <label className="form-label">Kapora Oranı (%)</label>
               <input type="number" min="0" max="100" placeholder="0" value={form.kapora_yuzdesi} onChange={e => setForm({...form, kapora_yuzdesi: e.target.value})} className="input" />

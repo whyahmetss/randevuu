@@ -258,6 +258,8 @@ export default function BookingPage({ slug }) {
           <div className="bk-item-meta">
             <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
           </div>
+          {/* Esnafın hizmete yazdığı not (2026-10-29): "🎁 Yüz bakımı hediye" gibi kampanyalar müşteriye görünmüyordu */}
+          {h.aciklama && <div className="bk-item-not">{h.aciklama}</div>}
         </div>
         <div className="bk-item-price">
           {Number(h.fiyat) > 0 ? (<>
