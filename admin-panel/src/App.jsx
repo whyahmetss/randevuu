@@ -697,6 +697,18 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   const [topluSonuc, setTopluSonuc] = useState("");
   const zengin = paketDurum?.paket_bilgi?.zengin_sayfa === true;
   const kategoriler = [...new Set(hizmetler.map(h => h.kategori).filter(Boolean))];
+  // Liste (2026-10-29): randevu sayfası gibi kategori başlıkları, fiyat sağda "1.800 ₺" (eskiden "1800.00 ₺" etiket yığını)
+  const [ara, setAra] = useState("");
+  const tl = (x) => `${Number(x).toLocaleString("tr-TR")} ₺`;
+  const kucuk = (x) => String(x || "").toLocaleLowerCase("tr");
+  const gruplar = [];   // kategori sırası: ilk hizmetin sırası; kategorisizler "Diğer" altında, en sonda
+  for (const h of hizmetler.filter(h => !ara || kucuk(h.isim).includes(kucuk(ara)) || kucuk(h.kategori).includes(kucuk(ara)))) {
+    let g = gruplar.find(x => x.k === (h.kategori || ""));
+    if (!g) gruplar.push(g = { k: h.kategori || "", liste: [] });
+    g.liste.push(h);
+  }
+  gruplar.sort((a, b) => (a.k === "") - (b.k === ""));
+  const fiyatsiz = hizmetler.filter(h => h.aktif !== false && !(Number(h.fiyat) > 0)).length;
   const topluOnizleme = topluMetinCoz(topluMetin);
   const topluKategoriler = [...new Set(topluOnizleme.map(h => h.kategori).filter(Boolean))];
   const topluEkle = async () => {
@@ -710,6 +722,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   const duzenleAc = (h) => {
     setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), kart_fiyat: String(parseFloat(h.kart_fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false, kategori: h.kategori || "", one_cikan: h.one_cikan === true, ilk_indirim: h.ilk_indirim !== false });
     setDuzenleId(h.id); setHata(""); setFormAcik(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });   // form listenin üstünde açılır
   };
 
   const ekle = async (e) => {
@@ -862,28 +875,53 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
         </form>
       )}
 
+      {hizmetler.length > 8 && (
+        <div className="hz-ara">
+          <input className="input" value={ara} onChange={e => setAra(e.target.value)} placeholder="🔍 Hizmet ara" aria-label="Hizmet ara" />
+        </div>
+      )}
+      {fiyatsiz > 0 && !ara && (
+        <div className="hz-uyari">{fiyatsiz} hizmette fiyat yok — müşteri sayfada "fiyat dükkânda" görüyor.</div>
+      )}
+
       {hizmetler.length === 0 ? (
         <div className="list-empty"><p>Henüz hizmet eklenmemiş.</p></div>
-      ) : hizmetler.map(h => (
-        <div key={h.id} className="list-item">
-          <div className="row gap-12">
-            <div>
-              <span className="list-item-name">{h.emoji ? `${h.emoji} ` : ''}{h.isim}</span>
-              {h.isim_en && <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 11 }}>🇬🇧{h.isim_en}</span>}
-              {h.isim_ar && <span style={{ color: "var(--dim)", marginLeft: 6, fontSize: 11 }}>🇸🇦{h.isim_ar}</span>}
-              {!h.aktif && <span style={{ color: "var(--red)", marginLeft: 8, fontSize: 12 }}>(Pasif)</span>}
-            </div>
-            {h.kategori && <span className="tag-sm" style={{ background: "var(--surface3)", color: "var(--muted)", fontWeight: 600 }}>{h.kategori}</span>}
-            {h.one_cikan && zengin && <span className="tag-sm" style={{ background: "var(--amber-s)", color: "var(--amber)", fontWeight: 600 }}>Öne çıkan</span>}
-            {h.ilk_indirim === false && <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>İlk randevu indirimi yok</span>}
-            <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>
-            <span className="tag-sm" style={{ background: "rgba(31,111,74,.12)", color: "var(--green)", fontWeight: 600 }}>{h.fiyat} ₺{Number(h.kart_fiyat) > 0 && Number(h.kart_fiyat) !== Number(h.fiyat) ? ` · kart ${h.kart_fiyat} ₺` : ""}</span>
-            {h.kapora_yuzdesi > 0 && <span className="tag-sm" style={{ background: "rgba(168,89,12,.12)", color: "var(--amber)", fontWeight: 600 }}>💳 %{h.kapora_yuzdesi} kapora</span>}
-            {h.tampon_dk > 0 && <span className="tag-sm" style={{ background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontWeight: 600 }}>⏳ {h.tampon_dk}dk tampon</span>}
-            {h.seans_sayisi > 1 && <span className="tag-sm" style={{ background: "rgba(47,86,198,.08)", color: "#2f56c6", fontWeight: 600 }}>🔁 {h.seans_sayisi} seans · {h.seans_aralik_gun || 30} günde bir</span>}
+      ) : gruplar.length === 0 ? (
+        <div className="list-empty"><p>"{ara}" ile eşleşen hizmet yok.</p></div>
+      ) : gruplar.map(g => (
+        <div key={g.k || "diger"} className="hz-grup">
+          {kategoriler.length > 0 && <div className="hz-grup-baslik">{g.k || "Diğer"} <span>{g.liste.length}</span></div>}
+          <div className="hz-kutu">
+            {g.liste.map(h => {
+              const kart = Number(h.kart_fiyat) > 0 && Number(h.kart_fiyat) !== Number(h.fiyat);
+              return (
+                <div key={h.id} className={`hz-satir${h.aktif === false ? " pasif" : ""}`}>
+                  <div className="hz-govde">
+                    <div className="hz-ad">{h.emoji ? `${h.emoji} ` : ""}{h.isim}</div>
+                    <div className="hz-alt">
+                      <span>⏱ {h.sure_dk} dk</span>
+                      {h.aktif === false && <span className="hz-cip kirmizi">Pasif</span>}
+                      {h.one_cikan && zengin && <span className="hz-cip sari">Öne çıkan</span>}
+                      {h.seans_sayisi > 1 && <span className="hz-cip">🔁 {h.seans_sayisi} seans · {h.seans_aralik_gun || 30} günde bir</span>}
+                      {h.kapora_yuzdesi > 0 && <span className="hz-cip">💳 %{h.kapora_yuzdesi} kapora</span>}
+                      {h.tampon_dk > 0 && <span className="hz-cip">⏳ {h.tampon_dk} dk ara</span>}
+                      {h.ilk_indirim === false && <span className="hz-cip">İlk randevu indirimi yok</span>}
+                      {(h.isim_en || h.isim_ar) && <span className="hz-cip" title={[h.isim_en, h.isim_ar].filter(Boolean).join(" · ")}>🌐 {[h.isim_en && "EN", h.isim_ar && "AR"].filter(Boolean).join(" · ")}</span>}
+                    </div>
+                  </div>
+                  <div className="hz-fiyat">
+                    {Number(h.fiyat) > 0
+                      ? <><b>{tl(h.fiyat)}</b>{kart && <small>kart {tl(h.kart_fiyat)}</small>}</>
+                      : <button type="button" className="hz-fiyatsiz" onClick={() => duzenleAc(h)}>Fiyat ekle</button>}
+                  </div>
+                  <div className="hz-islem">
+                    <button onClick={() => duzenleAc(h)} title="Düzenle" aria-label={`${h.isim} düzenle`}>✏️</button>
+                    <button onClick={() => sil(h.id)} title="Sil" aria-label={`${h.isim} sil`} className="sil"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <button onClick={() => duzenleAc(h)} title="Düzenle" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", fontSize: 15 }}>✏️</button>
-          <button onClick={() => sil(h.id)} title="Sil" style={{ background: "none", border: "none", cursor: "pointer", padding: 8, borderRadius: 8, color: "var(--muted)", transition: "all .2s" }} onMouseOver={e => { e.currentTarget.style.color = "var(--red)"; e.currentTarget.style.background = "var(--red-s)"; }} onMouseOut={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "none"; }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
         </div>
       ))}
     </>
