@@ -753,7 +753,7 @@ const PORT = process.env.PORT || 3000;
     // ═══════════════════════════════════════════════════
 
     // Booking Gate — işletme WA bağlayana kadar /book/:slug kapalı
-    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS booking_acik BOOLEAN DEFAULT false`);
+    await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS booking_acik BOOLEAN DEFAULT true`);
 
     // Güvenlik ayarları (esnaf kontrol)
     await adim(`ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS otp_zorunlu BOOLEAN DEFAULT false`);
@@ -818,12 +818,6 @@ const PORT = process.env.PORT || 3000;
     await adim(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS son_ihlal_zamani TIMESTAMP`);
     await adim(`ALTER TABLE kara_liste ADD COLUMN IF NOT EXISTS bloke_bitis TIMESTAMP`);
 
-    // Hali hazırda WA bağlı işletmeler için booking_acik'i true yap
-    await adim(`
-      UPDATE isletmeler SET booking_acik = true 
-      WHERE id IN (SELECT DISTINCT isletme_id FROM wa_auth_keys) 
-      AND booking_acik IS NOT true
-    `);
 
     // ═══════════════════════════════════════════════════
     // 🚀 AVCI BOT — TOPLU TARAMA JOB SİSTEMİ (Manyak Mod)

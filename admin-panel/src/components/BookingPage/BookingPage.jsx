@@ -636,7 +636,7 @@ export default function BookingPage({ slug }) {
             <div className="bk-error-page-icon">🚧</div>
             <div className="bk-error-page-title">{isletme?.isim || 'İşletme'}</div>
             <div className="bk-error-page-desc" style={{ marginTop: 12 }}>
-              Bu işletmenin online randevu sistemi henüz hazır değil.<br />
+              Bu işletme şu an online randevu almıyor.<br />
               Lütfen işletme ile doğrudan iletişime geçin.
             </div>
           </div>

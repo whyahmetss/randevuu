@@ -6457,9 +6457,9 @@ function SuperAdminPanel({ kullanici }) {
                       {/* Adımlar */}
                       <div className="row gap-8" style={{ flexWrap: "wrap" }}>
                         {i.adimlar.map((a, idx) => (
-                          <div key={idx} style={{ padding: "4px 10px", borderRadius: 8, background: a.tamamlandi ? "rgba(31,111,74,.08)" : "rgba(180,35,24,.06)", color: a.tamamlandi ? "#1f6f4a" : "#b42318", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                          <div key={idx} style={{ padding: "4px 10px", borderRadius: 8, background: a.tamamlandi ? "rgba(31,111,74,.08)" : a.istege_bagli ? "var(--bg)" : "rgba(180,35,24,.06)", color: a.tamamlandi ? "#1f6f4a" : a.istege_bagli ? "var(--dim)" : "#b42318", fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
                             <span>{a.tamamlandi ? "✅" : "⬜"}</span>
-                            <span>{a.isim}</span>
+                            <span>{a.isim}{a.istege_bagli && !a.tamamlandi ? " (isteğe bağlı)" : ""}</span>
                           </div>
                         ))}
                       </div>

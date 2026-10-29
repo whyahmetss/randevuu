@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { bookingUrl } from '../../lib/config';
 
 // Kurulum sihirbazı: yeni esnafın anasayfasında, kurulum bitene kadar adım adım yol gösterir.
-// Adımlar sunucudaki gerçek veriden gelir (hizmet, çalışan, WhatsApp, ilk randevu).
+// Adımlar sunucudaki gerçek veriden gelir (hizmet, çalışan, WhatsApp, ilk randevu). WhatsApp isteğe bağlı: sayılmaz, kartı açık tutmaz.
 export default function KurulumKarti({ api, setSayfa }) {
   const [d, setD] = useState(null);
   const [kopyalandi, setKopyalandi] = useState(false);
@@ -20,7 +20,7 @@ export default function KurulumKarti({ api, setSayfa }) {
 
   if (!d || d.bitti) return null;
   const yuzde = Math.round((d.tamam / d.toplam) * 100);
-  const sira = d.adimlar.find(a => !a.tamam);
+  const sira = d.adimlar.find(a => !a.tamam && !a.istege_bagli);
   const link = d.slug ? bookingUrl(d.slug) : null;
 
   return (
@@ -51,16 +51,19 @@ export default function KurulumKarti({ api, setSayfa }) {
         </div>
       </div>
       <div style={{ display: 'grid', gap: 8 }}>
-        {d.adimlar.map((a, i) => {
+        {d.adimlar.map((a) => {
           const simdi = a === sira;
+          const no = d.adimlar.filter(x => !x.istege_bagli).indexOf(a) + 1;
           return (
             <div key={a.anahtar} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10,
               background: simdi ? 'rgba(31,111,74,.08)' : 'transparent', border: '1px solid ' + (simdi ? 'rgba(31,111,74,.3)' : 'var(--border)') }}>
               <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700,
                 background: a.tamam ? '#1f6f4a' : 'var(--bg)', color: a.tamam ? '#fff' : 'var(--dim)', border: a.tamam ? 'none' : '1px solid var(--border)' }}>
-                {a.tamam ? '✓' : i + 1}
+                {a.tamam ? '✓' : a.istege_bagli ? '+' : no}
               </span>
-              <span style={{ flex: 1, fontSize: 14, color: a.tamam ? 'var(--dim)' : 'var(--text)' }}>{a.isim}</span>
+              <span style={{ flex: 1, fontSize: 14, color: a.tamam ? 'var(--dim)' : 'var(--text)' }}>
+                {a.isim}{a.istege_bagli && !a.tamam && <span style={{ fontSize: 12, color: 'var(--dim)' }}> · isteğe bağlı</span>}
+              </span>
               {!a.tamam && a.anahtar === 'randevu' && link && (
                 <button onClick={() => { navigator.clipboard?.writeText(link).then(() => { setKopyalandi(true); setTimeout(() => setKopyalandi(false), 2000); }).catch(() => {}); }}
                   style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>

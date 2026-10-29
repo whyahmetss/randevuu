@@ -729,7 +729,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>
                 {ayarlar.booking_acik
                   ? "Müşteriler /book linkinizden randevu alabiliyor."
-                  : "WhatsApp bot bağlanana kadar randevu alınamaz. Bağlanınca otomatik açılır."}
+                  : "Randevu sayfanız kapalı; müşteriler linkten randevu alamaz. Açmak için işaretleyin."}
               </div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>

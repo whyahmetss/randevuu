@@ -189,7 +189,7 @@ export default function KurulumSihirbazi({ api, ayarlar, kullanici, setSayfa, ay
 
         {adim === 4 && (
           <>
-            <div style={{ fontSize: 17, lineHeight: 1.5 }}>Son bir şey kaldı: <b>WhatsApp'ını bağla</b>, müşterilerin sana yazınca asistan cevap versin. QR okutabilir ya da numaranla bağlayabilirsin, 1 dakika sürer.</div>
+            <div style={{ fontSize: 17, lineHeight: 1.5 }}>Hazırsın, randevu sayfan açık. İstersen <b>WhatsApp'ını da bağla</b>, müşterilerin sana yazınca asistan cevap versin. QR okutabilir ya da numaranla bağlayabilirsin, 1 dakika sürer. Sonra da bağlayabilirsin.</div>
             <button onClick={() => { bitir(); setSayfa('botbaglanti'); }} style={{ height: 60, border: 'none', borderRadius: 16, background: '#25d366', color: '#0b3d20', fontSize: 19, fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }}>WhatsApp'ı bağla</button>
             <button onClick={bitir} style={{ ...buton(false) }}>Şimdilik panele geç</button>
           </>
