@@ -9,7 +9,9 @@ function kampanya(i, bugun) {
   const tur = i.ilk_indirim_tur === 'tl' ? 'tl' : 'yuzde';
   const deger = Number(i.ilk_indirim_deger) || 0;
   if (!(deger > 0) || (tur === 'yuzde' && deger > YUZDE_MAX)) return null;
-  const bitis = i.ilk_indirim_bitis ? String(i.ilk_indirim_bitis).slice(0, 10) : null;
+  // SELECT * ile gelen DATE, JS Date olur (bot); to_char ile gelen metin "YYYY-MM-DD"
+  const b = i.ilk_indirim_bitis;
+  const bitis = b ? (b instanceof Date ? require('./tarih').tarihFormatla(b) : String(b).slice(0, 10)) : null;
   if (bitis && bugun && bitis < bugun) return null;
   return { tur, deger, bitis };
 }
@@ -29,6 +31,27 @@ function uygula(hizmetler, indirim) {
   return { fiyatlar, tutar: liste.reduce((t, f) => t + f, 0) - fiyatlar.reduce((t, f) => t + f, 0) };
 }
 
+// WhatsApp botu (2026-10-29): ilk kez yazan müşteriye karşılamada kampanya satırı
+function botSatiri(k, dil = 'tr') {
+  const tl = Number(k.deger).toLocaleString('tr-TR');
+  if (dil === 'en') return `🎁 *${k.tur === 'tl' ? `${tl} TL` : `${k.deger}%`} off your first visit!*`;
+  if (dil === 'ar') return `🎁 *خصم ${k.tur === 'tl' ? `${tl} TL` : `${k.deger}%`} على زيارتك الأولى!*`;
+  return `🎁 *İlk randevunuza ${k.tur === 'tl' ? `${tl} TL` : `%${k.deger}`} indirim!*`;
+}
+// Karşılama mesajında ilk paragraftan (selamdan) sonra; paragraf yoksa sona
+function satirEkle(metin, satir) {
+  const i = metin.indexOf('\n\n');
+  return i < 0 ? `${metin}\n\n${satir}` : `${metin.slice(0, i)}\n\n${satir}${metin.slice(i)}`;
+}
+// Bot özetinde tek hizmetin fiyatı: indirim uygulanıyorsa WhatsApp üstü çizili eski fiyat ("~700~ 560"), değilse null
+function botFiyat(h, k, fmt) {
+  if (!h || !k) return null;
+  const { fiyatlar, tutar } = uygula([h], k);
+  if (!(tutar > 0)) return null;
+  const kart = require('./kartFiyat').kartVar(h) ? uygula([{ ...h, fiyat: h.kart_fiyat }], k).fiyatlar[0] : null;
+  return { fiyat: `~${fmt(h.fiyat)}~ ${fmt(fiyatlar[0])}`, kartFiyat: kart != null ? `~${fmt(h.kart_fiyat)}~ ${fmt(kart)}` : null };
+}
+
 // Panelden gelen ayar → temiz değerler ya da kullanıcıya gösterilecek hata
 function ayarTemiz(b) {
   const tur = b.tur === 'tl' ? 'tl' : 'yuzde';
@@ -41,4 +64,4 @@ function ayarTemiz(b) {
   return { aktif, tur, deger: deger > 0 ? deger : null, bitis };
 }
 
-module.exports = { kampanya, uygula, ayarTemiz, YUZDE_MAX };
+module.exports = { kampanya, uygula, ayarTemiz, botSatiri, satirEkle, botFiyat, YUZDE_MAX };

@@ -102,3 +102,15 @@ test('kapsam dışı hizmete indirim yok; bölünmüş randevuda TL indirimi bir
   assert.deepEqual(await fiyatlar(db, s.parcalar[0].randevu.id), [0]);
   assert.deepEqual(await fiyatlar(db, s.parcalar[1].randevu.id), [300]);
 });
+
+test('bot: kampanya satırı selamdan sonra, özette üstü çizili fiyat; SELECT * ile gelen Date bitişi okunur', () => {
+  const { botSatiri, satirEkle, botFiyat } = require('../src/utils/ilkIndirim');
+  assert.equal(botSatiri({ tur: 'yuzde', deger: 20 }), '🎁 *İlk randevunuza %20 indirim!*');
+  assert.equal(botSatiri({ tur: 'tl', deger: 1000 }, 'en'), '🎁 *1.000 TL off your first visit!*');
+  assert.equal(satirEkle('Merhaba!\n*Villa*\n\n*1.* Randevu Al', 'X'), 'Merhaba!\n*Villa*\n\nX\n\n*1.* Randevu Al');
+  assert.equal(satirEkle('Merhaba', 'X'), 'Merhaba\n\nX');
+  const fmt = (x) => Number(x).toLocaleString('tr-TR');
+  assert.deepEqual(botFiyat({ fiyat: 1800, kart_fiyat: 2100 }, { tur: 'yuzde', deger: 10 }, fmt), { fiyat: '~1.800~ 1.620', kartFiyat: '~2.100~ 1.890' });
+  assert.equal(botFiyat({ fiyat: 700, ilk_indirim: false }, { tur: 'yuzde', deger: 10 }, fmt), null, 'kampanya dışı hizmet');
+  assert.equal(kampanya({ ilk_indirim_aktif: true, ilk_indirim_deger: 20, ilk_indirim_bitis: new Date('2030-02-01T00:00:00+03:00') }, '2030-02-01').bitis, '2030-02-01');
+});

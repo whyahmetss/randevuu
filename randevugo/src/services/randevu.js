@@ -551,8 +551,9 @@ class RandevuService {
       if (!c) { const err = new Error('Çalışan bulunamadı'); err.code = 'CALISAN_BULUNAMADI'; throw err; }
     }
 
-    // İlk randevu mu, burada bir kez bakılır (bölünmüş randevunun ikinci parçası yazılırken müşteri artık "ilk" değil)
-    const indirim = ilkIndirim === true ? await this.ilkIndirimBul(isletmeId, musteriTelefon) : (ilkIndirim || null);
+    // İlk randevu mu, burada bir kez bakılır (bölünmüş randevunun ikinci parçası yazılırken müşteri artık "ilk" değil).
+    // Kampanyaya bakılamazsa randevu yine yazılır, indirimsiz (müşteriye sunucunun uyguladığı tutar gösterilir).
+    const indirim = ilkIndirim === true ? await this.ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null) : (ilkIndirim || null);
 
     if (!calisanId && hizmetIdsUnique.length > 1) {
       const gruplar = await this.bolunmusGruplar(isletmeId, hizmetIdsUnique);

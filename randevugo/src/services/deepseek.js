@@ -142,7 +142,7 @@ KRİTİK KURALLAR:
 
   async serbetCevap(mesaj, isletmeBilgi, hizmetler, kanal = 'whatsapp') {
     const hizmetListesi = hizmetler.map(require('../utils/hizmetNotu').yzHizmet).join(', ');
-    const sistem = this._serbestSistem(isletmeBilgi, hizmetListesi, kanal);
+    const sistem = this._serbestSistem(isletmeBilgi, hizmetListesi, kanal, this._kampanyaBilgi(isletmeBilgi, hizmetler));
     // Önce Gemini (ücretsiz kota, birden çok anahtar dönüşümlü), olmazsa DeepSeek (2026-10-13)
     try {
       const g = require('../utils/gemini');
@@ -177,7 +177,17 @@ KRİTİK KURALLAR:
     }
   }
 
-  _serbestSistem(isletmeBilgi, hizmetListesi, kanal) {
+  // İlk randevu indirimi (2026-10-29): müşteri "indirim var mı" derse yapay zekâ kampanyayı bilsin
+  _kampanyaBilgi(isletmeBilgi, hizmetler) {
+    const k = require('../utils/ilkIndirim').kampanya(isletmeBilgi, require('../utils/tarih').bugunTarih());
+    if (!k) return null;
+    const disari = hizmetler.filter(h => h.ilk_indirim === false).map(h => h.isim);
+    return `ilk kez gelen müşteriye ilk randevuda ${k.tur === 'tl' ? `${k.deger} TL` : `%${k.deger}`} indirim`
+      + (k.bitis ? ` (${k.bitis} tarihine kadar)` : '') + (disari.length ? `; şu hizmetlerde geçmez: ${disari.join(', ')}` : '')
+      + '. Bunun dışında indirim uydurma.';
+  }
+
+  _serbestSistem(isletmeBilgi, hizmetListesi, kanal, kampanya = null) {
     return `Sen "${isletmeBilgi.isim}" adlı işletmenin ${kanal === 'telegram' ? 'Telegram' : 'WhatsApp'} asistanısın.
 
 KONUŞMA STİLİ: ${isletmeBilgi.bot_konusma_stili === 'resmi' ? 'Resmi ve profesyonel dil, "Siz" hitabı, emoji kullanma' : isletmeBilgi.bot_konusma_stili === 'kisa' ? 'Çok kısa, max 1-2 cümle, gereksiz süsleme yapma' : 'Samimi ama saygılı, emoji kullan'}
@@ -191,7 +201,7 @@ KRİTİK KURALLAR:
 - Hizmetler: ${hizmetListesi}
 - Çalışma saatleri: ${require('../utils/gunSaatleri').haftaOzeti(isletmeBilgi)} (bunun dışında saat uydurma)
 - Adres: ${[isletmeBilgi.adres, isletmeBilgi.ilce, isletmeBilgi.sehir].filter(Boolean).join(', ') || 'kayıtlı değil (adres uydurma, işletmeyi aramasını söyle)'}
-- Müşteriyi nazikçe randevu almaya yönlendir ama zorlamadan`;
+- Müşteriyi nazikçe randevu almaya yönlendir ama zorlamadan${kampanya ? `\n- Kampanya: ${kampanya}` : ''}`;
   }
 }
 
