@@ -178,18 +178,26 @@ class BookingController {
         hizmetListesi = [parseInt(hizmetId)];
       }
 
+      // Hepsini tek usta yapamıyorsa bölünmüş randevu mu (saç erkek ustada, kaş kadın personelde)? Usta sistem seçer.
+      const otomatikCevap = async (uygun) => {
+        const bolunmus = !!(hizmetListesi && hizmetListesi.length > 1 && uygun.length === 0
+          && await randevuService.bolunmusGruplar(isletme.id, hizmetListesi));
+        return {
+          calisanlar: [],
+          otomatik: true,
+          uygunSayi: uygun.length,
+          bolunmus,
+          uyumsuzHizmet: hizmetListesi && hizmetListesi.length > 1 && uygun.length === 0 && !bolunmus
+        };
+      };
+
       // Otomatik / tek çalışan modunda: çalışanı backend seçecek
       if (secimModu === 'otomatik' || secimModu === 'tek') {
         // Intersection ile uygun çalışan var mı kontrol et (uyarı için)
         const uygun = hizmetListesi
           ? await randevuService.uygunCalisanlar(isletme.id, hizmetListesi)
           : [];
-        return res.json({
-          calisanlar: [],
-          otomatik: true,
-          uygunSayi: uygun.length,
-          uyumsuzHizmet: hizmetListesi && hizmetListesi.length > 1 && uygun.length === 0
-        });
+        return res.json(await otomatikCevap(uygun));
       }
 
       // Müşteri seçer modu — intersection
@@ -197,12 +205,7 @@ class BookingController {
 
       // Tek çalışan veya 0 ise otomatik atama (0 durumu client'a bilgi)
       if (calisanlar.length <= 1) {
-        return res.json({
-          calisanlar: [],
-          otomatik: true,
-          uygunSayi: calisanlar.length,
-          uyumsuzHizmet: hizmetListesi && hizmetListesi.length > 1 && calisanlar.length === 0
-        });
+        return res.json(await otomatikCevap(calisanlar));
       }
 
       res.json({ calisanlar: calisanlar.map(c => ({ id: c.id, isim: c.isim })) });
@@ -315,11 +318,14 @@ class BookingController {
       // Çalışan otomatik seçim — multi-hizmet intersection ile
       let secilenCalisanId = calisanId ? parseInt(calisanId) : null;
       const secimModu = isletme.calisan_secim_modu || 'musteri';
-      if (!secilenCalisanId) {
+      const uygunlar = secilenCalisanId ? [] : await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
+      // Hepsini tek usta yapamıyorsa bölünmüş randevu: parçaların ustalarını randevuService seçer
+      const bolunmus = !secilenCalisanId && !uygunlar.length && hizmetListesi.length > 1
+        && !!(await randevuService.bolunmusGruplar(isletme.id, hizmetListesi));
+      if (!secilenCalisanId && !bolunmus) {
         // Müşteri çalışan seçmedi: sayfa "herhangi bir çalışanın boş olduğu" saatleri gösterir.
         // Eskiden günün en boş çalışanı seçiliyor, o saatte dolu olabildiği için "artık müsait değil"
         // hatası çıkıyordu. Artık o saatte gerçekten boş olan uygun çalışan seçilir (en boş öncelikli).
-        const uygunlar = await randevuService.uygunCalisanlar(isletme.id, hizmetListesi);
         let sira = uygunlar;
         if (uygunlar.length > 1 && secimModu !== 'tek') {
           const enBos = await randevuService.enBosCalisan(isletme.id, tarih, hizmetListesi[0], saat).catch(() => null);
@@ -362,12 +368,28 @@ class BookingController {
         kaynak: 'online'
       });
 
+      // Bölünmüş randevuda her parça ayrı randevu (her usta kendi takviminde görür)
+      const randevuIdleri = (sonuc.parcalar || [sonuc]).map(p => p.randevu.id);
+
       // Kaynağı online olarak güncelle
-      await pool.query("UPDATE randevular SET kaynak='online' WHERE id=$1", [sonuc.randevu.id]);
+      await pool.query("UPDATE randevular SET kaynak='online' WHERE id = ANY($1::int[])", [randevuIdleri]);
 
       // Notu kaydet (varsa)
       if (musteriNot && musteriNot.trim()) {
-        try { await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [musteriNot.trim().slice(0, 500), sonuc.randevu.id]); } catch(e) {}
+        try { await pool.query('UPDATE randevular SET not_text=$1 WHERE id = ANY($2::int[])', [musteriNot.trim().slice(0, 500), randevuIdleri]); } catch(e) {}
+      }
+
+      // Parçaların ustaları müşteriye gösterilir ("14:00 Saç · Ferhat, 14:30 Kaş · Derya")
+      let parcalar;
+      if (sonuc.parcalar) {
+        const adlar = new Map((await pool.query('SELECT id, isim FROM calisanlar WHERE id = ANY($1::int[])',
+          [sonuc.parcalar.map(p => p.randevu.calisan_id).filter(Boolean)])).rows.map(c => [c.id, c.isim]));
+        parcalar = sonuc.parcalar.map(p => ({
+          saat: String(p.randevu.saat).slice(0, 5),
+          bitis_saati: String(p.randevu.bitis_saati).slice(0, 5),
+          calisan: adlar.get(p.randevu.calisan_id) || null,
+          hizmetIds: p.hizmetler.map(h => h.id),
+        }));
       }
 
       // 🎂 Doğum tarihi kaydet (varsa) — opsiyonel
@@ -400,7 +422,8 @@ class BookingController {
         },
         hizmet: sonuc.hizmet ? { isim: sonuc.hizmet.isim, fiyat: sonuc.hizmet.fiyat, sure_dk: sonuc.hizmet.sure_dk } : null,
         hizmetler: (sonuc.hizmetler || []).map(h => ({ id: h.id, isim: h.isim, fiyat: h.fiyat, sure_dk: h.sure_dk })),
-        kapora: sonuc.kapora
+        kapora: sonuc.kapora,
+        ...(parcalar ? { parcalar } : {})
       });
     } catch (error) {
       console.error('❌ Booking randevu oluşturma hatası:', error.message, error.stack);

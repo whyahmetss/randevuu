@@ -38,8 +38,12 @@ class RandevuService {
     // birleştirilir. Eskiden bütün ustaların randevuları tek takvime yığılıyordu; bir usta doluyken boş ustalar
     // da kapalı görünüyordu (canlı şikâyet, 2026-10-26).
     if (!calisanId && randevuModu !== 'seans') {
-      const uygunlar = await this.uygunCalisanlar(isletmeId, opts.hizmetIds && opts.hizmetIds.length ? opts.hizmetIds : hizmetId);
+      const secilenler = opts.hizmetIds && opts.hizmetIds.length ? opts.hizmetIds : hizmetId;
+      const uygunlar = await this.uygunCalisanlar(isletmeId, secilenler);
       if (uygunlar.length > 0) return this._ustalarBirlesik(isletme, tarih, uygunlar, hizmetId, opts);
+      // Hepsini tek usta yapamıyor (saç erkek ustada, kaş kadın personelde): parçalar arka arkaya farklı ustalara
+      const gruplar = await this.bolunmusGruplar(isletmeId, secilenler);
+      if (gruplar) return [...(await this._bolunmusPlan(isletmeId, tarih, gruplar, opts)).keys()];
     }
 
     // Gün kontrolü (0=Pazar, 6=Cumartesi) — timezone-safe
@@ -225,6 +229,12 @@ class RandevuService {
       });
     }
 
+    // 3) Bölünmüş randevunun sonraki parçası önceki parçanın bittiği dakikada başlar (ızgaraya düşmese de).
+    // Son randevu saati sınırı yok: müşteri dükkâna ilk parçada gelmiş olur; kapanışa sığması yeter.
+    for (const dk of opts.ekAdaylarDk || []) {
+      if (dk >= basDk && dk + hizmetSureDk <= bitisDk) adaySet.add(dk);
+    }
+
     // Sırala ve filtrele
     const musaitSaatler = [];
     const adaylar = Array.from(adaySet).sort((a, b) => a - b);
@@ -332,6 +342,123 @@ class RandevuService {
     return null;
   }
 
+  // Bölünmüş randevu (kullanıcı kararı 2026-10-29): seçilen hizmetlerin hepsini yapan tek usta yoksa (saçı erkek ustalar,
+  // kaşı kadın personel yapan salon) hizmetler ustalarına göre gruplanır; her grup tek ustada, gruplar arka arkaya.
+  // → [{ hizmetIds, ustalar, sureDk }] (en az 2 grup) ya da null (tek usta yapabiliyor, bir hizmeti yapan yok, seans modu)
+  async bolunmusGruplar(isletmeId, hizmetIdOrIds) {
+    const ids = [...new Set((Array.isArray(hizmetIdOrIds) ? hizmetIdOrIds : [hizmetIdOrIds]).map(x => parseInt(x)).filter(Boolean))];
+    if (ids.length < 2) return null;
+    const modu = (await pool.query('SELECT randevu_modu FROM isletmeler WHERE id = $1', [isletmeId])).rows[0]?.randevu_modu;
+    if (modu === 'seans') return null;
+    if ((await this.uygunCalisanlar(isletmeId, ids)).length) return null;
+
+    const satirlar = (await pool.query(
+      `SELECT ch.hizmet_id, ch.calisan_id, h.sure_dk
+         FROM calisan_hizmetler ch
+         JOIN calisanlar c ON c.id = ch.calisan_id
+         JOIN hizmetler h ON h.id = ch.hizmet_id
+        WHERE c.isletme_id = $1 AND h.isletme_id = $1 AND (c.aktif IS NULL OR c.aktif = true) AND ch.hizmet_id = ANY($2::int[])
+        ORDER BY ch.calisan_id`,
+      [isletmeId, ids]
+    )).rows;
+    const ustalar = new Map(), sure = new Map();
+    for (const s of satirlar) {
+      if (!ustalar.has(s.hizmet_id)) ustalar.set(s.hizmet_id, []);
+      ustalar.get(s.hizmet_id).push(s.calisan_id);
+      sure.set(s.hizmet_id, Number(s.sure_dk) || 30);
+    }
+    if (ids.some(id => !ustalar.has(id))) return null;
+
+    // Seçim sırasıyla: hizmet, ustası ortak olan ilk gruba girer (saç + kaş + sakal → [saç, sakal] [kaş])
+    const gruplar = [];
+    for (const id of ids) {
+      const g = gruplar.find(x => x.ustalar.some(u => ustalar.get(id).includes(u)));
+      if (g) {
+        g.hizmetIds.push(id);
+        g.ustalar = g.ustalar.filter(u => ustalar.get(id).includes(u));
+        g.sureDk += sure.get(id);
+      } else {
+        gruplar.push({ hizmetIds: [id], ustalar: [...ustalar.get(id)], sureDk: sure.get(id) });
+      }
+    }
+    return gruplar.length > 1 ? gruplar : null;
+  }
+
+  // Bölünmüş randevunun boş başlangıçları: ilk grubun bir ustası t'de, sonraki grubun bir ustası önceki grup bitince boş.
+  // → Map(başlangıç "HH:MM" → [{ calisanId, saat, hizmetIds }]), saate göre sıralı
+  async _bolunmusPlan(isletmeId, tarih, gruplar, opts = {}) {
+    const dakika = (x) => { const [h, m] = String(x).split(':').map(Number); return h * 60 + (m || 0); };
+    const hhmm = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+    const ortak = opts.simdiPayi === undefined ? {} : { simdiPayi: opts.simdiPayi };
+
+    const plan = new Map();
+    const [ilk, ...sonrakiler] = gruplar;
+    for (const u of ilk.ustalar) {
+      for (const s of await this.musaitSaatleriGetir(isletmeId, tarih, u, null, { ...ortak, hizmetIds: ilk.hizmetIds })) {
+        if (!plan.has(s)) plan.set(s, [{ calisanId: u, saat: s, hizmetIds: ilk.hizmetIds }]);
+      }
+    }
+
+    let ofset = ilk.sureDk;
+    for (const g of sonrakiler) {
+      const adaylar = [...plan.keys()].map(s => dakika(s) + ofset);
+      const bosUsta = new Map();   // başlangıç dakikası → o dakikada boş ilk usta
+      for (const u of g.ustalar) {
+        const saatler = await this.musaitSaatleriGetir(isletmeId, tarih, u, null, { ...ortak, hizmetIds: g.hizmetIds, ekAdaylarDk: adaylar });
+        for (const s of saatler) if (!bosUsta.has(dakika(s))) bosUsta.set(dakika(s), u);
+      }
+      for (const [s, parcalar] of plan) {
+        const t = dakika(s) + ofset;
+        if (bosUsta.has(t)) parcalar.push({ calisanId: bosUsta.get(t), saat: hhmm(t), hizmetIds: g.hizmetIds });
+        else plan.delete(s);
+      }
+      ofset += g.sureDk;
+    }
+    return new Map([...plan].sort(([a], [b]) => dakika(a) - dakika(b)));
+  }
+
+  // Bölünmüş randevuyu yaz: her grup kendi ustasıyla ayrı randevu, sonrakiler ilkine bağlı (bagli_randevu_id).
+  // Bir parça yazılamazsa yazılanlar iptal edilir. Dönüş randevuOlustur gibi, ek olarak parcalar.
+  async _bolunmusOlustur({ isletmeId, musteriTelefon, musteriIsim, tarih, saat, kaynak }, gruplar) {
+    const plan = (await this._bolunmusPlan(isletmeId, tarihFormatla(tarih), gruplar)).get(String(saat).slice(0, 5));
+    if (!plan) {
+      const err = new Error('Seçilen saat artık müsait değil');
+      err.code = 'SLOT_DOLU';
+      throw err;
+    }
+    const sonuclar = [];
+    try {
+      for (const p of plan) {
+        sonuclar.push(await this.randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetIds: p.hizmetIds, calisanId: p.calisanId, tarih, saat: p.saat, kaynak }));
+      }
+    } catch (e) {
+      for (const s of sonuclar) await this.randevuIptal(s.randevu.id).catch(() => {});
+      throw e;
+    }
+
+    const ilkId = sonuclar[0].randevu.id;
+    const devamIds = sonuclar.slice(1).map(s => s.randevu.id);
+    await pool.query('UPDATE randevular SET bagli_randevu_id = $1 WHERE id = ANY($2::int[])', [ilkId, devamIds])
+      .catch(() => { /* sütun yoksa parçalar bağsız kalır; randevular yine yazılı */ });
+    // Müşteriye hatırlatma ve teyit bir kez gitsin: ilk parçanınki yeter, devam parçalarına gitmez
+    await pool.query('UPDATE randevular SET hatirlatma_gonderildi = true, teyit_gonderildi = true, sms_hatirlatma_gonderildi = true WHERE id = ANY($1::int[])', [devamIds])
+      .catch(() => { /* eski kurulumda sütun yoksa hatırlatma iki kez gider */ });
+
+    const hizmetler = sonuclar.flatMap(s => s.hizmetler);
+    const toplamFiyat = hizmetler.reduce((t, h) => t + (parseFloat(h.fiyat) || 0), 0);
+    const kaporaTutar = sonuclar.reduce((t, s) => t + (s.kapora?.tutar || 0), 0);
+    const ana = sonuclar[0];
+    return {
+      randevu: ana.randevu,
+      musteri: ana.musteri,
+      hizmet: { ...ana.hizmet, isim: `${hizmetler[0].isim} + ${hizmetler.length - 1} hizmet`, sure_dk: hizmetler.reduce((t, h) => t + (h.sure_dk || 0), 0), fiyat: toplamFiyat },
+      hizmetler,
+      kapora: { gerekli: sonuclar.some(s => s.kapora?.gerekli), tutar: kaporaTutar, yuzde: toplamFiyat > 0 ? Math.round(kaporaTutar / toplamFiyat * 100) : 0 },
+      manuelOnay: ana.manuelOnay,
+      parcalar: sonuclar.map(s => ({ randevu: s.randevu, hizmetler: s.hizmetler })),
+    };
+  }
+
   // Hizmete uygun çalışanları getir (calisan_hizmetler tablosundan)
   // hizmetIdOrIds: tek hizmet (legacy) VEYA hizmet array (intersection — tümünü yapabilen)
   async uygunCalisanlar(isletmeId, hizmetIdOrIds = null) {
@@ -404,6 +531,11 @@ class RandevuService {
     if (calisanId) {
       const c = (await pool.query('SELECT id FROM calisanlar WHERE id=$1 AND isletme_id=$2', [calisanId, isletmeId])).rows[0];
       if (!c) { const err = new Error('Çalışan bulunamadı'); err.code = 'CALISAN_BULUNAMADI'; throw err; }
+    }
+
+    if (!calisanId && hizmetIdsUnique.length > 1) {
+      const gruplar = await this.bolunmusGruplar(isletmeId, hizmetIdsUnique);
+      if (gruplar) return this._bolunmusOlustur({ isletmeId, musteriTelefon, musteriIsim, tarih, saat, kaynak }, gruplar);
     }
 
     if (!calisanId) calisanId = await this._bosUstaBul(isletmeId, tarihStr, String(saat).slice(0, 5), hizmetIdsUnique).catch(() => null);
@@ -659,24 +791,31 @@ class RandevuService {
       `UPDATE randevular SET durum = 'iptal' WHERE id = $1 RETURNING *`,
       [randevuId]
     );
-    // Canlı güncelleme
+    // Bölünmüş randevunun ilk parçası iptal olunca devam parçaları da düşer (müşteri gelmiyor)
+    let devam = [];
     try {
-      if (result.rows[0]) {
-        socketServer.emitToIsletme(result.rows[0].isletme_id, 'randevu:guncellendi', {
-          randevu: result.rows[0],
+      devam = (await pool.query(
+        `UPDATE randevular SET durum = 'iptal' WHERE bagli_randevu_id = $1 AND durum NOT IN ('iptal', 'tamamlandi') RETURNING *`,
+        [randevuId]
+      )).rows;
+    } catch (e) { /* sütun yoksa (eski kurulum) bağlı parça da yok */ }
+
+    for (const r of [...result.rows, ...devam]) {
+      // Canlı güncelleme
+      try {
+        socketServer.emitToIsletme(r.isletme_id, 'randevu:guncellendi', {
+          randevu: r,
           eski_durum: null,
           yeni_durum: 'iptal'
         });
-      }
-    } catch (e) {}
+      } catch (e) {}
 
-    // 🗓️ Google Calendar — event sil (fire-and-forget)
-    try {
-      if (result.rows[0]) {
-        googleCalendar.freebusyCacheTemizle(result.rows[0].isletme_id);
-        googleCalendar.randevuEventSil(result.rows[0].isletme_id, randevuId).catch(() => {});
-      }
-    } catch (e) {}
+      // 🗓️ Google Calendar — event sil (fire-and-forget)
+      try {
+        googleCalendar.freebusyCacheTemizle(r.isletme_id);
+        googleCalendar.randevuEventSil(r.isletme_id, r.id).catch(() => {});
+      } catch (e) {}
+    }
 
     return result.rows[0];
   }

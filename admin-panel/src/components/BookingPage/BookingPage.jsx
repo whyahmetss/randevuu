@@ -105,6 +105,7 @@ export default function BookingPage({ slug }) {
   const [calisanlar, setCalisanlar] = useState([]);
   const [saatler, setSaatler] = useState([]);
   const [otomatikCalisan, setOtomatikCalisan] = useState(false);
+  const [bolunmus, setBolunmus] = useState(false); // seçilenleri tek personel yapmıyor: arka arkaya farklı personel
   const [hata, setHata] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
 
@@ -309,6 +310,7 @@ export default function BookingPage({ slug }) {
         setCalisanlar(d.calisanlar || []);
         const otomatik = !!d.otomatik || (d.calisanlar || []).length === 0;
         setOtomatikCalisan(otomatik);
+        setBolunmus(!!d.bolunmus);
         if (otomatik) {
           setAdim(curAdim => curAdim === 2 ? 3 : curAdim);
         }
@@ -1312,6 +1314,12 @@ export default function BookingPage({ slug }) {
                   <span className="bk-summary-val">{secilenCalisan.isim}</span>
                 </div>
               )}
+              {!secilenCalisan && bolunmus && (
+                <div className="bk-summary-row">
+                  <span className="bk-summary-key">{t('staff')}</span>
+                  <span className="bk-summary-val">{t('splitStaff')}</span>
+                </div>
+              )}
               <div className="bk-summary-row">
                 <span className="bk-summary-key">{t('date')}</span>
                 <span className="bk-summary-val">{tarihFormat(secilenTarih)}</span>
@@ -1356,10 +1364,20 @@ export default function BookingPage({ slug }) {
               {t('successEnd')}
             </div>
             <div className="bk-success-card">
-              <div className="bk-summary-row">
-                <span className="bk-summary-key">{t('service')}</span>
-                <span className="bk-summary-val">{hizmetAdiOzet}</span>
-              </div>
+              {sonuc?.parcalar ? sonuc.parcalar.map((p, idx) => (
+                <div className="bk-summary-row" key={p.saat}>
+                  <span className="bk-summary-key">{idx === 0 ? t('service') : ''}</span>
+                  <span className="bk-summary-val">
+                    {p.saat} {secilenHizmetler.filter(h => p.hizmetIds.includes(h.id)).map(hizmetAd).join(' + ')}
+                    {p.calisan && <span style={{ opacity: 0.6 }}> · {p.calisan}</span>}
+                  </span>
+                </div>
+              )) : (
+                <div className="bk-summary-row">
+                  <span className="bk-summary-key">{t('service')}</span>
+                  <span className="bk-summary-val">{hizmetAdiOzet}</span>
+                </div>
+              )}
               <div className="bk-summary-row">
                 <span className="bk-summary-key">{t('date')}</span>
                 <span className="bk-summary-val">{tarihFormat(secilenTarih)}</span>

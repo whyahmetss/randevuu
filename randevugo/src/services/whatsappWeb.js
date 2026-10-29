@@ -1974,7 +1974,7 @@ class WhatsAppWebService extends EventEmitter {
 
           if (iptalIntents.includes(metinKucuk)) {
             // Müşteri iptal etti → randevuyu düşür, slotu aç
-            await pool.query("UPDATE randevular SET durum = 'iptal' WHERE id = $1", [teyitRandevu.id]);
+            await require('./randevu').randevuIptal(teyitRandevu.id);   // bölünmüş randevunun devam parçaları da düşer
             console.log(`❌ Teyit → İPTAL: ${musteriTelefon} - ${teyitRandevu.isletme_isim} ${saat}`);
             return `❌ *Randevunuz iptal edildi.*\n\n🏥 ${teyitRandevu.isletme_isim}\n${teyitRandevu.hizmet_isim ? require('../utils/hizmetEmoji').hizmetEmoji(teyitRandevu.isletme_kategori) + ' ' + teyitRandevu.hizmet_isim + '\n' : ''}🕐 ${saat}\n\nYeni randevu almak için *1* yazın.`;
           }
