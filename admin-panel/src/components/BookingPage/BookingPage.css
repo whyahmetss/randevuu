@@ -382,17 +382,27 @@
 .bk-bolum-nav button:first-child { background: var(--bk-accent); border-color: var(--bk-accent); color: var(--bk-on-accent); }
 .bk-site-bolum { margin-top: 22px; scroll-margin-top: 16px; }
 .bk-site-baslik { font-size: 17px; font-weight: 700; margin: 0 0 10px; color: var(--bk-text); }
-.bk-galeri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.bk-galeri-oge { padding: 0; border: none; aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; cursor: zoom-in; background: var(--bk-chip); }
+/* Galeri: yana kayan şerit (2026-10-29) — 3'lü ızgara sayfayı uzatıyordu; parmakla kaydırılır, kenardan taşan foto devamı belli eder */
+.bk-galeri { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 16px; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.bk-galeri::-webkit-scrollbar { display: none; }
+.bk-galeri-oge { flex: 0 0 64%; max-width: 280px; scroll-snap-align: start; padding: 0; border: none; aspect-ratio: 4 / 5; border-radius: 14px; overflow: hidden; cursor: zoom-in; background: var(--bk-chip); }
+.bk-galeri-oge:only-child { flex-basis: 100%; max-width: none; aspect-ratio: 16 / 10; }
 .bk-galeri-oge img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s; }
 .bk-galeri-oge:hover img { transform: scale(1.04); }
-.bk-ekip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
-.bk-ekip-kart { flex: 0 0 132px; background: var(--bk-surface); border: 1px solid var(--bk-line); border-radius: var(--bk-radius); padding: 14px 10px; text-align: center; }
+.bk-ekip { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.bk-ekip::-webkit-scrollbar { display: none; }
+/* Ekip: kart yerine yuvarlak fotoğraf sırası (2026-10-29) */
+.bk-ekip-kart { flex: 0 0 92px; text-align: center; }
 .bk-ekip-foto { width: 76px; height: 76px; margin: 0 auto 10px; border-radius: 50%; overflow: hidden; background: var(--bk-accent-soft); color: var(--bk-accent);
   display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; }
 .bk-ekip-foto img { width: 100%; height: 100%; object-fit: cover; }
 .bk-ekip-isim { font-size: 14px; font-weight: 700; color: var(--bk-text); }
 .bk-ekip-uzmanlik { font-size: 12.5px; color: var(--bk-muted); margin-top: 3px; line-height: 1.35; }
+.bk-hakkimizda-detay > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin: 0; }
+.bk-hakkimizda-detay > summary::-webkit-details-marker { display: none; }
+.bk-hakkimizda-detay > summary::after { content: '+'; font-size: 20px; font-weight: 400; color: var(--bk-dim); }
+.bk-hakkimizda-detay[open] > summary::after { content: '−'; }
+.bk-hakkimizda-detay[open] > summary { margin-bottom: 8px; }
 .bk-hakkimizda { margin: 0; white-space: pre-line; color: var(--bk-muted); font-size: 14.5px; line-height: 1.6; }
 .bk-iletisim-satir { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--bk-line); color: var(--bk-text); font-size: 14.5px; }
 .bk-iletisim-satir:first-of-type { border-top: none; }
@@ -469,3 +479,69 @@
 .bk-kat-toggle-ad { grid-column: 1; overflow: visible; white-space: normal; }
 .bk-kat-toggle small { grid-column: 1; grid-row: 2; white-space: normal; }
 .bk-kat-toggle svg { grid-column: 2; grid-row: 1 / span 2; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ÖZEL TASARIM (2026-10-29): video/görsel arka plan + sınırlı stil seçenekleri.
+   Renkler değişkenlerle gelir; randevu akışının tüm parçaları (hizmet, takvim, saat) ek kod olmadan uyar.
+   ═══════════════════════════════════════════════════════════════ */
+.bk-page.tasarimli { background: transparent; isolation: isolate; }
+.tsr-arka { position: fixed; inset: 0; z-index: -1; background: #0b0b0b; pointer-events: none; }
+.tsr-arka video, .tsr-arka img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tsr-arka::after { content: ''; position: absolute; inset: 0; background: rgba(0, 0, 0, var(--tsr-karartma, .45)); }
+
+.bk-page.tsr-koyu {
+  --bk-bg: #0b0c0b; --bk-surface: rgba(14,16,15,.72); --bk-surface-2: rgba(24,27,25,.78);
+  --bk-line: rgba(255,255,255,.12); --bk-line-2: rgba(255,255,255,.22);
+  --bk-text: #f4f1ea; --bk-muted: #d3d0c8; --bk-dim: #a19d94; --bk-chip: rgba(255,255,255,.09);
+  --bk-on-text: #0d0e0d; --bk-on-text-dim: #4b4a46; --bk-danger-soft: rgba(180,35,24,.24);
+  color: var(--bk-text);
+}
+.bk-page.tsr-acik {
+  --bk-surface: rgba(255,255,255,.80); --bk-surface-2: rgba(255,255,255,.88); --bk-chip: rgba(0,0,0,.05);
+  --bk-line: rgba(0,0,0,.08); --bk-line-2: rgba(0,0,0,.16);
+}
+.tsr-acik .tsr-arka { background: #f4f1ea; }
+.tsr-acik .tsr-arka::after { background: rgba(246, 245, 242, var(--tsr-karartma, .45)); }
+/* Medyasız tasarımda zemin düz renk */
+.bk-page.tasarimli:not(.tsr-medyali).tsr-koyu { background: #0b0c0b; }
+.bk-page.tasarimli:not(.tsr-medyali).tsr-acik { background: #f4f1ea; }
+/* Düz kart: yarı saydam yerine tam renk */
+.bk-page.tsr-kart-duz.tsr-koyu { --bk-surface: #121413; --bk-surface-2: #1a1d1b; }
+.bk-page.tsr-kart-duz.tsr-acik { --bk-surface: #ffffff; --bk-surface-2: #faf9f7; }
+/* Buzlu cam: arkadaki video kartın içinden bulanık görünür */
+.tsr-kart-cam .bk-card, .tsr-kart-cam .bk-item, .tsr-kart-cam .bk-date, .tsr-kart-cam .bk-time, .tsr-kart-cam .bk-svc-search {
+  -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15);
+}
+
+/* Başlık: ortalanmış logo + isim (videonun üstünde) */
+.tasarimli .bk-header-row { flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+.tasarimli .bk-info { display: flex; flex-direction: column; align-items: center; }
+.bk-page.tasarimli .bk-header .bk-logo { width: 92px; height: 92px; border-radius: 50%; margin-top: 0; font-size: 34px; border: 3px solid rgba(255,255,255,.85); overflow: hidden; }
+.tasarimli .bk-logo img { width: 100%; height: 100%; object-fit: cover; }
+.tasarimli .bk-title { font-size: 28px; }
+.tasarimli .bk-meta-row { justify-content: center; }
+.tasarimli .bk-tanitim { text-align: center; }
+.tsr-koyu .bk-header { text-shadow: 0 1px 14px rgba(0,0,0,.45); }
+.tsr-medyali .bk-kapak { display: none; }
+.tsr-medyali .bk-header.kapakli { padding-top: 28px; }
+.tasarimli .bk-site-baslik { text-align: left; }
+
+/* Yazı tipi */
+.bk-page.tsr-yazi-serif { font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif; }
+.bk-page.tsr-yazi-mono { font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: -0.01em; }
+
+/* Buton ve kutu biçimi */
+.tsr-buton-yuvarlak .bk-btn { border-radius: 999px; }
+.tsr-buton-yuvarlak .bk-item, .tsr-buton-yuvarlak .bk-card { border-radius: 20px; }
+.tsr-buton-kare .bk-btn, .tsr-buton-kare .bk-item, .tsr-buton-kare .bk-card, .tsr-buton-kare .bk-date, .tsr-buton-kare .bk-time { border-radius: 2px; }
+/* Yırtık kenar: kâğıttan koparılmış şerit (kenar çizgisi kesildiği için çizgisiz, dolu zemin) */
+.tsr-buton-yirtik .bk-btn, .tsr-buton-yirtik .bk-item {
+  border-radius: 0; border-color: transparent;
+  clip-path: polygon(0 6%, 4% 0, 11% 5%, 19% 1%, 27% 6%, 36% 0, 45% 5%, 54% 1%, 63% 6%, 72% 0, 81% 5%, 90% 1%, 100% 5%,
+                     100% 94%, 95% 100%, 87% 95%, 78% 100%, 69% 94%, 60% 100%, 50% 95%, 41% 100%, 32% 94%, 23% 100%, 14% 95%, 6% 100%, 0 95%);
+}
+.tsr-buton-yirtik.tsr-koyu .bk-item { background: rgba(0,0,0,.82); }
+.tsr-buton-yirtik .bk-item.active { background: var(--bk-accent-soft); box-shadow: none; }
+.tsr-buton-yirtik .bk-btn { padding-top: 4px; padding-bottom: 4px; }
+
+@media (prefers-reduced-motion: reduce) { .tsr-arka video { display: none; } }

@@ -22,7 +22,8 @@ import SekreterKarti from "./components/Settings/SekreterKarti";   // "Bu ay kaz
 const RandevuSayfam = lazy(() => import("./components/Mobil/RandevuSayfam"));   // randevu sayfası teması, kapak, logo
 const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
 const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // Mağaza (esnaf; SıraGO ürünleri)
-const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
+const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));
+const TasarimMagazasi = lazy(() => import("./components/Platform/TasarimMagazasi"));   // açılınca yüklenir   // açılınca yüklenir (hızlı açılış)
 const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
 import AiTeshis from "./components/SatisBot/AiTeshis";
 const EkipYonetimi = lazy(() => import("./components/Ekip/EkipYonetimi"));   // açılınca yüklenir (hızlı açılış)
@@ -4727,6 +4728,7 @@ function SuperAdminPanel({ kullanici }) {
       { id: "kuponlar", icon: SVGA.odemeler, label: "Kuponlar" },
       { id: "bayiler", icon: SVGA.referanslar, label: "Bayiler / Toptancı" },
       { id: "magaza", icon: SVGA.magaza, label: "Mağaza & Vitrin" },
+      { id: "tasarimlar", icon: SVGA.magaza, label: "Sayfa Tasarımları" },
     ]},
     { id: "analiz", label: "Analiz", items: [
       { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
@@ -5707,6 +5709,9 @@ function SuperAdminPanel({ kullanici }) {
         {sayfa === "magaza" && (
           <MagazaAdmin api={api} isletmeler={isletmeler} />
         )}
+
+        {/* SAYFA TASARIMLARI (2026-10-29): video arka planlı randevu sayfası tasarımları, fiyat, hediye */}
+        {sayfa === "tasarimlar" && <TasarimMagazasi api={api} isletmeler={isletmeler} />}
 
         {/* İLETİŞİM MESAJLARI */}
         {sayfa === "iletisim" && (

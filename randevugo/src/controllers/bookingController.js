@@ -87,6 +87,8 @@ class BookingController {
         isletme.galeri = await sc.galeriListe(isletme.id);
         isletme.ekip = await sc.ekipListe(isletme.id);
       } catch (e) { isletme.galeri = []; isletme.ekip = []; }
+      // Sayfa tasarımı (2026-10-29): video/görsel arka plan + stil; sahip olunmayan ücretli tasarım gelmez
+      try { isletme.tasarim = await require('./tasarimController').sayfaTasarimi(isletme.id); } catch (e) { isletme.tasarim = null; }
 
       // Randevu sayfasının altındaki "İşletmeniz için ücretsiz kurun" bağlantısı bu işletmeye bağlansın
       if (!isletme.demo) {
