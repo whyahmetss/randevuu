@@ -343,6 +343,24 @@ class RandevuService {
     return null;
   }
 
+  // Seanslı paketin devam seansı mı (2026-10-29): müşterinin bu hizmette süren paketi varsa (musteri_seanslari aktif) ya da
+  // paketin ilk seansı alınmış ama henüz yapılmamışsa (iptal/gelmedi olmayan, tamamlanmamış randevu) → o hizmetler 0 ₺.
+  // Paket bitince (durum 'bitti') sıradaki randevu yeni paketin ilk seansıdır, tam fiyat. → Set(hizmetId)
+  async paketDevamHizmetleri(isletmeId, musteriId, hizmetler) {
+    const seansli = hizmetler.filter(h => Number(h.seans_sayisi) > 1).map(h => h.id);
+    if (!seansli.length || !musteriId) return new Set();
+    const rows = (await pool.query(
+      `SELECT h.id FROM hizmetler h
+        WHERE h.id = ANY($2::int[]) AND (
+          EXISTS (SELECT 1 FROM musteri_seanslari s
+                   WHERE s.isletme_id = $1 AND s.musteri_id = $3 AND s.hizmet_id = h.id AND s.durum = 'aktif')
+          OR EXISTS (SELECT 1 FROM randevular r JOIN randevu_hizmetleri rh ON rh.randevu_id = r.id
+                      WHERE r.isletme_id = $1 AND r.musteri_id = $3 AND rh.hizmet_id = h.id
+                        AND r.durum IN ('onaylandi', 'onay_bekliyor', 'kapora_bekliyor')))`,
+      [isletmeId, seansli, musteriId])).rows;
+    return new Set(rows.map(r => r.id));
+  }
+
   // İlk randevu indirimi: kampanya açıksa ve bu numaranın bu dükkânda iptal olmamış randevusu yoksa → { tur, deger, bitis }
   async ilkIndirimBul(isletmeId, telefon) {
     const i = (await pool.query(
@@ -620,7 +638,10 @@ class RandevuService {
 
     // Toplam süre + toplam fiyat (ilk randevu indirimi uygulanmış; randevu_hizmetleri'ne indirimli fiyat yazılır)
     const toplamSureDk = hizmetler.reduce((t, h) => t + (h.sure_dk || 0), 0);
-    const { fiyatlar, tutar: ilkIndirimTutari } = require('../utils/ilkIndirim').uygula(hizmetler, indirim);
+    // Seanslı paket (lazer 8+2 gibi): paketin parası ilk seansta yazılır, devam seansları 0 ₺ (ciro, kasa, prim şişmesin)
+    const paketDevam = await this.paketDevamHizmetleri(isletmeId, musteri.id, hizmetler).catch(() => new Set());
+    const { fiyatlar, tutar: ilkIndirimTutari } = require('../utils/ilkIndirim').uygula(
+      hizmetler.map(h => (paketDevam.has(h.id) ? { ...h, fiyat: 0 } : h)), indirim);
     const toplamFiyat = fiyatlar.reduce((t, f) => t + f, 0);
 
     const [saatH, saatM] = saat.split(':').map(Number);
