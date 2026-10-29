@@ -89,3 +89,23 @@ test('Satış Bot bir Merkez numarasını bağlarsa numara Merkez OTP\'den çık
   assert.strictEqual(await mo.satisaGecti('905001112233'), 0, 'tekrar çağrı bir şey yapmaz');
   assert.strictEqual((await satir(db, 1)).durum, 'bagli', 'öbür Merkez numarası etkilenmez');
 });
+
+test('Merkez OTP: QR okutulunca gelen 515 kopması girişi bitirir (yeniden bağlanır), "QR taranmadı" sayılmaz', async () => {
+  const { db, soketler } = await ortam;
+  const mo = require(SRC + '/services/merkezOtpBot');
+  await mo.numaraBaslat(2, 800002);
+  const once = soketler.length;
+  const s = soketler.at(-1);
+  s.ev.emit('connection.update', { qr: 'qr-metni' });
+  await bekle(async () => (await satir(db, 2)).durum === 'qr_bekliyor');
+  // Telefon QR'ı okuttu: WhatsApp bağlantıyı 515 ile koparır
+  s.ev.emit('connection.update', { connection: 'close', lastDisconnect: { error: { output: { statusCode: 515 } } } });
+  for (let i = 0; i < 400 && soketler.length === once; i++) await new Promise(r => setTimeout(r, 10));
+  assert.strictEqual(soketler.length, once + 1, 'yeni kimlikle yeniden bağlanıldı');
+  const s2 = soketler.at(-1);
+  s2.user = { id: '905001112233:3@s.whatsapp.net' };
+  s2.ev.emit('connection.update', { connection: 'open' });
+  await bekle(async () => (await satir(db, 2)).durum === 'bagli');
+  assert.strictEqual((await satir(db, 2)).durum, 'bagli');
+  assert.strictEqual(mo.aktifMi(), true);
+});

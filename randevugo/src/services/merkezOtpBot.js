@@ -194,6 +194,20 @@ class MerkezOtpBot {
             return;
           }
 
+          // QR okutulunca WhatsApp bağlantıyı bilerek bir kez koparır (515): yeni kimlikle hemen yeniden bağlanılır.
+          // Canlı hata (2026-10-29): bu kopma "QR taranmadı" sanılıp bağlantı kapatılıyordu; telefon "giriş yapılıyor"da
+          // kalıp "giriş yapılamadı" diyordu. Esnaf ve Satış Bot soketleri bunu zaten böyle yapıyor.
+          if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
+            state.basariliOturum = true;   // giriş başladı: sonraki kopmalar "QR taranmadı" sayılmasın
+            try { sock.end(undefined); } catch {}
+            console.log(`🔄 Merkez OTP #${numaraId} QR tarandı, yeniden bağlanılıyor`);
+            // 2 sn: creds.update'in yeni kimliği veritabanına yazmasını bekle
+            state._reconnectTimer = setTimeout(() => {
+              this.numaraBaslat(numaraId, authId, false).catch(e => console.log('Merkez OTP yeniden bağlanma hatası:', e.message));
+            }, 2000);
+            return;
+          }
+
           // Kullanıcı QR'ı hiç taramamış (basariliOturum=false) → yine QR çıkacak, sonsuz loop
           // Bu durumda kapat ve kullanıcının "Başlat / Yeni QR" butonuna basmasını bekle
           if (!state.basariliOturum) {
