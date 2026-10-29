@@ -741,7 +741,9 @@ select.input { appearance: none; }
 /* ── Top-bar sağ bölüm mobilde wrap + daha dar gap ── */
 @media (max-width: 560px) {
   .top-bar-right { gap: 8px !important; }
-  .top-bar-right > div:last-child span { display: none; } /* İşletme adı yazısı gizlensin, avatar kalır */
+  /* İşletme adı yazısı gizlensin, avatar kalır. Yalnız tetikleyici: açılan profil menüsündeki paket bilgisi de
+     gizleniyor, telefonda boş gri çubuk görünüyordu (2026-10-29) */
+  .top-bar-right .profil-tetik span { display: none; }
 }
 
 /* ── RANDEVU GLOW (bekleyen onay) ── */

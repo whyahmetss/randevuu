@@ -63,6 +63,7 @@ import SubeSwitcher from './components/Grup/SubeSwitcher';
 import AcilDurum from './components/AcilDurum/AcilDurum';
 import BeklemeListesi from './components/Randevu/BeklemeListesi';
 import EldenOdeme from './components/Platform/EldenOdeme';
+import { PaketOzeti, OdemePenceresi } from './components/PaketOzeti';
 import PersonelPaneli, { PersonelDavet } from './components/Personel/PersonelPaneli';
 
 // "Müşteri olarak giriş" token'ı sekmeye özel (sessionStorage) tutulur; eskiden localStorage'daki
@@ -1446,6 +1447,7 @@ function Dashboard({ kullanici }) {
   const [yogunlukTahmini, setYogunlukTahmini] = useState(null);
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [profilPopover, setProfilPopover] = useState(false);
+  const [odemePenceresi, setOdemePenceresi] = useState(false);   // 💳 Ödeme & IBAN (profil menüsünden, 2026-10-29)
   const [profilFoto, setProfilFoto] = useState(kullanici?.profil_foto || null);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
@@ -2245,7 +2247,7 @@ function Dashboard({ kullanici }) {
             {/* Kullanıcı Profil */}
             {ayarlar && (
               <div style={{ position: "relative" }}>
-                <div style={{
+                <div className="profil-tetik" style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px",
                   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
                   cursor: "pointer"
@@ -2276,14 +2278,9 @@ function Dashboard({ kullanici }) {
                         </div>
                       </div>
                       {paketDurum && (
-                        <div style={{
-                          padding: "8px 12px", borderRadius: 10,
-                          background: "var(--bg)", marginBottom: 12,
-                          display: "flex", alignItems: "center", justifyContent: "space-between"
-                        }}>
-                          <span style={{ fontSize: 11, color: "var(--muted)" }}>Paket</span>
-                          <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'proplus' ? 'badge-green' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
-                        </div>
+                        <PaketOzeti paketDurum={paketDurum} dashEkstra={dashEkstra}
+                          yukselt={() => { setProfilPopover(false); setPaketModal(true); }}
+                          odeme={odemeBilgi?.banka || odemeBilgi?.tutar ? () => { setProfilPopover(false); setOdemePenceresi(true); } : null} />
                       )}
                       <button onClick={() => { setProfilPopover(false); setSayfa("ayarlar"); }} style={{
                         width: "100%", padding: "8px 0", borderRadius: 10, border: "1px solid var(--border)",
@@ -3922,6 +3919,10 @@ function Dashboard({ kullanici }) {
       </div>
 
       {/* Paket Karşılaştırma Modal */}
+      {odemePenceresi && odemeBilgi && (
+        <OdemePenceresi odemeBilgi={odemeBilgi} kapat={() => setOdemePenceresi(false)} ode={() => odemeSayfasiAc()}
+          paketler={() => { setOdemePenceresi(false); setPaketModal(true); }} />
+      )}
       {paketModal && (
         <div onClick={() => setPaketModal(false)} className="modal-overlay">
           <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 1060 }}>
