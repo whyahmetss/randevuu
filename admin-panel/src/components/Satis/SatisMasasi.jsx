@@ -36,9 +36,10 @@ function AdayKarti({ a, api, yenile, onDemo, waSay, onHesapAc }) {
   };
   const demoAc = async () => {
     if (demo) { window.open(demo, '_blank'); return; }
+    const w = window.open('', '_blank');   // Safari: sekme tıklama anında açılmazsa engelleniyor
     const r = await api.post(`/admin/avci/${a.id}/demo`, {});
-    if (r?.link) { setDemo(r.link); window.open(r.link, '_blank'); onDemo?.(); }
-    else alert(r?.hata || 'Demo açılamadı');
+    if (r?.link) { setDemo(r.link); if (w) w.location.href = r.link; else window.location.href = r.link; onDemo?.(); }
+    else { w?.close(); alert(r?.hata || 'Demo açılamadı'); }
   };
   // Instagram DM (kullanıcı kararı 2026-10-17): kişiye özel demo hazırlanır, mesaj panoya kopyalanır, DM penceresi açılır.
   // Konuşmak gerekmez; esnaf tanımadığı numaradan çok, Instagram'daki işletme hesabından gelen mesajı okur.

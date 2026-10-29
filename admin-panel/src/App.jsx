@@ -119,6 +119,19 @@ function odemeSayfasiAc(paket, sure, kupon) {
     .catch(() => { w?.close(); alert("Ödeme sayfası açılamadı, lütfen tekrar dene."); });
 }
 
+// Müşteri olarak giriş: sekme tıklama anında açılır (Safari, beklemeden sonra açılan sekmeyi engelliyor), anahtar gelince yönlenir
+function musteriOlarakGir(isletmeId) {
+  const w = window.open("", "_blank");
+  api.post(`/admin/impersonate/${isletmeId}`)
+    .then(res => {
+      if (!res?.token) { w?.close(); alert(res?.hata || "Giriş yapılamadı"); return; }
+      localStorage.setItem("randevugo_impersonate_token", res.token);
+      const url = window.location.origin + "?impersonate=1";
+      if (w) w.location.href = url; else window.location.href = url;
+    })
+    .catch(e => { w?.close(); alert("Hata: " + e.message); });
+}
+
 // Satış kapısı ortak parçaları (Avcı + Satış Bot)
 const waTel = (t) => { let d = String(t || "").replace(/\D/g, ""); if (d.startsWith("0")) d = "9" + d; if (d.length === 10) d = "90" + d; return d; };
 const ilkMesaj = () => 'Merhaba, kolay gelsin';
@@ -5208,17 +5221,7 @@ function SuperAdminPanel({ kullanici }) {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
-                    <button onClick={async () => {
-                      try {
-                        const res = await api.post(`/admin/impersonate/${i.id}`);
-                        if (res.hata) { alert("Hata: " + res.hata); return; }
-                        if (res.token) {
-                          localStorage.setItem("randevugo_impersonate_token", res.token);
-                          const yeniSekme = window.open(window.location.origin + "?impersonate=1", "_blank");
-                          if (!yeniSekme) alert("Pop-up engellendi. Lütfen pop-up'lara izin ver.");
-                        }
-                      } catch (e) { alert("Hata: " + e.message); }
-                    }} title="Müşteri olarak giriş" style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>👤 Giriş</button>
+                    <button onClick={() => musteriOlarakGir(i.id)} title="Müşteri olarak giriş" style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(93,75,181,.08)", color: "#5d4bb5", fontWeight: 600, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>👤 Giriş</button>
                     <button onClick={() => aktifToggle(i)} title={i.aktif ? "Pasife al" : "Aktif et"} style={{ flex: 1, padding: "7px 0", borderRadius: 8, border: "none", cursor: "pointer", background: i.aktif ? "rgba(31,111,74,.08)" : "rgba(168,89,12,.08)", color: i.aktif ? "#1f6f4a" : "#a8590c", fontWeight: 600, fontSize: 11 }}>{i.aktif ? "✓ Aktif" : "⏸ Pasif"}</button>
                     <button onClick={() => isletmeSil(i.id, i.isim)} title="Sil" style={{ padding: "7px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(180,35,24,.06)", color: "#b42318", fontSize: 11 }}>🗑️</button>
                   </div>
@@ -8761,7 +8764,7 @@ function SuperAdminPanel({ kullanici }) {
                       </button>
 
                       {/* Müşteri Olarak Giriş */}
-                      <button onClick={async () => { const res = await api.post(`/admin/impersonate/${isl.id}`); if (res.token) { localStorage.setItem("randevugo_impersonate_token", res.token); window.open(`${window.location.origin}?impersonate=1`, '_blank'); } else { alert(res.hata || "Impersonate başarısız"); }}} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: "rgba(168,89,12,.06)", textAlign: "left" }}>
+                      <button onClick={() => musteriOlarakGir(isl.id)} style={{ padding: "18px 20px", borderRadius: 14, border: "none", cursor: "pointer", background: "rgba(168,89,12,.06)", textAlign: "left" }}>
                         
                         <div style={{ fontWeight: 600, fontSize: 14, color: "#a8590c" }}>Müşteri Olarak Giriş</div>
                         <div style={{ fontSize: 11, color: "var(--dim)", marginTop: 2 }}>İşletmenin panelini gör</div>
