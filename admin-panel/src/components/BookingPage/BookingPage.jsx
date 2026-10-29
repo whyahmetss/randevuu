@@ -238,6 +238,12 @@ export default function BookingPage({ slug }) {
   const hizmetIdsParam = secilenHizmetler.map(h => h.id).join(',');
   const toplamSure = secilenHizmetler.reduce((s, h) => s + Number(h.sure_dk || 0), 0);
   const toplamFiyat = secilenHizmetler.reduce((s, h) => s + Number(h.fiyat || 0), 0);
+  // Kart fiyatı (2026-10-29): nakit ve kartla fiyatı farklı hizmet; fiyat = nakit
+  const kartVar = (h) => Number(h.fiyat) > 0 && Number(h.kart_fiyat) > 0 && Number(h.kart_fiyat) !== Number(h.fiyat);
+  const toplamKart = secilenHizmetler.some(kartVar)
+    ? secilenHizmetler.reduce((s, h) => s + Number(kartVar(h) ? h.kart_fiyat : h.fiyat || 0), 0) : null;
+  const tlYaz = (x) => `${Number(x).toLocaleString(locale)} ₺`;
+  const toplamYazi = toplamKart ? `${tlYaz(toplamFiyat)} ${t('cash')} · ${tlYaz(toplamKart)} ${t('card')}` : tlYaz(toplamFiyat);
   // Esnaf panelde İngilizce/Arapça ad girdiyse yabancı müşteriye o gösterilir (Türkçe dışı dillerde İngilizce ad)
   const hizmetAd = (h) => (dil === 'ar' && h.isim_ar) || (dil !== 'tr' && h.isim_en) || h.isim;
   const hizmetAdiOzet = secilenHizmetler.map(hizmetAd).join(' + ');
@@ -288,6 +294,7 @@ export default function BookingPage({ slug }) {
           {Number(h.fiyat) > 0 ? (<>
             <span className="bk-price-num">{Number(h.fiyat).toLocaleString(locale)}</span>
             <span className="bk-price-lira">₺</span>
+            {kartVar(h) && <div className="bk-price-kart">{t('card')} {Number(h.kart_fiyat).toLocaleString(locale)} ₺</div>}
           </>) : <span className="bk-price-lira" style={{ fontSize: 12 }}>{locale === 'tr-TR' || locale === 'tr' ? 'fiyat dükkanda' : '—'}</span>}
         </div>
       </button>
@@ -837,7 +844,7 @@ export default function BookingPage({ slug }) {
                     {secilenHizmetler.length} {t('servicesSelected') || 'hizmet'}
                   </div>
                   <div className="bk-multi-sub">
-                    {toplamSure} {t('minutes')} • {Number(toplamFiyat).toLocaleString(locale)} ₺
+                    {toplamSure} {t('minutes')} • {toplamYazi}
                   </div>
                 </div>
                 <button className="bk-btn bk-btn-compact" onClick={hizmetleriOnayla}>
@@ -1294,7 +1301,7 @@ export default function BookingPage({ slug }) {
                   <span className="bk-summary-val">
                     {hizmetAd(h)}
                     <span style={{ opacity: 0.6, marginLeft: 8 }}>
-                      {h.sure_dk}{t('minutes')}{Number(h.fiyat) > 0 ? ` • ${Number(h.fiyat).toLocaleString(locale)}₺` : ''}
+                      {h.sure_dk}{t('minutes')}{Number(h.fiyat) > 0 ? ` • ${Number(h.fiyat).toLocaleString(locale)}₺` : ''}{kartVar(h) ? ` (${t('card')} ${Number(h.kart_fiyat).toLocaleString(locale)}₺)` : ''}
                     </span>
                   </span>
                 </div>
@@ -1323,7 +1330,7 @@ export default function BookingPage({ slug }) {
               </div>
               <div className="bk-summary-row total">
                 <span className="bk-summary-key">{t('total')}</span>
-                <span className="bk-summary-val">{toplamSure}{t('minutes')} • {Number(toplamFiyat).toLocaleString(locale)} ₺</span>
+                <span className="bk-summary-val">{toplamSure}{t('minutes')} • {toplamYazi}</span>
               </div>
             </div>
             <button onClick={randevuOlustur} disabled={yukleniyor} className="bk-btn">
@@ -1363,7 +1370,7 @@ export default function BookingPage({ slug }) {
               </div>
               <div className="bk-summary-row total">
                 <span className="bk-summary-key">{t('total')}</span>
-                <span className="bk-summary-val">{Number(toplamFiyat).toLocaleString(locale)} ₺</span>
+                <span className="bk-summary-val">{toplamYazi}</span>
               </div>
             </div>
             <button onClick={() => window.location.reload()} className="bk-btn">

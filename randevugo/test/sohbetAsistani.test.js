@@ -463,3 +463,14 @@ test('sohbet: adres kayıtlı değilse konum uydurulmaz, yapay zekâya düşer',
   assert.match(y, /google\.com\/maps\/search/);
   assert.doesNotMatch(y, /writereview/);
 });
+
+test('sohbet: kart fiyatı farklı hizmet listede "nakit · kart" diye, fiyat sorusunda da iki fiyatla', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  await db.exec(`ALTER TABLE hizmetler ADD COLUMN kart_fiyat NUMERIC; UPDATE hizmetler SET kart_fiyat = 350 WHERE isim = 'Saç Kesimi';`);
+  const yaz = await konusma(db);
+  const liste = await yaz('Randevu alacaktım');
+  assert.match(liste, /1\. Saç Kesimi · 300₺ nakit · 350₺ kart/, liste);
+  assert.match(liste, /2\. Sakal Tıraşı · 150₺\n?/, liste);
+  assert.doesNotMatch(liste, /150₺ nakit/, 'kart farkı olmayana ek yok');
+});

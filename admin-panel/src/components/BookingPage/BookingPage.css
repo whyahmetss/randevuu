@@ -128,6 +128,7 @@
 .bk-item-not { font-size: 12.5px; color: var(--bk-accent, #1f6f4a); margin-top: 3px; line-height: 1.35; white-space: pre-line; overflow-wrap: anywhere; }
 .bk-item-price { white-space: nowrap; font-size: 15px; font-weight: 600; }
 .bk-price-lira { margin-left: 2px; font-weight: 500; color: var(--bk-muted); }
+.bk-price-kart { font-size: 11.5px; font-weight: 500; color: var(--bk-dim); text-align: right; margin-top: 1px; }
 .bk-svc-check {
   width: 20px; height: 20px; flex-shrink: 0; border-radius: 5px;
   border: 1.5px solid var(--bk-line-2); display: grid; place-items: center; color: var(--bk-on-accent);

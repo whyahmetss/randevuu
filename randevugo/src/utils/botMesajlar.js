@@ -3,6 +3,7 @@
  * Kullanım: const M = require('./botMesajlar'); M.get(isletme, 'anaMenu', { musteriAd, hizmetler })
  */
 const { notSatiri } = require('./hizmetNotu');
+const { kartEki, kartEkiYazi } = require('./kartFiyat');
 
 const STILLER = {
   // Samimi = sıcak dil + emoji, hitap yine "siz" (2026-10-20): sohbet asistanı hep "siz" diyor, aynı müşteriye
@@ -32,7 +33,7 @@ const tr = {
     const baslik = s.emoji ? `${s.ikon || '✂️'} *${p.isletmeAd} - Hizmetlerimiz*` : `*${p.isletmeAd} - Hizmetlerimiz*`;
     let metin = baslik + '\n\n';
     p.hizmetler.forEach((h, i) => {
-      metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`;
+      metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL${kartEki(h, p.fiyatFormat, 'tr')}${notSatiri(h)}\n`;
     });
     metin += s.kisa ? '\nSeçin:' : '\nNumara yazarak seçin:';
     return metin;
@@ -45,7 +46,7 @@ const tr = {
       txt += `${s.emoji ? '⏱' : '•'} Süre: ${p.sureDk} dk\n`;
     }
     if (!s.kisa && p.fiyat) {
-      txt += `${s.emoji ? '💰' : '•'} Ücret: ${p.fiyat} TL\n`;
+      txt += `${s.emoji ? '💰' : '•'} Ücret: ${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'tr')}\n`;
     }
     if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} ${s.unvan || 'Çalışan'}: ${p.calisanAd}\n`;
     txt += `\n${s.emoji ? '🗓️' : ''} Hangi gün ister${s.hitap === 'siz' ? 'siniz' : 'sin'}?\n\n*1.* Bugün\n*2.* Yarın\n*3.* Bu Hafta`;
@@ -57,7 +58,7 @@ const tr = {
     let txt = `${ok} *${p.hizmetAd}* seçildi\n\n`;
     if (!s.kisa) {
       txt += `${s.emoji ? '⏱' : '•'} Süre: ${p.sureDk} dk\n`;
-      txt += `${s.emoji ? '💰' : '•'} Ücret: ${p.fiyat} TL\n`;
+      txt += `${s.emoji ? '💰' : '•'} Ücret: ${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'tr')}\n`;
     }
     txt += `\n${s.emoji ? '👤' : ''} ${s.unvan || 'Çalışan'} seçin${s.hitap === 'siz' ? 'iz' : ''}:\n\n`;
     p.calisanlar.forEach((c, i) => { txt += `*${i + 1}.* ${c.isim}\n`; });
@@ -95,7 +96,7 @@ const tr = {
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n`;
     ozet += `${icon ? '🕐 ' : ''}${p.saatStr}\n`;
-    if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
+    if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'tr')}\n`;
     ozet += `\nHer şey doğru mu?\n\n*1.* ${icon ? '✅ ' : ''}Onayla\n*2.* ${icon ? '❌ ' : ''}İptal`;
     return ozet;
   },
@@ -150,7 +151,7 @@ const tr = {
   hizmetBulunamadi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}Anlayamadım. Lütfen hizmet numarası veya adı yaz${s.hitap === 'siz' ? 'ın' : ''}:\n\n`;
     p.hizmetler.forEach((h, i) => {
-      txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`;
+      txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}dk - ${p.fiyatFormat(h.fiyat)} TL${kartEki(h, p.fiyatFormat, 'tr')}${notSatiri(h)}\n`;
     });
     txt += s.kisa ? '\nSeçin:' : '\nNumara yazarak seçin:';
     return txt;
@@ -239,7 +240,7 @@ const en = {
   hizmetListesi: (s, p) => {
     const baslik = s.emoji ? `${s.ikon || '✂️'} *${p.isletmeAd} - Our Services*` : `*${p.isletmeAd} - Our Services*`;
     let metin = baslik + '\n\n';
-    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
+    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL${kartEki(h, p.fiyatFormat, 'en')}${notSatiri(h)}\n`; });
     metin += s.kisa ? '\nChoose:' : '\nType a number to select:';
     return metin;
   },
@@ -248,7 +249,7 @@ const en = {
     const ok = s.emoji ? '✅' : '•';
     let txt = `${ok} *${p.hizmetAd}* selected\n\n`;
     if (!s.kisa && p.sureDk) txt += `${s.emoji ? '⏱' : '•'} Duration: ${p.sureDk} min\n`;
-    if (!s.kisa && p.fiyat) txt += `${s.emoji ? '💰' : '•'} Price: ${p.fiyat} TL\n`;
+    if (!s.kisa && p.fiyat) txt += `${s.emoji ? '💰' : '•'} Price: ${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'en')}\n`;
     if (p.calisanAd) txt += `${s.emoji ? '👤' : '•'} ${s.unvanEn || 'Staff'}: ${p.calisanAd}\n`;
     txt += `\n${s.emoji ? '🗓️ ' : ''}Which day?\n\n*1.* Today\n*2.* Tomorrow\n*3.* This Week`;
     return txt;
@@ -256,7 +257,7 @@ const en = {
 
   calisanSec: (s, p) => {
     let txt = `${s.emoji ? '✅' : '•'} *${p.hizmetAd}* selected\n\n`;
-    if (!s.kisa) { txt += `${s.emoji ? '⏱' : '•'} Duration: ${p.sureDk} min\n${s.emoji ? '💰' : '•'} Price: ${p.fiyat} TL\n`; }
+    if (!s.kisa) { txt += `${s.emoji ? '⏱' : '•'} Duration: ${p.sureDk} min\n${s.emoji ? '💰' : '•'} Price: ${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'en')}\n`; }
     txt += `\n${s.emoji ? '👤 ' : ''}Choose ${(s.unvanEn || 'staff').toLowerCase()}:\n\n`;
     p.calisanlar.forEach((c, i) => { txt += `*${i + 1}.* ${c.isim}\n`; });
     return txt;
@@ -287,7 +288,7 @@ const en = {
     if (p.hizmetAd) ozet += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
-    if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
+    if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'en')}\n`;
     ozet += `\nEverything correct?\n\n*1.* ${icon ? '✅ ' : ''}Confirm\n*2.* ${icon ? '❌ ' : ''}Cancel`;
     return ozet;
   },
@@ -328,7 +329,7 @@ const en = {
 
   hizmetBulunamadi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}Couldn't understand. Please type a service number or name:\n\n`;
-    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
+    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}min - ${p.fiyatFormat(h.fiyat)} TL${kartEki(h, p.fiyatFormat, 'en')}${notSatiri(h)}\n`; });
     txt += s.kisa ? '\nChoose:' : '\nType a number to select:';
     return txt;
   },
@@ -410,7 +411,7 @@ const ar = {
 
   hizmetListesi: (s, p) => {
     let metin = `${s.emoji ? (s.ikon || '✂️') + ' ' : ''}*${p.isletmeAd} - خدماتنا*\n\n`;
-    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
+    p.hizmetler.forEach((h, i) => { metin += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL${kartEki(h, p.fiyatFormat, 'ar')}${notSatiri(h)}\n`; });
     metin += '\nاكتب رقماً:';
     return metin;
   },
@@ -418,7 +419,7 @@ const ar = {
   hizmetSecildi: (s, p) => {
     let txt = `${s.emoji ? '✅ ' : ''}تم اختيار *${p.hizmetAd}*\n\n`;
     if (!s.kisa && p.sureDk) txt += `${s.emoji ? '⏱ ' : ''}المدة: ${p.sureDk} دقيقة\n`;
-    if (!s.kisa && p.fiyat) txt += `${s.emoji ? '💰 ' : ''}السعر: ${p.fiyat} TL\n`;
+    if (!s.kisa && p.fiyat) txt += `${s.emoji ? '💰 ' : ''}السعر: ${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'ar')}\n`;
     if (p.calisanAd) txt += `${s.emoji ? '👤 ' : ''}الموظف: ${p.calisanAd}\n`;
     txt += `\n${s.emoji ? '🗓️ ' : ''}أي يوم تريد؟\n\n*1.* اليوم\n*2.* غداً\n*3.* هذا الأسبوع`;
     return txt;
@@ -456,7 +457,7 @@ const ar = {
     if (p.hizmetAd) ozet += `${icon ? (s.ikon || '✂️') + ' ' : ''}${p.hizmetAd}\n`;
     if (p.calisanAd) ozet += `${icon ? '👤 ' : ''}${p.calisanAd}\n`;
     ozet += `${icon ? '🗓️ ' : ''}${p.tarihStr}\n${icon ? '🕐 ' : ''}${p.saatStr}\n`;
-    if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL\n`;
+    if (p.fiyat) ozet += `${icon ? '💰 ' : ''}${p.fiyat} TL${kartEkiYazi(p.kartFiyat, 'ar')}\n`;
     ozet += `\nهل كل شيء صحيح؟\n\n*1.* ${icon ? '✅ ' : ''}تأكيد\n*2.* ${icon ? '❌ ' : ''}إلغاء`;
     return ozet;
   },
@@ -495,7 +496,7 @@ const ar = {
 
   hizmetBulunamadi: (s, p) => {
     let txt = `${s.emoji ? '❌ ' : ''}لم أفهم. اكتب رقم أو اسم الخدمة:\n\n`;
-    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL${notSatiri(h)}\n`; });
+    p.hizmetler.forEach((h, i) => { txt += `*${i + 1}.* ${h.isim} - ${h.sure_dk}د - ${p.fiyatFormat(h.fiyat)} TL${kartEki(h, p.fiyatFormat, 'ar')}${notSatiri(h)}\n`; });
     txt += '\nاكتب رقماً:';
     return txt;
   },

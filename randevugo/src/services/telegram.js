@@ -595,7 +595,7 @@ class TelegramService {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
           const clOzet = gd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gd.secilen_calisan_id])).rows[0] : null;
-          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, calisanAd: clOzet?.isim, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: secilenSaat, fiyat: hz ? hz.fiyat : null });
+          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, calisanAd: clOzet?.isim, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: secilenSaat, fiyat: hz ? hz.fiyat : null, kartFiyat: require('../utils/kartFiyat').kartVar(hz) ? hz.kart_fiyat : null });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, ozet,
             [[{ text: '✅ Onayla', callback_data: 'evet' }],
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],
@@ -710,7 +710,7 @@ class TelegramService {
           const gdn = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           const hzn = gdn.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gdn.secilen_hizmet_id])).rows[0] : null;
           const clOzet2 = gdn.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gdn.secilen_calisan_id])).rows[0] : null;
-          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hzn?.isim, calisanAd: clOzet2?.isim, tarihStr: this.tarihFormat(gdn.secilen_tarih), saatStr: gdn.secilen_saat, fiyat: hzn ? hzn.fiyat : null });
+          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hzn?.isim, calisanAd: clOzet2?.isim, tarihStr: this.tarihFormat(gdn.secilen_tarih), saatStr: gdn.secilen_saat, fiyat: hzn ? hzn.fiyat : null, kartFiyat: require('../utils/kartFiyat').kartVar(hzn) ? hzn.kart_fiyat : null });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, ozet,
             [[{ text: '✅ Onayla', callback_data: 'evet' }],
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],

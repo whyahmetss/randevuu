@@ -2,6 +2,7 @@ const pool = require('../config/db');
 const { denemeGun } = require('../config/deneme');
 const platformAyar = require('../utils/platformAyar');
 const { bugunTarih, gunSonraTarih, kapanisDk } = require('../utils/tarih');
+const { kartTemiz } = require('../utils/kartFiyat');
 const bcrypt = require('bcryptjs');
 const randevuService = require('../services/randevu');
 const { paketGetir, paketleriYukle, paketCacheTemizle, BAYRAKLAR, SAYILAR, satirdanPaket } = require('../config/paketler');
@@ -299,6 +300,10 @@ class AdminController {
         [req.kullanici.isletme_id, isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, ...seansAlanlari(seans_sayisi, seans_aralik_gun),
           kategoriTemiz(kategori), !!one_cikan && !!paket.zengin_sayfa]
       );
+      // Kart fiyatı (nakitten farklıysa); yeni sütun sonradan geldi, ayrı yazılır
+      if (result.rows[0] && kartTemiz(req.body.kart_fiyat)) {
+        result.rows[0] = (await pool.query('UPDATE hizmetler SET kart_fiyat=$1 WHERE id=$2 RETURNING *', [kartTemiz(req.body.kart_fiyat), result.rows[0].id])).rows[0];
+      }
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -318,7 +323,7 @@ class AdminController {
       if (!isim) continue;
       const sure = parseInt(h.sure_dk);
       const fiyat = parseFloat(String(h.fiyat ?? '').replace(',', '.'));
-      temiz.push({ isim, sure_dk: sure >= 5 && sure <= 600 ? sure : 30, fiyat: fiyat >= 0 ? fiyat : 0, kategori: kategoriTemiz(h.kategori) });
+      temiz.push({ isim, sure_dk: sure >= 5 && sure <= 600 ? sure : 30, fiyat: fiyat >= 0 ? fiyat : 0, kart_fiyat: kartTemiz(h.kart_fiyat), kategori: kategoriTemiz(h.kategori) });
     }
     if (!temiz.length) return res.status(400).json({ hata: 'Geçerli hizmet adı bulunamadı' });
 
@@ -337,8 +342,8 @@ class AdminController {
         return res.status(403).json({ hata: `${paket.isim} paketinde en fazla ${paket.hizmet_limit} hizmet olabilir (şu an ${aktifSayi}, eklenecek ${yeni.length}). Paketini yükselt.`, limit_asimi: true });
       }
       for (const h of yeni) {
-        await client.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, kategori) VALUES ($1, $2, $3, $4, $5)',
-          [isletmeId, h.isim, h.sure_dk, h.fiyat, h.kategori]);
+        await client.query('INSERT INTO hizmetler (isletme_id, isim, sure_dk, fiyat, kategori, kart_fiyat) VALUES ($1, $2, $3, $4, $5, $6)',
+          [isletmeId, h.isim, h.sure_dk, h.fiyat, h.kategori, h.kart_fiyat]);
       }
       await client.query('COMMIT');
       res.json({ eklenen: yeni.length, atlanan: temiz.length - yeni.length });
@@ -358,6 +363,10 @@ class AdminController {
         'UPDATE hizmetler SET isim=$1, isim_en=$2, isim_ar=$3, sure_dk=$4, fiyat=$5, aciklama=COALESCE($6, aciklama), aktif=$7, emoji=$8, kapora_yuzdesi=$9, tampon_dk=$10 WHERE id=$11 AND isletme_id=$12 RETURNING *',
         [isim, isim_en || null, isim_ar || null, sure_dk, fiyat, aciklama, aktif, emoji || '', parseInt(kapora_yuzdesi) || 0, parseInt(tampon_dk) || 0, id, req.kullanici.isletme_id]
       );
+      // Kart fiyatı yalnız gönderildiyse değişir; boş/0 = kart farkı yok
+      if (result.rows[0] && req.body.kart_fiyat !== undefined) {
+        result.rows[0] = (await pool.query('UPDATE hizmetler SET kart_fiyat=$1 WHERE id=$2 RETURNING *', [kartTemiz(req.body.kart_fiyat), result.rows[0].id])).rows[0];
+      }
       // Seans alanları yalnız formdan gönderildiyse değişir (Bugün ekranındaki hızlı fiyat düzenlemesi bunları göndermez)
       if (result.rows[0] && seans_sayisi !== undefined) {
         const [ss, sa] = seansAlanlari(seans_sayisi, seans_aralik_gun);

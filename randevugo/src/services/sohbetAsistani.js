@@ -17,6 +17,7 @@ const haftaGunu = (t) => { const [y, a, g] = t.split('-').map(Number); return ne
 const dk = (s) => { const [h, m] = String(s).slice(0, 5).split(':').map(Number); return h * 60 + (m || 0); };
 const s5 = (s) => String(s || '').slice(0, 5);
 const { notSatiri } = require('../utils/hizmetNotu');
+const { fiyatYazi } = require('../utils/kartFiyat');
 
 // Karşılamadaki örnek hizmet (2026-10-27): masaj salonunda "yarın 3'te saç kesimi" yazıyordu. Sıra: panelde esnafın yazdığı →
 // öne çıkan hizmet → ilk hizmet → kategoriye göre genel ad. Uzun hizmet adı örneği bozmasın diye kategoriye düşer.
@@ -353,7 +354,7 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
     else {
       await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'hizmet' });
       // Tam liste numaralı ("2" yazmak yeter); adaylar madde işaretli (numaralar tam listeye göre)
-      const satir = (h, i) => `${d._adaylar ? '•' : `${i + 1}.`} ${h.isim}${Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat).toLocaleString('tr-TR')}₺` : ''}${notSatiri(h)}`;
+      const satir = (h, i) => `${d._adaylar ? '•' : `${i + 1}.`} ${h.isim}${Number(h.fiyat) > 0 ? ` · ${fiyatYazi(h, dil)}` : ''}${notSatiri(h)}`;
       const liste = (d._adaylar || hizmetler).slice(0, 15).map(satir).join('\n');
       // Canlı hata (2026-10-17): anlaşılmayan cevaba aynı liste 4 kez gitti; tekrar sorarken nasıl seçileceği söylenir
       if (d.sohbet_bekleyen === 'hizmet' && !d._adaylar && T.hizmetTekrar) return T.hizmetTekrar(liste);
@@ -494,7 +495,7 @@ function konumMesaji(isletme, { menusuz = true } = {}) {
 // Fiyat sorusu, yapay zekâ yokken: konuşulan (ya da mesajda geçen) hizmetin fiyatı, yoksa liste
 function fiyatCevap(s, hizmetler, d, dil) {
   if (!/\b(fiyat|ucret|kac para|ne kadar|kac tl|price|how much|cost|سعر|كم)/.test(s)) return null;
-  const tl = (h) => `${h.isim}: ${Number(h.fiyat).toLocaleString('tr-TR')}₺`;
+  const tl = (h) => `${h.isim}: ${fiyatYazi(h, dil)}`;
   const fiyatli = hizmetler.filter(h => Number(h.fiyat) > 0);
   const anilan = hizmetBul(s, hizmetler).hizmet;
   const h = (anilan && Number(anilan.fiyat) > 0 && anilan) || fiyatli.find(x => x.id === d.secilen_hizmet_id);
