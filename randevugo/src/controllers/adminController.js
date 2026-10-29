@@ -1346,6 +1346,66 @@ class AdminController {
     }
   }
 
+  // Elden ödeme (2026-10-29): sahada nakit/elden alınan ödeme tek adımda girilir. Paket + kaç ay seçilir; ücretli dönem
+  // deneme ya da mevcut paket bitince başlar (denemedeki esnaf elden ödeyince kalan deneme günleri yanmasın).
+  // Eskiden "bekliyor" kaydı açıp "ödendi" işaretlemek gerekiyordu; hep 30 gün, paket/süre seçilemiyordu, kalan deneme yanıyordu.
+  async eldenOdeme(req, res) {
+    const isletmeId = parseInt(req.body.isletme_id);
+    const ay = parseInt(req.body.ay);
+    const tutar = Number(req.body.tutar);
+    const not = String(req.body.not || '').trim().slice(0, 200) || null;
+    const yontem = ['nakit', 'havale', 'kart'].includes(req.body.yontem) ? req.body.yontem : 'nakit';
+    if (!isletmeId || !(ay >= 1 && ay <= 24) || !(tutar > 0)) return res.status(400).json({ hata: 'İşletme, süre (1–24 ay) ve tutar zorunlu' });
+    const paketler = await require('../config/paketler').paketleriYukle();
+    const paket = req.body.paket;
+    if (!paketler[paket] || !(paketler[paket].fiyat > 0)) return res.status(400).json({ hata: 'Geçersiz paket' });
+
+    const client = await pool.connect();
+    let sonuc;
+    try {
+      await client.query('BEGIN');
+      const i = (await client.query(
+        `SELECT id, isim, grup_id, GREATEST(NOW(), COALESCE(deneme_bitis_tarihi, NOW()), COALESCE(paket_bitis_tarihi, NOW())) AS baslangic
+           FROM isletmeler WHERE id = $1 FOR UPDATE`, [isletmeId])).rows[0];
+      if (!i) { await client.query('ROLLBACK'); return res.status(404).json({ hata: 'İşletme bulunamadı' }); }
+      if (i.grup_id) {
+        const merkez = (await client.query('SELECT MIN(id) AS id FROM isletmeler WHERE grup_id = $1', [i.grup_id])).rows[0].id;
+        if (merkez !== i.id) { await client.query('ROLLBACK'); return res.status(400).json({ hata: 'Şubelerin ödemesi merkez işletmeye girilir' }); }
+      }
+      const donem = new Date(i.baslangic).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 7);
+      const var_ = (await client.query('SELECT durum FROM odemeler WHERE isletme_id = $1 AND donem = $2', [isletmeId, donem])).rows[0];
+      if (var_?.durum === 'odendi') { await client.query('ROLLBACK'); return res.status(409).json({ hata: `${donem} dönemi zaten ödenmiş görünüyor` }); }
+      const yeni = (await client.query(
+        `UPDATE isletmeler SET paket = $2, aktif = true,
+           paket_bitis_tarihi = GREATEST(NOW(), COALESCE(deneme_bitis_tarihi, NOW()), COALESCE(paket_bitis_tarihi, NOW())) + make_interval(months => $3),
+           son_odeme_sure = CASE WHEN $3 >= 12 THEN 'yil' ELSE 'ay' END,
+           bekleyen_paket = NULL, bekleyen_shopier_urun_id = NULL, bekleyen_sure = NULL, bekleyen_kupon_id = NULL
+         WHERE id = $1 RETURNING paket_bitis_tarihi`, [isletmeId, paket, ay])).rows[0];
+      const odeme = (await client.query(
+        `INSERT INTO odemeler (isletme_id, tutar, donem, durum, odeme_yontemi, odeme_tarihi, notlar) VALUES ($1, $2, $3, 'odendi', $4, NOW(), $5)
+         ON CONFLICT (isletme_id, donem) WHERE isletme_id IS NOT NULL
+         DO UPDATE SET tutar = EXCLUDED.tutar, durum = 'odendi', odeme_yontemi = EXCLUDED.odeme_yontemi, odeme_tarihi = NOW(), notlar = EXCLUDED.notlar
+         RETURNING *`, [isletmeId, tutar, donem, yontem, `${ay} ay ${paketler[paket].isim}${not ? ' · ' + not : ''}`])).rows[0];
+      await client.query('COMMIT');
+      sonuc = { odeme, paket_bitis_tarihi: yeni.paket_bitis_tarihi, baslangic: i.baslangic, isim: i.isim };
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error('❌ eldenOdeme hatası:', error.message);
+      return res.status(500).json({ hata: error.message });
+    } finally {
+      client.release();
+    }
+    // Yan işler: hata ödemeyi geri almaz
+    try { await require('../utils/oncu').oncuOdeme(isletmeId, paket, paketler[paket].fiyat); } catch (e) { console.error('Öncü atama hatası:', e.message); }
+    try { require('../services/odemeOtomasyon').odemeAlindiBildir(isletmeId, tutar, yontem === 'nakit' ? 'elden' : yontem); } catch (e) { /* opsiyonel */ }
+    try { socketServer.emitToIsletme(isletmeId, 'odeme:onaylandi', { isletme_id: isletmeId, tutar, yontem }); } catch (e) {}
+    try {
+      await this.auditLogYaz(req.kullanici, 'odeme_elden', `${sonuc.isim}: ${tutar}₺ ${yontem}, ${ay} ay ${paket}`, 'odemeler', sonuc.odeme.id,
+        require('../utils/istemciIp').istemciIp(req));
+    } catch (e) {}
+    res.json({ ok: true, ...sonuc });
+  }
+
   async odemeGuncelle(req, res) {
     try {
       const { durum } = req.body;

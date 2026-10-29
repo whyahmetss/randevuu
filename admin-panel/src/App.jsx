@@ -62,6 +62,7 @@ import GrupYonetim from './components/Grup/GrupYonetim';
 import SubeSwitcher from './components/Grup/SubeSwitcher';
 import AcilDurum from './components/AcilDurum/AcilDurum';
 import BeklemeListesi from './components/Randevu/BeklemeListesi';
+import EldenOdeme from './components/Platform/EldenOdeme';
 import PersonelPaneli, { PersonelDavet } from './components/Personel/PersonelPaneli';
 
 // "Müşteri olarak giriş" token'ı sekmeye özel (sessionStorage) tutulur; eskiden localStorage'daki
@@ -275,7 +276,10 @@ const api = {
           return data;
         }
         if (data.limit_asimi) {
-          window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: data }));
+          // Paket ekranı yalnız esnafın kendi işleminde açılır (2026-10-29): ana sayfanın arka plan okumaları
+          // (ör. Yorum Avcısı istatistiği) Başlangıç/deneme paketinde 403 dönüp ekranı her girişte kendiliğinden açıyordu.
+          // Kilitli menüye tıklamak ekranı zaten açıyor.
+          if ((options.method || "GET").toUpperCase() !== "GET") window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: data }));
           return { ...data, _paketYetersiz: true };
         }
         return data;
@@ -2810,7 +2814,10 @@ function Dashboard({ kullanici }) {
                   </div>
                 </div>
               )}
-              {odemeBilgi && !dashEkstra?.anlasma && (
+              {/* Deneme ya da ödenmiş paket bitişine 3 günden fazla varsa ödeme kartı yok (2026-10-29): esnafı 14 gün
+                  darlamayalım; kart yalnız bu ayın ödeme kaydına baktığı için yıllık/elden ödemiş esnafa da "Ödenmedi" diyordu.
+                  Kalan gün kenar çubuğunda sakin bir satır olarak görünüyor. */}
+              {odemeBilgi && !dashEkstra?.anlasma && !(['deneme', 'paket'].includes(dashEkstra?.paketDurumTipi) && dashEkstra?.paketKalanGun > 3) && (
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", borderLeft: `4px solid ${odemeBilgi.odeme?.durum === 'odendi' ? '#1f6f4a' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '#a8590c' : '#b42318'}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -4641,6 +4648,8 @@ function SuperAdminPanel({ kullanici }) {
     odemeleriYukle();
   };
 
+  const [eldenAcik, setEldenAcik] = useState(false);   // 💵 Elden ödeme formu (2026-10-29)
+
   const odemeEkle = async (e) => {
     e.preventDefault();
     await api.post("/admin/odemeler", yeniOdeme);
@@ -5558,8 +5567,16 @@ function SuperAdminPanel({ kullanici }) {
                       <button key={v} onClick={() => setOdemeFiltre(v)} className={`pill pill-sm${odemeFiltre === v ? ' active' : ''}`}>{l}</button>
                     ))}
                   </div>
-                  <button onClick={() => setOdemeFormAcik(!odemeFormAcik)} className="btn btn-primary btn-sm">+ Ödeme Kaydı Ekle</button>
+                  <div className="row gap-8">
+                    <button onClick={() => { setEldenAcik(!eldenAcik); setOdemeFormAcik(false); }} className="btn btn-primary btn-sm">💵 Elden ödeme gir</button>
+                    <button onClick={() => { setOdemeFormAcik(!odemeFormAcik); setEldenAcik(false); }} className="btn btn-ghost btn-sm">+ Ödeme Kaydı Ekle</button>
+                  </div>
                 </div>
+
+                {eldenAcik && (
+                  <EldenOdeme api={api} isletmeler={isletmeler} onKapat={() => setEldenAcik(false)}
+                    onOk={() => { setEldenAcik(false); odemeleriYukle(); isletmeleriYukle(); }} />
+                )}
 
                 {odemeFormAcik && (
                   <form onSubmit={odemeEkle} className="form-card card-accent-green row row-wrap gap-12" style={{ alignItems: "flex-end" }}>

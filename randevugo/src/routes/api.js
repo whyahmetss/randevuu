@@ -186,6 +186,7 @@ router.post('/admin/isletmeler/:id/demo-veri', authMiddleware, superAdminMiddlew
 
 router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeleriGetir(req, res));
 router.post('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeEkle(req, res));
+router.post('/admin/odemeler/elden', authMiddleware, superAdminMiddleware, (req, res) => adminController.eldenOdeme(req, res));
 router.put('/admin/odemeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeGuncelle(req, res));
 router.get('/admin/isletmeler/:id/odeme-profili', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeOdemeProfili(req, res));
 router.post('/admin/odemeler/:id/ertele', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeErteleme(req, res));
