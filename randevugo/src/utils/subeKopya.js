@@ -4,7 +4,7 @@
 
 // İşletme ayarları: saatler, randevu düzeni, bot üslubu, sayfa görünümü. Kimlik/ödeme/entegrasyon bilgileri kopyalanmaz.
 const AYAR_KOLONLARI = [
-  'kategori', 'calisma_baslangic', 'calisma_bitis', 'kapali_gunler', 'mola_saatleri', 'randevu_suresi_dk',
+  'kategori', 'calisma_baslangic', 'calisma_bitis', 'haftalik_saatler', 'kapali_gunler', 'mola_saatleri', 'randevu_suresi_dk',
   'slot_aralik_dk', 'varsayilan_tampon_dk', 'iptal_sinir_saat', 'hatirlatma_saat', 'onay_timeout_dk',
   'randevu_modu', 'randevu_onay_modu', 'calisan_secim_modu', 'mesai_disi_mod', 'mesai_disi_mesaj',
   'bot_diller', 'bot_konusma_stili', 'bot_tarzi', 'bot_ornek_hizmet', 'calisan_unvani', 'timezone', 'sayfa_tema', 'sayfa_vurgu',

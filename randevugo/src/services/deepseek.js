@@ -189,6 +189,7 @@ KRİTİK KURALLAR:
 - İşletme adını olduğu gibi kullan, değiştirme: "${isletmeBilgi.isim}"
 - Sıcak ve kısa cevap ver (2-3 cümle max)
 - Hizmetler: ${hizmetListesi}
+- Çalışma saatleri: ${require('../utils/gunSaatleri').haftaOzeti(isletmeBilgi)} (bunun dışında saat uydurma)
 - Müşteriyi nazikçe randevu almaya yönlendir ama zorlamadan`;
   }
 }

@@ -820,7 +820,7 @@ class AdminController {
     try {
       const izinliAlanlar = [
         'isim','adres','calisma_baslangic','calisma_bitis','randevu_suresi_dk','kapali_gunler','mola_saatleri',
-        'kategori','bot_konusma_stili','bot_ornek_hizmet','calisan_unvani','randevu_modu','hatirlatma_saat','calisan_secim_modu',
+        'kategori','bot_konusma_stili','bot_ornek_hizmet','calisan_unvani','haftalik_saatler','randevu_modu','hatirlatma_saat','calisan_secim_modu',
         'randevu_onay_modu','onay_timeout_dk','iptal_sinir_saat','mesai_disi_mod','mesai_disi_mesaj',
         'bot_diller','kara_liste_otomatik','kara_liste_ihlal_sinir','slug',
         'varsayilan_tampon_dk','slot_aralik_dk',
@@ -835,6 +835,11 @@ class AdminController {
         return res.status(400).json({ hata: 'Geçersiz panel görünümü' });
       }
       if (req.body.bot_ornek_hizmet !== undefined) req.body.bot_ornek_hizmet = String(req.body.bot_ornek_hizmet || '').trim().slice(0, 60) || null;
+      // Gün bazlı saat tablosu: yalnız 0–6 günleri ve geçerli saatler; boşsa NULL (genel saat geçerli)
+      if (req.body.haftalik_saatler !== undefined) {
+        const t = require('../utils/gunSaatleri').tabloTemizle(req.body.haftalik_saatler);
+        req.body.haftalik_saatler = t ? JSON.stringify(t) : null;
+      }
       if (req.body.calisan_unvani !== undefined) req.body.calisan_unvani = String(req.body.calisan_unvani || '').trim().slice(0, 30) || null;
       const jsonAlanlar = ['mola_saatleri','musteri_formu'];
       const setClauses = [];

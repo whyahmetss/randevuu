@@ -7,7 +7,7 @@ const qrcode = require('qrcode');
 const pool = require('../config/db');
 const EventEmitter = require('events');
 const pino = require('pino');
-const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla, kapanisDk } = require('../utils/tarih');
+const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla } = require('../utils/tarih');
 const { usePostgresAuthState } = require('../utils/pgAuthState');
 const botMesajlar = require('../utils/botMesajlar');
 const socketServer = require('./socketServer');
@@ -841,12 +841,10 @@ class WhatsAppWebService extends EventEmitter {
     try {
       const simdi = new Date();
       const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
-      const basSaat = isletme.calisma_baslangic ? String(isletme.calisma_baslangic).substring(0,5) : '09:00';
-      const bitSaat = isletme.calisma_bitis ? String(isletme.calisma_bitis).substring(0,5) : '19:00';
-      const [basH, basM] = basSaat.split(':').map(Number);
-      const basDk = basH * 60 + basM;
-      const bitDk = kapanisDk(basSaat, bitSaat);
-      const bugunKapali = (isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number).includes(simdi.getDay());
+      // Bugünün saatleri (2026-10-29: gün bazlı; cuma 23:00 kapanan dükkân 21:00'den sonra "mesai dışı" sayılmasın)
+      const gs = require('../utils/gunSaatleri').gunSaatleri(isletme, simdi.getDay());
+      const basSaat = gs.bas, bitSaat = gs.bit, basDk = gs.basDk, bitDk = gs.bitDk;
+      const bugunKapali = gs.kapali;
       const mesaiDisi = simdiDk < basDk || simdiDk >= bitDk || bugunKapali;
 
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
@@ -1280,7 +1278,9 @@ class WhatsAppWebService extends EventEmitter {
           const kapaliGunler = isletme.kapali_gunler || '';
           const gunIsimleri = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
           const kapaliList = kapaliGunler.split(',').filter(g => g.trim()).map(g => gunIsimleri[parseInt(g.trim())] || g.trim());
-          return { metin: botMesajlar.get(isletme, 'calismaSaatleri', { basSaat: bas, bitSaat: bit, kapaliGunler: kapaliList.length > 0 ? kapaliList.join(', ') : null, sureDk: isletme.randevu_suresi_dk || 30 }), butonlar: null };
+          const gunBazli = Object.keys(isletme.haftalik_saatler || {}).length > 0;
+          return { metin: botMesajlar.get(isletme, 'calismaSaatleri', { basSaat: bas, bitSaat: bit, kapaliGunler: kapaliList.length > 0 ? kapaliList.join(', ') : null, sureDk: isletme.randevu_suresi_dk || 30,
+            haftaOzeti: gunBazli ? require('../utils/gunSaatleri').haftaOzeti(isletme) : null }), butonlar: null };
         }
         if (randevuAl) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'hizmet_secimi');

@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const pool = require('../config/db');
-const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla, kapanisDk } = require('../utils/tarih');
+const { bugunTarih, yarinTarih, gunSonraTarih, tarihFormatla } = require('../utils/tarih');
 const botMesajlar = require('../utils/botMesajlar');
 
 class TelegramService {
@@ -157,12 +157,10 @@ class TelegramService {
     try {
       const simdi = new Date();
       const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
-      const basSaat = isletme.calisma_baslangic ? String(isletme.calisma_baslangic).substring(0,5) : '09:00';
-      const bitSaat = isletme.calisma_bitis ? String(isletme.calisma_bitis).substring(0,5) : '19:00';
-      const [basH, basM] = basSaat.split(':').map(Number);
-      const basDk = basH * 60 + basM;
-      const bitDk = kapanisDk(basSaat, bitSaat);
-      const bugunKapali = (isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number).includes(simdi.getDay());
+      // Bugünün saatleri (2026-10-29: gün bazlı; cuma 23:00 kapanan dükkân 21:00'den sonra "mesai dışı" sayılmasın)
+      const gs = require('../utils/gunSaatleri').gunSaatleri(isletme, simdi.getDay());
+      const basSaat = gs.bas, bitSaat = gs.bit, basDk = gs.basDk, bitDk = gs.bitDk;
+      const bugunKapali = gs.kapali;
       const mesaiDisi = simdiDk < basDk || simdiDk >= bitDk || bugunKapali;
 
       if (mesaiDisi && isletme.mesai_disi_mod && isletme.mesai_disi_mod !== 'randevu_ver') {
@@ -297,8 +295,8 @@ class TelegramService {
 
     // Çalışma saatleri
     if (mk === 'bilgi_saatler') {
-      const bas = isletme.calisma_baslangic ? String(isletme.calisma_baslangic).substring(0,5) : '09:00';
-      const bit = isletme.calisma_bitis ? String(isletme.calisma_bitis).substring(0,5) : '18:00';
+      const { gunSaatleri } = require('../utils/gunSaatleri');   // gün bazlı saat (2026-10-29)
+      const saat = (g) => { const x = gunSaatleri(isletme, g); return `${x.bas} - ${x.bit}`; };
       const kapaliGunler = isletme.kapali_gunler || '';
       const kapaliSet = new Set(kapaliGunler.split(',').filter(g => g.trim()).map(g => parseInt(g.trim())));
       // Gün isimleri: 0=Pazar ... 6=Cumartesi
@@ -306,11 +304,11 @@ class TelegramService {
       let msg = `🕐 *Çalışma Saatlerimiz*\n\n`;
       msg += `📋 *Hafta İçi:*\n`;
       for (let g = 1; g <= 5; g++) {
-        msg += kapaliSet.has(g) ? `   ❌ ${gunIsimleri[g]}: Kapalı\n` : `   ✅ ${gunIsimleri[g]}: ${bas} - ${bit}\n`;
+        msg += kapaliSet.has(g) ? `   ❌ ${gunIsimleri[g]}: Kapalı\n` : `   ✅ ${gunIsimleri[g]}: ${saat(g)}\n`;
       }
-      msg += `\n� *Hafta Sonu:*\n`;
+      msg += `\n🌙 *Hafta Sonu:*\n`;
       for (const g of [6, 0]) {
-        msg += kapaliSet.has(g) ? `   ❌ ${gunIsimleri[g]}: Kapalı\n` : `   ✅ ${gunIsimleri[g]}: ${bas} - ${bit}\n`;
+        msg += kapaliSet.has(g) ? `   ❌ ${gunIsimleri[g]}: Kapalı\n` : `   ✅ ${gunIsimleri[g]}: ${saat(g)}\n`;
       }
       msg += `\n⏰ Seans süresi: ${isletme.randevu_suresi_dk || 30} dk`;
       await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, msg,

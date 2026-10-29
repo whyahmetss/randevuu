@@ -172,7 +172,7 @@ async function yapayZekaAnla({ metin, isletme, hizmetler, calisanlar, durum, bug
   const g = require('../utils/gemini');
   if (!g.anahtarlar().length) return null;
   const sistem = `Bir randevu asistanının ANLAMA katmanısın. Müşterinin son mesajından bilgileri çıkar; cevap yazma.
-Bugün: ${bugun} (${GUNLER[haftaGunu(bugun)]}). İşletme: ${isletme.isim}. Çalışma saatleri: ${s5(isletme.calisma_baslangic || '09:00')}-${s5(isletme.calisma_bitis || '19:00')}.
+Bugün: ${bugun} (${GUNLER[haftaGunu(bugun)]}). İşletme: ${isletme.isim}. Çalışma saatleri: ${require('../utils/gunSaatleri').haftaOzeti(isletme)}.
 Hizmetler (id: ad): ${hizmetler.map(h => `${h.id}: ${h.isim}`).join('; ')}
 Çalışanlar (id: ad): ${calisanlar.map(c => `${c.id}: ${c.isim}`).join('; ') || 'yok'}
 Bilinenler: hizmet=${durum.secilen_hizmet_id || 'yok'}, tarih=${durum.secilen_tarih || 'yok'}, saat=${durum.secilen_saat || 'yok'}. Asistanın son sorusu: ${durum.sohbet_bekleyen || 'yok'}.

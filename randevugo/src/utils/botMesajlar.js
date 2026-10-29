@@ -169,8 +169,12 @@ const tr = {
 
   calismaSaatleri: (s, p) => {
     let txt = `${s.emoji ? '🕐 ' : ''}*Çalışma Saatleri${s.hitap === 'siz' ? 'miz' : ''}*\n\n`;
-    txt += `${s.emoji ? '✅ ' : ''}Açık: ${p.basSaat} - ${p.bitSaat}\n`;
-    if (p.kapaliGunler) txt += `${s.emoji ? '❌ ' : ''}Kapalı: ${p.kapaliGunler}\n`;
+    // Gün bazlı saat girilmişse haftanın özeti ("Pzt–Per 09:00–21:00 · Cum–Cmt 09:00–23:00 · Paz kapalı")
+    if (p.haftaOzeti) txt += `${s.emoji ? '✅ ' : ''}${p.haftaOzeti.split(' · ').join('\n' + (s.emoji ? '✅ ' : ''))}\n`;
+    else {
+      txt += `${s.emoji ? '✅ ' : ''}Açık: ${p.basSaat} - ${p.bitSaat}\n`;
+      if (p.kapaliGunler) txt += `${s.emoji ? '❌ ' : ''}Kapalı: ${p.kapaliGunler}\n`;
+    }
     if (!s.kisa) txt += `\n${s.emoji ? '⏱ ' : ''}Süre: ${p.sureDk} dk seans\n`;
     txt += `\nRandevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
     return txt;

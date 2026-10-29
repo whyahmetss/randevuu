@@ -2962,8 +2962,10 @@ function Dashboard({ kullanici }) {
 
             /* ── Timeline Render ── */
             const renderTimeline = () => {
-              const baslangic = parseInt((ayarlar?.calisma_baslangic || "09:00").split(":")[0]);
-              const bitisHam = parseInt((ayarlar?.calisma_bitis || "19:00").split(":")[0]);
+              // Seçili günün saati (gün bazlı saat girilmişse o gün, yoksa genel)
+              const gunOzel = (ayarlar?.haftalik_saatler || {})[String(new Date(randevuTarih + "T00:00:00").getDay())] || {};
+              const baslangic = parseInt((gunOzel.bas || ayarlar?.calisma_baslangic || "09:00").split(":")[0]);
+              const bitisHam = parseInt((gunOzel.bit || ayarlar?.calisma_bitis || "19:00").split(":")[0]);
               const bitis = bitisHam <= baslangic ? 24 : bitisHam; // "00:00" kapanış = gün sonu
               const saatler = [];
               for (let h = baslangic; h <= bitis; h++) saatler.push(h);
