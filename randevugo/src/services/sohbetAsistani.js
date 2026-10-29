@@ -115,7 +115,10 @@ const selamMi = (t) => { const sade1 = t.replace(/[!.,?🙏😊👋🏻]/g, ' ')
   return SELAM_KELIME.test(sade1) && !sade1.replace(SELAM_KELIME, ' ').replace(SELAM_DOLGU, ' ').trim(); };
 const SELAM = { test: (t) => selamMi(t) };
 // Bilgi sorusu (fiyat, adres, saatler…): yapay zekâ yoksa da tanınsın
-const BILGI = /\b(fiyat|ucret|kac para|ne kadar|kac tl|adres|nerede|neredesiniz|konum|yol tarifi|kacta acil|kacta kapan|calisma saat|acik misiniz|park|price|how much|cost|address|where|opening hours|سعر|كم|عنوان|أين)/;
+const BILGI = /\b(fiyat|ucret|kac para|ne kadar|kac tl|adres|nerede|neredesiniz|nerde|nerdesiniz|neresi|konum|lokasyon|yol tarifi|kacta acil|kacta kapan|calisma saat|acik misiniz|park|price|how much|cost|address|where|opening hours|سعر|كم|عنوان|أين)/;
+// Konum sorusu yapay zekâya gitmez, kayıtlı adres ve harita linkiyle cevaplanır (canlı hata 2026-10-29: hizmet
+// sorulmuşken "Yeriniz nerde" anlaşılmadı, hizmet listesi tekrarlandı)
+const KONUM = /\b(adres|nerede|neredesiniz|nerde|nerdesiniz|neresi|konum|lokasyon|yol tarifi|address|where are you|location|عنوان|أين)/;
 const DUKKAN_SORU = /\b(hizmet|kampanya|indirim|odeme|kart|nakit|iban|kac dakika|ne kadar surer|bekleme|sira|acik mi|acik misin|calisiyor mu|bugun acik|yarin acik|pazar acik|rezervasyon|kac kisi)/;
 const RANDEVU = /\b(randevu|sira al|yer var|musait|bos yer|bos saat|gelebilir miyim|gelmek istiyorum|appointment|book|booking|موعد|حجز)/;
 // Niteleyicisiz "tıraş" ("tıraş olmak istiyorum", "traşa gelsem") belirsiz: berberde çoğu zaman saç kesimi, sakal da
@@ -280,15 +283,16 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   if (a.niyet === 'iptal') return null;
   if (a.niyet === 'bilgi' || ((!a.niyet || a.niyet === 'diger') && !surecte)) {
     // Soru (fiyat, adres, saatler…): yapay zekâ işletme bilgisiyle kısa cevap verir; menü gösterilmez
-    const cevap = await require('./deepseek').serbetCevap(metin, isletme, hizmetler, 'whatsapp').catch(() => null)
+    const cevap = (KONUM.test(s) && konumMesaji(isletme))
+      || await require('./deepseek').serbetCevap(metin, isletme, hizmetler, 'whatsapp').catch(() => null)
       || fiyatCevap(s, hizmetler, d, dil);                              // yapay zekâ cevap veremezse fiyat yine söylenir
     if (!surecte) {
       if (!cevap) return null;                                         // yapay zekâ yok → eski akış
       await kaydet(wa, musteriTelefon, isletmeId, 'ana_menu', {});
       return `${cevap}\n\n${T.ipucu()}`;
     }
-    // Süreç ortasında soru: kısa cevap + kaldığımız soru
-    const devam = await sonrakiAdim({ wa, d, a: {}, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId });
+    // Süreç ortasında soru: kısa cevap + kaldığımız soru (soru anlaşılmadı sayılmaz: "anlayamadım" denmez)
+    const devam = await sonrakiAdim({ wa, d: { ...d, sohbet_bekleyen: null }, a: {}, T, dil, isletme, hizmetler, calisanlar, randevuService, musteriTelefon, isletmeId });
     return cevap ? `${cevap}\n\n${devam}` : devam;
   }
 
@@ -471,6 +475,20 @@ function hizmetAday(metin, hizmetler) {
   return adaylar;
 }
 
+// Adres + harita linki (esnafın kayıtlı Google Maps linki, yoksa adres araması). Adres girilmemişse null.
+// menusuz: sohbet akışında "Randevu almak için 1 yazın" satırı eklenmez (1 orada hizmet seçimi olur)
+function konumMesaji(isletme, { menusuz = true } = {}) {
+  const adres = String(isletme.adres || '').trim();
+  if (!adres && !isletme.google_maps_url) return null;
+  // Google'dan gelen adreste ilçe/şehir zaten yazılı: iki kez eklenmesin
+  const ekle = (x) => x && !adres.toLocaleLowerCase('tr').includes(String(x).toLocaleLowerCase('tr')) ? x : '';
+  const ilce = ekle(isletme.ilce), sehir = ekle(isletme.sehir);
+  const mapsLink = isletme.google_maps_url
+    || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([isletme.isim, adres, ilce, sehir].filter(Boolean).join(' '))}`;
+  return require('../utils/botMesajlar').get(isletme, 'konum',
+    { isletmeAd: isletme.isim, adres: adres || isletme.isim, ilce, sehir, telefon: isletme.telefon || '', mapsLink, menusuz }).trim();
+}
+
 // Fiyat sorusu, yapay zekâ yokken: konuşulan (ya da mesajda geçen) hizmetin fiyatı, yoksa liste
 function fiyatCevap(s, hizmetler, d, dil) {
   if (!/\b(fiyat|ucret|kac para|ne kadar|kac tl|price|how much|cost|سعر|كم)/.test(s)) return null;
@@ -507,4 +525,4 @@ async function kaydet(wa, tel, isletmeId, asama, alanlar) {
   }
 }
 
-module.exports = { isle, anla, saatSecki, kisiBul, M, ornekHizmet };
+module.exports = { isle, anla, saatSecki, kisiBul, M, ornekHizmet, konumMesaji };

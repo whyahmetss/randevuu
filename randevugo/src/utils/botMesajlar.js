@@ -163,7 +163,7 @@ const tr = {
     txt += '\n';
     if (p.telefon) txt += `${s.emoji ? '📞 ' : ''}${p.telefon}\n`;
     if (p.mapsLink) txt += `\n${s.emoji ? '🗺 ' : ''}Google Maps: ${p.mapsLink}\n`;
-    txt += `\nRandevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
+    if (!p.menusuz) txt += `\nRandevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
     return txt;
   },
 
@@ -176,7 +176,7 @@ const tr = {
       if (p.kapaliGunler) txt += `${s.emoji ? '❌ ' : ''}Kapalı: ${p.kapaliGunler}\n`;
     }
     if (!s.kisa) txt += `\n${s.emoji ? '⏱ ' : ''}Süre: ${p.sureDk} dk seans\n`;
-    txt += `\nRandevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
+    if (!p.menusuz) txt += `\nRandevu almak için *1* yaz${s.hitap === 'siz' ? 'ın' : ''}.`;
     return txt;
   },
 
@@ -340,7 +340,7 @@ const en = {
     txt += '\n';
     if (p.telefon) txt += `${s.emoji ? '📞 ' : ''}${p.telefon}\n`;
     if (p.mapsLink) txt += `\n${s.emoji ? '🗺 ' : ''}Google Maps: ${p.mapsLink}\n`;
-    txt += `\nType *1* to book.`;
+    if (!p.menusuz) txt += `\nType *1* to book.`;
     return txt;
   },
 
@@ -349,7 +349,7 @@ const en = {
     txt += `${s.emoji ? '✅ ' : ''}Open: ${p.basSaat} - ${p.bitSaat}\n`;
     if (p.kapaliGunler) txt += `${s.emoji ? '❌ ' : ''}Closed: ${p.kapaliGunler}\n`;
     if (!s.kisa) txt += `\n${s.emoji ? '⏱ ' : ''}Session: ${p.sureDk} min\n`;
-    txt += `\nType *1* to book.`;
+    if (!p.menusuz) txt += `\nType *1* to book.`;
     return txt;
   },
 
@@ -507,7 +507,7 @@ const ar = {
     txt += '\n';
     if (p.telefon) txt += `${s.emoji ? '📞 ' : ''}${p.telefon}\n`;
     if (p.mapsLink) txt += `\n${s.emoji ? '🗺 ' : ''}Google Maps: ${p.mapsLink}\n`;
-    txt += `\nاكتب *1* للحجز.`;
+    if (!p.menusuz) txt += `\nاكتب *1* للحجز.`;
     return txt;
   },
 
@@ -515,7 +515,7 @@ const ar = {
     let txt = `${s.emoji ? '🕐 ' : ''}*ساعات العمل*\n\n`;
     txt += `${s.emoji ? '✅ ' : ''}مفتوح: ${p.basSaat} - ${p.bitSaat}\n`;
     if (p.kapaliGunler) txt += `${s.emoji ? '❌ ' : ''}مغلق: ${p.kapaliGunler}\n`;
-    txt += `\nاكتب *1* للحجز.`;
+    if (!p.menusuz) txt += `\nاكتب *1* للحجز.`;
     return txt;
   },
 

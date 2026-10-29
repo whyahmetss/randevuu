@@ -1264,12 +1264,8 @@ class WhatsAppWebService extends EventEmitter {
 
         // Konum bilgisi
         if (metinKucuk === 'konum' || metinKucuk.includes('adres') || metin === '4') {
-          const adres = isletme.adres || 'Adres bilgisi bulunamadı';
-          const sehir = isletme.sehir || '';
-          const ilce = isletme.ilce || '';
-          const tel = isletme.telefon || '';
-          const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adres + ' ' + ilce + ' ' + sehir)}`;
-          return { metin: botMesajlar.get(isletme, 'konum', { isletmeAd: isletme.isim, adres, sehir, ilce, telefon: tel, mapsLink }), butonlar: null };
+          const konum = require('./sohbetAsistani').konumMesaji(isletme, { menusuz: false });
+          return { metin: konum || botMesajlar.get(isletme, 'konum', { isletmeAd: isletme.isim, adres: 'Adres bilgisi bulunamadı' }), butonlar: null };
         }
         // Çalışma saatleri
         if (metinKucuk === 'saatler' || metinKucuk.includes('çalışma saat') || metin === '5') {
