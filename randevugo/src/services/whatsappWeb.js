@@ -1035,7 +1035,7 @@ class WhatsAppWebService extends EventEmitter {
         if (saat && saatler.includes(saat)) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: saat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
-          return botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: this.saatFormat(saat), fiyat: hz ? this.fiyatFormat(hz.fiyat) : null, kartFiyat: this.kartFormat(hz) });
+          return botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: this.saatFormat(saat), ...(await this._ozetFiyat(isletmeId, musteriTelefon, hz)) });
         }
         return cevap;
       }
@@ -1044,7 +1044,7 @@ class WhatsAppWebService extends EventEmitter {
         const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
         if (metin === '1' || metin.toLowerCase().includes('evet') || metin.toLowerCase().includes('onayla')) {
           try {
-            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot' });
+            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot', ilkIndirim: true });
             await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null });
             const mesaj1 = botMesajlar.get(isletme, 'randevuOnaylandi', { isletmeAd: isletme.isim, hizmetAd: sonuc.hizmet?.isim, _hizmetEN: sonuc.hizmet?.isim_en, _hizmetAR: sonuc.hizmet?.isim_ar, tarihStr: this.tarihFormat(sd.secilen_tarih), saatStr: this.saatFormat(sd.secilen_saat) });
             return await this._dogumTarihiHavucEkle(mesaj1, musteriTelefon, isletmeId, isletme);
@@ -1549,7 +1549,7 @@ class WhatsAppWebService extends EventEmitter {
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           let sonuc;
           try {
-            sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot' });
+            sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot', ilkIndirim: true });
           } catch (limitErr) {
             if (limitErr.code === 'LIMIT_ASIMI') {
               await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
@@ -1613,7 +1613,7 @@ class WhatsAppWebService extends EventEmitter {
           // Musteri not yazdi - onaylayip notu kaydet
           const sd = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           try {
-            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot' });
+            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, kaynak: 'bot', ilkIndirim: true });
             if (sonuc && sonuc.randevu) {
               await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc.randevu.id]);
             }
@@ -1716,7 +1716,7 @@ class WhatsAppWebService extends EventEmitter {
             try {
               const sonuc = await randevuService.randevuOlustur({
                 isletmeId, musteriTelefon, musteriIsim: teklif?.musteri_isim || undefined,
-                hizmetIds, tarih: sd.secilen_tarih, saat: String(sd.secilen_saat).slice(0, 5), kaynak: 'bot'
+                hizmetIds, tarih: sd.secilen_tarih, saat: String(sd.secilen_saat).slice(0, 5), kaynak: 'bot', ilkIndirim: true
               });
               await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', temizle);
               await bekleme.dolduruldu(isletmeId, musteriTelefon, sonuc.randevu);
@@ -1764,6 +1764,12 @@ class WhatsAppWebService extends EventEmitter {
       try { link = await require('../utils/randevuLinki').randevuLinki(isletme); } catch (e) { /* linksiz menü */ }
     }
     const msg = botMesajlar.get(isletme, 'anaMenu', { musteriAd, isletmeAd: isletme.isim, link });
+    // İlk randevu indirimi: bu dükkâna hiç gelmemiş numaraya karşılamada kampanya satırı
+    const ilk = await require('./randevu').ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null);
+    if (ilk) {
+      const ii = require('../utils/ilkIndirim');
+      return { metin: ii.satirEkle(msg, ii.botSatiri(ilk, isletme._musteriDil || botMesajlar.varsayilanDil(isletme))), butonlar: null };
+    }
     return { metin: msg, butonlar: null };
   }
 
@@ -1901,9 +1907,17 @@ class WhatsAppWebService extends EventEmitter {
     const ozet = botMesajlar.get(isletme, 'randevuOzet', {
       isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, calisanAd: cl?.isim,
       tarihStr: this.tarihFormat(guncelDurum.secilen_tarih), saatStr: secilenSaat,
-      fiyat: hz ? this.fiyatFormat(hz.fiyat) : null, kartFiyat: this.kartFormat(hz)
+      ...(await this._ozetFiyat(isletme.id, guncelDurum.musteri_telefon, hz))
     });
     return { metin: ozet, butonlar: null };
+  }
+
+  // Özetteki fiyat: müşteri ilk kez geliyorsa ilk randevu indirimiyle (üstü çizili eski fiyat), değilse liste fiyatı
+  async _ozetFiyat(isletmeId, musteriTelefon, hz) {
+    if (!hz) return { fiyat: null, kartFiyat: null };
+    const ilk = await require('./randevu').ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null);
+    return require('../utils/ilkIndirim').botFiyat(hz, ilk, (x) => this.fiyatFormat(x))
+      || { fiyat: this.fiyatFormat(hz.fiyat), kartFiyat: this.kartFormat(hz) };
   }
 
   _enYakinAlternatif(saatFmt, istenenSaat) {

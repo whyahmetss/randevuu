@@ -265,7 +265,8 @@ class RandevuService {
 
   // Kapora hesapla — işletme alt sınırı + oran kontrolü
   // İkinci parametre hizmetId (legacy) VEYA hizmetIds array olabilir
-  async kaporaHesapla(isletmeId, hizmetIdOrIds) {
+  // fiyatlar: Map(hizmetId → randevuya yazılacak fiyat), ilk randevu indirimi uygulanmışsa (yoksa liste fiyatı)
+  async kaporaHesapla(isletmeId, hizmetIdOrIds, fiyatlar = null) {
     const isletme = (await pool.query('SELECT kapora_aktif, kapora_alt_siniri, kapora_orani FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme || !isletme.kapora_aktif) return { gerekli: false, tutar: 0, yuzde: 0 };
     // Paket kuralı (2026-10-14): kapora Standart ve üstünde (Öncü Esnaf dahil); paket düşerse kapora istenmez
@@ -277,9 +278,9 @@ class RandevuService {
     if (hizmetIds.length === 0) return { gerekli: false, tutar: 0, yuzde: 0 };
 
     const hizmetler = (await pool.query(
-      'SELECT fiyat, kapora_yuzdesi FROM hizmetler WHERE id = ANY($1::int[])',
+      'SELECT id, fiyat, kapora_yuzdesi FROM hizmetler WHERE id = ANY($1::int[])',
       [hizmetIds]
-    )).rows;
+    )).rows.map(h => (fiyatlar?.has(h.id) ? { ...h, fiyat: fiyatlar.get(h.id) } : h));
     if (hizmetler.length === 0) return { gerekli: false, tutar: 0, yuzde: 0 };
 
     const toplamFiyat = hizmetler.reduce((t, h) => t + (parseFloat(h.fiyat) || 0), 0);
@@ -340,6 +341,19 @@ class RandevuService {
       if (saatler.includes(saat)) return u.id;
     }
     return null;
+  }
+
+  // İlk randevu indirimi: kampanya açıksa ve bu numaranın bu dükkânda iptal olmamış randevusu yoksa → { tur, deger, bitis }
+  async ilkIndirimBul(isletmeId, telefon) {
+    const i = (await pool.query(
+      `SELECT ilk_indirim_aktif, ilk_indirim_tur, ilk_indirim_deger, to_char(ilk_indirim_bitis, 'YYYY-MM-DD') AS ilk_indirim_bitis
+         FROM isletmeler WHERE id = $1`, [isletmeId])).rows[0];
+    const k = require('../utils/ilkIndirim').kampanya(i, bugunTarih());
+    if (!k || !telefon) return null;
+    const onceki = (await pool.query(
+      `SELECT 1 FROM randevular r JOIN musteriler m ON m.id = r.musteri_id
+        WHERE r.isletme_id = $1 AND m.telefon = $2 AND r.durum <> 'iptal' LIMIT 1`, [isletmeId, telefon])).rows[0];
+    return onceki ? null : k;
   }
 
   // Bölünmüş randevu (kullanıcı kararı 2026-10-29): seçilen hizmetlerin hepsini yapan tek usta yoksa (saçı erkek ustalar,
@@ -419,7 +433,7 @@ class RandevuService {
 
   // Bölünmüş randevuyu yaz: her grup kendi ustasıyla ayrı randevu, sonrakiler ilkine bağlı (bagli_randevu_id).
   // Bir parça yazılamazsa yazılanlar iptal edilir. Dönüş randevuOlustur gibi, ek olarak parcalar.
-  async _bolunmusOlustur({ isletmeId, musteriTelefon, musteriIsim, tarih, saat, kaynak }, gruplar) {
+  async _bolunmusOlustur({ isletmeId, musteriTelefon, musteriIsim, tarih, saat, kaynak, ilkIndirim }, gruplar) {
     const plan = (await this._bolunmusPlan(isletmeId, tarihFormatla(tarih), gruplar)).get(String(saat).slice(0, 5));
     if (!plan) {
       const err = new Error('Seçilen saat artık müsait değil');
@@ -427,9 +441,12 @@ class RandevuService {
       throw err;
     }
     const sonuclar = [];
+    let indirim = ilkIndirim;   // TL indirimi parçalara bir kez dağılır: kalan sonraki parçaya geçer
     try {
       for (const p of plan) {
-        sonuclar.push(await this.randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetIds: p.hizmetIds, calisanId: p.calisanId, tarih, saat: p.saat, kaynak }));
+        const s = await this.randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetIds: p.hizmetIds, calisanId: p.calisanId, tarih, saat: p.saat, kaynak, ilkIndirim: indirim });
+        sonuclar.push(s);
+        if (indirim?.tur === 'tl') indirim = indirim.deger - s.ilkIndirimTutari > 0 ? { ...indirim, deger: indirim.deger - s.ilkIndirimTutari } : null;
       }
     } catch (e) {
       for (const s of sonuclar) await this.randevuIptal(s.randevu.id).catch(() => {});
@@ -451,10 +468,11 @@ class RandevuService {
     return {
       randevu: ana.randevu,
       musteri: ana.musteri,
-      hizmet: { ...ana.hizmet, isim: `${hizmetler[0].isim} + ${hizmetler.length - 1} hizmet`, sure_dk: hizmetler.reduce((t, h) => t + (h.sure_dk || 0), 0), fiyat: toplamFiyat },
+      hizmet: { ...ana.hizmet, isim: `${hizmetler[0].isim} + ${hizmetler.length - 1} hizmet`, sure_dk: hizmetler.reduce((t, h) => t + (h.sure_dk || 0), 0), fiyat: sonuclar.reduce((t, s) => t + s.hizmet.fiyat, 0) },
       hizmetler,
       kapora: { gerekli: sonuclar.some(s => s.kapora?.gerekli), tutar: kaporaTutar, yuzde: toplamFiyat > 0 ? Math.round(kaporaTutar / toplamFiyat * 100) : 0 },
       manuelOnay: ana.manuelOnay,
+      ilkIndirimTutari: sonuclar.reduce((t, s) => t + s.ilkIndirimTutari, 0),
       parcalar: sonuclar.map(s => ({ randevu: s.randevu, hizmetler: s.hizmetler })),
     };
   }
@@ -498,7 +516,8 @@ class RandevuService {
 
   // Randevu oluştur — çoklu hizmet destekli (tek transaction, atomik)
   // hizmetId (legacy tek) VEYA hizmetIds (array) kabul edilir
-  async randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, hizmetIds, calisanId, tarih, saat, kaynak }) {
+  // ilkIndirim: true → müşteri bu dükkânda ilk kez geliyorsa kampanya uygulanır (randevu sayfası); { tur, deger } → çözülmüş indirim
+  async randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, hizmetIds, calisanId, tarih, saat, kaynak, ilkIndirim }) {
     // Hizmet ID listesini normalize et (legacy + multi)
     const hizmetIdListesi = Array.isArray(hizmetIds) && hizmetIds.length > 0
       ? hizmetIds.map(x => parseInt(x)).filter(Boolean)
@@ -533,9 +552,13 @@ class RandevuService {
       if (!c) { const err = new Error('Çalışan bulunamadı'); err.code = 'CALISAN_BULUNAMADI'; throw err; }
     }
 
+    // İlk randevu mu, burada bir kez bakılır (bölünmüş randevunun ikinci parçası yazılırken müşteri artık "ilk" değil).
+    // Kampanyaya bakılamazsa randevu yine yazılır, indirimsiz (müşteriye sunucunun uyguladığı tutar gösterilir).
+    const indirim = ilkIndirim === true ? await this.ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null) : (ilkIndirim || null);
+
     if (!calisanId && hizmetIdsUnique.length > 1) {
       const gruplar = await this.bolunmusGruplar(isletmeId, hizmetIdsUnique);
-      if (gruplar) return this._bolunmusOlustur({ isletmeId, musteriTelefon, musteriIsim, tarih, saat, kaynak }, gruplar);
+      if (gruplar) return this._bolunmusOlustur({ isletmeId, musteriTelefon, musteriIsim, tarih, saat, kaynak, ilkIndirim: indirim }, gruplar);
     }
 
     if (!calisanId) calisanId = await this._bosUstaBul(isletmeId, tarihStr, String(saat).slice(0, 5), hizmetIdsUnique).catch(() => null);
@@ -595,16 +618,17 @@ class RandevuService {
       throw err;
     }
 
-    // Toplam süre + toplam fiyat
+    // Toplam süre + toplam fiyat (ilk randevu indirimi uygulanmış; randevu_hizmetleri'ne indirimli fiyat yazılır)
     const toplamSureDk = hizmetler.reduce((t, h) => t + (h.sure_dk || 0), 0);
-    const toplamFiyat = hizmetler.reduce((t, h) => t + (parseFloat(h.fiyat) || 0), 0);
+    const { fiyatlar, tutar: ilkIndirimTutari } = require('../utils/ilkIndirim').uygula(hizmetler, indirim);
+    const toplamFiyat = fiyatlar.reduce((t, f) => t + f, 0);
 
     const [saatH, saatM] = saat.split(':').map(Number);
     const bitisDk = saatH * 60 + saatM + toplamSureDk;
     const bitisSaat = `${String(Math.floor(bitisDk / 60)).padStart(2, '0')}:${String(bitisDk % 60).padStart(2, '0')}`;
 
     // Kapora kontrolü (toplam)
-    const kapora = await this.kaporaHesapla(isletmeId, hizmetIdsUnique);
+    const kapora = await this.kaporaHesapla(isletmeId, hizmetIdsUnique, new Map(hizmetler.map((h, i) => [h.id, fiyatlar[i]])));
 
     // İşletme onay modunu al
     const isletme = (await pool.query('SELECT randevu_onay_modu FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
@@ -674,8 +698,11 @@ class RandevuService {
         await client.query(
           `INSERT INTO randevu_hizmetleri (randevu_id, hizmet_id, sira, fiyat, sure_dk)
            VALUES ($1, $2, $3, $4, $5)`,
-          [randevu.id, h.id, i, h.fiyat, h.sure_dk]
+          [randevu.id, h.id, i, fiyatlar[i], h.sure_dk]
         );
+      }
+      if (ilkIndirimTutari > 0) {
+        randevu = (await client.query('UPDATE randevular SET ilk_indirim_tutari = $1 WHERE id = $2 RETURNING *', [ilkIndirimTutari, randevu.id])).rows[0];
       }
 
       await client.query('COMMIT');
@@ -698,7 +725,7 @@ class RandevuService {
         randevu,
         musteri: { id: musteri.id, isim: musteri.isim, telefon: musteri.telefon },
         hizmet: anaHizmet ? { id: anaHizmet.id, isim: anaHizmet.isim, sure_dk: toplamSureDk, fiyat: toplamFiyat } : null,
-        hizmetler: hizmetler.map(h => ({ id: h.id, isim: h.isim, sure_dk: h.sure_dk, fiyat: h.fiyat })),
+        hizmetler: hizmetler.map((h, i) => ({ id: h.id, isim: h.isim, sure_dk: h.sure_dk, fiyat: fiyatlar[i] })),
         kaynak: kaynak || 'bot'
       });
     } catch (e) { /* socket hatası randevu oluşturmayı engellemesin */ }
@@ -712,7 +739,7 @@ class RandevuService {
         : `${hizmetler[0].isim} + ${hizmetler.length - 1} hizmet daha`;
       pushService.sendToIsletme(isletmeId, {
         title: '🎉 Yeni Randevu',
-        body: `${musteri.isim || 'Müşteri'} — ${hizmetBasligi} • ${tarihFmt} ${saatStr}`,
+        body: `${musteri.isim || 'Müşteri'} — ${hizmetBasligi} • ${tarihFmt} ${saatStr}${ilkIndirimTutari > 0 ? ' • 🎁 İlk randevu' : ''}`,
         url: '/',
         tag: `randevu-${randevu.id}`,
         requireInteraction: true,
@@ -748,7 +775,7 @@ class RandevuService {
       fiyat: toplamFiyat
     } : null;
 
-    return { randevu, musteri, hizmet: birlesikHizmet, hizmetler, kapora, manuelOnay };
+    return { randevu, musteri, hizmet: birlesikHizmet, hizmetler, kapora, manuelOnay, ilkIndirimTutari };
   }
 
   // Çok kişilik randevu (kullanıcı kararı 2026-10-22): ilk randevu yazıldıktan sonra aynı telefona ek kişiler.

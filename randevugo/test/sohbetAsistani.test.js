@@ -489,3 +489,33 @@ test('sohbet: yapay zekâ çökünce (kota/model kalktı) anlaşılmayan müşte
   const yaz2 = await konusma(db, '905551119999');
   assert.strictEqual(await yaz2('naber kanka akşam maç var mı'), undefined);
 });
+
+test('sohbet: ilk randevu indirimi — selamda kampanya, özette indirimli fiyat, randevuya indirimli yazılır; ikinci gelişte yok', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  await db.exec(fs.readFileSync(path.join(SRC, 'migrations', '080_ilk_randevu_indirimi.sql'), 'utf8')
+    + `UPDATE isletmeler SET ilk_indirim_aktif = true, ilk_indirim_tur = 'yuzde', ilk_indirim_deger = 20;`);
+  const yaz = await konusma(db);
+
+  assert.match(await yaz('Merhaba'), /🎁 \*İlk randevunuza %20 indirim!\*/);
+  await yaz('Randevu alacaktım');
+  await yaz('saç kesimi');
+  const ozet = await yaz('yarın 3 de');
+  assert.match(ozet, /🎁 ~300~ 240 TL/, ozet);
+  await yaz('evet');
+  const r = (await db.query(`SELECT r.ilk_indirim_tutari, rh.fiyat FROM randevular r JOIN randevu_hizmetleri rh ON rh.randevu_id = r.id`)).rows;
+  assert.deepEqual(r.map(x => [Number(x.ilk_indirim_tutari), Number(x.fiyat)]), [[60, 240]]);
+
+  await db.query(`UPDATE bot_durum SET asama = 'baslangic' WHERE musteri_telefon = '905551112233'`);
+  assert.doesNotMatch(await yaz('Merhaba'), /indirim/, 'randevusu olan müşteriye kampanya söylenmez');
+});
+
+test('menü tarzı bot: ilk kez yazana karşılamada kampanya satırı', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  await db.exec(fs.readFileSync(path.join(SRC, 'migrations', '080_ilk_randevu_indirimi.sql'), 'utf8')
+    + `UPDATE isletmeler SET bot_tarzi = 'menu', ilk_indirim_aktif = true, ilk_indirim_tur = 'tl', ilk_indirim_deger = 100;`);
+  const yaz = await konusma(db);
+  const menu = await yaz('Merhaba');
+  assert.match(menu, /\n\n🎁 \*İlk randevunuza 100 TL indirim!\*\n\n/, menu);
+});

@@ -595,7 +595,7 @@ class TelegramService {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: secilenSaat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
           const clOzet = gd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gd.secilen_calisan_id])).rows[0] : null;
-          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, calisanAd: clOzet?.isim, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: secilenSaat, fiyat: hz ? hz.fiyat : null, kartFiyat: require('../utils/kartFiyat').kartVar(hz) ? hz.kart_fiyat : null });
+          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, calisanAd: clOzet?.isim, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: secilenSaat, ...(await this._ozetFiyat(isletmeId, musteriTelefon, hz)) });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, ozet,
             [[{ text: '✅ Onayla', callback_data: 'evet' }],
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],
@@ -620,7 +620,7 @@ class TelegramService {
                  [{ text: '🏠 Ana Menü', callback_data: 'ana_menu' }]]);
               break;
             }
-            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat });
+            const sonuc = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd.secilen_hizmet_id, calisanId: sd.secilen_calisan_id, tarih: sd.secilen_tarih, saat: sd.secilen_saat, ilkIndirim: true });
             await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
             const clTg = sd.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [sd.secilen_calisan_id])).rows[0] : null;
 
@@ -710,7 +710,7 @@ class TelegramService {
           const gdn = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
           const hzn = gdn.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gdn.secilen_hizmet_id])).rows[0] : null;
           const clOzet2 = gdn.secilen_calisan_id ? (await pool.query('SELECT isim FROM calisanlar WHERE id=$1', [gdn.secilen_calisan_id])).rows[0] : null;
-          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hzn?.isim, calisanAd: clOzet2?.isim, tarihStr: this.tarihFormat(gdn.secilen_tarih), saatStr: gdn.secilen_saat, fiyat: hzn ? hzn.fiyat : null, kartFiyat: require('../utils/kartFiyat').kartVar(hzn) ? hzn.kart_fiyat : null });
+          const ozet = botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hzn?.isim, calisanAd: clOzet2?.isim, tarihStr: this.tarihFormat(gdn.secilen_tarih), saatStr: gdn.secilen_saat, ...(await this._ozetFiyat(isletmeId, musteriTelefon, hzn)) });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, ozet,
             [[{ text: '✅ Onayla', callback_data: 'evet' }],
              [{ text: '💬 Not Ekle', callback_data: 'not_ekle' }],
@@ -722,7 +722,7 @@ class TelegramService {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay');
           // Aşağıdaki onay akışını tetikle
           const sd2 = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const sonuc2 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd2.secilen_hizmet_id, calisanId: sd2.secilen_calisan_id, tarih: sd2.secilen_tarih, saat: sd2.secilen_saat });
+          const sonuc2 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd2.secilen_hizmet_id, calisanId: sd2.secilen_calisan_id, tarih: sd2.secilen_tarih, saat: sd2.secilen_saat, ilkIndirim: true });
           await this.durumGuncelle(musteriTelefon, isletmeId, 'ana_menu', { secilen_hizmet_id: null, secilen_tarih: null, secilen_saat: null, secilen_calisan_id: null });
           await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon,
             `✅ *Randevunuz oluşturuldu!*\n\nGörüşmek üzere! 😊`,
@@ -731,7 +731,7 @@ class TelegramService {
         } else {
           // Müşteri not yazdı
           const sd3 = (await pool.query('SELECT * FROM bot_durum WHERE musteri_telefon=$1 AND isletme_id=$2', [musteriTelefon, isletmeId])).rows[0];
-          const sonuc3 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd3.secilen_hizmet_id, calisanId: sd3.secilen_calisan_id, tarih: sd3.secilen_tarih, saat: sd3.secilen_saat });
+          const sonuc3 = await randevuService.randevuOlustur({ isletmeId, musteriTelefon, hizmetId: sd3.secilen_hizmet_id, calisanId: sd3.secilen_calisan_id, tarih: sd3.secilen_tarih, saat: sd3.secilen_saat, ilkIndirim: true });
           // Notu kaydet
           if (sonuc3 && sonuc3.randevu) {
             await pool.query('UPDATE randevular SET not_text=$1 WHERE id=$2', [metin, sonuc3.randevu.id]);
@@ -925,6 +925,9 @@ class TelegramService {
     } catch(e) {
       msg = botMesajlar.get(isletme, 'anaMenu', { musteriAd: '', isletmeAd: isletme.isim });
     }
+    // İlk randevu indirimi: bu dükkâna hiç gelmemiş kişiye karşılamada kampanya satırı
+    const ilk = await require('./randevu').ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null);
+    if (ilk) msg = require('../utils/ilkIndirim').satirEkle(msg, require('../utils/ilkIndirim').botSatiri(ilk, isletme._musteriDil || botMesajlar.varsayilanDil(isletme)));
 
     const butonlar = [
       [{ text: '📅 Randevu Al', callback_data: '1' }],
@@ -939,6 +942,14 @@ class TelegramService {
     }
 
     await this.cevapGonder(bot, chatId, isletmeId, musteriTelefon, msg, butonlar);
+  }
+
+  // Özetteki fiyat: ilk randevuysa indirimli ("300 → 240"; Telegram Markdown'ı üstü çizemez), değilse liste fiyatı
+  async _ozetFiyat(isletmeId, musteriTelefon, hz) {
+    if (!hz) return { fiyat: null, kartFiyat: null };
+    const ilk = await require('./randevu').ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null);
+    return require('../utils/ilkIndirim').botFiyat(hz, ilk, (x) => Number(x).toLocaleString('tr-TR'), (x) => `${x} →`)
+      || { fiyat: hz.fiyat, kartFiyat: require('../utils/kartFiyat').kartVar(hz) ? hz.kart_fiyat : null };
   }
 
   async hizmetListesiGonder(bot, chatId, isletmeId, musteriTelefon, isletme, hizmetler) {

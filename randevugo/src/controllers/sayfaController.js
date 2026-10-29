@@ -20,9 +20,11 @@ const disari = (i) => ({
   tema: i.sayfa_tema || 'sade', vurgu: i.sayfa_vurgu || null, tanitim: i.sayfa_tanitim || '',
   hakkimizda: i.sayfa_hakkimizda || '', instagram: i.sayfa_instagram || '',
   kapak: !!i.kapak_var, logo: !!i.logo_var, v: i.sayfa_guncelleme ? new Date(i.sayfa_guncelleme).getTime() : 0, slug: i.slug,
+  ilk_indirim: { aktif: !!i.ilk_indirim_aktif, tur: i.ilk_indirim_tur || 'yuzde', deger: i.ilk_indirim_deger != null ? Number(i.ilk_indirim_deger) : null, bitis: i.ilk_indirim_bitis || null },
 });
 
 const oku = async (id) => (await pool.query(`SELECT i.slug, i.sayfa_tema, i.sayfa_vurgu, i.sayfa_tanitim, i.sayfa_guncelleme, i.sayfa_hakkimizda, i.sayfa_instagram,
+        i.ilk_indirim_aktif, i.ilk_indirim_tur, i.ilk_indirim_deger, to_char(i.ilk_indirim_bitis, 'YYYY-MM-DD') AS ilk_indirim_bitis,
         (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = i.id AND g.tur = 'kapak')) AS kapak_var,
         (EXISTS (SELECT 1 FROM isletme_gorselleri g WHERE g.isletme_id = i.id AND g.tur = 'logo')) AS logo_var
       FROM isletmeler i WHERE i.id = $1`, [id])).rows[0];
@@ -67,6 +69,12 @@ class SayfaController {
         const ad = instagramAd(b.instagram);
         if (ad && !/^[A-Za-z0-9._]{1,30}$/.test(ad)) return hata(res, 'Instagram kullanıcı adı geçersiz');
         ekle('sayfa_instagram', ad || null);
+      }
+      // İlk randevu indirimi (2026-10-29): { aktif, tur: 'yuzde'|'tl', deger, bitis }
+      if (b.ilk_indirim !== undefined) {
+        const k = require('../utils/ilkIndirim').ayarTemiz(b.ilk_indirim || {});
+        if (k.hata) return hata(res, k.hata);
+        ekle('ilk_indirim_aktif', k.aktif); ekle('ilk_indirim_tur', k.tur); ekle('ilk_indirim_deger', k.deger); ekle('ilk_indirim_bitis', k.bitis);
       }
       const id = getIsletmeId(req);
       for (const alan of ['kapak', 'logo']) {

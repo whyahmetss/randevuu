@@ -46,11 +46,14 @@ export default function RandevuSayfam({ api }) {
   const [hakkimizda, setHakkimizda] = useState('');
   const [instagram, setInstagram] = useState('');
   const [uzmanlik, setUzmanlik] = useState({});   // çalışan id → yazılan uzmanlık
+  const [indirim, setIndirim] = useState({ aktif: false, tur: 'yuzde', deger: '', bitis: '' });   // ilk randevu indirimi
   const kapakRef = useRef(), logoRef = useRef(), galeriRef = useRef(), kisiRef = useRef();
   const kisiId = useRef(null);
 
   useEffect(() => { api.get('/randevu-sayfasi').then(x => { if (x && !x.hata) {
     setD(x); setTanitim(x.tanitim || ''); setHakkimizda(x.hakkimizda || ''); setInstagram(x.instagram || '');
+    const k = x.ilk_indirim || {};
+    setIndirim({ aktif: !!k.aktif, tur: k.tur || 'yuzde', deger: k.deger != null ? String(k.deger) : '', bitis: k.bitis || '' });
     setUzmanlik(Object.fromEntries((x.ekip || []).map(c => [c.id, c.uzmanlik || ''])));
   } }); }, []);
 
@@ -113,8 +116,43 @@ export default function RandevuSayfam({ api }) {
     </div>
   );
 
+  const kayitliIndirim = d.ilk_indirim || {};
+  const indirimDegisti = indirim.aktif !== !!kayitliIndirim.aktif || indirim.tur !== (kayitliIndirim.tur || 'yuzde')
+    || indirim.deger !== (kayitliIndirim.deger != null ? String(kayitliIndirim.deger) : '') || indirim.bitis !== (kayitliIndirim.bitis || '');
+  const indirimYazi = indirim.tur === 'tl' ? `${indirim.deger || '…'} ₺` : `%${indirim.deger || '…'}`;
+  const secenek = (secili) => ({ flex: 1, height: 40, borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+    border: `2px solid ${secili ? '#1f6f4a' : 'var(--border)'}`, background: secili ? 'rgba(31,111,74,.08)' : 'var(--surface)', color: 'var(--text)' });
+
   return (
     <div style={{ maxWidth: 760, margin: '0 auto' }}>
+      <div style={kart}>
+        {baslik('🎁 İlk randevuya indirim', 'Yeni müşteri çekmek için: sayfanın en üstünde kampanya şeridi çıkar, ilk kez gelen müşterinin randevusuna indirim kendiliğinden uygulanır. Hangi hizmetlerde geçerli olduğunu Hizmetler\'den seçersin.')}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15, fontWeight: 700, marginBottom: 12, cursor: 'pointer' }}>
+          <input type="checkbox" checked={indirim.aktif} onChange={e => setIndirim({ ...indirim, aktif: e.target.checked })} style={{ width: 20, height: 20 }} />
+          Kampanya açık
+        </label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <button type="button" onClick={() => setIndirim({ ...indirim, tur: 'yuzde' })} style={secenek(indirim.tur === 'yuzde')} aria-pressed={indirim.tur === 'yuzde'}>Yüzde (%)</button>
+          <button type="button" onClick={() => setIndirim({ ...indirim, tur: 'tl' })} style={secenek(indirim.tur === 'tl')} aria-pressed={indirim.tur === 'tl'}>Tutar (₺)</button>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <label style={{ flex: '1 1 140px', fontSize: 13, color: 'var(--dim)' }}>
+            {indirim.tur === 'tl' ? 'Kaç ₺ indirim' : 'Yüzde kaç'}
+            <input className="input" type="number" min="1" max={indirim.tur === 'tl' ? undefined : 90} inputMode="decimal" value={indirim.deger}
+              onChange={e => setIndirim({ ...indirim, deger: e.target.value })} placeholder={indirim.tur === 'tl' ? '100' : '20'} style={{ width: '100%', marginTop: 4, fontSize: 15 }} />
+          </label>
+          <label style={{ flex: '1 1 160px', fontSize: 13, color: 'var(--dim)' }}>
+            Bitiş tarihi (boş = süresiz)
+            <input className="input" type="date" value={indirim.bitis} onChange={e => setIndirim({ ...indirim, bitis: e.target.value })} style={{ width: '100%', marginTop: 4, fontSize: 15 }} />
+          </label>
+        </div>
+        {indirim.aktif && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--dim)' }}>Müşteri sayfada şunu görür: <b style={{ color: 'var(--text)' }}>🎁 İlk randevuna {indirimYazi} indirim</b></div>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+          <button className="btn btn-primary" disabled={bekle === 'indirim' || !indirimDegisti}
+            onClick={() => kaydet({ ilk_indirim: { ...indirim, bitis: indirim.bitis || null } }, 'indirim')}>{bekle === 'indirim' ? 'Kaydediliyor…' : 'Kaydet'}</button>
+        </div>
+      </div>
+
       <div style={kart}>
         {baslik('Fotoğraflar', 'Kapak fotoğrafı sayfanın en üstünde, Instagram profilindeki gibi görünür. Dükkânının içi ya da vitrini olabilir.')}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>

@@ -1,6 +1,7 @@
 const { telefonNormalize } = require('../utils/telefon');
 const cron = require('node-cron');
 const pool = require('../config/db');
+const { RANDEVU_FIYAT } = require('../utils/randevuFiyat');
 const siragoImza = require('../utils/siragoImza');
 
 class GeceRaporuService {
@@ -54,7 +55,7 @@ class GeceRaporuService {
 
     // Bugünkü ciro
     const ciro = (await pool.query(`
-      SELECT COALESCE(SUM(h.fiyat), 0) as toplam_ciro
+      SELECT COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam_ciro
       FROM randevular r
       LEFT JOIN hizmetler h ON r.hizmet_id = h.id
       WHERE r.isletme_id = $1 AND r.tarih = $2 AND r.durum = 'tamamlandi'
@@ -211,7 +212,7 @@ class GeceRaporuService {
 
     // Ciro
     const ciro = (await pool.query(`
-      SELECT COALESCE(SUM(h.fiyat), 0) as toplam
+      SELECT COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam
       FROM randevular r LEFT JOIN hizmetler h ON r.hizmet_id = h.id
       WHERE r.isletme_id = $1 AND r.tarih BETWEEN $2 AND $3 AND r.durum = 'tamamlandi'
     `, [isletmeId, basStr, sonStr])).rows[0];
@@ -223,7 +224,7 @@ class GeceRaporuService {
     `, [isletmeId, oncekiBasStr, oncekiSonStr])).rows[0];
 
     const oncekiCiro = (await pool.query(`
-      SELECT COALESCE(SUM(h.fiyat), 0) as toplam
+      SELECT COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam
       FROM randevular r LEFT JOIN hizmetler h ON r.hizmet_id = h.id
       WHERE r.isletme_id = $1 AND r.tarih BETWEEN $2 AND $3 AND r.durum = 'tamamlandi'
     `, [isletmeId, oncekiBasStr, oncekiSonStr])).rows[0];

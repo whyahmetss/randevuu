@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { RANDEVU_FIYAT } = require('../utils/randevuFiyat');
 const { denemeGun } = require('../config/deneme');
 const platformAyar = require('../utils/platformAyar');
 const { bugunTarih, gunSonraTarih, kapanisDk } = require('../utils/tarih');
@@ -304,6 +305,10 @@ class AdminController {
       if (result.rows[0] && kartTemiz(req.body.kart_fiyat)) {
         result.rows[0] = (await pool.query('UPDATE hizmetler SET kart_fiyat=$1 WHERE id=$2 RETURNING *', [kartTemiz(req.body.kart_fiyat), result.rows[0].id])).rows[0];
       }
+      // İlk randevu indiriminde geçerli mi (varsayılan evet)
+      if (result.rows[0] && req.body.ilk_indirim === false) {
+        result.rows[0] = (await pool.query('UPDATE hizmetler SET ilk_indirim=false WHERE id=$1 RETURNING *', [result.rows[0].id])).rows[0];
+      }
       res.json({ hizmet: result.rows[0] });
     } catch (error) {
       res.status(500).json({ hata: error.message });
@@ -367,6 +372,10 @@ class AdminController {
       if (result.rows[0] && req.body.kart_fiyat !== undefined) {
         result.rows[0] = (await pool.query('UPDATE hizmetler SET kart_fiyat=$1 WHERE id=$2 RETURNING *', [kartTemiz(req.body.kart_fiyat), result.rows[0].id])).rows[0];
       }
+      // İlk randevu indiriminde geçerli mi: yalnız formdan gönderildiyse değişir
+      if (result.rows[0] && req.body.ilk_indirim !== undefined) {
+        result.rows[0] = (await pool.query('UPDATE hizmetler SET ilk_indirim=$1 WHERE id=$2 RETURNING *', [req.body.ilk_indirim !== false, result.rows[0].id])).rows[0];
+      }
       // Seans alanları yalnız formdan gönderildiyse değişir (Bugün ekranındaki hızlı fiyat düzenlemesi bunları göndermez)
       if (result.rows[0] && seans_sayisi !== undefined) {
         const [ss, sa] = seansAlanlari(seans_sayisi, seans_aralik_gun);
@@ -410,7 +419,7 @@ class AdminController {
           COALESCE(p.ay_ciro, 0)::int as ay_ciro
         FROM calisanlar c
         LEFT JOIN LATERAL (
-          SELECT COUNT(r.id) as ay_randevu, COALESCE(SUM(h.fiyat),0) as ay_ciro
+          SELECT COUNT(r.id) as ay_randevu, COALESCE(SUM(${RANDEVU_FIYAT}),0) as ay_ciro
           FROM randevular r LEFT JOIN hizmetler h ON h.id = r.hizmet_id
           WHERE r.calisan_id = c.id AND r.isletme_id = $1 AND r.durum != 'iptal'
             AND to_char(r.tarih, 'YYYY-MM') = $2
@@ -599,7 +608,7 @@ class AdminController {
 
       // Gelir (bu ay onaylanan randevular)
       const gelir = (await pool.query(`
-        SELECT COALESCE(SUM(h.fiyat), 0) as toplam FROM randevular r
+        SELECT COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam FROM randevular r
         JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id=$1 AND r.tarih >= $2 AND r.durum IN ('onaylandi','tamamlandi')
       `, [isletmeId, ayBasiStr])).rows[0];
@@ -1945,8 +1954,8 @@ class AdminController {
 
       // Günün en çok kazandıran hizmeti
       const topHizmet = (await pool.query(`
-        SELECT h.isim, COUNT(r.id)::int as adet, COALESCE(SUM(h.fiyat),0)::int as toplam_ciro
-        FROM randevular r JOIN hizmetler h ON h.id = r.hizmet_id
+        SELECT h.isim, COUNT(r.id)::int as adet, COALESCE(SUM(rh.fiyat),0)::int as toplam_ciro
+        FROM randevular r JOIN randevu_hizmetleri rh ON rh.randevu_id = r.id JOIN hizmetler h ON h.id = rh.hizmet_id
         WHERE r.isletme_id=$1 AND r.tarih=$2 AND r.durum != 'iptal'
         GROUP BY h.isim ORDER BY toplam_ciro DESC LIMIT 1
       `, [isletmeId, bugun])).rows[0] || null;
@@ -2035,7 +2044,7 @@ class AdminController {
 
       // Son 30 günlük gelir (günlük)
       const aylikGelir = (await pool.query(`
-        SELECT r.tarih, COALESCE(SUM(h.fiyat),0) as gelir
+        SELECT r.tarih, COALESCE(SUM(${RANDEVU_FIYAT}),0) as gelir
         FROM randevular r
         JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id=$1 AND r.tarih >= CURRENT_DATE - INTERVAL '29 days' AND r.tarih <= CURRENT_DATE
@@ -2079,7 +2088,7 @@ class AdminController {
       // Önümüzdeki 7 günlük onaylı randevulardan tahmini gelir
       const gunluk = (await pool.query(`
         SELECT r.tarih, COUNT(*) as randevu_sayi,
-          COALESCE(SUM(h.fiyat), 0) as tahmini_gelir
+          COALESCE(SUM(${RANDEVU_FIYAT}), 0) as tahmini_gelir
         FROM randevular r
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id = $1 AND r.tarih BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
@@ -2101,7 +2110,7 @@ class AdminController {
 
       // Geçen haftanın gerçekleşen geliri (karşılaştırma)
       const gecenHafta = (await pool.query(`
-        SELECT COALESCE(SUM(h.fiyat), 0) as toplam
+        SELECT COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam
         FROM randevular r LEFT JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id = $1 AND r.tarih BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE - INTERVAL '1 day'
           AND r.durum = 'tamamlandi'
@@ -2188,7 +2197,7 @@ class AdminController {
 
       // Kaybedilen gelir (no-show'ların hizmet fiyatı toplamı)
       const kaybedilen = (await pool.query(`
-        SELECT COALESCE(SUM(h.fiyat), 0) as toplam
+        SELECT COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam
         FROM randevular r
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id
         WHERE r.isletme_id = $1 AND r.durum = 'gelmedi' AND r.tarih >= CURRENT_DATE - INTERVAL '30 days'
@@ -3697,7 +3706,7 @@ class AdminController {
       }
       const musteriler = (await pool.query(`
         SELECT m.isim, m.telefon, COUNT(r.id) as randevu_sayisi, MAX(r.tarih) FILTER (WHERE r.tarih <= CURRENT_DATE) as son_randevu,
-               COALESCE(SUM(h.fiyat), 0) as toplam_harcama
+               COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam_harcama
         FROM musteriler m
         JOIN randevular r ON r.musteri_id = m.id
         LEFT JOIN hizmetler h ON r.hizmet_id = h.id
@@ -4940,7 +4949,7 @@ class AdminController {
       const result = await pool.query(`
         SELECT c.id, c.isim, c.prim_yuzdesi,
           COUNT(r.id) as toplam_randevu,
-          COALESCE(SUM(h.fiyat), 0) as toplam_ciro
+          COALESCE(SUM(${RANDEVU_FIYAT}), 0) as toplam_ciro
         FROM calisanlar c
         LEFT JOIN randevular r ON r.calisan_id = c.id AND r.isletme_id = $1 
           AND r.durum = 'tamamlandi' AND r.tarih BETWEEN $2 AND $3

@@ -286,7 +286,10 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
     await kaydet(wa, musteriTelefon, isletmeId, 'ana_menu', {});
     // Randevu linki WhatsApp'ta önizleme kartıyla açılır (düğme yerine)
     let link = null; try { link = await require('../utils/randevuLinki').randevuLinki(isletme); } catch (e) { /* link olmadan */ }
-    return T.selam(isletme.isim, link, ornekHizmet(isletme, hizmetler, dil));
+    const selam = T.selam(isletme.isim, link, ornekHizmet(isletme, hizmetler, dil));
+    // İlk randevu indirimi: bu dükkâna hiç gelmemiş numaraya selamda kampanya
+    const ilk = await randevuService.ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null);
+    return ilk ? require('../utils/ilkIndirim').satirEkle(selam, require('../utils/ilkIndirim').botSatiri(ilk, dil)) : selam;
   }
   if (a.niyet === 'iptal') return null;
   if (a.niyet === 'bilgi' || ((!a.niyet || a.niyet === 'diger') && !surecte)) {
@@ -458,7 +461,10 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
   const usta = alan.secilen_calisan_id ? (uygun.find(c => c.id === alan.secilen_calisan_id) || calisanlar.find(c => c.id === alan.secilen_calisan_id)) : null;
   const ozet = `🗓️ ${gunY} · 🕐 ${saat}\n${require('../utils/hizmetEmoji').hizmetEmoji(isletme.kategori)} ${hizmet?.isim || ''}${usta && uygun.length > 1 ? ` · 👤 ${usta.isim}` : ''}`
     + (alan.kisi_sayisi ? `\n👥 ${T.kisi(alan.kisi_sayisi, unvan(isletme, dil))}` : '');
-  return T.onay(ozet);
+  // İlk kez gelen müşteriye indirimli fiyat ("🎁 ~700~ 560 TL")
+  const ilk = await randevuService.ilkIndirimBul(isletmeId, musteriTelefon).catch(() => null);
+  const indirimli = require('../utils/ilkIndirim').botFiyat(hizmet, ilk, (x) => Number(x).toLocaleString('tr-TR'));
+  return T.onay(indirimli ? `${ozet}\n🎁 ${indirimli.fiyat} TL` : ozet);
 }
 
 // Mesajdaki kelimelerle en çok örtüşen hizmet(ler). Kelime eşleşmesi ortak ön ek ile: "kesimi"~"kesim", "boyatmak"~"boyama"

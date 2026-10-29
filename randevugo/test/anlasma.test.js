@@ -13,6 +13,7 @@ test('anlaşmalı hesap: 1 yıl ücretsiz, ödeme kaydı yok, ödeme kapısı ge
     CREATE TABLE odemeler (id SERIAL PRIMARY KEY, isletme_id INT, donem TEXT, durum TEXT, tutar NUMERIC, olusturma_tarihi TIMESTAMP DEFAULT NOW());
     CREATE TABLE randevular (id SERIAL PRIMARY KEY, isletme_id INT, hizmet_id INT, calisan_id INT, tarih DATE, durum TEXT);
     CREATE TABLE hizmetler (id SERIAL PRIMARY KEY, isim TEXT, fiyat NUMERIC); CREATE TABLE calisanlar (id SERIAL PRIMARY KEY, isim TEXT);
+    CREATE TABLE randevu_hizmetleri (randevu_id INT, hizmet_id INT, fiyat NUMERIC);
     INSERT INTO isletmeler (isim, deneme_bitis_tarihi) VALUES ('Elit Barber', NOW() - INTERVAL '1 day');
     ${fs.readFileSync(path.join(SRC, 'migrations', '067_anlasma.sql'), 'utf8')}`);
   const admin = require(path.join(SRC, 'controllers', 'adminController'));

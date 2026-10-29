@@ -546,3 +546,11 @@
 .tsr-buton-yirtik .bk-btn { padding-top: 4px; padding-bottom: 4px; }
 
 @media (prefers-reduced-motion: reduce) { .tsr-arka video { display: none; } }
+
+/* ═══ İlk randevu indirimi (2026-10-29): kampanya şeridi ve özetteki indirim satırı ═══ */
+.bk-kampanya { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 11px 14px; border-radius: 14px;
+  background: var(--bk-accent-soft); color: var(--bk-accent); border: 1px dashed var(--bk-accent); font-size: 14.5px; line-height: 1.4; }
+.bk-kampanya-ikon { font-size: 22px; flex: none; }
+.bk-kampanya-bitis { font-weight: 400; opacity: .85; }
+.bk-summary-indirim .bk-summary-val { color: var(--bk-accent); font-weight: 700; }
+.bk-eski-fiyat { opacity: .55; font-weight: 400; margin-right: 2px; }

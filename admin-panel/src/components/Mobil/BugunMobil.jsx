@@ -83,7 +83,7 @@ export default function BugunMobil({ api, setSayfa }) {
               <div style={{ fontSize: 22, fontWeight: 800, width: 62 }}>{saat5(r.saat)}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 17, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.musteri_isim || 'Müşteri'}</div>
-                <div style={{ fontSize: 14, color: 'var(--dim)' }}>{hizmet}{r.calisan_isim ? ` · ${r.calisan_isim}` : ''}{kanal[r.kaynak] ? ` · ${kanal[r.kaynak]}` : ''}</div>
+                <div style={{ fontSize: 14, color: 'var(--dim)' }}>{hizmet}{r.calisan_isim ? ` · ${r.calisan_isim}` : ''}{kanal[r.kaynak] ? ` · ${kanal[r.kaynak]}` : ''}{Number(r.ilk_indirim_tutari) > 0 ? ` · 🎁 İlk randevu −${Number(r.ilk_indirim_tutari).toLocaleString('tr-TR')}₺` : ''}</div>
               </div>
               {et && <div style={{ fontSize: 12, fontWeight: 800, color: renk, textAlign: 'right' }}>{et}</div>}
             </button>

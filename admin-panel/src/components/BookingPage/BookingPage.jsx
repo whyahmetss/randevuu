@@ -106,6 +106,7 @@ export default function BookingPage({ slug }) {
   const [saatler, setSaatler] = useState([]);
   const [otomatikCalisan, setOtomatikCalisan] = useState(false);
   const [bolunmus, setBolunmus] = useState(false); // seçilenleri tek personel yapmıyor: arka arkaya farklı personel
+  const [ilkMusteri, setIlkMusteri] = useState(false); // telefon doğrulanınca: bu dükkâna ilk kez geliyor (ilk randevu indirimi)
   const [hata, setHata] = useState('');
   const [yukleniyor, setYukleniyor] = useState(false);
 
@@ -245,6 +246,26 @@ export default function BookingPage({ slug }) {
     ? secilenHizmetler.reduce((s, h) => s + Number(kartVar(h) ? h.kart_fiyat : h.fiyat || 0), 0) : null;
   const tlYaz = (x) => `${Number(x).toLocaleString(locale)} ₺`;
   const toplamYazi = toplamKart ? `${tlYaz(toplamFiyat)} ${t('cash')} · ${tlYaz(toplamKart)} ${t('card')}` : tlYaz(toplamFiyat);
+  // İlk randevu indirimi (2026-10-29): kampanya açıksa sayfanın üstünde şerit; telefon doğrulanınca ilk kez geldiği anlaşılırsa
+  // özette indirimli toplam. Sunucu aynı hesabı yapar (randevugo/src/utils/ilkIndirim.js uygula), kesin tutar randevu yazılınca gelir.
+  const kampanya = isletme?.ilk_indirim || null;
+  const kampanyaYazi = kampanya ? (kampanya.tur === 'tl' ? tlYaz(kampanya.deger) : (dil === 'tr' ? `%${kampanya.deger}` : `${kampanya.deger}%`)) : '';
+  const ilkIndirimTutar = (hizmetler, alan) => {
+    let kalan = kampanya.tur === 'tl' ? Number(kampanya.deger) : 0;
+    return hizmetler.reduce((t, h) => {
+      const f = Number(h[alan] || 0);
+      if (h.ilk_indirim === false || !(f > 0)) return t;
+      if (kampanya.tur === 'tl') { const dus = Math.min(kalan, f); kalan -= dus; return t + f - Math.round(f - dus); }
+      return t + f - Math.round(f * (100 - Number(kampanya.deger)) / 100);
+    }, 0);
+  };
+  const indirimNakit = kampanya && ilkMusteri ? ilkIndirimTutar(secilenHizmetler, 'fiyat') : 0;
+  // indirimli toplam (nakit indirimi sunucudan gelebilir); kart fiyatı da aynı kurala göre düşer
+  const indirimliYazi = (nakit) => {
+    if (!toplamKart) return tlYaz(toplamFiyat - nakit);
+    const kart = nakit > 0 ? ilkIndirimTutar(secilenHizmetler.map(h => ({ ...h, kartli: kartVar(h) ? h.kart_fiyat : h.fiyat })), 'kartli') : 0;
+    return `${tlYaz(toplamFiyat - nakit)} ${t('cash')} · ${tlYaz(toplamKart - kart)} ${t('card')}`;
+  };
   // Esnaf panelde İngilizce/Arapça ad girdiyse yabancı müşteriye o gösterilir (Türkçe dışı dillerde İngilizce ad)
   const hizmetAd = (h) => (dil === 'ar' && h.isim_ar) || (dil !== 'tr' && h.isim_en) || h.isim;
   const hizmetAdiOzet = secilenHizmetler.map(hizmetAd).join(' + ');
@@ -543,6 +564,7 @@ export default function BookingPage({ slug }) {
       const d = await res.json();
       if (d.basarili && d.dogrulandi) {
         setOtpToken(d.otpToken || '');
+        setIlkMusteri(!!d.ilkIndirim);
         setOtpStage('dogrulandi');
         setAdim(6);
       } else {
@@ -557,6 +579,7 @@ export default function BookingPage({ slug }) {
   const telefonuDegistir = () => {
     setOtpStage('giris');
     setOtpToken('');
+    setIlkMusteri(false);
     setOtpKod('');
     setOtpCooldown(0);
     setHata('');
@@ -737,6 +760,15 @@ export default function BookingPage({ slug }) {
             </div>
           </div>
           {isletme?.sayfa_tanitim && <p className="bk-tanitim">{isletme.sayfa_tanitim}</p>}
+          {kampanya && (
+            <div className="bk-kampanya">
+              <span className="bk-kampanya-ikon" aria-hidden="true">🎁</span>
+              <span>
+                <b>{t('firstVisitBanner').replace('{x}', kampanyaYazi)}</b>
+                {kampanya.bitis && <span className="bk-kampanya-bitis"> · {t('campaignUntil').replace('{d}', new Date(kampanya.bitis + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long' }))}</span>}
+              </span>
+            </div>
+          )}
         </div>
 
 
@@ -1336,9 +1368,17 @@ export default function BookingPage({ slug }) {
                 <span className="bk-summary-key">{t('phoneLabel')}</span>
                 <span className="bk-summary-val">{musteriTelefon}</span>
               </div>
+              {indirimNakit > 0 && (
+                <div className="bk-summary-row bk-summary-indirim">
+                  <span className="bk-summary-key">🎁 {t('firstVisitDiscount')}</span>
+                  <span className="bk-summary-val">−{tlYaz(indirimNakit)}</span>
+                </div>
+              )}
               <div className="bk-summary-row total">
                 <span className="bk-summary-key">{t('total')}</span>
-                <span className="bk-summary-val">{toplamSure}{t('minutes')} • {toplamYazi}</span>
+                <span className="bk-summary-val">
+                  {toplamSure}{t('minutes')} • {indirimNakit > 0 && <s className="bk-eski-fiyat">{tlYaz(toplamFiyat)}</s>} {indirimliYazi(indirimNakit)}
+                </span>
               </div>
             </div>
             <button onClick={randevuOlustur} disabled={yukleniyor} className="bk-btn">
@@ -1386,9 +1426,15 @@ export default function BookingPage({ slug }) {
                 <span className="bk-summary-key">{t('time')}</span>
                 <span className="bk-summary-val">{secilenSaat}</span>
               </div>
+              {sonuc?.ilkIndirim > 0 && (
+                <div className="bk-summary-row bk-summary-indirim">
+                  <span className="bk-summary-key">🎁 {t('firstVisitDiscount')}</span>
+                  <span className="bk-summary-val">−{tlYaz(sonuc.ilkIndirim)}</span>
+                </div>
+              )}
               <div className="bk-summary-row total">
                 <span className="bk-summary-key">{t('total')}</span>
-                <span className="bk-summary-val">{toplamYazi}</span>
+                <span className="bk-summary-val">{indirimliYazi(sonuc?.ilkIndirim || 0)}</span>
               </div>
             </div>
             <button onClick={() => window.location.reload()} className="bk-btn">

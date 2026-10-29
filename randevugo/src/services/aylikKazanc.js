@@ -4,6 +4,7 @@
 // Mesaj esnafın KENDİ bağlı WhatsApp'ından kendi telefonuna gider; SıraGO numarası kullanılmaz (ban riski).
 const cron = require('node-cron');
 const pool = require('../config/db');
+const { RANDEVU_FIYAT } = require('../utils/randevuFiyat');
 const { telefonNormalize } = require('../utils/telefon');
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -20,7 +21,7 @@ async function hesapla(isletmeId, ay = buAy()) {
     ay AS (
       -- olusturma_tarihi zaten İstanbul saati (TIMESTAMP DEFAULT NOW(), oturum saat dilimi Europe/Istanbul — config/db).
       -- Eskiden UTC sanılıp +3 saat ekleniyordu: 18:00'de alınan randevu "dükkân kapalıyken" sayılıyordu (2026-10-17).
-      SELECT r.*, COALESCE(h.fiyat, 0)::numeric AS fiyat, r.olusturma_tarihi AS olusma
+      SELECT r.*, ${RANDEVU_FIYAT}::numeric AS fiyat, r.olusturma_tarihi AS olusma
       FROM randevular r LEFT JOIN hizmetler h ON h.id = r.hizmet_id
       WHERE r.isletme_id = $1 AND r.tarih >= $2::date AND r.tarih < ($2::date + INTERVAL '1 month')
     )

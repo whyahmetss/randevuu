@@ -14,6 +14,7 @@ async function ortam(paket) {
       aciklama TEXT, emoji TEXT, kapora_yuzdesi INT DEFAULT 0, tampon_dk INT DEFAULT 0, seans_sayisi INT, seans_aralik_gun INT, aktif BOOLEAN DEFAULT true);
     INSERT INTO isletmeler (isim, slug, paket) VALUES ('Villa', 'villa', '${paket}');`);
   await db.exec(fs.readFileSync(path.join(SRC, 'migrations', '070_hizmet_kategori.sql'), 'utf8'));
+  await db.exec('CREATE TABLE randevular (id SERIAL PRIMARY KEY);' + fs.readFileSync(path.join(SRC, 'migrations', '080_ilk_randevu_indirimi.sql'), 'utf8'));
   await db.exec(fs.readFileSync(path.join(SRC, 'migrations', '078_hizmet_kart_fiyat.sql'), 'utf8'));
   const admin = require(path.join(SRC, 'controllers', 'adminController'));
   const booking = require(path.join(SRC, 'controllers', 'bookingController'));
