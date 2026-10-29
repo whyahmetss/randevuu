@@ -265,7 +265,8 @@ class RandevuService {
 
   // Kapora hesapla — işletme alt sınırı + oran kontrolü
   // İkinci parametre hizmetId (legacy) VEYA hizmetIds array olabilir
-  async kaporaHesapla(isletmeId, hizmetIdOrIds) {
+  // fiyatlar: Map(hizmetId → randevuya yazılacak fiyat), ilk randevu indirimi uygulanmışsa (yoksa liste fiyatı)
+  async kaporaHesapla(isletmeId, hizmetIdOrIds, fiyatlar = null) {
     const isletme = (await pool.query('SELECT kapora_aktif, kapora_alt_siniri, kapora_orani FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];
     if (!isletme || !isletme.kapora_aktif) return { gerekli: false, tutar: 0, yuzde: 0 };
     // Paket kuralı (2026-10-14): kapora Standart ve üstünde (Öncü Esnaf dahil); paket düşerse kapora istenmez
@@ -277,9 +278,9 @@ class RandevuService {
     if (hizmetIds.length === 0) return { gerekli: false, tutar: 0, yuzde: 0 };
 
     const hizmetler = (await pool.query(
-      'SELECT fiyat, kapora_yuzdesi FROM hizmetler WHERE id = ANY($1::int[])',
+      'SELECT id, fiyat, kapora_yuzdesi FROM hizmetler WHERE id = ANY($1::int[])',
       [hizmetIds]
-    )).rows;
+    )).rows.map(h => (fiyatlar?.has(h.id) ? { ...h, fiyat: fiyatlar.get(h.id) } : h));
     if (hizmetler.length === 0) return { gerekli: false, tutar: 0, yuzde: 0 };
 
     const toplamFiyat = hizmetler.reduce((t, h) => t + (parseFloat(h.fiyat) || 0), 0);
@@ -627,7 +628,7 @@ class RandevuService {
     const bitisSaat = `${String(Math.floor(bitisDk / 60)).padStart(2, '0')}:${String(bitisDk % 60).padStart(2, '0')}`;
 
     // Kapora kontrolü (toplam)
-    const kapora = await this.kaporaHesapla(isletmeId, hizmetIdsUnique);
+    const kapora = await this.kaporaHesapla(isletmeId, hizmetIdsUnique, new Map(hizmetler.map((h, i) => [h.id, fiyatlar[i]])));
 
     // İşletme onay modunu al
     const isletme = (await pool.query('SELECT randevu_onay_modu FROM isletmeler WHERE id=$1', [isletmeId])).rows[0];

@@ -43,13 +43,14 @@ function satirEkle(metin, satir) {
   const i = metin.indexOf('\n\n');
   return i < 0 ? `${metin}\n\n${satir}` : `${metin.slice(0, i)}\n\n${satir}${metin.slice(i)}`;
 }
-// Bot özetinde tek hizmetin fiyatı: indirim uygulanıyorsa WhatsApp üstü çizili eski fiyat ("~700~ 560"), değilse null
-function botFiyat(h, k, fmt) {
+// Bot özetinde tek hizmetin fiyatı: indirim uygulanıyorsa eski fiyatla ("~700~ 560"), değilse null.
+// WhatsApp üstü çizer; Telegram'ın Markdown'ı çizemez, orada "700 → 560" (eskiYaz ile)
+function botFiyat(h, k, fmt, eskiYaz = (x) => `~${x}~`) {
   if (!h || !k) return null;
   const { fiyatlar, tutar } = uygula([h], k);
   if (!(tutar > 0)) return null;
   const kart = require('./kartFiyat').kartVar(h) ? uygula([{ ...h, fiyat: h.kart_fiyat }], k).fiyatlar[0] : null;
-  return { fiyat: `~${fmt(h.fiyat)}~ ${fmt(fiyatlar[0])}`, kartFiyat: kart != null ? `~${fmt(h.kart_fiyat)}~ ${fmt(kart)}` : null };
+  return { fiyat: `${eskiYaz(fmt(h.fiyat))} ${fmt(fiyatlar[0])}`, kartFiyat: kart != null ? `${eskiYaz(fmt(h.kart_fiyat))} ${fmt(kart)}` : null };
 }
 
 // Panelden gelen ayar → temiz değerler ya da kullanıcıya gösterilecek hata

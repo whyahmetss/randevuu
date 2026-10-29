@@ -114,3 +114,16 @@ test('bot: kampanya satırı selamdan sonra, özette üstü çizili fiyat; SELEC
   assert.equal(botFiyat({ fiyat: 700, ilk_indirim: false }, { tur: 'yuzde', deger: 10 }, fmt), null, 'kampanya dışı hizmet');
   assert.equal(kampanya({ ilk_indirim_aktif: true, ilk_indirim_deger: 20, ilk_indirim_bitis: new Date('2030-02-01T00:00:00+03:00') }, '2030-02-01').bitis, '2030-02-01');
 });
+
+test('kapora indirimli fiyattan; Telegram özeti "700 → 560" (Markdown üstü çizemez)', async () => {
+  const { db, r } = await servis();
+  await db.exec(`UPDATE isletmeler SET kapora_aktif = true, kapora_orani = 20, kapora_alt_siniri = 0`);
+  assert.equal((await r.kaporaHesapla(1, [1])).tutar, 140, 'liste fiyatı 700');
+  const s = await r.randevuOlustur({ isletmeId: 1, musteriTelefon: TEL, hizmetIds: [1], tarih: GUN, saat: '09:00', kaynak: 'online', ilkIndirim: true });
+  assert.equal(s.kapora.tutar, 112, '560 üzerinden %20');
+
+  const tg = require(path.join(SRC, 'services', 'telegram'));
+  const hz = (await db.query('SELECT * FROM hizmetler WHERE id = 1')).rows[0];
+  assert.deepEqual(await tg._ozetFiyat(1, 'tg:42', hz), { fiyat: '700 → 560', kartFiyat: null }, 'ilk kez yazan Telegram kullanıcısı');
+  assert.equal((await tg._ozetFiyat(1, TEL, hz)).fiyat, hz.fiyat, 'randevusu olan: liste fiyatı');
+});
