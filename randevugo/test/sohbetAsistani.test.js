@@ -431,3 +431,46 @@ test('çalışan unvanı: panel → kategori → usta; bot mesajlarında kullan�
   const metin = bm.get({ kategori: 'Masaj Salonu', bot_diller: 'tr' }, 'calisanSec', { hizmetAd: 'Taş Masajı', sureDk: 40, fiyat: 3000, calisanlar: [{ isim: 'Azra' }] });
   assert.match(metin, /Terapist seçiniz/);
 });
+
+test('sohbet: hizmet sorulmuşken "Yeriniz nerde" → adres + harita, sonra hizmet sorusu (anlayamadım yok)', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  await db.query(`UPDATE isletmeler SET adres = 'Göktürk Merkez Mah. İstanbul Cad. No:5, 34077 Eyüpsultan/İstanbul', ilce = 'Eyüpsultan', sehir = 'İstanbul' WHERE id = 1`);
+  const yaz = await konusma(db);
+
+  assert.match(await yaz('Yarın saat 3 randevu alacağım'), /Hangi hizmet/);
+  const c = await yaz('Yeriniz nerde');
+  assert.match(c, /Göktürk Merkez Mah/, c);
+  assert.match(c, /google\.com\/maps/, c);
+  assert.doesNotMatch(c, /Eyüpsultan\/İstanbul, Eyüpsultan/, 'ilçe adreste varken tekrar eklenmez');
+  assert.doesNotMatch(c, /anlayamadım/, c);
+  assert.doesNotMatch(c, /\*1\* yaz/, 'sohbette menü satırı yok');
+  assert.match(c, /Hangi hizmet[\s\S]*Saç Kesimi/, c);
+  // Kaldığı yerden devam: tarih ve saat korunur
+  assert.match(await yaz('1'), /onaylıyor musunuz|oluşturayım mı|uygun mu|dolu|boş saatler/i);
+});
+
+test('sohbet: adres kayıtlı değilse konum uydurulmaz, yapay zekâya düşer', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  const sohbet = require(path.join(SRC, 'services', 'sohbetAsistani'));
+  assert.strictEqual(sohbet.konumMesaji({ isim: 'X', adres: null }), null);
+  const k = sohbet.konumMesaji({ isim: 'X', adres: '', google_maps_url: 'https://maps.app.goo.gl/abc' });
+  assert.match(k, /maps\.app\.goo\.gl\/abc/);
+  // Yorum linki konum diye gönderilmez: adres varsa adres araması, yoksa hiç
+  assert.strictEqual(sohbet.konumMesaji({ isim: 'X', adres: '', google_maps_url: 'https://g.page/r/CXyz/review' }), null);
+  const y = sohbet.konumMesaji({ isim: 'X', adres: 'Göktürk', google_maps_url: 'https://search.google.com/local/writereview?placeid=abc' });
+  assert.match(y, /google\.com\/maps\/search/);
+  assert.doesNotMatch(y, /writereview/);
+});
+
+test('sohbet: kart fiyatı farklı hizmet listede "nakit · kart" diye, fiyat sorusunda da iki fiyatla', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  await db.exec(`ALTER TABLE hizmetler ADD COLUMN kart_fiyat NUMERIC; UPDATE hizmetler SET kart_fiyat = 350 WHERE isim = 'Saç Kesimi';`);
+  const yaz = await konusma(db);
+  const liste = await yaz('Randevu alacaktım');
+  assert.match(liste, /1\. Saç Kesimi · 300₺ nakit · 350₺ kart/, liste);
+  assert.match(liste, /2\. Sakal Tıraşı · 150₺\n?/, liste);
+  assert.doesNotMatch(liste, /150₺ nakit/, 'kart farkı olmayana ek yok');
+});

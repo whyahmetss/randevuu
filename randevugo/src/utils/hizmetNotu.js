@@ -4,6 +4,6 @@ const hizmetNotu = (h) => String(h?.aciklama || '').replace(/\s+/g, ' ').trim().
 // WhatsApp/Telegram listesi: hizmet satırının altına italik not
 const notSatiri = (h) => { const n = hizmetNotu(h).replace(/[_*]/g, ''); return n ? `\n   _${n}_` : ''; };
 // Yapay zekâ istemi: "Saç Kesimi (30 dk, 500 TL; not: ...)"
-const yzHizmet = (h) => `${h.isim} (${h.sure_dk} dk, ${h.fiyat} TL${hizmetNotu(h) ? `; not: ${hizmetNotu(h)}` : ''})`;
+const yzHizmet = (h) => `${h.isim} (${h.sure_dk} dk, ${require('./kartFiyat').kartVar(h) ? `nakit ${h.fiyat} TL, kartla ${h.kart_fiyat} TL` : `${h.fiyat} TL`}${hizmetNotu(h) ? `; not: ${hizmetNotu(h)}` : ''})`;
 
 module.exports = { hizmetNotu, notSatiri, yzHizmet };

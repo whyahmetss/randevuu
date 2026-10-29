@@ -671,9 +671,9 @@ function Login({ onLogin }) {
 }
 
 // ==================== HİZMETLER SAYFASI ====================
-const BOS_HIZMET = { isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30", kategori: "", one_cikan: false };
+const BOS_HIZMET = { isim: "", isim_en: "", isim_ar: "", sure_dk: "30", fiyat: "", kart_fiyat: "", aciklama: "", emoji: "", kapora_yuzdesi: "0", tampon_dk: "0", seans_sayisi: "", seans_aralik_gun: "30", kategori: "", one_cikan: false };
 
-// Toplu ekleme metni (2026-10-26): "Saç:" satırı kategori başlatır; diğer satırlar "ad, süre, fiyat" (süre ve fiyat isteğe bağlı)
+// Toplu ekleme metni (2026-10-26): "Saç:" satırı kategori başlatır; diğer satırlar "ad, süre, fiyat, kart fiyatı" (süre, fiyat ve kart fiyatı isteğe bağlı)
 function topluMetinCoz(metin) {
   const sonuc = []; let kategori = "";
   const sayi = (x) => { const n = parseFloat(String(x || "").replace(/[^\d.,]/g, "").replace(/\.(?=\d{3}\b)/g, "").replace(",", ".")); return isNaN(n) ? null : n; };
@@ -682,7 +682,7 @@ function topluMetinCoz(metin) {
     if (!satir) continue;
     if (/:$/.test(satir)) { kategori = satir.slice(0, -1).trim(); continue; }
     const p = satir.split(/\t|;|,(?=\s*\d)|\s+-\s+/).map(x => x.trim());
-    sonuc.push({ isim: p[0], sure_dk: sayi(p[1]) || 30, fiyat: sayi(p[2]) || 0, kategori });
+    sonuc.push({ isim: p[0], sure_dk: sayi(p[1]) || 30, fiyat: sayi(p[2]) || 0, kart_fiyat: sayi(p[3]) || null, kategori });
   }
   return sonuc.filter(h => h.isim);
 }
@@ -708,14 +708,14 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
   };
 
   const duzenleAc = (h) => {
-    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false, kategori: h.kategori || "", one_cikan: h.one_cikan === true });
+    setForm({ isim: h.isim || "", isim_en: h.isim_en || "", isim_ar: h.isim_ar || "", sure_dk: String(h.sure_dk ?? 30), fiyat: String(parseFloat(h.fiyat) || ""), kart_fiyat: String(parseFloat(h.kart_fiyat) || ""), aciklama: h.aciklama || "", emoji: h.emoji || "", kapora_yuzdesi: String(h.kapora_yuzdesi || 0), tampon_dk: String(h.tampon_dk || 0), seans_sayisi: h.seans_sayisi ? String(h.seans_sayisi) : "", seans_aralik_gun: String(h.seans_aralik_gun || 30), aktif: h.aktif !== false, kategori: h.kategori || "", one_cikan: h.one_cikan === true });
     setDuzenleId(h.id); setHata(""); setFormAcik(true);
   };
 
   const ekle = async (e) => {
     e.preventDefault();
     setHata("");
-    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0, seans_sayisi: parseInt(form.seans_sayisi) || 0, seans_aralik_gun: parseInt(form.seans_aralik_gun) || 30, kategori: form.kategori, one_cikan: !!form.one_cikan });
+    const res = await api[duzenleId ? "put" : "post"](duzenleId ? `/hizmetler/${duzenleId}` : "/hizmetler", { aktif: form.aktif !== false, isim: form.isim, isim_en: form.isim_en || null, isim_ar: form.isim_ar || null, sure_dk: parseInt(form.sure_dk), fiyat: parseFloat(form.fiyat), kart_fiyat: parseFloat(form.kart_fiyat) || null, aciklama: form.aciklama, emoji: form.emoji, kapora_yuzdesi: parseInt(form.kapora_yuzdesi) || 0, tampon_dk: parseInt(form.tampon_dk) || 0, seans_sayisi: parseInt(form.seans_sayisi) || 0, seans_aralik_gun: parseInt(form.seans_aralik_gun) || 30, kategori: form.kategori, one_cikan: !!form.one_cikan });
     if (res.hata) { setHata(res.hata); return; }
     setForm(BOS_HIZMET);
     setFormAcik(false); setDuzenleId(null);
@@ -753,7 +753,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
       {topluAcik && (
         <div className="form-card">
           <h3>Toplu hizmet ekle</h3>
-          <p style={{ color: "var(--dim)", fontSize: 13, margin: "4px 0 10px" }}>Her satıra bir hizmet: <b>ad, süre (dk), fiyat</b>. Süre ve fiyat boş kalabilir (30 dk, "fiyat dükkânda"). Sonu iki nokta ile biten satır kategori başlatır. Aynı adlı hizmet varsa atlanır.</p>
+          <p style={{ color: "var(--dim)", fontSize: 13, margin: "4px 0 10px" }}>Her satıra bir hizmet: <b>ad, süre (dk), fiyat</b>. Süre ve fiyat boş kalabilir (30 dk, "fiyat dükkânda"). Kartla fiyat farklıysa 4. sıraya yaz: <b>Saç, 45, 1800, 2100</b>. Sonu iki nokta ile biten satır kategori başlatır. Aynı adlı hizmet varsa atlanır.</p>
           <textarea className="input" rows={10} value={topluMetin} onChange={e => setTopluMetin(e.target.value)} style={{ fontFamily: "ui-monospace, monospace", fontSize: 13 }}
             placeholder={"Saç:\nSaç kesim, 45, 300\nFön, 30, 200\nRenk:\nOmbre, 180, 2500\nRöfle, 120"} />
           {topluOnizleme.length > 0 && (
@@ -814,6 +814,12 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
               <label className="form-label">Fiyat (₺) *</label>
               <input type="number" placeholder="150" required value={form.fiyat} onChange={e => setForm({...form, fiyat: e.target.value})} className="input" />
             </div>
+            {/* Kart fiyatı (2026-10-29): nakit ve kartla fiyatı farklı dükkânlar; Fiyat = nakit */}
+            <div>
+              <label className="form-label">Kartla fiyat (₺)</label>
+              <input type="number" min="0" placeholder="Aynıysa boş bırak" value={form.kart_fiyat} onChange={e => setForm({...form, kart_fiyat: e.target.value})} className="input" />
+              <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>Kredi kartıyla fiyat farklıysa yaz. Müşteri "1.800₺ nakit · 2.100₺ kart" diye görür; yukarıdaki fiyat nakit sayılır.</div>
+            </div>
             {/* Müşteriye görünen not (2026-10-29): kampanya/hediye bilgisi randevu sayfasında ve botta hizmetin altında çıkar */}
             <div className="full">
               <label className="form-label">Müşteriye görünen not</label>
@@ -862,7 +868,7 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
             {h.kategori && <span className="tag-sm" style={{ background: "var(--surface3)", color: "var(--muted)", fontWeight: 600 }}>{h.kategori}</span>}
             {h.one_cikan && zengin && <span className="tag-sm" style={{ background: "var(--amber-s)", color: "var(--amber)", fontWeight: 600 }}>Öne çıkan</span>}
             <span className="tag-sm" style={{ background: "var(--bg)", color: "var(--muted)" }}>⏱ {h.sure_dk} dk</span>
-            <span className="tag-sm" style={{ background: "rgba(31,111,74,.12)", color: "var(--green)", fontWeight: 600 }}>{h.fiyat} ₺</span>
+            <span className="tag-sm" style={{ background: "rgba(31,111,74,.12)", color: "var(--green)", fontWeight: 600 }}>{h.fiyat} ₺{Number(h.kart_fiyat) > 0 && Number(h.kart_fiyat) !== Number(h.fiyat) ? ` · kart ${h.kart_fiyat} ₺` : ""}</span>
             {h.kapora_yuzdesi > 0 && <span className="tag-sm" style={{ background: "rgba(168,89,12,.12)", color: "var(--amber)", fontWeight: 600 }}>💳 %{h.kapora_yuzdesi} kapora</span>}
             {h.tampon_dk > 0 && <span className="tag-sm" style={{ background: "rgba(93,75,181,.1)", color: "#5d4bb5", fontWeight: 600 }}>⏳ {h.tampon_dk}dk tampon</span>}
             {h.seans_sayisi > 1 && <span className="tag-sm" style={{ background: "rgba(47,86,198,.08)", color: "#2f56c6", fontWeight: 600 }}>🔁 {h.seans_sayisi} seans · {h.seans_aralik_gun || 30} günde bir</span>}

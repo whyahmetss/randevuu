@@ -149,7 +149,7 @@ class BookingController {
       // (paket düşünce eski işaretler sayfada kalmasın).
       const zengin = !!(await require('../config/paketler').paketGetir(isletme.paket)).zengin_sayfa;
       const hizmetler = (await pool.query(
-        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat, kategori, one_cikan, aciklama FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
+        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat, kart_fiyat, kategori, one_cikan, aciklama FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
         [isletme.id]
       )).rows.map(h => ({ ...h, one_cikan: zengin && h.one_cikan === true }));
 

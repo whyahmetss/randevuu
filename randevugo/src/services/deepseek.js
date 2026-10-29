@@ -190,6 +190,7 @@ KRİTİK KURALLAR:
 - Sıcak ve kısa cevap ver (2-3 cümle max)
 - Hizmetler: ${hizmetListesi}
 - Çalışma saatleri: ${require('../utils/gunSaatleri').haftaOzeti(isletmeBilgi)} (bunun dışında saat uydurma)
+- Adres: ${[isletmeBilgi.adres, isletmeBilgi.ilce, isletmeBilgi.sehir].filter(Boolean).join(', ') || 'kayıtlı değil (adres uydurma, işletmeyi aramasını söyle)'}
 - Müşteriyi nazikçe randevu almaya yönlendir ama zorlamadan`;
   }
 }

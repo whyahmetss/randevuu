@@ -1003,7 +1003,7 @@ class WhatsAppWebService extends EventEmitter {
         if (idx >= 0 && idx < hizmetler.length) {
           const h = hizmetler[idx];
           await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: h.id });
-          return botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: h.isim, _hizmetEN: h.isim_en, _hizmetAR: h.isim_ar, sureDk: h.sure_dk, fiyat: this.fiyatFormat(h.fiyat) });
+          return botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: h.isim, _hizmetEN: h.isim_en, _hizmetAR: h.isim_ar, sureDk: h.sure_dk, fiyat: this.fiyatFormat(h.fiyat), kartFiyat: this.kartFormat(h) });
         }
         return cevap;
       }
@@ -1035,7 +1035,7 @@ class WhatsAppWebService extends EventEmitter {
         if (saat && saatler.includes(saat)) {
           await this.durumGuncelle(musteriTelefon, isletmeId, 'onay', { secilen_saat: saat });
           const hz = gd.secilen_hizmet_id ? (await pool.query('SELECT * FROM hizmetler WHERE id=$1', [gd.secilen_hizmet_id])).rows[0] : null;
-          return botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: this.saatFormat(saat), fiyat: hz ? this.fiyatFormat(hz.fiyat) : null });
+          return botMesajlar.get(isletme, 'randevuOzet', { isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, tarihStr: this.tarihFormat(gd.secilen_tarih), saatStr: this.saatFormat(saat), fiyat: hz ? this.fiyatFormat(hz.fiyat) : null, kartFiyat: this.kartFormat(hz) });
         }
         return cevap;
       }
@@ -1264,12 +1264,8 @@ class WhatsAppWebService extends EventEmitter {
 
         // Konum bilgisi
         if (metinKucuk === 'konum' || metinKucuk.includes('adres') || metin === '4') {
-          const adres = isletme.adres || 'Adres bilgisi bulunamadı';
-          const sehir = isletme.sehir || '';
-          const ilce = isletme.ilce || '';
-          const tel = isletme.telefon || '';
-          const mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adres + ' ' + ilce + ' ' + sehir)}`;
-          return { metin: botMesajlar.get(isletme, 'konum', { isletmeAd: isletme.isim, adres, sehir, ilce, telefon: tel, mapsLink }), butonlar: null };
+          const konum = require('./sohbetAsistani').konumMesaji(isletme, { menusuz: false });
+          return { metin: konum || botMesajlar.get(isletme, 'konum', { isletmeAd: isletme.isim, adres: 'Adres bilgisi bulunamadı' }), butonlar: null };
         }
         // Çalışma saatleri
         if (metinKucuk === 'saatler' || metinKucuk.includes('çalışma saat') || metin === '5') {
@@ -1332,20 +1328,20 @@ class WhatsAppWebService extends EventEmitter {
           if (calisanlar.length > 1 && secimModu === 'musteri') {
             // Müşteri seçer modu → listeyi göster
             await this.durumGuncelle(musteriTelefon, isletmeId, 'calisan_secimi', { secilen_hizmet_id: secilenHizmet.id });
-            return { metin: botMesajlar.get(isletme, 'calisanSec', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), calisanlar }), butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'calisanSec', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), kartFiyat: this.kartFormat(secilenHizmet), calisanlar }), butonlar: null };
           } else if (calisanlar.length > 1 && secimModu === 'otomatik') {
             // Otomatik dağıtım → ardışık blok bazında en boş çalışanı seç
             const bugun = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Istanbul" });
             const enBos = await randevuService.enBosCalisan(isletmeId, bugun, secilenHizmet.id);
             const secilenCalisan = enBos || calisanlar[0];
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: secilenCalisan.id });
-            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), calisanAd: secilenCalisan.isim }), butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), kartFiyat: this.kartFormat(secilenHizmet), calisanAd: secilenCalisan.isim }), butonlar: null };
           } else if (calisanlar.length >= 1 && (secimModu === 'tek' || calisanlar.length === 1)) {
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id, secilen_calisan_id: calisanlar[0].id });
-            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), calisanAd: calisanlar[0].isim }), butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), kartFiyat: this.kartFormat(secilenHizmet), calisanAd: calisanlar[0].isim }), butonlar: null };
           } else {
             await this.durumGuncelle(musteriTelefon, isletmeId, 'tarih_secimi', { secilen_hizmet_id: secilenHizmet.id });
-            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat) }), butonlar: null };
+            return { metin: botMesajlar.get(isletme, 'hizmetSecildi', { hizmetAd: secilenHizmet.isim, sureDk: secilenHizmet.sure_dk, fiyat: this.fiyatFormat(secilenHizmet.fiyat), kartFiyat: this.kartFormat(secilenHizmet) }), butonlar: null };
           }
         }
         // Hizmet bulunamadı — direkt listeyi tekrar göster
@@ -1905,7 +1901,7 @@ class WhatsAppWebService extends EventEmitter {
     const ozet = botMesajlar.get(isletme, 'randevuOzet', {
       isletmeAd: isletme.isim, hizmetAd: hz?.isim, _hizmetEN: hz?.isim_en, _hizmetAR: hz?.isim_ar, calisanAd: cl?.isim,
       tarihStr: this.tarihFormat(guncelDurum.secilen_tarih), saatStr: secilenSaat,
-      fiyat: hz ? this.fiyatFormat(hz.fiyat) : null
+      fiyat: hz ? this.fiyatFormat(hz.fiyat) : null, kartFiyat: this.kartFormat(hz)
     });
     return { metin: ozet, butonlar: null };
   }
@@ -2071,6 +2067,11 @@ class WhatsAppWebService extends EventEmitter {
     const gunler = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
     const aylar = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
     return `${d.getDate()} ${aylar[d.getMonth()]} ${gunler[d.getDay()]}`;
+  }
+
+  // Hizmetin kart fiyatı nakitten farklıysa biçimlenmiş hali (şablon " nakit · X TL kart" yazar), yoksa null
+  kartFormat(h) {
+    return require('../utils/kartFiyat').kartVar(h) ? this.fiyatFormat(h.kart_fiyat) : null;
   }
 
   fiyatFormat(fiyat) {
