@@ -33,11 +33,15 @@ export default function GoogleCalendar({ api }) {
 
   const bagla = async () => {
     setYukleniyor(true);
+    // Popup tıklama anında açılır (Safari, beklemeden sonra açılanı engelliyor), adres gelince yönlenir
+    const popup = window.open("", "gcal-oauth", "width=600,height=720,left=200,top=100");
     try {
       const d = await api.get("/admin/google-calendar/auth-url");
-      if (d?.url) {
-        // Popup aç
-        const popup = window.open(d.url, "gcal-oauth", "width=600,height=720,left=200,top=100");
+      if (d?.url && !popup) {
+        setYukleniyor(false);
+        alert("Pencere açılamadı. Tarayıcıda açılır pencerelere izin verip tekrar dene.");
+      } else if (d?.url) {
+        popup.location.href = d.url;
         // Popup kapatılırsa durumu kontrol et
         const timer = setInterval(() => {
           if (popup?.closed) {
@@ -47,10 +51,12 @@ export default function GoogleCalendar({ api }) {
           }
         }, 800);
       } else {
+        popup?.close();
         setYukleniyor(false);
         alert("Yetkilendirme URL alınamadı: " + (d?.hata || "bilinmeyen hata"));
       }
     } catch (e) {
+      popup?.close();
       setYukleniyor(false);
       alert("Hata: " + e.message);
     }
