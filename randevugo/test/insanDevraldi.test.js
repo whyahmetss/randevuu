@@ -88,7 +88,7 @@ test('otomatik karşılamaya cevap yok; ardından gelen "Merhabalar"a tek tanıt
   assert.match((await db.query('SELECT otomatik_yanit FROM satis_konusmalar WHERE telefon = $1', [tel])).rows[0].otomatik_yanit, /Çalışma saatlerimiz/);
   await bot.gelenMesajIsle({ key: { remoteJid: `${tel}@s.whatsapp.net` }, message: { conversation: 'Merhabalar' } });
   assert.strictEqual(giden.length, 1, 'ilk gerçek cevaba tek tanıtım');
-  assert.match(giden[0], /adı SıraGO/);
+  assert.match(giden[0], /^SıraGO randevu yönetimi hizmetimiz için rahatsız etmiştim/);
   await bot.gelenMesajIsle({ key: { remoteJid: `${tel}@s.whatsapp.net` }, message: { conversation: 'Merhaba' } });
   assert.strictEqual(giden.length, 1, 'çapraz düşen ikinci selama cevap yok');
 });

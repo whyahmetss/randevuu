@@ -69,8 +69,14 @@ test('açılış yalnız "Merhaba, kolay gelsin"; "sağolun, size de" ilk cevab�
 
   const bot = require(SRC + '/services/satisBot');
   const ilk = await bot.fallbackCevapUret('Sağolun, size de', { gelen_mesajlar: null, isletme_adi: 'Makas' });
-  assert.match(ilk.mesaj, /^Size de kolay gelsin\. İşletmelere WhatsApp'tan gelen randevu mesajlarını/);
+  // Ekibin elle yazınca cevap alan tanıtımı (2026-10-29): soru sormaz, izin ister, kart/para lafı yok
+  assert.match(ilk.mesaj, /^SıraGO randevu yönetimi hizmetimiz için rahatsız etmiştim\. WhatsApp, Telegram ve web siteniz/);
   assert.doesNotMatch(ilk.mesaj, /https?:|sırago\.com/, 'tanıtımda link yok');
-  assert.match(ilk.mesaj, /nasıl alıyorsunuz\?$/);
-  assert.match((await bot.fallbackCevapUret('buyrun', { gelen_mesajlar: '[10:00] Müşteri: x' })).mesaj, /adı SıraGO/);
+  assert.doesNotMatch(ilk.mesaj, /kart|para/, 'sorulmadan kart/para lafı yok');
+  assert.match(ilk.mesaj, /Müsait olduğunuzda kısaca bilgi vermek isterim\.$/);
+  assert.match((await bot.fallbackCevapUret('buyrun', { gelen_mesajlar: '[10:00] Müşteri: x' })).mesaj, /^SıraGO /);
+  // Fiyat: önce ücretsiz deneme + memnuniyet + kart istemiyoruz, sonra paket
+  const fiyat = (await bot.fallbackCevapUret('Ne kadar fiyatı', { gelen_mesajlar: '[10:00] Müşteri: x' })).mesaj;
+  assert.match(fiyat, /^İlk \d+ gün ücretsiz, bizim için kıymetli olan memnun kalmanız; hiçbir şekilde kart bilgisi istemiyoruz\. Memnun kalırsanız paketlerimiz var/);
+  assert.doesNotMatch(fiyat, /, için|undefined/);
 });
