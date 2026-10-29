@@ -474,3 +474,18 @@ test('sohbet: kart fiyatı farklı hizmet listede "nakit · kart" diye, fiyat so
   assert.match(liste, /2\. Sakal Tıraşı · 150₺\n?/, liste);
   assert.doesNotMatch(liste, /150₺ nakit/, 'kart farkı olmayana ek yok');
 });
+
+test('sohbet: yapay zekâ çökünce (kota/model kalktı) anlaşılmayan müşteri mesajı cevapsız kalmaz, tanıdığa bot girmez', async () => {
+  const { db } = await hazirla(SEMA(1));
+  ortam();
+  taklit('utils/gemini', { anahtarlar: () => ['x'], geminiIstek: async () => null, metniAl: () => '' });
+  const yaz = await konusma(db);
+  const c = await yaz('Abi bi şey soracaktım');
+  assert.ok(c && typeof c === 'string', 'müşteri cevap alır (eski akış menüsü)');
+  assert.match(c, /Kemal Berber/);
+
+  // Yapay zekâ çalışırken "diger" dediyse (gerçek sohbet) bot yine susar
+  ortam({ niyet: 'diger' });
+  const yaz2 = await konusma(db, '905551119999');
+  assert.strictEqual(await yaz2('naber kanka akşam maç var mı'), undefined);
+});

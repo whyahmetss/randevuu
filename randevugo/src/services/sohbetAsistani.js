@@ -235,6 +235,8 @@ async function anla({ metin, isletme, hizmetler, calisanlar, durum }) {
   const kisaNet = sonuc.niyet && trimli.split(' ').length <= 3;
   if (!kisaNet) {
     const yz = await yapayZekaAnla({ metin, isletme, hizmetler, calisanlar, durum, bugun });
+    // Anahtar var ama cevap gelmedi (kota, model kalktı, zaman aşımı): mesajın sohbet mi müşteri mi olduğu bilinmiyor
+    if (!yz && require('../utils/gemini').anahtarlar().length) sonuc.yzHata = true;
     if (yz) {
       if (!sonuc.niyet || (sonuc.niyet === 'randevu' && ['bilgi', 'iptal'].includes(yz.niyet))) sonuc.niyet = yz.niyet;
       // Sohbet ("ne yapıyorsun", "akşam gel") yapay zekâya göre "bilgi" olsa bile dükkân sorusu değilse cevaplanmaz
@@ -272,7 +274,12 @@ async function isle({ wa, metin, botDurum, isletme, hizmetler, musteriTelefon, i
   const a = await anla({ metin, isletme, hizmetler, calisanlar, durum: d });
 
   // Randevu/dükkân dışı konuşma (kullanıcı kararı 2026-10-17): bot karışmaz, esnaf kendisi bakar
-  if (!surecte && (!a.niyet || a.niyet === 'diger')) return { sus: 'randevu/dükkân dışı sohbet' };
+  if (!surecte && (!a.niyet || a.niyet === 'diger')) {
+    // Canlı hata (2026-10-29): yapay zekâ çökünce müşteri mesajları "sohbet" sayılıp cevapsız kaldı. Anlaşılamadıysa ve
+    // yazan esnafın elle konuştuğu biri değilse eski akış (menü) cevap verir; tanıdığa bot yine girmez.
+    if (a.yzHata && !a.niyet && await selamaCevapVer(isletmeId, musteriTelefon)) return null;
+    return { sus: 'randevu/dükkân dışı sohbet' };
+  }
   if (a.niyet === 'selam' && !surecte) {
     // Yalnız selam: müşteriyse ya da esnafın elle konuştuğu biri değilse karşılanır; esnafın tanıdığına bot girmez
     if (!(await selamaCevapVer(isletmeId, musteriTelefon))) return { sus: 'selam — esnafın elle konuştuğu kişi' };
