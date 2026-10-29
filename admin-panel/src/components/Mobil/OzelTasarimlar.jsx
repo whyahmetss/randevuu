@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { API_URL } from '../../lib/config';
+import { useCanliYenile } from '../../lib/socket';
 
 // Özel tasarımlar (2026-10-29): süper adminin eklediği video/görsel arka planlı sayfa tasarımları.
-// Sahip olunan ve ücretsiz tasarım seçilir; ücretli olana şimdilik destek hattından ulaşılır (satın alma sonraki adım).
+// Sahip olunan ve ücretsiz tasarım seçilir; ücretli olan Shopier'den tek seferlik alınır, ödeme gelince sayfada açılır.
 export const tasarimMedyaUrl = (t, tur) => (t?.medya?.[tur] ? `${API_URL}/tasarim-medya/${t.id}/${tur}?v=${t.medya[tur].v}` : null);
 
 export function TasarimOnizleme({ t, yukseklik = 120 }) {
@@ -28,10 +29,11 @@ export function TasarimOnizleme({ t, yukseklik = 120 }) {
 
 export default function OzelTasarimlar({ api, kart, baslik, degisti }) {
   const [d, setD] = useState(null);
-  const [wp, setWp] = useState(null);
   const [bekle, setBekle] = useState(null);
   const yukle = () => api.get('/randevu-sayfasi/tasarimlar').then(x => { if (x && !x.hata) setD(x); }).catch(() => {});
-  useEffect(() => { yukle(); api.get('/iletisim').then(x => setWp(x?.whatsapp || null)).catch(() => {}); }, []);
+  useEffect(() => { yukle(); }, []);
+  // Shopier ödemesi gelince tasarım işletmenin olur ve sayfada açılır: liste kendiliğinden tazelenir
+  useCanliYenile(() => { yukle(); degisti?.(); }, ['veri:degisti', 'bildirim:yeni']);
   if (!d || !d.tasarimlar?.length) return null;   // henüz tasarım eklenmediyse kart görünmez
 
   const sec = async (id) => {
@@ -42,9 +44,15 @@ export default function OzelTasarimlar({ api, kart, baslik, degisti }) {
     setD(o => ({ ...o, secili: id }));
     degisti?.();
   };
-  const satinAl = (t) => {
-    const metin = encodeURIComponent(`Merhaba, randevu sayfam için "${t.isim}" tasarımını (${t.fiyat}₺) almak istiyorum.`);
-    window.open(wp ? `https://wa.me/${String(wp).replace(/\D/g, '')}?text=${metin}` : `mailto:siragobusiness@gmail.com?body=${metin}`, '_blank');
+  // Açılır pencere engeline takılmasın: sekme tıklama anında açılır, Shopier adresi gelince yönlenir
+  const satinAl = async (t) => {
+    if (!window.confirm(`"${t.isim}" tasarımı: ${Number(t.fiyat).toLocaleString('tr-TR')}₺, tek seferlik.\n\nShopier ödeme sayfası açılacak. Ödeme gelince tasarım sayfanda kendiliğinden açılır.`)) return;
+    const w = window.open('', '_blank');
+    setBekle('al' + t.id);
+    const x = await api.post(`/randevu-sayfasi/tasarim/${t.id}/satin-al`, {});
+    setBekle(null);
+    if (!x?.url) { w?.close(); return alert(x?.hata || 'Ödeme sayfası açılamadı, lütfen tekrar deneyin.'); }
+    if (w) w.location.href = x.url; else window.location.href = x.url;
   };
 
   return (
@@ -63,7 +71,7 @@ export default function OzelTasarimlar({ api, kart, baslik, degisti }) {
                   ? <button onClick={() => sec(null)} disabled={!!bekle} className="btn btn-ghost btn-sm">Kaldır</button>
                   : t.sahip
                     ? <button onClick={() => sec(t.id)} disabled={!!bekle} className="btn btn-primary btn-sm">{bekle === t.id ? '…' : t.fiyat > 0 ? 'Kullan' : 'Ücretsiz kullan'}</button>
-                    : <button onClick={() => satinAl(t)} className="btn btn-ghost btn-sm">🔒 {Number(t.fiyat).toLocaleString('tr-TR')}₺ · Almak için yaz</button>}
+                    : <button onClick={() => satinAl(t)} disabled={!!bekle} className="btn btn-primary btn-sm">{bekle === 'al' + t.id ? 'Açılıyor…' : `Satın al · ${Number(t.fiyat).toLocaleString('tr-TR')}₺`}</button>}
               </div>
             </div>
           );

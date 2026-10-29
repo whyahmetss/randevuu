@@ -595,6 +595,7 @@ router.post('/admin/tasarimlar/:id/hediye', ...saMw, (req, res) => tasarimContro
 router.delete('/admin/tasarimlar/:id/hediye/:isletmeId', ...saMw, (req, res) => tasarimController.hediyeGeriAl(req, res));
 router.get('/randevu-sayfasi/tasarimlar', authMiddleware, (req, res) => tasarimController.esnafListe(req, res));
 router.put('/randevu-sayfasi/tasarim', authMiddleware, (req, res) => tasarimController.esnafSec(req, res));
+router.post('/randevu-sayfasi/tasarim/:id/satin-al', authMiddleware, (req, res) => tasarimController.satinAl(req, res));
 router.get('/tasarim-medya/:id/:tur', (req, res) => tasarimController.medya(req, res));
 router.get('/admin/magaza/tedarikciler', ...saMw, (req, res) => magazaController.tedarikcileriGetir(req, res));
 router.post('/admin/magaza/tedarikciler', ...saMw, (req, res) => magazaController.tedarikciKaydet(req, res));

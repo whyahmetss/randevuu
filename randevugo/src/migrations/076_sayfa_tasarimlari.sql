@@ -28,3 +28,18 @@ CREATE TABLE IF NOT EXISTS isletme_tasarimlari (
   PRIMARY KEY (isletme_id, tasarim_id)
 );
 ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS sayfa_tasarim_id INTEGER REFERENCES sayfa_tasarimlari(id) ON DELETE SET NULL;
+-- Tasarım satışı (Faz 3): esnaf ücretli tasarımı Shopier'den tek seferlik alır. Ürün başlığında SRGO-T<satış no>
+-- (paket ödemesinin SRGO-<işletme> eşleşmesine düşmesin). Ödeme gelince tasarım işletmenin olur ve sayfasında açılır.
+CREATE TABLE IF NOT EXISTS tasarim_satislari (
+  id SERIAL PRIMARY KEY,
+  isletme_id INTEGER NOT NULL REFERENCES isletmeler(id) ON DELETE CASCADE,
+  tasarim_id INTEGER REFERENCES sayfa_tasarimlari(id) ON DELETE SET NULL,
+  tasarim_isim VARCHAR(60),                       -- tasarım silinse de satış kaydı okunur kalsın
+  tutar NUMERIC(10,2) NOT NULL,
+  durum VARCHAR(12) NOT NULL DEFAULT 'bekliyor',  -- bekliyor | odendi
+  shopier_urun_id VARCHAR(40),
+  shopier_siparis_id VARCHAR(40),
+  olusturma TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  odeme_tarihi TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS tasarim_satislari_urun ON tasarim_satislari (shopier_urun_id);

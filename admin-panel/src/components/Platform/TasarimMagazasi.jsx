@@ -18,8 +18,9 @@ export default function TasarimMagazasi({ api, isletmeler = [] }) {
   const [hediye, setHediye] = useState(null);      // null | tasarım
   const [bekle, setBekle] = useState(null);
   const [mesaj, setMesaj] = useState(null);
+  const [toplam, setToplam] = useState(null);   // { adet, ciro } — ödenen tasarım satışları
 
-  const yukle = () => api.get('/admin/tasarimlar').then(d => setListe(d?.tasarimlar || [])).catch(() => setListe([]));
+  const yukle = () => api.get('/admin/tasarimlar').then(d => { setListe(d?.tasarimlar || []); setToplam(d?.satis_toplam || null); }).catch(() => setListe([]));
   useEffect(() => { yukle(); }, []);
   const bildir = (m) => { setMesaj(m); setTimeout(() => setMesaj(null), 3500); };
 
@@ -72,9 +73,13 @@ export default function TasarimMagazasi({ api, isletmeler = [] }) {
       <div className="row row-between row-wrap mb-16" style={{ alignItems: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--dim)', maxWidth: 620 }}>
           Randevu sayfası için video ya da görsel arka planlı tasarımlar. Fiyat tek seferlik, 0 = ücretsiz (her esnaf kullanabilir).
+          Esnaf ücretli tasarımı panelinden Shopier ile alır; ödeme gelince tasarım onun olur ve sayfasında açılır.
           Video: 5–15 sn döngü, sessiz, 720p, en fazla 6 MB. Yalnız lisansı serbest görüntü kullanın (Pexels, Mixkit ya da kendi çekiminiz).
         </div>
-        <button onClick={() => setForm({ ...BOS, medya: {} })} className="btn btn-primary btn-sm">+ Yeni tasarım</button>
+        <div className="row gap-12" style={{ alignItems: 'center' }}>
+          {toplam?.adet > 0 && <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>💳 {toplam.adet} satış · {Number(toplam.ciro).toLocaleString('tr-TR')}₺</div>}
+          <button onClick={() => setForm({ ...BOS, medya: {} })} className="btn btn-primary btn-sm">+ Yeni tasarım</button>
+        </div>
       </div>
       {mesaj && <div className={`alert ${mesaj.hata ? 'alert-error' : 'alert-success'}`} style={{ marginBottom: 12 }}>{mesaj.hata || mesaj.tamam}</div>}
 
@@ -126,6 +131,7 @@ export default function TasarimMagazasi({ api, isletmeler = [] }) {
                 <div style={{ fontWeight: 700, color: t.fiyat > 0 ? 'var(--text)' : '#1f6f4a' }}>{t.fiyat > 0 ? `${Number(t.fiyat).toLocaleString('tr-TR')}₺` : 'Ücretsiz'}</div>
               </div>
               {t.aciklama && <div style={{ fontSize: 12, color: 'var(--dim)' }}>{t.aciklama}</div>}
+              {t.satis?.adet > 0 && <div style={{ fontSize: 12, fontWeight: 600, color: '#1f6f4a' }}>💳 {t.satis.adet} satış · {Number(t.satis.ciro).toLocaleString('tr-TR')}₺</div>}
               {t.sahipler?.length > 0 && (
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                   {t.sahipler.map(s => (

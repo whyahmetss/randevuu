@@ -68,6 +68,82 @@ async function sayfaTasarimi(isletmeId) {
   return { id: d.id, stil: d.stil, medya: d.medya };
 }
 
+// ── Satın alma (Faz 3) ──
+// Shopier'de tek seferlik dijital ürün açılır; başlıkta SRGO-T<satış no> (paket ödemesinin SRGO-<işletme> eşleşmesine düşmez).
+const API_ADRES = (process.env.BASE_URL || 'https://randevu.xn--srago-n4a.com').replace(/\/$/, '');
+async function satinAlBaslat(isletmeId, tasarimId) {
+  const t = (await pool.query(`${LISTE_SQL} WHERE t.id = $1 AND t.aktif = true`, [tasarimId])).rows[0];
+  if (!t) return { hata: 'Tasarım bulunamadı', kod: 404 };
+  const fiyat = Number(t.fiyat) || 0;
+  if (fiyat <= 0) return { hata: 'Bu tasarım ücretsiz, doğrudan kullanabilirsiniz' };
+  if ((await pool.query('SELECT 1 FROM isletme_tasarimlari WHERE isletme_id = $1 AND tasarim_id = $2', [isletmeId, tasarimId])).rows.length)
+    return { hata: 'Bu tasarım zaten sizde' };
+  const isletme = (await pool.query('SELECT isim FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
+  const shopier = require('../services/shopierService');
+  // Aynı işletmenin yarım kalmış satın almaları: Shopier'de ürün birikmesin
+  const eski = (await pool.query(`DELETE FROM tasarim_satislari WHERE isletme_id = $1 AND durum = 'bekliyor' RETURNING shopier_urun_id`, [isletmeId])).rows;
+  for (const e of eski) if (e.shopier_urun_id) shopier.urunSil(e.shopier_urun_id).catch(() => {});
+  const satis = (await pool.query(`INSERT INTO tasarim_satislari (isletme_id, tasarim_id, tasarim_isim, tutar) VALUES ($1, $2, $3, $4) RETURNING id`,
+    [isletmeId, tasarimId, t.isim, fiyat])).rows[0];
+  const m = t.medya || {};
+  const gorselTur = m.poster ? 'poster' : m.arka && !String(m.arka.mime).startsWith('video/') ? 'arka' : null;
+  try {
+    const urun = await shopier.urunOlustur({
+      baslik: `SıraGO Sayfa Tasarımı: ${t.isim} [SRGO-T${satis.id}]`,
+      aciklama: `Randevu sayfası tasarımı (tek seferlik, süresiz kullanım)\nTasarım: ${t.isim}\nİşletme: ${isletme?.isim || isletmeId}\nRef: SRGO-T${satis.id}`,
+      fiyat,
+      gorselUrl: gorselTur ? `${API_ADRES}/api/tasarim-medya/${t.id}/${gorselTur}?v=${m[gorselTur].v}` : null,
+    });
+    await pool.query('UPDATE tasarim_satislari SET shopier_urun_id = $1 WHERE id = $2', [String(urun.id), satis.id]);
+    return { url: urun.url, satis_id: satis.id };
+  } catch (e) {
+    await pool.query('DELETE FROM tasarim_satislari WHERE id = $1', [satis.id]).catch(() => {});
+    console.error('Tasarım ödemesi başlatılamadı:', e.response?.data || e.message);
+    return { hata: 'Ödeme sayfası açılamadı, lütfen tekrar deneyin', kod: 502 };
+  }
+}
+
+// Shopier siparişi bir tasarım satışıysa işler (shopierService._siparisIsle paket eşleşmesinden ÖNCE çağırır).
+// → null (tasarım satışı değil) | { islem, ... }
+async function siparisEslestir({ urunId, urunBaslik, siparisId, tutar }) {
+  const ref = String(urunBaslik || '').match(/SRGO-T(\d+)/);
+  let s = null;
+  try {
+    if (urunId) s = (await pool.query('SELECT * FROM tasarim_satislari WHERE shopier_urun_id = $1', [String(urunId)])).rows[0];
+    if (!s && ref) s = (await pool.query('SELECT * FROM tasarim_satislari WHERE id = $1', [parseInt(ref[1])])).rows[0];
+  } catch (e) {
+    // Deploy anında migration bitmeden gelen bildirim: tablo yoksa tasarım satışı olamaz, paket akışı bozulmasın
+    if (e.code === '42P01' && !ref) return null;
+    throw e;
+  }
+  if (!s && !ref) return null;
+  if (!s) {   // başlık tasarım satışı ama kayıt yok: paket ödemesi sayılmasın, ekip baksın
+    try { await require('../utils/alarm').alarm('Tasarım ödemesi eşleşmedi', `Sipariş #${siparisId} · ${urunBaslik} · ${tutar}₺`); } catch (e) { /* alarm opsiyonel */ }
+    return { islem: 'tasarim_eslesmedi' };
+  }
+  if (s.durum === 'odendi') return { islem: 'zaten_islenmis' };
+  await pool.query(`UPDATE tasarim_satislari SET durum = 'odendi', shopier_siparis_id = $1, odeme_tarihi = NOW(), tutar = $2 WHERE id = $3`,
+    [String(siparisId), tutar || s.tutar, s.id]);
+  if (s.tasarim_id) {
+    await pool.query(`INSERT INTO isletme_tasarimlari (isletme_id, tasarim_id, kaynak) VALUES ($1, $2, 'satin')
+      ON CONFLICT (isletme_id, tasarim_id) DO UPDATE SET kaynak = 'satin', tarih = NOW()`, [s.isletme_id, s.tasarim_id]);
+    // Aldığı tasarım sayfasında hemen açılır
+    await pool.query('UPDATE isletmeler SET sayfa_tasarim_id = $1, sayfa_guncelleme = NOW() WHERE id = $2', [s.tasarim_id, s.isletme_id]);
+  }
+  if (s.shopier_urun_id) require('../services/shopierService').urunSil(s.shopier_urun_id).catch(() => {});
+  try {
+    await require('./adminController').bildirimOlustur(s.isletme_id, 'tasarim', '🎨 Tasarımınız hazır',
+      `"${s.tasarim_isim}" tasarımı randevu sayfanızda açıldı. Teşekkürler!`);
+  } catch (e) { /* bildirim opsiyonel */ }
+  try { require('../services/socketServer').emitToIsletme(s.isletme_id, 'veri:degisti', { tur: 'ayar' }); } catch (e) { /* opsiyonel */ }
+  try {
+    const i = (await pool.query('SELECT isim FROM isletmeler WHERE id = $1', [s.isletme_id])).rows[0];
+    await require('../utils/alarm').alarm(`🎨 Tasarım satıldı: ${i?.isim || s.isletme_id}`, `${s.tasarim_isim} · ${tutar || s.tutar}₺ (Shopier #${siparisId})`);
+  } catch (e) { /* alarm opsiyonel */ }
+  if (tutar && Number(tutar) + 0.01 < Number(s.tutar)) console.warn(`⚠️ Tasarım satışı #${s.id}: ödenen ${tutar}₺ < fiyat ${s.tutar}₺`);
+  return { islem: 'tasarim_satildi', satis_id: s.id, isletme_id: s.isletme_id, tasarim_id: s.tasarim_id };
+}
+
 class TasarimController {
   // ── Süper admin ──
   async liste(req, res) {
@@ -75,8 +151,11 @@ class TasarimController {
       const rows = (await pool.query(`${LISTE_SQL} ORDER BY t.sira, t.id`)).rows;
       const sahip = (await pool.query(`SELECT s.tasarim_id, i.id, i.isim, s.kaynak, (i.sayfa_tasarim_id = s.tasarim_id) AS kullaniyor
           FROM isletme_tasarimlari s JOIN isletmeler i ON i.id = s.isletme_id ORDER BY s.tarih DESC`)).rows;
-      res.json({ tasarimlar: rows.map(t => ({ ...disari(t), sahipler: sahip.filter(s => s.tasarim_id === t.id).map(({ tasarim_id, ...s }) => s) })),
-        secenekler: SECENEK });
+      const satis = (await pool.query(`SELECT tasarim_id, COUNT(*)::int AS adet, COALESCE(SUM(tutar), 0)::float AS ciro
+          FROM tasarim_satislari WHERE durum = 'odendi' GROUP BY tasarim_id`)).rows;
+      const toplam = satis.reduce((a, s) => ({ adet: a.adet + s.adet, ciro: a.ciro + s.ciro }), { adet: 0, ciro: 0 });
+      res.json({ tasarimlar: rows.map(t => ({ ...disari(t), sahipler: sahip.filter(s => s.tasarim_id === t.id).map(({ tasarim_id, ...s }) => s),
+        satis: satis.find(s => s.tasarim_id === t.id) || { adet: 0, ciro: 0 } })), satis_toplam: toplam, secenekler: SECENEK });
     } catch (e) { console.error('tasarim liste:', e.message); hata(res, 'Alınamadı', 500); }
   }
 
@@ -162,6 +241,14 @@ class TasarimController {
     } catch (e) { hata(res, 'Alınamadı', 500); }
   }
 
+  async satinAl(req, res) {
+    try {
+      const r = await satinAlBaslat(getIsletmeId(req), parseInt(req.params.id));
+      if (r.hata) return hata(res, r.hata, r.kod || 400);
+      res.json(r);
+    } catch (e) { console.error('tasarım satın al:', e.message); hata(res, 'Ödeme başlatılamadı', 500); }
+  }
+
   async esnafSec(req, res) {
     try {
       const isletmeId = getIsletmeId(req);
@@ -207,3 +294,5 @@ class TasarimController {
 module.exports = new TasarimController();
 module.exports.sayfaTasarimi = sayfaTasarimi;
 module.exports.stilTemizle = stilTemizle;
+module.exports.siparisEslestir = siparisEslestir;
+module.exports.satinAlBaslat = satinAlBaslat;
