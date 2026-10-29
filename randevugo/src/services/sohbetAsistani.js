@@ -479,11 +479,13 @@ function hizmetAday(metin, hizmetler) {
 // menusuz: sohbet akışında "Randevu almak için 1 yazın" satırı eklenmez (1 orada hizmet seçimi olur)
 function konumMesaji(isletme, { menusuz = true } = {}) {
   const adres = String(isletme.adres || '').trim();
-  if (!adres && !isletme.google_maps_url) return null;
+  // google_maps_url Google yorum isteğinde de kullanılıyor: yorum yazma linki konum diye gönderilmez
+  const harita = /review|writereview|lrd=/i.test(String(isletme.google_maps_url || '')) ? null : isletme.google_maps_url;
+  if (!adres && !harita) return null;
   // Google'dan gelen adreste ilçe/şehir zaten yazılı: iki kez eklenmesin
   const ekle = (x) => x && !adres.toLocaleLowerCase('tr').includes(String(x).toLocaleLowerCase('tr')) ? x : '';
   const ilce = ekle(isletme.ilce), sehir = ekle(isletme.sehir);
-  const mapsLink = isletme.google_maps_url
+  const mapsLink = harita
     || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([isletme.isim, adres, ilce, sehir].filter(Boolean).join(' '))}`;
   return require('../utils/botMesajlar').get(isletme, 'konum',
     { isletmeAd: isletme.isim, adres: adres || isletme.isim, ilce, sehir, telefon: isletme.telefon || '', mapsLink, menusuz }).trim();

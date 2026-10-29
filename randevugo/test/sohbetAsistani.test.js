@@ -457,4 +457,9 @@ test('sohbet: adres kayıtlı değilse konum uydurulmaz, yapay zekâya düşer',
   assert.strictEqual(sohbet.konumMesaji({ isim: 'X', adres: null }), null);
   const k = sohbet.konumMesaji({ isim: 'X', adres: '', google_maps_url: 'https://maps.app.goo.gl/abc' });
   assert.match(k, /maps\.app\.goo\.gl\/abc/);
+  // Yorum linki konum diye gönderilmez: adres varsa adres araması, yoksa hiç
+  assert.strictEqual(sohbet.konumMesaji({ isim: 'X', adres: '', google_maps_url: 'https://g.page/r/CXyz/review' }), null);
+  const y = sohbet.konumMesaji({ isim: 'X', adres: 'Göktürk', google_maps_url: 'https://search.google.com/local/writereview?placeid=abc' });
+  assert.match(y, /google\.com\/maps\/search/);
+  assert.doesNotMatch(y, /writereview/);
 });
