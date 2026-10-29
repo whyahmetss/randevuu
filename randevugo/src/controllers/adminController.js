@@ -145,6 +145,11 @@ class AdminController {
       );
       await this.auditLogYaz(req.kullanici, `randevu_${durum}`, `Randevu #${id} durumu: ${durum}`, 'randevular', parseInt(id), require('../utils/istemciIp').istemciIp(req));
 
+      // Bölünmüş randevu: ilk parça panelden iptal edilince devam parçaları da düşer (müşteri iptal ettiğindeki gibi)
+      if (durum === 'iptal' && result.rows[0]) {
+        try { await require('../services/randevu').randevuIptal(result.rows[0].id); } catch (e) { console.error('Bağlı randevu iptali:', e.message); }
+      }
+
       // Seans takibi: tamamlanan seans sayılır, sıradaki seansın hatırlatması kurulur
       if (durum === 'tamamlandi' && result.rows[0]) {
         try { await require('../services/seans').randevuTamamlandi(result.rows[0].id); } catch (e) { console.error('Seans sayacı:', e.message); }
@@ -154,7 +159,12 @@ class AdminController {
       if (durum === 'tamamlandi' && result.rows[0]) {
         try {
           const randevu = result.rows[0];
-          const hizmet = randevu.hizmet_id ? (await pool.query('SELECT isim, fiyat FROM hizmetler WHERE id=$1', [randevu.hizmet_id])).rows[0] : null;
+          // Tutar randevuya yazılan fiyat (tüm hizmetler, ilk randevu indirimi, paketin devam seansı 0 ₺); eskiden ilk hizmetin liste fiyatıydı
+          const hizmet = (await pool.query(
+            `SELECT ${RANDEVU_FIYAT} AS fiyat,
+                    COALESCE((SELECT string_agg(hh.isim, ' + ' ORDER BY rh.sira) FROM randevu_hizmetleri rh JOIN hizmetler hh ON hh.id = rh.hizmet_id
+                               WHERE rh.randevu_id = r.id), h.isim) AS isim
+               FROM randevular r LEFT JOIN hizmetler h ON h.id = r.hizmet_id WHERE r.id = $1`, [randevu.id])).rows[0];
           if (hizmet && parseFloat(hizmet.fiyat) > 0) {
             // Daha önce bu randevu için kayıt var mı kontrol et
             const mevcut = (await pool.query('SELECT id FROM kasa_hareketleri WHERE randevu_id=$1 AND isletme_id=$2', [randevu.id, isletmeId])).rows[0];

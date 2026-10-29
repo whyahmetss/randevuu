@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { RANDEVU_FIYAT } = require('../utils/randevuFiyat');   // randevuya yazılan fiyat (indirim, paket, çoklu hizmet)
 const siragoImza = require('../utils/siragoImza');
 
 class SadakatPuanService {
@@ -17,7 +18,7 @@ class SadakatPuanService {
 
       // Hizmet fiyatını al
       const randevu = (await pool.query(
-        `SELECT r.hizmet_id, h.fiyat, h.isim as hizmet_isim FROM randevular r
+        `SELECT r.hizmet_id, ${RANDEVU_FIYAT} AS fiyat, h.isim as hizmet_isim FROM randevular r
          LEFT JOIN hizmetler h ON r.hizmet_id = h.id WHERE r.id = $1`,
         [randevuId]
       )).rows[0];

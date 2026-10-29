@@ -81,7 +81,7 @@ export default function TabletEkrani({ api, ayarlar, eposta, kapat }) {
   const aktifler = liste.filter(AKTIF);
   const siradaki = aktifler.find(r => r.durum !== 'tamamlandi' && dk(r.saat) >= sDk - 15);
   const icerde = aktifler.filter(r => r.durum !== 'tamamlandi' && dk(r.saat) <= sDk && dk(r.saat) > sDk - 60);
-  const kasa = liste.filter(r => r.durum === 'tamamlandi').reduce((t, r) => t + (Number(r.toplam_fiyat) || Number(r.fiyat) || 0), 0);
+  const kasa = liste.filter(r => r.durum === 'tamamlandi').reduce((t, r) => t + ((Number(r.hizmet_adet) > 0 ? Number(r.toplam_fiyat) : Number(r.fiyat)) || 0), 0);
 
   // Süper admin işletmeye girdiyse üstte 34px'lik turuncu bant var: tam ekran onun altından başlar
   let bantUst = 0; try { bantUst = sessionStorage.getItem('randevugo_imp_token') ? 34 : 0; } catch (e) { /* depolama kapalı */ }

@@ -3222,7 +3222,7 @@ function Dashboard({ kullanici }) {
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 12, color: "var(--dim)" }}>
                             <span>📞 {telGoster(r.musteri_telefon)}</span>
-                            {(r.hizmetler_adlari || r.hizmet_isim) && <span>✂️ {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}{(Number(r.toplam_fiyat) || Number(r.fiyat)) ? ` · ${(Number(r.toplam_fiyat) || Number(r.fiyat)).toLocaleString("tr-TR")}₺` : ""}</span>}
+                            {(r.hizmetler_adlari || r.hizmet_isim) && <span>✂️ {r.hizmetler_adlari || r.hizmet_isim}{r.hizmet_adet > 1 ? ` (${r.hizmet_adet})` : ''}{(() => { const t = Number(r.hizmet_adet) > 0 ? Number(r.toplam_fiyat) : Number(r.fiyat); return t ? ` · ${t.toLocaleString("tr-TR")}₺` : (Number(r.seans_toplam) > 1 ? " · paket seansı" : ""); })()}</span>}
                             {r.calisan_isim && <span>👤 {r.calisan_isim}</span>}
                             {Number(r.ilk_indirim_tutari) > 0 && <span style={{ color: '#c2410c', fontWeight: 600 }}>🎁 İlk randevu −{Number(r.ilk_indirim_tutari).toLocaleString("tr-TR")}₺</span>}
                             {r.kapora_durumu && r.kapora_durumu !== 'yok' && (

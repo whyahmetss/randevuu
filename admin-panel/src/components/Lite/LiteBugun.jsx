@@ -14,7 +14,8 @@ const DURUM = {
   onaylandi: ['Onaylı', 'tag-green'], onay_bekliyor: ['Onay bekliyor', 'tag-amber'], bekliyor: ['Onay bekliyor', 'tag-amber'],
   kapora_bekliyor: ['Kapora bekleniyor', 'tag-amber'], tamamlandi: ['Geldi ✓', 'tag-green'], gelmedi: ['Gelmedi', 'tag-red'], iptal: ['İptal', 'tag-red'],
 };
-const fiyatOf = (r) => Number(r.toplam_fiyat) || Number(r.fiyat) || 0;
+// Randevuya yazılan tutar; hizmet kaydı olmayan eski randevuda liste fiyatı (paketin devam seansı 0 ₺ kalmalı)
+const fiyatOf = (r) => (Number(r.hizmet_adet) > 0 ? Number(r.toplam_fiyat) : Number(r.fiyat)) || 0;
 
 export default function LiteBugun({ api, ayarlar, setSayfa }) {
   const [randevular, setRandevular] = useState(null);
