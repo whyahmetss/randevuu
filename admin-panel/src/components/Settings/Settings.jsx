@@ -6,6 +6,7 @@ import { bookingUrl, BOOKING_BASE } from '../../lib/config';
 import { dosyaIndir } from '../Platform/ortak';
 import { SifreFormu } from '../SifreDegistir';
 import Tatiller from './Tatiller';
+import GunlukSaatler from './GunlukSaatler';
 
 export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
   const [kaydedildi, setKaydedildi] = useState(false);
@@ -200,6 +201,7 @@ export default function Settings({ ayarlar, setAyarlar, paketDurum, api }) {
               })}
             </div>
           </div>
+          <GunlukSaatler ayarlar={ayarlar} setAyarlar={setAyarlar} />
         </div>
 
         {/* Resmî tatiller (2026-10-26) */}

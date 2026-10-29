@@ -46,6 +46,16 @@ function hizmetIconu(isim) {
   return <I.Sparkles />;
 }
 
+// Günün saati (2026-10-29): gün bazlı saat (haftalik_saatler) yoksa genel açılış/kapanış. "00:00" kapanış = gün sonu.
+function gunSaati(isletme, gun) {
+  const ozel = (isletme?.haftalik_saatler || {})[String(gun)] || {};
+  const bas = String(ozel.bas || isletme?.calisma_baslangic || '09:00').slice(0, 5);
+  const bit = String(ozel.bit || isletme?.calisma_bitis || '19:00').slice(0, 5);
+  const dk = (x) => { const [h, m] = x.split(':').map(Number); return h * 60 + (m || 0); };
+  const basDk = dk(bas);
+  return { bas, bit, basDk, bitDk: dk(bit) <= basDk ? 24 * 60 : dk(bit) };
+}
+
 // Açık/kapalı durumu (t = i18n translator)
 function isletmeAcikMi(isletme, t) {
   if (!isletme) return { acik: false, metin: '...' };
@@ -54,14 +64,9 @@ function isletmeAcikMi(isletme, t) {
   const kapaliGunler = String(isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number);
   if (kapaliGunler.includes(gun)) return { acik: false, metin: t('closedToday') };
 
-  const [bh, bm] = String(isletme.calisma_baslangic || '09:00').split(':').map(Number);
-  const [eh, em] = String(isletme.calisma_bitis || '19:00').split(':').map(Number);
+  const { basDk, bitDk } = gunSaati(isletme, gun);
   const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
-  const baslangic = bh * 60 + bm;
-  // "00:00" kapanış = gece yarısı (gün sonu); 0. dakika okununca salon bütün gün kapalı görünüyordu
-  const bitis = eh * 60 + em <= baslangic ? 24 * 60 : eh * 60 + em;
-
-  if (simdiDk >= baslangic && simdiDk < bitis) return { acik: true, metin: t('open') };
+  if (simdiDk >= basDk && simdiDk < bitDk) return { acik: true, metin: t('open') };
   return { acik: false, metin: t('closed') };
 }
 
@@ -69,13 +74,13 @@ function isletmeAcikMi(isletme, t) {
 function sonrakiAcilis(isletme) {
   if (!isletme) return null;
   const kapali = String(isletme.kapali_gunler || '').split(',').filter(Boolean).map(Number);
-  const [bh, bm] = String(isletme.calisma_baslangic || '09:00').split(':').map(Number);
   const simdi = new Date();
   for (let g = 0; g < 8; g++) {
     const d = new Date(simdi); d.setDate(d.getDate() + g);
     if (kapali.includes(d.getDay())) continue;
-    if (g === 0 && simdi.getHours() * 60 + simdi.getMinutes() >= bh * 60 + bm) continue;
-    return { gun: g, tarih: d, saat: `${String(bh).padStart(2, '0')}:${String(bm).padStart(2, '0')}` };
+    const { bas, basDk } = gunSaati(isletme, d.getDay());
+    if (g === 0 && simdi.getHours() * 60 + simdi.getMinutes() >= basDk) continue;
+    return { gun: g, tarih: d, saat: bas };
   }
   return null;
 }
@@ -129,6 +134,15 @@ export default function BookingPage({ slug }) {
 
   const [honeypot, setHoneypot] = useState(''); // bot tuzağı — gerçek kullanıcı boş bırakır
   const [buyukFoto, setBuyukFoto] = useState(null); // galeri: açık fotoğrafın sırası
+  // iPhone'da sayfa sonu esneyince (overscroll) açık zemin görünmesin: özel tasarımın zemini sayfa köküne de verilir.
+  // Erken dönüşlerden (hata sayfası) önce: kanca sırası her çizimde aynı kalmalı
+  const tsrMod = isletme?.tasarim ? (isletme.tasarim.stil?.mod === 'acik' ? 'acik' : 'koyu') : null;
+  useEffect(() => {
+    if (!tsrMod) return;
+    const eski = document.documentElement.style.background;
+    document.documentElement.style.background = tsrMod === 'acik' ? '#f4f1ea' : '#0b0c0b';
+    return () => { document.documentElement.style.background = eski; };
+  }, [tsrMod]);
   // Sekme başlığı ve ikonu müşteri için: "Kemal Berber · Online randevu" (eskiden "SıraGO - Admin Panel" yazıyordu)
   useEffect(() => {
     if (!isletme?.isim) return;
@@ -258,6 +272,8 @@ export default function BookingPage({ slug }) {
           <div className="bk-item-meta">
             <I.Timer size={11} /> {h.sure_dk} {t('minutes')}
           </div>
+          {/* Esnafın hizmete yazdığı not (2026-10-29): "🎁 Yüz bakımı hediye" gibi kampanyalar müşteriye görünmüyordu */}
+          {h.aciklama && <div className="bk-item-not">{h.aciklama}</div>}
         </div>
         <div className="bk-item-price">
           {Number(h.fiyat) > 0 ? (<>
@@ -638,25 +654,36 @@ export default function BookingPage({ slug }) {
   const acilis = durum.acik ? null : sonrakiAcilis(isletme);
   const gorselV = isletme?.sayfa_guncelleme ? new Date(isletme.sayfa_guncelleme).getTime() : 0;
   const gorsel = (tur) => `${API_URL}/book/${slug}/gorsel/${tur}?v=${gorselV}`;
-  const temaSinif = isletme?.sayfa_tema && isletme.sayfa_tema !== 'sade' ? ` tema-${isletme.sayfa_tema}` : '';
+  // Özel tasarım (2026-10-29): süper adminin eklediği video/görsel arka planlı görünüm; varsa temanın yerine geçer.
+  // Yalnız görünüm değişir, sayfa yine randevu akışıyla başlar (sosyal medya butonu yok, kullanıcı kararı).
+  const tsr = isletme?.tasarim || null;
+  const tsrMedya = tsr?.medya || {};
+  const tsrVideo = tsrMedya.arka?.mime?.startsWith('video/');
+  const tsrUrl = (tur) => (tsrMedya[tur] ? `${API_URL}/tasarim-medya/${tsr.id}/${tur}?v=${tsrMedya[tur].v}` : null);
+  const azHareket = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const temaSinif = tsr
+    ? ` tasarimli tsr-${tsr.stil.mod} tsr-yazi-${tsr.stil.yazi} tsr-buton-${tsr.stil.buton} tsr-kart-${tsr.stil.kart}${tsrMedya.arka || tsrMedya.poster ? ' tsr-medyali' : ''}`
+    : isletme?.sayfa_tema && isletme.sayfa_tema !== 'sade' ? ` tema-${isletme.sayfa_tema}` : '';
+  const sayfaStili = tsr ? { ...vurguStili(tsr.stil.vurgu), '--tsr-karartma': tsr.stil.karartma } : vurguStili(isletme?.sayfa_vurgu);
   // Mini site (2026-10-14): esnaf doldurduysa galeri, ekip, hakkımızda ve konum bölümleri; randevu akışı en üstte kalır
   const galeri = isletme?.galeri || [];
   const ekip = (isletme?.ekip || []).filter(c => c.foto_v || c.uzmanlik);
   const instagram = isletme?.sayfa_instagram || '';
   const adresMetni = [isletme?.adres, isletme?.ilce].filter(Boolean).join(', ');
   const siteGoster = adim === 1;
-  const bolumler = siteGoster ? [
-    galeri.length > 0 && ['bk-galeri', t('siteGallery')],
-    ekip.length > 0 && ['bk-ekip', t('siteTeam')],
-    isletme?.sayfa_hakkimizda && ['bk-hakkimizda', t('siteAbout')],
-    (adresMetni || instagram) && ['bk-iletisim', t('siteContact')],
-  ].filter(Boolean) : [];
   const bolumeGit = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const kapaliGunAdlari = String(isletme?.kapali_gunler || '').split(',').filter(Boolean).map(Number)
     .map(g => new Date(2024, 0, 7 + g).toLocaleDateString(locale, { weekday: 'long' }));
 
   return (
-    <div className={`bk-page${temaSinif}`} style={vurguStili(isletme?.sayfa_vurgu)} dir={rtl ? 'rtl' : 'ltr'} lang={dil}>
+    <div className={`bk-page${temaSinif}`} style={sayfaStili} dir={rtl ? 'rtl' : 'ltr'} lang={dil}>
+      {(tsrMedya.arka || tsrMedya.poster) && (
+        <div className="tsr-arka" aria-hidden="true">
+          {tsrVideo && !azHareket
+            ? <video src={tsrUrl('arka')} poster={tsrUrl('poster') || undefined} autoPlay muted loop playsInline preload="auto" />
+            : <img src={tsrVideo ? tsrUrl('poster') : (tsrUrl('arka') || tsrUrl('poster'))} alt="" />}
+        </div>
+      )}
       <DilSecici />
       <div className="bk-container">
 
@@ -679,7 +706,7 @@ export default function BookingPage({ slug }) {
               )}
               <div className="bk-meta-row">
                 <I.Clock size={13} />
-                <span>{(isletme?.calisma_baslangic || '09:00').slice(0,5)} — {(isletme?.calisma_bitis || '19:00').slice(0,5)}</span>
+                <span>{(() => { const g = gunSaati(isletme, new Date().getDay()); return `${g.bas} — ${g.bit}`; })()}</span>
               </div>
               <div className={`bk-status ${durum.acik ? 'open' : 'closed'}`}>
                 <span className="bk-status-dot" />
@@ -694,13 +721,6 @@ export default function BookingPage({ slug }) {
           {isletme?.sayfa_tanitim && <p className="bk-tanitim">{isletme.sayfa_tanitim}</p>}
         </div>
 
-        {/* ═══ BÖLÜM MENÜSÜ (mini site) ═══ */}
-        {bolumler.length > 0 && (
-          <nav className="bk-bolum-nav" aria-label={t('siteContact')}>
-            <button onClick={() => bolumeGit('bk-hizmetler')}>{t('siteServices')}</button>
-            {bolumler.map(([id, ad]) => <button key={id} onClick={() => bolumeGit(id)}>{ad}</button>)}
-          </nav>
-        )}
 
         {/* ═══ STEPPER ═══ */}
         {adim < 7 && (
@@ -854,8 +874,11 @@ export default function BookingPage({ slug }) {
         {/* ═══ MİNİ SİTE: HAKKIMIZDA ═══ */}
         {siteGoster && isletme?.sayfa_hakkimizda && (
           <section className="bk-site-bolum bk-card" id="bk-hakkimizda">
-            <h2 className="bk-site-baslik">{t('siteAbout')}</h2>
-            <p className="bk-hakkimizda">{isletme.sayfa_hakkimizda}</p>
+            {/* Uzun yazı kapalı gelir, müşteri isterse açar (2026-10-29) */}
+            <details className="bk-hakkimizda-detay" open={isletme.sayfa_hakkimizda.length <= 220}>
+              <summary className="bk-site-baslik">{t('siteAbout')}</summary>
+              <p className="bk-hakkimizda">{isletme.sayfa_hakkimizda}</p>
+            </details>
           </section>
         )}
 
@@ -876,7 +899,7 @@ export default function BookingPage({ slug }) {
             <div className="bk-iletisim-satir">
               <I.Clock size={16} />
               <div style={{ flex: 1 }}>
-                <div>{t('siteHours')}: {(isletme?.calisma_baslangic || '09:00').slice(0, 5)} — {(isletme?.calisma_bitis || '19:00').slice(0, 5)}</div>
+                <div>{t('siteHours')}: {(() => { const g = gunSaati(isletme, new Date().getDay()); return `${g.bas} — ${g.bit}`; })()}</div>
                 {kapaliGunAdlari.length > 0 && <div className="bk-iletisim-alt">{t('siteClosed')}: {kapaliGunAdlari.join(', ')}</div>}
               </div>
             </div>

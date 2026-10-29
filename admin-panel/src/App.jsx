@@ -22,7 +22,8 @@ import SekreterKarti from "./components/Settings/SekreterKarti";   // "Bu ay kaz
 const RandevuSayfam = lazy(() => import("./components/Mobil/RandevuSayfam"));   // randevu sayfası teması, kapak, logo
 const GoogleRehber = lazy(() => import("./components/Mobil/GoogleRehber"));
 const Vitrin = lazy(() => import("./components/Magaza/Vitrin"));   // Mağaza (esnaf; SıraGO ürünleri)
-const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));   // açılınca yüklenir (hızlı açılış)
+const MagazaAdmin = lazy(() => import("./components/Magaza/MagazaAdmin"));
+const TasarimMagazasi = lazy(() => import("./components/Platform/TasarimMagazasi"));   // açılınca yüklenir   // açılınca yüklenir (hızlı açılış)
 const SatisHuni = lazy(() => import("./components/SatisBot/SatisHuni"));   // açılınca yüklenir (hızlı açılış)
 import AiTeshis from "./components/SatisBot/AiTeshis";
 const EkipYonetimi = lazy(() => import("./components/Ekip/EkipYonetimi"));   // açılınca yüklenir (hızlı açılış)
@@ -62,6 +63,8 @@ import GrupYonetim from './components/Grup/GrupYonetim';
 import SubeSwitcher from './components/Grup/SubeSwitcher';
 import AcilDurum from './components/AcilDurum/AcilDurum';
 import BeklemeListesi from './components/Randevu/BeklemeListesi';
+import EldenOdeme from './components/Platform/EldenOdeme';
+import { PaketOzeti, OdemePenceresi } from './components/PaketOzeti';
 import PersonelPaneli, { PersonelDavet } from './components/Personel/PersonelPaneli';
 
 // "Müşteri olarak giriş" token'ı sekmeye özel (sessionStorage) tutulur; eskiden localStorage'daki
@@ -275,7 +278,10 @@ const api = {
           return data;
         }
         if (data.limit_asimi) {
-          window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: data }));
+          // Paket ekranı yalnız esnafın kendi işleminde açılır (2026-10-29): ana sayfanın arka plan okumaları
+          // (ör. Yorum Avcısı istatistiği) Başlangıç/deneme paketinde 403 dönüp ekranı her girişte kendiliğinden açıyordu.
+          // Kilitli menüye tıklamak ekranı zaten açıyor.
+          if ((options.method || "GET").toUpperCase() !== "GET") window.dispatchEvent(new CustomEvent("paket-yetersiz", { detail: data }));
           return { ...data, _paketYetersiz: true };
         }
         return data;
@@ -794,6 +800,12 @@ function HizmetlerSayfasi({ hizmetler, yukle, paketDurum }) {
             <div>
               <label className="form-label">Fiyat (₺) *</label>
               <input type="number" placeholder="150" required value={form.fiyat} onChange={e => setForm({...form, fiyat: e.target.value})} className="input" />
+            </div>
+            {/* Müşteriye görünen not (2026-10-29): kampanya/hediye bilgisi randevu sayfasında ve botta hizmetin altında çıkar */}
+            <div className="full">
+              <label className="form-label">Müşteriye görünen not</label>
+              <input placeholder="🎁 Yüz bakımı hediye" maxLength={100} value={form.aciklama} onChange={e => setForm({...form, aciklama: e.target.value})} className="input" />
+              <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 4 }}>Kampanya, hediye ya da kısa bilgi. Randevu sayfasında ve WhatsApp botunda hizmetin altında görünür.</div>
             </div>
             <div>
               <label className="form-label">Kapora Oranı (%)</label>
@@ -1436,6 +1448,7 @@ function Dashboard({ kullanici }) {
   const [yogunlukTahmini, setYogunlukTahmini] = useState(null);
   const [calisanPopover, setCalisanPopover] = useState(null);
   const [profilPopover, setProfilPopover] = useState(false);
+  const [odemePenceresi, setOdemePenceresi] = useState(false);   // 💳 Ödeme & IBAN (profil menüsünden, 2026-10-29)
   const [profilFoto, setProfilFoto] = useState(kullanici?.profil_foto || null);
   const [odemeGerekli, setOdemeGerekli] = useState(false);
   const [duyurular, setDuyurular] = useState([]);
@@ -2235,7 +2248,7 @@ function Dashboard({ kullanici }) {
             {/* Kullanıcı Profil */}
             {ayarlar && (
               <div style={{ position: "relative" }}>
-                <div style={{
+                <div className="profil-tetik" style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "6px 14px 6px 6px",
                   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
                   cursor: "pointer"
@@ -2266,14 +2279,9 @@ function Dashboard({ kullanici }) {
                         </div>
                       </div>
                       {paketDurum && (
-                        <div style={{
-                          padding: "8px 12px", borderRadius: 10,
-                          background: "var(--bg)", marginBottom: 12,
-                          display: "flex", alignItems: "center", justifyContent: "space-between"
-                        }}>
-                          <span style={{ fontSize: 11, color: "var(--muted)" }}>Paket</span>
-                          <span className={`badge ${paketDurum.paket === 'kurumsal' || paketDurum.paket === 'premium' ? 'badge-amber' : paketDurum.paket === 'proplus' ? 'badge-green' : paketDurum.paket === 'profesyonel' ? 'badge-blue' : 'badge-gray'}`} style={{ fontSize: 11 }}>{paketDurum.paket_bilgi?.isim || paketDurum.paket}</span>
-                        </div>
+                        <PaketOzeti paketDurum={paketDurum} dashEkstra={dashEkstra}
+                          yukselt={() => { setProfilPopover(false); setPaketModal(true); }}
+                          odeme={odemeBilgi?.banka || odemeBilgi?.tutar ? () => { setProfilPopover(false); setOdemePenceresi(true); } : null} />
                       )}
                       <button onClick={() => { setProfilPopover(false); setSayfa("ayarlar"); }} style={{
                         width: "100%", padding: "8px 0", borderRadius: 10, border: "1px solid var(--border)",
@@ -2804,7 +2812,10 @@ function Dashboard({ kullanici }) {
                   </div>
                 </div>
               )}
-              {odemeBilgi && !dashEkstra?.anlasma && (
+              {/* Deneme ya da ödenmiş paket bitişine 3 günden fazla varsa ödeme kartı yok (2026-10-29): esnafı 14 gün
+                  darlamayalım; kart yalnız bu ayın ödeme kaydına baktığı için yıllık/elden ödemiş esnafa da "Ödenmedi" diyordu.
+                  Kalan gün kenar çubuğunda sakin bir satır olarak görünüyor. */}
+              {odemeBilgi && !dashEkstra?.anlasma && !(['deneme', 'paket'].includes(dashEkstra?.paketDurumTipi) && dashEkstra?.paketKalanGun > 3) && (
                 <div style={{ background: "var(--surface)", borderRadius: 16, padding: "22px 24px", border: "1px solid var(--border)", borderLeft: `4px solid ${odemeBilgi.odeme?.durum === 'odendi' ? '#1f6f4a' : odemeBilgi.odeme?.durum === 'havale_bekliyor' ? '#a8590c' : '#b42318'}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2956,8 +2967,10 @@ function Dashboard({ kullanici }) {
 
             /* ── Timeline Render ── */
             const renderTimeline = () => {
-              const baslangic = parseInt((ayarlar?.calisma_baslangic || "09:00").split(":")[0]);
-              const bitisHam = parseInt((ayarlar?.calisma_bitis || "19:00").split(":")[0]);
+              // Seçili günün saati (gün bazlı saat girilmişse o gün, yoksa genel)
+              const gunOzel = (ayarlar?.haftalik_saatler || {})[String(new Date(randevuTarih + "T00:00:00").getDay())] || {};
+              const baslangic = parseInt((gunOzel.bas || ayarlar?.calisma_baslangic || "09:00").split(":")[0]);
+              const bitisHam = parseInt((gunOzel.bit || ayarlar?.calisma_bitis || "19:00").split(":")[0]);
               const bitis = bitisHam <= baslangic ? 24 : bitisHam; // "00:00" kapanış = gün sonu
               const saatler = [];
               for (let h = baslangic; h <= bitis; h++) saatler.push(h);
@@ -3907,6 +3920,10 @@ function Dashboard({ kullanici }) {
       </div>
 
       {/* Paket Karşılaştırma Modal */}
+      {odemePenceresi && odemeBilgi && (
+        <OdemePenceresi odemeBilgi={odemeBilgi} kapat={() => setOdemePenceresi(false)} ode={() => odemeSayfasiAc()}
+          paketler={() => { setOdemePenceresi(false); setPaketModal(true); }} />
+      )}
       {paketModal && (
         <div onClick={() => setPaketModal(false)} className="modal-overlay">
           <div onClick={e => e.stopPropagation()} className="modal-content" style={{ maxWidth: 1060 }}>
@@ -4633,6 +4650,8 @@ function SuperAdminPanel({ kullanici }) {
     odemeleriYukle();
   };
 
+  const [eldenAcik, setEldenAcik] = useState(false);   // 💵 Elden ödeme formu (2026-10-29)
+
   const odemeEkle = async (e) => {
     e.preventDefault();
     await api.post("/admin/odemeler", yeniOdeme);
@@ -4709,6 +4728,7 @@ function SuperAdminPanel({ kullanici }) {
       { id: "kuponlar", icon: SVGA.odemeler, label: "Kuponlar" },
       { id: "bayiler", icon: SVGA.referanslar, label: "Bayiler / Toptancı" },
       { id: "magaza", icon: SVGA.magaza, label: "Mağaza & Vitrin" },
+      { id: "tasarimlar", icon: SVGA.magaza, label: "Sayfa Tasarımları" },
     ]},
     { id: "analiz", label: "Analiz", items: [
       { id: "buyume", icon: SVGA.aktivite, label: "Büyüme" },
@@ -5550,8 +5570,16 @@ function SuperAdminPanel({ kullanici }) {
                       <button key={v} onClick={() => setOdemeFiltre(v)} className={`pill pill-sm${odemeFiltre === v ? ' active' : ''}`}>{l}</button>
                     ))}
                   </div>
-                  <button onClick={() => setOdemeFormAcik(!odemeFormAcik)} className="btn btn-primary btn-sm">+ Ödeme Kaydı Ekle</button>
+                  <div className="row gap-8">
+                    <button onClick={() => { setEldenAcik(!eldenAcik); setOdemeFormAcik(false); }} className="btn btn-primary btn-sm">💵 Elden ödeme gir</button>
+                    <button onClick={() => { setOdemeFormAcik(!odemeFormAcik); setEldenAcik(false); }} className="btn btn-ghost btn-sm">+ Ödeme Kaydı Ekle</button>
+                  </div>
                 </div>
+
+                {eldenAcik && (
+                  <EldenOdeme api={api} isletmeler={isletmeler} onKapat={() => setEldenAcik(false)}
+                    onOk={() => { setEldenAcik(false); odemeleriYukle(); isletmeleriYukle(); }} />
+                )}
 
                 {odemeFormAcik && (
                   <form onSubmit={odemeEkle} className="form-card card-accent-green row row-wrap gap-12" style={{ alignItems: "flex-end" }}>
@@ -5681,6 +5709,9 @@ function SuperAdminPanel({ kullanici }) {
         {sayfa === "magaza" && (
           <MagazaAdmin api={api} isletmeler={isletmeler} />
         )}
+
+        {/* SAYFA TASARIMLARI (2026-10-29): video arka planlı randevu sayfası tasarımları, fiyat, hediye */}
+        {sayfa === "tasarimlar" && <TasarimMagazasi api={api} isletmeler={isletmeler} />}
 
         {/* İLETİŞİM MESAJLARI */}
         {sayfa === "iletisim" && (

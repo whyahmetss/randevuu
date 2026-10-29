@@ -88,8 +88,11 @@ class RandevuService {
     const SLOT_ARALIK_DK = randevuModu === 'esnek' ? 10 : (isletme.slot_aralik_dk || 30);
 
     // Çalışma saatleri: çalışanın kendi mesaisi varsa onu kullan, yoksa işletme varsayılanı
-    const baslangic = (calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : (isletme.calisma_baslangic || '09:00');
-    const bitis = (calisan && calisan.calisma_bitis) ? calisan.calisma_bitis : (isletme.calisma_bitis || '19:00');
+    // İşletme saati o güne göre (2026-10-29: gün bazlı saat + "son randevu"); çalışanın kendi mesaisi varsa o önce gelir
+    const gs = require('../utils/gunSaatleri').gunSaatleri(isletme, tarih);
+    const baslangic = String((calisan && calisan.calisma_baslangic) ? calisan.calisma_baslangic : gs.bas);
+    const bitis = String((calisan && calisan.calisma_bitis) ? calisan.calisma_bitis : gs.bit);
+    const sonBaslangic = gs.sonDk ?? Infinity;   // dükkânın son randevu saati: bundan sonra randevu başlamaz
 
     // Mevcut randevuları al (iptal ve gelmedi hariç — onay_bekliyor dahil, slotu kilitler)
     let randevuQuery = 'SELECT saat, bitis_saati, calisan_id FROM randevular WHERE isletme_id = $1 AND tarih = $2 AND durum NOT IN ($3, $4)';
@@ -154,7 +157,7 @@ class RandevuService {
       const SEANS_ARALIK = isletme.slot_aralik_dk || 30;
 
       const musaitSaatler = [];
-      for (let dk = basDk; dk + hizmetSureDk <= bitisDk; dk += SEANS_ARALIK) {
+      for (let dk = basDk; dk + hizmetSureDk <= bitisDk && dk <= sonBaslangic; dk += SEANS_ARALIK) {
         if (tarih === bugun && dk <= simdiDk + (opts.simdiPayi ?? 30)) continue;
         // Mola kontrolü
         const molada = molaAraliklari.some(m => dk < m.bit && dk + hizmetSureDk > m.bas);
@@ -208,7 +211,7 @@ class RandevuService {
     const adaySet = new Set();
 
     // 1) Slot aralığına göre temel slotlar
-    for (let dk = basDk; dk + hizmetSureDk <= bitisDk; dk += SLOT_ARALIK_DK) {
+    for (let dk = basDk; dk + hizmetSureDk <= bitisDk && dk <= sonBaslangic; dk += SLOT_ARALIK_DK) {
       adaySet.add(dk);
     }
 
@@ -216,7 +219,7 @@ class RandevuService {
     if (randevuModu === 'sirali') {
       doluAraliklar.forEach(r => {
         const ilkMusait = Math.ceil(r.bit / 10) * 10;
-        if (ilkMusait + hizmetSureDk <= bitisDk) {
+        if (ilkMusait + hizmetSureDk <= bitisDk && ilkMusait <= sonBaslangic) {
           adaySet.add(ilkMusait);
         }
       });
@@ -623,8 +626,10 @@ class RandevuService {
     const s5 = (x) => String(x || '').slice(0, 5);
     const dk = (x) => { const [h, m] = s5(x).split(':').map(Number); return h * 60 + (m || 0); };
     const hhmm = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
-    const isl = (await pool.query('SELECT calisma_baslangic, calisma_bitis FROM isletmeler WHERE id = $1', [isletmeId])).rows[0] || {};
-    const kapanis = isl.calisma_bitis ? kapanisDk(isl.calisma_baslangic || '00:00', isl.calisma_bitis) : 24 * 60;
+    const isl = (await pool.query('SELECT * FROM isletmeler WHERE id = $1', [isletmeId])).rows[0] || {};
+    const gs = require('../utils/gunSaatleri').gunSaatleri(isl, tarihFormatla(tarih));
+    const kapanis = gs.bitDk;
+    const sonBas = gs.sonDk ?? Infinity;
     const sure = Number((await pool.query('SELECT sure_dk FROM hizmetler WHERE id = $1', [hizmetId])).rows[0]?.sure_dk) || 30;
     const ustalar = (await this.uygunCalisanlar(isletmeId, hizmetId).catch(() => [])).map(c => c.id);
     if (!ustalar.length) ustalar.push(null);
@@ -632,7 +637,7 @@ class RandevuService {
     let t = dk(saat);
     for (let i = 0; i < Math.min(Number(adet) || 0, 5); i++) {
       let kondu = null;
-      for (let deneme = 0; deneme < 12 && !kondu && t + sure <= kapanis; deneme++) {
+      for (let deneme = 0; deneme < 12 && !kondu && t + sure <= kapanis && t <= sonBas; deneme++) {
         for (const u of ustalar) {
           try {
             const r = await this.randevuOlustur({ isletmeId, musteriTelefon, musteriIsim, hizmetId, calisanId: u, tarih, saat: hhmm(t), kaynak });

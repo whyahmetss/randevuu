@@ -186,6 +186,7 @@ router.post('/admin/isletmeler/:id/demo-veri', authMiddleware, superAdminMiddlew
 
 router.get('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeleriGetir(req, res));
 router.post('/admin/odemeler', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeEkle(req, res));
+router.post('/admin/odemeler/elden', authMiddleware, superAdminMiddleware, (req, res) => adminController.eldenOdeme(req, res));
 router.put('/admin/odemeler/:id', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeGuncelle(req, res));
 router.get('/admin/isletmeler/:id/odeme-profili', authMiddleware, superAdminMiddleware, (req, res) => adminController.isletmeOdemeProfili(req, res));
 router.post('/admin/odemeler/:id/ertele', authMiddleware, superAdminMiddleware, (req, res) => adminController.odemeErteleme(req, res));
@@ -583,6 +584,19 @@ router.get('/magaza/urunler', ...magazaMw, (req, res) => magazaController.urunle
 router.post('/magaza/oner', ...magazaMw, (req, res) => magazaController.oner(req, res));
 router.get('/magaza/kazanc', ...magazaMw, (req, res) => magazaController.kazanc(req, res));
 const saMw = [authMiddleware, superAdminMiddleware];
+// Randevu sayfası tasarımları (2026-10-29): süper admin mağazası + hediye; esnaf seçimi; herkese açık medya
+const tasarimController = require('../controllers/tasarimController');
+router.get('/admin/tasarimlar', ...saMw, (req, res) => tasarimController.liste(req, res));
+router.post('/admin/tasarimlar', ...saMw, (req, res) => tasarimController.kaydet(req, res));
+router.put('/admin/tasarimlar/:id', ...saMw, (req, res) => tasarimController.kaydet(req, res));
+router.delete('/admin/tasarimlar/:id', ...saMw, (req, res) => tasarimController.sil(req, res));
+router.put('/admin/tasarimlar/:id/medya/:tur', ...saMw, (req, res) => tasarimController.medyaYukle(req, res));
+router.post('/admin/tasarimlar/:id/hediye', ...saMw, (req, res) => tasarimController.hediye(req, res));
+router.delete('/admin/tasarimlar/:id/hediye/:isletmeId', ...saMw, (req, res) => tasarimController.hediyeGeriAl(req, res));
+router.get('/randevu-sayfasi/tasarimlar', authMiddleware, (req, res) => tasarimController.esnafListe(req, res));
+router.put('/randevu-sayfasi/tasarim', authMiddleware, (req, res) => tasarimController.esnafSec(req, res));
+router.post('/randevu-sayfasi/tasarim/:id/satin-al', authMiddleware, (req, res) => tasarimController.satinAl(req, res));
+router.get('/tasarim-medya/:id/:tur', (req, res) => tasarimController.medya(req, res));
 router.get('/admin/magaza/tedarikciler', ...saMw, (req, res) => magazaController.tedarikcileriGetir(req, res));
 router.post('/admin/magaza/tedarikciler', ...saMw, (req, res) => magazaController.tedarikciKaydet(req, res));
 router.put('/admin/magaza/tedarikciler/:id', ...saMw, (req, res) => magazaController.tedarikciKaydet(req, res));

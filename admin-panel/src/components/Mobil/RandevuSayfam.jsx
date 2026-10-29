@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { bookingUrl, API_URL } from '../../lib/config';
+import OzelTasarimlar from './OzelTasarimlar';
 
 // Randevu sayfam (kullanıcı kararı 2026-10-14): esnaf müşterinin gördüğü sayfayı kendine göre ayarlar.
 // Hazır tema + tek vurgu rengi (serbest renk yok: okunmaz sayfa çıkmasın), kapak, logo, kısa tanıtım; altta canlı önizleme.
@@ -147,6 +148,8 @@ export default function RandevuSayfam({ api }) {
         </div>
         <input ref={galeriRef} type="file" accept="image/*" multiple hidden onChange={e => { galeriEkle(e.target.files); e.target.value = ''; }} />
       </div>
+
+      <OzelTasarimlar api={api} kart={kart} baslik={baslik} degisti={() => setOnizlemeV(v => v + 1)} />
 
       <div style={kart}>
         {baslik('Tema', 'Dükkânına uyan görünümü seç.')}

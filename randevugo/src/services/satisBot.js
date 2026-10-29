@@ -150,7 +150,10 @@ const TANITIM_KIME = (kategori) => {
 };
 // Kimse sormadan "para/kart istemiyoruz" demek dolandırıcı mesajı gibi duruyordu (2026-10-26); o cümle yalnız şüphede (satisAI)
 const TANITIM = (kategori) => `${TANITIM_KIME(kategori)} WhatsApp'tan gelen randevu mesajlarını sizin yerinize cevaplayan bir sistem kuruyoruz, adı SıraGO`;
-const TANITIM_SORU = 'Siz randevuları şu an telefonla mı alıyorsunuz?';
+// İlk tanıtım (kullanıcı kararı 2026-10-29): ekibin elle yazınca cevap alan metni; soru sormaz, izin ister.
+// Marka başta: esnaf kimin yazdığını bilsin (2026-10-22 "kim olduğunuzu bilmiyorum").
+const ILK_TANITIM = 'SıraGO randevu yönetimi hizmetimiz için rahatsız etmiştim. WhatsApp, Telegram ve web siteniz üzerinden 7/24, ' +
+  'müşterilerinizle iletişim kopukluğu yaşamadan kolayca randevu almanızı sağlayan bir sistemimiz var. Müsait olduğunuzda kısaca bilgi vermek isterim.';
 const TANITIM_VEDA = 'Tabii, rahatsız ettiysem kusura bakmayın. Kolay gelsin';
 const tanitimVar = (t) => /s[ıi]ra\s?go/i.test(String(t || ''));
 
@@ -1538,7 +1541,7 @@ class SatisBot extends EventEmitter {
     const oncekiBiz = String(konusma?.gelen_mesajlar || '').split('\n').some(x => /\]\s*(Bot|Elle):/.test(x));
     if (!bizBaslattik || oncekiBiz || mesajlar.some(tanitimVar)) return mesajlar;
     const t = TANITIM(konusma?.kategori);
-    return olumsuz ? [`Kısaca söyleyeyim, ${t.charAt(0).toLocaleLowerCase('tr')}${t.slice(1)}`, TANITIM_VEDA] : [`Kolay gelsin. ${t}`, TANITIM_SORU];
+    return olumsuz ? [`Kısaca söyleyeyim, ${t.charAt(0).toLocaleLowerCase('tr')}${t.slice(1)}`, TANITIM_VEDA] : [ILK_TANITIM];
   }
 
   // Adayın Avcı kaydı (Google'da nerede bulundu, puanı): yapay zekâ "dükkânınızı Google'da gördüm" diyebilsin
@@ -2302,13 +2305,13 @@ class SatisBot extends EventEmitter {
   async fallbackCevapUret(musteriMesaj, konusma) {
     const sade = sadeMetin(musteriMesaj);
     const { enUcuz } = await this._fiyatlar();
-    const fiyat = enUcuz ? `sonrası aylık ${enUcuz}₺'den başlıyor` : 'sonrası için paketleri sitede görebilirsiniz';
     const kayit = `İsterseniz hesabınızı buradan 1 dakikada açayım, *kayıt* yazmanız yeterli.`;
     const ret = redTipi(musteriMesaj);
     if (ret === 'kibar') return { mesaj: `Tabii, acelesi yok. Ne zaman isterseniz buraya *kayıt* yazmanız yeterli, ${denemeGun()} gün ücretsiz.`, durum: 'bekliyor' };
     if (ret) return { mesaj: `Tamam, sorun değil. Fikriniz değişirse buraya *kayıt* yazmanız yeterli. İyi çalışmalar 🙏`, durum: 'olumsuz' };
     if (ifadeVar(sade, ['fiyat', 'fiyatı', 'ücret', 'ücreti', 'ucret', 'kaç lira', 'kac lira', 'ne kadar', 'aylık', 'aylik', 'paket', 'paketler']))
-      return { mesaj: `${denemeGun()} gün ücretsiz, kart bilgisi istemiyoruz; ${fiyat}. ${kayit}`, durum: 'sicak' };
+      // Ekibin cevap alan dili (2026-10-29): önce risksiz deneme ve memnuniyet, sonra paket
+      return { mesaj: `İlk ${denemeGun()} gün ücretsiz, bizim için kıymetli olan memnun kalmanız; hiçbir şekilde kart bilgisi istemiyoruz. Memnun kalırsanız paketlerimiz var${enUcuz ? `, aylık ${enUcuz}₺'den başlıyor` : ''}. ${kayit}`, durum: 'sicak' };
     if (ifadeVar(sade, ['pahalı', 'pahali', 'çok para', 'cok para', 'param yok', 'bütçe', 'butce', 'karşılayamam']))
       return { mesaj: `Ayda birkaç kaçan randevu bile ücretini çıkarır; önce ${denemeGun()} gün ücretsiz deneyip kendiniz görün. ${kayit}`, durum: 'olumlu' };
     if (ifadeVar(sade, ['bilmem', 'anlamam', 'anlamıyorum', 'teknoloji', 'bilgisayar', 'zor', 'yapamam', 'kurulum']))
@@ -2320,7 +2323,7 @@ class SatisBot extends EventEmitter {
     if (ifadeVar(sade, ['tamam', 'olur', 'evet', 'ilgileniyorum', 'denerim', 'süper', 'harika', 'güzel', 'guzel', 'at', 'atın', 'gönder']))
       return { mesaj: `Güzel. ${kayit}`, durum: 'sicak' };
     if (!konusma.gelen_mesajlar || yalnizNezaket(musteriMesaj) || ifadeVar(sade, ['merhaba', 'selam', 'selamlar', 'merhabalar', 'iyi günler', 'günaydın', 'gunaydin', 'kimsiniz', 'kim', 'buyrun', 'buyrunuz', 'tanıyamadım', 'tanıyamadim']))
-      return { mesaj: `Size de kolay gelsin. İşletmelere WhatsApp'tan gelen randevu mesajlarını sizin yerinize cevaplayıp boş saate yazan bir sistem kurduk, adı SıraGO. Para ya da kart bilgisi istemiyoruz, merak ettim: randevuları şu an nasıl alıyorsunuz?`, durum: 'bekliyor' };
+      return { mesaj: ILK_TANITIM, durum: 'bekliyor' };
     return { mesaj: `Merak ettiğiniz bir şey olursa buradan sorabilirsiniz; denemek isterseniz *kayıt* yazmanız yeterli.`, durum: 'bekliyor' };
   }
 

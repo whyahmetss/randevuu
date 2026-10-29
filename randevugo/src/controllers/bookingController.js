@@ -37,7 +37,7 @@ class BookingController {
     try {
       const { slug } = req.params;
       const isletme = (await pool.query(
-        `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, 
+        `SELECT id, isim, adres, ilce, kategori, calisma_baslangic, calisma_bitis, haftalik_saatler,
                 kapali_gunler, randevu_suresi_dk, calisan_secim_modu, kapora_aktif,
                 google_maps_reserve_url, booking_acik, telegram_token, demo,
                 sayfa_tema, sayfa_vurgu, sayfa_tanitim, sayfa_guncelleme, sayfa_hakkimizda, sayfa_instagram,
@@ -87,6 +87,8 @@ class BookingController {
         isletme.galeri = await sc.galeriListe(isletme.id);
         isletme.ekip = await sc.ekipListe(isletme.id);
       } catch (e) { isletme.galeri = []; isletme.ekip = []; }
+      // Sayfa tasarımı (2026-10-29): video/görsel arka plan + stil; sahip olunmayan ücretli tasarım gelmez
+      try { isletme.tasarim = await require('./tasarimController').sayfaTasarimi(isletme.id); } catch (e) { isletme.tasarim = null; }
 
       // Randevu sayfasının altındaki "İşletmeniz için ücretsiz kurun" bağlantısı bu işletmeye bağlansın
       if (!isletme.demo) {
@@ -147,7 +149,7 @@ class BookingController {
       // (paket düşünce eski işaretler sayfada kalmasın).
       const zengin = !!(await require('../config/paketler').paketGetir(isletme.paket)).zengin_sayfa;
       const hizmetler = (await pool.query(
-        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat, kategori, one_cikan FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
+        'SELECT id, isim, isim_en, isim_ar, sure_dk, fiyat, kategori, one_cikan, aciklama FROM hizmetler WHERE isletme_id=$1 AND aktif=true ORDER BY id',
         [isletme.id]
       )).rows.map(h => ({ ...h, one_cikan: zengin && h.one_cikan === true }));
 
@@ -668,7 +670,7 @@ class BookingController {
 
       const subeler = (await pool.query(
         `SELECT id, slug, isim, sube_etiketi, sehir, ilce, adres, telefon,
-                calisma_baslangic, calisma_bitis, kapali_gunler
+                calisma_baslangic, calisma_bitis, kapali_gunler, haftalik_saatler
            FROM isletmeler
           WHERE grup_id=$1 AND aktif=true AND booking_acik=true
           ORDER BY grup_sira, id`, [grup.id]
@@ -680,7 +682,7 @@ class BookingController {
         return {
           slug: s.slug, isim: s.isim, sube_etiketi: s.sube_etiketi,
           sehir: s.sehir, ilce: s.ilce, adres: s.adres, telefon: s.telefon,
-          calisma: s.calisma_baslangic && s.calisma_bitis ? `${s.calisma_baslangic.slice(0,5)}-${s.calisma_bitis.slice(0,5)}` : null,
+          calisma: (() => { const g = require('../utils/gunSaatleri').gunSaatleri(s, bugun); return `${g.bas}-${g.bit}`; })(),   // bugünün saati
           bugun_acik: !kapali
         };
       });

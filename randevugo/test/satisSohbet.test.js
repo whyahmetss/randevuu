@@ -193,8 +193,8 @@ test('bot kendini tanıtmadan cevap vermez: tanıtımsız ilk cevap ve tanıtım
     await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, durum, gonderilen_mesaj, lead_id) VALUES ('905457259801', 'Mimar Sinan', 'bekliyor', 'Merhaba, kolay gelsin', 11)");
     siradaki = { mesajlar: ['Rica ederim, nasıl yardımcı olabilirim?'], durum: 'bekliyor', arama_istiyor: false, demo_gonder: false, fiyatlar: [] };
     const ilk = await yaz('905457259801', 'Teşekkür ederim');
-    assert.strictEqual(ilk.length, 2);
-    assert.match(ilk[0], /adı SıraGO/);
+    assert.strictEqual(ilk.length, 1, 'tanıtım tek mesaj, soru yok (2026-10-29)');
+    assert.match(ilk[0], /^SıraGO randevu yönetimi hizmetimiz için rahatsız etmiştim/);
     assert.doesNotMatch(ilk.join(' '), /nasıl yardımcı olabilirim/);
 
     siradaki = { mesajlar: ['Anladım, kusura bakmayın.'], durum: 'olumlu', arama_istiyor: false, demo_gonder: false, fiyatlar: [] };
@@ -229,7 +229,7 @@ test('tanıtım yalnız ilk cevapta; önceki bot cevabı marka anmasa da tekrarl
     await db.query("INSERT INTO satis_konusmalar (telefon, isletme_adi, kategori, durum, gonderilen_mesaj, lead_id) VALUES ('905332060207', 'Gülüş Diş', 'diş kliniği', 'bekliyor', 'Merhaba, kolay gelsin', 22)");
     ai.cevapUret = async () => ({ mesajlar: ['Rica ederim'], durum: 'bekliyor', arama_istiyor: false, demo_gonder: false, fiyatlar: [] });
     const ilk = await yaz('905332060207', 'Teşekkürler');
-    assert.match(ilk[0], /Diş kliniklerine/);
+    assert.match(ilk[0], /^SıraGO randevu yönetimi/, 'tanıtım sektör adı geçirmez (2026-10-29); yanlış sektöre yazılamaz');
     assert.doesNotMatch(ilk[0], /Berber/);
   } finally { Object.assign(ai, eski); }
 });

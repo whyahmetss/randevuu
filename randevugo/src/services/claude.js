@@ -18,7 +18,7 @@ KURALLAR:
 - Sadece JSON formatında yanıt ver, başka bir şey yazma
 
 MEVCUT HİZMETLER:
-${hizmetler.map((h, i) => `${i + 1}. ${h.isim} (${h.sure_dk} dk - ${h.fiyat} TL)`).join('\n')}
+${hizmetler.map((h, i) => `${i + 1}. ${require('../utils/hizmetNotu').yzHizmet(h)}`).join('\n')}
 
 MÜSAİT SAATLER (bugün için):
 ${musaitSaatler.length > 0 ? musaitSaatler.join(', ') : 'Bugün müsait saat yok'}

@@ -98,7 +98,7 @@ async function hatirlatmalariGonder({ gonder, simdi = new Date() } = {}) {
 }
 
 // Ödeme gelince esnafa teşekkür + yeni bitiş tarihi (WhatsApp), ekibe Telegram
-async function odemeAlindiBildir(isletmeId, tutar) {
+async function odemeAlindiBildir(isletmeId, tutar, yontem = 'Shopier') {
   try {
     const i = (await pool.query('SELECT isim, telefon, paket_bitis_tarihi FROM isletmeler WHERE id = $1', [isletmeId])).rows[0];
     if (!i) return;
@@ -106,7 +106,7 @@ async function odemeAlindiBildir(isletmeId, tutar) {
       await require('./merkezOtpBot').mesajGonder(i.telefon,
         `Teşekkürler, ${tutar}₺ ödemeniz alındı. ${i.isim} için SıraGO ${tarih(i.paket_bitis_tarihi)} tarihine kadar aktif. İyi çalışmalar!`);
     }
-    await require('../utils/alarm').alarm(`💳 Ödeme: ${i.isim}`, `${tutar}₺ (Shopier) — paket ${tarih(i.paket_bitis_tarihi)} tarihine uzadı.`);
+    await require('../utils/alarm').alarm(`💳 Ödeme: ${i.isim}`, `${tutar}₺ (${yontem}) — paket ${tarih(i.paket_bitis_tarihi)} tarihine uzadı.`);
   } catch (e) { console.error('Ödeme bildirimi gönderilemedi:', e.message); }
 }
 

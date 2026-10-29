@@ -246,6 +246,11 @@ class ShopierService {
       }
     }
 
+    // ─── TASARIM SATIŞI (2026-10-29) ───
+    // Paket eşleşmesinden önce: başlık/not/e-postadaki referansla paket ödemesi sayılıp süre uzatmasın
+    const tasarim = await require('../controllers/tasarimController').siparisEslestir({ urunId, urunBaslik, siparisId, tutar });
+    if (tasarim) return tasarim;
+
     // İşletme ID'yi bul: önce ödeme başlatılırken saklanan ürün, sonra başlık/not
     let isletmeId = null;
     let bekleyenPaket = null, bekleyenSure = null, bekleyenKuponId = null;

@@ -16,6 +16,7 @@ const GUNLER = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'
 const haftaGunu = (t) => { const [y, a, g] = t.split('-').map(Number); return new Date(Date.UTC(y, a - 1, g)).getUTCDay(); };
 const dk = (s) => { const [h, m] = String(s).slice(0, 5).split(':').map(Number); return h * 60 + (m || 0); };
 const s5 = (s) => String(s || '').slice(0, 5);
+const { notSatiri } = require('../utils/hizmetNotu');
 
 // Karşılamadaki örnek hizmet (2026-10-27): masaj salonunda "yarın 3'te saç kesimi" yazıyordu. Sıra: panelde esnafın yazdığı →
 // öne çıkan hizmet → ilk hizmet → kategoriye göre genel ad. Uzun hizmet adı örneği bozmasın diye kategoriye düşer.
@@ -171,7 +172,7 @@ async function yapayZekaAnla({ metin, isletme, hizmetler, calisanlar, durum, bug
   const g = require('../utils/gemini');
   if (!g.anahtarlar().length) return null;
   const sistem = `Bir randevu asistanının ANLAMA katmanısın. Müşterinin son mesajından bilgileri çıkar; cevap yazma.
-Bugün: ${bugun} (${GUNLER[haftaGunu(bugun)]}). İşletme: ${isletme.isim}. Çalışma saatleri: ${s5(isletme.calisma_baslangic || '09:00')}-${s5(isletme.calisma_bitis || '19:00')}.
+Bugün: ${bugun} (${GUNLER[haftaGunu(bugun)]}). İşletme: ${isletme.isim}. Çalışma saatleri: ${require('../utils/gunSaatleri').haftaOzeti(isletme)}.
 Hizmetler (id: ad): ${hizmetler.map(h => `${h.id}: ${h.isim}`).join('; ')}
 Çalışanlar (id: ad): ${calisanlar.map(c => `${c.id}: ${c.isim}`).join('; ') || 'yok'}
 Bilinenler: hizmet=${durum.secilen_hizmet_id || 'yok'}, tarih=${durum.secilen_tarih || 'yok'}, saat=${durum.secilen_saat || 'yok'}. Asistanın son sorusu: ${durum.sohbet_bekleyen || 'yok'}.
@@ -348,7 +349,7 @@ async function sonrakiAdim({ wa, d, a, T, dil, isletme, hizmetler, calisanlar, r
     else {
       await kaydet(wa, musteriTelefon, isletmeId, 'sohbet', { ...alan, sohbet_bekleyen: 'hizmet' });
       // Tam liste numaralı ("2" yazmak yeter); adaylar madde işaretli (numaralar tam listeye göre)
-      const satir = (h, i) => `${d._adaylar ? '•' : `${i + 1}.`} ${h.isim}${Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat).toLocaleString('tr-TR')}₺` : ''}`;
+      const satir = (h, i) => `${d._adaylar ? '•' : `${i + 1}.`} ${h.isim}${Number(h.fiyat) > 0 ? ` · ${Number(h.fiyat).toLocaleString('tr-TR')}₺` : ''}${notSatiri(h)}`;
       const liste = (d._adaylar || hizmetler).slice(0, 15).map(satir).join('\n');
       // Canlı hata (2026-10-17): anlaşılmayan cevaba aynı liste 4 kez gitti; tekrar sorarken nasıl seçileceği söylenir
       if (d.sohbet_bekleyen === 'hizmet' && !d._adaylar && T.hizmetTekrar) return T.hizmetTekrar(liste);

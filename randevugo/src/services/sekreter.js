@@ -81,8 +81,9 @@ async function liste(isletme, tarih) {
 }
 
 async function kapat(isletme, k) {
-  const bas = k.bas || s5(isletme.calisma_baslangic || '09:00');
-  let bit = k.bit || s5(isletme.calisma_bitis || '19:00');
+  const gs = require('../utils/gunSaatleri').gunSaatleri(isletme, k.tarih);   // o günün saati (gün bazlı, 2026-10-29)
+  const bas = k.bas || gs.bas;
+  let bit = k.bit || gs.bit;
   if (kapanisDk(bas, bit) === 24 * 60) bit = '24:00'; // "00:00" kapanış: blok gün sonuna kadar sürsün (0. dakikada bitmesin)
   if (k.tarih < bugunTarih()) return 'Geçmiş bir gün kapatılamaz.';
   await pool.query(
