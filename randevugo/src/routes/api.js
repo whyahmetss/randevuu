@@ -659,6 +659,15 @@ router.post('/admin/masa/lead/:id/wa', ...saMw, (req, res) => masaController.waM
 router.get('/admin/masa/aktiviteler', ...saMw, (req, res) => masaController.aktiviteler(req, res));
 // Saha (2026-10-15): dükkânda hesap aç, açtığım hesabın paneline gir, satışçı kodlu QR kart
 router.post('/admin/masa/hesap-ac', ...saMw, (req, res) => masaController.hesapAc(req, res));
+// Ziyaret hazırla (2026-10-29): Google'dan bul → demo sayfa (gerçek saatlerle) → gitmeden kişiselleştir
+const ziyaretController = require('../controllers/ziyaretController');
+router.post('/admin/ziyaret/ara', ...saMw, (req, res) => ziyaretController.ara(req, res));
+router.post('/admin/ziyaret/hazirla', ...saMw, (req, res) => ziyaretController.hazirla(req, res));
+router.get('/admin/ziyaret/son', ...saMw, (req, res) => ziyaretController.son(req, res));
+router.get('/admin/ziyaret/:id', ...saMw, (req, res) => ziyaretController.getir(req, res));
+router.put('/admin/ziyaret/:id/hizmetler', ...saMw, (req, res) => ziyaretController.hizmetler(req, res));
+router.put('/admin/ziyaret/:id/gorsel', ...saMw, (req, res) => ziyaretController.gorsel(req, res));
+router.put('/admin/ziyaret/:id/bilgi', ...saMw, (req, res) => ziyaretController.bilgi(req, res));
 router.post('/admin/masa/hesap/:id/panel', ...saMw, (req, res) => masaController.hesapPanel(req, res));
 router.get('/admin/masa/qr-kart', ...saMw, (req, res) => masaController.qrKart(req, res));
 // Tek kişi düzeni (2026-10-16): bot sıcak adayı devreder; sabah özeti

@@ -13,7 +13,7 @@ const TEMA = {
 };
 
 // Fotoğraf tarayıcıda küçültülür: kapak 1600px, galeri 1400px genişlik; logo ve ekip fotoğrafı 400×400 kare (ortadan kırpılır)
-function kucult(dosya, tur) {
+export function kucult(dosya, tur) {
   return new Promise((coz, red) => {
     const img = new Image();
     img.onload = () => {
