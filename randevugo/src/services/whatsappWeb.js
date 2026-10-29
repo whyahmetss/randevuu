@@ -208,13 +208,13 @@ class WhatsAppWebService extends EventEmitter {
           this.isletmeler[isletmeId]._baslatiliyor = false;
           const numara = sock.user?.id?.split(':')[0] || sock.user?.id?.split('@')[0] || null;
           if (numara) {
-            // İlk bağlantıda booking_acik otomatik açılır — bir kez bağlanmış her işletme için
+            // booking_acik'e dokunulmaz (2026-10-29): sayfa WhatsApp'sız da açık, esnafın kapattığı da kapalı kalır
             await pool.query(
-              `UPDATE isletmeler SET whatsapp_no=$1, booking_acik=true WHERE id=$2`,
+              `UPDATE isletmeler SET whatsapp_no=$1 WHERE id=$2`,
               [`+${numara}`, isletmeId]
             );
           }
-          console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara}) — booking gate açık`);
+          console.log(`✅ WhatsApp bağlandı: ${isletmeIsim} (${numara})`);
           // Bağlantı geri geldi: açık WhatsApp uyarıları kendiliğinden kapanır
           const su = require('../utils/sistemUyari');
           su.coz(`alarm:WhatsApp çıkış: ${isletmeIsim}`); su.coz(`alarm:WhatsApp bağlanamıyor: ${isletmeIsim}`);

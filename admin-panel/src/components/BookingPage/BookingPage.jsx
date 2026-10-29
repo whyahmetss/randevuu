@@ -137,6 +137,15 @@ export default function BookingPage({ slug }) {
   // iPhone'da sayfa sonu esneyince (overscroll) açık zemin görünmesin: özel tasarımın zemini sayfa köküne de verilir.
   // Erken dönüşlerden (hata sayfası) önce: kanca sırası her çizimde aynı kalmalı
   const tsrMod = isletme?.tasarim ? (isletme.tasarim.stil?.mod === 'acik' ? 'acik' : 'koyu') : null;
+  // Satış için hazırlanan demo sayfa (esnaf henüz kabul etmedi) arama motorlarında çıkmasın (2026-10-29)
+  const demoSayfa = isletme?.demo === true;
+  useEffect(() => {
+    if (!demoSayfa) return;
+    const m = document.createElement('meta');
+    m.name = 'robots'; m.content = 'noindex, nofollow';
+    document.head.appendChild(m);
+    return () => m.remove();
+  }, [demoSayfa]);
   useEffect(() => {
     if (!tsrMod) return;
     const eski = document.documentElement.style.background;
@@ -627,7 +636,7 @@ export default function BookingPage({ slug }) {
             <div className="bk-error-page-icon">🚧</div>
             <div className="bk-error-page-title">{isletme?.isim || 'İşletme'}</div>
             <div className="bk-error-page-desc" style={{ marginTop: 12 }}>
-              Bu işletmenin online randevu sistemi henüz hazır değil.<br />
+              Bu işletme şu an online randevu almıyor.<br />
               Lütfen işletme ile doğrudan iletişime geçin.
             </div>
           </div>

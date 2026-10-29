@@ -1,18 +1,19 @@
 // Kurulum sihirbazı (2026-10-08): kayıt olan esnaf adım adım canlıya geçsin; takılana SıraGO merkez
 // WhatsApp numarasından 1., 3. ve 6. gün kısa bir yardım mesajı gitsin. Adımlar gerçek veriden okunur.
+// WhatsApp bağlantısı isteğe bağlı (2026-10-29): hesapları çoğu zaman satıcı açıp kuruyor; randevu sayfası
+// WhatsApp'sız da çalışır. Kurulum zorunlu adımlar bitince tamamlanır, WhatsApp için hatırlatma gitmez.
 const pool = require('../config/db');
 
 const PANEL = process.env.ADMIN_PANEL_URL || 'https://admin.xn--srago-n4a.com';
 const ADIMLAR = [
   { anahtar: 'hizmet', isim: 'Hizmetlerini ve fiyatlarını ekle', sayfa: 'hizmetler' },
   { anahtar: 'calisan', isim: 'Çalışanlarını ekle', sayfa: 'calisanlar' },
-  { anahtar: 'bot', isim: "WhatsApp'ını bağla (QR)", sayfa: 'botbaglanti' },
+  { anahtar: 'bot', isim: "WhatsApp'ını bağla (QR)", sayfa: 'botbaglanti', istege_bagli: true },
   { anahtar: 'randevu', isim: 'İlk randevunu al (linkini paylaş)', sayfa: 'qrkod' },
 ];
 const HATIRLATMA = {
   hizmet: "Merhaba, SıraGO hesabınız açık ama henüz hizmet eklenmemiş. Hizmet ve fiyatları girmeniz 2 dakika sürer, sonra müşterileriniz randevu alabilir:",
   calisan: 'Merhaba, SıraGO kurulumunuz neredeyse bitti. Sadece çalışanlarınızı (kendiniz dahil) eklemeniz kaldı:',
-  bot: "Merhaba, SıraGO'da hizmetleriniz hazır. WhatsApp'ınızı QR ile bağlarsanız müşterileriniz size yazarak randevu alabilir. Takılırsanız bu mesaja cevap yazın, birlikte yapalım:",
   randevu: 'Merhaba, SıraGO hesabınız hazır! Randevu linkinizi WhatsApp durumunuza ve Instagram profilinize koyarsanız ilk randevular gelmeye başlar:',
 };
 const GUNLER = [1, 3, 6];
@@ -26,9 +27,10 @@ async function kurulumDurum(isletmeId) {
       EXISTS (SELECT 1 FROM randevular x WHERE x.isletme_id = i.id) AS randevu
     FROM isletmeler i WHERE i.id = $1`, [isletmeId])).rows[0];
   if (!r) return null;
-  const adimlar = ADIMLAR.map(a => ({ ...a, tamam: !!r[a.anahtar] }));
-  const tamam = adimlar.filter(a => a.tamam).length;
-  return { adimlar, tamam, toplam: adimlar.length, bitti: tamam === adimlar.length, slug: r.slug, onay_modu: r.randevu_onay_modu || 'otomatik' };
+  const adimlar = ADIMLAR.map(a => ({ ...a, istege_bagli: !!a.istege_bagli, tamam: !!r[a.anahtar] }));
+  const zorunlu = adimlar.filter(a => !a.istege_bagli);
+  const tamam = zorunlu.filter(a => a.tamam).length;
+  return { adimlar, tamam, toplam: zorunlu.length, bitti: tamam === zorunlu.length, slug: r.slug, onay_modu: r.randevu_onay_modu || 'otomatik' };
 }
 
 // Saatlik çalışır; İstanbul saatiyle 11:00-19:59 arasında, eşiği geçmiş ve hâlâ eksik adımı olanlara bir kez yazar.
@@ -46,7 +48,7 @@ async function hatirlatmalariGonder({ gonder } = {}) {
     const esik = [...GUNLER].reverse().find(g => a.gun >= g);
     if (!esik) continue;
     const d = await kurulumDurum(a.id);
-    const eksik = d?.adimlar.find(x => !x.tamam);
+    const eksik = d?.adimlar.find(x => !x.tamam && !x.istege_bagli);
     if (!eksik) continue;
     // Önce kaydı al (aynı eşikte ikinci kez yazılmasın), sonra gönder
     const yeni = await pool.query(

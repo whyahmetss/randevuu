@@ -5330,12 +5330,14 @@ class AdminController {
           { anahtar: 'profil', isim: 'Profil Bilgileri', tamamlandi: profilTamam, aciklama: 'İşletme adı, telefon, kategori' },
           { anahtar: 'hizmet', isim: 'Hizmet Ekle', tamamlandi: hizmetVar, aciklama: 'En az 1 hizmet tanımlama' },
           { anahtar: 'calisan', isim: 'Çalışan Ekle', tamamlandi: calisanVar, aciklama: 'En az 1 çalışan tanımlama' },
-          { anahtar: 'bot', isim: 'WhatsApp Bot Bağla', tamamlandi: botBagli, aciklama: 'QR kod ile bot bağlantısı' },
+          { anahtar: 'bot', isim: 'WhatsApp Bot Bağla', tamamlandi: botBagli, aciklama: 'QR kod ile bot bağlantısı (isteğe bağlı)', istege_bagli: true },
           { anahtar: 'randevu', isim: 'İlk Randevu', tamamlandi: randevuVar, aciklama: 'İlk müşteri randevusu' }
         ];
 
-        const tamamlananAdim = adimlar.filter(a => a.tamamlandi).length;
-        const toplamAdim = adimlar.length;
+        // WhatsApp isteğe bağlı: yüzdeye sayılmaz
+        const zorunlu = adimlar.filter(a => !a.istege_bagli);
+        const tamamlananAdim = zorunlu.filter(a => a.tamamlandi).length;
+        const toplamAdim = zorunlu.length;
         const tamamYuzde = Math.round((tamamlananAdim / toplamAdim) * 100);
 
         return {

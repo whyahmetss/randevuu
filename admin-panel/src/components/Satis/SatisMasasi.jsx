@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { kart, dugme, sekmeStil, RENK, waTel, ilkMesaj, igAd, SONUC, saatTarih } from './ortak';
 import ItirazBankasi from './ItirazBankasi';
 import HesapAc, { panelAc } from './HesapAc';
+import ZiyaretHazirla from './ZiyaretHazirla';
 import QrKart from './QrKart';
 import SicakAdaylar from './SicakAdaylar';
 
@@ -148,6 +149,7 @@ export default function SatisMasasi({ api, kullanici }) {
   const [kopya, setKopya] = useState(false);
   const [hesapAday, setHesapAday] = useState(null);   // {} = adaysız (listede olmayan dükkân) | aday satırı
   const [qrAcik, setQrAcik] = useState(false);
+  const [ziyaretAcik, setZiyaretAcik] = useState(false);   // 🧭 gitmeden önce dükkânın sayfasını hazırla (2026-10-29)
   const [sicak, setSicak] = useState([]);
   const [ozetMetin, setOzetMetin] = useState(null);
 
@@ -187,6 +189,7 @@ export default function SatisMasasi({ api, kullanici }) {
           <p style={{ color: 'var(--dim)', fontSize: 13, margin: '4px 0 0' }}>Merhaba {kullanici?.isim || ''} — listeni ara, her aramanın sonucunu işaretle. İşaretlenmeyen arama sayılmaz.</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button onClick={() => setZiyaretAcik(true)} title="Gitmeden önce dükkânı Google'da bul, sayfasını gerçek bilgileriyle hazırla" style={dugme(RENK.mor, true)}>🧭 Ziyaret hazırla</button>
           <button onClick={() => setHesapAday({})} title="Listende olmayan dükkânda da açılır" style={dugme(RENK.yesil, true)}>🏪 Sahada hesap aç</button>
           <button onClick={() => setQrAcik(true)} title="Sana özel QR kart: okutan esnaf sana yazılır" style={dugme(RENK.mor)}>🎴 QR kartım</button>
           <button onClick={async () => { const d = await api.get('/admin/masa/sabah-ozeti'); if (d?.hata) return alert(d.hata); setOzetMetin(d.metin); }}
@@ -204,6 +207,7 @@ export default function SatisMasasi({ api, kullanici }) {
       </div>
       {hesapAday && <HesapAc api={api} aday={hesapAday.id ? hesapAday : null} onKapat={() => setHesapAday(null)} onAcildi={() => yenile()} />}
       {qrAcik && <QrKart api={api} onKapat={() => setQrAcik(false)} />}
+      {ziyaretAcik && <ZiyaretHazirla api={api} onKapat={() => { setZiyaretAcik(false); yenile(); }} />}
 
       <SicakAdaylar api={api} adaylar={sicak} yenile={yenile} />
       {ozetMetin && (
