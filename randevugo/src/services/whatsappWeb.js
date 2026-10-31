@@ -665,6 +665,9 @@ class WhatsAppWebService extends EventEmitter {
     if (!state || state.durum !== 'bagli') return { success: false, hata: 'Bağlı değil' };
     // Demo verisinin numaralarına asla mesaj gitmez (utils/demoTel)
     if (require('../utils/demoTel').demoNumaraMi(hedef)) return { success: false, hata: 'Demo numarası — gönderilmedi' };
+    // Numarasız "kapıdan gelen" (kapi52…) ya da Telegram (tg:…) müşterisi: WhatsApp'a gönderilmez. Canlı hata (2026-10-31):
+    // 15 dk hatırlatması kapi… adresine gidince sendMessage 25 sn asılı kaldı, o sırada gelen müşteri mesajı da cevapsız kaldı.
+    if (!String(hedef).includes('@') && !/^\+?\d{8,15}$/.test(String(hedef))) return { success: false, hata: 'WhatsApp numarası değil — gönderilmedi' };
     try {
       const jid = hedef.includes('@') ? hedef : `${hedef.replace(/^\+/, '')}@s.whatsapp.net`;
 

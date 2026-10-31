@@ -47,3 +47,28 @@ test('gemini: toplam süre aşılmaz (her model ayrı ayrı beklenmez)', async (
   assert.ok(n <= 2, `yalnız süre içinde deneme yapılır (${n})`);
   delete process.env.GEMINI_API_KEYS;
 });
+
+test('gemini: zaman aşımına düşen model süreyi tek başına yemez, sıradaki model denenir ve sonraki çağrılarda önce o', async (t) => {
+  process.env.GEMINI_API_KEYS = 'a';
+  delete process.env.GEMINI_MODEL;
+  const g = yeni();
+  const istenen = [];
+  // Canlı (2026-10-31): gemini-flash-latest her istekte asılı kaldı, mesaj başına 24 sn
+  t.mock.method(global, 'fetch', (url, { signal }) => {
+    const model = url.match(/models\/([^:]+):/)[1];
+    istenen.push(model);
+    if (model === 'gemini-flash-latest') return new Promise((_, red) => signal.addEventListener('abort', () => red(signal.reason)));
+    return Promise.resolve(cevap(200, { candidates: [{ content: { parts: [{ text: 'hızlı' }] } }] }));
+  });
+  t.mock.method(console, 'error', () => {});
+  const tut = setTimeout(() => {}, 15000);
+  const bas = Date.now();
+  assert.strictEqual(g.metniAl(await g.geminiIstek({}, { sure: 10000 })), 'hızlı', 'süre bitmeden ikinci model cevap verir');
+  assert.ok(Date.now() - bas < 7500, `ilk deneme sürenin yarısıyla (6 sn) sınırlı: ${Date.now() - bas} ms`);
+  assert.deepStrictEqual(istenen, ['gemini-flash-latest', 'gemini-flash-lite-latest']);
+  istenen.length = 0;
+  await g.geminiIstek({}, { sure: 10000 });
+  clearTimeout(tut);
+  assert.deepStrictEqual(istenen, ['gemini-flash-lite-latest'], 'yavaş model 10 dk sona alınır');
+  delete process.env.GEMINI_API_KEYS;
+});
