@@ -9,7 +9,16 @@ const anahtarlar = () => String(process.env.GEMINI_API_KEYS || process.env.GEMIN
 const SABIT = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-3.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 const olu = new Set();   // 404 veren modeller: süreç boyunca bir daha denenmez
 let onerilen = null;     // Google'ın 404 mesajında önerdiği model
-const modeller = () => [...new Set([process.env.GEMINI_MODEL, onerilen, ...SABIT].filter(Boolean))].filter(m => !olu.has(m));
+// Canlı hata (2026-10-31): gemini-flash-latest her istekte zaman aşımına düştü; ilk deneme bütün süreyi yiyordu, mesaj
+// başına iki çağrıyla müşteri 24 sn bekledi. Tek deneme sürenin yarısıyla (en az 6 sn) sınırlı; zaman aşımına düşen model
+// 10 dk listenin sonuna alınır (aynı çağrıda ve sonrakilerde önce sıradaki model denenir).
+const YAVAS_CEZA_MS = 10 * 60 * 1000;
+const yavas = new Map();   // model → bu zamana kadar sonda
+const modeller = () => {
+  const l = [...new Set([process.env.GEMINI_MODEL, onerilen, ...SABIT].filter(Boolean))].filter(m => !olu.has(m));
+  const ceza = (m) => (yavas.get(m) || 0) > Date.now();
+  return [...l.filter(m => !ceza(m)), ...l.filter(ceza)];
+};
 let siradaki = 0;   // anahtarları sırayla kullan: kota tek anahtarda erimesin
 let sonHata = null;
 
@@ -17,6 +26,7 @@ async function geminiIstek(govde, { sure = 30000 } = {}) {
   const liste = anahtarlar();
   if (!liste.length) return null;
   const bitis = Date.now() + sure;   // tüm denemeler için toplam süre
+  const tekDeneme = Math.max(6000, Math.floor(sure / 2));
   const denemeler = [];
   const bas = siradaki++ % liste.length;
   anahtar: for (let i = 0; i < liste.length; i++) {
@@ -32,7 +42,7 @@ async function geminiIstek(govde, { sure = 30000 } = {}) {
       try {
         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-          signal: AbortSignal.timeout(kalan), body: JSON.stringify(govde),
+          signal: AbortSignal.timeout(Math.min(kalan, tekDeneme)), body: JSON.stringify(govde),
         });
         if (r.ok) { sonHata = null; return await r.json(); }
         const metin = (await r.text().catch(() => '')).slice(0, 300);
@@ -49,6 +59,7 @@ async function geminiIstek(govde, { sure = 30000 } = {}) {
         break;                                                // 400/401/403: bu anahtar geçersiz → sıradaki anahtar
       } catch (e) {
         denemeler.push(`k${no + 1}·${model}:${e.name === 'TimeoutError' ? 'zaman aşımı' : 'ağ'}`);
+        if (e.name === 'TimeoutError') yavas.set(model, Date.now() + YAVAS_CEZA_MS);
         sonHata = { kod: 'ağ', mesaj: e.message };
       }
     }
